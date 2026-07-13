@@ -9,6 +9,8 @@ import { PmPaymentRequest } from '../../../services/paymentService'
 import { useDocuments } from '../../../hooks/useDocuments'
 import { useAuth } from '@/features/auth/AuthContext'
 import { formatTenantName } from '@/lib/utils'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 
 interface CreatePaymentRequestModalProps {
   isOpen: boolean;
@@ -305,25 +307,38 @@ export function CreatePaymentRequestModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ padding: 10, background: 'var(--forest-faint)', borderRadius: 12, color: 'var(--forest)' }}>
-              <CreditCard size={20} />
-            </div>
-            <div>
-              <h2 className="modal__title">{isEditing ? 'Edit Payment Request' : 'Request Payment'}</h2>
-              <p className="modal__desc">Unit {unit.unitName} • {unit.tenant ? formatTenantName(unit.tenant) : 'No Tenant'}</p>
-              {!unit.isSynced && (
-                <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 4, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span>⚠️</span> Unit must be synced to Upward Pay for this request to succeed.
-                </p>
-              )}
-            </div>
-          </div>
-          <button onClick={onClose}><X size={20} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit Payment Request' : 'Request Payment'}
+      subtitle={`Unit ${unit.unitName} • ${unit.tenant ? formatTenantName(unit.tenant) : 'No Tenant'}`}
+      icon={CreditCard}
+      maxWidth={600}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn--primary"
+            style={{ flex: 1 }}
+            onClick={handleSubmit}
+            disabled={createMutation.isPending || updateMutation.isPending || !unit.isSynced}
+          >
+            {createMutation.isPending || updateMutation.isPending ? 'Processing...' :
+              !unit.isSynced ? 'Sync Required' :
+                (!isEditing && selectedTemplateUuid) ? 'Proceed to Editor' :
+                  isEditing ? 'Update Request' : 'Send Request'}
+          </button>
         </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {!unit.isSynced && (
+          <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 4, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>⚠️</span> Unit must be synced to Upward Pay for this request to succeed.
+          </p>
+        )}
 
         {!hasBankDetails && (
           <div style={{
@@ -398,15 +413,14 @@ export function CreatePaymentRequestModal({
         {lineItems.some(item => item.name === 'Rent') && (
           <div className="form-group" style={{ marginTop: 8, marginBottom: 24 }}>
             <label className="form-label">Rent Type (Frequency)</label>
-            <select
-              className="form-input"
+            <FormSelect
               value={rentType}
-              onChange={(e) => setRentType(e.target.value)}
-              style={{ background: 'var(--surface-hover)', fontWeight: 600, borderRadius: 12 }}
-            >
-              <option value="ANNUALLY">Annually</option>
-              <option value="MONTHLY">Monthly</option>
-            </select>
+              onChange={(val) => setRentType(val)}
+              options={[
+                { label: 'Annually', value: 'ANNUALLY' },
+                { label: 'Monthly', value: 'MONTHLY' }
+              ]}
+            />
             <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
               <span style={{ color: 'var(--clay)' }}>ℹ️</span> This determines how the next due date is calculated after payment.
             </p>
@@ -581,15 +595,15 @@ export function CreatePaymentRequestModal({
               {isRecurring && (
                 <div>
                   <label className="form-label" style={{ fontSize: 12 }}>Repeat Interval</label>
-                  <select
-                    className="form-input"
+                  <FormSelect
                     value={recurrenceInterval}
-                    onChange={(e) => setRecurrenceInterval(e.target.value)}
-                  >
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="QUARTERLY">Quarterly</option>
-                    <option value="YEARLY">Yearly</option>
-                  </select>
+                    onChange={(val) => setRecurrenceInterval(val)}
+                    options={[
+                      { label: 'Monthly', value: 'MONTHLY' },
+                      { label: 'Quarterly', value: 'QUARTERLY' },
+                      { label: 'Yearly', value: 'YEARLY' }
+                    ]}
+                  />
                 </div>
               )}
             </div>
@@ -601,54 +615,34 @@ export function CreatePaymentRequestModal({
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <AlertCircle size={14} color="var(--clay)" /> Automated Reminders
             </label>
-            <select
-              className="form-input"
-              style={{ borderRadius: 12, background: 'var(--surface-hover)', fontWeight: 600 }}
+            <FormSelect
               value={reminderFrequency}
-              onChange={(e) => setReminderFrequency(e.target.value)}
-            >
-              <option value="NONE">No Reminders</option>
-              <option value="DAILY">Every Day</option>
-              <option value="EVERY_2_DAYS">Every 2 Days</option>
-              <option value="WEEKLY">Every Week</option>
-            </select>
+              onChange={(val) => setReminderFrequency(val)}
+              options={[
+                { label: 'No Reminders', value: 'NONE' },
+                { label: 'Every Day', value: 'DAILY' },
+                { label: 'Every 2 Days', value: 'EVERY_2_DAYS' },
+                { label: 'Every Week', value: 'WEEKLY' }
+              ]}
+            />
           </div>
 
           {!isEditing && (
             <div className="form-group">
               <label className="form-label">Follow-up Document</label>
-              <select
-                className="form-input"
-                style={{ borderRadius: 12, background: 'var(--surface-hover)' }}
+              <FormSelect
                 value={selectedTemplateUuid}
-                onChange={(e) => setSelectedTemplateUuid(e.target.value)}
-              >
-                <option value="">Select template (Optional)</option>
-                {templates.map((t: any) => (
-                  <option key={t.uuid} value={t.uuid}>{t.name}</option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedTemplateUuid(val)}
+                options={[
+                  { label: 'Select template (Optional)', value: '' },
+                  ...templates.map((t: any) => ({ label: t.name, value: t.uuid }))
+                ]}
+              />
             </div>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className="btn btn--primary"
-            style={{ flex: 1 }}
-            onClick={handleSubmit}
-            disabled={createMutation.isPending || updateMutation.isPending || !unit.isSynced}
-          >
-            {createMutation.isPending || updateMutation.isPending ? 'Processing...' :
-              !unit.isSynced ? 'Sync Required' :
-                (!isEditing && selectedTemplateUuid) ? 'Proceed to Editor' :
-                  isEditing ? 'Update Request' : 'Send Request'}
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

@@ -12,7 +12,7 @@ export class RetryEmailUseCase {
   ) {}
 
   async execute(logId: string, requesterId: string) {
-    const log = await this.prisma.upward_email_log.findUnique({
+    const log = await this.prisma.upward_communication_log.findUnique({
       where: { id: logId },
     })
 

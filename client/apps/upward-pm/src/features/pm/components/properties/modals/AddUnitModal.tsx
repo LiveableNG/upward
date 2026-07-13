@@ -5,6 +5,7 @@ import { X, UserPlus, Users, Home, Calendar, CreditCard, ClipboardList } from 'l
 import { Property } from '../../../services/propertyService'
 import { useTenants } from '../../../hooks/useTenants'
 import { PhoneInput } from '@/components/common/PhoneInput'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
 
@@ -128,15 +129,12 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
 
           <div className="form-group">
             <label className="form-label" style={{ fontSize: 11 }}>Select Target Property</label>
-            <select
-              className="form-input"
-              style={{ fontSize: 13, padding: '10px 14px' }}
+            <FormSelect
               value={targetPropertyUuid}
-              onChange={e => setTargetPropertyUuid(e.target.value)}
-            >
-              <option value="">-- Choose Property --</option>
-              {properties.map(p => <option key={p.uuid} value={p.uuid}>{p.name}</option>)}
-            </select>
+              onChange={setTargetPropertyUuid}
+              options={properties.map(p => ({ label: p.name, value: p.uuid }))}
+              placeholder="-- Choose Property --"
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -161,20 +159,19 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             </div>
             <div className="form-group">
               <label className="form-label" style={{ fontSize: 11 }}>Unit Type</label>
-              <select
-                className="form-input"
-                style={{ fontSize: 13, padding: '10px 14px' }}
+              <FormSelect
                 value={formData.unitType}
-                onChange={e => setFormData({ ...formData, unitType: e.target.value })}
-              >
-                <option value="">Select Type</option>
-                <option value="Flat / Apartment">Flat / Apartment</option>
-                <option value="Duplex">Duplex</option>
-                <option value="Studio">Studio</option>
-                <option value="Bungalow">Bungalow</option>
-                <option value="Town House">Town House</option>
-                <option value="Office Space">Office Space</option>
-              </select>
+                onChange={val => setFormData({ ...formData, unitType: val })}
+                options={[
+                  { label: 'Flat / Apartment', value: 'Flat / Apartment' },
+                  { label: 'Duplex', value: 'Duplex' },
+                  { label: 'Studio', value: 'Studio' },
+                  { label: 'Bungalow', value: 'Bungalow' },
+                  { label: 'Town House', value: 'Town House' },
+                  { label: 'Office Space', value: 'Office Space' }
+                ]}
+                placeholder="Select Type"
+              />
             </div>
           </div>
 
@@ -227,12 +224,10 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
               {tenantMode === 'EXISTING' ? (
                 <div className="form-group">
                   <label className="form-label" style={{ fontSize: 11 }}>Select Existing Tenant</label>
-                  <select 
-                    className="form-input"
-                    style={{ fontSize: 13, padding: '10px 14px' }}
+                  <FormSelect
                     value={formData.tenantUuid || ''}
-                    onChange={e => {
-                      const selected = tenants.find(t => t.uuid === e.target.value)
+                    onChange={val => {
+                      const selected = tenants.find(t => t.uuid === val)
                       if (selected) {
                         setFormData({
                           ...formData,
@@ -244,12 +239,9 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                         })
                       }
                     }}
-                  >
-                    <option value="">-- Choose Tenant --</option>
-                    {tenants.map(t => (
-                      <option key={t.uuid} value={t.uuid}>{t.firstName} {t.lastName} ({t.email})</option>
-                    ))}
-                  </select>
+                    options={tenants.map(t => ({ label: `${t.firstName} ${t.lastName} (${t.email})`, value: t.uuid }))}
+                    placeholder="-- Choose Tenant --"
+                  />
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -318,15 +310,16 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: 11 }}>Rent Cycle</label>
-                    <select
-                      className={cn("form-input", !formData.rentType && "form-input--error")}
-                      style={{ fontSize: 13, padding: '10px 14px' }}
+                    <FormSelect
+                      className={cn(!formData.rentType && "form-input--error")}
                       value={formData.rentType}
-                      onChange={e => setFormData({ ...formData, rentType: e.target.value })}
-                    >
-                      <option value="Annually">Annually</option>
-                      <option value="Monthly">Monthly</option>
-                    </select>
+                      onChange={val => setFormData({ ...formData, rentType: val })}
+                      options={[
+                        { label: 'Annually', value: 'Annually' },
+                        { label: 'Monthly', value: 'Monthly' }
+                      ]}
+                      placeholder="Select Rent Cycle"
+                    />
                   </div>
                 </div>
 

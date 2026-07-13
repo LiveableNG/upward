@@ -19,6 +19,7 @@ import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import { useProperties, useBulkCreateUnits, useBulkFullImport } from '@/features/pm/hooks/useProperties'
 import { isValidPhoneNumber } from 'libphonenumber-js'
+import { downloadBlob } from '@/lib/download-helper'
 
 type ImportMode = 'full' | 'units'
 
@@ -196,14 +197,9 @@ export const DataImportTab: React.FC = () => {
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.setAttribute('href', url)
-    link.setAttribute('download', `upward_${mode}_import_template.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    success('Template downloaded!')
+    downloadBlob(blob, `upward_${mode}_import_template.csv`).then(() => {
+      success('Template downloaded!')
+    }).catch((err: any) => console.error(err))
   }
 
   const validateCell = (rowId: number, field: string, value: any, colDef?: ColumnDef, silent = false, rowData?: any) => {

@@ -112,6 +112,49 @@
   border-radius: 4px 0 0 4px;
 }
 
+.sidebar__item {
+  position: relative;
+}
+
+.sidebar__tooltip {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(10px);
+  background: var(--dark);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  pointer-events: none;
+}
+
+.sidebar__tooltip::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 4px 4px 4px 0;
+  border-style: solid;
+  border-color: transparent var(--dark) transparent transparent;
+}
+
+@media (min-width: 1025px) {
+  .sidebar--collapsed .sidebar__item:hover .sidebar__tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
 .sidebar__section--bottom {
   margin-top: auto;
   padding-bottom: var(--space-6);
@@ -177,37 +220,39 @@
   background: var(--border);
 }
 
-.sidebar--collapsed {
-  width: 80px;
-}
+@media (min-width: 1025px) {
+  .sidebar--collapsed {
+    width: 80px;
+  }
 
-.sidebar--collapsed .sidebar__brand,
-.sidebar--collapsed .sidebar__section-title,
-.sidebar--collapsed .sidebar__link span,
-.sidebar--collapsed .sidebar__add-btn span {
-  display: none;
-}
+  .sidebar--collapsed .sidebar__brand,
+  .sidebar--collapsed .sidebar__section-title,
+  .sidebar--collapsed .sidebar__link span,
+  .sidebar--collapsed .sidebar__add-btn span {
+    display: none;
+  }
 
-.sidebar--collapsed .sidebar__header {
-  padding: var(--space-10) var(--space-4);
-  justify-content: center;
-}
+  .sidebar--collapsed .sidebar__header {
+    padding: var(--space-10) var(--space-4);
+    justify-content: center;
+  }
 
-.sidebar--collapsed .sidebar__nav {
-  padding: 0 var(--space-2);
-}
+  .sidebar--collapsed .sidebar__nav {
+    padding: 0 var(--space-2);
+  }
 
-.sidebar--collapsed .sidebar__link {
-  justify-content: center;
-  padding: var(--space-3) 0;
-}
+  .sidebar--collapsed .sidebar__link {
+    justify-content: center;
+    padding: var(--space-3) 0;
+  }
 
-.sidebar--collapsed .sidebar__add-btn {
-  padding: var(--space-4) 0;
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  margin: 0 auto var(--space-6);
+  .sidebar--collapsed .sidebar__add-btn {
+    padding: var(--space-4) 0;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    margin: 0 auto var(--space-6);
+  }
 }
 
 .sidebar__collapse-toggle {

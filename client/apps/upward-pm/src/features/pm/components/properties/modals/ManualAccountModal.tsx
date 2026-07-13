@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -113,47 +114,62 @@ export function ManualAccountModal({ isOpen, onClose, propertyId, propertyName }
   })
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Configure Manual Payment">
-      <div className="p-6">
-        <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border-solid)] mb-6 flex items-center gap-3">
-          <Building className="text-[var(--text-muted)]" size={20} />
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="Configure Manual Payment"
+      footer={
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
+          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isPending}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn--primary" onClick={handleSubmit((data) => addAccount(data))} disabled={isPending || !isConfirmed}>
+            {isPending ? 'Saving...' : 'Save Account'}
+          </button>
+        </div>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ background: 'var(--surface)', padding: 16, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Building size={20} color="var(--text-muted)" />
           <div>
-            <p className="text-sm font-bold">{propertyName}</p>
-            <p className="text-xs text-[var(--text-muted)]">Configure a bank account for direct rent transfers.</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{propertyName}</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Configure a bank account for direct rent transfers.</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit((data) => addAccount(data))} className="space-y-4">
-          <div className="form-group">
-            <label className="form-label text-sm font-bold">Select Bank</label>
-            <select {...register('bankCode')} className="form-input">
-              <option value="">Choose a bank...</option>
-              {dedupeBanksByCode(banks).map(bank => (
-                <option key={bank.code} value={bank.code}>{bank.name}</option>
-              ))}
-            </select>
-            {errors.bankCode && <span className="text-error text-xs mt-1 block">{errors.bankCode.message}</span>}
+        <form onSubmit={handleSubmit((data) => addAccount(data))}>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="form-label" style={{ fontSize: 13, fontWeight: 700 }}>Select Bank</label>
+            <FormSelect 
+              value={selectedBankCode || ''}
+              onChange={val => setValue('bankCode', val, { shouldValidate: true })}
+              options={dedupeBanksByCode(banks).map(bank => ({ label: bank.name, value: bank.code }))}
+              placeholder="Choose a bank..."
+            />
+            {errors.bankCode && <span style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, display: 'block' }}>{errors.bankCode.message}</span>}
           </div>
 
-          <div className="form-group">
-            <label className="form-label text-sm font-bold">Account Number</label>
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label className="form-label" style={{ fontSize: 13, fontWeight: 700 }}>Account Number</label>
             <input 
               {...register('accountNumber')} 
-              className="form-input font-mono" 
+              className="form-input" 
+              style={{ fontFamily: 'monospace' }}
               placeholder="0000000000"
               maxLength={10}
             />
-            {errors.accountNumber && <span className="text-error text-xs mt-1 block">{errors.accountNumber.message}</span>}
+            {errors.accountNumber && <span style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, display: 'block' }}>{errors.accountNumber.message}</span>}
           </div>
 
           {isVerifying && (
-            <div className="flex items-center gap-2 text-sm text-[var(--clay)]">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--clay)' }}>
               <Loader2 size={16} className="animate-spin" /> Verifying account...
             </div>
           )}
 
           {isConfirmed && !isVerifying && (
-            <div className="bg-[var(--success-faint)] text-[var(--success)] p-3 rounded-lg flex items-center gap-2 border border-green-200">
+            <div style={{ background: 'var(--success-faint)', color: 'var(--success)', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #bbf7d0' }}>
               <CheckCircle2 size={18} />
               <div className="flex-1 overflow-hidden">
                 <p className="text-xs font-semibold">Account Verified</p>
@@ -161,15 +177,6 @@ export function ManualAccountModal({ isOpen, onClose, propertyId, propertyName }
               </div>
             </div>
           )}
-
-          <div className="pt-4 flex justify-end gap-3 border-t border-[var(--border-solid)] mt-6">
-            <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isPending}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn--primary" disabled={isPending || !isConfirmed}>
-              {isPending ? 'Saving...' : 'Save Account'}
-            </button>
-          </div>
         </form>
       </div>
     </Modal>

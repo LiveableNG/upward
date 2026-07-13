@@ -1,0 +1,50 @@
+/* PageHeader Styles */
+.upward-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 20px;
+}
+
+.upward-page-header__content {
+  flex: 1;
+}
+
+.upward-page-header__title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--dark);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.upward-page-header__subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.upward-page-header__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  /* Fix Page Header and Control Bar Overflow */
+  .upward-page-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .upward-page-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .upward-page-header__actions .btn {
+    flex: 1;
+  }
+}

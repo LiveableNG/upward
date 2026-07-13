@@ -20,8 +20,13 @@ export class GetEmailLogsUseCase {
   }) {
     const { email, type, status, acquisition, page = 1, limit = 10 } = query
     const skip = (page - 1) * limit
-    const where: Prisma.upward_email_logWhereInput = {
-      ...(email ? { email: { contains: email, mode: 'insensitive' as const } } : {}),
+    const where: Prisma.upward_communication_logWhereInput = {
+      ...(email ? { 
+        OR: [
+          { email: { contains: email, mode: 'insensitive' as const } },
+          { recipient: { contains: email, mode: 'insensitive' as const } }
+        ]
+      } : {}),
       ...(type && type !== 'All'
         ? type === 'CAMPAIGN'
           ? { type: { startsWith: 'CAMPAIGN' } }
@@ -40,7 +45,7 @@ export class GetEmailLogsUseCase {
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.upward_email_log.findMany({
+      this.prisma.upward_communication_log.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip,
@@ -54,7 +59,7 @@ export class GetEmailLogsUseCase {
           },
         },
       }),
-      this.prisma.upward_email_log.count({ where }),
+      this.prisma.upward_communication_log.count({ where }),
     ])
 
     const decryptedData = data.map((log) => {

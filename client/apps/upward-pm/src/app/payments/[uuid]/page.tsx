@@ -1,5 +1,15 @@
-import { PaymentDetailView } from '@/features/pm/components/payments/PaymentDetailView'
+import React, { Suspense } from 'react';
+import ClientPage from './page.client';
 
-export default async function PaymentPage() {
-  return <PaymentDetailView />
+export function generateStaticParams() {
+  return [{ uuid: 'placeholder' }];
+}
+
+export default function Page({ params }: any) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      {/* @ts-ignore */}
+      <ClientPage params={params} />
+    </Suspense>
+  );
 }

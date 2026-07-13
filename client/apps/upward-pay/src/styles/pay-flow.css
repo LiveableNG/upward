@@ -221,7 +221,10 @@
   border: 1.5px solid #f0e9df;
   background: #fff;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
   width: 100%;
   text-align: left;
   font-family: inherit;
@@ -679,21 +682,24 @@
 .pay-flow__slider {
   position: absolute;
   cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #cbd5e1;
-  transition: .2s;
+  transition: 0.2s;
   border-radius: 20px;
 }
 
 .pay-flow__slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 16px;
   width: 16px;
   left: 2px;
   bottom: 2px;
   background-color: white;
-  transition: .2s;
+  transition: 0.2s;
   border-radius: 50%;
 }
 
@@ -704,7 +710,6 @@
 .pay-flow__switch input:checked + .pay-flow__slider:before {
   transform: translateX(18px);
 }
-
 
 .pay-flow__line-item-row {
   flex: 1;
@@ -771,7 +776,9 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .pay-flow__icon-btn:hover {
@@ -871,7 +878,6 @@
   text-align: center;
   font-weight: 500;
 }
-
 
 /* Confirm step */
 .pay-flow__confirm-header {
@@ -1133,7 +1139,9 @@
   justify-content: center;
   gap: 8px;
   box-shadow: 0 12px 24px -12px rgba(194, 80, 31, 0.55);
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .pay-flow__cta:hover:not(:disabled) {
@@ -1450,7 +1458,6 @@
   }
 }
 
-
 /* StepAmount — compact balance strip (replaces BalancePanel grid) */
 .pay-flow__balance-strip {
   display: flex;
@@ -1737,7 +1744,9 @@
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
 }
 

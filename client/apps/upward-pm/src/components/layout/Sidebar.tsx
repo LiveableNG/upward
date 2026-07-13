@@ -95,7 +95,6 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                         'sidebar__link',
                         isActive && 'sidebar__link--active'
                       )}
-                      title={isCollapsed ? item.label : undefined}
                       onClick={onClose}
                     >
                       <div className="sidebar__link-icon-wrap">
@@ -112,6 +111,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                           )}
                         </>
                       )}
+                      <div className="sidebar__tooltip">{item.label}</div>
                     </Link>
                   </li>
                 )

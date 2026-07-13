@@ -1,0 +1,34 @@
+.dashboard {
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.dashboard__header {
+  margin-bottom: var(--space-8);
+}
+
+.dashboard__title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  margin-bottom: var(--space-1);
+}
+
+.dashboard__subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.dashboard__content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .dashboard__content {
+    grid-template-columns: 1fr;
+  }
+}

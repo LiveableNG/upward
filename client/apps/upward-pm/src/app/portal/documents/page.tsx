@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { DocumentManagementView } from '@/features/pm/components/documents/DocumentManagementView'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
-import { Splash } from '@/components/common/Splash'
+import { ListSkeleton } from '@/components/skeletons'
 
 export default function LandlordDocumentManagementPage() {
   const router = useRouter()
@@ -60,7 +60,7 @@ export default function LandlordDocumentManagementPage() {
   }
 
   return (
-    <Suspense fallback={<Splash />}>
+    <Suspense fallback={<ListSkeleton />}>
       <div className="container" style={{ padding: '24px 40px' }}>
         {view === 'list' && (
           <button 

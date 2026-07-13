@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 
-// Feature Components
+
 import FilterToolbar, { type DateFilter } from '../features/dashboard/components/FilterToolbar'
 import { UsersTable, type UnifiedUserRecord } from '../features/dashboard/components/UsersTable'
 import { PmsTable } from '../features/dashboard/components/PmsTable'
@@ -82,8 +82,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [deleting, setDeleting] = useState(false)
 
   // ── Unified Users filters ──────────────────────────────────────
-  const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest'>('signedUp')
-  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited_email' | 'invited_phone'>('all')
+  const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest' | 'unsynced'>('signedUp')
+  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -206,12 +206,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     if (selectedUserIds.size === paginatedItems.length) {
       setSelectedUserIds(new Set())
     } else {
-      setSelectedUserIds(new Set(paginatedItems.map((item: any) => item.id)))
+      setSelectedUserIds(new Set(paginatedItems.map((item: any) => item.uuid)))
     }
   }
 
-  // ── Preview Drawer helpers ─────────────────────────────────────
-  // ── Preview Drawer helpers ─────────────────────────────────────
+
   const openDrawerForUser = (item: UnifiedUserRecord | any) => {
     let userStatus = 'PENDING_TENANT'
     let userType = 'PENDING_TENANT'
@@ -266,7 +265,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
   }
 
-  // ── Unified Users List Compiler ──────────────────────────────────
+
   const unifiedUsers = useMemo((): UnifiedUserRecord[] => {
     const list: UnifiedUserRecord[] = []
 
@@ -279,6 +278,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: w.email,
         phone: w.phone,
         createdAt: w.createdAt,
+        joinedAt: null, // Waitlist never has a password or a joined date
         origin: 'WAITLIST',
         hasPassword: false,
         isExWaitlist: false,
@@ -298,9 +298,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: u.email,
         phone: u.phone,
         createdAt: u.createdAt,
-        origin: u.originType === 'INVITED_EMAIL' ? 'INVITED_EMAIL' : u.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : u.isWaitlist ? 'WAITLIST' : 'SELF_REGISTERED',
-        hasPassword: true,
-        isExWaitlist: u.isWaitlist,
+        joinedAt: u.joinedAt, // Mapped from backend
+        origin: u.origin || 'SELF_REGISTERED',
+        hasPassword: u.hasPassword ?? true,
+        isExWaitlist: u.origin === 'WAITLIST',
         totalPaid: u.totalPaid,
         rentExpiryDate: u.rentExpiryDate,
         pms: u.pms,
@@ -309,7 +310,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
 
     invitedList.forEach((i) => {
-      const isSignedUp = i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
       list.push({
         id: i.id,
         uuid: i.uuid,
@@ -318,9 +318,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
-        origin: i.originType === 'INVITED_PHONE' ? 'INVITED_PHONE' : 'INVITED_EMAIL',
-        hasPassword: isSignedUp,
-        isExWaitlist: false,
+        joinedAt: i.joinedAt, // Mapped from backend
+        origin: i.origin || 'INVITED_EMAIL',
+        hasPassword: i.hasPassword ?? false,
+        isExWaitlist: i.origin === 'WAITLIST',
         pms: i.pms,
         totalPaid: i.totalPaid,
         rentExpiryDate: i.rentExpiryDate,
@@ -334,7 +335,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const subtabUsers = useMemo(() => {
     return unifiedUsers.filter((u) => {
       if (usersSubtab === 'signedUp') return u.hasPassword
-      return !u.hasPassword
+      if (usersSubtab === 'guest') return !u.hasPassword && u.rawRecord?.isSynced !== false
+      if (usersSubtab === 'unsynced') return u.rawRecord?.isSynced === false
+      return false
     })
   }, [unifiedUsers, usersSubtab])
 
@@ -355,22 +358,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const originCounts = useMemo(() => {
     let waitlist = 0
     let selfRegistered = 0
-    let invitedEmail = 0
-    let invitedPhone = 0
+    let invited = 0
 
     usersFilteredByPm.forEach((u) => {
       if (u.origin === 'WAITLIST') waitlist++
       else if (u.origin === 'SELF_REGISTERED') selfRegistered++
-      else if (u.origin === 'INVITED_EMAIL') invitedEmail++
-      else if (u.origin === 'INVITED_PHONE') invitedPhone++
+      else if (u.origin === 'INVITED_EMAIL' || u.origin === 'INVITED_PHONE') invited++
     })
 
     return {
       all: usersFilteredByPm.length,
       waitlist,
       selfRegistered,
-      invitedEmail,
-      invitedPhone,
+      invited,
     }
   }, [usersFilteredByPm])
 
@@ -379,8 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited_email' && u.origin !== 'INVITED_EMAIL') return false
-      if (originFilter === 'invited_phone' && u.origin !== 'INVITED_PHONE') return false
+      if (originFilter === 'invited' && u.origin !== 'INVITED_EMAIL' && u.origin !== 'INVITED_PHONE') return false
       return true
     })
   }, [usersFilteredByPm, originFilter])
@@ -411,17 +410,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     let worksheetData: any[] = []
     if (activeTab === 'users') {
-      worksheetData = filteredUsers.map((u) => ({
-        'Name': `${u.firstName} ${u.lastName}`,
-        'Email Address': u.email,
-        'Phone Number': u.phone,
-        'Origin': u.origin,
-        'Manager / Platform': u.pms?.length ? u.pms.map((pm: any) => pm.name).join(', ') : 'Direct',
-        'Total Paid (₦)': u.totalPaid,
-        'Has Password': u.hasPassword ? 'Yes' : 'No',
-        'Is Ex-Waitlist': u.isExWaitlist ? 'Yes' : 'No',
-        'Registration Date': new Date(u.createdAt).toLocaleDateString(),
-      }))
+      worksheetData = filteredUsers.map((u) => {
+        const source = u.pms?.length ? 'PM' : 'Organic'
+        const activity = u.totalPaid > 0 ? 'Payed' : 'None'
+
+        return {
+          'Name': `${u.firstName} ${u.lastName}`.trim(),
+          'Sign up date': new Date(u.createdAt).toLocaleDateString(),
+          'Phone number': u.phone || 'N/A',
+          'Email': u.email,
+          'Source': source,
+          'Activity': activity,
+        }
+      })
     } else if (activeTab === 'pms') {
       worksheetData = pmList.map((p) => ({
         'Business Name': p.businessName,
@@ -598,7 +599,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               {/* Users Subtab Switcher */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '10px', background: 'var(--white)', padding: '3px', border: '1px solid var(--border)', width: 'fit-content' }}>
-                  {(['signedUp', 'guest'] as const).map((view) => (
+                  {(['signedUp', 'guest', 'unsynced'] as const).map((view) => (
                     <button
                       key={view}
                       onClick={() => {
@@ -613,7 +614,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                         boxShadow: usersSubtab === view ? 'var(--shadow-sm)' : 'none',
                       }}
                     >
-                      {view === 'signedUp' ? 'Signed Up' : 'Guest'}
+                      {view === 'signedUp' ? 'Signed Up' : view === 'guest' ? 'Guest' : 'Unsynced'}
                     </button>
                   ))}
                 </div>
@@ -657,16 +658,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   </button>
                 )}
                 <button
-                  onClick={() => setOriginFilter('invited_email')}
-                  className={`date-chip ${originFilter === 'invited_email' ? 'active' : ''}`}
+                  onClick={() => setOriginFilter('invited')}
+                  className={`date-chip ${originFilter === 'invited' ? 'active' : ''}`}
                 >
-                  Invited (Email) ({originCounts.invitedEmail})
-                </button>
-                <button
-                  onClick={() => setOriginFilter('invited_phone')}
-                  className={`date-chip ${originFilter === 'invited_phone' ? 'active' : ''}`}
-                >
-                  Invited (Phone) ({originCounts.invitedPhone})
+                  Invited ({originCounts.invited})
                 </button>
               </div>
             </div>

@@ -8,6 +8,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useTenantActions } from '../../../hooks/useTenants'
 import { useUnits, useProperties, useCreateProperty, useBulkCreateUnits } from '../../../hooks/useProperties'
+import { Property } from '../../../services/propertyService'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
@@ -668,19 +670,22 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       <Building2 size={14} />
                       {isJoinRequest ? 'Select Matching Unit' : 'Select Unit'}
                     </label>
-                    <select
-                      className={cn("form-input", errors.unitUuid && "form-input--error")}
-                      {...register('unitUuid')}
-                      style={{ appearance: 'none' }}
-                    >
-                      <option value="">-- Choose a vacant unit --</option>
-                      {vacantUnits.map(u => (
-                        <option key={u.uuid} value={u.uuid}>
-                          {u.property?.name} — Unit {u.unitName}
-                          {u.property?.address ? ` (${u.property.address})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                    <Controller
+                      name="unitUuid"
+                      control={control}
+                      render={({ field }) => (
+                        <FormSelect
+                          className={cn(errors.unitUuid && "form-input--error")}
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          options={vacantUnits.map(u => ({
+                            label: `${u.property?.name} — Unit ${u.unitName}${u.property?.address ? ` (${u.property.address})` : ''}`,
+                            value: u.uuid
+                          }))}
+                          placeholder="-- Choose a vacant unit --"
+                        />
+                      )}
+                    />
                     {errors.unitUuid && <span className="form-error-text">{errors.unitUuid.message}</span>}
                   </div>
                 )}
@@ -691,18 +696,15 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Building2 size={14} /> Select Property
                       </label>
-                      <select
-                        className="form-input"
+                      <FormSelect
                         value={selectedPropertyId}
-                        onChange={(e) => setSelectedPropertyId(e.target.value)}
-                        style={{ appearance: 'none' }}
-                      >
-                        <option value="">-- Select Property --</option>
-                        {properties.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                        <option value="NEW">+ Create New Property</option>
-                      </select>
+                        onChange={setSelectedPropertyId}
+                        options={[
+                          ...properties.map(p => ({ label: p.name, value: p.id.toString() })),
+                          { label: '+ Create New Property', value: 'NEW' }
+                        ]}
+                        placeholder="-- Select Property --"
+                      />
                     </div>
 
                     {selectedPropertyId === 'NEW' && (
@@ -760,10 +762,21 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       </div>
                       <div className="form-group">
                         <label className="form-label">Rent Cycle</label>
-                        <select className="form-input" {...register('rentType')}>
-                          <option value="Annually">Annually</option>
-                          <option value="Monthly">Monthly</option>
-                        </select>
+                        <Controller
+                          name="rentType"
+                          control={control}
+                          render={({ field }) => (
+                            <FormSelect
+                              value={field.value || 'Annually'}
+                              onChange={field.onChange}
+                              options={[
+                                { label: 'Annually', value: 'Annually' },
+                                { label: 'Monthly', value: 'Monthly' }
+                              ]}
+                              placeholder="Select Rent Cycle"
+                            />
+                          )}
+                        />
                       </div>
                     </div>
 

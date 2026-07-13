@@ -10,7 +10,7 @@ import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
-
+import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
 interface PropertiesTableProps {
   properties: Property[];
   units: Unit[];
@@ -131,7 +131,7 @@ export function PropertiesTable({
           placeholder="Search Property" 
         />
         
-        <div style={{ display: 'flex', gap: 12 }}>
+        <FilterGroup>
           <FilterDropdown 
             label="Service Type" 
             value="All"
@@ -142,7 +142,7 @@ export function PropertiesTable({
             value="All"
             options={[{ label: 'All', value: 'All' }]}
           />
-        </div>
+        </FilterGroup>
       </ControlBar>
 
       <DataTable

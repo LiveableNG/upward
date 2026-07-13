@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { useProperties, useUnits } from '@/features/pm/hooks/useProperties'
 import { useBulkCreateTenantRecords } from '@/features/pm/hooks/useBulkCreateTenantRecords'
 import { PageHeader } from '@/components/common/PageHeader'
+import { downloadBlob } from '@/lib/download-helper'
 
 function TenantRecordsImportContent() {
   const router = useRouter()
@@ -66,14 +67,9 @@ function TenantRecordsImportContent() {
     
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", "upward_tenant_ledger_template.csv")
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    success('Template downloaded!')
+    downloadBlob(blob, 'upward_tenant_ledger_template.csv').then(() => {
+      success('Template downloaded!')
+    }).catch(err => console.error(err))
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

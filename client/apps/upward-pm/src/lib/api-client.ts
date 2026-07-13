@@ -1,6 +1,7 @@
 import { getAccessToken, setAccessToken } from './auth-token'
+import { Capacitor } from '@capacitor/core'
 
-const API_BASE = typeof window !== 'undefined' 
+const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
   ? '/api/v1' 
   : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1')
 
@@ -57,8 +58,14 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       ...((options.headers as Record<string, string>) || {}),
     }
 
-    if (token) {
+    if (token && Capacitor.isNativePlatform()) {
       headers['Authorization'] = `Bearer ${token}`
+    } else if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      headers['x-client-platform'] = 'capacitor'
     }
 
     if (options.body && !headers['Content-Type'] && !(options.body instanceof FormData)) {

@@ -5,7 +5,7 @@ import { Users, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { TenantList } from '@/features/pm/components/tenants/TenantList'
 import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
-import { Splash } from '@/components/common/Splash'
+import { TableSkeleton } from '@/components/skeletons'
 
 export default function LandlordTenantsPage() {
   const router = useRouter()
@@ -43,7 +43,7 @@ export default function LandlordTenantsPage() {
         </button>
       </header>
 
-      <Suspense fallback={<Splash />}>
+      <Suspense fallback={<TableSkeleton />}>
         <TenantList />
       </Suspense>
 

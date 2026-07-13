@@ -23,7 +23,6 @@ export const ManagedAddPropertyModal: React.FC<ManagedAddPropertyModalProps> = (
   const [propForm, setPropForm] = useState({
     name: '', 
     address: '', 
-    totalUnits: '', 
     propertyType: 'Residential',
     imageFile: null as File | null, 
     imageUrl: '', 
@@ -39,7 +38,7 @@ export const ManagedAddPropertyModal: React.FC<ManagedAddPropertyModalProps> = (
 
   const resetForm = () => {
     setPropForm({ 
-      name: '', address: '', totalUnits: '', propertyType: 'Residential', 
+      name: '', address: '', propertyType: 'Residential', 
       imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '',
       landlordName: '', landlordEmail: '', landlordPhone: '',
       collaborationEnabled: false, collaboratorUuids: []
@@ -64,7 +63,6 @@ export const ManagedAddPropertyModal: React.FC<ManagedAddPropertyModalProps> = (
       const payload = {
         name: propForm.name,
         address: propForm.address,
-        totalUnits: parseInt(propForm.totalUnits) || 0,
         propertyType: propForm.propertyType,
         imageUrl: finalImageUrl || undefined,
         country: propForm.country,

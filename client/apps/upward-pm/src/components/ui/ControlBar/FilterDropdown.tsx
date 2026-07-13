@@ -18,6 +18,8 @@ interface FilterDropdownProps {
   className?: string
 }
 
+import { createPortal } from 'react-dom'
+
 export function FilterDropdown({ 
   label, 
   value, 
@@ -29,6 +31,16 @@ export function FilterDropdown({
 }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,12 +48,51 @@ export function FilterDropdown({
         setIsOpen(false)
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
+    // Only apply outside click listener for desktop (inline menu)
+    if (!isMobile && isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [isOpen, isMobile])
 
   const activeOption = options?.find(o => o.value === value)
   const displayLabel = activeOption ? activeOption.label : label
+
+  const handleSelect = (val: string) => {
+    onChange?.(val)
+    setIsOpen(false)
+  }
+
+  const menuContent = (
+    <div className="upward-filter-menu animate-scale-in" onClick={e => e.stopPropagation()}>
+      <div className="upward-filter-menu__header mobile-only" style={{ display: isMobile ? 'flex' : 'none', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{label}</h3>
+        <button className="btn-icon" onClick={() => setIsOpen(false)} style={{ width: 28, height: 28 }}>✕</button>
+      </div>
+      <div className="upward-filter-menu__content">
+        {options ? (
+          options.map(option => (
+            <button
+              key={option.value}
+              className={`upward-filter-item ${value === option.value ? 'upward-filter-item--active' : ''}`}
+              onClick={() => handleSelect(option.value)}
+            >
+              {option.label}
+            </button>
+          ))
+        ) : children}
+      </div>
+    </div>
+  )
+
+  const mobilePortal = mounted && isOpen && isMobile ? (
+    createPortal(
+      <div className="upward-modal-overlay" style={{ zIndex: 9999, alignItems: 'flex-end', padding: 0 }} onClick={() => setIsOpen(false)}>
+        {menuContent}
+      </div>,
+      document.body
+    )
+  ) : null;
 
   return (
     <div className={`upward-filter-dropdown ${className || ''}`} ref={containerRef}>
@@ -54,24 +105,8 @@ export function FilterDropdown({
         <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none' }} />
       </button>
 
-      {isOpen && (
-        <div className="upward-filter-menu animate-scale-in">
-          {options ? (
-            options.map(option => (
-              <button
-                key={option.value}
-                className={`upward-filter-item ${value === option.value ? 'upward-filter-item--active' : ''}`}
-                onClick={() => {
-                  onChange?.(option.value)
-                  setIsOpen(false)
-                }}
-              >
-                {option.label}
-              </button>
-            ))
-          ) : children}
-        </div>
-      )}
+      {/* Render mobile portal or inline desktop menu */}
+      {isMobile ? mobilePortal : (isOpen && menuContent)}
     </div>
   )
 }

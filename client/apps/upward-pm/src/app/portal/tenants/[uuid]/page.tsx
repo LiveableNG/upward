@@ -1,13 +1,15 @@
-'use client'
+import React, { Suspense } from 'react';
+import ClientPage from './page.client';
 
-import React, { Suspense } from 'react'
-import { TenantDetailView } from '@/features/pm/components/tenants/TenantDetailView'
-import { Splash } from '@/components/common/Splash'
+export function generateStaticParams() {
+  return [{ uuid: 'placeholder' }];
+}
 
-export default function LandlordTenantDetailPage() {
+export default function Page({ params }: any) {
   return (
-    <Suspense fallback={<Splash />}>
-      <TenantDetailView />
+    <Suspense fallback={<div>Loading...</div>}>
+      {/* @ts-ignore */}
+      <ClientPage params={params} />
     </Suspense>
-  )
+  );
 }

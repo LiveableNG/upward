@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, LucideIcon } from 'lucide-react'
 
 interface ModalProps {
@@ -24,6 +25,11 @@ export function Modal({
   footer,
   maxWidth = 540
 }: ModalProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Handle escape key
   useEffect(() => {
@@ -41,9 +47,9 @@ export function Modal({
     return () => { document.body.style.overflow = 'unset' }
   }, [isOpen])
 
-  if (!isOpen) return null
+  if (!isOpen || !mounted) return null
 
-  return (
+  return createPortal(
     <div className="upward-modal-overlay" onClick={onClose}>
       <div 
         className="upward-modal" 
@@ -77,6 +83,7 @@ export function Modal({
           </footer>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

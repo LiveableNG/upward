@@ -21,6 +21,7 @@ export interface SignedUpRecord {
   lastName: string
   phone: string
   createdAt: string
+  joinedAt?: string | null
   isWaitlist: boolean
   totalPaid: number
   hasPaid: boolean
@@ -29,7 +30,9 @@ export interface SignedUpRecord {
   pmName?: string
   pmUuid?: string | string[]
   rentExpiryDate?: string
-  originType?: 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
+  originType?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
+  origin?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
+  hasPassword?: boolean
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
 }
 
@@ -41,12 +44,15 @@ export interface InvitedRecord {
   lastName: string
   phone: string
   createdAt: string
+  joinedAt?: string | null
   status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
   totalPaid: number
   rentExpiryDate?: string
   pmName?: string
   pmUuid?: string | string[] | null
-  originType?: 'INVITED_EMAIL' | 'INVITED_PHONE'
+  originType?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
+  origin?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
+  hasPassword?: boolean
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   benefitsPaid?: number
   hasPaidBenefits?: boolean

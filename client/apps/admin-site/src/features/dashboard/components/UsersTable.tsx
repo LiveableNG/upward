@@ -9,6 +9,7 @@ import {
   Trash2,
   Users,
   Mail,
+  UserPlus,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 
@@ -20,6 +21,7 @@ export interface UnifiedUserRecord {
   email: string
   phone: string
   createdAt: string
+  joinedAt?: string | null
   origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   hasPassword: boolean
   isExWaitlist: boolean
@@ -29,7 +31,7 @@ export interface UnifiedUserRecord {
   rawRecord: any
 }
 
-type SortKey = 'name' | 'email' | 'origin' | 'pmName' | 'totalPaid' | 'createdAt' | 'rentExpiry'
+type SortKey = 'name' | 'email' | 'origin' | 'pmName' | 'totalPaid' | 'createdAt' | 'joinedAt' | 'rentExpiry'
 type SortDir = 'asc' | 'desc'
 
 interface UsersTableProps {
@@ -158,6 +160,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [openJoinedId, setOpenJoinedId] = useState<string | null>(null)
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -184,6 +187,11 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     } else if (sortKey === 'createdAt') {
       va = a.createdAt
       vb = b.createdAt
+    } else if (sortKey === 'joinedAt') {
+      if (!a.joinedAt && b.joinedAt) return sortDir === 'asc' ? 1 : -1
+      if (a.joinedAt && !b.joinedAt) return sortDir === 'asc' ? -1 : 1
+      va = a.joinedAt || ''
+      vb = b.joinedAt || ''
     } else if (sortKey === 'rentExpiry') {
       // Put empty rent expiries at the end
       if (!a.rentExpiryDate && b.rentExpiryDate) return sortDir === 'asc' ? 1 : -1
@@ -259,7 +267,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
           <button
             onClick={() => {
-              const selectedUsers = paginatedItems.filter((u) => selectedUserIds.has(u.id))
+              const selectedUsers = paginatedItems.filter((u) => selectedUserIds.has(u.uuid))
               navigate('/emails', { state: { selectedUsers } })
             }}
             className="btn"
@@ -330,8 +338,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <th style={thStyle} onClick={() => handleSort('totalPaid')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Paid <SortIcon col="totalPaid" active={sortKey} dir={sortDir} /></span>
             </th>
-            <th style={thStyle} onClick={() => handleSort('createdAt')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Joined <SortIcon col="createdAt" active={sortKey} dir={sortDir} /></span>
+            <th style={thStyle} onClick={() => handleSort('joinedAt')}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Joined <SortIcon col="joinedAt" active={sortKey} dir={sortDir} /></span>
             </th>
             <th style={thStyle} onClick={() => handleSort('rentExpiry')}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Rent Expiry <SortIcon col="rentExpiry" active={sortKey} dir={sortDir} /></span>
@@ -345,15 +353,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               key={item.id}
               style={{
                 borderBottom: '1px solid var(--border)',
-                background: selectedUserIds.has(item.id) ? 'rgba(217,119,87,0.04)' : 'transparent',
+                background: selectedUserIds.has(item.uuid) ? 'rgba(217,119,87,0.04)' : 'transparent',
                 transition: 'background 0.15s',
               }}
               className="table-row-hover"
             >
               {isSuperadmin && (
-                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectUser(item.id, e)}>
+                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectUser(item.uuid, e)}>
                   <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
-                    {selectedUserIds.has(item.id) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
+                    {selectedUserIds.has(item.uuid) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
                   </button>
                 </td>
               )}
@@ -387,8 +395,48 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '13px' }}>
                 {item.totalPaid > 0 ? `₦${item.totalPaid.toLocaleString()}` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
               </td>
-              <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                {new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
+                {item.joinedAt ? (
+                  <>
+                    <span 
+                      style={{ cursor: 'pointer', borderBottom: '1px dashed var(--border)', paddingBottom: '1px' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpenJoinedId(openJoinedId === item.id ? null : item.id)
+                      }}
+                    >
+                      {new Date(item.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    {openJoinedId === item.id && (
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          marginTop: '4px',
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border-solid)',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                          color: 'var(--text)',
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          zIndex: 50,
+                          width: 'max-content',
+                          animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <span style={{ color: 'var(--text-muted)' }}>Invited / Created On:</span><br/>
+                        {new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ opacity: 0.5 }}>—</span>
+                )}
               </td>
               <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
                 {item.rentExpiryDate ? new Date(item.rentExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span style={{ opacity: 0.5 }}>—</span>}
@@ -430,6 +478,24 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                         className="dropdown-item"
                       >
                         <Eye size={14} /> View Profile
+                      </button>
+                    )}
+                    {item.rawRecord?.isSynced === false && (
+                      <button
+                        onClick={async () => {
+                          setOpenMenuId(null)
+                          try {
+                            const { apiService } = await import('../../../services/api.service')
+                            await apiService.post(`/admin/users/sync-tenant/${item.uuid}`, {}, localStorage.getItem('upward_token') || '')
+                            window.location.reload()
+                          } catch (err) {
+                            alert('Failed to sync account')
+                          }
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--accent)' }}
+                        className="dropdown-item"
+                      >
+                        <UserPlus size={14} /> Sync Account
                       </button>
                     )}
                     <button

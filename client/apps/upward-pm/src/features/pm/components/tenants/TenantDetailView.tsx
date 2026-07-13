@@ -23,7 +23,7 @@ import { Plus, CreditCard } from 'lucide-react'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
-import { Splash } from '@/components/common/Splash'
+import { DetailSkeleton } from '@/components/skeletons'
 
 export const TenantDetailView: React.FC = () => {
   const { uuid } = useParams()
@@ -44,7 +44,7 @@ export const TenantDetailView: React.FC = () => {
   const [deliveryChannel, setDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
 
   if (isLoading || !tenant) {
-    return <Splash />
+    return <DetailSkeleton />
   }
 
   // Set default delivery channel once tenant is loaded

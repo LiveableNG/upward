@@ -13,6 +13,7 @@
     "clean": "turbo run clean && rimraf node_modules",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "sync": "node scripts/post-fetch.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

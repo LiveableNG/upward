@@ -7,6 +7,8 @@ import Papa from 'papaparse'
 import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { downloadBlob } from '@/lib/download-helper'
+import { ListSkeleton } from '@/components/skeletons'
 
 export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string, isPublic?: boolean }) {
   const router = useRouter()
@@ -42,14 +44,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
     
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.setAttribute("href", url)
-    link.setAttribute("download", `payment_records_template.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    success('Template downloaded!')
+    downloadBlob(blob, 'payment_records_template.csv').then(() => {
+      success('Template downloaded!')
+    }).catch((err: any) => console.error(err))
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,7 +179,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
     }
   ];
 
-  if (loading) return <div className="fulfillment-status animate-pulse">Loading request details...</div>
+  if (loading) return <ListSkeleton />
 
   if (!requestDetails) {
     return (

@@ -25,6 +25,7 @@ import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
 import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { useToast } from '@/components/common/Toast'
+import { DashboardSkeleton } from '@/components/skeletons'
 
 export function DashboardView() {
   const router = useRouter()
@@ -35,21 +36,7 @@ export function DashboardView() {
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
 
   if (isLoading) {
-    return (
-      <div className="dashboard animate-pulse" style={{ padding: '24px 0' }}>
-        <div style={{ height: 48, background: 'var(--dark)', opacity: 0.1, borderRadius: 12, marginBottom: 24, width: '40%' }}></div>
-        <div style={{ height: 160, background: 'var(--dark)', opacity: 0.05, borderRadius: 16, marginBottom: 32 }}></div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, marginBottom: 40 }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} style={{ height: 120, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
-          ))}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 40 }}>
-          <div style={{ height: 400, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
-          <div style={{ height: 400, background: 'var(--dark)', opacity: 0.05, borderRadius: 16 }}></div>
-        </div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   const {
@@ -301,26 +288,22 @@ export function DashboardView() {
           label="Total Units" 
           value={totalUnits} 
           icon={Building2} 
-          trend={{ value: propertiesCount, label: 'Properties', isUp: true }}
           variant="accent"
         />
         <StatCard 
-          label="Active Tenants" 
+          label="Total Tenants" 
           value={activeTenants} 
           icon={Users} 
-          trend={{ value: Math.round((activeTenants / (totalUnits || 1)) * 100), label: '% occupancy', isUp: true }}
         />
         <StatCard 
           label="Pending Balance" 
           value={`₦${pendingAmount.toLocaleString()}`} 
           icon={CreditCard} 
-          trend={{ value: openRequestsCount, label: 'open requests', isUp: false }}
         />
         <StatCard 
           label="Total Revenue" 
           value={`₦${totalRevenue.toLocaleString()}`} 
           icon={TrendingUp} 
-          trend={{ value: 100, label: 'All time collection', isUp: true }}
         />
       </StatGrid>
 
@@ -341,7 +324,7 @@ export function DashboardView() {
                 )}
                 onClick={() => setActiveTab('arrears')}
               >
-                Behind on Rent
+                Arrears
                 <span className="payments-tracker__count payments-tracker__count--arrears">
                   {overduePayments.length}
                 </span>
@@ -365,7 +348,7 @@ export function DashboardView() {
                 )}
                 onClick={() => setActiveTab('completed')}
               >
-                Completed
+                Paid
                 <span className="payments-tracker__count payments-tracker__count--completed">
                   {completedPayments.length}
                 </span>
@@ -424,24 +407,21 @@ export function DashboardView() {
         <section className="section-card">
           <div className="section-header">
             <h2 className="section-title">Property Portfolio</h2>
-            <button className="section-link" onClick={() => router.push('/properties')}>View All</button>
           </div>
           
           <div className="property-summary">
             {properties.map((prop: any) => {
-              const rate = prop.occupancyRate
-              
               return (
                 <div key={prop.uuid} className="property-item-mini" onClick={() => router.push(`/properties`)} style={{ cursor: 'pointer' }}>
+                  <div className="property-item-mini__icon">
+                    <Building2 size={20} className="text-forest" />
+                  </div>
                   <div className="property-item-mini__info">
                     <h4>{prop.name}</h4>
                     <p>{prop.area}, {prop.state} • {prop.totalUnits} Units</p>
                   </div>
-                  <div className={cn(
-                    "property-item-mini__status",
-                    rate === 100 ? "property-item-mini__status--full" : "property-item-mini__status--partial"
-                  )}>
-                    {rate}% Occupied
+                  <div className="property-item-mini__action">
+                    <ArrowUpRight size={18} className="text-muted" />
                   </div>
                 </div>
               )
@@ -454,6 +434,15 @@ export function DashboardView() {
                   Add Property
                 </button>
               </div>
+            )}
+            {hasProperties && properties.length > 0 && (
+              <button 
+                className="btn btn--secondary btn--sm" 
+                style={{ width: '100%', marginTop: '8px', justifyContent: 'center' }} 
+                onClick={() => router.push('/properties')}
+              >
+                View All Properties
+              </button>
             )}
           </div>
         </section>

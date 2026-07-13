@@ -16,6 +16,7 @@ import {
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { downloadBlob } from '@/lib/download-helper'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -48,14 +49,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         recipientName: doc.recipientName,
         includeLetterhead: doc.includeLetterhead,
       })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${doc.subject || 'document'}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      await downloadBlob(blob, `${doc.subject || 'document'}.pdf`)
     } catch (err) {
       console.error('Failed to download PDF:', err)
     } finally {
@@ -73,14 +67,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         recipientName: doc.recipientName,
         includeLetterhead: doc.includeLetterhead,
       })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${doc.subject || 'document'}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      await downloadBlob(blob, `${doc.subject || 'document'}.pdf`)
 
       const formatPhoneNumber = (phone: string) => {
         let cleaned = phone.trim()

@@ -14,6 +14,7 @@ import "../styles/payments.css";
 import "../styles/toast.css";
 import "../styles/features/requests.css";
 import "../styles/auth.css";
+import "../styles/components/skeleton.css";
 
 import { Providers } from "@/components/common/Providers";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -27,6 +28,12 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.svg',
   },
+}
+
+export const viewport: import('next').Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID

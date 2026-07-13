@@ -77,7 +77,7 @@ export function PropertiesView() {
 
   // Form States
   const [propForm, setPropForm] = useState({
-    name: '', address: '', totalUnits: '', propertyType: 'Residential',
+    name: '', address: '', propertyType: 'Residential',
     imageFile: null as File | null, imageUrl: '', country: 'Nigeria',
     state: '', area: '', landlordName: '', landlordEmail: '', landlordPhone: '',
     collaborationEnabled: false, collaboratorUuids: [] as string[]
@@ -145,7 +145,6 @@ export function PropertiesView() {
       const payload = {
         name: propForm.name,
         address: propForm.address,
-        totalUnits: parseInt(propForm.totalUnits) || 0,
         propertyType: propForm.propertyType,
         imageUrl: finalImageUrl || undefined,
         country: propForm.country,
@@ -170,7 +169,7 @@ export function PropertiesView() {
 
   const openEditProperty = (prop: Property) => {
     setEditingPropertyUuid(prop.uuid)
-    setPropForm({ ...prop, totalUnits: prop.totalUnits.toString(), imageFile: null, imageUrl: prop.imageUrl || '' } as any)
+    setPropForm({ ...prop, imageFile: null, imageUrl: prop.imageUrl || '' } as any)
     setShowEditPropertyModal(true)
   }
 
@@ -188,7 +187,6 @@ export function PropertiesView() {
       const payload = {
         name: propForm.name,
         address: propForm.address,
-        totalUnits: parseInt(propForm.totalUnits) || 0,
         propertyType: propForm.propertyType,
         imageUrl: finalImageUrl,
         country: propForm.country,
@@ -215,7 +213,7 @@ export function PropertiesView() {
 
   const resetPropForm = () => {
     setPropForm({ 
-      name: '', address: '', totalUnits: '', propertyType: 'Residential', 
+      name: '', address: '', propertyType: 'Residential', 
       imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '',
       landlordName: '', landlordEmail: '', landlordPhone: '',
       collaborationEnabled: false, collaboratorUuids: []
@@ -289,11 +287,7 @@ export function PropertiesView() {
 
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="upward-table-container animate-pulse" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          Loading properties and units data...
-        </div>
-      )
+      return <TableSkeleton />
     }
     if (activeTab === 'units') {
       return (

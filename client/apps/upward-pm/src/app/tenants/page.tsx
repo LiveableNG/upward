@@ -4,7 +4,7 @@ import React, { Suspense, useState } from 'react'
 import { Users } from 'lucide-react'
 import { TenantList } from '@/features/pm/components/tenants/TenantList'
 import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
-import { Splash } from '@/components/common/Splash'
+import { TableSkeleton } from '@/components/skeletons'
 
 export default function TenantsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
@@ -22,7 +22,7 @@ export default function TenantsPage() {
         </button>
       </header>
 
-      <Suspense fallback={<Splash />}>
+    <Suspense fallback={<TableSkeleton />}>
         <TenantList />
       </Suspense>
 
