@@ -13,6 +13,8 @@ interface ActionCarouselProps {
   rentReminders: any[]
   isIdentityVerified: boolean
   skin?: 'default' | 'proto'
+  showBenefitsUpsell?: boolean
+  benefitsEndsAt?: string | null
 }
 
 type Urgency = 'critical' | 'pending' | 'neutral'
@@ -113,6 +115,7 @@ export function ActionCarousel({
   rentReminders,
   isIdentityVerified,
   skin = 'default',
+  showBenefitsUpsell = false,
 }: ActionCarouselProps) {
   const router = useRouter()
   const items: ActionItem[] = []
@@ -188,7 +191,17 @@ export function ActionCarousel({
     })
 
   if (items.length === 0) {
-    if (showKYC) {
+    if (showBenefitsUpsell) {
+      items.push({
+        type: 'benefits',
+        id: 'benefits-upsell',
+        title: 'Get Rent Protection',
+        meta: 'Activate Upward Benefits for one year',
+        actionLabel: 'View Benefits',
+        action: () => router.push('/dashboard/benefits'),
+        urgency: 'pending',
+      })
+    } else if (showKYC) {
       items.push({
         type: 'kyc',
         id: 'kyc-alert',
@@ -209,6 +222,16 @@ export function ActionCarousel({
         urgency: 'neutral',
       })
     }
+  } else if (showBenefitsUpsell) {
+    items.push({
+      type: 'benefits',
+      id: 'benefits-upsell',
+      title: 'Get Rent Protection',
+      meta: 'Optional annual Upward Benefits cover',
+      actionLabel: 'Protect Now',
+      action: () => router.push('/dashboard/benefits'),
+      urgency: 'neutral',
+    })
   }
 
   const rootClass = skin === 'proto' ? 'activity-alerts activity-alerts--proto' : 'activity-alerts'

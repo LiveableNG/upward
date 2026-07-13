@@ -1,0 +1,153 @@
+.benefits-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.benefits-page__loading,
+.benefits-page__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 220px;
+  text-align: center;
+  color: var(--text-muted, #8a8175);
+  font-size: 14px;
+}
+
+.benefits-page__spinner {
+  animation: benefits-spin 0.9s linear infinite;
+  color: var(--clay, #c2501f);
+}
+
+@keyframes benefits-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.benefits-page__badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border-solid, #ebe4da);
+  background: #fff;
+}
+
+.benefits-page__badge svg {
+  color: #a9a096;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.benefits-page__badge.is-active {
+  border-color: rgba(34, 140, 90, 0.28);
+  background: rgba(34, 140, 90, 0.06);
+}
+
+.benefits-page__badge.is-active svg {
+  color: #228c5a;
+}
+
+.benefits-page__badge strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+}
+
+.benefits-page__badge p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text-muted, #8a8175);
+  line-height: 1.4;
+}
+
+.benefits-page__card {
+  background: #fff;
+  border: 1px solid var(--border-solid, #ebe4da);
+  border-radius: 16px;
+  padding: 18px 16px;
+}
+
+.benefits-page__card h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  letter-spacing: -0.01em;
+}
+
+.benefits-page__proof {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted, #8a8175);
+}
+
+.benefits-page__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.benefits-page__list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #3f3932;
+}
+
+.benefits-page__list svg {
+  color: var(--clay, #c2501f);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.benefits-page__card--price {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.benefits-page__price-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.benefits-page__price-row span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #8a8175);
+}
+
+.benefits-page__price-row strong {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+}
+
+.benefits-page__meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted, #8a8175);
+}
+
+.benefits-page__cta {
+  margin-top: 4px;
+}
+
+.benefits-page__cta .pay-flow__cta {
+  width: 100%;
+}

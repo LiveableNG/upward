@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ChevronRight,
   ShieldAlert,
+  ShieldCheck,
   X
 } from 'lucide-react'
 import { formatCurrency, generateId } from '@/lib/utils'
@@ -180,7 +181,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     }
   }, [isBasicCheckout, isBenefitsOptedIn, setIsBenefitsOptedIn])
 
-  const showBenefitsUI = isPremiumCheckout
+  const showBenefitsUI = isPremiumCheckout && !rates.benefitsPaid
   const renameBenefitsLabel = (name: string) =>
     isPremiumCheckout && name === 'Upward Benefits'
       ? 'Rent Protection Insurance'
@@ -647,6 +648,15 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                       onSelectStandard={() => setIsBenefitsOptedIn(false)}
                       onSelectPremium={() => setIsBenefitsOptedIn(true)}
                     />
+                  )}
+                  {isPremiumCheckout && rates.benefitsPaid && (
+                    <div className="benefits-page__badge is-active" style={{ marginBottom: 12 }}>
+                      <ShieldCheck size={18} />
+                      <div>
+                        <strong>Upward Benefits active</strong>
+                        <p>Rent Protection is already included on your account this year.</p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

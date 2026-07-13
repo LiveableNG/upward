@@ -15,6 +15,8 @@ import {
   WEBHOOK_REPOSITORY,
   IOverpaymentRepository,
   Overpayment,
+  IBenefitsSubscriptionRepository,
+  BenefitsSubscription,
 } from '../../../../domains/payments/payment.repository'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 
@@ -735,5 +737,70 @@ export class PrismaOverpaymentRepository implements IOverpaymentRepository {
       },
     })
     return res as unknown as Overpayment
+  }
+}
+
+@Injectable()
+export class PrismaBenefitsSubscriptionRepository implements IBenefitsSubscriptionRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async create(
+    data: Omit<BenefitsSubscription, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<BenefitsSubscription> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_benefits_subscription.create({
+      data: {
+        userId: data.userId,
+        userPropertyId: data.userPropertyId ?? null,
+        status: data.status,
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+        amountPaid: data.amountPaid,
+        currency: data.currency,
+        source: data.source,
+        sourceTransactionId: data.sourceTransactionId ?? null,
+      },
+    })
+    return res as BenefitsSubscription
+  }
+
+  async findActiveByUser(
+    userId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<BenefitsSubscription | null> {
+    const prisma = tx || this.prisma
+    const now = new Date()
+    const res = await prisma.upward_benefits_subscription.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        endsAt: { gt: now },
+      },
+      orderBy: { endsAt: 'desc' },
+    })
+    return res as BenefitsSubscription | null
+  }
+
+  async update(
+    id: number,
+    data: Partial<BenefitsSubscription>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<BenefitsSubscription> {
+    const prisma = tx || this.prisma
+    const res = await prisma.upward_benefits_subscription.update({
+      where: { id },
+      data: {
+        status: data.status,
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+        amountPaid: data.amountPaid,
+        currency: data.currency,
+        source: data.source,
+        sourceTransactionId: data.sourceTransactionId,
+        userPropertyId: data.userPropertyId,
+      },
+    })
+    return res as BenefitsSubscription
   }
 }

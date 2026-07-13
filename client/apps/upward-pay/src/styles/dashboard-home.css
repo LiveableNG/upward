@@ -13,6 +13,39 @@
   gap: 14px;
 }
 
+.dash-home__benefits-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  border: 1.5px solid var(--border-solid, #ebe4da);
+  background: #fff;
+  color: var(--text, #1a1714);
+  border-radius: 999px;
+  padding: 8px 12px 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.dash-home__benefits-chip svg:first-child {
+  color: #a9a096;
+}
+
+.dash-home__benefits-chip.is-active {
+  border-color: rgba(34, 140, 90, 0.3);
+  background: rgba(34, 140, 90, 0.08);
+}
+
+.dash-home__benefits-chip.is-active svg:first-child {
+  color: #228c5a;
+}
+
+.dash-home__benefits-chip:hover {
+  border-color: rgba(194, 80, 31, 0.35);
+}
+
 .dash-home__main,
 .dash-home__aside,
 .dash-home__wide {

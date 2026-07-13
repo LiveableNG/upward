@@ -9,6 +9,7 @@ import {
   PrismaSubaccountRepository,
   PrismaWebhookRepository,
   PrismaOverpaymentRepository,
+  PrismaBenefitsSubscriptionRepository,
 } from './repositories/prisma-payments.repository'
 import { PrismaPaymentLineItemRepository } from './repositories/prisma-payment-line-item.repository'
 import { PrismaDVAAccountRepository } from './prisma-dva-account.repository'
@@ -51,6 +52,7 @@ import {
   OVERPAYMENT_REPOSITORY,
   PAYMENT_LINE_ITEM_REPOSITORY,
   DVA_ACCOUNT_REPOSITORY,
+  BENEFITS_SUBSCRIPTION_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
 import {
   COMPANY_REPOSITORY,
@@ -208,6 +210,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaDVAAccountRepository,
     },
     {
+      provide: BENEFITS_SUBSCRIPTION_REPOSITORY,
+      useClass: PrismaBenefitsSubscriptionRepository,
+    },
+    {
       provide: PM_LETTERHEAD_REPOSITORY,
       useClass: PrismaPmLetterheadRepository,
     },
@@ -250,6 +256,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     FEEDBACK_REPOSITORY,
     PM_LANDLORD_REPOSITORY,
     DVA_ACCOUNT_REPOSITORY,
+    BENEFITS_SUBSCRIPTION_REPOSITORY,
     PM_LETTERHEAD_REPOSITORY,
     PM_SIGNATURE_REPOSITORY,
   ],

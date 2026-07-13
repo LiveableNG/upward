@@ -41,6 +41,11 @@ import {
   SaveBankDetailsUseCase,
   SimulateTransferUseCase,
 } from '../../../application/use-cases/payments/payment.use-cases'
+import {
+  GetBenefitsStatusUseCase,
+  InitializeBenefitsPaymentUseCase,
+  ConfirmBenefitsPaymentUseCase,
+} from '../../../application/use-cases/payments/benefits-subscription.use-cases'
 import { VerifyGatewayTransactionUseCase } from '../../../application/use-cases/payments/verify-transaction.use-case'
 
 @Controller('payments')
@@ -65,9 +70,53 @@ export class PaymentsController {
     private readonly getBankDetailsUc: GetBankDetailsUseCase,
     private readonly saveBankDetailsUc: SaveBankDetailsUseCase,
     private readonly simulateTransferUc: SimulateTransferUseCase,
+    private readonly getBenefitsStatusUc: GetBenefitsStatusUseCase,
+    private readonly initializeBenefitsPaymentUc: InitializeBenefitsPaymentUseCase,
+    private readonly confirmBenefitsPaymentUc: ConfirmBenefitsPaymentUseCase,
     private readonly prisma: PrismaService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('benefits/status')
+  async getBenefitsStatus(@Req() req: any) {
+    const data = await this.getBenefitsStatusUc.execute(req.user.id)
+    return {
+      data,
+      message: 'Benefits status retrieved',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('benefits/initialize')
+  async initializeBenefitsPayment(@Req() req: any) {
+    const data = await this.initializeBenefitsPaymentUc.execute({
+      userUuid: req.user.id,
+    })
+    return {
+      data,
+      message: 'Benefits payment initialized',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('benefits/confirm')
+  async confirmBenefitsPayment(@Req() req: any, @Body() body: any) {
+    if (!body?.reference) {
+      throw new BadRequestException('Payment reference is required')
+    }
+    const data = await this.confirmBenefitsPaymentUc.execute({
+      userUuid: req.user.id,
+      reference: body.reference,
+    })
+    return {
+      data,
+      message: 'Benefits payment confirmed',
+      meta: {},
+    }
+  }
 
   @Get('verify/:reference')
   async verifyPayment(@Param('reference') reference: string, @Req() req: any) {
