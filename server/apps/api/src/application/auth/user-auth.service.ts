@@ -167,12 +167,26 @@ export class UserAuthService extends BaseAuthService {
         await this.syncTenantStatuses(dto.email)
         this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
         
+        let pmName: string | undefined = undefined;
+        if (user.companyUsers && user.companyUsers.length > 0) {
+          pmName = user.companyUsers[0].company?.name;
+        }
+        if (!pmName && user.properties && user.properties.length > 0) {
+          const prop = user.properties[0];
+          if (prop.company?.name) {
+            pmName = prop.company.name;
+          } else if (prop.manager) {
+            pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+          }
+        }
+
         if (user.phone) {
           this.initializeUserSequenceUseCase.execute({
             userId: user.id!,
             firstName: dto.firstName,
             phoneEncrypted: user.phone,
             phoneHash: user.phoneHash,
+            pmName: pmName,
           }).catch(e => console.error('Failed to init sequence', e));
         }
         
@@ -228,12 +242,26 @@ export class UserAuthService extends BaseAuthService {
     await this.syncTenantStatuses(dto.email)
     this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
 
+    let pmName: string | undefined = undefined;
+    if (user.companyUsers && user.companyUsers.length > 0) {
+      pmName = user.companyUsers[0].company?.name;
+    }
+    if (!pmName && user.properties && user.properties.length > 0) {
+      const prop = user.properties[0];
+      if (prop.company?.name) {
+        pmName = prop.company.name;
+      } else if (prop.manager) {
+        pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+      }
+    }
+
     if (user.phone) {
       this.initializeUserSequenceUseCase.execute({
         userId: user.id!,
         firstName: dto.firstName,
         phoneEncrypted: user.phone,
         phoneHash: user.phoneHash,
+        pmName: pmName,
       }).catch(e => console.error('Failed to init sequence', e));
     }
     

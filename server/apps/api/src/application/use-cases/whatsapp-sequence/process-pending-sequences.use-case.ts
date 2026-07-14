@@ -45,7 +45,7 @@ export class ProcessPendingSequencesUseCase {
       const bodyTextArgs = log.templateData?.body_text?.[0] || [];
       const parameters = bodyTextArgs.map((text: string) => ({
         type: 'text',
-        text: text || '',
+        text: text ? this.encryptionService.decrypt(text) : '',
       }));
 
       try {

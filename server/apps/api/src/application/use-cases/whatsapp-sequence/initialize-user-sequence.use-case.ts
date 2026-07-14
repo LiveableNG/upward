@@ -6,6 +6,7 @@ export interface InitializeUserSequenceCommand {
   firstName: string;
   phoneEncrypted?: string | null;
   phoneHash?: string | null;
+  pmName?: string | null;
 }
 
 @Injectable()
@@ -33,38 +34,36 @@ export class InitializeUserSequenceUseCase {
       return date;
     };
 
-    const dashboardUrl = 'https://upward.goodtenants.io/dashboard';
-
     const sequences = [
       {
         stage: 'WELCOME',
-        templateName: 'upward_seq_welcome_v1',
+        templateName: 'upward_seq_welcome_v2',
         scheduledFor: getFutureDate(0), // Immediately
-        templateData: { body_text: [[command.firstName, 'GoodTenants Realty']] },
+        templateData: { body_text: [[command.firstName, command.pmName || 'Upward']] },
       },
       {
         stage: 'DAY_2',
-        templateName: 'upward_seq_day2_v1',
+        templateName: 'upward_seq_day2_v2',
         scheduledFor: getFutureDate(2),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       },
       {
         stage: 'DAY_5',
-        templateName: 'upward_seq_day5_v1',
+        templateName: 'upward_seq_day5_v2',
         scheduledFor: getFutureDate(5),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       },
       {
         stage: 'DAY_9',
-        templateName: 'upward_seq_day9_v1',
+        templateName: 'upward_seq_day9_v2',
         scheduledFor: getFutureDate(9),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       },
       {
         stage: 'DAY_14',
-        templateName: 'upward_seq_day14_v1',
+        templateName: 'upward_seq_day14_v2',
         scheduledFor: getFutureDate(14),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       }
     ];
 
