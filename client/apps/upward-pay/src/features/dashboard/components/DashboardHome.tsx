@@ -48,6 +48,8 @@ interface DashboardHomeProps {
   anyOverdue: boolean
   showAppBanner?: boolean
   onDismissAppBanner?: () => void
+  benefitsActive?: boolean
+  benefitsEndsAt?: string | null
 }
 
 function formatPropertyShort(address?: string): string {
@@ -146,6 +148,8 @@ export function DashboardHome({
   anyOverdue,
   showAppBanner = false,
   onDismissAppBanner,
+  benefitsActive = false,
+  benefitsEndsAt = null,
 }: DashboardHomeProps) {
   const router = useRouter()
 
@@ -172,6 +176,21 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
+      <button
+        type="button"
+        className={`dash-home__benefits-chip ${benefitsActive ? 'is-active' : ''}`}
+        onClick={() => router.push('/dashboard/benefits')}
+      >
+        <ShieldCheck size={15} />
+        <span>
+          {benefitsActive
+            ? benefitsEndsAt
+              ? `Protected until ${formatDate(benefitsEndsAt)}`
+              : 'Protected with Upward Benefits'
+            : 'Get Upward Benefits'}
+        </span>
+        <ChevronRight size={14} />
+      </button>
       {showActivityCenter && (
         <div className={`dash-home__activity-center activity-center ${anyOverdue ? 'activity-center--critical' : ''}`}>
           <div className="activity-center__header">
@@ -192,6 +211,7 @@ export function DashboardHome({
             rentReminders={propertyReminders}
             isIdentityVerified={!verificationOn || isIdentityVerified}
             skin="proto"
+            showBenefitsUpsell={!benefitsActive}
           />
         </div>
       )}

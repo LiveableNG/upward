@@ -38,6 +38,7 @@ model upward_user_property {
   user                   upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   dedicatedAccount       upward_dedicated_virtual_account?
   manualAccount          upward_manual_account?
+  benefitsSubscriptions  upward_benefits_subscription[]
 }
 
 model upward_manual_account {

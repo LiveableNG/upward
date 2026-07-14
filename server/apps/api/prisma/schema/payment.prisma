@@ -20,6 +20,7 @@ model upward_transaction {
   proof            upward_payment_proof?
   overpayments     upward_overpayment[]
   refundLogs       upward_refund_log[]
+  benefitsSubscriptions upward_benefits_subscription[]
   paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
   user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -31,6 +32,31 @@ model upward_transaction {
   @@index([userId])
   @@index([reference])
   @@index([paymentRequestId])
+}
+
+model upward_benefits_subscription {
+  id                Int                    @id @default(autoincrement())
+  uuid              String                 @unique @default(uuid())
+  userId            Int
+  userPropertyId    Int?
+  status            String                 @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  startsAt          DateTime
+  endsAt            DateTime
+  amountPaid        Float
+  currency          String                 @default("NGN")
+  source            String                 // RENT_CHECKOUT | STANDALONE
+  sourceTransactionId Int?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  user              upward_user            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty      upward_user_property?  @relation(fields: [userPropertyId], references: [id])
+  sourceTransaction upward_transaction?    @relation(fields: [sourceTransactionId], references: [id])
+
+  @@index([userId])
+  @@index([userPropertyId])
+  @@index([status])
+  @@index([endsAt])
+  @@index([userId, userPropertyId, status])
 }
 
 model upward_payment_request {

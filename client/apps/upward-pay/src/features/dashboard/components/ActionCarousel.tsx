@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
+import { isSelfInitiatedPayment } from './payment/paymentOrigin'
 
 interface ActionCarouselProps {
   pendingPayments: PendingPayment[]
@@ -12,6 +13,8 @@ interface ActionCarouselProps {
   rentReminders: any[]
   isIdentityVerified: boolean
   skin?: 'default' | 'proto'
+  showBenefitsUpsell?: boolean
+  benefitsEndsAt?: string | null
 }
 
 type Urgency = 'critical' | 'pending' | 'neutral'
@@ -58,8 +61,7 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
     }
   }
 
-  const isSelfInitiated =
-    p.isManual || (!p.company_name && !p.manager_name) || p.company_name === 'Manual Payment'
+  const isSelfInitiated = isSelfInitiatedPayment(p)
 
   if (isSelfInitiated) {
     if (isOverdue) {
@@ -113,6 +115,7 @@ export function ActionCarousel({
   rentReminders,
   isIdentityVerified,
   skin = 'default',
+  showBenefitsUpsell = false,
 }: ActionCarouselProps) {
   const router = useRouter()
   const items: ActionItem[] = []
@@ -166,7 +169,7 @@ export function ActionCarousel({
             router.push(`/dashboard/pay-rent?propertyUuid=${p.userPropertyUuid}`)
             return
           }
-          router.push(`/pay/${p.uuid}`)
+          router.push(`/dashboard/pay-rent?paymentUuid=${p.uuid}`)
         },
       })
     }
@@ -188,7 +191,17 @@ export function ActionCarousel({
     })
 
   if (items.length === 0) {
-    if (showKYC) {
+    if (showBenefitsUpsell) {
+      items.push({
+        type: 'benefits',
+        id: 'benefits-upsell',
+        title: 'Get Rent Protection',
+        meta: 'Activate Upward Benefits for one year',
+        actionLabel: 'View Benefits',
+        action: () => router.push('/dashboard/benefits'),
+        urgency: 'pending',
+      })
+    } else if (showKYC) {
       items.push({
         type: 'kyc',
         id: 'kyc-alert',
@@ -209,6 +222,16 @@ export function ActionCarousel({
         urgency: 'neutral',
       })
     }
+  } else if (showBenefitsUpsell) {
+    items.push({
+      type: 'benefits',
+      id: 'benefits-upsell',
+      title: 'Get Rent Protection',
+      meta: 'Optional annual Upward Benefits cover',
+      actionLabel: 'Protect Now',
+      action: () => router.push('/dashboard/benefits'),
+      urgency: 'neutral',
+    })
   }
 
   const rootClass = skin === 'proto' ? 'activity-alerts activity-alerts--proto' : 'activity-alerts'

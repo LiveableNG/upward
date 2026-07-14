@@ -24,6 +24,12 @@ export default function DashboardPage() {
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   })
+  const { data: benefitsStatus } = useQuery({
+    queryKey: ['benefits-status'],
+    queryFn: () => api.getBenefitsStatus(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  })
   const { data: scoreProfile } = useScoreProfile()
 
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
@@ -181,6 +187,8 @@ export default function DashboardPage() {
         anyOverdue={anyOverdue}
         showAppBanner={shouldShowAppBanner}
         onDismissAppBanner={handleDismissBanner}
+        benefitsActive={!!benefitsStatus?.isActive}
+        benefitsEndsAt={benefitsStatus?.endsAt || null}
       />
     </div>
   )

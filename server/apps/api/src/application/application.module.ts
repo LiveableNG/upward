@@ -264,6 +264,12 @@ import {
   SaveBankDetailsUseCase,
   GetPmUnresolvedTransactionsUseCase,
 } from './use-cases/payments/payment.use-cases'
+import {
+  GetBenefitsStatusUseCase,
+  InitializeBenefitsPaymentUseCase,
+  ActivateBenefitsSubscriptionUseCase,
+  ConfirmBenefitsPaymentUseCase,
+} from './use-cases/payments/benefits-subscription.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
 import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
@@ -424,6 +430,10 @@ const UseCases = [
   ResolvePendingRefundUseCase,
   GetBankDetailsUseCase,
   SaveBankDetailsUseCase,
+  GetBenefitsStatusUseCase,
+  InitializeBenefitsPaymentUseCase,
+  ActivateBenefitsSubscriptionUseCase,
+  ConfirmBenefitsPaymentUseCase,
 
   UploadContractUseCase,
   GetContractUploadUrlUseCase,

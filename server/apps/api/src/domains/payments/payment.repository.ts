@@ -274,6 +274,38 @@ export interface IDVAAccountRepository {
   findByAccountNumber(accountNumber: string): Promise<DVAAccount | null>
 }
 
+export interface BenefitsSubscription {
+  id: number
+  uuid: string
+  userId: number
+  userPropertyId?: number | null
+  status: string
+  startsAt: Date
+  endsAt: Date
+  amountPaid: number
+  currency: string
+  source: string
+  sourceTransactionId?: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface IBenefitsSubscriptionRepository {
+  create(
+    data: Omit<BenefitsSubscription, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<BenefitsSubscription>
+  findActiveByUser(
+    userId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<BenefitsSubscription | null>
+  update(
+    id: number,
+    data: Partial<BenefitsSubscription>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<BenefitsSubscription>
+}
+
 export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')
 export const TRANSACTION_REPOSITORY = Symbol('TRANSACTION_REPOSITORY')
 export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY')
@@ -283,3 +315,4 @@ export const WEBHOOK_REPOSITORY = Symbol('WEBHOOK_REPOSITORY')
 export const OVERPAYMENT_REPOSITORY = Symbol('OVERPAYMENT_REPOSITORY')
 export const PAYMENT_LINE_ITEM_REPOSITORY = Symbol('PAYMENT_LINE_ITEM_REPOSITORY')
 export const DVA_ACCOUNT_REPOSITORY = Symbol('DVA_ACCOUNT_REPOSITORY')
+export const BENEFITS_SUBSCRIPTION_REPOSITORY = Symbol('BENEFITS_SUBSCRIPTION_REPOSITORY')

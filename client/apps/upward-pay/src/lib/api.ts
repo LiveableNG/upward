@@ -2,6 +2,7 @@
 import { request } from './api-client'
 import * as authService from '@/features/auth/services/authService'
 import * as paymentService from '@/features/payments/services/paymentService'
+import * as benefitsService from '@/features/payments/services/benefitsService'
 import * as documentService from '@/features/documents/services/documentService'
 import * as notificationService from '@/features/notifications/services/notificationService'
 import * as financeService from '@/features/finance/services/financeService'
@@ -47,6 +48,9 @@ export const api = {
   createManualPaymentRequest: paymentService.createManualPaymentRequest,
   getBankDetails: paymentService.getBankDetails,
   saveBankDetails: paymentService.saveBankDetails,
+  getBenefitsStatus: benefitsService.getBenefitsStatus,
+  initializeBenefitsPayment: benefitsService.initializeBenefitsPayment,
+  confirmBenefitsPayment: benefitsService.confirmBenefitsPayment,
 
   // Documents
   getMyDocuments: documentService.getMyDocuments,

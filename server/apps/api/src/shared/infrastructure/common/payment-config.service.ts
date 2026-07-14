@@ -49,19 +49,38 @@ export class PaymentConfigurationService implements OnModuleInit {
     }
   }
 
-  async hasPaidBenefitsInCurrentTenure(userId: number, propertyId: number): Promise<boolean> {
+  async hasActiveBenefitsSubscription(userId: number): Promise<boolean> {
+    try {
+      const now = new Date();
+      const active = await this.prisma.upward_benefits_subscription.findFirst({
+        where: {
+          userId,
+          status: 'ACTIVE',
+          endsAt: { gt: now },
+        },
+        orderBy: { endsAt: 'desc' },
+      });
+      return !!active;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async hasPaidBenefitsInCurrentTenure(userId: number, _propertyId?: number): Promise<boolean> {
+    if (await this.hasActiveBenefitsSubscription(userId)) {
+      return true;
+    }
+
     try {
       const payments = await this.prisma.upward_transaction.findMany({
         where: {
           userId,
           status: 'SUCCESS',
-          paymentRequest: {
-            userPropertyId: propertyId,
-          },
         },
       });
 
       for (const p of payments) {
+        if (p.type === 'BENEFITS_SUBSCRIPTION') return true;
         if (p.lineItems) {
           const items = typeof p.lineItems === 'string' ? JSON.parse(p.lineItems) : p.lineItems;
           if (Array.isArray(items)) {
@@ -207,13 +226,15 @@ export class PaymentConfigurationService implements OnModuleInit {
           }
 
           const benefitsPaidForRequest = paymentRequestId ? await this.hasPaidBenefitsForRequest(paymentRequestId) : false;
-          const benefitsPaid = benefitsPaidForRequest;
+          const benefitsPaid = await this.hasPaidBenefitsInCurrentTenure(userId);
           return { ...defaultRates, rentValue, benefitsPaid, benefitsPaidForRequest };
         }
       }
     } catch (error) {}
 
-    return { ...defaultRates, rentValue, benefitsPaid: false, benefitsPaidForRequest: false };
+    const benefitsPaidForRequest = paymentRequestId ? await this.hasPaidBenefitsForRequest(paymentRequestId) : false;
+    const benefitsPaid = await this.hasPaidBenefitsInCurrentTenure(userId);
+    return { ...defaultRates, rentValue, benefitsPaid, benefitsPaidForRequest };
   }
 
   async getDynamicProcessingFee(userId: number, propertyId?: number | null, paymentRequestId?: number | null): Promise<number> {
