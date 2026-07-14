@@ -6,13 +6,25 @@ import { GetSequenceLogsUseCase } from '../../../application/use-cases/whatsapp-
 import { RetrySequenceUseCase } from '../../../application/use-cases/whatsapp-sequence/retry-sequence.use-case';
 import { AdminRole } from '@upward/shared-types'
 
+import { PreviewWhatsappSequenceUseCase } from '../../../application/use-cases/whatsapp-sequence/preview-whatsapp-sequence.use-case';
+
 @Controller('admin/whatsapp-sequences')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminWhatsappSequenceController {
   constructor(
     private readonly getSequenceLogsUseCase: GetSequenceLogsUseCase,
     private readonly retrySequenceUseCase: RetrySequenceUseCase,
+    private readonly previewUseCase: PreviewWhatsappSequenceUseCase,
   ) {}
+
+  @Get('preview')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async previewTemplate(
+    @Query('stage') stage: string,
+    @Query('name') name?: string,
+  ) {
+    return this.previewUseCase.execute({ stage, firstName: name });
+  }
 
   @Get()
   @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
@@ -20,8 +32,10 @@ export class AdminWhatsappSequenceController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
     @Query('status') status?: string,
+    @Query('stage') stage?: string,
   ) {
-    return this.getSequenceLogsUseCase.execute({ page, limit, status });
+    const defaultStage = stage || 'WELCOME';
+    return this.getSequenceLogsUseCase.execute({ page, limit, status, stage: defaultStage });
   }
 
   @Post(':id/retry')

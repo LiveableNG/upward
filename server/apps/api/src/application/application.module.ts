@@ -235,6 +235,8 @@ import { InitializeEmailSequenceUseCase } from './use-cases/email-sequence/initi
 import { ProcessPendingEmailSequencesUseCase } from './use-cases/email-sequence/process-pending-email-sequences.use-case'
 import { RetryEmailSequenceUseCase } from './use-cases/email-sequence/retry-email-sequence.use-case'
 import { GetEmailSequenceLogsUseCase } from './use-cases/email-sequence/get-email-sequence-logs.use-case'
+import { PreviewWhatsappSequenceUseCase } from './use-cases/whatsapp-sequence/preview-whatsapp-sequence.use-case'
+import { PreviewEmailSequenceUseCase } from './use-cases/email-sequence/preview-email-sequence.use-case'
 
 // Payments
 import {
@@ -549,6 +551,8 @@ const UseCases = [
   ProcessPendingEmailSequencesUseCase,
   RetryEmailSequenceUseCase,
   GetEmailSequenceLogsUseCase,
+  PreviewWhatsappSequenceUseCase,
+  PreviewEmailSequenceUseCase,
 ]
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'

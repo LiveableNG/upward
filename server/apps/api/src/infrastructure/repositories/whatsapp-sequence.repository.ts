@@ -23,6 +23,7 @@ export class WhatsappSequenceLogRepository implements IWhatsappSequenceLogReposi
       record.templateData,
       record.createdAt,
       record.updatedAt,
+      record.user,
     );
   }
 
@@ -81,22 +82,44 @@ export class WhatsappSequenceLogRepository implements IWhatsappSequenceLogReposi
     return record ? this.mapToEntity(record) : null;
   }
 
-  async findAll(options: { skip?: number; take?: number; status?: string }): Promise<{ data: WhatsappSequenceLogEntity[]; total: number }> {
-    const where = options.status ? { status: options.status } : {};
+  async findAll(options: { skip?: number; take?: number; status?: string; stage?: string }): Promise<{ data: WhatsappSequenceLogEntity[]; total: number }> {
+    const where: any = {};
+    if (options.status) where.status = options.status;
+    if (options.stage) where.stage = options.stage;
     
     const [records, total] = await Promise.all([
       this.prisma.upward_whatsapp_sequence_log.findMany({
         where,
         skip: options.skip,
         take: options.take,
+        include: {
+          user: { select: { firstName: true, lastName: true, email: true, phone: true } },
+        },
         orderBy: { scheduledFor: 'desc' },
       }),
       this.prisma.upward_whatsapp_sequence_log.count({ where }),
     ]);
 
     return {
-      data: records.map(this.mapToEntity),
+      data: records.map((r: any) => this.mapToEntity(r)),
       total,
     };
+  }
+
+  async getStats(stage: string): Promise<{ total: number; sent: number; failed: number; pending: number }> {
+    const counts = await this.prisma.upward_whatsapp_sequence_log.groupBy({
+      by: ['status'],
+      where: { stage },
+      _count: { id: true },
+    });
+
+    const stats = { total: 0, sent: 0, failed: 0, pending: 0 };
+    for (const c of counts) {
+      if (c.status === 'SENT') stats.sent = c._count.id;
+      if (c.status === 'FAILED') stats.failed = c._count.id;
+      if (c.status === 'PENDING') stats.pending = c._count.id;
+      stats.total += c._count.id;
+    }
+    return stats;
   }
 }

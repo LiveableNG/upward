@@ -824,7 +824,7 @@ export class EmailService {
     let subject = ''
     const appLink = `${this.frontendUrl}/dashboard`
     const scoreLink = `${this.frontendUrl}/dashboard`
-    const guideLink = `https://app.clickup.com/t/90121244914/869e1hpcn`
+    const guideLink = `${this.frontendUrl}/dashboard`
     const formattedFirstName = formatName(firstName)
 
     switch (stage) {

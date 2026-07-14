@@ -14,5 +14,11 @@ export class WhatsappSequenceLogEntity {
     public readonly templateData: any,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly user?: {
+      firstName: string | null;
+      lastName: string | null;
+      email: string;
+      phone: string | null;
+    }
   ) {}
 }

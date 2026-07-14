@@ -21,5 +21,8 @@ export interface IWhatsappSequenceLogRepository {
     skip?: number;
     take?: number;
     status?: string;
+    stage?: string;
   }): Promise<{ data: WhatsappSequenceLogEntity[]; total: number }>;
+
+  getStats(stage: string): Promise<{ total: number; sent: number; failed: number; pending: number }>;
 }

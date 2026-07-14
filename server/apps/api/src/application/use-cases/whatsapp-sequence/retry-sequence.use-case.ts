@@ -59,15 +59,50 @@ export class RetrySequenceUseCase {
         },
       });
 
+      let status = 'FAILED';
+      let error: string | null = 'Unknown error';
+
       if (result.success) {
+        status = 'SENT';
+        error = null;
         await this.sequenceRepository.updateStatus(log.id, 'SENT');
       } else {
-        await this.sequenceRepository.updateStatus(log.id, 'FAILED', result.error || 'Unknown Meta API error during retry');
+        error = result.error || 'Unknown Meta API error during retry';
+        await this.sequenceRepository.updateStatus(log.id, 'FAILED', error);
+      }
+
+      await this.prisma.upward_communication_log.create({
+        data: {
+          registeredUserId: log.userId,
+          subject: `WhatsApp Sequence: ${log.stage} (Retry)`,
+          status,
+          channel: 'WHATSAPP',
+          type: 'SEQUENCE',
+          recipient: plainPhone,
+          body: `Template: ${log.templateName}`,
+          lastError: error,
+          sentAt: status === 'SENT' ? new Date() : null,
+        }
+      });
+
+      if (!result.success) {
         throw new BadRequestException(`Meta API Error: ${result.error}`);
       }
     } catch (error: any) {
       if (!(error instanceof BadRequestException)) {
         await this.sequenceRepository.updateStatus(log.id, 'FAILED', error.message || 'Unknown internal error during retry');
+        await this.prisma.upward_communication_log.create({
+          data: {
+            registeredUserId: log.userId,
+            subject: `WhatsApp Sequence: ${log.stage} (Retry)`,
+            status: 'FAILED',
+            channel: 'WHATSAPP',
+            type: 'SEQUENCE',
+            recipient: plainPhone,
+            body: `Template: ${log.templateName}`,
+            lastError: error.message || 'Unknown internal error during retry',
+          }
+        });
         throw new BadRequestException(error.message);
       }
       throw error;

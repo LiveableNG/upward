@@ -203,6 +203,72 @@ export function buildFullLayoutHtml(params: FullLayoutParams): string {
 </html>`;
 }
 
+export interface TenantLayoutParams {
+  logoText?: string;
+  logoSub?: string;
+  title?: string;
+  contentHtml: string;
+  footerText: string;
+}
+
+export function buildTenantLayoutHtml(params: TenantLayoutParams): string {
+  const primaryColor = '#d97757';
+  const bgColor = '#F9FAFB';
+  const cardBg = '#ffffff';
+  const borderColor = '#E5E7EB';
+
+  const { logoText = 'Upward', logoSub = 'by GoodTenants', title, contentHtml, footerText } = params;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+@media (prefers-color-scheme: dark) {
+body, .container-table, .outer-table { background-color: ${bgColor} !important; }
+.main-card { background-color: ${cardBg} !important; border-color: ${borderColor} !important; }
+.title, .greeting, .body-text, .footer-text { color: #111827 !important; }
+.brand-name { color: ${primaryColor} !important; }
+.brand-sub { color: #6b7280 !important; }
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:${bgColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111827;">
+<table class="outer-table" width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:${bgColor};">
+<tr>
+<td align="center">
+<table class="main-card" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:${cardBg};border-radius:16px;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);overflow:hidden;border:1px solid ${borderColor};">
+<tr>
+<td style="height:4px;background-color:${primaryColor};"></td>
+</tr>
+<tr>
+<td style="padding:40px;">
+<div style="margin-bottom:32px;">
+<span class="brand-name" style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">${logoText}</span>
+${logoSub ? `<div class="brand-sub" style="color:#6B7280;font-size:12px;margin-top:4px;">${logoSub}</div>` : ''}
+</div>
+${title ? `<h1 class="greeting" style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;line-height:1.2;">${title}</h1>` : ''}
+<div class="body-text" style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
+${contentHtml}
+</div>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid ${borderColor};padding-top:24px;margin-top:32px;">
+  <tr>
+    <td align="left" style="color:#6B7280;font-size:13px;line-height:1.6;">
+      ${footerText}
+    </td>
+  </tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>`;
+}
+
 export interface WaitlistConfirmationBranding {
   primaryColor?: string;
   bgColor?: string;
@@ -797,13 +863,12 @@ export function buildSequenceWelcomeHtml(params: {
       <li style="margin-bottom: 8px;">Take your rental reputation with you wherever you move.</li>
       <li style="margin-bottom: 8px;">Receive and manage rent payment requests from your property manager—all in one place.</li>
     </ul>
-    <p><a href="${params.loginLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">Log in</a> now to complete your profile by clicking the prompt after login and adding missing personal details to get full access to available services.</p>
+    <p><a href="${params.loginLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Log in</a> now to complete your profile by clicking the prompt after login and adding missing personal details to get full access to available services.</p>
     <p>Already have a history of paying rent on time? Request your previous rent payment history from your property manager to add it to your Upward profile and get credit for the good payment habits you've already built.</p>
     <p>Thank you for joining Upward. We're excited to help make renting simpler, more transparent, and more rewarding.</p>
   `;
 
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
+  return buildTenantLayoutHtml({
     logoText: 'Upward',
     title: `Hello ${params.firstName},`,
     contentHtml,
@@ -824,14 +889,13 @@ export function buildSequenceDay2Html(params: {
       <li style="margin-bottom: 8px;">Understand what influences your score.</li>
       <li style="margin-bottom: 8px;">Discover simple ways to strengthen it.</li>
     </ul>
-    <p>View your Upward Score and its full breakdown: <a href="${params.scoreLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">Here</a></p>
+    <p>View your Upward Score and its full breakdown: <a href="${params.scoreLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
     <p>Already have a history of paying rent on time? You should also request your previous rent payment history from your current or past property manager to receive credit for the responsible payment habits you've already built.</p>
     <p>As more of your rent payments are recorded, your profile continues to grow—creating a trusted rental history that can work in your favour any moment from now.</p>
     <p>We're excited to help you build a rental reputation that's recognised.</p>
   `;
 
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
+  return buildTenantLayoutHtml({
     logoText: 'Upward',
     title: `Hi ${params.firstName},`,
     contentHtml,
@@ -860,13 +924,12 @@ export function buildSequenceDay5Html(params: {
       <li style="margin-bottom: 8px;">How small habits today can make renting easier in the future.</li>
       <li style="margin-bottom: 8px;">How Upward helps you keep building that reputation instead of losing it every time you move.</li>
     </ul>
-    <p>Read: <a href="${params.guideLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">5 Ways to Build a Stronger Rental Reputation</a></p>
+    <p>Read: <a href="${params.guideLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">5 Ways to Build a Stronger Rental Reputation</a></p>
     <p>The guide only takes a few minutes to read, but the habits can benefit you for years.</p>
     <p>See you inside,</p>
   `;
 
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
+  return buildTenantLayoutHtml({
     logoText: 'Upward',
     title: `Hi ${params.firstName},`,
     contentHtml,
@@ -884,16 +947,15 @@ export function buildSequenceDay9Html(params: {
     <p>Her payment was confirmed, her receipt was available instantly, and she watched her Upward Score increase.</p>
     <p><strong>For the first time, paying rent felt like she was building something that would benefit her in the future.</strong></p>
     <p>Here's how she described the experience:</p>
-    <blockquote style="border-left: 4px solid #166534; padding-left: 16px; margin: 24px 0; color: #555; font-style: italic;">
+    <blockquote style="border-left: 4px solid #d97757; padding-left: 16px; margin: 24px 0; color: #555; font-style: italic;">
       "The whole process was so simple and clear. I paid my rent, got my receipt immediately, and then saw my Upward Score go up. It honestly felt good knowing that my payment wasn't just gone—it was helping me build my rental reputation. It gave me a sense of control over my future as a tenant."
     </blockquote>
     <p>She was so excited by the experience that she started exploring other Upward benefits...and because she'll be requesting her previous rent payment history from her property manager, her profile will become even stronger as those responsible payment records are added.</p>
     <p>That's the power of Upward.</p>
-    <p>Open Upward and see your rental profile: <a href="${params.appLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">Here</a></p>
+    <p>Open Upward and see your rental profile: <a href="${params.appLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
   `;
 
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
+  return buildTenantLayoutHtml({
     logoText: 'Upward',
     title: `Hi ${params.firstName},`,
     contentHtml,
@@ -923,12 +985,11 @@ export function buildSequenceDay14Html(params: {
     </ul>
     <p>The more you use Upward, the more valuable your rental profile becomes.</p>
     <p>We'll occasionally share helpful tips, product updates, and new opportunities to help you get the most from your rental journey.</p>
-    <p>👉 Open Upward and continue building your rental reputation: <a href="${params.appLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">Here</a></p>
+    <p>👉 Open Upward and continue building your rental reputation: <a href="${params.appLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
     <p>Thank you for choosing Upward. We're excited to be part of your journey toward a smarter, more rewarding rental experience.</p>
   `;
 
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
+  return buildTenantLayoutHtml({
     logoText: 'Upward',
     title: `Hi ${params.firstName},`,
     contentHtml,

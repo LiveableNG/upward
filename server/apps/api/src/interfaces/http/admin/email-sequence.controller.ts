@@ -6,13 +6,25 @@ import { AdminRole } from '@upward/shared-types'
 import { GetEmailSequenceLogsUseCase } from '../../../application/use-cases/email-sequence/get-email-sequence-logs.use-case'
 import { RetryEmailSequenceUseCase } from '../../../application/use-cases/email-sequence/retry-email-sequence.use-case'
 
+import { PreviewEmailSequenceUseCase } from '../../../application/use-cases/email-sequence/preview-email-sequence.use-case'
+
 @Controller('admin/email-sequences')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminEmailSequenceController {
   constructor(
     private readonly getLogsUseCase: GetEmailSequenceLogsUseCase,
     private readonly retryUseCase: RetryEmailSequenceUseCase,
+    private readonly previewUseCase: PreviewEmailSequenceUseCase,
   ) {}
+
+  @Get('preview')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async previewTemplate(
+    @Query('stage') stage: string,
+    @Query('name') name?: string,
+  ) {
+    return this.previewUseCase.execute({ stage, firstName: name })
+  }
 
   @Get()
   @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
@@ -23,8 +35,8 @@ export class AdminEmailSequenceController {
     @Query('stage') stage?: string,
     @Query('email') email?: string,
   ) {
-    const logs = await this.getLogsUseCase.execute({ status, stage, email })
-    return { data: logs, meta: { totalPages: 1 } }
+    const defaultStage = stage || 'WELCOME';
+    return this.getLogsUseCase.execute({ page, limit, status, stage: defaultStage, email });
   }
 
   @Post(':id/retry')
