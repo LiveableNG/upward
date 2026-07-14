@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
-import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
+import { usePendingPayments, useTransactions } from '@/features/dashboard/hooks/useDashboard'
+import { useAuth } from '@/features/auth/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
@@ -17,13 +18,29 @@ import { hasRentalInfo } from '@/features/dashboard/utils/profileCompletion'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { data, loading, error, reload } = useDashboard()
+  
+  // Use global auth state instead of fetching profile again
+  const { user, loading: authLoading } = useAuth()
+  
+  // Granular data fetching
+  const { data: rawPending, isLoading: pendingLoading, error: pendingError } = usePendingPayments()
+  const { data: completedPayments, isLoading: txLoading, error: txError } = useTransactions()
+  
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   })
+  
+  const { data: benefitsStatus, isError: benefitsError } = useQuery({
+    queryKey: ['benefits-status'],
+    queryFn: () => api.getBenefitsStatus(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1, // Don't retry endlessly if it 500s
+  })
+  
   const { data: scoreProfile } = useScoreProfile()
 
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
@@ -42,31 +59,30 @@ export default function DashboardPage() {
     }
   }
 
+  // Only redirect if auth context definitively says no user
   useEffect(() => {
-    if (error && (error.toLowerCase().includes('expired') || error.toLowerCase().includes('auth'))) {
+    if (!authLoading && !user) {
       router.push('/login')
     }
-  }, [error, router])
+  }, [user, authLoading, router])
 
-  if (loading && !data) return <FallbackSuspense message="Loading dashboard…" />
+  if (authLoading || !user) {
+    return <FallbackSuspense message="Loading your account..." />
+  }
 
-  if (error || !data) {
-    if (error?.toLowerCase().includes('expired') || error?.toLowerCase().includes('auth')) {
-      return <FallbackSuspense message="Session expired. Redirecting..." />
-    }
+  // Gracefully handle critical errors
+  if (pendingError || txError) {
     return (
       <div className="dashboard dashboard--error">
         <div className="pay-page__error">
           <div className="pay-page__error-icon"><AlertTriangle size={32} /></div>
           <h2>Error loading dashboard</h2>
-          <p>{error}</p>
-          <button className="btn btn--secondary" onClick={reload}>Retry</button>
+          <p>We couldn't load some of your financial data. Please try again.</p>
+          <button className="btn btn--secondary" onClick={() => window.location.reload()}>Retry</button>
         </div>
       </div>
     )
   }
-
-  const { user, pendingPayments: rawPending, completedPayments } = data
 
   const pendingPayments = [...(rawPending || [])].filter((p: any) => {
     if (!p.userPropertyUuid) return true
@@ -85,8 +101,8 @@ export default function DashboardPage() {
   const firstName = user.firstName || 'User'
   const isNewUser = !hasRentalInfo(user)
   const isIdentityVerified = user.isIdentityVerified || false
-  const totalPaid = completedPayments.reduce((sum: number, p: any) => sum + p.amount, 0)
-  const currency = completedPayments[0]?.currency || 'NGN'
+  const totalPaid = (completedPayments || []).reduce((sum: number, p: any) => sum + p.amount, 0)
+  const currency = completedPayments?.[0]?.currency || 'NGN'
 
   const isCapacitor =
     Capacitor.isNativePlatform() ||
@@ -155,16 +171,17 @@ export default function DashboardPage() {
       </div>
 
       <StatStrip
-        completedPaymentsCount={completedPayments.length}
+        completedPaymentsCount={completedPayments?.length || 0}
         totalPaid={totalPaid}
         currency={currency}
         pendingCount={pendingPayments.length}
+        isLoading={txLoading || pendingLoading}
       />
 
       <DashboardHome
         user={user}
         pendingPayments={pendingPayments}
-        completedPayments={completedPayments}
+        completedPayments={completedPayments || []}
         credScore={credScore}
         maxScore={maxScore}
         band={band}
@@ -181,7 +198,11 @@ export default function DashboardPage() {
         anyOverdue={anyOverdue}
         showAppBanner={shouldShowAppBanner}
         onDismissAppBanner={handleDismissBanner}
+        benefitsActive={!benefitsError && !!benefitsStatus?.isActive}
+        benefitsEndsAt={benefitsError ? null : benefitsStatus?.endsAt || null}
+        isLoading={pendingLoading || txLoading}
       />
     </div>
   )
 }
+

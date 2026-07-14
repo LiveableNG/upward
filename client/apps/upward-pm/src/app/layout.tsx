@@ -1,20 +1,14 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Script from 'next/script'
-import "../styles/variables.css";
+import { Inter } from 'next/font/google'
 import "./globals.css";
-import "../styles/sidebar.css";
-import "../styles/header.css";
-import "../styles/dashboard.css";
-import "../styles/settings.css";
-import "../styles/splash.css";
-import "../styles/properties.css";
-import "../styles/tenants.css";
-import "../styles/payments.css";
-import "../styles/toast.css";
-import "../styles/features/requests.css";
-import "../styles/auth.css";
-import "../styles/components/skeleton.css";
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 import { Providers } from "@/components/common/Providers";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -44,8 +38,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body className={inter.className}>
         <Providers>
           <AppLayout>
             {children}

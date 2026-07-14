@@ -41,6 +41,7 @@ model upward_user {
   bankDetails          upward_user_bank_details?
   transactions         upward_transaction[]
   refundLogs           upward_refund_log[]
+  benefitsSubscriptions upward_benefits_subscription[]
   campaignWeekSent     Int                              @default(0)
   unsubscribed         Boolean                          @default(false)
   unsubscribedAt       DateTime?

@@ -138,7 +138,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
           createdAt: p.createdAt || new Date().toISOString(),
           isRead: false,
           isDynamic: true,
-          url: `/pay/${p.uuid}`,
+          url: `/dashboard/pay-rent?paymentUuid=${p.uuid}`,
         })
       })
     }

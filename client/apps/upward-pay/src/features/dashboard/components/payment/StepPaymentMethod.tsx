@@ -7,6 +7,10 @@ type StepPaymentMethodProps = {
   onPayOnline: () => void
   onBankTransfer: () => void
   processing?: boolean
+  bankTransferDisabled?: boolean
+  bankTransferDisabledReason?: string
+  onCancel?: () => void
+  cancelling?: boolean
 }
 
 export function StepPaymentMethod({
@@ -14,7 +18,13 @@ export function StepPaymentMethod({
   onPayOnline,
   onBankTransfer,
   processing = false,
+  bankTransferDisabled = false,
+  bankTransferDisabledReason,
+  onCancel,
+  cancelling = false,
 }: StepPaymentMethodProps) {
+  const busy = processing || cancelling
+
   return (
     <div className="pay-flow__payment-method">
       <p className="pay-flow__payment-method-intro">
@@ -25,7 +35,7 @@ export function StepPaymentMethod({
         type="button"
         className="pay-flow__method-card"
         onClick={onPayOnline}
-        disabled={processing}
+        disabled={busy}
       >
         <div className="pay-flow__method-card-icon pay-flow__method-card-icon--online">
           <CreditCard size={22} />
@@ -40,16 +50,32 @@ export function StepPaymentMethod({
         type="button"
         className="pay-flow__method-card"
         onClick={onBankTransfer}
-        disabled={processing}
+        disabled={busy || bankTransferDisabled}
       >
         <div className="pay-flow__method-card-icon pay-flow__method-card-icon--bank">
           <Landmark size={22} />
         </div>
         <div className="pay-flow__method-card-body">
           <p className="pay-flow__method-card-title">Bank transfer</p>
-          <p className="pay-flow__method-card-desc">Pay directly to landlord · no platform fees · upload proof after</p>
+          <p className="pay-flow__method-card-desc">
+            {bankTransferDisabled
+              ? bankTransferDisabledReason || 'Bank transfer is unavailable for this property.'
+              : 'Pay directly to landlord · no platform fees · upload proof after'}
+          </p>
         </div>
       </button>
+
+      {onCancel ? (
+        <button
+          type="button"
+          className="btn btn--ghost btn--full btn--pill"
+          onClick={onCancel}
+          disabled={busy}
+          style={{ marginTop: 8 }}
+        >
+          {cancelling ? 'Cancelling…' : 'Cancel this payment request'}
+        </button>
+      ) : null}
     </div>
   )
 }

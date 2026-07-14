@@ -89,7 +89,14 @@ async function main() {
   console.log('=============================================');
   console.log('[WARNING] Ensure this is NOT a production database if you are running migrations locally!');
   
-  const proceed = await askQuestion('\nDo you want to proceed with database migrations/push? (y/N): ');
+  let proceed = 'n';
+  if (process.stdin.isTTY) {
+    proceed = await askQuestion('\nDo you want to proceed with database migrations/push? (y/N): ');
+  } else {
+    console.log('\n[INFO] Non-interactive environment detected (e.g. Git hook).');
+    console.log('[INFO] Skipping interactive database migration prompt.');
+    console.log('[INFO] To run migrations manually: cd server/apps/api && npx prisma migrate deploy --schema=prisma/schema');
+  }
   
   if (proceed.toLowerCase() === 'y' || proceed.toLowerCase() === 'yes') {
     console.log('\n[INFO] Attempting prisma migrate deploy...');

@@ -22,6 +22,7 @@ type StepBankTransferProps = {
   amount: number
   lineItems?: LineItem[]
   currency?: string
+  paymentRequestUuid?: string
   onBack: () => void
   onSuccess: () => void
 }
@@ -31,6 +32,7 @@ export function StepBankTransfer({
   amount,
   lineItems = [],
   currency = 'NGN',
+  paymentRequestUuid,
   onBack,
   onSuccess,
 }: StepBankTransferProps) {
@@ -178,6 +180,7 @@ export function StepBankTransfer({
         </div>
 
         <UploadProofOfPayment
+          paymentRequestUuid={paymentRequestUuid}
           userPropertyUuid={property.uuid}
           amount={amount}
           currency={currency}

@@ -15,9 +15,9 @@ import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 import { Building2 } from 'lucide-react'
 
-export const TenantList: React.FC = () => {
+export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
   const router = useRouter()
-  const { data: tenants = [], isLoading: loadingTenants } = useTenants()
+  const { data: tenants = [], isLoading: loadingTenants } = useTenants(initialTenants)
   const { data: properties = [], isLoading: loadingProperties } = useProperties()
   
   const isLoading = loadingTenants || loadingProperties
@@ -30,7 +30,7 @@ export const TenantList: React.FC = () => {
   const [bulkDeliveryChannel, setBulkDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
 
   const filteredTenants = useMemo(() => {
-    return tenants.filter(t => {
+    return tenants.filter((t: any) => {
       const fullName = (t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim()).toLowerCase()
       const email = (t.email || '').toLowerCase()
       const query = searchQuery.toLowerCase()
@@ -38,7 +38,7 @@ export const TenantList: React.FC = () => {
       const matchesSearch = fullName.includes(query) || email.includes(query)
       
       const matchesProperty = propertyFilter === 'all' || 
-        t.units?.some(u => u.property?.uuid === propertyFilter || u.property?.name === propertyFilter)
+        t.units?.some((u: any) => u.property?.uuid === propertyFilter || u.property?.name === propertyFilter)
 
       const matchesStatus = statusFilter === 'all' || 
         (statusFilter === 'on_upward' && (t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED')) ||
@@ -49,7 +49,7 @@ export const TenantList: React.FC = () => {
   }, [tenants, searchQuery, propertyFilter, statusFilter])
 
   const pendingTenants = useMemo(() => {
-    return filteredTenants.filter(t => t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED')
+    return filteredTenants.filter((t: any) => t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED')
   }, [filteredTenants])
 
   const handleSelectTenant = (uuid: string, selected: boolean) => {
@@ -242,7 +242,7 @@ export const TenantList: React.FC = () => {
         />
         <StatCard 
           label="Onboarding Pending" 
-          value={tenants.filter(t => t.inviteStatus === 'PENDING').length} 
+          value={tenants.filter((t: any) => t.inviteStatus === 'PENDING').length} 
           icon={Home} 
         />
       </StatGrid>
@@ -260,7 +260,7 @@ export const TenantList: React.FC = () => {
           icon={Building2}
           options={[
             { label: 'All Properties', value: 'all' },
-            ...properties.map(p => ({ label: p.name, value: p.uuid }))
+            ...properties.map((p: any) => ({ label: p.name, value: p.uuid }))
           ]}
           onChange={setPropertyFilter}
         />

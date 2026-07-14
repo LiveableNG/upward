@@ -27,12 +27,12 @@ import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { useToast } from '@/components/common/Toast'
 import { DashboardSkeleton } from '@/components/skeletons'
 
-export function DashboardView() {
+export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
   const toast = useToast()
   
   const resendMutation = useResendPaymentRequest()
-  const { data: dashboardData, isLoading } = useDashboardSummary()
+  const { data: dashboardData, isLoading } = useDashboardSummary(initialData)
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
 
   if (isLoading) {

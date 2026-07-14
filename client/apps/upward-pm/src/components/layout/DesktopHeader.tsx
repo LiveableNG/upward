@@ -89,6 +89,7 @@ export function DesktopHeader() {
           ) : (
             <Link 
               href="/settings"
+              prefetch={false}
               className=""
               style={{ 
                 padding: '4px 10px', 
@@ -119,7 +120,7 @@ export function DesktopHeader() {
             <span className="desktop-header__role">{user.businessName || 'Property Manager'}</span>
           </div>
           
-          <Link href="/settings" className="desktop-header__avatar">
+          <Link href="/settings" prefetch={false} className="desktop-header__avatar">
             <UserAvatar 
               src={user.profilePic} 
               alt="Avatar" 

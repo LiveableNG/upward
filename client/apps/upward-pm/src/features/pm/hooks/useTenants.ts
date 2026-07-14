@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tenantService, CreateTenantDto } from '../services/tenantService'
 import { useToast } from '@/components/common/Toast'
 
-export const useTenants = () => {
-  return useQuery({
+export const useTenants = (initialData?: any) => {
+  return useQuery<any[]>({
     queryKey: ['tenants'],
     queryFn: () => tenantService.getTenants(),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    initialData
   })
 }
 

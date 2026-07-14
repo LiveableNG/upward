@@ -1,35 +1,36 @@
-'use client'
-
-import React, { Suspense, useState } from 'react'
-import { Users } from 'lucide-react'
-import { TenantList } from '@/features/pm/components/tenants/TenantList'
-import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
+import React, { Suspense } from 'react'
 import { TableSkeleton } from '@/components/skeletons'
+import { cookies } from 'next/headers'
+// TS Server refresh
+import { TenantsPageClient } from './TenantsPageClient'
 
-export default function TenantsPage() {
-  const [showAddModal, setShowAddModal] = useState(false)
+async function getTenantsData() {
+  try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('pm_access_token')?.value || cookieStore.get('access_token')?.value
+    
+    if (!token) return undefined;
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+    const res = await fetch(`${apiUrl}/pm/tenants`, {
+      headers: { Authorization: `Bearer ${token}` },
+      next: { revalidate: 60 }
+    })
+    
+    if (!res.ok) return undefined
+    return res.json()
+  } catch (error) {
+    console.error("Failed to fetch tenants:", error)
+    return undefined
+  }
+}
+
+export default async function TenantsPage() {
+  const initialTenants = await getTenantsData()
 
   return (
-    <div className="properties-page animate-fade-only">
-      <header className="properties-header">
-        <div>
-          <h1 className="dashboard__title">Tenants Directory</h1>
-          <p className="dashboard__subtitle">Manage your tenants across all properties and units.</p>
-        </div>
-        <button className="btn btn--primary" onClick={() => setShowAddModal(true)}>
-          <Users size={18} />
-          Add Tenant
-        </button>
-      </header>
-
     <Suspense fallback={<TableSkeleton />}>
-        <TenantList />
-      </Suspense>
-
-      <AddTenantModal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)} 
-      />
-    </div>
+      <TenantsPageClient initialTenants={initialTenants} />
+    </Suspense>
   )
 }

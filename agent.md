@@ -1,30 +1,221 @@
-## Network Performance Analysis: Upward Dashboard
+Act as a Senior Frontend Performance Engineer specializing in Chrome DevTools, networking, React/Next.js applications, and modern web performance.
 
-**Context**
-Analysis of the `upward-web.vercel.app/dashboard` network activity to identify performance bottlenecks, redundant requests, and error states.
+Your task is to perform a complete performance and networking audit of this application using all available DevTools information.
 
-**Diagnostics**
-The following critical latency issues and errors were identified across the application's API endpoints:
+Do NOT stop after identifying one issue. Continue investigating until every potential bottleneck has been examined.
 
-| Request Type | Endpoint | Status | Duration |
-| :--- | :--- | :--- | :--- |
-| **Notification** | `/api/v1/user/notifications` | 200 | 3.28 s |
-| **Transaction** | `/api/v1/payments/transactions` | 200 | 2.86 s |
-| **Auth** | `/api/v1/user/auth/score-profile` | 200 | 2.45 s |
-| **Auth** | `/api/v1/user/auth/refresh` | 200 | 2.08 s |
-| **Auth** | `/api/v1/user/auth/me` | 401 | 602 ms |
-| **Savings** | `/api/v1/savings/goals` | 404 | 606 ms |
+Audit the following areas:
 
-**Actionable Findings**
-*   **High Latency API Responses:** Multiple JSON payloads (under 2kB) exhibit durations exceeding 2 seconds. The high Time to First Byte (TTFB) suggests backend processing or database inefficiencies.
-*   **Redundant Auth Requests:** The application performs multiple concurrent calls to `/auth/me` and `/score-profile`. This redundant fetching increases server load and creates unnecessary waterfalls.
-*   **Authentication Flow:** Initial requests return `401 Unauthorized`, triggering a token refresh flow that delays the final successful data retrieval.
-*   **Broken Endpoints:** The `/savings/goals` endpoint consistently returns a `404 Not Found` error.
+## 1. Network Requests
+- Slow requests
+- Duplicate requests
+- Unnecessary API calls
+- Waterfall dependencies
+- Sequential requests that could be parallelized
+- Large payloads
+- Large response headers
+- Excessive redirects
+- High TTFB
+- Slow download times
+- Slow DNS lookup
+- Slow SSL negotiation
+- Slow connection setup
+- HTTP/1 vs HTTP/2/HTTP/3 usage
+- Compression (gzip/brotli)
+- Missing keep-alive
+- Missing CDN usage
+- Cache-control headers
+- ETag usage
+- Last-Modified headers
+- Cache misses
+- Uncached static assets
 
-**Actionable Recommendations**
-*   **Request Collapsing:** Implement a mechanism to collapse concurrent requests for global state (e.g., user profile) so only one network call is issued.
-*   **Backend Optimization:** Investigate query performance for the `/notifications` and `/transactions` endpoints to reduce response times.
-*   **Error Handling:** Remove or fix the calls to the non-existent `/api/v1/savings/goals` endpoint to reduce noise and unnecessary overhead.
-*   **Next.js RSC Tuning:** Review the volume of `_rsc` (React Server Component) requests for dashboard segments to ensure only essential route data is fetched on initial load.
+## 2. Data Fetching
+Inspect whether the application:
+- Refetches unnecessarily
+- Makes duplicate API calls
+- Refetches on every render
+- Has race conditions
+- Performs unnecessary polling
+- Fetches data that is never used
+- Overfetches data
+- Underfetches causing waterfalls
+- Uses N+1 request patterns
+- Loads resources that could be prefetched
+- Misses opportunities for request batching
 
-*Note: The code fixes and findings above were identified on a live page in DevTools. When applying them to your codebase, please adapt them to your project's specific technical stack (e.g., Tailwind CSS classes, CSS modules, framework components) rather than applying them as literal CSS overrides.*
+If React Query, SWR, Apollo, RTK Query or similar is detected:
+- Evaluate staleTime
+- cacheTime
+- deduplication
+- invalidation
+- background refetches
+- optimistic updates
+- cache hit ratio
+
+## 3. Caching
+Identify:
+- Browser cache issues
+- Memory cache usage
+- Disk cache usage
+- Service Worker caching
+- CDN caching
+- API response caching
+- Missing immutable assets
+- Assets changing hashes unnecessarily
+- Cache busting problems
+
+## 4. Images
+Inspect:
+- Oversized images
+- Missing lazy loading
+- Missing responsive images
+- Missing WebP/AVIF
+- Images downloaded but not visible
+- Duplicate downloads
+- Incorrect cache headers
+
+## 5. JavaScript
+Identify:
+- Large bundles
+- Unused JavaScript
+- Long parse times
+- Long execution times
+- Blocking scripts
+- Third-party scripts slowing startup
+- Code splitting opportunities
+- Dynamic import opportunities
+
+## 6. CSS
+Check for:
+- Unused CSS
+- Render blocking CSS
+- Excessive CSS size
+- Layout shifts caused by CSS
+
+## 7. Rendering
+Inspect:
+- Long Tasks
+- Main thread blocking
+- Layout thrashing
+- Forced synchronous layouts
+- Excessive reflows
+- Excessive paints
+- Large DOM
+- Hydration issues
+- React unnecessary renders
+
+## 8. Core Web Vitals
+Evaluate:
+- LCP
+- CLS
+- INP
+- FCP
+- TTFB
+
+Identify exactly what contributes to each metric.
+
+## 9. Resource Loading
+Check:
+- preload usage
+- prefetch usage
+- preconnect
+- dns-prefetch
+- priority hints
+- blocking fonts
+- blocking CSS
+- blocking JS
+
+## 10. API Design
+Look for:
+- Endpoints returning excessive data
+- Missing pagination
+- Missing compression
+- Slow endpoints
+- Missing indexing hints inferred from response times
+- Opportunities for batching
+
+## 11. React
+If this is React or Next.js:
+- unnecessary rerenders
+- unstable dependencies
+- useEffect loops
+- unnecessary state updates
+- prop drilling causing rerenders
+- expensive components
+- memoization opportunities
+- Suspense opportunities
+- Server Components opportunities (Next.js)
+
+## 12. Security Headers Affecting Performance
+Inspect:
+- CORS preflight frequency
+- unnecessary OPTIONS requests
+- cookie size
+- authentication headers
+- repeated token refreshes
+
+## 13. Third-party Resources
+Evaluate:
+- analytics
+- fonts
+- tracking scripts
+- chat widgets
+- external SDKs
+- embedded iframes
+
+Determine whether any are blocking rendering or network performance.
+
+## 14. DevTools Performance Timeline
+Inspect:
+- CPU bottlenecks
+- idle time
+- scripting time
+- rendering time
+- painting time
+- garbage collection spikes
+- memory growth
+
+## 15. Technical Debt
+Identify architectural issues that may not be immediate bugs but could affect scalability, including:
+- duplicate fetch logic
+- inconsistent caching
+- repeated serializers
+- excessive client-side work
+- poor loading strategies
+- lack of request deduplication
+- missing error handling
+- retry storms
+- network chatter
+
+For every issue found provide:
+
+Severity:
+- Critical
+- High
+- Medium
+- Low
+
+Evidence:
+- The exact request, asset, component or operation responsible.
+
+Root Cause:
+- Explain why it happens.
+
+Impact:
+- Estimate the user impact.
+
+Recommendation:
+- Give a concrete implementation-level fix.
+
+Expected Improvement:
+- Estimate the likely improvement in latency, bandwidth, CPU usage or Core Web Vitals.
+
+Finally produce:
+
+1. Executive Summary
+2. Top 10 highest-impact optimizations
+3. Quick Wins (<30 minutes)
+4. Medium Effort Improvements
+5. Long-term Architectural Improvements
+6. Estimated overall performance gain if all recommendations are implemented.

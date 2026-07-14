@@ -147,8 +147,11 @@ export function ProfileSetupBlocker({
       <div className="profile-setup-blocker__scroll">
         <div className="profile-setup-blocker__body">
           <div
-            className="profile-setup-blocker__score-card"
-            style={{ '--ring-pct': `${ringPct}%` } as React.CSSProperties}
+            className={`profile-setup-blocker__score-card ${score === undefined ? 'skeleton-loading' : ''}`}
+            style={{ 
+              '--ring-pct': `${ringPct}%`,
+              minHeight: '220px' // Added fixed min-height to prevent layout shift
+            } as React.CSSProperties}
           >
             <div className="profile-setup-blocker__score-top">
               <div className="profile-setup-blocker__score-labels">
@@ -161,8 +164,14 @@ export function ProfileSetupBlocker({
             <div className="profile-setup-blocker__score-main">
               <div className="profile-setup-blocker__ring" aria-hidden="true">
                 <div className="profile-setup-blocker__ring-disc">
-                  <span className="profile-setup-blocker__ring-score">{displayScore}</span>
-                  <span className="profile-setup-blocker__ring-max">/ {displayMaxScore}</span>
+                  {score === undefined ? (
+                    <span className="profile-setup-blocker__ring-skeleton">...</span>
+                  ) : (
+                    <>
+                      <span className="profile-setup-blocker__ring-score">{displayScore}</span>
+                      <span className="profile-setup-blocker__ring-max">/ {displayMaxScore}</span>
+                    </>
+                  )}
                 </div>
               </div>
 

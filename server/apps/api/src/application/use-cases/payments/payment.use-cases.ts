@@ -37,6 +37,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { VerifyGatewayTransactionUseCase } from './verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './distribute-allocations.use-case'
+import { ActivateBenefitsSubscriptionUseCase } from './benefits-subscription.use-cases'
 import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
@@ -330,6 +331,7 @@ export class RecordTransactionUseCase {
     private readonly prisma: PrismaService,
     private readonly verifyTransaction: VerifyGatewayTransactionUseCase,
     private readonly distributeAllocations: DistributePaymentAllocationsUseCase,
+    private readonly activateBenefits: ActivateBenefitsSubscriptionUseCase,
     private readonly syncPmStatus: SyncPmPaymentStatusUseCase,
     private readonly settleProperty: SettlePropertyBalanceUseCase,
     private readonly handleOverpayment: HandlePaymentOverpaymentUseCase,
@@ -451,13 +453,16 @@ export class RecordTransactionUseCase {
       const paymentAmount = pr ? Math.min(effectiveAmount - upwardFeeAmount, remaining) + upwardFeeAmount : effectiveAmount
       excess = pr ? Math.max(0, effectiveAmount - upwardFeeAmount - remaining) : 0
 
+      const isBenefitsOnly = data.type === 'BENEFITS_SUBSCRIPTION'
+
       const result = await this.txRepo.create({
         ...data,
         userId: user!.id!,
         amount: effectiveAmount,
         status: isVerified ? 'SUCCESS' : 'FAILED',
-        narration: data.narration || pr?.description || 'Property Payment',
+        narration: data.narration || pr?.description || (isBenefitsOnly ? 'Upward Benefits' : 'Property Payment'),
         landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
+        settlementStatus: data.settlementStatus || (isBenefitsOnly ? 'SETTLED' : undefined),
       } as any, txClient)
 
       if (isVerified && result.status === 'SUCCESS' && result.settlementStatus === 'PENDING_REFUND') {
@@ -521,7 +526,26 @@ export class RecordTransactionUseCase {
           propertyId = p?.id
         }
 
-        if (propertyId) {
+        const benefitsAllocated = (distribution.allocatedItems || []).reduce((sum: number, item: any) => {
+          if (item?.name === 'Upward Benefits') {
+            return sum + Number(item.amount || item.amountPaid || item.allocated || 0)
+          }
+          return sum
+        }, 0)
+
+        if (benefitsAllocated > 0) {
+          await this.activateBenefits.execute({
+            userId: user!.id!,
+            userPropertyId: propertyId,
+            transactionId: result.id,
+            amountPaid: benefitsAllocated,
+            currency: data.currency || 'NGN',
+            source: data.type === 'BENEFITS_SUBSCRIPTION' ? 'STANDALONE' : 'RENT_CHECKOUT',
+            txClient,
+          })
+        }
+
+        if (propertyId && rentPortion > 0) {
           await this.settleProperty.execute({
             userId: user!.id!,
             propertyId,
@@ -742,10 +766,14 @@ export class InitializePaymentUseCase {
 
     const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId, pr?.id)
     const excludeBenefits = data.metadata?.excludeBenefits === true
+    const isBenefitsOnly =
+      data.metadata?.paymentKind === 'BENEFITS_SUBSCRIPTION' ||
+      data.metadata?.type === 'BENEFITS_SUBSCRIPTION'
     const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
-    flatFee = rates.transactionFee + activeBenefitsFee
+    flatFee = isBenefitsOnly ? 0 : rates.transactionFee + activeBenefitsFee
+    const forcePaystack = isBenefitsOnly || data.metadata?.forcePaystack === true
 
-    if (userPropertyId) {
+    if (userPropertyId && !forcePaystack) {
       const rawPhone = user.phone || ''
       const hasPhone = rawPhone && rawPhone.trim() && rawPhone.toLowerCase() !== 'null' && rawPhone.toLowerCase() !== 'undefined'
       const tenantPhone = hasPhone ? rawPhone : `080${String(user.id || Math.floor(Math.random() * 100000000)).padStart(8, '0')}`

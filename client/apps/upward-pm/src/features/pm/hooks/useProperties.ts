@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Property, Unit } from '../services/propertyService'
 
-export const useProperties = () => {
-  return useQuery({
+export const useProperties = (initialData?: any) => {
+  return useQuery<Property[]>({
     queryKey: ['pm-properties'],
     queryFn: () => api.getProperties(),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    initialData
   })
 }
 
@@ -55,12 +56,13 @@ export const useDeleteProperty = () => {
   })
 }
 
-export const useUnits = (propertyUuid?: string) => {
-  return useQuery({
+export const useUnits = (propertyUuid?: string, initialData?: any) => {
+  return useQuery<Unit[]>({
     queryKey: ['pm-units', propertyUuid],
     queryFn: () => api.getUnits(propertyUuid),
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    initialData
   })
 }
 

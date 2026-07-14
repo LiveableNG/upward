@@ -9,6 +9,7 @@ interface StatStripProps {
   totalPaid: number
   currency: string
   pendingCount: number
+  isLoading?: boolean
 }
 
 export function StatStrip({
@@ -16,8 +17,25 @@ export function StatStrip({
   totalPaid,
   currency,
   pendingCount,
+  isLoading = false,
 }: StatStripProps) {
   const router = useRouter()
+
+  if (isLoading) {
+    return (
+      <div className="dashboard__stat-strip">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="dashboard__stat-card animate-pulse" style={{ height: '72px' }}>
+            <div className="dashboard__stat-icon" style={{ backgroundColor: 'var(--border)' }}></div>
+            <div style={{ flex: 1 }}>
+              <div style={{ height: '20px', width: '40%', backgroundColor: 'var(--border)', marginBottom: '4px', borderRadius: '4px' }}></div>
+              <div style={{ height: '14px', width: '60%', backgroundColor: 'var(--border)', borderRadius: '4px' }}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="dashboard__stat-strip">

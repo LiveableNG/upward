@@ -12,6 +12,7 @@ import { NotificationPanel } from './NotificationPanel'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { Suspense } from 'react'
 
 interface DashboardHeaderProps {
 
@@ -165,7 +166,9 @@ export function DashboardHeader({
         </div>
       </header>
       
-      <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+      <Suspense fallback={null}>
+        <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+      </Suspense>
     </>
   )
 }

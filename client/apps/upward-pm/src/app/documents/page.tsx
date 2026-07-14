@@ -33,7 +33,7 @@ function DocumentManagementContent() {
   // Resolve recipient from query parameters
   useEffect(() => {
     if (unitUuid && tenantUuid && tenants.length > 0 && !initialRecipient) {
-      const tenant = tenants.find(t => t.uuid === tenantUuid)
+      const tenant = tenants.find((t: any) => t.uuid === tenantUuid)
       setInitialRecipient({
         type: 'existing',
         uuid: tenantUuid,

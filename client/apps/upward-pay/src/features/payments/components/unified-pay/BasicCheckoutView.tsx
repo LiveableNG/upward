@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, ShieldAlert, Info } from 'lucide-react'
+import { Lock, ShieldAlert, Info, ShieldCheck } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   PayFlowPrimaryButton,
@@ -58,6 +58,7 @@ interface BasicCheckoutViewProps {
   onPayClick: () => void
   showPremiumOptions?: boolean
   isPremiumSelected?: boolean
+  benefitsAlreadyActive?: boolean
   onSelectStandard?: () => void
   onSelectPremium?: () => void
   onManualPayClick?: () => void
@@ -87,6 +88,7 @@ export function BasicCheckoutView({
   onPayClick,
   showPremiumOptions = false,
   isPremiumSelected = false,
+  benefitsAlreadyActive = false,
   onSelectStandard,
   onSelectPremium,
   onManualPayClick,
@@ -329,6 +331,16 @@ export function BasicCheckoutView({
               onSelectStandard={onSelectStandard || (() => {})}
               onSelectPremium={onSelectPremium || (() => {})}
             />
+          ) : null}
+
+          {!showPremiumOptions && benefitsAlreadyActive ? (
+            <div className="benefits-page__badge is-active" style={{ marginBottom: 12 }}>
+              <ShieldCheck size={18} />
+              <div>
+                <strong>Upward Benefits active</strong>
+                <p>Rent Protection is already included on your account this year.</p>
+              </div>
+            </div>
           ) : null}
 
           {canPayPartial ? (

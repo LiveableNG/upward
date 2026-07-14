@@ -9,15 +9,9 @@ import {
 } from '../types'
 import { type UserProfile } from '@/features/auth/types'
 
-export async function getDashboardData(): Promise<DashboardData> {
-  const [profile, txs, landlords, pending] = await Promise.all([
-    api.getProfile(),
-    api.getTransactions(),
-    api.getSavedLandlords(),
-    api.getPendingPayments(),
-  ])
-
-  const pendingPayments = (pending || []).map((p: any) => ({
+export async function getPendingPaymentsParsed() {
+  const pending = await api.getPendingPayments()
+  return (pending || []).map((p: any) => ({
     uuid: p.uuid,
     id: p.id,
     amount: p.total_amount || p.amount,
@@ -42,8 +36,11 @@ export async function getDashboardData(): Promise<DashboardData> {
     isVerified: !!p.isVerified,
     latestProof: p.latestProof || null,
   }))
+}
 
-  const completedPayments: CompletedPayment[] = (txs || []).map((t: any) => ({
+export async function getTransactionsParsed(): Promise<CompletedPayment[]> {
+  const txs = await api.getTransactions()
+  return (txs || []).map((t: any) => ({
     uuid: t.uuid,
     amount: t.amount,
     currency: t.currency || 'NGN',
@@ -58,8 +55,11 @@ export async function getDashboardData(): Promise<DashboardData> {
     lineItems: t.lineItems || [],
     isManual: !!t.isManual,
   }))
+}
 
-  const savedLandlords: SavedLandlord[] = (landlords || []).map((l: any) => ({
+export async function getSavedLandlordsParsed(): Promise<SavedLandlord[]> {
+  const landlords = await api.getSavedLandlords()
+  return (landlords || []).map((l: any) => ({
     uuid: l.uuid,
     name: l.name,
     account_name: l.accountName,
@@ -69,6 +69,15 @@ export async function getDashboardData(): Promise<DashboardData> {
     last_paid: l.lastPaid,
     last_amount: l.lastAmount || 0,
   }))
+}
+
+export async function getDashboardData(): Promise<DashboardData> {
+  const [profile, pendingPayments, completedPayments, savedLandlords] = await Promise.all([
+    api.getProfile(),
+    getPendingPaymentsParsed(),
+    getTransactionsParsed(),
+    getSavedLandlordsParsed(),
+  ])
 
   return {
     user: profile,

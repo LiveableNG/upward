@@ -234,11 +234,10 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
   )
 }
 
-export function PaymentsView() {
-  const { data: requests } = usePaymentRequests()
-  const { data: properties } = useProperties()
+export function PaymentsView({ initialPaymentRequests }: { initialPaymentRequests?: any }) {
+  const { data: requests = [] } = usePaymentRequests(initialPaymentRequests)
+  const { data: properties = [] } = useProperties()
   const { success, info } = useToast()
-  
   const searchParams = useSearchParams()
   const initialStatus = searchParams?.get('status') || 'All'
   
@@ -269,7 +268,7 @@ export function PaymentsView() {
     if (!requests || requests.length === 0) return info('No data to export')
     
     const headers = ['ID', 'Tenant', 'Unit', 'Property', 'Amount', 'Amount Paid', 'Due Date', 'Status']
-    const rows = (requests || []).map(req => [
+    const rows = (requests || []).map((req: any) => [
       req.uuid.slice(-8).toUpperCase(),
       req.tenant ? `${req.tenant.firstName} ${req.tenant.lastName}` : 'No Tenant',
       req.unit?.unitName || 'N/A',
@@ -287,7 +286,7 @@ export function PaymentsView() {
     }).catch((err: any) => console.error(err))
   }
 
-  const filteredRequests = (requests || []).filter(req => {
+  const filteredRequests = (requests || []).filter((req: any) => {
     const getStartOfDay = (date: Date) => {
       const d = new Date(date)
       d.setHours(0, 0, 0, 0)
@@ -429,7 +428,7 @@ export function PaymentsView() {
                   style={{ width: '100%', height: 40, borderRadius: 8, border: '1px solid var(--border)', padding: '0 12px' }}
                 >
                   <option value="All">All Properties</option>
-                  {properties?.map(p => (
+                  {properties?.map((p: any) => (
                     <option key={p.uuid} value={p.uuid}>{p.name}</option>
                   ))}
                 </select>
