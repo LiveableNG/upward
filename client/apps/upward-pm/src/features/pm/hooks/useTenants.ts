@@ -3,7 +3,7 @@ import { tenantService, CreateTenantDto } from '../services/tenantService'
 import { useToast } from '@/components/common/Toast'
 
 export const useTenants = (initialData?: any) => {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: ['tenants'],
     queryFn: () => tenantService.getTenants(),
     staleTime: 5 * 60 * 1000,

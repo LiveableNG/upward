@@ -26,14 +26,14 @@ function LandlordDetailPageContent() {
   // Find properties belonging to this virtual landlord
   const decodedKey = decodeURIComponent(key as string)
   
-  const landlordProperties = properties.filter(prop => {
+  const landlordProperties = properties.filter((prop: any) => {
     if (!prop.landlordName) return false
     const propKey = `${prop.landlordName.toLowerCase()}-${(prop.landlordEmail || '').toLowerCase()}`
     return propKey === decodedKey
   })
 
-  const landlordUnits = allUnits.filter(unit => {
-    const prop = properties.find(p => p.id === unit.propertyId || p.uuid === (unit as any).propertyUuid)
+  const landlordUnits = allUnits.filter((unit: any) => {
+    const prop = properties.find((p: any) => p.id === unit.propertyId || p.uuid === (unit as any).propertyUuid)
     if (!prop || !prop.landlordName) return false
     const propKey = `${prop.landlordName.toLowerCase()}-${(prop.landlordEmail || '').toLowerCase()}`
     return propKey === decodedKey

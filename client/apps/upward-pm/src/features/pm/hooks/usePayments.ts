@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { CreatePaymentRequestDto, UpdatePmPaymentRequestDto } from '../services/paymentService'
 
 export const usePaymentRequests = (initialData?: any) => {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: ['pm-payment-requests'],
     queryFn: () => api.getPaymentRequests(),
     staleTime: 5 * 60 * 1000,
