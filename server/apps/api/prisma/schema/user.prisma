@@ -104,14 +104,16 @@ model upward_device_token {
 }
 
 model upward_admin {
-  id                 String             @id @default(uuid())
-  email              String             @unique
-  passwordHash       String
-  role               String             @default("ADMIN")
-  mustChangePassword Boolean            @default(true)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  logs               upward_admin_log[]
+  id                   String             @id @default(uuid())
+  email                String             @unique
+  phone                String?            @unique
+  passwordHash         String
+  role                 String             @default("ADMIN")
+  receivesSystemAlerts Boolean            @default(false)
+  mustChangePassword   Boolean            @default(true)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  logs                 upward_admin_log[]
 
   @@index([email])
 }

@@ -786,9 +786,14 @@ export class EmailService {
     return result.success
   }
 
-  async sendCustomerSupportNotification(type: 'USER' | 'PM') {
+  async sendCustomerSupportNotification(type: 'USER' | 'PM', relatedUserId?: string) {
     const csAdmins = await this.prisma.upward_admin.findMany({
-      where: { role: 'CUSTOMER_SUPPORT' },
+      where: {
+        OR: [
+          { receivesSystemAlerts: true },
+          { role: 'DEVELOPER' }
+        ]
+      },
       select: { email: true }
     });
 
@@ -802,6 +807,7 @@ export class EmailService {
     
     for (const email of emails) {
       await this.sendEmailWithRetry({
+        userId: relatedUserId,
         email,
         subject,
         html: `<p>${text}</p>`,

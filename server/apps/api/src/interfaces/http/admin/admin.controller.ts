@@ -28,6 +28,7 @@ import { DemoteAdminUseCase } from '../../../application/use-cases/admin/demote-
 import { ChangeAdminRoleUseCase } from '../../../application/use-cases/admin/change-admin-role.use-case'
 import { ChangeAdminPasswordUseCase } from '../../../application/use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from '../../../application/use-cases/admin/search-users.use-case'
+import { UpdateAdminDetailsUseCase } from '../../../application/use-cases/admin/update-admin-details.use-case'
 
 import { GetWaitlistUseCase } from '../../../application/use-cases/waitlist/get-waitlist.use-case'
 import { UpdateWaitlistUserUseCase } from '../../../application/use-cases/waitlist/update-waitlist-user.use-case'
@@ -81,6 +82,7 @@ export class AdminController {
     private readonly promoteAdminUseCase: PromoteAdminUseCase,
     private readonly demoteAdminUseCase: DemoteAdminUseCase,
     private readonly changeAdminRoleUseCase: ChangeAdminRoleUseCase,
+    private readonly updateAdminDetailsUseCase: UpdateAdminDetailsUseCase,
     private readonly changeAdminPasswordUseCase: ChangeAdminPasswordUseCase,
     private readonly getWaitlistUseCase: GetWaitlistUseCase,
     private readonly updateWaitlistUserUseCase: UpdateWaitlistUserUseCase,
@@ -334,6 +336,12 @@ export class AdminController {
   @Roles(AdminRole.DEVELOPER)
   async changeAdminRole(@Param('id') id: string, @Body() body: { role: AdminRole }, @Req() req: AuthenticatedRequest) {
     return { data: await this.changeAdminRoleUseCase.execute(id, body.role, req.user.id) }
+  }
+
+  @Patch('admins/:id/details')
+  @Roles(AdminRole.DEVELOPER)
+  async updateAdminDetails(@Param('id') id: string, @Body() body: { phone?: string; receivesSystemAlerts?: boolean }, @Req() req: AuthenticatedRequest) {
+    return { data: await this.updateAdminDetailsUseCase.execute(id, body, req.user.role as AdminRole) }
   }
 
   @Post('email/bulk')

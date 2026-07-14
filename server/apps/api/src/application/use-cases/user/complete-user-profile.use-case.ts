@@ -140,9 +140,8 @@ export class CompleteUserProfileUseCase {
 
     await this.userAuthService.syncTenantStatuses(dto.email)
 
-    // Notify Customer Support if password was set (meaning they became an active user)
     if (passwordHash) {
-      this.emailService.sendCustomerSupportNotification('USER').catch(e => this.logger.error('Failed to send CS notification', e));
+      this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => this.logger.error('Failed to send CS notification', e));
     }
 
     // Reuse UserAuthService login logic to create session and tokens

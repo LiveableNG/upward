@@ -165,7 +165,7 @@ export class UserAuthService extends BaseAuthService {
           await this.syncProperties(user.id!, dto.properties)
         }
         await this.syncTenantStatuses(dto.email)
-        this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
+        this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
         
         let pmName: string | undefined = undefined;
         if (user.companyUsers && user.companyUsers.length > 0) {
@@ -240,7 +240,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     await this.syncTenantStatuses(dto.email)
-    this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
+    this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
 
     let pmName: string | undefined = undefined;
     if (user.companyUsers && user.companyUsers.length > 0) {

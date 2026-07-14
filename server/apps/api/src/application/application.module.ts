@@ -39,6 +39,7 @@ import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accou
 import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from './use-cases/admin/get-invitation-tracker.use-case'
+import { UpdateAdminDetailsUseCase } from './use-cases/admin/update-admin-details.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
@@ -315,6 +316,7 @@ const UseCases = [
   GetInvitationTrackerUseCase,
   UpdateAdminUserUseCase,
   UpdateAdminPmUseCase,
+  UpdateAdminDetailsUseCase,
   SendAdminNotificationUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
