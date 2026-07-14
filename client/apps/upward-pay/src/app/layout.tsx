@@ -60,6 +60,13 @@ export default function RootLayout({
           </AuthProvider>
         </Providers>
 
+        <Script id="auth-preload" strategy="beforeInteractive">
+          {`
+            // High priority fetch for auth to prevent waterfall
+            fetch('/api/v1/user/auth/me', { priority: 'high' }).catch(function(){});
+          `}
+        </Script>
+
         {GA_ID && (
           <>
             <Script
