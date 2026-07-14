@@ -14,8 +14,10 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { buildLdContext } from '../utils/launchDarklyContext'
 import { LaunchDarklyFlagProbe } from './LaunchDarklyFlagProbe'
 import {
+  CHECKOUT_EXPERIMENT_ENABLED,
   CHECKOUT_VARIANT_FLAG,
   CHECKOUT_VARIANTS,
+  FORCED_CHECKOUT_VARIANT,
   type CheckoutVariant,
 } from '../constants/checkoutVariant'
 
@@ -58,10 +60,14 @@ export interface CheckoutVariantState {
   ldClient?: any
 }
 
+const DEFAULT_VARIANT = CHECKOUT_EXPERIMENT_ENABLED
+  ? CHECKOUT_VARIANTS.BASIC
+  : FORCED_CHECKOUT_VARIANT
+
 const DEFAULT_STATE: CheckoutVariantState = {
-  variant: CHECKOUT_VARIANTS.BASIC,
-  isPremiumCheckout: false,
-  isBasicCheckout: true,
+  variant: DEFAULT_VARIANT,
+  isPremiumCheckout: DEFAULT_VARIANT === CHECKOUT_VARIANTS.PREMIUM,
+  isBasicCheckout: DEFAULT_VARIANT === CHECKOUT_VARIANTS.BASIC,
   isReady: true,
   isLaunchDarklyEnabled: false,
   ldClient: undefined,
@@ -104,12 +110,15 @@ function CheckoutVariantBridge({ children }: { children: React.ReactNode }) {
   )
   const ldClient = useLDClient()
 
-  const variant = normalizeVariant(rawVariant)
+  const variant = CHECKOUT_EXPERIMENT_ENABLED
+    ? normalizeVariant(rawVariant)
+    : FORCED_CHECKOUT_VARIANT
   const isReady =
-    !authLoading &&
-    (initStatus.status === 'complete' ||
-      initStatus.status === 'failed' ||
-      initStatus.status === 'timeout')
+    !CHECKOUT_EXPERIMENT_ENABLED ||
+    (!authLoading &&
+      (initStatus.status === 'complete' ||
+        initStatus.status === 'failed' ||
+        initStatus.status === 'timeout'))
 
   const value: CheckoutVariantState = {
     variant,
