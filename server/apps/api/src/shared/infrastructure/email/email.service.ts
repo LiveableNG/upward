@@ -822,14 +822,14 @@ export class EmailService {
     
     let html = ''
     let subject = ''
-    const appLink = `${this.frontendUrl}/dashboard`
-    const scoreLink = `${this.frontendUrl}/dashboard`
-    const guideLink = `${this.frontendUrl}/dashboard`
+    const appLink = `${this.frontendUrl}/signup?mode=login`
+    const scoreLink = `${this.frontendUrl}/signup?mode=login`
+    const guideLink = `${this.frontendUrl}/signup?mode=login`
     const formattedFirstName = formatName(firstName)
 
     switch (stage) {
       case 'WELCOME':
-        html = buildSequenceWelcomeHtml({ firstName: formattedFirstName, loginLink: appLink })
+        html = buildSequenceWelcomeHtml({ firstName: formattedFirstName, loginLink: `${this.frontendUrl}/signup?mode=login` })
         subject = 'Welcome to Upward! 🎉'
         break
       case 'DAY_2':

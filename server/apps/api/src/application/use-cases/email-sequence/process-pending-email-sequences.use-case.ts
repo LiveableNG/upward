@@ -4,6 +4,7 @@ import {
   EMAIL_SEQUENCE_REPOSITORY,
 } from '../../../domains/email-sequence/email-sequence.repository.interface'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
 export class ProcessPendingEmailSequencesUseCase {
@@ -13,6 +14,7 @@ export class ProcessPendingEmailSequencesUseCase {
     @Inject(EMAIL_SEQUENCE_REPOSITORY)
     private readonly sequenceRepository: IEmailSequenceRepository,
     private readonly emailService: EmailService,
+    private readonly encryptionService: EncryptionService,
   ) {}
 
   async execute(): Promise<void> {
@@ -35,9 +37,11 @@ export class ProcessPendingEmailSequencesUseCase {
           throw new Error('Missing user firstName or email')
         }
 
+        const decryptedFirstName = this.encryptionService.decrypt(log.user.firstName)
+
         const success = await this.emailService.sendOnboardingSequenceEmail({
           email: log.email,
-          firstName: log.user.firstName,
+          firstName: decryptedFirstName,
           stage: log.stage,
           userId: log.userId.toString(),
         })
