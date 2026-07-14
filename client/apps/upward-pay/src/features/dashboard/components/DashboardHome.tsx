@@ -50,6 +50,7 @@ interface DashboardHomeProps {
   onDismissAppBanner?: () => void
   benefitsActive?: boolean
   benefitsEndsAt?: string | null
+  isLoading?: boolean
 }
 
 function formatPropertyShort(address?: string): string {
@@ -150,8 +151,26 @@ export function DashboardHome({
   onDismissAppBanner,
   benefitsActive = false,
   benefitsEndsAt = null,
+  isLoading = false,
 }: DashboardHomeProps) {
   const router = useRouter()
+
+  if (isLoading) {
+    return (
+      <div className="dash-home animate-pulse">
+        <div className="dash-home__main">
+          <div style={{ height: '240px', backgroundColor: 'var(--border)', borderRadius: '16px', marginBottom: '24px' }}></div>
+          <div style={{ height: '80px', backgroundColor: 'var(--border)', borderRadius: '16px' }}></div>
+        </div>
+        <div className="dash-home__aside">
+          <div style={{ height: '100px', backgroundColor: 'var(--border)', borderRadius: '16px' }}></div>
+        </div>
+        <div className="dash-home__wide">
+          <div style={{ height: '200px', backgroundColor: 'var(--border)', borderRadius: '16px', marginTop: '24px' }}></div>
+        </div>
+      </div>
+    )
+  }
 
   const ringPct = Math.min(100, Math.max((credScore / maxScore) * 100, 4))
   const rentDue = getRentDue(pendingPayments, user)
