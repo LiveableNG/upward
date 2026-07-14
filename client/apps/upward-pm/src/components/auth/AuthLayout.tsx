@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { UpwardLogo } from '../common/UpwardLogo';
+import { ChevronLeft } from 'lucide-react';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -104,6 +105,24 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         </header>
 
         <main className="auth-shell">
+          <a
+            href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'var(--text-muted)',
+              fontSize: '14px',
+              textDecoration: 'none',
+              fontWeight: 500,
+              marginBottom: '24px',
+              transition: 'color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          >
+            <ChevronLeft size={16} /> Back to Website
+          </a>
           {children}
         </main>
       </div>

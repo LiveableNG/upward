@@ -279,10 +279,27 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   if (step === 'otp') {
     return (
       <div className="auth-shell auth-shell--login">
-        <div className="auth-shell__top">
+        <div className="auth-shell__top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button className="auth-shell__back" onClick={() => setStep('login')} disabled={loginLoading}>
             <ChevronLeft size={20} />
           </button>
+          <a 
+            href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
+            style={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'var(--text-muted)',
+              fontSize: '13px',
+              fontWeight: 500,
+              textDecoration: 'none',
+              transition: 'color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          >
+            Back to Website
+          </a>
         </div>
         <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
@@ -303,10 +320,27 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
   return (
     <div className="auth-shell auth-shell--login">
-      <div className="auth-shell__top">
+      <div className="auth-shell__top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button className="auth-shell__back" onClick={onBackToWelcome}>
           <ChevronLeft size={20} />
         </button>
+        <a 
+          href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
+          style={{ 
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            color: 'var(--text-muted)',
+            fontSize: '13px',
+            fontWeight: 500,
+            textDecoration: 'none',
+            transition: 'color 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+          onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          Back to Website
+        </a>
       </div>
 
       <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
