@@ -57,6 +57,8 @@ import { AdminLoginSessionsController } from './admin/admin-login-sessions.contr
 import { AdminBlogPostsController } from './admin/blog-posts.controller'
 import { PublicBlogController } from './public/blog.controller'
 import { ManualPaymentsController } from './controllers/manual-payments.controller'
+import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
+import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
@@ -115,6 +117,8 @@ import { ManualPaymentsController } from './controllers/manual-payments.controll
     AdminLoginSessionsController,
     AdminBlogPostsController,
     PublicBlogController,
+    AdminWhatsappSequenceController,
+    AdminEmailSequenceController,
   ],
 })
 export class HttpModule {}

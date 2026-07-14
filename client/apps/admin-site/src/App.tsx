@@ -26,6 +26,8 @@ import OverridesPage from './pages/Overrides'
 import BlogPosts from './pages/BlogPosts'
 import InternalAccounts from './pages/InternalAccounts'
 import InvitationTracker from './pages/InvitationTracker'
+import WhatsappSequences from './pages/WhatsappSequences'
+import EmailSequences from './pages/EmailSequences'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -78,6 +80,8 @@ function AppRoutes() {
           <Route path="/campaigns" element={<WaitlistCampaigns token={auth.token} />} />
           <Route path="/announcements" element={<Announcements token={auth.token} />} />
           <Route path="/blog" element={<BlogPosts token={auth.token} />} />
+          <Route path="/whatsapp-sequences" element={<WhatsappSequences token={auth.token} />} />
+          <Route path="/email-sequences" element={<EmailSequences token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           {showSandboxTools && <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />}
@@ -93,6 +97,7 @@ function AppRoutes() {
               {showSandboxTools && <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />}
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
               <Route path="/internal-accounts" element={<InternalAccounts token={auth.token} />} />
+              <Route path="/whatsapp-sequences" element={<WhatsappSequences token={auth.token} />} />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -33,10 +33,12 @@ import { PrismaPmTenantRepository } from './repositories/prisma-pm-tenant.reposi
 import { PrismaPmPaymentRequestRepository } from './repositories/prisma-pm-payment-request.repository'
 import { PrismaBulkInviteRepository } from './repositories/prisma-bulk-invite.repository'
 import { PrismaFeedbackRepository } from './repositories/prisma-feedback.repository'
+import { PrismaEmailSequenceRepository } from './repositories/prisma-email-sequence.repository'
 import { PrismaPmDocumentRepository } from './repositories/prisma-pm-document.repository'
 import { PrismaLandlordRepository } from './repositories/prisma-landlord.repository'
 import { PrismaPmLetterheadRepository } from './repositories/prisma-pm-letterhead.repository'
 import { PrismaPmSignatureRepository } from './repositories/prisma-pm-signature.repository'
+import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whatsapp-sequence.repository'
 
 import { PaystackGateway } from '../payments/paystack.gateway'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
@@ -75,6 +77,8 @@ import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PA
 import { PM_LANDLORD_REPOSITORY } from '../../../domains/pm/ILandlordRepository'
 import { BULK_INVITE_REPOSITORY } from '../../../domains/pm/IBulkInviteRepository'
 import { FEEDBACK_REPOSITORY } from '../../../domains/feedback/feedback.repository'
+import { EMAIL_SEQUENCE_REPOSITORY } from '../../../domains/email-sequence/email-sequence.repository.interface'
+import { WHATSAPP_SEQUENCE_REPOSITORY } from '../../../domains/whatsapp-sequence/whatsapp-sequence.repository.interface'
 
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
@@ -215,6 +219,14 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: PM_SIGNATURE_REPOSITORY,
       useClass: PrismaPmSignatureRepository,
     },
+    {
+      provide: EMAIL_SEQUENCE_REPOSITORY,
+      useClass: PrismaEmailSequenceRepository,
+    },
+    {
+      provide: WHATSAPP_SEQUENCE_REPOSITORY,
+      useClass: PrismaWhatsappSequenceLogRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -252,6 +264,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     DVA_ACCOUNT_REPOSITORY,
     PM_LETTERHEAD_REPOSITORY,
     PM_SIGNATURE_REPOSITORY,
+    EMAIL_SEQUENCE_REPOSITORY,
+    WHATSAPP_SEQUENCE_REPOSITORY,
   ],
 })
 export class PrismaModule {}

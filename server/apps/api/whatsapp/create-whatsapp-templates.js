@@ -31,52 +31,92 @@ if (!token || !wabaId) {
  */
 const templates = [
   {
-    name: 'upward_auth_otp_v3',
-    category: 'AUTHENTICATION',
+    name: 'upward_seq_welcome_v1',
+    category: 'MARKETING',
     language: 'en_US',
     components: [
       {
         type: 'BODY',
-        add_security_recommendation: true,
-      },
-      {
-        type: 'BUTTONS',
-        buttons: [
-          {
-            type: 'OTP',
-            otp_type: 'COPY_CODE',
-            text: 'Copy Code',
-          }
-        ]
-      }
-    ]
-  },
-  {
-    name: 'upward_tenant_invite_v3',
-    category: 'UTILITY',
-    language: 'en_US',
-    components: [
-      {
-        type: 'BODY',
-        text: 'Hi *{{1}}*,\n\n{{2}} at {{3}} has invited you to join Upward, your new platform for rent payments and tenancy management.\n\nYour rent payments can now do more than pay for your home—they can work for you.\n\nWith Upward you can:\n✅ Build a verified rental credibility profile from your payment history.\n✅ Keep your rental history even when you move.\n✅ Access your rent records and receipts anytime.\n\n*Good news:* We will import your previous rent payment history, so you will not be starting from scratch.\n\nGetting started takes just a few minutes.',
+        text: "Hi {{1}},\n\nWelcome to Upward! Your account has been successfully created through {{2}}.\n\n*With your account, you can view your rent receipts anytime, build a rental profile that improves every time you pay rent on time, manage rent payment requests from your property manager, and take your rental reputation with you wherever you move.*\n\nLog in now to complete your profile by clicking the prompt after signing in to unlock all available services.\n\n*Already have a history of paying rent on time?* Request your previous rent payment history from your property manager so you get credit for the positive record you've already built.\n\nWe're excited to help make renting more rewarding.\n\n*The Upward Team*",
         example: {
-          body_text: [['John', 'Sarah Manager', 'GoodTenants Realty']]
+          body_text: [['John', 'GoodTenants Realty']]
         }
       },
       {
         type: 'FOOTER',
-        text: 'Upward by Goodtenants'
+        text: 'Upward By GoodTenants'
+      }
+    ]
+  },
+  {
+    name: 'upward_seq_day2_v1',
+    category: 'MARKETING',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nYou joined Upward because your rent payments can do more than simply pay for your apartment — they can help build your rental reputation.\n\nYour Upward Score reflects your rent payment behaviour and helps build a verified rental profile that stays with you, even when you move.\n\n*View your Upward Score to see how your rental profile is developing:* {{2}}\n\nIf you've consistently paid rent on time, request your previous rent payment history from your property manager(s) so you can receive credit for the responsible habits you've already built.\n\nEvery recorded rent payment strengthens your profile, and we're excited to help you build one that opens more opportunities.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'https://upward.goodtenants.io/dashboard']]
+        }
       },
       {
-        type: 'BUTTONS',
-        buttons: [
-          {
-            type: 'URL',
-            text: 'Accept Invitation',
-            url: 'https://upward.goodtenants.io/{{1}}',
-            example: ['invite/123']
-          }
-        ]
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      }
+    ]
+  },
+  {
+    name: 'upward_seq_day5_v1',
+    category: 'MARKETING',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nHere's something many renters don't realize:\n\nTwo tenants can pay the exact same rent for years, but when it's time to move, both often have to start from scratch because their years of responsible payments don't follow them.\n\nWe think that should change. That's why we've put together a short guide on one of the most valuable things you can invest in as a tenant: *your rental reputation*.\n\nIn just a few minutes, you'll learn why your rental reputation matters, what strengthens or weakens it, and how Upward helps you keep building that reputation even when you move.\n\n*Read: 5 Ways to Build a Stronger Rental Reputation* {{2}}\nIt only takes a few minutes to read, but the benefit can last for years.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'https://upward.goodtenants.io/dashboard']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      }
+    ]
+  },
+  {
+    name: 'upward_seq_day9_v1',
+    category: 'MARKETING',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nA resident in Yaba recently paid over *₦1,000,000* in annual rent through Upward.\nAfter paying, her receipt was available instantly—and she watched her Upward Score increase.\n\nHere's what she said:\n_\"The whole process was so simple and clear. I paid my rent, and then saw my Upward Score go up. It honestly felt good knowing that my payment wasn't just gone — it was helping me build my rental reputation. It gave me a sense of control over my future as a tenant.\"_\n\nShe has now requested her previous rent payment history to make her rental profile even stronger.\nThat's what Upward is all about.\n\n*Open Upward and see your rental profile:* {{2}}\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'https://upward.goodtenants.io/dashboard']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      }
+    ]
+  },
+  {
+    name: 'upward_seq_day14_v1',
+    category: 'MARKETING',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nYour account is ready, and every time you use Upward, you build a stronger rental reputation.\n*Today, you can:*\n✅ Build your rental profile.\n✅ View your rent payment receipts.\n✅ Get your previous rent payment history.\n✅ Keep your rental reputation wherever you move.\n*As you continue using Upward, you'll also be able to:*\n🏠 Discover available apartments that match your rental credibility.\n🎉 Save toward paying your rent and qualify for rent discounts and rewards.\n✨ Enjoy new benefits as introduced.\n\n*Open Upward and continue building your rental reputation:* {{2}}\nThank you for choosing Upward. We're excited to be part of your rental journey.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'https://upward.goodtenants.io/dashboard']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
       }
     ]
   }

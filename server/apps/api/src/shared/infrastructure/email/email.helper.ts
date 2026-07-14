@@ -203,6 +203,72 @@ export function buildFullLayoutHtml(params: FullLayoutParams): string {
 </html>`;
 }
 
+export interface TenantLayoutParams {
+  logoText?: string;
+  logoSub?: string;
+  title?: string;
+  contentHtml: string;
+  footerText: string;
+}
+
+export function buildTenantLayoutHtml(params: TenantLayoutParams): string {
+  const primaryColor = '#d97757';
+  const bgColor = '#F9FAFB';
+  const cardBg = '#ffffff';
+  const borderColor = '#E5E7EB';
+
+  const { logoText = 'Upward', logoSub = 'by GoodTenants', title, contentHtml, footerText } = params;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+@media (prefers-color-scheme: dark) {
+body, .container-table, .outer-table { background-color: ${bgColor} !important; }
+.main-card { background-color: ${cardBg} !important; border-color: ${borderColor} !important; }
+.title, .greeting, .body-text, .footer-text { color: #111827 !important; }
+.brand-name { color: ${primaryColor} !important; }
+.brand-sub { color: #6b7280 !important; }
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:${bgColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111827;">
+<table class="outer-table" width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:${bgColor};">
+<tr>
+<td align="center">
+<table class="main-card" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:${cardBg};border-radius:16px;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);overflow:hidden;border:1px solid ${borderColor};">
+<tr>
+<td style="height:4px;background-color:${primaryColor};"></td>
+</tr>
+<tr>
+<td style="padding:40px;">
+<div style="margin-bottom:32px;">
+<span class="brand-name" style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">${logoText}</span>
+${logoSub ? `<div class="brand-sub" style="color:#6B7280;font-size:12px;margin-top:4px;">${logoSub}</div>` : ''}
+</div>
+${title ? `<h1 class="greeting" style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;line-height:1.2;">${title}</h1>` : ''}
+<div class="body-text" style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
+${contentHtml}
+</div>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid ${borderColor};padding-top:24px;margin-top:32px;">
+  <tr>
+    <td align="left" style="color:#6B7280;font-size:13px;line-height:1.6;">
+      ${footerText}
+    </td>
+  </tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>`;
+}
+
 export interface WaitlistConfirmationBranding {
   primaryColor?: string;
   bgColor?: string;
@@ -782,4 +848,151 @@ export function applyPmBranding(html: string, emailSetting: any): string {
   }
 
   return brandedHtml;
+}
+
+export function buildSequenceWelcomeHtml(params: {
+  firstName: string;
+  loginLink: string;
+}): string {
+  const contentHtml = `
+    <p>Welcome to Upward! Your account has been successfully created, and you're all set to enjoy a better rental experience.</p>
+    <p>With your account, you can:</p>
+    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
+      <li style="margin-bottom: 8px;">View your rent payment history and receipts anytime.</li>
+      <li style="margin-bottom: 8px;">Build a verified rental profile that grows every time you pay your rent on time.</li>
+      <li style="margin-bottom: 8px;">Take your rental reputation with you wherever you move.</li>
+      <li style="margin-bottom: 8px;">Receive and manage rent payment requests from your property manager—all in one place.</li>
+    </ul>
+    <p><a href="${params.loginLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Log in</a> now to complete your profile by clicking the prompt after login and adding missing personal details to get full access to available services.</p>
+    <p>Already have a history of paying rent on time? Request your previous rent payment history from your property manager to add it to your Upward profile and get credit for the good payment habits you've already built.</p>
+    <p>Thank you for joining Upward. We're excited to help make renting simpler, more transparent, and more rewarding.</p>
+  `;
+
+  return buildTenantLayoutHtml({
+    logoText: 'Upward',
+    title: `Hello ${params.firstName},`,
+    contentHtml,
+    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+  });
+}
+
+export function buildSequenceDay2Html(params: {
+  firstName: string;
+  scoreLink: string;
+}): string {
+  const contentHtml = `
+    <p>You joined Upward because your rent payments can do more than simply pay for your home — they can help build your rental reputation. Now it's time to see how.</p>
+    <p>Your Upward Score reflects your rent payment behaviour and helps build a verified rental profile that stays with you, even when you move.</p>
+    <p>By viewing your score, you'll be able to:</p>
+    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
+      <li style="margin-bottom: 8px;">See how your current rental profile is taking shape.</li>
+      <li style="margin-bottom: 8px;">Understand what influences your score.</li>
+      <li style="margin-bottom: 8px;">Discover simple ways to strengthen it.</li>
+    </ul>
+    <p>View your Upward Score and its full breakdown: <a href="${params.scoreLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
+    <p>Already have a history of paying rent on time? You should also request your previous rent payment history from your current or past property manager to receive credit for the responsible payment habits you've already built.</p>
+    <p>As more of your rent payments are recorded, your profile continues to grow—creating a trusted rental history that can work in your favour any moment from now.</p>
+    <p>We're excited to help you build a rental reputation that's recognised.</p>
+  `;
+
+  return buildTenantLayoutHtml({
+    logoText: 'Upward',
+    title: `Hi ${params.firstName},`,
+    contentHtml,
+    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+  });
+}
+
+export function buildSequenceDay5Html(params: {
+  firstName: string;
+  guideLink: string;
+}): string {
+  const contentHtml = `
+    <p>Here's something many renters don't realize:</p>
+    <p>Two tenants can pay the exact same rent for years—but when it's time to move, both often have to start from scratch.</p>
+    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
+      <li style="margin-bottom: 8px;">Their history isn't visible.</li>
+      <li style="margin-bottom: 8px;">Their reliability isn't recognised.</li>
+      <li style="margin-bottom: 8px;">Their years of responsible payments don't follow them.</li>
+    </ul>
+    <p>We think that should change.</p>
+    <p>That's why we've put together a short guide on one of the most valuable things you can build as a tenant: your rental reputation.</p>
+    <p>In just a few minutes, you'll learn:</p>
+    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
+      <li style="margin-bottom: 8px;">Why your rental reputation matters.</li>
+      <li style="margin-bottom: 8px;">What strengthens it (and what weakens it).</li>
+      <li style="margin-bottom: 8px;">How small habits today can make renting easier in the future.</li>
+      <li style="margin-bottom: 8px;">How Upward helps you keep building that reputation instead of losing it every time you move.</li>
+    </ul>
+    <p>Read: <a href="${params.guideLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">5 Ways to Build a Stronger Rental Reputation</a></p>
+    <p>The guide only takes a few minutes to read, but the habits can benefit you for years.</p>
+    <p>See you inside,</p>
+  `;
+
+  return buildTenantLayoutHtml({
+    logoText: 'Upward',
+    title: `Hi ${params.firstName},`,
+    contentHtml,
+    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+  });
+}
+
+export function buildSequenceDay9Html(params: {
+  firstName: string;
+  appLink: string;
+}): string {
+  const contentHtml = `
+    <p>A resident in Yaba recently renewed her annual rent of over ₦1,000,000 through Upward. Like many tenants, she initially thought she was simply making another rent payment.</p>
+    <p>But something happened immediately afterwards.</p>
+    <p>Her payment was confirmed, her receipt was available instantly, and she watched her Upward Score increase.</p>
+    <p><strong>For the first time, paying rent felt like she was building something that would benefit her in the future.</strong></p>
+    <p>Here's how she described the experience:</p>
+    <blockquote style="border-left: 4px solid #d97757; padding-left: 16px; margin: 24px 0; color: #555; font-style: italic;">
+      "The whole process was so simple and clear. I paid my rent, got my receipt immediately, and then saw my Upward Score go up. It honestly felt good knowing that my payment wasn't just gone—it was helping me build my rental reputation. It gave me a sense of control over my future as a tenant."
+    </blockquote>
+    <p>She was so excited by the experience that she started exploring other Upward benefits...and because she'll be requesting her previous rent payment history from her property manager, her profile will become even stronger as those responsible payment records are added.</p>
+    <p>That's the power of Upward.</p>
+    <p>Open Upward and see your rental profile: <a href="${params.appLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
+  `;
+
+  return buildTenantLayoutHtml({
+    logoText: 'Upward',
+    title: `Hi ${params.firstName},`,
+    contentHtml,
+    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+  });
+}
+
+export function buildSequenceDay14Html(params: {
+  firstName: string;
+  appLink: string;
+}): string {
+  const contentHtml = `
+    <p>Welcome once again to Upward!</p>
+    <p>Your account is ready, and every time you use Upward, you build a stronger rental reputation that can open up more opportunities over time.</p>
+    <p>With your Upward account today, you can:</p>
+    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
+      <li style="margin-bottom: 8px;">Build a verified rental profile with every on-time rent payment.</li>
+      <li style="margin-bottom: 8px;">View your rent payment history and receipts anytime.</li>
+      <li style="margin-bottom: 8px;">Request your previous rent payment history so your past good payment habits count too.</li>
+      <li style="margin-bottom: 8px;">Keep your rental reputation with you wherever you move.</li>
+    </ul>
+    <p>As you continue using Upward, you'll also be able to:</p>
+    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
+      <li style="margin-bottom: 8px;">Discover available apartments that match your rental credibility.</li>
+      <li style="margin-bottom: 8px;">Save toward paying your rent and qualify for rent discounts and rewards.</li>
+      <li style="margin-bottom: 8px;">Enjoy new resident benefits and features as they're introduced.</li>
+    </ul>
+    <p>The more you use Upward, the more valuable your rental profile becomes.</p>
+    <p>We'll occasionally share helpful tips, product updates, and new opportunities to help you get the most from your rental journey.</p>
+    <p>👉 Open Upward and continue building your rental reputation: <a href="${params.appLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
+    <p>Thank you for choosing Upward. We're excited to be part of your journey toward a smarter, more rewarding rental experience.</p>
+  `;
+
+  return buildTenantLayoutHtml({
+    logoText: 'Upward',
+    title: `Hi ${params.firstName},`,
+    contentHtml,
+    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+  });
 }
