@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, RefreshCcw, Eye, Play, CheckCircle, XCircle, Clock, AlertCircle, EyeOff, ChevronLeft, ChevronRight } from 'lucide-react'
+import { RefreshCcw, Eye, Play, CheckCircle, XCircle, Clock, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 interface EmailSequencesProps {
