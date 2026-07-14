@@ -176,10 +176,10 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   ])
 
   useEffect(() => {
-    if (isBasicCheckout && isBenefitsOptedIn) {
+    if ((isBasicCheckout || rates.benefitsPaid) && isBenefitsOptedIn) {
       setIsBenefitsOptedIn(false)
     }
-  }, [isBasicCheckout, isBenefitsOptedIn, setIsBenefitsOptedIn])
+  }, [isBasicCheckout, isBenefitsOptedIn, rates.benefitsPaid, setIsBenefitsOptedIn])
 
   const showBenefitsUI = isPremiumCheckout && !rates.benefitsPaid
   const renameBenefitsLabel = (name: string) =>
@@ -579,10 +579,11 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             onPayClick={handlePayClick}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
             cancelLoading={isSelfInitiated ? isSubmitting : false}
-            showPremiumOptions
+            showPremiumOptions={showBenefitsUI}
             isPremiumSelected={isBenefitsOptedIn}
             onSelectStandard={() => setIsBenefitsOptedIn(false)}
             onSelectPremium={() => setIsBenefitsOptedIn(true)}
+            benefitsAlreadyActive={!!rates.benefitsPaid}
           />
           {checkoutModals}
         </>
