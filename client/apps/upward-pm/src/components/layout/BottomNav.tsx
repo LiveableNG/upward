@@ -36,6 +36,7 @@ export function BottomNav() {
           <Link 
             key={item.href} 
             href={item.href} 
+            prefetch={item.href === '/' ? undefined : false}
             className={cn(
               'bottom-nav__item',
               isActive && 'bottom-nav__item--active'

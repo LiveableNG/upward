@@ -90,7 +90,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                 return (
                   <li key={item.href} className="sidebar__item">
                     <Link 
-                      href={item.href} 
+                      href={item.href}
+                      prefetch={item.href === '/dashboard' ? undefined : false}
                       className={cn(
                         'sidebar__link',
                         isActive && 'sidebar__link--active'

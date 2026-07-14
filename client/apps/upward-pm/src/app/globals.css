@@ -1,4 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Variables & Layout CSS from layout.tsx */
+@import '../styles/variables.css';
+@import '../styles/sidebar.css';
+@import '../styles/header.css';
+@import '../styles/dashboard.css';
+@import '../styles/settings.css';
+@import '../styles/splash.css';
+@import '../styles/properties.css';
+@import '../styles/tenants.css';
+@import '../styles/payments.css';
+@import '../styles/toast.css';
+@import '../styles/features/requests.css';
+@import '../styles/auth.css';
+@import '../styles/components/skeleton.css';
 
 /* Core */
 @import '../styles/core/base.css';

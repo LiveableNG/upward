@@ -31,7 +31,7 @@ import { DocumentEditorView } from '../documents/DocumentEditorView'
 
 type Tab = 'units' | 'properties'
 
-export function PropertiesView() {
+export function PropertiesView({ initialProperties, initialUnits }: { initialProperties?: any, initialUnits?: any }) {
   const router = useRouter()
   const { success, info, error } = useToast()
   
@@ -57,8 +57,8 @@ export function PropertiesView() {
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
   
-  const { data: properties = [], isLoading: loadingProperties } = useProperties()
-  const { data: units = [], isLoading: loadingUnits } = useUnits()
+  const { data: properties = [], isLoading: loadingProperties } = useProperties(initialProperties)
+  const { data: units = [], isLoading: loadingUnits } = useUnits(undefined, initialUnits)
   const { data: paymentRequests = [] } = usePaymentRequests()
   
   const isLoading = loadingProperties || loadingUnits
@@ -226,16 +226,16 @@ export function PropertiesView() {
 
   // Memoized Filters
   const filteredUnits = useMemo(() => {
-    return units.filter(unit => {
-      const prop = properties.find(p => p.uuid === (unit as any).propertyUuid || p.id === unit.propertyId)
+    return units.filter((unit: any) => {
+      const prop = properties.find((p: any) => p.uuid === (unit as any).propertyUuid || p.id === unit.propertyId)
       const matchesSearch = 
         unit.unitName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         unit.tenant?.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         unit.tenant?.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         prop?.name?.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesProp = selectedPropertyFilter === 'All Properties' || prop?.name === selectedPropertyFilter
-      const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id) || []
-      const hasPendingRequest = unitRequests.some(r => r.status !== 'PAID')
+      const unitRequests = paymentRequests?.filter((r: any) => r.unitId === unit.id) || []
+      const hasPendingRequest = unitRequests.some((r: any) => r.status !== 'PAID')
       const matchesPayment = paymentFilter === 'all' || (paymentFilter === 'pending' && hasPendingRequest)
 
       let matchesDue = true
@@ -249,11 +249,11 @@ export function PropertiesView() {
       } else if (dueFilter !== 'all' && !unit.rentDueDate) matchesDue = false
 
       return matchesSearch && matchesProp && matchesPayment && matchesDue
-    }).sort((a, b) => {
-      const aRequests = paymentRequests?.filter(r => r.unitId === a.id) || []
-      const bRequests = paymentRequests?.filter(r => r.unitId === b.id) || []
-      const aHasPending = aRequests.some(r => r.status !== 'PAID' && r.status !== 'CANCELLED')
-      const bHasPending = bRequests.some(r => r.status !== 'PAID' && r.status !== 'CANCELLED')
+    }).sort((a: any, b: any) => {
+      const aRequests = paymentRequests?.filter((r: any) => r.unitId === a.id) || []
+      const bRequests = paymentRequests?.filter((r: any) => r.unitId === b.id) || []
+      const aHasPending = aRequests.some((r: any) => r.status !== 'PAID' && r.status !== 'CANCELLED')
+      const bHasPending = bRequests.some((r: any) => r.status !== 'PAID' && r.status !== 'CANCELLED')
 
       // Prioritize units with pending payment requests
       if (aHasPending && !bHasPending) return -1
@@ -270,7 +270,7 @@ export function PropertiesView() {
   }, [units, properties, paymentRequests, searchQuery, selectedPropertyFilter, paymentFilter, dueFilter])
 
   const filteredProperties = useMemo(() => {
-    return properties.filter(prop => 
+    return properties.filter((prop: any) => 
       prop.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prop.address?.toLowerCase().includes(searchQuery.toLowerCase())
     )
