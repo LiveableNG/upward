@@ -39,6 +39,8 @@ export class GetEmailSequenceLogsUseCase {
 
     // Decrypt user details
     const data = result.data.map((log) => {
+      log.email = this.encryptionService.decrypt(log.email);
+
       if (log.user) {
         log.user.firstName = this.encryptionService.decrypt(log.user.firstName || '');
         log.user.lastName = this.encryptionService.decrypt(log.user.lastName || '');
