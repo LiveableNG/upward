@@ -197,18 +197,25 @@ export function DashboardHome({
     <div className="dash-home">
       <button
         type="button"
-        className={`dash-home__benefits-chip ${benefitsActive ? 'is-active' : ''}`}
+        className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
         onClick={() => router.push('/dashboard/benefits')}
       >
-        <ShieldCheck size={15} />
-        <span>
-          {benefitsActive
-            ? benefitsEndsAt
-              ? `Protected until ${formatDate(benefitsEndsAt)}`
-              : 'Protected with Upward Benefits'
-            : 'Get Upward Benefits'}
+        <span className="dash-home__benefits-card-icon">
+          <ShieldCheck size={18} />
         </span>
-        <ChevronRight size={14} />
+        <span className="dash-home__benefits-card-body">
+          <span className="dash-home__benefits-card-title">
+            {benefitsActive ? "You're covered" : 'Add account protection'}
+          </span>
+          <span className="dash-home__benefits-card-desc">
+            {benefitsActive
+              ? benefitsEndsAt
+                ? `Renews ${formatDate(benefitsEndsAt)} · View benefits`
+                : 'Upward Benefits is active · View benefits'
+              : 'Annual cover for your Upward account · Activate'}
+          </span>
+        </span>
+        <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
       </button>
       {showActivityCenter && (
         <div className={`dash-home__activity-center activity-center ${anyOverdue ? 'activity-center--critical' : ''}`}>
