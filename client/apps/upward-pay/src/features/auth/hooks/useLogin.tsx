@@ -28,6 +28,7 @@ export function useLogin(redirect: string) {
       queryClient.clear()
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
+      router.refresh()
       router.push(redirect)
     },
   })
@@ -44,6 +45,7 @@ export function useLogin(redirect: string) {
       queryClient.clear()
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
+      router.refresh()
       router.push(redirect)
     },
   })

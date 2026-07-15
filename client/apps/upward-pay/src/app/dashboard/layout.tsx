@@ -25,11 +25,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 
-  useEffect(() => {
-    if (!loading && !isLoggedIn) {
-      router.replace(`/login?redirect=${pathname}`)
-    }
-  }, [loading, isLoggedIn, router, pathname])
+
 
   // Global Deep Link Handler: Mark as read if notif_id is present
   useEffect(() => {

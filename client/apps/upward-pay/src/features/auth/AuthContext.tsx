@@ -201,7 +201,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname || '')
 
       if (!isPublicPath) {
-        router.replace('/login')
+        const redirectParam = pathname && pathname !== '/login' ? `?redirect=${pathname}` : ''
+        router.refresh()
+        router.replace(`/login${redirectParam}`)
       }
     }
   }
