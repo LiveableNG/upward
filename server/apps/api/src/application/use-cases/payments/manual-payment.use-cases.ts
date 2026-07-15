@@ -409,7 +409,7 @@ export class ReviewManualPaymentUseCase {
           }
         })
         
-        await this.sendApprovalNotification(user, property)
+        await this.sendApprovalNotification(user, property, tx.uuid)
         
         return { success: true, transaction: tx }
       } catch (err) {
@@ -431,27 +431,15 @@ export class ReviewManualPaymentUseCase {
     }
   }
   
-  private async sendApprovalNotification(user: any, property: any) {
+  private async sendApprovalNotification(user: any, property: any, transactionId?: number) {
     const address = property?.location?.address || property?.location?.area || 'your property'
-    const name = user.firstName || 'Tenant'
-    const baseUrl = process.env.FRONTEND_URL || 'https://upward.goodtenants.io'
     
     await this.notificationService.notifyUser(user.id, {
       title: 'Payment Approved ✅',
       message: `Your manual payment for ${address} has been approved. Your Upward Score has been updated!`,
       type: 'SYSTEM',
-      url: '/dashboard/payments'
+      url: transactionId ? `/dashboard/receipts?id=${transactionId}` : '/dashboard/payments',
     })
-    
-    if (user.email) {
-      await this.emailService.sendEmailWithRetry({
-        userId: user.id,
-        email: user.email,
-        subject: 'Manual Payment Approved - Upward',
-        html: `<p>Hi ${name},</p><p>Great news! Your manual bank transfer for <b>${address}</b> has been successfully approved.</p><p>Your Upward Score has been updated and a receipt has been generated.</p><p><a href="${baseUrl}/dashboard/payments">View Receipt</a></p>`,
-        type: 'SYSTEM'
-      }).catch(() => {})
-    }
   }
   
   private async sendRejectionNotification(user: any, property: any, remarks?: string) {

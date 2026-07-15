@@ -475,6 +475,43 @@ export function buildTenantInviteHtml(params: {
   });
 }
 
+export function buildRentReceiptEmailHtml(params: {
+  tenantName: string;
+  amount: string;
+  propertyAddress: string;
+  receiptNumber: string;
+  receiptUrl: string;
+  companyName?: string;
+  logoUrl?: string;
+}): string {
+  const brandName = params.logoUrl ? (params.companyName || 'Upward') : 'Upward';
+  const logoBlock = params.logoUrl
+    ? `<div style="margin-bottom: 24px;"><img src="${params.logoUrl}" alt="${brandName}" style="max-height: 56px; object-fit: contain;" /></div>`
+    : '';
+
+  const contentHtml = `
+    ${logoBlock}
+    <p>Hi <strong>${params.tenantName}</strong>,</p>
+    <p>Your rent payment of <strong>${params.amount}</strong> for <strong>${params.propertyAddress}</strong> was successful.</p>
+    <p style="margin: 24px 0; padding: 20px; background: #faf9f5; border: 1px solid #e2ddd7; border-radius: 12px;">
+      <span style="display:block; font-size: 12px; color: #928e89; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Receipt No.</span>
+      <strong style="font-size: 16px; color: #0a0a0f;">${params.receiptNumber}</strong>
+    </p>
+    <p>Your receipt is attached to this email. You can also view it anytime in your Upward dashboard.</p>
+    <p style="margin-top: 28px; text-align: center;">
+      <a href="${params.receiptUrl}" style="display: inline-block; background-color: #d97757; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 700;">View Digital Receipt</a>
+    </p>
+  `;
+
+  return buildTenantLayoutHtml({
+    logoText: brandName,
+    logoSub: params.logoUrl ? 'Rent Payment Receipt' : 'by GoodTenants',
+    title: 'Payment Successful',
+    contentHtml,
+    footerText: `This is an electronically generated receipt from Upward.<br>© ${new Date().getFullYear()} Upward by GoodTenants.`,
+  });
+}
+
 export function buildPaymentRequestHtml(params: {
   tenantName: string;
   pmName: string;
