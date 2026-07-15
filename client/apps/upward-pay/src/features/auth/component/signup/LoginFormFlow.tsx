@@ -168,7 +168,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     }
   }
 
-  const handleRequestOTP = async (customContext?: 'WAITLIST' | 'INVITE') => {
+  const handleRequestOTP = async (customContext?: 'WAITLIST' | 'INVITE', channel?: 'SMS' | 'WHATSAPP') => {
     if (identifierType === 'email' && !loginEmail) {
       toastError('Please enter your email address first.')
       return
@@ -185,7 +185,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     const identifier = identifierType === 'phone' ? (loginPhone.startsWith('+') ? loginPhone : `+234${loginPhone.replace(/^0/, '')}`) : loginEmail
 
     try {
-      await requestOTP(identifier, context, identifierType, phoneChannel)
+      await requestOTP(identifier, context, identifierType, channel || phoneChannel)
       setStep('otp')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to send verification code'
@@ -307,7 +307,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           <OTPInput
             email={identifierType === 'phone' ? loginPhone : loginEmail}
             onVerify={handleVerifyOTP}
-            onResend={() => handleRequestOTP(effectiveContext === 'LOGIN' ? undefined : effectiveContext)}
+            onResend={(channel) => handleRequestOTP(effectiveContext === 'LOGIN' ? undefined : effectiveContext, channel)}
             onChangeEmail={() => setStep('login')}
             isLoading={loginLoading || isRequestingOTP}
             error={otpError || loginErrorMessage}

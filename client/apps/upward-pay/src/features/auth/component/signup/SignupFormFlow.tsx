@@ -225,9 +225,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
   }
 
-  const handleResendOTP = async () => {
+  const handleResendOTP = async (channel?: 'SMS' | 'WHATSAPP') => {
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
-    await requestOTP(identifier, effectiveContext, identifierType)
+    await requestOTP(identifier, effectiveContext, identifierType, channel || phoneChannel)
   }
 
   if (step === 'otp') {
