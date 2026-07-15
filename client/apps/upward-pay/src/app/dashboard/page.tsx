@@ -59,12 +59,7 @@ export default function DashboardPage() {
     }
   }
 
-  // Only redirect if auth context definitively says no user
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-    }
-  }, [user, authLoading, router])
+
 
   if (authLoading || !user) {
     return <FallbackSuspense message="Loading your account..." />
