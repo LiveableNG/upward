@@ -6,6 +6,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { PaymentUpdatedEvent } from '../definition/payment-updated.event'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { SendRentReceiptEmailUseCase } from '../../use-cases/payments/send-rent-receipt-email.use-case'
 
 @Injectable()
 export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +18,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly emailService: EmailService,
+    private readonly sendRentReceiptEmail: SendRentReceiptEmailUseCase,
   ) {}
 
   onModuleInit() {
@@ -26,6 +28,14 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
         const { data } = event
         
         try {
+          if (data.rentPortion > 0) {
+            this.sendRentReceiptEmail
+              .execute({ transactionId: data.transactionId, propertyId: data.propertyId })
+              .catch((err) => {
+                this.logger.error(`Failed to send rent receipt email for transaction ${data.transactionId}:`, err)
+              })
+          }
+
           if (data.rentPortion > 0 && data.propertyId) {
              const prop = await this.prisma.upward_user_property.findUnique({ where: { id: data.propertyId } })
              if (prop && prop.amountRemaining === 0) {

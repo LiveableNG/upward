@@ -17,11 +17,29 @@ export interface ReceiptPdfData {
   type: string
   status?: string
   lineItems?: Array<{ label: string; amount: number }>
+  logoUrl?: string
+  brandName?: string
 }
 
 @Injectable()
 export class ReceiptService {
   async generateReceiptPdf(data: ReceiptPdfData): Promise<Buffer> {
+    let logoBuffer: Buffer | undefined
+    if (data.logoUrl) {
+      try {
+        const response = await fetch(data.logoUrl)
+        if (response.ok) {
+          logoBuffer = Buffer.from(await response.arrayBuffer())
+        }
+      } catch {
+        // Fall back to default Upward branding
+      }
+    }
+
+    return this.renderReceiptPdf(data, logoBuffer)
+  }
+
+  private renderReceiptPdf(data: ReceiptPdfData, logoBuffer?: Buffer): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
         size: 'A4',
@@ -69,34 +87,40 @@ export class ReceiptService {
       const FONT_SIZE = 18
       const ICON_SIZE = 28
 
-      doc.save()
+      const brandLabel = (data.brandName || 'Upward').toUpperCase()
 
-      const iconOffsetY = BRAND_Y - (ICON_SIZE * 22) / 40 + 4
+      if (logoBuffer) {
+        doc.image(logoBuffer, BRAND_X, BRAND_Y - 4, { fit: [120, 36] })
+      } else {
+        doc.save()
 
-      doc.translate(BRAND_X, iconOffsetY)
-      doc.scale(ICON_SIZE / 40)
+        const iconOffsetY = BRAND_Y - (ICON_SIZE * 22) / 40 + 4
 
-      doc.roundedRect(7, 15, 10, 17, 5).fill(white)
-      doc.roundedRect(23, 15, 10, 17, 5).fill(white)
+        doc.translate(BRAND_X, iconOffsetY)
+        doc.scale(ICON_SIZE / 40)
 
-      doc
-        .moveTo(12, 30)
-        .quadraticCurveTo(12, 37, 20, 37)
-        .quadraticCurveTo(28, 37, 28, 30)
-        .lineWidth(5.5)
-        .stroke(white)
+        doc.roundedRect(7, 15, 10, 17, 5).fill(white)
+        doc.roundedRect(23, 15, 10, 17, 5).fill(white)
 
-      doc.moveTo(7, 19).lineTo(20, 8).lineTo(33, 19).lineWidth(5).stroke(white)
+        doc
+          .moveTo(12, 30)
+          .quadraticCurveTo(12, 37, 20, 37)
+          .quadraticCurveTo(28, 37, 28, 30)
+          .lineWidth(5.5)
+          .stroke(white)
 
-      doc.circle(20, 5, 3).fill('#22c55e')
+        doc.moveTo(7, 19).lineTo(20, 8).lineTo(33, 19).lineWidth(5).stroke(white)
 
-      doc.restore()
+        doc.circle(20, 5, 3).fill('#22c55e')
 
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(FONT_SIZE)
-        .fillColor(white)
-        .text('PWARD', BRAND_X + ICON_SIZE - 1, BRAND_Y)
+        doc.restore()
+
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(FONT_SIZE)
+          .fillColor(white)
+          .text(brandLabel === 'UPWARD' ? 'PWARD' : brandLabel, BRAND_X + ICON_SIZE - 1, BRAND_Y)
+      }
       doc
         .font('Helvetica')
         .fontSize(8.5)
