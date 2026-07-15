@@ -170,11 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
 
     try {
-      // Try to unregister notifications and notify backend, but don't let them block local logout (fire and forget)
-      Promise.allSettled([
+      // Try to unregister notifications and notify backend, and WAIT for the backend to clear the http-only cookie
+      await Promise.allSettled([
         PushNotificationService.unregisterDevice(),
         authLogout()
-      ]).catch(err => console.error('[Auth] Background logout error:', err))
+      ])
       
       if (typeof window !== 'undefined') {
         localStorage.removeItem('app_banner_dismissed')
