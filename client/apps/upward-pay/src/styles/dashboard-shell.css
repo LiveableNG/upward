@@ -180,10 +180,10 @@
 .bottom-nav__container {
   display: flex;
   align-items: flex-end;
-  justify-content: space-around;
+  justify-content: space-between;
   max-width: 520px;
   margin: 0 auto;
-  gap: 2px;
+  gap: 0;
 }
 
 .bottom-nav__item {
@@ -294,6 +294,20 @@
     color: var(--clay);
     background: var(--shell-tint);
     box-shadow: 0 1px 2px rgba(60, 40, 20, 0.07);
+  }
+
+  .dashboard__header-nav .dashboard__header-features {
+    font-family: var(--font-auth);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--shell-ink-muted);
+    padding: 8px 14px;
+    border-radius: 10px;
+  }
+
+  .dashboard__header-nav .dashboard__header-features:hover {
+    color: var(--clay);
+    background: var(--shell-tint);
   }
 
   .dashboard__header-right .dashboard__icon-btn {
