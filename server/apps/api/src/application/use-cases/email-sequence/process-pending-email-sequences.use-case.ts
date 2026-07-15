@@ -21,23 +21,25 @@ export class ProcessPendingEmailSequencesUseCase {
     this.logger.log('Checking for pending email sequences...')
     const now = new Date()
     
-    // Process in batches
-    const pendingLogs = await this.sequenceRepository.findPendingLogsBefore(now, 50)
+    const approvedLogs = await this.sequenceRepository.findLogsBeforeByStatus('APPROVED', now, 50)
     
-    if (pendingLogs.length === 0) {
-      this.logger.log('No pending email sequences to process.')
+    if (approvedLogs.length === 0) {
+      this.logger.log('No approved email sequences to process.')
       return
     }
 
-    this.logger.log(`Found ${pendingLogs.length} pending email sequences to process.`)
+    this.logger.log(`Found ${approvedLogs.length} approved email sequences to process.`)
 
-    for (const log of pendingLogs) {
+    for (const log of approvedLogs) {
       try {
         if (!log.user?.firstName || !log.email) {
           throw new Error('Missing user firstName or email')
         }
 
-        const decryptedFirstName = this.encryptionService.decrypt(log.user.firstName)
+        let decryptedFirstName = log.user.firstName || '';
+        if (log.user.firstName && log.user.firstName.includes(':')) {
+          decryptedFirstName = this.encryptionService.decrypt(log.user.firstName);
+        }
 
         const success = await this.emailService.sendOnboardingSequenceEmail({
           email: log.email,

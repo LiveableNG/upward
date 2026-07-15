@@ -20,15 +20,15 @@ export class ProcessPendingSequencesUseCase {
     this.logger.log('[WhatsappSequence] Processing pending sequences...');
     const now = new Date();
 
-    const pendingLogs = await this.sequenceRepository.findPendingLogsBefore(now, 50);
-    
-    if (pendingLogs.length === 0) {
+    const approvedLogs = await this.sequenceRepository.findLogsBeforeByStatus('APPROVED', now, 50);
+
+    if (approvedLogs.length === 0) {
       return;
     }
 
-    this.logger.log(`[WhatsappSequence] Found ${pendingLogs.length} sequences to process.`);
+    this.logger.log(`[WhatsappSequence] Found ${approvedLogs.length} approved sequences to process.`);
 
-    for (const log of pendingLogs) {
+    for (const log of approvedLogs) {
       // Look up user to ensure we have the latest phone
       const user = await this.prisma.upward_user.findUnique({
         where: { id: log.userId },
@@ -43,10 +43,16 @@ export class ProcessPendingSequencesUseCase {
       const plainPhone = this.encryptionService.decrypt(user.phone);
 
       const bodyTextArgs = log.templateData?.body_text?.[0] || [];
-      const parameters = bodyTextArgs.map((text: string) => ({
-        type: 'text',
-        text: text ? this.encryptionService.decrypt(text) : '',
-      }));
+      const parameters = bodyTextArgs.map((text: string) => {
+        let decoded = text || '';
+        if (text && text.includes(':')) {
+          decoded = this.encryptionService.decrypt(text);
+        }
+        return {
+          type: 'text',
+          text: decoded,
+        };
+      });
 
       try {
         const result = await this.whatsappService.sendMessage({

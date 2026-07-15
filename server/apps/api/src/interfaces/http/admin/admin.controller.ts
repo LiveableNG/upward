@@ -29,6 +29,8 @@ import { ChangeAdminRoleUseCase } from '../../../application/use-cases/admin/cha
 import { ChangeAdminPasswordUseCase } from '../../../application/use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from '../../../application/use-cases/admin/search-users.use-case'
 import { UpdateAdminDetailsUseCase } from '../../../application/use-cases/admin/update-admin-details.use-case'
+import { GetQueuedSequencesUseCase } from '../../../application/use-cases/sequence/get-queued-sequences.use-case'
+import { TriggerSequencesUseCase } from '../../../application/use-cases/sequence/trigger-sequences.use-case'
 
 import { GetWaitlistUseCase } from '../../../application/use-cases/waitlist/get-waitlist.use-case'
 import { UpdateWaitlistUserUseCase } from '../../../application/use-cases/waitlist/update-waitlist-user.use-case'
@@ -84,6 +86,8 @@ export class AdminController {
     private readonly changeAdminRoleUseCase: ChangeAdminRoleUseCase,
     private readonly updateAdminDetailsUseCase: UpdateAdminDetailsUseCase,
     private readonly changeAdminPasswordUseCase: ChangeAdminPasswordUseCase,
+    private readonly getQueuedSequencesUseCase: GetQueuedSequencesUseCase,
+    private readonly triggerSequencesUseCase: TriggerSequencesUseCase,
     private readonly getWaitlistUseCase: GetWaitlistUseCase,
     private readonly updateWaitlistUserUseCase: UpdateWaitlistUserUseCase,
     private readonly deleteWaitlistUserUseCase: DeleteWaitlistUserUseCase,
@@ -342,6 +346,26 @@ export class AdminController {
   @Roles(AdminRole.DEVELOPER)
   async updateAdminDetails(@Param('id') id: string, @Body() body: { phone?: string; receivesSystemAlerts?: boolean }, @Req() req: AuthenticatedRequest) {
     return { data: await this.updateAdminDetailsUseCase.execute(id, body, req.user.role as AdminRole) }
+  }
+
+  // --- Sequence Management ---
+
+  @Get('sequences/queued')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async getQueuedSequences() {
+    return this.getQueuedSequencesUseCase.execute()
+  }
+
+  @Post('sequences/trigger')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async triggerSequences(
+    @Body() data: { channel: 'EMAIL' | 'WHATSAPP'; stage: string },
+  ) {
+    if (!data.channel || !data.stage) {
+      throw new BadRequestException('channel and stage are required')
+    }
+    await this.triggerSequencesUseCase.execute(data.channel, data.stage)
+    return { success: true }
   }
 
   @Post('email/bulk')

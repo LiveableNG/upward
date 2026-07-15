@@ -16,18 +16,16 @@ export class InitializeUserSequenceUseCase {
   constructor(
     @Inject(WHATSAPP_SEQUENCE_REPOSITORY)
     private readonly sequenceRepository: IWhatsappSequenceLogRepository,
-  ) {}
+  ) { }
 
   async execute(command: InitializeUserSequenceCommand): Promise<void> {
     this.logger.log(`[WhatsappSequence] Initializing sequence for user ${command.userId}`);
 
     const now = new Date();
-    
-    // Helper to calculate future date
+
     const getFutureDate = (days: number) => {
       const date = new Date(now);
       date.setDate(date.getDate() + days);
-      // Optional: Set to a reasonable daytime hour, e.g. 10 AM, if days > 0
       if (days > 0) {
         date.setHours(10, 0, 0, 0);
       }
@@ -35,12 +33,6 @@ export class InitializeUserSequenceUseCase {
     };
 
     const sequences = [
-      {
-        stage: 'WELCOME',
-        templateName: 'upward_seq_welcome_v2',
-        scheduledFor: getFutureDate(0), // Immediately
-        templateData: { body_text: [[command.firstName, command.pmName || 'Upward']] },
-      },
       {
         stage: 'DAY_2',
         templateName: 'upward_seq_day2_v2',

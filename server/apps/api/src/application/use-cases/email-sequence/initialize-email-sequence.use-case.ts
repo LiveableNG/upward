@@ -24,7 +24,6 @@ export class InitializeEmailSequenceUseCase {
       const now = new Date()
 
       const schedule = [
-        { stage: 'WELCOME', daysOffset: 0, templateName: 'WELCOME_EMAIL' },
         { stage: 'DAY_2', daysOffset: 2, templateName: 'DAY_2_EMAIL' },
         { stage: 'DAY_5', daysOffset: 5, templateName: 'DAY_5_EMAIL' },
         { stage: 'DAY_9', daysOffset: 9, templateName: 'DAY_9_EMAIL' },
