@@ -140,9 +140,22 @@ export class CompleteUserProfileUseCase {
 
     await this.userAuthService.syncTenantStatuses(dto.email)
 
-    // Notify Customer Support if password was set (meaning they became an active user)
     if (passwordHash) {
-      this.emailService.sendCustomerSupportNotification('USER').catch(e => this.logger.error('Failed to send CS notification', e));
+      this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => this.logger.error('Failed to send CS notification', e));
+      
+      let pmName: string | undefined = undefined;
+      if (user.companyUsers && user.companyUsers.length > 0) {
+        pmName = user.companyUsers[0].company?.name;
+      } else if (user.properties && user.properties.length > 0) {
+        const prop = user.properties[0];
+        if (prop.company?.name) {
+          pmName = prop.company.name;
+        } else if (prop.manager) {
+          pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+        }
+      }
+
+      this.userAuthService.sendWelcomeMessages(user, dto.fullName, pmName).catch(e => this.logger.error('Failed to send welcome messages', e));
     }
 
     // Reuse UserAuthService login logic to create session and tokens

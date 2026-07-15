@@ -8,6 +8,7 @@ import { ProcessScheduledPmPaymentRequestsUseCase } from '../../../application/p
 import { ProcessScheduledExternalPaymentRequestsUseCase } from '../../../application/use-cases/external/process-scheduled-payments.use-case';
 import { ProcessPendingSequencesUseCase } from '../../../application/use-cases/whatsapp-sequence/process-pending-sequences.use-case'
 import { ProcessPendingEmailSequencesUseCase } from '../../../application/use-cases/email-sequence/process-pending-email-sequences.use-case';
+import { QueueDailySequencesUseCase } from '../../../application/use-cases/sequence/queue-daily-sequences.use-case';
 
 @Injectable()
 export class UnifiedReminderService {
@@ -22,6 +23,7 @@ export class UnifiedReminderService {
     private readonly processScheduledExternalRequestsUseCase: ProcessScheduledExternalPaymentRequestsUseCase,
     private readonly processPendingSequencesUseCase: ProcessPendingSequencesUseCase,
     private readonly processPendingEmailSequencesUseCase: ProcessPendingEmailSequencesUseCase,
+    private readonly queueDailySequencesUseCase: QueueDailySequencesUseCase,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -39,6 +41,16 @@ export class UnifiedReminderService {
     const now = new Date();
     if (now.getHours() === 9) {
       await this.processPmDailyCrons();
+    }
+  }
+
+  @Cron('0 8 * * *')
+  async handleDailySequences() {
+    this.logger.log('[ReminderService] Running 8:00 AM Sequence Queue and Digest...');
+    try {
+      await this.queueDailySequencesUseCase.execute();
+    } catch (error: any) {
+      this.logger.error(`[ReminderService] Error processing daily sequence queue: ${error.message}`);
     }
   }
 

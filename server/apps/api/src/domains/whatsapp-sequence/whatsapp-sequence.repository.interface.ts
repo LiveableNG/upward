@@ -7,7 +7,7 @@ export interface IWhatsappSequenceLogRepository {
     logs: Omit<WhatsappSequenceLogEntity, 'id' | 'uuid' | 'createdAt' | 'updatedAt' | 'sentAt' | 'errorReason'>[]
   ): Promise<void>;
   
-  findPendingLogsBefore(date: Date, limit: number): Promise<WhatsappSequenceLogEntity[]>;
+  findLogsBeforeByStatus(status: string, date: Date, limit: number): Promise<WhatsappSequenceLogEntity[]>;
   
   updateStatus(
     id: number,

@@ -24,7 +24,7 @@ export interface EmailSequenceLog {
 
 export interface IEmailSequenceRepository {
   createMany(data: EmailSequenceLog[]): Promise<void>
-  findPendingLogsBefore(date: Date, limit: number): Promise<EmailSequenceLog[]>
+  findLogsBeforeByStatus(status: string, date: Date, limit: number): Promise<EmailSequenceLog[]>
   updateStatus(id: number, status: 'SENT' | 'FAILED', errorReason?: string, sentAt?: Date): Promise<void>
   findAll(filters: { skip?: number; take?: number; status?: string; stage?: string; email?: string }): Promise<{ data: EmailSequenceLog[]; total: number }>
   findById(id: number): Promise<EmailSequenceLog | null>

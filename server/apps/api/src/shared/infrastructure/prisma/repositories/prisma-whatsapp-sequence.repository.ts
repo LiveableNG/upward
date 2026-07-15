@@ -45,10 +45,10 @@ export class PrismaWhatsappSequenceLogRepository implements IWhatsappSequenceLog
     });
   }
 
-  async findPendingLogsBefore(date: Date, limit: number): Promise<WhatsappSequenceLogEntity[]> {
+  async findLogsBeforeByStatus(status: string, date: Date, limit: number): Promise<WhatsappSequenceLogEntity[]> {
     const records = await this.prisma.upward_whatsapp_sequence_log.findMany({
       where: {
-        status: 'PENDING',
+        status: status,
         scheduledFor: { lte: date },
       },
       include: {

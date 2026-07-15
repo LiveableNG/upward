@@ -15,6 +15,8 @@ import { showToast } from '@upward/client-core'
 interface AdminUser {
   id: string
   email: string
+  phone?: string
+  receivesSystemAlerts?: boolean
   role: 'SUPERADMIN' | 'CUSTOMER_SUPPORT' | 'DEVELOPER'
   createdAt: string
 }
@@ -58,6 +60,11 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     role: 'ADMIN',
   })
   const [error, setError] = useState('')
+
+  // Edit Admin State
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingAdmin, setEditingAdmin] = useState<{ id: string; email: string; phone: string; receivesSystemAlerts: boolean }>({ id: '', email: '', phone: '', receivesSystemAlerts: false })
+  const [editError, setEditError] = useState('')
 
   // ── Confirm modal ─────────────────────────────────────────────────────────
   // We store the callback in a ref so stale-closure bugs are impossible
@@ -131,6 +138,23 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     )
   }
 
+  const handleEditAdmin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditError('')
+    try {
+      await apiService.patch(`/admin/admins/${editingAdmin.id}/details`, { 
+        phone: editingAdmin.phone || null,
+        receivesSystemAlerts: editingAdmin.receivesSystemAlerts 
+      }, token)
+      fetchAdmins()
+      setShowEditModal(false)
+      showToast('Admin details updated successfully!')
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update admin details')
+      showToast(err.message || 'Failed to update admin details', true)
+    }
+  }
+
   const isDeveloper = admins.find((a) => a.id === currentAdminId)?.role === 'DEVELOPER'
 
   return (
@@ -192,6 +216,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Admin</th>
+                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Phone</th>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Role</th>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Joined</th>
                     <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
@@ -206,7 +231,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                     </tr>
                   ) : admins.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                         No administrators found.
                       </td>
                     </tr>
@@ -237,12 +262,22 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                               <Shield size={18} />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ fontWeight: 600, fontSize: '14px' }}>{admin.email}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontWeight: 600, fontSize: '14px' }}>{admin.email}</span>
+                                {admin.receivesSystemAlerts && (
+                                  <div title="Receives System Alerts" style={{ color: 'var(--accent)', display: 'flex' }}>
+                                    <Mail size={14} />
+                                  </div>
+                                )}
+                              </div>
                               {admin.id === currentAdminId && (
                                 <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)', marginTop: '2px' }}>YOU</span>
                               )}
                             </div>
                           </div>
+                        </td>
+                        <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                          {admin.phone || 'N/A'}
                         </td>
                         <td style={{ padding: '16px 24px' }}>
                           <span
@@ -261,6 +296,23 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                         <td style={{ padding: '16px 24px', textAlign: 'right' }}>
                           {isDeveloper && admin.role !== 'DEVELOPER' && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                              <button
+                                onClick={() => {
+                                  setEditError('')
+                                  setEditingAdmin({ 
+                                    id: admin.id, 
+                                    email: admin.email, 
+                                    phone: admin.phone || '',
+                                    receivesSystemAlerts: !!admin.receivesSystemAlerts
+                                  })
+                                  setShowEditModal(true)
+                                }}
+                                title="Edit Details"
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 10px', fontSize: '12px' }}
+                              >
+                                Edit Details
+                              </button>
                               <select
                                 className="input"
                                 style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}
@@ -543,6 +595,148 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                     }}
                   >
                     Create Account
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Admin Modal ── */}
+      {showEditModal && (
+        <div
+          className="modal-overlay"
+          style={{ alignItems: 'flex-start', paddingTop: '80px' }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="modal-content"
+            style={{ maxWidth: '480px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '32px' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}
+              >
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
+                    Edit Admin Details
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
+                    Editing details for {editingAdmin.email}
+                  </p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={handleEditAdmin}
+                style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
+              >
+                {editError && (
+                  <div
+                    style={{
+                      padding: '12px',
+                      backgroundColor: '#fee2e2',
+                      color: '#b91c1c',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <AlertCircle size={16} /> {editError}
+                  </div>
+                )}
+
+                {/* Phone Number */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={editingAdmin.phone}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, phone: e.target.value })}
+                    placeholder="+1234567890"
+                    style={{
+                      width: '100%',
+                      padding: '11px 12px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                      fontSize: '14px',
+                    }}
+                  />
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Must be in international format (e.g. +1234567890). Leave blank to remove.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                  <input
+                    type="checkbox"
+                    id="receivesSystemAlerts"
+                    checked={editingAdmin.receivesSystemAlerts}
+                    onChange={(e) => setEditingAdmin({ ...editingAdmin, receivesSystemAlerts: e.target.checked })}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <label
+                    htmlFor="receivesSystemAlerts"
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    Receive System Alerts
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--white)',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: 'none',
+                      background: 'var(--accent)',
+                      color: 'var(--white)',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                    }}
+                  >
+                    Save Changes
                   </button>
                 </div>
               </form>

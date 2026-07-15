@@ -165,14 +165,28 @@ export class UserAuthService extends BaseAuthService {
           await this.syncProperties(user.id!, dto.properties)
         }
         await this.syncTenantStatuses(dto.email)
-        this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
+        this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
         
+        let pmName: string | undefined = undefined;
+        if (user.companyUsers && user.companyUsers.length > 0) {
+          pmName = user.companyUsers[0].company?.name;
+        }
+        if (!pmName && user.properties && user.properties.length > 0) {
+          const prop = user.properties[0];
+          if (prop.company?.name) {
+            pmName = prop.company.name;
+          } else if (prop.manager) {
+            pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+          }
+        }
+
         if (user.phone) {
           this.initializeUserSequenceUseCase.execute({
             userId: user.id!,
             firstName: dto.firstName,
             phoneEncrypted: user.phone,
             phoneHash: user.phoneHash,
+            pmName: pmName,
           }).catch(e => console.error('Failed to init sequence', e));
         }
         
@@ -180,6 +194,9 @@ export class UserAuthService extends BaseAuthService {
           userId: user.id!,
           email: user.email,
         })
+
+        // Send welcome messages instantly
+        this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
 
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
@@ -226,23 +243,102 @@ export class UserAuthService extends BaseAuthService {
     }
 
     await this.syncTenantStatuses(dto.email)
-    this.emailService.sendCustomerSupportNotification('USER').catch(e => console.error('Failed to send CS notification', e));
+    this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
 
-    if (user.phone) {
+    let pmName: string | undefined = undefined;
+    if (user.companyUsers && user.companyUsers.length > 0) {
+      pmName = user.companyUsers[0].company?.name;
+    }
+    if (!pmName && user.properties && user.properties.length > 0) {
+      const prop = user.properties[0];
+      if (prop.company?.name) {
+        pmName = prop.company.name;
+      } else if (prop.manager) {
+        pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+      }
+    }
+
+    const isUpwardEmail = dto.email.toLowerCase().endsWith('@upward.com');
+    const hasPhone = !!user.phone;
+    const sendWhatsapp = isUpwardEmail && hasPhone;
+    const sendEmail = !sendWhatsapp;
+
+    if (sendWhatsapp && user.phone) {
       this.initializeUserSequenceUseCase.execute({
         userId: user.id!,
         firstName: dto.firstName,
         phoneEncrypted: user.phone,
         phoneHash: user.phoneHash,
+        pmName: pmName,
       }).catch(e => console.error('Failed to init sequence', e));
     }
     
-    this.initializeEmailSequenceUseCase.execute({
-      userId: user.id!,
-      email: user.email,
-    })
+    if (sendEmail) {
+      this.initializeEmailSequenceUseCase.execute({
+        userId: user.id!,
+        email: user.email,
+      });
+    }
+
+    // Send welcome messages instantly
+    this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
+  }
+
+  async sendWelcomeMessages(user: User, firstName: string, pmName?: string) {
+    const isUpwardEmail = user.email.toLowerCase().endsWith('@upward.com');
+    const hasPhone = !!user.phone;
+    const sendWhatsapp = isUpwardEmail && hasPhone;
+    const sendEmail = !sendWhatsapp;
+
+    if (sendEmail) {
+      // 1. Send Welcome Email
+      await this.emailService.sendOnboardingSequenceEmail({
+        email: user.email,
+        firstName,
+        stage: 'WELCOME',
+        userId: user.uuid,
+      });
+    }
+
+    // 2. Send Welcome WhatsApp
+    if (sendWhatsapp && user.phone) {
+      try {
+        const parameters = [
+          { type: 'text', text: firstName },
+          { type: 'text', text: pmName || 'Upward' }
+        ];
+
+        await this.whatsappService.sendMessage({
+          to: user.phone,
+          template: {
+            name: 'upward_seq_welcome_v2',
+            components: [
+              {
+                type: 'body',
+                parameters,
+              }
+            ],
+          },
+        });
+
+        await this.prisma.upward_communication_log.create({
+          data: {
+            registeredUserId: user.id,
+            subject: 'WhatsApp Sequence: WELCOME',
+            status: 'SENT',
+            channel: 'WHATSAPP',
+            type: 'SEQUENCE',
+            recipient: user.phone,
+            body: 'Template: upward_seq_welcome_v2',
+            sentAt: new Date(),
+          }
+        });
+      } catch (error: any) {
+        console.error(`Failed to send Welcome WhatsApp to ${user.id}: ${error.message}`);
+      }
+    }
   }
 
   async login(

@@ -23,10 +23,10 @@ export class PrismaEmailSequenceRepository implements IEmailSequenceRepository {
     })
   }
 
-  async findPendingLogsBefore(date: Date, limit: number): Promise<EmailSequenceLog[]> {
+  async findLogsBeforeByStatus(status: string, date: Date, limit: number): Promise<EmailSequenceLog[]> {
     const logs = await this.prisma.upward_email_sequence_log.findMany({
       where: {
-        status: 'PENDING',
+        status,
         scheduledFor: { lte: date },
       },
       include: {

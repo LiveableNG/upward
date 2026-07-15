@@ -6,6 +6,7 @@ export interface InitializeUserSequenceCommand {
   firstName: string;
   phoneEncrypted?: string | null;
   phoneHash?: string | null;
+  pmName?: string | null;
 }
 
 @Injectable()
@@ -15,56 +16,46 @@ export class InitializeUserSequenceUseCase {
   constructor(
     @Inject(WHATSAPP_SEQUENCE_REPOSITORY)
     private readonly sequenceRepository: IWhatsappSequenceLogRepository,
-  ) {}
+  ) { }
 
   async execute(command: InitializeUserSequenceCommand): Promise<void> {
     this.logger.log(`[WhatsappSequence] Initializing sequence for user ${command.userId}`);
 
     const now = new Date();
-    
-    // Helper to calculate future date
+
     const getFutureDate = (days: number) => {
       const date = new Date(now);
       date.setDate(date.getDate() + days);
-      // Optional: Set to a reasonable daytime hour, e.g. 10 AM, if days > 0
       if (days > 0) {
         date.setHours(10, 0, 0, 0);
       }
       return date;
     };
 
-    const dashboardUrl = 'https://upward.goodtenants.io/dashboard';
-
     const sequences = [
       {
-        stage: 'WELCOME',
-        templateName: 'upward_seq_welcome_v1',
-        scheduledFor: getFutureDate(0), // Immediately
-        templateData: { body_text: [[command.firstName, 'GoodTenants Realty']] },
-      },
-      {
         stage: 'DAY_2',
-        templateName: 'upward_seq_day2_v1',
+        templateName: 'upward_seq_day2_v2',
         scheduledFor: getFutureDate(2),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       },
       {
         stage: 'DAY_5',
-        templateName: 'upward_seq_day5_v1',
+        templateName: 'upward_seq_day5_v2',
         scheduledFor: getFutureDate(5),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       },
       {
         stage: 'DAY_9',
-        templateName: 'upward_seq_day9_v1',
+        templateName: 'upward_seq_day9_v2',
         scheduledFor: getFutureDate(9),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       },
       {
         stage: 'DAY_14',
-        templateName: 'upward_seq_day14_v1',
+        templateName: 'upward_seq_day14_v2',
         scheduledFor: getFutureDate(14),
-        templateData: { body_text: [[command.firstName, dashboardUrl]] },
+        templateData: { body_text: [[command.firstName]] },
       }
     ];
 

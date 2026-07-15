@@ -39,6 +39,7 @@ import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accou
 import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from './use-cases/admin/get-invitation-tracker.use-case'
+import { UpdateAdminDetailsUseCase } from './use-cases/admin/update-admin-details.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
@@ -233,6 +234,9 @@ import { RetrySequenceUseCase } from './use-cases/whatsapp-sequence/retry-sequen
 import { GetSequenceLogsUseCase } from './use-cases/whatsapp-sequence/get-sequence-logs.use-case'
 import { InitializeEmailSequenceUseCase } from './use-cases/email-sequence/initialize-email-sequence.use-case'
 import { ProcessPendingEmailSequencesUseCase } from './use-cases/email-sequence/process-pending-email-sequences.use-case'
+import { QueueDailySequencesUseCase } from './use-cases/sequence/queue-daily-sequences.use-case'
+import { GetQueuedSequencesUseCase } from './use-cases/sequence/get-queued-sequences.use-case'
+import { TriggerSequencesUseCase } from './use-cases/sequence/trigger-sequences.use-case'
 import { RetryEmailSequenceUseCase } from './use-cases/email-sequence/retry-email-sequence.use-case'
 import { GetEmailSequenceLogsUseCase } from './use-cases/email-sequence/get-email-sequence-logs.use-case'
 import { PreviewWhatsappSequenceUseCase } from './use-cases/whatsapp-sequence/preview-whatsapp-sequence.use-case'
@@ -315,6 +319,7 @@ const UseCases = [
   GetInvitationTrackerUseCase,
   UpdateAdminUserUseCase,
   UpdateAdminPmUseCase,
+  UpdateAdminDetailsUseCase,
   SendAdminNotificationUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -559,6 +564,9 @@ const UseCases = [
   GetSequenceLogsUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
+  QueueDailySequencesUseCase,
+  GetQueuedSequencesUseCase,
+  TriggerSequencesUseCase,
   RetryEmailSequenceUseCase,
   GetEmailSequenceLogsUseCase,
   PreviewWhatsappSequenceUseCase,
@@ -589,9 +597,12 @@ import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.modul
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    QueueDailySequencesUseCase,
+    GetQueuedSequencesUseCase,
+    TriggerSequencesUseCase,
     ...UseCases,
   ],
-  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, GoogleAnalyticsService, PrismaDeviceTokenRepository, UnifiedReminderService, PaymentConfigurationService, ...UseCases],
+  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, GoogleAnalyticsService, PrismaDeviceTokenRepository, UnifiedReminderService, PaymentConfigurationService, QueueDailySequencesUseCase, GetQueuedSequencesUseCase, TriggerSequencesUseCase, ...UseCases],
 
 })
 export class ApplicationModule { }

@@ -10,6 +10,8 @@ export class GetAdminsUseCase {
       select: {
         id: true,
         email: true,
+        phone: true,
+        receivesSystemAlerts: true,
         role: true,
         createdAt: true,
         updatedAt: true,
