@@ -887,7 +887,7 @@ export class InitializePaymentUseCase {
 
     const initialization = await this.gateway.initializeTransaction({
       email: user.email!,
-      amount: Math.round(finalAmountToPay * 100), 
+      amount: finalAmountToPay, 
       reference: `PAY-${randomUUID()}`,
       subaccount: pr?.subaccount?.subaccountCode,
       metadata,
