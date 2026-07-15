@@ -103,7 +103,7 @@ export function LandlordReportEditorView({
         landlordName,
         subject,
         content,
-        includeLetterhead: false
+        includeLetterhead
       })
       success(`Report successfully sent to ${landlordEmail}`)
       onDone()

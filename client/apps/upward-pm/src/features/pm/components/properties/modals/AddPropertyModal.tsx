@@ -1,5 +1,7 @@
 import React from 'react'
 import { X, Users, Check } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { ImageUpload } from './ImageUpload'
 import { useCountries, useCities } from '../../../hooks/useLocation'
 import { useTeam } from '@/features/pm/hooks/useTeam'
@@ -39,11 +41,11 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
   const { data: existingLandlords = [] } = useLandlords()
   const [showLandlordSuggestions, setShowLandlordSuggestions] = React.useState(false)
 
-  const filteredLandlords = existingLandlords.filter(l => 
-    (l.name.toLowerCase().includes((formData.landlordName || '').toLowerCase()) ||
-     l.email.toLowerCase().includes((formData.landlordEmail || '').toLowerCase())) &&
-    (formData.landlordName || formData.landlordEmail)
-  )
+  const filteredLandlords = existingLandlords.filter(l => {
+    const searchStr = (formData.landlordName || '').toLowerCase()
+    if (!searchStr) return true
+    return l.name.toLowerCase().includes(searchStr) || l.email.toLowerCase().includes(searchStr)
+  })
 
   const handleSelectLandlord = (l: any) => {
     setFormData({
@@ -68,15 +70,23 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h2 className="modal__title">Add New Property</h2>
-            <p className="modal__desc">Register a new building or estate to your portfolio.</p>
-          </div>
-          <button onClick={onClose}><X size={20} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add New Property"
+      subtitle="Register a new building or estate to your portfolio."
+      maxWidth={600}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending || isInvalid}>
+            {isPending ? 'Creating...' : 'Create Property'}
+          </button>
         </div>
+      }
+    >
 
         <ImageUpload 
           label="Property Image" 
@@ -109,30 +119,21 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
             <label className="form-label">Country</label>
-            <select 
-              className="form-input" 
-              value={formData.country} 
-              onChange={e => setFormData({ ...formData, country: e.target.value, state: '' })}
-            >
-              <option value="">Select Country</option>
-              {countriesData?.data?.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
+            <FormSelect 
+              value={formData.country || ''} 
+              onChange={val => setFormData({ ...formData, country: val, state: '' })}
+              options={countriesData?.data?.map(c => ({ label: c.name, value: c.name })) || []}
+              placeholder="Select Country"
+            />
           </div>
           <div className="form-group">
             <label className="form-label">State</label>
-            <select 
-              className="form-input" 
-              value={formData.state} 
-              onChange={e => setFormData({ ...formData, state: e.target.value })}
-              disabled={!formData.country || isLoadingCities}
-            >
-              <option value="">{isLoadingCities ? 'Loading...' : 'Select State'}</option>
-              {citiesData?.data?.map(city => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
+            <FormSelect 
+              value={formData.state || ''} 
+              onChange={val => setFormData({ ...formData, state: val })}
+              options={citiesData?.data?.map(city => ({ label: city, value: city })) || []}
+              placeholder={isLoadingCities ? 'Loading...' : 'Select State'}
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Area</label>
@@ -148,15 +149,15 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
 
         <div className="form-group">
           <label className="form-label">Property Type</label>
-          <select 
-            className="form-input" 
+          <FormSelect 
             value={formData.propertyType} 
-            onChange={e => setFormData({ ...formData, propertyType: e.target.value })}
-          >
-            <option>Residential</option>
-            <option>Commercial</option>
-            <option>Mixed Use</option>
-          </select>
+            onChange={val => setFormData({ ...formData, propertyType: val })}
+            options={[
+              { label: 'Residential', value: 'Residential' },
+              { label: 'Commercial', value: 'Commercial' },
+              { label: 'Mixed Use', value: 'Mixed Use' }
+            ]}
+          />
         </div>
 
         {!isLandlordPortal && (
@@ -317,15 +318,6 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
           </>
         )}
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-            Cancel
-          </button>
-          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending || isInvalid}>
-            {isPending ? 'Creating...' : 'Create Property'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }
