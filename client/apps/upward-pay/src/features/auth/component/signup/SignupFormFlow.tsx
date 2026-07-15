@@ -19,6 +19,8 @@ import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useSignup } from '@/features/auth/hooks/useSignup'
 import { OTPInput } from '@/components/common/OTPInput'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
 import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
 import { setAccessToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
@@ -33,6 +35,8 @@ interface SignupFormFlowProps {
 
 export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail = '' }: SignupFormFlowProps) {
   const router = useRouter()
+  const { login: setAuthUser } = useAuth()
+  const queryClient = useQueryClient()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -180,6 +184,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           setAccessToken(result.accessToken)
           setCookie('pay_access_token', result.accessToken)
         }
+        queryClient.clear()
+        setAuthUser(result.user)
+        queryClient.setQueryData(['user'], result.user)
         onSignupSuccess(identifier, password)
       } else {
         const verification = await verifyOTP(identifier, otp, effectiveContext, identifierType)
@@ -218,9 +225,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
   }
 
-  const handleResendOTP = async () => {
+  const handleResendOTP = async (channel?: 'SMS' | 'WHATSAPP') => {
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
-    await requestOTP(identifier, effectiveContext, identifierType)
+    await requestOTP(identifier, effectiveContext, identifierType, channel || phoneChannel)
   }
 
   if (step === 'otp') {

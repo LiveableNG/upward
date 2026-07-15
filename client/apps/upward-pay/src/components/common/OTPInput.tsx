@@ -5,7 +5,7 @@ import './OTPInput.css'
 interface OTPInputProps {
   email: string
   onVerify: (otp: string) => Promise<void>
-  onResend: () => Promise<void>
+  onResend: (channel?: 'SMS' | 'WHATSAPP') => Promise<void>
   onChangeEmail?: () => void
   isLoading?: boolean
   error?: string | null
@@ -23,6 +23,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
   const [timer, setTimer] = useState(30)
   const [resendCount, setResendCount] = useState(0)
   const [isResending, setIsResending] = useState(false)
+  const [resendChannel, setResendChannel] = useState<'SMS' | 'WHATSAPP'>('SMS')
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
 
     setIsResending(true)
     try {
-      await onResend()
+      await onResend(resendChannel)
       setTimer(30 * (resendCount + 1)) // Exponential-ish backoff
       setResendCount(prev => prev + 1)
     } finally {
@@ -141,13 +142,25 @@ export const OTPInput: React.FC<OTPInputProps> = ({
         {timer > 0 ? (
           <span className="otp-timer">Resend code in {timer}s</span>
         ) : (
-          <button 
-            className="otp-resend-btn" 
-            onClick={handleResend} 
-            disabled={isLoading || isResending || resendCount >= 3}
-          >
-            {isResending ? <Loader2 className="animate-spin" size={16} /> : 'Resend Code'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            {isPhone && (
+              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                  <input type="radio" name="resendChannel" checked={resendChannel === 'SMS'} onChange={() => setResendChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                  <input type="radio" name="resendChannel" checked={resendChannel === 'WHATSAPP'} onChange={() => setResendChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
+                </label>
+              </div>
+            )}
+            <button 
+              className="otp-resend-btn" 
+              onClick={handleResend} 
+              disabled={isLoading || isResending || resendCount >= 3}
+            >
+              {isResending ? <Loader2 className="animate-spin" size={16} /> : 'Resend Code'}
+            </button>
+          </div>
         )}
         {resendCount >= 3 && <p className="otp-limit-msg">Max resend attempts reached. Please try again later.</p>}
       </div>

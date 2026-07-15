@@ -8,6 +8,7 @@ import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service
 import { SmsService } from '../../shared/infrastructure/sms/sms.service'
 import { S3Service } from '../../shared/infrastructure/common/s3/s3.service'
 import * as bcrypt from 'bcrypt'
+import * as crypto from 'crypto'
 import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
@@ -891,7 +892,7 @@ export class UserAuthService extends BaseAuthService {
     await this.tokenRepository.deleteOldTokens(identifier, effectiveContext)
 
     // 2. Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    const otp = crypto.randomInt(100000, 1000000).toString()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 mins
 
     // 3. Create token record
