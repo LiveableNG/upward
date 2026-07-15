@@ -11,6 +11,7 @@ interface RichTextEditorProps {
   placeholder?: string
   menubar?: boolean
   toolbar?: string
+  disabled?: boolean
 }
 
 export function RichTextEditor({ 
@@ -19,7 +20,8 @@ export function RichTextEditor({
   height = 500, 
   placeholder = 'Start typing...',
   menubar = true,
-  toolbar
+  toolbar,
+  disabled = false
 }: RichTextEditorProps) {
   const editorRef = useRef<any>(null)
 
@@ -31,6 +33,7 @@ export function RichTextEditor({
   return (
     <div className="rich-text-editor-container" style={{ height, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <Editor
+        disabled={disabled}
         onInit={(evt, editor) => editorRef.current = editor}
         value={value}
         init={{

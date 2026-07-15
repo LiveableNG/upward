@@ -367,6 +367,7 @@ export class SendDocumentUseCase {
       'text/html'
     );
 
+    let pdfS3Url: string | null = null;
     if (data.documentType === 'PDF') {
       let pdfBuffer;
       try {
@@ -378,6 +379,14 @@ export class SendDocumentUseCase {
           recipientName: data.recipientName,
           includeLetterhead: data.includeLetterhead,
         });
+        
+        const pdfS3Key = s3Key.replace('.html', '.pdf');
+        await this.s3Service.uploadBuffer(pdfBuffer, pdfS3Key, 'application/pdf');
+        
+        const baseUrl = this.configService.get<string>('API_URL') || 
+                        this.configService.get<string>('BACKEND_URL') || 
+                        'http://localhost:4000';
+        pdfS3Url = `${baseUrl}/api/v1/public/documents/${sentUuid}/pdf`;
       } catch (error) {
         console.error('PDF Generation Error in SendDocument:', error);
         throw error;
@@ -437,7 +446,8 @@ export class SendDocumentUseCase {
 
 
 
-      return this.documentRepo.findSentDocumentByUuid(sentUuid);
+      const updatedDoc = await this.documentRepo.findSentDocumentByUuid(sentUuid);
+      return { ...(updatedDoc as any), pdfUrl: pdfS3Url };
     } else {
       const result = await this.documentRepo.saveSentDocument({
         uuid: sentUuid,
@@ -453,9 +463,7 @@ export class SendDocumentUseCase {
         includeLetterhead: data.includeLetterhead || false,
       });
 
-
-
-      return result;
+      return { ...(result as any), pdfUrl: pdfS3Url };
     }
   }
 }

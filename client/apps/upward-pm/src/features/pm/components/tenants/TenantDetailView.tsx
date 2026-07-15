@@ -105,8 +105,9 @@ export const TenantDetailView: React.FC = () => {
   }
 
   return (
-    <div className="tenant-detail-view animate-fade-in" style={{ paddingBottom: 60 }}>
-      {/* Top Navigation */}
+    <>
+      <div className="tenant-detail-view animate-fade-in" style={{ paddingBottom: 60 }}>
+        {/* Top Navigation */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
         <button 
           onClick={() => router.back()} 
@@ -539,10 +540,12 @@ export const TenantDetailView: React.FC = () => {
                    </button>
                  </div>
                )}
-             </div>
-          )}
+              </div>
+           )}
         </div>
       </div>
+    </div>
+
 
       <EditTenantModal 
         isOpen={isEditModalOpen}
@@ -570,6 +573,6 @@ export const TenantDetailView: React.FC = () => {
           max-width: 1000px;
         }
       `}</style>
-    </div>
+    </>
   )
 }

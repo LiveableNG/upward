@@ -10,7 +10,10 @@ import {
   Users,
   AlertCircle,
   Eye,
-  Loader2
+  Loader2,
+  MessageCircle,
+  Check,
+  PanelLeft
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -115,6 +118,8 @@ export function DocumentEditorView({
     enabled: !!unitUuid
   })
 
+  const isSampleTemplate = initialTemplate?.type === 'SAMPLE' || initialTemplate?.uuid === 'system-sample-template'
+  const [showSettings, setShowSettings] = useState(!isSampleTemplate)
   const [previewMode, setPreviewMode] = useState(false)
 
   const getRenderedContent = () => {
@@ -440,21 +445,31 @@ export function DocumentEditorView({
         }
 
           // 2. Send Document (linked to payment if context exists)
-          await sendDocument.mutateAsync({
+          const docResp = await sendDocument.mutateAsync({
             uuid: documentUuid,
             tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
             unitUuid,
             subject,
             content,
-            documentType: deliveryMode.toUpperCase(),
+            documentType: deliveryMode === 'whatsapp' ? 'PDF' : deliveryMode.toUpperCase(),
             recipientName,
             recipientEmail,
             paymentRequestUuid, // New field
-            includeLetterhead: hasLetterhead && deliveryMode === 'pdf' ? includeLetterhead : false,
-            deliveryChannel: deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase()
+            includeLetterhead: hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') ? includeLetterhead : false,
+            deliveryChannel: deliveryMode === 'whatsapp' ? 'MANUAL' : (deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase())
           })
-        
-        success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
+          
+          if (deliveryMode === 'whatsapp') {
+            const phone = selectedTenant?.phone ? selectedTenant.phone.replace(/[^0-9+]/g, '') : '';
+            const pdfUrl = (docResp as any)?.pdfUrl || '';
+            const message = encodeURIComponent(`Hello ${recipientName},\n\nPlease view your document (${subject}) here:\n${pdfUrl}\n\nThank you.`);
+            
+            // Open WhatsApp deep link with the S3 URL
+            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+            success('Document logged. WhatsApp opened with document link.');
+          } else {
+            success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
+          }
       }
       onBack()
     } catch (err: any) {
@@ -465,7 +480,8 @@ export function DocumentEditorView({
   }
 
   return (
-    <div className="document-editor animate-fade-in">
+    <>
+      <div className="document-editor animate-fade-in">
       <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -473,7 +489,7 @@ export function DocumentEditorView({
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', margin: 0 }}>
-              {isVaultMode ? `Vault Document: ${initialTemplate?.name || 'New Document'}` : (initialTemplate ? `Edit Template: ${initialTemplate.name}` : 'Create New Document')}
+              {isVaultMode ? `Vault Document: ${initialTemplate?.name || 'New Document'}` : (isSampleTemplate ? `Preview Template: ${initialTemplate?.name}` : (initialTemplate ? `Edit Template: ${initialTemplate.name}` : 'Create New Document'))}
             </h1>
             {isVaultMode && (
               <span style={{
@@ -491,52 +507,46 @@ export function DocumentEditorView({
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {deliveryMode === 'pdf' && (
+        {!isSampleTemplate && (
+          <div style={{ display: 'flex', gap: 12 }}>
+            {!paymentContext && (
+              <button 
+                onClick={handleSaveAsPdf}
+                disabled={isDownloading}
+                className="btn btn--secondary" 
+                style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                <Download size={20} /> {isDownloading ? 'Downloading...' : 'Save as PDF'}
+              </button>
+            )}
             <button 
-              onClick={handlePreviewPdf}
-              disabled={isPreviewLoading}
-              className="btn btn--secondary" 
-              style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, borderColor: 'var(--brand)' }}
+              onClick={handleSend}
+              disabled={isSending || (selectedTenant && !selectedTenant.email && !selectedTenant.phone)}
+              className="btn btn--primary" 
+              style={{ 
+                borderRadius: 12, 
+                height: 48, 
+                padding: '0 24px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 8,
+                opacity: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 0.5 : 1,
+                cursor: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 'not-allowed' : 'pointer'
+              }}
             >
-              {isPreviewLoading ? <Loader2 size={20} className="animate-spin text-brand" /> : <Eye size={20} />} 
-              {isPreviewLoading ? 'Generating Preview...' : 'Preview PDF'}
+              {paymentContext ? <CreditCard size={20} /> : <Send size={20} />} 
+              {isSending ? 'Processing...' : isVaultMode ? 'Send to Vault' : (paymentContext ? 'Request Payment' : 'Send Document')}
             </button>
-          )}
-          <button 
-            onClick={handleSaveAsPdf}
-            disabled={isDownloading}
-            className="btn btn--secondary" 
-            style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <Download size={20} /> {isDownloading ? 'Downloading...' : 'Save as PDF'}
-          </button>
-          <button 
-            onClick={handleSend}
-            disabled={isSending || (selectedTenant && !selectedTenant.email && !selectedTenant.phone)}
-            className="btn btn--primary" 
-            style={{ 
-              borderRadius: 12, 
-              height: 48, 
-              padding: '0 24px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8,
-              opacity: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 0.5 : 1,
-              cursor: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {paymentContext ? <CreditCard size={20} /> : <Send size={20} />} 
-            {isSending ? 'Processing...' : isVaultMode ? 'Send to Vault' : (paymentContext ? 'Request Payment' : 'Send Document')}
-          </button>
-        </div>
+          </div>
+        )}
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 40, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: showSettings ? '400px 1fr' : '1fr', gap: 40, alignItems: 'start', transition: 'all 0.3s' }}>
         
         {/* Left Panel: Settings */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
+        {showSettings && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 24 }}>Document Settings</h3>
              
              <div style={{ marginBottom: 24 }}>
@@ -583,17 +593,17 @@ export function DocumentEditorView({
                           position: 'absolute', 
                           top: 8, 
                           left: 8, 
-                          width: 14, 
-                          height: 14, 
+                          width: 16, 
+                          height: 16, 
                           borderRadius: '50%', 
-                          border: `1.5px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                          border: `1.5px solid ${deliveryMode === 'pdf' ? 'var(--dark)' : 'var(--border)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
                        }}>
-                          {deliveryMode === 'pdf' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                          {deliveryMode === 'pdf' && <Check size={10} color="var(--dark)" strokeWidth={3} />}
                        </div>
-                      <Download size={18} /> PDF Attachment
+                      <Download size={18} /> <span style={{ whiteSpace: 'nowrap' }}>PDF Attachment</span>
                     </button>
                     <button 
                       onClick={() => setDeliveryMode('email')}
@@ -620,28 +630,28 @@ export function DocumentEditorView({
                           position: 'absolute', 
                           top: 8, 
                           left: 8, 
-                          width: 14, 
-                          height: 14, 
+                          width: 16, 
+                          height: 16, 
                           borderRadius: '50%', 
-                          border: `1.5px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
+                          border: `1.5px solid ${deliveryMode === 'email' ? 'var(--dark)' : 'var(--border)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
                        }}>
-                          {deliveryMode === 'email' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                          {deliveryMode === 'email' && <Check size={10} color="var(--dark)" strokeWidth={3} />}
                        </div>
-                      <Mail size={18} /> Email Body
+                      <Mail size={18} /> <span style={{ whiteSpace: 'nowrap' }}>Email Body</span>
                     </button>
                     <button 
-                      onClick={() => setDeliveryMode('sms')}
+                      onClick={() => setDeliveryMode('whatsapp')}
                       disabled={selectedTenant && !selectedTenant.phone}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
                         borderRadius: 12, 
-                        border: `1px solid ${deliveryMode === 'sms' ? 'var(--clay)' : 'var(--border)'}`,
-                        background: deliveryMode === 'sms' ? 'var(--clay-faint)' : 'white',
-                        color: deliveryMode === 'sms' ? 'var(--clay)' : 'var(--text-muted)',
+                        border: `1px solid ${deliveryMode === 'whatsapp' ? '#25D366' : 'var(--border)'}`,
+                        background: deliveryMode === 'whatsapp' ? '#dcf8c6' : 'white',
+                        color: deliveryMode === 'whatsapp' ? '#075E54' : 'var(--text-muted)',
                         opacity: (selectedTenant && !selectedTenant.phone) ? 0.5 : 1,
                         cursor: (selectedTenant && !selectedTenant.phone) ? 'not-allowed' : 'pointer',
                         fontSize: 13,
@@ -657,17 +667,17 @@ export function DocumentEditorView({
                           position: 'absolute', 
                           top: 8, 
                           left: 8, 
-                          width: 14, 
-                          height: 14, 
+                          width: 16, 
+                          height: 16, 
                           borderRadius: '50%', 
-                          border: `1.5px solid ${deliveryMode === 'sms' ? 'var(--clay)' : 'var(--border)'}`,
+                          border: `1.5px solid ${deliveryMode === 'whatsapp' ? '#25D366' : 'var(--border)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
                        }}>
-                          {deliveryMode === 'sms' && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--clay)' }}></div>}
+                          {deliveryMode === 'whatsapp' && <Check size={10} color="#25D366" strokeWidth={3} />}
                        </div>
-                      <Mail size={18} /> SMS
+                      <MessageCircle size={18} /> <span style={{ whiteSpace: 'nowrap' }}>WhatsApp</span>
                     </button>
                   </div>
                 )}
@@ -800,17 +810,25 @@ export function DocumentEditorView({
                  style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
                >
                  <div style={{ 
-                   width: 18, 
-                   height: 18, 
-                   borderRadius: 4, 
-                   border: `1px solid ${includeLetterhead ? 'var(--forest)' : 'var(--border)'}`,
-                   background: includeLetterhead ? 'var(--forest)' : 'white',
-                   display: 'flex',
-                   alignItems: 'center',
-                   justifyContent: 'center',
-                   color: 'white'
+                   width: 36, 
+                   height: 20, 
+                   borderRadius: 10, 
+                   background: includeLetterhead ? 'var(--forest)' : 'var(--border)',
+                   position: 'relative',
+                   transition: 'background 0.2s',
+                   flexShrink: 0
                  }}>
-                   {includeLetterhead && <div style={{ width: 8, height: 8, background: 'white', borderRadius: 1 }}></div>}
+                   <div style={{
+                     width: 16,
+                     height: 16,
+                     borderRadius: '50%',
+                     background: 'white',
+                     position: 'absolute',
+                     top: 2,
+                     left: includeLetterhead ? 18 : 2,
+                     transition: 'left 0.2s',
+                     boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                   }} />
                  </div>
                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
                </div>
@@ -820,21 +838,48 @@ export function DocumentEditorView({
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
             <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending.
+              {isSampleTemplate 
+                ? "This is a read-only sample template. It demonstrates how dynamic placeholders like [Tenant Name] or [RentAmount] are automatically filled with real data when sending actual documents." 
+                : "Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
+              }
             </p>
           </div>
         </div>
+        )}
 
         {/* Right Panel: Rich Text Editor or Live Preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ 
-              display: 'inline-flex', 
-              background: 'var(--ivory-dim)', 
-              padding: 4, 
-              borderRadius: 12,
-              border: '1px solid var(--border)' 
-            }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              {!isSampleTemplate && (
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 12,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: '1px solid var(--border)',
+                    background: 'white',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <PanelLeft size={16} />
+                  {showSettings ? 'Hide Settings' : 'Show Settings'}
+                </button>
+              )}
+              <div style={{ 
+                display: isSampleTemplate ? 'none' : 'inline-flex', 
+                background: 'var(--ivory-dim)', 
+                padding: 4, 
+                borderRadius: 12,
+                border: '1px solid var(--border)' 
+              }}>
               <button
                 onClick={() => setPreviewMode(false)}
                 style={{
@@ -870,7 +915,8 @@ export function DocumentEditorView({
                 Live Preview
               </button>
             </div>
-            {previewMode && (
+          </div>
+          {previewMode && (
               <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }}></span>
                 Showing rendered placeholders
@@ -939,6 +985,7 @@ export function DocumentEditorView({
           ) : (
             <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
               <RichTextEditor
+                disabled={isSampleTemplate}
                 value={content}
                 onChange={(newContent) => setContent(newContent)}
                 height="100%"
@@ -947,8 +994,9 @@ export function DocumentEditorView({
           )}
         </div>
       </div>
+    </div>
 
-      <RecipientSelectModal 
+    <RecipientSelectModal 
         isOpen={isRecipientModalOpen}
         onClose={() => setIsRecipientModalOpen(false)}
         onSelect={(r) => {
@@ -1032,6 +1080,6 @@ export function DocumentEditorView({
           border-color: var(--clay);
         }
       `}</style>
-    </div>
+    </>
   )
 }
