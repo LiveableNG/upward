@@ -31,8 +31,15 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
           if (data.rentPortion > 0) {
             this.sendRentReceiptEmail
               .execute({ transactionId: data.transactionId, propertyId: data.propertyId })
+              .then((result) => {
+                if (result.emailSent || result.whatsappSent) {
+                  this.logger.log(
+                    `Rent receipt delivery for transaction ${data.transactionId}: email=${result.emailSent}, whatsapp=${result.whatsappSent}`,
+                  )
+                }
+              })
               .catch((err) => {
-                this.logger.error(`Failed to send rent receipt email for transaction ${data.transactionId}:`, err)
+                this.logger.error(`Failed to send rent receipt for transaction ${data.transactionId}:`, err)
               })
           }
 
