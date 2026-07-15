@@ -35,6 +35,8 @@ const tenantSchema = z.object({
   rentType: z.enum(['Monthly', 'Annually']).optional(),
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
+  isFullyPaid: z.boolean().optional(),
+  rentAmountPaid: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.tenantType === 'commercial') {
     if (!data.commercialName || data.commercialName.trim().length < 2) {
@@ -160,6 +162,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       rentEndDate: initialData?.unitDetails?.rentEndDate
         ? new Date(initialData.unitDetails.rentEndDate).toISOString().split('T')[0]
         : '',
+      isFullyPaid: true,
+      rentAmountPaid: '0',
     }
   })
 
@@ -223,7 +227,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
 
   const onSubmit = async (data: TenantFormData) => {
-    const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
+    const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, ...tenantData } = data
 
     let email = tenantData.email || ''
     if (!email || email.trim() === '') {
@@ -313,7 +317,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               rentType: rentType || 'Annually',
               rentStartDate,
               rentDueDate: rentEndDate,
-              rentAmountPaid: 0
+              rentAmountPaid: parseFloat(rentAmountPaid || '0'),
+              isFullyPaid
             }, {
               onSuccess: () => {
                 reset()
@@ -338,7 +343,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               rentType,
               rentStartDate,
               rentDueDate: rentEndDate,
-              rentAmountPaid: 0
+              rentAmountPaid: parseFloat(rentAmountPaid || '0'),
+              isFullyPaid
             }, {
               onSuccess: () => {
                 reset()
@@ -803,6 +809,35 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                         />
                         {errors.rentEndDate && <span className="form-error-text">{errors.rentEndDate.message}</span>}
                       </div>
+                    </div>
+
+                    <div style={{ marginTop: 16, padding: 12, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: watch('isFullyPaid') ? 0 : 12 }}>
+                        <div>
+                          <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Toggle off if the tenant is making a partial payment initially.</p>
+                        </div>
+                        <label className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            {...register('isFullyPaid')}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+
+                      {!watch('isFullyPaid') && (
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label" style={{ fontSize: 11 }}>Initial Amount Paid (₦)</label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            style={{ fontSize: 13, padding: '10px 14px' }}
+                            placeholder="e.g. 500000"
+                            {...register('rentAmountPaid')}
+                          />
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

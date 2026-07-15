@@ -32,6 +32,7 @@ interface AddUnitModalProps {
     unitType: string;
     tenantUuid?: string;
     rentAmountPaid: string;
+    isFullyPaid: boolean;
   };
   setFormData: (data: any) => void;
 }
@@ -98,12 +99,13 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             tenantPhone: '',
             rentAmount: '',
             rentAmountPaid: '0',
+            isFullyPaid: true,
             rentStartDate: '',
             rentDueDate: ''
         })
     } else {
         // Set default amount paid to 0 if assigning tenant
-        setFormData({ ...formData, rentAmountPaid: '0' })
+        setFormData({ ...formData, rentAmountPaid: '0', isFullyPaid: true })
     }
   }
 
@@ -348,6 +350,37 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                       onChange={e => setFormData({ ...formData, rentDueDate: e.target.value })}
                     />
                   </div>
+                </div>
+
+                <div style={{ marginTop: 16, padding: 12, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.isFullyPaid ? 0 : 12 }}>
+                    <div>
+                      <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Toggle off if the tenant is making a partial payment initially.</p>
+                    </div>
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.isFullyPaid} 
+                        onChange={e => setFormData({ ...formData, isFullyPaid: e.target.checked })} 
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  {!formData.isFullyPaid && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: 11 }}>Initial Amount Paid (₦)</label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ fontSize: 13, padding: '10px 14px' }}
+                        placeholder="e.g. 500000"
+                        value={formData.rentAmountPaid}
+                        onChange={e => setFormData({ ...formData, rentAmountPaid: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

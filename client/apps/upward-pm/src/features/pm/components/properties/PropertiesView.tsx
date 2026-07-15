@@ -79,7 +79,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
     unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
     tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
     rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
-    unitType: '', rentAmountPaid: ''
+    unitType: '', rentAmountPaid: '', isFullyPaid: true
   })
 
   const handleConfirmDelete = () => {
@@ -115,7 +115,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
           rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
-          unitType: '', rentAmountPaid: ''
+          unitType: '', rentAmountPaid: '', isFullyPaid: true
         })
         setTargetPropertyUuid('')
       },

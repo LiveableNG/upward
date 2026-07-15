@@ -185,7 +185,9 @@ export class BulkCreateUnitsUseCase {
         unitsToSync.push(newUnit.uuid);
       }
 
-      if (u.rentAmountPaid && u.rentAmountPaid > 0) {
+      const actualRentAmountPaid = u.isFullyPaid ? u.rentAmount : u.rentAmountPaid;
+
+      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0) {
         let periodEnd: Date | null = null;
         if (newUnit.rentStartDate) {
           periodEnd = new Date(newUnit.rentStartDate);
@@ -198,7 +200,7 @@ export class BulkCreateUnitsUseCase {
         }
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
-          amount: u.rentAmountPaid,
+          amount: actualRentAmountPaid,
           paymentDate: new Date(),
           periodStart: newUnit.rentStartDate,
           status: 'SUCCESS',

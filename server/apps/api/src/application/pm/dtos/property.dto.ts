@@ -127,6 +127,10 @@ export class UnitImportDto {
   @IsOptional()
   rentAmountPaid?: number;
 
+  @IsBoolean()
+  @IsOptional()
+  isFullyPaid?: boolean;
+
   @IsNumber()
   @IsOptional()
   managementFee?: number;

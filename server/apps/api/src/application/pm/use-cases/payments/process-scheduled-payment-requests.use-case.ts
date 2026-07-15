@@ -208,56 +208,7 @@ export class ProcessScheduledPmPaymentRequestsUseCase {
             this.logger.error(`Failed to send activation email to PM ${pmEmail}:`, err);
           });
         }
-        // 8. Handle Recurrence by cloning the scheduled request for the next period
-        if ((pr as any).isRecurring && (pr as any).recurrenceInterval) {
-          const interval = (pr as any).recurrenceInterval;
-          
-          let nextScheduledAt: Date | null = null;
-          let nextDueDate: Date | null = null;
-          let nextRentStart: Date | null = null;
-          let nextRentEnd: Date | null = null;
-
-          const advanceDate = (date: Date, intervalStr: string): Date => {
-            const d = new Date(date);
-            if (intervalStr === 'MONTHLY') d.setMonth(d.getMonth() + 1);
-            else if (intervalStr === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
-            else if (intervalStr === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
-            return d;
-          };
-
-          if ((pr as any).scheduledAt) nextScheduledAt = advanceDate((pr as any).scheduledAt, interval);
-          if (pr.dueDate) nextDueDate = advanceDate(pr.dueDate, interval);
-          if (pr.rentStartDate) nextRentStart = advanceDate(pr.rentStartDate, interval);
-          if (pr.rentEndDate) nextRentEnd = advanceDate(pr.rentEndDate, interval);
-
-          await this.prisma.upward_pm_payment_request.create({
-            data: {
-              pmId: pm.id,
-              unitId: unit.id,
-              tenantId: unit.tenantId,
-              paymentRequestId: null,
-              amount: pr.amount,
-              currency: unit.currency || 'NGN',
-              description: pr.description,
-              dueDate: nextDueDate || new Date(),
-              rentStartDate: nextRentStart,
-              rentEndDate: nextRentEnd,
-              rentType: pr.rentType,
-              reminderFrequency: pr.reminderFrequency,
-              nextReminderAt: null,
-              reminderCount: 0,
-              status: 'SCHEDULED',
-              amountPaid: 0,
-              allowPartial: pr.allowPartial,
-              minAmount: pr.minAmount,
-              scheduledAt: nextScheduledAt,
-              isRecurring: true,
-              recurrenceInterval: interval
-            }
-          });
-          
-          this.logger.log(`Created recurring clone for request ${pr.uuid} scheduled for ${nextScheduledAt}`);
-        }
+        // Removed time-based recurrence cloning. It is now handled in sync-pm-status.use-case.ts upon successful payment.
 
         processedUuids.push(pr.uuid);
       } catch (err) {

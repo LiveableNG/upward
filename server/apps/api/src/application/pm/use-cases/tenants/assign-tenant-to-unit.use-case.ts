@@ -36,7 +36,8 @@ export class AssignTenantToUnitUseCase {
     rentAmount?: number,
     rentType?: string,
     rentStartDate?: Date,
-    rentDueDate?: Date
+    rentDueDate?: Date,
+    isFullyPaid?: boolean
   ): Promise<void> {
     const unit = await this.unitRepo.findByUuid(unitUuid);
     if (!unit) throw new NotFoundException('Unit not found');
@@ -61,7 +62,9 @@ export class AssignTenantToUnitUseCase {
         rentDueDate: rentDueDate || unit.rentDueDate,
       });
 
-      if (rentAmountPaid !== undefined && rentAmountPaid >= 0) {
+      const actualRentAmountPaid = isFullyPaid ? (rentAmount !== undefined ? rentAmount : unit.rentAmount) : rentAmountPaid;
+
+      if (actualRentAmountPaid !== undefined && actualRentAmountPaid >= 0) {
         const activeRentStartDate = rentStartDate || unit.rentStartDate;
         const activeRentType = rentType || unit.rentType;
         
@@ -77,7 +80,7 @@ export class AssignTenantToUnitUseCase {
         }
 
         await this.unitRepo.addRentPayment(unitUuid, {
-          amount: rentAmountPaid,
+          amount: actualRentAmountPaid,
           paymentDate: new Date(),
           periodStart: activeRentStartDate,
           status: 'SUCCESS',
