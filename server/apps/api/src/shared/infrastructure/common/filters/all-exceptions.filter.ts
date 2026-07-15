@@ -94,9 +94,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // }
 
     // 3. Email Admin on Critical Errors (500s)
-    // if (isCritical) {
-    //   this.notifyAdmins(exception, request)
-    // }
+    if (status >= 500) {
+      this.notifyAdmins(exception, request)
+    }
 
     const payload = isHttp
       ? typeof message === 'object'
@@ -117,15 +117,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private async notifyAdmins(exception: unknown, request: FastifyRequest) {
     try {
-      // Find superadmins
-      const superadmins = await this.prisma.upward_admin.findMany({
-        where: { role: 'SUPERADMIN' },
+      // Find developers
+      const developers = await this.prisma.upward_admin.findMany({
+        where: { role: 'DEVELOPER' },
         select: { email: true },
       })
 
-      if (superadmins.length === 0) return
+      if (developers.length === 0) return
 
-      const adminEmails = superadmins.map((a) => a.email)
+      const adminEmails = developers.map((a) => a.email)
       const errorTime = new Date().toLocaleString()
       const subject = `[CRITICAL ERROR] ${request.method} ${request.url}`
 
