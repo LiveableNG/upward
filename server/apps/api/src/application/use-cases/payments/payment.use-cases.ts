@@ -1333,13 +1333,22 @@ export class GenerateReceiptPdfUseCase {
   ) { }
 
   async execute(data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string }): Promise<string> {
-    if (data.paidAt && typeof data.paidAt === 'string') {
-      data.paidAt = new Date(data.paidAt)
+    const buffer = await this.executeBuffer(data)
+    const base64 = buffer.toString('base64')
+    return `data:application/pdf;base64,${base64}`
+  }
+
+  async executeBuffer(
+    data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string },
+  ): Promise<Buffer> {
+    const enriched = { ...data }
+    if (enriched.paidAt && typeof enriched.paidAt === 'string') {
+      enriched.paidAt = new Date(enriched.paidAt)
     }
 
-    if (data.userPropertyId && !data.landlordName) {
+    if (enriched.userPropertyId && !enriched.landlordName) {
       const prop = await this.prisma.upward_user_property.findUnique({
-        where: { id: Number(data.userPropertyId) },
+        where: { id: Number(enriched.userPropertyId) },
         include: {
           location: true,
           company: true,
@@ -1357,36 +1366,33 @@ export class GenerateReceiptPdfUseCase {
         ].filter(Boolean)
 
         if (addressParts.length > 0) {
-          data.propertyAddress = addressParts.join(', ')
+          enriched.propertyAddress = addressParts.join(', ')
         }
 
         // Resolve Recipient (Landlord Name)
         if (prop.company && prop.company.name !== 'account_name') {
-          data.landlordName = prop.company.name
+          enriched.landlordName = prop.company.name
         } else if (prop.manager) {
           const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
           const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
           if (first !== 'account_name' && last !== 'account_name') {
-            data.landlordName = `${first} ${last}`
+            enriched.landlordName = `${first} ${last}`
           }
         }
       }
     }
 
-    if (!data.landlordName || data.landlordName.toLowerCase().includes('rent payment') || data.landlordName === 'account_name') {
-      if (data.companyName && data.companyName !== 'account_name') data.landlordName = data.companyName
-      else if (data.managerName && data.managerName !== 'account_name') data.landlordName = data.managerName
-      else data.landlordName = 'Property Manager'
+    if (!enriched.landlordName || enriched.landlordName.toLowerCase().includes('rent payment') || enriched.landlordName === 'account_name') {
+      if (enriched.companyName && enriched.companyName !== 'account_name') enriched.landlordName = enriched.companyName
+      else if (enriched.managerName && enriched.managerName !== 'account_name') enriched.landlordName = enriched.managerName
+      else enriched.landlordName = 'Property Manager'
     }
 
-    if (!data.propertyAddress || data.propertyAddress.toLowerCase().includes('upward')) {
-      if (data.propertyName) data.propertyAddress = data.propertyName
+    if (!enriched.propertyAddress || enriched.propertyAddress.toLowerCase().includes('upward')) {
+      if (enriched.propertyName) enriched.propertyAddress = enriched.propertyName
     }
 
-    const buffer = await this.receiptService.generateReceiptPdf(data)
-
-    const base64 = buffer.toString('base64')
-    return `data:application/pdf;base64,${base64}`
+    return this.receiptService.generateReceiptPdf(enriched)
   }
 }
 @Injectable()
