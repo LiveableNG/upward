@@ -85,10 +85,6 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       if (newToken) {
         return makeRequest(newToken)
       } else {
-        if (typeof window !== 'undefined') {
-          // Force a hard redirect to break any stalled client-side transitions
-          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-        }
         throw new Error('Session expired')
       }
     }
@@ -157,10 +153,6 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
       }
       const newToken = await refreshPromise
       if (newToken) return makeRequest(newToken)
-      
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
-      }
       throw new Error('Session expired')
     }
 
