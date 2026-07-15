@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Bell, Settings } from 'lucide-react'
+import { Bell, LayoutGrid, Settings } from 'lucide-react'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 
 import { NotificationPanel } from './NotificationPanel'
+import { useFeaturesMenu } from './FeaturesMenuContext'
 
 import { useAuth } from '@/features/auth/AuthContext'
 import { useQuery } from '@tanstack/react-query'
@@ -29,6 +30,7 @@ export function DashboardHeader({
   const router = useRouter()
   const pathname = usePathname()
   const { user } = useAuth()
+  const { openFeaturesMenu } = useFeaturesMenu()
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
 
@@ -134,6 +136,14 @@ export function DashboardHeader({
                 <>
                   <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
+                  <button
+                    type="button"
+                    className="dashboard__header-features"
+                    onClick={openFeaturesMenu}
+                  >
+                    <LayoutGrid size={15} />
+                    <span>Features</span>
+                  </button>
                   <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
                   <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
                 </>
