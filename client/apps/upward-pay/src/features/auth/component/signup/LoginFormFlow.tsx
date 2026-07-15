@@ -216,8 +216,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     
     if (effectiveContext === 'LOGIN') {
       try {
-        await loginWithOTP(identifier, otp, identifierType)
-        router.push(redirect)
+        await otpLogin(identifier, otp, identifierType)
       } catch (err: unknown) {
         setOtpError(getLoginErrorMessage(err))
       }
