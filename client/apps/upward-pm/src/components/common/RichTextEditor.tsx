@@ -93,7 +93,9 @@ export function RichTextEditor({
                         if (selectedSig.type === 'digital') {
                           editor.insertContent(selectedSig.content)
                         } else {
-                          editor.insertContent(`<img src="${selectedSig.fileUrl}" alt="${selectedSig.name}" style="max-height: 80px; width: auto;" />`)
+                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                          const absoluteUrl = selectedSig.fileUrl.startsWith('http') ? selectedSig.fileUrl : `${apiUrl}${selectedSig.fileUrl}`;
+                          editor.insertContent(`<img src="${absoluteUrl}" alt="${selectedSig.name}" style="max-height: 80px; width: auto;" />`)
                         }
                       }
                       apiInstance.close()

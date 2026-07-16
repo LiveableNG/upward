@@ -37,4 +37,33 @@ export class PublicDocumentController {
       throw new NotFoundException('Document PDF could not be retrieved from storage');
     }
   }
+
+  @Get('signatures/:uuid/image')
+  async getSignatureImage(@Param('uuid') uuid: string, @Res({ passthrough: true }) res: any) {
+    const signature = await (this.prisma as any).upward_pm_signature.findUnique({
+      where: { uuid }
+    });
+
+    if (!signature || !signature.fileKey) {
+      throw new NotFoundException('Signature image not found');
+    }
+
+    try {
+      const buffer = await this.s3Service.getFileBuffer(signature.fileKey);
+      const ext = signature.fileKey.split('.').pop() || 'png';
+      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+      if (typeof res.set === 'function') {
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=31536000');
+      } else {
+        res.header('Content-Type', contentType);
+        res.header('Cache-Control', 'public, max-age=31536000');
+      }
+
+      return new StreamableFile(buffer);
+    } catch (err) {
+      throw new NotFoundException('Signature image could not be retrieved from storage');
+    }
+  }
 }

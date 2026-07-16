@@ -63,6 +63,27 @@
   width: 100%;
 }
 
+/* Action Dropdowns in Table */
+.action-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 11;
+  min-width: 180px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+/* Force action dropdowns to open upwards on the last two rows to prevent clipping */
+.upward-table tbody tr:nth-last-child(-n+2) .action-dropdown {
+  top: auto !important;
+  bottom: 100% !important;
+}
+
 .upward-mobile-card {
   background: white;
   border-radius: 16px;

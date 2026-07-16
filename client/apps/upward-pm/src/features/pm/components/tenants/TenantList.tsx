@@ -17,7 +17,9 @@ import { Building2 } from 'lucide-react'
 import { formatTenantName } from '@/lib/utils'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
-export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
+import { UserPlus } from 'lucide-react'
+
+export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: any, onAddTenant?: () => void }) => {
   const router = useRouter()
   const { data: tenants = [], isLoading: loadingTenants } = useTenants(initialTenants)
   const { data: properties = [], isLoading: loadingProperties } = useProperties()
@@ -220,18 +222,28 @@ export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
   return (
     <div className="tenants-view animate-fade-in" style={{ padding: '24px 0' }}>
       <PageHeader 
-        title="Tenant Directory" 
+        title="Tenants Directory" 
         subtitle="Manage your tenants across all properties."
         actions={
-          selectedTenants.size > 0 && (
-            <button 
-              className="btn btn--primary" 
-              onClick={() => handleBulkInvite()}
-              style={{ borderRadius: 12 }}
-            >
-              <Users size={18} /> Invite Selected ({selectedTenants.size})
-            </button>
-          )
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            {selectedTenants.size > 0 && (
+              <button 
+                className="btn btn--outline" 
+                onClick={() => handleBulkInvite()}
+                style={{ borderRadius: 12 }}
+              >
+                <Users size={18} /> Invite Selected ({selectedTenants.size})
+              </button>
+            )}
+            {onAddTenant && (
+              <button 
+                className="btn btn--primary" 
+                onClick={onAddTenant}
+              >
+                <UserPlus size={18} /> Add Tenant
+              </button>
+            )}
+          </div>
         }
       />
 
