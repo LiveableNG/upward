@@ -1,0 +1,104 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm turbo run build
+
+  test:
+    name: Test
+    needs: build
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint and type-check
+        run: pnpm turbo run lint type-check
+
+      - name: Unit tests
+        run: pnpm turbo run test --filter=@upward/api
+
+  deploy:
+    name: Trigger EC2 deploy
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/production'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call deploy-hook
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET_UPWARD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_URL:-}" ] || [ -z "${DEPLOY_SECRET:-}" ]; then
+            echo "::error::Missing DEPLOY_URL or DEPLOY_SECRET_UPWARD secrets"
+            exit 1
+          fi
+
+          BASE="${DEPLOY_URL%/}"
+          PATH_ONLY="/deploy/upward"
+          METHOD="POST"
+          BODY=""
+          TS="$(date +%s)"
+
+          # Pipe directly — bash $(...) strips trailing newlines and breaks HMAC
+          SIG_HEX="$(printf '%s\n%s\n%s\n%s' "$METHOD" "$PATH_ONLY" "$TS" "$BODY" \
+            | openssl dgst -sha256 -hmac "$DEPLOY_SECRET" | awk '{print $NF}')"
+          SIG="sha256=${SIG_HEX}"
+
+          echo "Triggering ${BASE}${PATH_ONLY} (ts=${TS})"
+          curl --fail-with-body --retry 3 --retry-delay 2 \
+            -X POST "${BASE}${PATH_ONLY}" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Timestamp: ${TS}" \
+            -H "X-Deploy-Signature: ${SIG}" \
+            --data-binary "${BODY}"
+
+          echo "Deploy accepted (202). Poll status with:"
+          echo "  curl -s ${BASE}/status/upward"
