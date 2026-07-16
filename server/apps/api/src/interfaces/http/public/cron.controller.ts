@@ -4,6 +4,7 @@ import { WebhookService } from '../../../shared/infrastructure/common/webhook/we
 import { RentReminderWorkflowUseCase } from '../../../application/use-cases/notifications/rent-reminder-workflow.use-case';
 import { UnifiedReminderService } from '../../../shared/infrastructure/common/reminder.service';
 import { ProcessHourlySettlementsUseCase } from '../../../application/use-cases/payments/settlement-cron.use-case';
+import { ApplyDailySavingsInterestUseCase } from '../../../application/use-cases/payments/wallet.use-cases';
 
 @Controller('public/cron')
 export class CronController {
@@ -15,6 +16,7 @@ export class CronController {
     private readonly rentReminderUseCase: RentReminderWorkflowUseCase,
     private readonly unifiedReminderService: UnifiedReminderService,
     private readonly processHourlySettlementsUseCase: ProcessHourlySettlementsUseCase,
+    private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
   ) {}
 
   @Get('run')
@@ -102,6 +104,16 @@ export class CronController {
       } catch (e: any) {
         this.logger.error('Error in processHourlySettlementsUseCase.execute', e);
         results.settlements = 'failed: ' + e.message;
+      }
+    }
+
+    if (shouldRun('savingsInterest')) {
+      try {
+        await this.applyDailySavingsInterestUseCase.execute();
+        results.savingsInterest = 'completed';
+      } catch (e: any) {
+        this.logger.error('Error in applyDailySavingsInterestUseCase.execute', e);
+        results.savingsInterest = 'failed: ' + e.message;
       }
     }
 

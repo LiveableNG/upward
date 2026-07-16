@@ -15,6 +15,7 @@ export interface User {
   gender?: string | null
   dateOfBirth?: string | null
   isIdentityVerified?: boolean
+  savingsWalletEnabled?: boolean
   isFromWaitlist: boolean
   isFromInvite: boolean
   profilePic?: string | null

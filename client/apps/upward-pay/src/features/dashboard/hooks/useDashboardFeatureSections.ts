@@ -11,6 +11,7 @@ import {
   type DashboardFeatureSection,
 } from '../constants/dashboardFeatures'
 import { hasRentalInfo, needsIdentityVerification } from '../utils/profileCompletion'
+import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 
 export type DashboardFeatureItemView = DashboardFeatureItem & {
   badge?: string
@@ -55,6 +56,8 @@ export function useDashboardFeatureSections() {
       'verify-identity': identityNeeded ? 'Required' : undefined,
     }
 
+    const savingsEnabled = isSavingsWalletEnabled(user)
+
     const sections: DashboardFeatureSectionView[] = DASHBOARD_FEATURE_SECTIONS.map(
       (section: DashboardFeatureSection) => ({
         ...section,
@@ -63,10 +66,22 @@ export function useDashboardFeatureSections() {
             if (item.id === 'rent-support-insurance') return hasRental
             return true
           })
-          .map((item) => ({
-            ...item,
-            badge: badgeByFeatureId[item.id],
-          })),
+          .map((item) => {
+            if (item.id === 'save-for-rent' && savingsEnabled) {
+              return {
+                ...item,
+                href: '/dashboard/savings',
+                comingSoon: false,
+                description: 'Build up funds for your next rent payment',
+                badge: badgeByFeatureId[item.id],
+              }
+            }
+
+            return {
+              ...item,
+              badge: badgeByFeatureId[item.id],
+            }
+          }),
       }),
     ).filter((section) => section.items.length > 0)
 

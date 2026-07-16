@@ -117,6 +117,7 @@ export class GetAdminUserDetailUseCase {
         firstName: decryptedUser.firstName,
         lastName: decryptedUser.lastName,
         phone: decryptedUser.phone,
+        savingsWalletEnabled: u.savingsWalletEnabled,
         isFromInvite: u.isFromInvite,
         isFromWaitlist: u.isFromWaitlist,
         createdAt: u.createdAt,

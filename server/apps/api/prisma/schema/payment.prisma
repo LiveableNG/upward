@@ -266,6 +266,73 @@ model upward_refund_log {
   @@index([userId])
 }
 
+model upward_wallet {
+  id              Int                     @id @default(autoincrement())
+  uuid            String                  @unique @default(uuid())
+  userId          Int                     @unique
+  balance         Float                   @default(0)
+  currency        String                  @default("NGN")
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  user            upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions    upward_wallet_transaction[]
+
+  @@index([userId])
+}
+
+model upward_wallet_transaction {
+  id          Int           @id @default(autoincrement())
+  uuid        String        @unique @default(uuid())
+  walletId    Int
+  userId      Int
+  type        String
+  status      String        @default("SUCCESS")
+  amount      Float
+  reference   String?       @unique
+  narration   String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  wallet      upward_wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user        upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([type])
+}
+
+model upward_savings_goal {
+  id                Int         @id @default(autoincrement())
+  uuid              String      @unique @default(uuid())
+  userId            Int
+  name              String
+  category          String
+  targetAmount      Float
+  currentAmount     Float       @default(0)
+  startDate         DateTime?
+  endDate           DateTime?
+  reminderEnabled   Boolean     @default(true)
+  reminderFrequency String?
+  reminderDay       Int?
+  autoSaveEnabled   Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  user              upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, category])
+}
+
+model upward_savings_config {
+  id                Int      @id @default(autoincrement())
+  key               String   @unique
+  dailyInterestRate Float    @default(0)
+  updatedByAdminId  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 model upward_fee_override {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
