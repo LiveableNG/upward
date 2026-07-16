@@ -72,7 +72,13 @@ export class BulkCreateUnitsUseCase {
       const firstName = u.tenantFirstName?.trim();
       const lastName = u.tenantLastName?.trim();
 
-      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName);
+      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName || u.tenantPhone);
+
+      if (hasTenantIdentifier && !u.tenantUuid) {
+        if (!commercialName && !firstName && !lastName) {
+          throw new BadRequestException(`Unit ${u.unitName}: Tenant with email/phone ${email || u.tenantPhone} must have a first/last name or commercial name provided.`);
+        }
+      }
 
       if (u.tenantUuid) {
         const tenant = await this.tenantRepository.findByUuid(u.tenantUuid);

@@ -131,13 +131,13 @@ export function CreatePaymentRequestModal({
       const totalPaidForPeriod = currentPeriodPayments.reduce((sum, p) => sum + p.amount, 0);
       const isFullyPaid = totalPaidForPeriod >= unit.rentAmount;
 
-      let requestAmountForRent = unit.rentAmount;
+      let requestAmountForRent = unit.rentAmount || 0;
       let finalStartDate = calculatedStartDate;
       let finalEndDate = calculatedEndDate;
 
       if (!isFullyPaid && totalPaidForPeriod > 0) {
         // Part-payment detected! Request the balance for the SAME period
-        requestAmountForRent = unit.rentAmount - totalPaidForPeriod;
+        requestAmountForRent = (unit.rentAmount || 0) - totalPaidForPeriod;
       } else if (isFullyPaid) {
         // Fully paid! Advance to the NEXT period
         finalStartDate = new Date(calculatedEndDate);
@@ -148,7 +148,7 @@ export function CreatePaymentRequestModal({
         else finalEndDate.setFullYear(finalEndDate.getFullYear() + 1);
         finalEndDate.setDate(finalEndDate.getDate() - 1);
         
-        requestAmountForRent = unit.rentAmount;
+        requestAmountForRent = unit.rentAmount || 0;
       }
 
       const items = [{ name: 'Rent', amount: requestAmountForRent.toString() }]

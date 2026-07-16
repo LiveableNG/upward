@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { cn, formatTenantName } from '@/lib/utils'
+import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
 interface AssignTenantToUnitModalProps {
   isOpen: boolean
@@ -135,7 +136,9 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
                   <UserPlus size={16} />
                 </div>
                 <div>
-                  <div className="unit-name" style={{ fontSize: 13 }}>{formatTenantName(tenant)}</div>
+                  <div className="unit-name" style={{ fontSize: 13 }}>
+                    <TenantNameDisplay tenant={tenant} fallback="No Tenant" />
+                  </div>
                   <div className="property-name" style={{ fontSize: 11 }}>{tenant.email || tenant.phone}</div>
                 </div>
               </div>

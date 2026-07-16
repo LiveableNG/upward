@@ -16,8 +16,11 @@ export function formatCurrency(amount: number, currency: string = 'NGN') {
 }
 
 export function formatTenantName(tenant?: { commercialName?: string; firstName?: string; lastName?: string }): string {
-  if (!tenant) return 'Tenant';
-  return tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant';
+  if (!tenant) return '';
+  const fullName = `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim();
+  const cName = (tenant.commercialName || '').trim();
+  if (!cName && !fullName) return '';
+  return cName || fullName;
 }
 
 export function dedupeBanksByCode<T extends { code: string }>(banks: T[]): T[] {

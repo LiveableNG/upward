@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Building2, 
   Users, 
@@ -26,6 +26,10 @@ import { StatCard } from '@/components/ui/StatCard/StatCard'
 import { StatGrid } from '@/components/ui/StatCard/StatGrid'
 import { useToast } from '@/components/common/Toast'
 import { DashboardSkeleton } from '@/components/skeletons'
+import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
+import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
+import { DocumentEditorView } from '../documents/DocumentEditorView'
+import { formatTenantName } from '@/lib/utils'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
@@ -33,7 +37,24 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   
   const resendMutation = useResendPaymentRequest()
   const { data: dashboardData, isLoading } = useDashboardSummary(initialData)
+  
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
+  const [hasSetInitialTab, setHasSetInitialTab] = useState(false)
+
+  useEffect(() => {
+    if (dashboardData && !hasSetInitialTab) {
+      if (dashboardData.overduePayments?.length > 0) setActiveTab('arrears')
+      else if (dashboardData.upcomingPayments?.length > 0) setActiveTab('upcoming')
+      else if (dashboardData.completedPayments?.length > 0) setActiveTab('completed')
+      setHasSetInitialTab(true)
+    }
+  }, [dashboardData, hasSetInitialTab])
+
+  const [showPaymentRequestModal, setShowPaymentRequestModal] = useState(false)
+  const [selectedUnitForPayment, setSelectedUnitForPayment] = useState<any>(null)
+  const [showEditor, setShowEditor] = useState(false)
+  const [editingTemplate, setEditingTemplate] = useState<any>(null)
+  const [paymentContext, setPaymentContext] = useState<any>(null)
 
   if (isLoading) {
     return <DashboardSkeleton />
@@ -110,6 +131,18 @@ export function DashboardView({ initialData }: { initialData?: any }) {
     })
   }
 
+  const handleOpenPaymentRequest = (unit: any, tenant: any) => {
+    setSelectedUnitForPayment({ ...unit, tenant })
+    setShowPaymentRequestModal(true)
+  }
+
+  const handleProceedToEditor = (template: any, context: any) => {
+    setEditingTemplate(template)
+    setPaymentContext(context)
+    setShowPaymentRequestModal(false)
+    setShowEditor(true)
+  }
+
   const renderEmptyState = (type: 'arrears' | 'upcoming' | 'completed') => {
     let message = ''
     if (type === 'arrears') message = 'No tenants are behind on rent. Excellent!'
@@ -125,7 +158,6 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   }
 
   const renderPaymentItem = (req: any, type: 'arrears' | 'upcoming' | 'completed') => {
-    const tenantName = req.tenant ? `${req.tenant.firstName} ${req.tenant.lastName}` : 'No Tenant'
     const initials = req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'
     const propertyName = req.unit?.property?.name || 'N/A'
     const unitName = req.unit?.unitName || 'N/A'
@@ -144,7 +176,9 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             {initials}
           </div>
           <div className="payments-tracker__meta">
-            <h4 className="payments-tracker__name">{tenantName}</h4>
+            <h4 className="payments-tracker__name">
+              <TenantNameDisplay tenant={req.tenant} fallback="No Tenant" />
+            </h4>
             <p className="payments-tracker__details">{propertyName} • Unit {unitName}</p>
           </div>
         </div>
@@ -235,7 +269,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                   style={{ padding: '4px 10px', fontSize: 11, borderRadius: 8, height: 28, whiteSpace: 'nowrap' }}
                   onClick={(e) => {
                     e.stopPropagation()
-                    router.push(`/properties?tab=units&search=${req.unit?.unitName}`)
+                    handleOpenPaymentRequest(req.unit, req.tenant)
                   }}
                   title="Create Payment Request"
                 >
@@ -265,6 +299,26 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             )}
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (showEditor) {
+    const tenant = selectedUnitForPayment?.tenant;
+    return (
+      <div className="container" style={{ padding: '40px' }}>
+        <DocumentEditorView 
+          initialTemplate={editingTemplate}
+          initialRecipient={tenant ? {
+            type: 'existing',
+            uuid: tenant.uuid,
+            name: formatTenantName(tenant),
+            email: tenant.email,
+            deliveryMode: 'email'
+          } : undefined}
+          paymentContext={paymentContext}
+          onBack={() => setShowEditor(false)}
+        />
       </div>
     )
   }
@@ -364,7 +418,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 {overduePayments.length > 5 && (
                   <button 
                     className="btn btn--secondary btn--sm payments-tracker__view-all"
-                    onClick={() => router.push('/payments?status=OVERDUE')}
+                    onClick={() => router.push('/properties?tab=units&dueFilter=passed')}
                   >
                     View All Arrears ({overduePayments.length})
                   </button>
@@ -379,7 +433,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 {upcomingPayments.length > 5 && (
                   <button 
                     className="btn btn--secondary btn--sm payments-tracker__view-all"
-                    onClick={() => router.push('/payments?status=PENDING')}
+                    onClick={() => router.push('/properties?tab=units&dueFilter=30days')}
                   >
                     View All Upcoming ({upcomingPayments.length})
                   </button>
@@ -394,7 +448,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 {completedPayments.length > 5 && (
                   <button 
                     className="btn btn--secondary btn--sm payments-tracker__view-all"
-                    onClick={() => router.push('/payments?status=PAID')}
+                    onClick={() => router.push('/properties?tab=units&paymentFilter=paid')}
                   >
                     View All Completed ({completedPayments.length})
                   </button>
@@ -403,50 +457,14 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             )}
           </div>
         </section>
-
-        <section className="section-card">
-          <div className="section-header">
-            <h2 className="section-title">Property Portfolio</h2>
-          </div>
-          
-          <div className="property-summary">
-            {properties.map((prop: any) => {
-              return (
-                <div key={prop.uuid} className="property-item-mini" onClick={() => router.push(`/properties`)} style={{ cursor: 'pointer' }}>
-                  <div className="property-item-mini__icon">
-                    <Building2 size={20} className="text-forest" />
-                  </div>
-                  <div className="property-item-mini__info">
-                    <h4>{prop.name}</h4>
-                    <p>{prop.area}, {prop.state} • {prop.totalUnits} Units</p>
-                  </div>
-                  <div className="property-item-mini__action">
-                    <ArrowUpRight size={18} className="text-muted" />
-                  </div>
-                </div>
-              )
-            })}
-            {!hasProperties && (
-              <div className="empty-state-mini">
-                <MapPin size={32} className="text-muted" />
-                <p>No properties added yet.</p>
-                <button className="btn btn--secondary btn--sm" onClick={() => router.push('/properties')}>
-                  Add Property
-                </button>
-              </div>
-            )}
-            {hasProperties && properties.length > 0 && (
-              <button 
-                className="btn btn--secondary btn--sm" 
-                style={{ width: '100%', marginTop: '8px', justifyContent: 'center' }} 
-                onClick={() => router.push('/properties')}
-              >
-                View All Properties
-              </button>
-            )}
-          </div>
-        </section>
       </div>
+
+      <CreatePaymentRequestModal 
+        isOpen={showPaymentRequestModal}
+        onClose={() => setShowPaymentRequestModal(false)}
+        unit={selectedUnitForPayment}
+        onProceedToEditor={handleProceedToEditor}
+      />
     </div>
   )
 }

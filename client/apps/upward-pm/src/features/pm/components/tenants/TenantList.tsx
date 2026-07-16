@@ -14,6 +14,8 @@ import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 import { Building2 } from 'lucide-react'
+import { formatTenantName } from '@/lib/utils'
+import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
 export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
   const router = useRouter()
@@ -31,7 +33,7 @@ export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t: any) => {
-      const fullName = (t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim()).toLowerCase()
+      const fullName = formatTenantName(t).toLowerCase()
       const email = (t.email || '').toLowerCase()
       const query = searchQuery.toLowerCase()
       
@@ -95,7 +97,7 @@ export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
           </div>
           <div>
             <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14, marginBottom: 2 }}>
-              {tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}
+              <TenantNameDisplay tenant={tenant} fallback="No Tenant" />
             </div>
             {tenant.email?.endsWith('@upward.com') ? (
               <div style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>

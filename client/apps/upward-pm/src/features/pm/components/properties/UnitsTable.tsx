@@ -25,8 +25,8 @@ interface UnitsTableProps {
   setSearchQuery: (query: string) => void;
   selectedPropertyFilter: string;
   setSelectedPropertyFilter: (filter: string) => void;
-  paymentFilter: 'all' | 'pending';
-  setPaymentFilter: (filter: 'all' | 'pending') => void;
+  paymentFilter: 'all' | 'pending' | 'paid';
+  setPaymentFilter: (filter: 'all' | 'pending' | 'paid') => void;
   dueFilter: 'all' | 'passed' | '30days' | '60days' | '90days';
   setDueFilter: (filter: 'all' | 'passed' | '30days' | '60days' | '90days') => void;
   onAddUnit: () => void;
@@ -214,7 +214,8 @@ export function UnitsTable({
             icon={CreditCardIcon}
             options={[
               { label: 'All Payments', value: 'all' },
-              { label: 'Pending Requests', value: 'pending' }
+              { label: 'Pending Requests', value: 'pending' },
+              { label: 'Completed', value: 'paid' }
             ]}
             onChange={(val) => setPaymentFilter(val as any)}
           />

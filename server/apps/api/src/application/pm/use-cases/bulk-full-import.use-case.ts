@@ -109,9 +109,12 @@ export class BulkFullImportUseCase {
       const lastName = row.tenantLastName?.trim();
 
       // A tenant row is valid if it has email, commercialName, or at least a name
-      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName);
+      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName || row.tenantPhone);
 
       if (hasTenantIdentifier) {
+        if (!commercialName && !firstName && !lastName) {
+          throw new BadRequestException(`Tenant with email/phone ${email || row.tenantPhone} must have a first/last name or commercial name provided.`);
+        }
         let phoneVal = row.tenantPhone?.trim() || undefined;
         let otherPhoneVal = undefined;
         if (phoneVal && phoneVal.includes(',')) {

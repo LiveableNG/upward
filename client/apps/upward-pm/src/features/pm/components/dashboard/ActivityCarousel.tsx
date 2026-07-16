@@ -60,9 +60,9 @@ const items: CarouselItem[] = [
 ]
 
 export function ActivityCarousel() {
-  const { user } = useAuth()
-  const { data: properties = [] } = useProperties()
-  const { data: credibilityRequests = [] } = useCredibilityRequests()
+  const { user, loading } = useAuth()
+  const { data: properties = [], isLoading: isLoadingProperties } = useProperties()
+  const { data: credibilityRequests = [], isLoading: isLoadingCred } = useCredibilityRequests()
   
   const [index, setIndex] = useState(0)
   
@@ -108,7 +108,7 @@ export function ActivityCarousel() {
     return true
   })
 
-  if (carouselItems.length === 0) return null
+  if (carouselItems.length === 0 || loading || isLoadingProperties) return null
 
   const nextSlide = () => setIndex((prev) => (prev + 1) % carouselItems.length)
   const prevSlide = () => setIndex((prev) => (prev - 1 + carouselItems.length) % carouselItems.length)

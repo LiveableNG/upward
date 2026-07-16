@@ -96,6 +96,7 @@ interface AddTenantModalProps {
   /** 'join-request' = opened from a tenant-initiated join request. 'add-tenant' = PM manually adding a tenant. Defaults to 'add-tenant'. */
   mode?: 'join-request' | 'add-tenant'
   initialData?: {
+    commercialName?: string
     firstName?: string
     lastName?: string
     email?: string
@@ -145,10 +146,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
-      tenantType: 'individual',
+      tenantType: initialData?.commercialName ? 'commercial' : 'individual',
       firstName: initialData?.firstName || '',
       lastName: initialData?.lastName || '',
-      commercialName: '',
+      commercialName: initialData?.commercialName || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       otherPhone: '',

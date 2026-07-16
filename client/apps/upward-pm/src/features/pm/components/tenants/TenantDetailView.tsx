@@ -19,6 +19,8 @@ import { useTenant, useTenantActions } from '../../hooks/useTenants'
 import Link from 'next/link'
 import { EditTenantModal } from './modals/EditTenantModal'
 import { AssignUnitModal } from './modals/AssignUnitModal'
+import { formatTenantName } from '@/lib/utils'
+import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 import { Plus, CreditCard } from 'lucide-react'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
@@ -93,7 +95,7 @@ export const TenantDetailView: React.FC = () => {
           initialRecipient={{
             type: 'existing',
             uuid: tenant.uuid,
-            name: tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'Tenant',
+            name: formatTenantName(tenant) || 'Tenant',
             email: tenant.email,
             deliveryMode: 'email'
           }}
@@ -229,11 +231,12 @@ export const TenantDetailView: React.FC = () => {
               fontWeight: 800, 
               margin: '0 auto 20px auto',
               border: '6px solid white',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
             }}>
               {(tenant.commercialName || tenant.firstName || 'T')[0].toUpperCase()}
             </div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>{tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}</h1>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 12 }}>
+              <TenantNameDisplay tenant={tenant} fallback="No Tenant" />
+            </h1>
             
              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 13, marginBottom: 32 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -557,7 +560,7 @@ export const TenantDetailView: React.FC = () => {
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
         tenantUuid={tenant.uuid}
-        tenantName={tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}
+        tenantName={formatTenantName(tenant) || 'Unnamed Tenant'}
       />
 
       <CreatePaymentRequestModal 
