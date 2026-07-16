@@ -54,7 +54,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       triggered_at: ${{ steps.trigger.outputs.triggered_at }}
-      status_url: ${{ steps.trigger.outputs.status_url }}
 
     steps:
       - name: Call deploy-hook
@@ -81,38 +80,56 @@ jobs:
           SIG="sha256=${SIG_HEX}"
 
           echo "Triggering ${BASE}${PATH_ONLY} (ts=${TS})"
+          # Discard body to stdout so it cannot interfere with later output wiring
           curl --fail-with-body --retry 3 --retry-delay 2 \
             -X POST "${BASE}${PATH_ONLY}" \
             -H "Content-Type: application/json" \
             -H "X-Deploy-Timestamp: ${TS}" \
             -H "X-Deploy-Signature: ${SIG}" \
-            --data-binary "${BODY}"
+            --data-binary "${BODY}" \
+            -o /tmp/deploy-hook-response.json
+          echo "Hook response:"
+          cat /tmp/deploy-hook-response.json || true
           echo ""
 
-          echo "triggered_at=${TS}" >> "$GITHUB_OUTPUT"
-          echo "status_url=${BASE}/status/upward" >> "$GITHUB_OUTPUT"
-          echo "Deploy accepted (202). Waiting job will poll status."
+          # Delimiter form is safer for job outputs
+          {
+            echo "triggered_at<<EOF"
+            echo "${TS}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Deploy accepted. triggered_at=${TS}"
 
   wait-deploy:
     name: Wait for deploy result
     needs: trigger-deploy
+    if: needs.trigger-deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
     steps:
       - name: Poll deploy status until success or failed
         env:
-          STATUS_URL: ${{ needs.trigger-deploy.outputs.status_url }}
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
           TRIGGERED_AT: ${{ needs.trigger-deploy.outputs.triggered_at }}
           POLL_TIMEOUT_SEC: '1200'
           POLL_INTERVAL_SEC: '10'
         run: |
           set -euo pipefail
 
-          if [ -z "${STATUS_URL:-}" ] || [ -z "${TRIGGERED_AT:-}" ]; then
-            echo "::error::Missing status_url or triggered_at from trigger job"
+          if [ -z "${DEPLOY_URL:-}" ]; then
+            echo "::error::Missing DEPLOY_URL secret"
             exit 1
           fi
+          if [ -z "${TRIGGERED_AT:-}" ]; then
+            echo "::error::Missing triggered_at from trigger-deploy job"
+            echo "needs.trigger-deploy.outputs.triggered_at was empty"
+            exit 1
+          fi
+
+          BASE="${DEPLOY_URL%/}"
+          STATUS_URL="${BASE}/status/upward"
 
           if ! command -v jq >/dev/null 2>&1; then
             sudo apt-get update -y && sudo apt-get install -y jq
