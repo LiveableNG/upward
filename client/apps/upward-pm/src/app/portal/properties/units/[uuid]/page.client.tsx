@@ -23,6 +23,7 @@ import {
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
+import { AssignTenantToUnitModal } from '@/features/pm/components/tenants/modals/AssignTenantToUnitModal'
 import { TenantAssignmentSection } from '@/features/pm/components/tenants/TenantAssignmentSection'
 import { EditRentRecordModal } from '@/features/pm/components/properties/modals/EditRentRecordModal'
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
@@ -112,7 +113,7 @@ function UnitDetailContent() {
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const lastPayment = payments[0] || null
 
-  const unitRequests = allRequests.filter(r => r.unitId === unit?.id)
+  const unitRequests = allRequests.filter(r => r.unitId === unit?.id && r.tenantId === unit?.tenantId)
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
 
@@ -602,9 +603,8 @@ function UnitDetailContent() {
                     </div>
                   </>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#888' }}>
-                    <p style={{ marginBottom: 16 }}>No tenant assigned to this unit yet.</p>
-                    <TenantAssignmentSection unit={unit} />
+                  <div style={{ textAlign: 'center', padding: '10px 0', color: '#888' }}>
+                    <TenantAssignmentSection unit={unit} onAssignClick={() => setIsAssignModalOpen(true)} />
                   </div>
                 )}
               </div>
@@ -920,47 +920,28 @@ function UnitDetailContent() {
         onClose={() => setIsUnassignConfirmOpen(false)}
         onConfirm={handleUnassign}
         title="Remove Tenant"
-        message={`Are you sure you want to remove ${formatTenantName(unit?.tenant)} from this unit? They will no longer be linked to this residence.`}
+        message={
+          activeRequest 
+            ? `Are you sure you want to remove ${formatTenantName(unit?.tenant)} from this unit? They currently have a pending invoice of ${formatCurrency(amountRemaining, 'NGN')}. This invoice will remain securely attached to their tenant profile for them to settle later. Once paid, the payment will be recorded in the rent history for this unit.`
+            : `Are you sure you want to remove ${formatTenantName(unit?.tenant)} from this unit? They will no longer be linked to this residence.`
+        }
         confirmText="Remove Tenant"
         type="danger"
         isPending={unassignTenant.isPending}
       />
 
-      <Modal
-        isOpen={isAssignModalOpen}
-        onClose={() => setIsAssignModalOpen(false)}
-        title="Assign Tenant"
-        subtitle={`Select a tenant to assign to ${unit?.unitName}`}
-        maxWidth={450}
-      >
-            <div style={{ maxHeight: 350, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 16 }}>
-              {tenants.map(tenant => (
-                <div
-                  key={tenant.uuid}
-                  onClick={() => handleAssign(tenant.uuid)}
-                  style={{
-                    padding: '16px',
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    transition: 'background 0.2s'
-                  }}
-                  className="hover-bg-faint"
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{formatTenantName(tenant)}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
-                  </div>
-                  <UserPlus size={16} color="var(--forest)" />
-                </div>
-              ))}
-              {tenants.length === 0 && (
-                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No tenants available.</div>
-              )}
-            </div>
-      </Modal>
+      {unit && (
+        <AssignTenantToUnitModal
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          unitUuid={unit.uuid}
+          unitName={unit.unitName}
+          initialRentAmount={unit.rentAmount}
+          initialRentType={unit.rentType}
+          initialRentStartDate={unit.rentStartDate}
+          initialRentDueDate={unit.rentDueDate}
+        />
+      )}
 
       <style jsx>{`
         .unit-detail {

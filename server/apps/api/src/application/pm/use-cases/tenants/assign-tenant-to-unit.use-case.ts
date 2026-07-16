@@ -64,7 +64,7 @@ export class AssignTenantToUnitUseCase {
 
       const actualRentAmountPaid = isFullyPaid ? (rentAmount !== undefined ? rentAmount : unit.rentAmount) : rentAmountPaid;
 
-      if (actualRentAmountPaid !== undefined && actualRentAmountPaid >= 0) {
+      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0) {
         const activeRentStartDate = rentStartDate || unit.rentStartDate;
         const activeRentType = rentType || unit.rentType;
         
