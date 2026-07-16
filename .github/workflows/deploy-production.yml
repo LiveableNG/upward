@@ -47,38 +47,9 @@ jobs:
         # It builds packages in dependency order: shared-types → utils → apps.
         run: pnpm run build
 
-  # test:
-  #   name: Test
-  #   needs: build
-  #   runs-on: ubuntu-latest
-
-  #   env:
-  #     TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-  #     TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-  #     TURBO_TELEMETRY_DISABLED: '1'
-
-  #   steps:
-  #     - uses: actions/checkout@v4
-
-  #     - uses: pnpm/action-setup@v4
-
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 22
-  #         cache: pnpm
-
-  #     - name: Install dependencies
-  #       run: pnpm install --frozen-lockfile
-
-  #     - name: Lint and type-check
-  #       run: pnpm run lint && pnpm run type-check
-
-  #     - name: Unit tests
-  #       run: pnpm turbo run test --filter=@upward/api
-
   deploy:
     name: Trigger EC2 deploy
-    needs: test
+    needs: build
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/production'
     runs-on: ubuntu-latest
 
