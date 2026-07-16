@@ -28,6 +28,7 @@ interface UserDetailData {
   firstName: string
   lastName: string
   phone: string
+  savingsWalletEnabled?: boolean
   isFromInvite: boolean
   isFromWaitlist: boolean
   createdAt: string
@@ -56,6 +57,9 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [updatingProfile, setUpdatingProfile] = useState(false)
+
+  // Savings Wallet
+  const [updatingSavingsWallet, setUpdatingSavingsWallet] = useState(false)
 
   const fetchUserDetails = async () => {
     if (!uuid) return
@@ -122,6 +126,26 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
       showToast(err.message || 'Failed to update user profile', true)
     } finally {
       setUpdatingProfile(false)
+    }
+  }
+
+  const handleToggleSavingsWallet = async () => {
+    if (!uuid || !user) return
+    setUpdatingSavingsWallet(true)
+    try {
+      const nextEnabled = !user.savingsWalletEnabled
+      await apiService.patch(
+        `/admin/savings-wallet/users/${uuid}`,
+        { enabled: nextEnabled },
+        token,
+      )
+      showToast(nextEnabled ? 'Savings wallet enabled (₦1,000 prefunded)' : 'Savings wallet disabled')
+      fetchUserDetails()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update savings wallet status', true)
+    } finally {
+      setUpdatingSavingsWallet(false)
     }
   }
 
@@ -219,6 +243,40 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
+          </div>
+
+          {/* Savings Wallet */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '15px' }}>Savings wallet</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 12px 0' }}>
+              Enable per tenant. First-time enablement prefunds ₦1,000 automatically.
+            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Status:{' '}
+                <span style={{ fontWeight: 700, color: user.savingsWalletEnabled ? 'var(--success)' : 'var(--text-muted)' }}>
+                  {user.savingsWalletEnabled ? 'ENABLED' : 'DISABLED'}
+                </span>
+              </div>
+              <button
+                type="button"
+                disabled={updatingSavingsWallet || user.type === 'PENDING_TENANT'}
+                className="btn btn-primary"
+                onClick={handleToggleSavingsWallet}
+                style={{ height: '38px' }}
+              >
+                {updatingSavingsWallet
+                  ? 'Updating...'
+                  : user.savingsWalletEnabled
+                    ? 'Disable'
+                    : 'Enable'}
+              </button>
+            </div>
+            {user.type === 'PENDING_TENANT' ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '10px 0 0 0' }}>
+                This profile is pending; enable after the user is onboarded.
+              </p>
+            ) : null}
           </div>
 
           {/* Contact & In-App Notification Tool */}

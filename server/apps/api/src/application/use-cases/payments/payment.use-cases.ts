@@ -38,6 +38,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { VerifyGatewayTransactionUseCase } from './verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './distribute-allocations.use-case'
 import { ActivateBenefitsSubscriptionUseCase } from './benefits-subscription.use-cases'
+import { CreditWalletUseCase } from './wallet.use-cases'
 import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
@@ -921,6 +922,7 @@ export class ProcessPaymentWebhookUseCase {
     private readonly prisma: PrismaService,
     private readonly paymentConfig: PaymentConfigurationService,
     private readonly encryption: EncryptionService,
+    private readonly creditWalletUseCase: CreditWalletUseCase,
   ) { }
 
   async execute(payload: any, signature?: string) {
@@ -1049,6 +1051,24 @@ export class ProcessPaymentWebhookUseCase {
       this.logger.log(`Processing charge.success for reference ${reference}. Lineitems: ${JSON.stringify(metadata?.lineItems || 'none')}`)
 
       const effectiveUserId = userUuid || userId
+
+      if (metadata?.paymentKind === 'WALLET_DEPOSIT' || metadata?.type === 'WALLET_DEPOSIT') {
+        const targetUser = userUuid
+          ? await this.prisma.upward_user.findUnique({ where: { uuid: String(userUuid) } })
+          : await this.prisma.upward_user.findUnique({ where: { id: Number(userId) || -1 } })
+        if (!targetUser) {
+          throw new Error('User not found for wallet deposit webhook')
+        }
+        await this.creditWalletUseCase.execute({
+          userId: targetUser.id,
+          amount: amount / 100,
+          reference,
+          type: 'WALLET_DEPOSIT',
+          narration: metadata?.description || 'Savings wallet deposit',
+          metadata: { gateway: 'paystack', currency: currency || 'NGN' },
+        })
+        return { success: true, walletCredited: true }
+      }
 
       return this.recordTransaction.execute({
         userId: String(effectiveUserId),
