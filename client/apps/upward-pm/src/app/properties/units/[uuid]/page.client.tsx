@@ -1011,6 +1011,7 @@ function UnitDetailContent() {
           unit={unit}
           onSave={handleUpdate}
           isPending={updateUnitMutation.isPending}
+          hasPayments={totalPaid > 0}
         />
       )}
 

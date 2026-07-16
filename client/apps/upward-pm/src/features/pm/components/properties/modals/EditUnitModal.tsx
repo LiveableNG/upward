@@ -11,10 +11,11 @@ interface EditUnitModalProps {
   unit: Unit;
   onSave: (data: any) => void;
   isPending: boolean;
+  hasPayments?: boolean;
 }
 
 export const EditUnitModal: React.FC<EditUnitModalProps> = ({
-  isOpen, onClose, unit, onSave, isPending
+  isOpen, onClose, unit, onSave, isPending, hasPayments
 }) => {
   const { register, handleSubmit, reset, watch, setValue } = useForm({
     defaultValues: {
@@ -26,6 +27,8 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       managementFee: unit.managementFee || 0,
       rentReminderEnabled: unit.rentReminderEnabled || false,
       rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
+      rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
+      rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
     }
   })
 
@@ -43,10 +46,37 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         managementFee: unit.managementFee || 0,
         rentReminderEnabled: unit.rentReminderEnabled || false,
         rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
+        rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
+        rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
       })
 
     }
   }, [unit, isOpen, reset])
+
+  // Auto-calculate Rent Due Date (End Date)
+  useEffect(() => {
+    const rentStartDate = watch('rentStartDate')
+    const rentType = watch('rentType')
+    
+    if (rentStartDate && rentType) {
+      const start = new Date(rentStartDate)
+      if (isNaN(start.getTime())) return
+
+      const end = new Date(start)
+      if (rentType === 'Monthly') {
+        end.setMonth(end.getMonth() + 1)
+      } else if (rentType === 'Annually' || rentType === 'Yearly') {
+        end.setFullYear(end.getFullYear() + 1)
+      }
+
+      end.setDate(end.getDate() - 1)
+
+      const formattedEnd = end.toISOString().split('T')[0]
+      if (watch('rentDueDate') !== formattedEnd) {
+        setValue('rentDueDate', formattedEnd, { shouldValidate: true })
+      }
+    }
+  }, [watch('rentStartDate'), watch('rentType')])
 
   if (!isOpen) return null;
 
@@ -144,17 +174,39 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                   { label: 'Annually', value: 'Annually' },
                   { label: 'Monthly', value: 'Monthly' }
                 ]}
+                disabled={hasPayments}
               />
             </div>
             <div className="form-group">
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <CreditCard size={14} color="var(--forest)" /> Rent Amount
               </label>
-              <input type="number" {...register('rentAmount')} className="form-input" />
+              <input type="number" {...register('rentAmount')} className="form-input" disabled={hasPayments} />
             </div>
             <div className="form-group">
               <label className="form-label">Management Fee (₦)</label>
               <input type="number" {...register('managementFee')} className="form-input" placeholder="e.g. 150000" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 32 }}>
+            <div className="form-group">
+              <label className="form-label">Rent Start Date</label>
+              <input 
+                type="date" 
+                {...register('rentStartDate')} 
+                className="form-input" 
+                disabled={hasPayments}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Rent End Date</label>
+              <input 
+                type="date" 
+                {...register('rentDueDate')} 
+                className="form-input" 
+                disabled={hasPayments}
+              />
             </div>
           </div>
 
