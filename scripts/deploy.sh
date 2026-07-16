@@ -140,7 +140,16 @@ pnpm --filter @upward/admin-site build
 # Process manager
 # ---------------------------------------------------------------------------
 
-mkdir -p /var/log/upward
+LOG_DIR="${LOG_DIR:-/var/log/upward}"
+if [[ ! -d "$LOG_DIR" ]]; then
+  if mkdir -p "$LOG_DIR" 2>/dev/null; then
+    :
+  else
+    die "cannot create $LOG_DIR — run once on the server: sudo mkdir -p $LOG_DIR && sudo chown $(whoami):$(whoami) $LOG_DIR"
+  fi
+elif [[ ! -w "$LOG_DIR" ]]; then
+  die "$LOG_DIR is not writable by $(whoami) — run: sudo chown $(whoami):$(whoami) $LOG_DIR"
+fi
 
 log "pm2 restart / start"
 if pm2 describe upward-api >/dev/null 2>&1; then
