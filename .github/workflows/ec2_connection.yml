@@ -11,16 +11,67 @@ jobs:
 
     steps:
       - name: Add SSH key
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${EC2_SSH_KEY:-}" ]; then
+            echo "::error::Secret EC2_SSH_KEY is empty or not set. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          if [ -z "${EC2_HOST:-}" ]; then
+            echo "::error::Secret EC2_HOST is empty or not set. Use the EC2 public IP or hostname."
+            exit 1
+          fi
+
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 700 ~/.ssh
+
+          # Support secrets pasted with literal \n as well as real newlines
+          printf '%s\n' "$EC2_SSH_KEY" | sed 's/\r$//' | sed 's/\\n/\n/g' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+          if ! grep -q "BEGIN .*PRIVATE KEY" ~/.ssh/deploy_key; then
+            echo "::error::EC2_SSH_KEY does not look like a private key (missing BEGIN PRIVATE KEY header)."
+            exit 1
+          fi
+
+          echo "SSH key file ready ($(wc -l < ~/.ssh/deploy_key) lines)"
+          echo "Scanning host keys for: $EC2_HOST"
+
+          # Retry — new EC2 instances / flaky network can fail once
+          for i in 1 2 3 4 5; do
+            if ssh-keyscan -T 10 -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/tmp/keyscan.err; then
+              echo "Host key added"
+              break
+            fi
+            echo "ssh-keyscan attempt $i failed:"
+            cat /tmp/keyscan.err
+            if [ "$i" -eq 5 ]; then
+              echo "::error::Could not reach EC2_HOST ($EC2_HOST) on port 22. Check security group (SSH from 0.0.0.0/0 or GitHub IPs) and that EC2_HOST is correct."
+              exit 1
+            fi
+            sleep 3
+          done
 
       - name: Test SSH connection
+        env:
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${EC2_USER:-}" ]; then
+            echo "::error::Secret EC2_USER is empty or not set (usually 'ubuntu')."
+            exit 1
+          fi
+
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=yes \
             -o IdentitiesOnly=yes \
-            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            -o ConnectTimeout=15 \
+            "${EC2_USER}@${EC2_HOST}" \
             "echo 'Connected successfully!' && whoami && hostname && pwd"
