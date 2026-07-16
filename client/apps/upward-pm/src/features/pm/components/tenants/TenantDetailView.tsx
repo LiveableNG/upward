@@ -440,7 +440,7 @@ export const TenantDetailView: React.FC = () => {
                {tenant.units && tenant.units.length > 0 ? (
                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                    {tenant.units.map((unit: any) => {
-                     const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id && r.status !== 'PAID') || [];
+                     const unitRequests = paymentRequests?.filter(r => r.unitId === unit.id && r.tenantId === tenant.id && r.status !== 'PAID') || [];
                      const pendingAmount = unitRequests
                        .filter(r => r.status !== 'PAID')
                        .reduce((sum, r) => sum + (r.amount - r.amountPaid), 0);

@@ -142,6 +142,29 @@ function UnitDetailContent() {
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
 
+  const filteredPayments = React.useMemo(() => {
+    return payments.filter(p => {
+      if (rentFilters.startDate && new Date(p.paymentDate).getTime() < new Date(rentFilters.startDate).getTime()) return false;
+      if (rentFilters.endDate && new Date(p.paymentDate).getTime() > new Date(rentFilters.endDate).getTime()) return false;
+
+      if (rentFilters.status && rentFilters.status !== 'all') {
+        const samePeriodPayments = payments.filter(sp => 
+          sp.periodStart && p.periodStart && new Date(sp.periodStart).getTime() === new Date(p.periodStart).getTime() && 
+          sp.tenantId === p.tenantId
+        );
+        const totalPaidForPeriod = samePeriodPayments.reduce((sum, sp) => sum + sp.amount, 0);
+        const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+        const isLatestForPeriod = p.uuid === samePeriodPayments[0]?.uuid;
+        const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+
+        if (rentFilters.status === 'paid' && statusLabel !== 'Paid') return false;
+        if (rentFilters.status === 'part-payment' && statusLabel !== 'Part-Payment') return false;
+      }
+
+      return true;
+    });
+  }, [payments, rentFilters, unit?.rentAmount]);
+
   // Auto-calculate Rent Due Date (End Date)
   useEffect(() => {
     if (isEditing && formData.rentStartDate && formData.rentType) {
@@ -901,6 +924,7 @@ function UnitDetailContent() {
           <Suspense fallback={null}>
             <DigitalRequestsSection
               unitId={unit?.id}
+              tenantId={unit?.tenantId}
               onEdit={handleEditPaymentRequest}
               unitCurrency={unit?.currency}
             />
@@ -953,7 +977,7 @@ function UnitDetailContent() {
 
           <DataTable
             columns={rentHistoryColumns}
-            data={payments}
+            data={filteredPayments}
             keyExtractor={(row) => row.uuid}
             emptyMessage="No rent payments recorded yet."
             pageSize={10}
@@ -1238,9 +1262,9 @@ function UnitDetailContent() {
   )
 }
 
-function DigitalRequestsSection({ unitId, onEdit, unitCurrency }: { unitId?: number; onEdit: (req: any) => void; unitCurrency?: string }) {
+function DigitalRequestsSection({ unitId, tenantId, onEdit, unitCurrency }: { unitId?: number; tenantId?: number; onEdit: (req: any) => void; unitCurrency?: string }) {
   const { data: allRequests } = usePaymentRequests()
-  const unitRequests = allRequests?.filter(r => r.unitId === unitId && r.status !== 'PAID' && r.status !== 'CANCELLED') || []
+  const unitRequests = allRequests?.filter(r => r.unitId === unitId && r.tenantId === tenantId && r.status !== 'PAID' && r.status !== 'CANCELLED') || []
 
   if (unitRequests.length === 0) return null
 
