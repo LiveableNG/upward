@@ -64,8 +64,6 @@ export function ActivityCarousel() {
   const { data: properties = [], isLoading: isLoadingProperties } = useProperties()
   const { data: credibilityRequests = [], isLoading: isLoadingCred } = useCredibilityRequests()
   
-  const [index, setIndex] = useState(0)
-  
   // Create dynamic items based on fetched data
   let dynamicItems = [...items]
   
@@ -110,12 +108,6 @@ export function ActivityCarousel() {
 
   if (carouselItems.length === 0 || loading || isLoadingProperties) return null
 
-  const nextSlide = () => setIndex((prev) => (prev + 1) % carouselItems.length)
-  const prevSlide = () => setIndex((prev) => (prev - 1 + carouselItems.length) % carouselItems.length)
-
-  const current = carouselItems[index]
-  const Icon = current.icon
-
   return (
     <div className="activity-center">
       <div className="activity-center__header">
@@ -126,45 +118,50 @@ export function ActivityCarousel() {
         <p className="activity-center__subtitle">Required steps to manage your properties efficiently.</p>
       </div>
 
-      <div className="activity-carousel-wrapper">
-        <div className={cn(
-          'action-card animate-beam-forest',
-          `action-card--${current.color}`
-        )}>
-          <div className="action-card__icon">
-            <Icon size={24} />
-          </div>
-          <div className="action-card__content">
-            <h3 className="action-card__item-title">{current.title}</h3>
-            <p className="action-card__description">{current.description}</p>
-            <Link href={current.link} className="action-card__btn">
-              <span>{current.actionLabel}</span>
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          {carouselItems.length > 1 && (
-            <div className="action-carousel__nav">
-              <button className="action-carousel__nav-btn" onClick={prevSlide}>
-                <ChevronLeft size={20} />
-              </button>
-              <div className="action-carousel__dots">
-                {carouselItems.map((_, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      'action-carousel__dot',
-                      i === index && 'action-carousel__dot--active'
-                    )}
-                  />
-                ))}
+      <div 
+        className="activity-carousel-wrapper" 
+        style={{ 
+          display: 'flex', 
+          gap: 'var(--space-4)', 
+          overflowX: 'auto', 
+          scrollSnapType: 'x mandatory', 
+          paddingBottom: 'var(--space-4)',
+          msOverflowStyle: 'none',
+          scrollbarWidth: 'none'
+        }}
+      >
+        {carouselItems.map(item => {
+          const Icon = item.icon
+          return (
+            <div 
+              key={item.id}
+              className={cn(
+                'action-card animate-beam-forest',
+                `action-card--${item.color}`
+              )}
+              style={{ 
+                flex: '0 0 auto', 
+                width: '300px', 
+                scrollSnapAlign: 'start', 
+                flexDirection: 'column', 
+                alignItems: 'flex-start',
+                padding: 'var(--space-6)'
+              }}
+            >
+              <div className="action-card__icon" style={{ width: 48, height: 48, marginBottom: 'var(--space-4)', marginRight: 0 }}>
+                <Icon size={24} />
               </div>
-              <button className="action-carousel__nav-btn" onClick={nextSlide}>
-                <ChevronRight size={20} />
-              </button>
+              <div className="action-card__content" style={{ width: '100%' }}>
+                <h3 className="action-card__item-title" style={{ fontSize: 16 }}>{item.title}</h3>
+                <p className="action-card__description" style={{ fontSize: 13, minHeight: 40 }}>{item.description}</p>
+                <Link href={item.link} className="action-card__btn" style={{ width: '100%', justifyContent: 'space-between', marginTop: 'var(--space-2)' }}>
+                  <span>{item.actionLabel}</span>
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
             </div>
-          )}
-        </div>
+          )
+        })}
       </div>
     </div>
   )

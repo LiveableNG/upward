@@ -29,6 +29,10 @@ interface UnitsTableProps {
   setPaymentFilter: (filter: 'all' | 'pending' | 'paid') => void;
   dueFilter: 'all' | 'passed' | '30days' | '60days' | '90days';
   setDueFilter: (filter: 'all' | 'passed' | '30days' | '60days' | '90days') => void;
+  statusFilter?: 'all' | 'vacant' | 'occupied';
+  setStatusFilter?: (filter: 'all' | 'vacant' | 'occupied') => void;
+  tenantFilter?: 'all' | 'pending' | 'onboarded';
+  setTenantFilter?: (filter: 'all' | 'pending' | 'onboarded') => void;
   onAddUnit: () => void;
   onBulkImport: () => void;
   onRequestPayment: (unit: Unit) => void;
@@ -47,6 +51,10 @@ export function UnitsTable({
   setPaymentFilter,
   dueFilter,
   setDueFilter,
+  statusFilter = 'all',
+  setStatusFilter,
+  tenantFilter = 'all',
+  setTenantFilter,
   onAddUnit,
   onBulkImport,
   onRequestPayment,
@@ -233,6 +241,34 @@ export function UnitsTable({
             ]}
             onChange={(val) => setDueFilter(val as any)}
           />
+
+          {setStatusFilter && (
+            <FilterDropdown 
+              label="Status" 
+              value={statusFilter}
+              icon={Filter}
+              options={[
+                { label: 'All Statuses', value: 'all' },
+                { label: 'Occupied', value: 'occupied' },
+                { label: 'Vacant', value: 'vacant' }
+              ]}
+              onChange={(val) => setStatusFilter(val as any)}
+            />
+          )}
+
+          {setTenantFilter && (
+            <FilterDropdown 
+              label="Tenants" 
+              value={tenantFilter}
+              icon={Filter}
+              options={[
+                { label: 'All Tenants', value: 'all' },
+                { label: 'Onboarded', value: 'onboarded' },
+                { label: 'Pending Invites', value: 'pending' }
+              ]}
+              onChange={(val) => setTenantFilter(val as any)}
+            />
+          )}
           </FilterGroup>
       </ControlBar>
 

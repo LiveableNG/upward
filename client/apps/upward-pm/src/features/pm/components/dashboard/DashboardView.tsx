@@ -15,7 +15,12 @@ import {
   Bell,
   Copy,
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  DoorOpen,
+  DoorClosed,
+  UserX,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useDashboardSummary, useResendPaymentRequest } from '@/features/pm/hooks/usePayments'
@@ -29,6 +34,7 @@ import { DashboardSkeleton } from '@/components/skeletons'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
+import { ManagedAddPropertyModal } from '../properties/modals/ManagedAddPropertyModal'
 import { formatTenantName } from '@/lib/utils'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
@@ -55,6 +61,8 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
+  const [showMetrics, setShowMetrics] = useState(false)
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
 
   if (isLoading) {
     return <DashboardSkeleton />
@@ -71,7 +79,10 @@ export function DashboardView({ initialData }: { initialData?: any }) {
     properties = [],
     propertiesCount = 0,
     hasProperties = false,
-    openRequestsCount = 0
+    openRequestsCount = 0,
+    vacantUnits = 0,
+    occupiedUnits = 0,
+    pendingInvites = 0
   } = dashboardData || {}
 
   const pendingAmount = pendingBalance
@@ -329,37 +340,91 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         title={`Welcome back!`}
         subtitle="Here is what is happening with your properties today."
         actions={
-          <button className="btn btn--primary" onClick={() => router.push('/properties')}>
-            <PlusCircle size={18} /> Add Property
-          </button>
+          (!hasProperties || propertiesCount === 0) ? (
+            <button className="btn btn--primary" onClick={() => setShowAddPropertyModal(true)}>
+              <PlusCircle size={18} /> Add Property
+            </button>
+          ) : null
         }
       />
 
       <ActivityCarousel />
 
-      <StatGrid>
-        <StatCard 
-          label="Total Units" 
-          value={totalUnits} 
-          icon={Building2} 
-          variant="accent"
-        />
-        <StatCard 
-          label="Total Tenants" 
-          value={activeTenants} 
-          icon={Users} 
-        />
-        <StatCard 
-          label="Pending Balance" 
-          value={`₦${pendingAmount.toLocaleString()}`} 
-          icon={CreditCard} 
-        />
-        <StatCard 
-          label="Total Revenue" 
-          value={`₦${totalRevenue.toLocaleString()}`} 
-          icon={TrendingUp} 
-        />
-      </StatGrid>
+      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
+        <button 
+          className="btn btn--outline btn--sm" 
+          onClick={() => setShowMetrics(!showMetrics)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          {showMetrics ? 'Hide Overview Metrics' : 'Show Overview Metrics'}
+          {showMetrics ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+      </div>
+
+      {showMetrics && (
+        <div className="animate-fade-in">
+          <div style={{ marginBottom: 'var(--space-6)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Property & Tenant Overview</h3>
+            <StatGrid>
+              <StatCard 
+                label="Total Units" 
+                value={totalUnits} 
+                icon={Building2} 
+                variant="accent"
+                tooltip="Total number of units across all your properties."
+                onClick={() => router.push('/properties?tab=units')}
+              />
+              <StatCard 
+                label="Occupied Units" 
+                value={occupiedUnits} 
+                icon={DoorClosed} 
+                tooltip="Units currently occupied by active tenants."
+                onClick={() => router.push('/properties?tab=units&statusFilter=occupied')}
+              />
+              <StatCard 
+                label="Vacant Units" 
+                value={vacantUnits} 
+                icon={DoorOpen}
+                tooltip="Units without an assigned tenant."
+                onClick={() => router.push('/properties?tab=units&statusFilter=vacant')}
+              />
+            </StatGrid>
+          </div>
+
+          <div style={{ marginBottom: 'var(--space-6)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Tenant & Financial Overview</h3>
+            <StatGrid>
+              <StatCard 
+                label="Active Tenants" 
+                value={activeTenants} 
+                icon={Users} 
+                tooltip="Tenants who have successfully onboarded."
+                onClick={() => router.push('/properties?tab=units&tenantFilter=onboarded')}
+              />
+              <StatCard 
+                label="Pending Invites" 
+                value={pendingInvites} 
+                icon={UserX}
+                variant="warning"
+                tooltip="Tenants invited who haven't accepted yet. Remind them!"
+                onClick={() => router.push('/properties?tab=units&tenantFilter=pending')}
+              />
+              <StatCard 
+                label="Pending Balance" 
+                value={`₦${pendingAmount.toLocaleString()}`} 
+                icon={CreditCard} 
+                tooltip="Total outstanding rent balance from all unpaid and partially paid requests."
+              />
+              <StatCard 
+                label="Total Revenue" 
+                value={`₦${totalRevenue.toLocaleString()}`} 
+                icon={TrendingUp} 
+                tooltip="Total rent collected across all properties."
+              />
+            </StatGrid>
+          </div>
+        </div>
+      )}
 
       <div className="dashboard__content">
         {/* Left Column: Rent Payments Tracker (2fr) */}
@@ -464,6 +529,10 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         onClose={() => setShowPaymentRequestModal(false)}
         unit={selectedUnitForPayment}
         onProceedToEditor={handleProceedToEditor}
+      />
+      <ManagedAddPropertyModal 
+        isOpen={showAddPropertyModal} 
+        onClose={() => setShowAddPropertyModal(false)} 
       />
     </div>
   )
