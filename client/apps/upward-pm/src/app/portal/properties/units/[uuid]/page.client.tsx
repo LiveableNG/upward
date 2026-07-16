@@ -28,6 +28,7 @@ import { EditRentRecordModal } from '@/features/pm/components/properties/modals/
 import { AddRentRecordModal } from '@/features/pm/components/properties/modals/AddRentRecordModal'
 import { RentHistoryEntryModeModal } from '@/features/pm/components/properties/modals/RentHistoryEntryModeModal'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { EditUnitModal } from '@/features/pm/components/properties/modals/EditUnitModal'
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { useToast } from '@/components/common/Toast'
@@ -925,16 +926,13 @@ function UnitDetailContent() {
         isPending={unassignTenant.isPending}
       />
 
-      {isAssignModalOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-          <div className="glass" style={{ width: '100%', maxWidth: 450, borderRadius: 24, padding: 32, background: 'white' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h3 style={{ fontSize: 20, fontWeight: 700 }}>Assign Tenant</h3>
-              <button onClick={() => setIsAssignModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
-            </div>
-
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24 }}>Select a tenant to assign to <strong>{unit?.unitName}</strong></p>
-
+      <Modal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        title="Assign Tenant"
+        subtitle={`Select a tenant to assign to ${unit?.unitName}`}
+        maxWidth={450}
+      >
             <div style={{ maxHeight: 350, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 16 }}>
               {tenants.map(tenant => (
                 <div
@@ -962,9 +960,7 @@ function UnitDetailContent() {
                 <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>No tenants available.</div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       <style jsx>{`
         .unit-detail {

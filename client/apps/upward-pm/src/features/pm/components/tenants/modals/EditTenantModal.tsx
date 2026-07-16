@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
-import { X, Save, Loader2 } from 'lucide-react'
+import { Save, Loader2 } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -149,17 +150,37 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div className="modal" style={{ maxWidth: 640, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h2 className="modal__title">Edit Tenant Profile</h2>
-            <p className="modal__desc">Update the contact information for this tenant.</p>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Edit Tenant Profile"
+      subtitle="Update the contact information for this tenant."
+      maxWidth={640}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            form="edit-tenant-form"
+            className="btn btn--primary" 
+            style={{ flex: 1 }} 
+            disabled={updateTenant.isPending || !isValid}
+          >
+            {updateTenant.isPending ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
+                <Save size={18} style={{ marginRight: 8 }} />
+                Save Changes
+              </>
+            )}
+          </button>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24, display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
+      }
+    >
+        <form id="edit-tenant-form" onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ overflowY: 'auto', paddingRight: 8, flex: 1 }}>
             {/* Section: Personal Info */}
             <div style={{ marginBottom: 32 }}>
@@ -285,29 +306,8 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
-            <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="btn btn--primary" 
-              style={{ flex: 1 }} 
-              disabled={updateTenant.isPending || !isValid}
-            >
-              {updateTenant.isPending ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  <Save size={18} style={{ marginRight: 8 }} />
-                  Save Changes
-                </>
-              )}
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

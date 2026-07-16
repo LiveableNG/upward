@@ -25,6 +25,7 @@ import { useTenants, useTenantActions } from '../../hooks/useTenants'
 import { useDocuments, useVaultActions } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { RecipientSelectModal } from './RecipientSelectModal'
 import { useCreatePaymentRequest } from '../../hooks/usePayments'
 import { CreditCard } from 'lucide-react'
@@ -1005,46 +1006,14 @@ export function DocumentEditorView({
         }}
       />
 
-      {isPreviewingPdf && previewPdfUrl && (
-        <div 
-          className="modal-overlay" 
-          onClick={() => setIsPreviewingPdf(false)} 
-          style={{ zIndex: 1100 }}
-        >
-          <div 
-            className="modal" 
-            onClick={e => e.stopPropagation()}
-            style={{
-              padding: 24,
-              width: '90%',
-              maxWidth: 1000,
-              height: '90vh',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>PDF Document Preview</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Review formatting and custom letterhead overlay.</p>
-              </div>
-              <button 
-                onClick={() => setIsPreviewingPdf(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: 'var(--text-muted)' }}
-              >
-                &times;
-              </button>
-            </div>
-
-            <div style={{ flex: 1, borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)' }}>
-              <iframe 
-                src={previewPdfUrl} 
-                title="PDF Document Preview" 
-                style={{ width: '100%', height: '100%', border: 'none' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+      <Modal
+        isOpen={isPreviewingPdf && !!previewPdfUrl}
+        onClose={() => setIsPreviewingPdf(false)}
+        title="PDF Document Preview"
+        subtitle="Review formatting and custom letterhead overlay."
+        maxWidth={1000}
+        footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
               <button 
                 onClick={() => setIsPreviewingPdf(false)}
                 className="btn btn--primary" 
@@ -1053,9 +1022,16 @@ export function DocumentEditorView({
                 Close Preview
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        }
+      >
+            <div style={{ height: '70vh', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginTop: 16 }}>
+              <iframe 
+                src={previewPdfUrl || undefined} 
+                title="PDF Document Preview" 
+                style={{ width: '100%', height: '100%', border: 'none' }}
+              />
+            </div>
+      </Modal>
 
       <style jsx>{`
         .document-editor {

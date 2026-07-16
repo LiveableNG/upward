@@ -1,11 +1,11 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { useTenantActions } from '../../../hooks/useTenants'
 import { useUnits, useProperties, useCreateProperty, useBulkCreateUnits } from '../../../hooks/useProperties'
 import { Property } from '../../../services/propertyService'
@@ -367,30 +367,40 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     .filter(Boolean).join(', ')
 
   const modalContent = (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 620 }}>
-
-        {/* ── Header ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="modal-header-icon" style={{ background: isJoinRequest ? 'var(--forest-faint)' : 'var(--clay-faint)', color: isJoinRequest ? 'var(--forest)' : 'var(--clay)' }}>
-              {isJoinRequest ? <CheckCircle2 size={22} /> : <UserPlus size={22} />}
-            </div>
-            <div>
-              <h2 className="modal__title" style={{ marginBottom: 2 }}>
-                {isJoinRequest ? 'Fulfill Tenant Request' : 'Add New Tenant'}
-              </h2>
-              <p className="modal__desc" style={{ margin: 0 }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isJoinRequest ? 'Fulfill Tenant Request' : 'Add New Tenant'}
+      subtitle={isJoinRequest ? 'Review the tenant\'s connection request and assign them to a unit.' : 'Add a tenant manually and optionally assign them to a unit.'}
+      icon={isJoinRequest ? CheckCircle2 : UserPlus}
+      maxWidth={620}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="add-tenant-form"
+            className="btn btn--primary"
+            style={{ flex: 1 }}
+            disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit || (!isValid && assignMode === 'existing')}
+          >
+            {createTenant.isPending || assignTenant.isPending || isCreatingUnit ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
                 {isJoinRequest
-                  ? 'Review the tenant\'s connection request and assign them to a unit.'
-                  : 'Add a tenant manually and optionally assign them to a unit.'}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
+                  ? (selectedUnitUuid || assignMode === 'create' ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
+                  : (selectedUnitUuid || assignMode === 'create' ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
+                }
+              </>
+            )}
+          </button>
         </div>
-
-        {/* ── Join Request Summary Card ── */}
+      }
+    >
+      <form id="add-tenant-form" onSubmit={handleSubmit(onSubmit)} className="animate-fade-in">
         {isJoinRequest && ud && requestedLocation && (
           <div className="join-request-card" style={{ marginTop: 24 }}>
             <div className="join-request-card__header">
@@ -430,7 +440,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 24 }}>
 
           {/* ── Tenant Identity Section ── */}
           <div className="form-section-label">
@@ -845,29 +855,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             )}
           </div>
 
-          {/* ── Actions ── */}
-          <div style={{ display: 'flex', gap: 12, marginTop: 40 }}>
-            <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn--primary"
-              style={{ flex: 1 }}
-              disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit || (!isValid && assignMode === 'existing')}
-            >
-              {createTenant.isPending || assignTenant.isPending || isCreatingUnit ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  {isJoinRequest
-                    ? (selectedUnitUuid || assignMode === 'create' ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
-                    : (selectedUnitUuid || assignMode === 'create' ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
-                  }
-                </>
-              )}
-            </button>
-          </div>
+        </div>
         </form>
 
         <style jsx>{`
@@ -1011,9 +999,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             border-width: 0;
           }
         `}</style>
-      </div>
-    </div>
+    </Modal>
   )
 
-  return createPortal(modalContent, document.body)
+  return modalContent
 }

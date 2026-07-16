@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import { X, Search, Building2, CheckCircle2, Calendar, CreditCard } from 'lucide-react'
+import { Search, Building2, CheckCircle2, Calendar, CreditCard } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useUnits } from '@/features/pm/hooks/useProperties'
 import { useTenantActions } from '@/features/pm/hooks/useTenants'
 import { cn } from '@/lib/utils'
@@ -94,16 +96,28 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640, padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-          <div>
-            <h2 className="modal__title" style={{ fontSize: 18 }}>Assign Unit</h2>
-            <p className="modal__desc" style={{ fontSize: 13 }}>Select a vacant unit to assign to <strong>{tenantName}</strong>.</p>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={18} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Assign Unit"
+      subtitle={`Select a vacant unit to assign to ${tenantName}.`}
+      maxWidth={640}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            className="btn btn--primary" 
+            style={{ flex: 1, fontSize: 13 }} 
+            onClick={handleConfirmAssign}
+            disabled={!selectedUnitUuid || assignTenant.isPending || isInvalid}
+          >
+            {assignTenant.isPending ? 'Assigning...' : 'Confirm Assignment'}
+          </button>
         </div>
-
+      }
+    >
         <div className="search-input" style={{ marginBottom: 20 }}>
           <Search size={16} className="search-icon" />
           <input 
@@ -172,15 +186,15 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: 11 }}>Rent Cycle</label>
-                <select
-                  className={cn("form-input", !rentDetails.rentType && "form-input--error")}
-                  style={{ fontSize: 13, padding: '10px 14px' }}
+                <FormSelect
+                  className={cn(!rentDetails.rentType && "form-input--error")}
                   value={rentDetails.rentType}
-                  onChange={(e) => setRentDetails({...rentDetails, rentType: e.target.value})}
-                >
-                  <option value="Annually">Annually</option>
-                  <option value="Monthly">Monthly</option>
-                </select>
+                  onChange={(val) => setRentDetails({...rentDetails, rentType: val})}
+                  options={[
+                    { label: 'Annually', value: 'Annually' },
+                    { label: 'Monthly', value: 'Monthly' }
+                  ]}
+                />
               </div>
             </div>
 
@@ -212,21 +226,6 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
             </div>
           </div>
         )}
-
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
-            Cancel
-          </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ flex: 1, fontSize: 13 }} 
-            onClick={handleConfirmAssign}
-            disabled={!selectedUnitUuid || assignTenant.isPending || isInvalid}
-          >
-            {assignTenant.isPending ? 'Assigning...' : 'Confirm Assignment'}
-          </button>
-        </div>
-      </div>
 
       <style jsx>{`
         .unit-selection-list {
@@ -275,6 +274,6 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
           color: var(--text-muted);
         }
       `}</style>
-    </div>
+    </Modal>
   )
 }

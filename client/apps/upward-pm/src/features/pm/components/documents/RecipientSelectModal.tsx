@@ -4,6 +4,8 @@ import React, { useState, useMemo } from 'react'
 import { X, Search, ChevronDown, User, Building, Check } from 'lucide-react'
 import { useTenants } from '../../hooks/useTenants'
 import { useProperties } from '../../hooks/useProperties'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 
 interface Recipient {
   uuid: string;
@@ -77,27 +79,14 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
   if (!isOpen) return null
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ 
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-      background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 
-    }}>
-      <div className="modal animate-scale-in" onClick={e => e.stopPropagation()} style={{ 
-        background: 'white', borderRadius: 28, width: '100%', maxWidth: 580, 
-        height: '95vh', maxHeight: 960, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)'
-      }}>
-        
-        {/* Header */}
-        <div style={{ padding: '20px 24px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1e293b', letterSpacing: '-0.02em' }}>Select Recipient</h2>
-          <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', borderRadius: 10, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', transition: 'all 0.2s' }}>
-            <X size={18} />
-          </button>
-        </div>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Select Recipient"
+      maxWidth={580}
+    >
         {/* Tabs */}
-        <div style={{ padding: '0 24px 16px' }}>
+        <div style={{ padding: '0 24px 16px', marginTop: 16 }}>
           <div style={{ background: '#f1f5f9', padding: 4, borderRadius: 12, display: 'flex', gap: 4 }}>
             {[
               { id: 'TENANT', label: 'Tenants', icon: User },
@@ -135,19 +124,15 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
             />
           </div>
           
-          <div style={{ position: 'relative' }}>
-            <select 
-              style={{ width: '100%', height: 44, borderRadius: 12, border: '1.5px solid #e2e8f0', padding: '0 14px', appearance: 'none', fontSize: 13, outline: 'none', background: 'white', cursor: 'pointer' }}
+          <div>
+            <FormSelect
               value={selectedPropertyUuid}
-              onChange={e => setSelectedPropertyUuid(e.target.value)}
-              className="filter-input"
-            >
-              <option value="">Filter by property (All Properties)</option>
-              {properties.map(p => (
-                <option key={p.uuid} value={p.uuid}>{p.name}</option>
-              ))}
-            </select>
-            <ChevronDown size={18} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+              onChange={val => setSelectedPropertyUuid(val)}
+              options={[
+                { label: 'Filter by property (All Properties)', value: '' },
+                ...properties.map(p => ({ label: p.name, value: p.uuid }))
+              ]}
+            />
           </div>
         </div>
 
@@ -206,40 +191,20 @@ export function RecipientSelectModal({ isOpen, onClose, onSelect }: RecipientSel
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', background: 'white' }}>
-          <button 
-            className="btn btn--primary" 
-            style={{ width: '100%', borderRadius: 12, height: 44, background: 'var(--forest)', fontWeight: 700, fontSize: 14, boxShadow: '0 4px 6px -1px rgba(26, 77, 46, 0.1)' }}
-            onClick={onClose}
-          >
-            Done
-          </button>
-        </div>
-
-        <style jsx>{`
-          .recipient-item:hover {
-            background: #f8fafc;
-            border-color: #f1f5f9;
-            transform: translateY(-1px);
-          }
-          .recipient-item:hover .check-indicator {
-            border-color: var(--forest);
-            color: var(--forest);
-          }
-          .filter-input:focus {
-            border-color: var(--forest) !important;
-            box-shadow: 0 0 0 4px rgba(26, 77, 46, 0.05);
-          }
-          .animate-scale-in {
-            animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          }
-          @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.95) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-          }
-        `}</style>
-      </div>
-    </div>
+      <style jsx>{`
+        .recipient-item:hover {
+          background: #f8fafc;
+          border-color: #e2e8f0 !important;
+        }
+        .recipient-item:hover .check-indicator {
+          border-color: var(--forest) !important;
+          color: var(--forest) !important;
+        }
+        .filter-input:focus {
+          border-color: var(--forest) !important;
+          box-shadow: 0 0 0 3px var(--forest-faint);
+        }
+      `}</style>
+    </Modal>
   )
 }

@@ -1,7 +1,7 @@
 "use client"
-
 import React from 'react'
-import { X, UserPlus, Users, Home, Calendar, CreditCard, ClipboardList } from 'lucide-react'
+import { UserPlus, Users, Home, Calendar, CreditCard, ClipboardList } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { Property } from '../../../services/propertyService'
 import { useTenants } from '../../../hooks/useTenants'
 import { PhoneInput } from '@/components/common/PhoneInput'
@@ -110,17 +110,29 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
-      <div className="modal" style={{ maxWidth: 640, padding: 0, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 24px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <div>
-            <h2 className="modal__title" style={{ fontSize: 18, margin: 0 }}>Add New Unit</h2>
-            <p className="modal__desc" style={{ fontSize: 13, margin: '4px 0 0 0' }}>Register a unit to your property portfolio.</p>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={18} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add New Unit"
+      subtitle="Register a unit to your property portfolio."
+      maxWidth={640}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            className="btn btn--primary" 
+            style={{ flex: 1, fontSize: 13 }} 
+            onClick={onSave} 
+            disabled={isPending || isInvalid}
+          >
+            {isPending ? 'Saving...' : 'Save Unit'}
+          </button>
         </div>
-
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+      }
+    >
+        <div style={{ padding: '0px 0px 16px' }}>
 
         {/* Section: Core Unit Info */}
         <div className="modal-section" style={{ marginBottom: 24 }}>
@@ -402,21 +414,6 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
 
         </div>
 
-        <div style={{ display: 'flex', gap: 12, padding: '16px 24px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
-          <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
-            Cancel
-          </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ flex: 1, fontSize: 13 }} 
-            onClick={onSave} 
-            disabled={isPending || isInvalid}
-          >
-            {isPending ? 'Saving...' : 'Save Unit'}
-          </button>
-        </div>
-      </div>
-
       <style jsx>{`
         .form-input--error {
             border-color: var(--error) !important;
@@ -430,7 +427,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-    </div>
+    </Modal>
   )
 }
 

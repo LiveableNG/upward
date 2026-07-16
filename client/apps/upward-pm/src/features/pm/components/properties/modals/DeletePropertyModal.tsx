@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { X, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
 
 interface DeletePropertyModalProps {
   isOpen: boolean;
@@ -19,26 +20,28 @@ export const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
   const isValid = confirmName === propertyName;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal modal--danger" onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ 
-              background: 'rgba(239, 68, 68, 0.1)', 
-              color: '#ef4444', 
-              padding: 10, 
-              borderRadius: 10 
-            }}>
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <h2 className="modal__title" style={{ color: '#ef4444' }}>Delete Property</h2>
-              <p className="modal__desc">This action is permanent and irreversible.</p>
-            </div>
-          </div>
-          <button onClick={onClose}><X size={20} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Delete Property"
+      subtitle="This action is permanent and irreversible."
+      icon={AlertTriangle}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Keep Property
+          </button>
+          <button 
+            className="btn btn--danger" 
+            style={{ flex: 1 }} 
+            onClick={onConfirm} 
+            disabled={!isValid || isPending}
+          >
+            {isPending ? 'Deleting...' : 'Delete Permanently'}
+          </button>
         </div>
-
+      }
+    >
         <div style={{ 
           background: 'rgba(239, 68, 68, 0.05)', 
           border: '1px solid rgba(239, 68, 68, 0.2)', 
@@ -63,20 +66,6 @@ export const DeletePropertyModal: React.FC<DeletePropertyModalProps> = ({
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-            Keep Property
-          </button>
-          <button 
-            className="btn btn--danger" 
-            style={{ flex: 1 }} 
-            onClick={onConfirm} 
-            disabled={!isValid || isPending}
-          >
-            {isPending ? 'Deleting...' : 'Delete Permanently'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

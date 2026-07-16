@@ -24,6 +24,7 @@ import { usePaymentRequest, useResendPaymentRequest, useCancelPaymentRequest } f
 import { DetailSkeleton } from '@/components/skeletons'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
+import { Modal } from '@/components/ui/Modal/Modal'
 import Link from 'next/link'
 
 const getStartOfDay = (date: Date) => {
@@ -442,19 +443,32 @@ export const PaymentDetailView: React.FC = () => {
         </div>
       </div>
 
-      {showResendModal && (
-        <div className="modal-overlay" onClick={() => setShowResendModal(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 450 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <div>
-                <h2 className="modal__title">Resend Invoice</h2>
-                <p className="modal__desc">Send a payment reminder to the tenant.</p>
-              </div>
-              <button onClick={() => setShowResendModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <X size={20} />
-              </button>
-            </div>
-
+      <Modal
+        isOpen={showResendModal}
+        onClose={() => setShowResendModal(false)}
+        title="Resend Invoice"
+        subtitle="Send a payment reminder to the tenant."
+        maxWidth={450}
+        footer={
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button 
+              className="btn btn--secondary" 
+              style={{ flex: 1 }} 
+              onClick={() => setShowResendModal(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn--primary" 
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} 
+              onClick={handleConfirmResend}
+              disabled={isResending || !resendEmail}
+            >
+              {isResending ? 'Sending...' : 'Send Invoice'}
+            </button>
+          </div>
+        }
+      >
             <div className="form-group">
               <label className="form-label">Recipient Email</label>
               <input 
@@ -493,27 +507,7 @@ export const PaymentDetailView: React.FC = () => {
                 </p>
               )}
             </div>
-
-            <div style={{ display: 'flex', gap: 12, marginTop: 32 }}>
-              <button 
-                className="btn btn--secondary" 
-                style={{ flex: 1 }} 
-                onClick={() => setShowResendModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn btn--primary" 
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} 
-                onClick={handleConfirmResend}
-                disabled={isResending || !resendEmail}
-              >
-                {isResending ? 'Sending...' : 'Send Invoice'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       <ConfirmationModal 
         isOpen={showCancelConfirm}
