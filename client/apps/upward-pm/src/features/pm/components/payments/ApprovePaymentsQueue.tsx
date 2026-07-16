@@ -8,6 +8,7 @@ import { getPendingManualPayments, reviewManualPayment, downloadManualPaymentPro
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency } from '@/lib/utils'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { downloadBlob } from '@/lib/download-helper'
 
 export function ApprovePaymentsQueue() {
@@ -150,39 +151,39 @@ export function ApprovePaymentsQueue() {
         pageSize={10}
       />
 
-      {selectedProof && mounted && createPortal(
-        <div className="modal-overlay" onClick={() => {
+      <Modal
+        isOpen={!!selectedProof && mounted}
+        onClose={() => {
           setSelectedProof(null)
           setRemarks('')
-        }}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
-            {/* ── Header ── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="modal-header-icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
-                  <FileText size={22} />
-                </div>
-                <div>
-                  <h2 className="modal__title" style={{ marginBottom: 2 }}>
-                    Review Payment Proof
-                  </h2>
-                  <p className="modal__desc" style={{ margin: 0 }}>
-                    Verify the uploaded document and mark the payment as approved or rejected.
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => {
-                  setSelectedProof(null)
-                  setRemarks('')
-                }} 
-                className="btn-icon"
-              >
-                <XCircle size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        }}
+        title="Review Payment Proof"
+        subtitle="Verify the uploaded document and mark the payment as approved or rejected."
+        icon={FileText}
+        maxWidth={540}
+        footer={
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button 
+              className="btn"
+              style={{ flex: 1, background: 'var(--error-faint)', color: 'var(--error)', borderColor: 'var(--error-faint)' }}
+              onClick={() => reviewProof({ id: selectedProof?.id, status: 'REJECTED', remarks })}
+              disabled={isPending}
+            >
+              {isPending ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} Reject
+            </button>
+            <button 
+              className="btn btn--primary"
+              style={{ flex: 1 }}
+              onClick={() => reviewProof({ id: selectedProof?.id, status: 'APPROVED', remarks })}
+              disabled={isPending}
+            >
+              {isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Approve
+            </button>
+          </div>
+        }
+      >
+        {selectedProof && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 16 }}>
               
               <div className="join-request-card">
                 <div className="join-request-card__header">
@@ -297,29 +298,9 @@ export function ApprovePaymentsQueue() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 12, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                <button 
-                  className="btn"
-                  style={{ flex: 1, background: 'var(--error-faint)', color: 'var(--error)', borderColor: 'var(--error-faint)' }}
-                  onClick={() => reviewProof({ id: selectedProof.id, status: 'REJECTED', remarks })}
-                  disabled={isPending}
-                >
-                  {isPending ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} Reject
-                </button>
-                <button 
-                  className="btn btn--primary"
-                  style={{ flex: 1 }}
-                  onClick={() => reviewProof({ id: selectedProof.id, status: 'APPROVED', remarks })}
-                  disabled={isPending}
-                >
-                  {isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />} Approve
-                </button>
-              </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+        )}
+      </Modal>
 
       <style jsx>{`
         /* Join Request Card (Reused for Payment Details) */

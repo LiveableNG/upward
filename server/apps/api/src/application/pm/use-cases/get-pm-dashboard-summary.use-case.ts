@@ -91,6 +91,9 @@ export class GetPmDashboardSummaryUseCase {
     });
 
     const activeTenantsCount = tenants.filter(t => t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED').length;
+    const pendingInvites = tenants.filter(t => t.inviteStatus === 'PENDING' || t.inviteStatus === 'SENT').length;
+    const vacantUnits = units.filter(u => u.status === 'VACANT').length;
+    const occupiedUnits = units.filter(u => u.status === 'OCCUPIED').length;
 
     // 7. Fetch payment requests
     const paymentRequests = await this.prisma.upward_pm_payment_request.findMany({
@@ -226,7 +229,10 @@ export class GetPmDashboardSummaryUseCase {
 
     return {
       totalUnits,
+      vacantUnits,
+      occupiedUnits,
       activeTenants: activeTenantsCount,
+      pendingInvites,
       pendingBalance,
       totalRevenue,
       overduePayments,

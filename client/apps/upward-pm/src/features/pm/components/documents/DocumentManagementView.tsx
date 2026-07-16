@@ -17,6 +17,7 @@ import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { downloadBlob } from '@/lib/download-helper'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -34,11 +35,16 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState<string | null>(null)
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState('all')
 
-  const filteredHistory = documents.filter((doc: any) =>
-    doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const documentTypes = React.useMemo(() => Array.from(new Set(documents.map((d: any) => d.documentType))), [documents])
+
+  const filteredHistory = documents.filter((doc: any) => {
+    const matchesSearch = doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesType = typeFilter === 'all' || doc.documentType === typeFilter
+    return matchesSearch && matchesType
+  })
 
   const handleDownload = async (doc: any) => {
     setIsDownloading(doc.uuid)
@@ -97,6 +103,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
 
   // Group templates by type
   const groupedTemplates = templates.reduce((acc: any, template: any) => {
+    if (template.type === 'SAMPLE') return acc; // Hide sample templates from grouped view
+    
     const type = template.type || 'CUSTOM';
     if (!acc[type]) acc[type] = [];
     acc[type].push(template);
@@ -175,19 +183,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 style={{ position: 'fixed', inset: 0, zIndex: 10 }}
                 onClick={(e) => { e.stopPropagation(); setActiveMenu(null); }}
               />
-              <div className="glass" style={{
-                position: 'absolute',
-                right: 0,
-                top: '100%',
-                background: 'white',
-                borderRadius: 12,
-                boxShadow: 'var(--shadow-lg)',
-                zIndex: 11,
-                minWidth: 180,
-                overflow: 'hidden',
-                border: '1px solid var(--border)',
-                textAlign: 'left'
-              }}>
+              <div className="glass action-dropdown">
                 <button
                   onClick={(e) => { e.stopPropagation(); setPreviewDocument(doc); setActiveMenu(null); }}
                   className="dropdown-item"
@@ -343,11 +339,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Document History</h2>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn btn--secondary" style={{ borderRadius: 10, height: 40, padding: '0 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Download size={16} /> Download documents
-            </button>
-          </div>
         </div>
 
         <div className="glass" style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)', background: 'white', marginBottom: 32 }}>
@@ -363,9 +354,16 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="btn btn--secondary" style={{ borderRadius: 12, width: 44, height: 44, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Filter size={18} />
-            </button>
+            <FilterDropdown
+              label="Document Type"
+              value={typeFilter}
+              onChange={(val) => setTypeFilter(val)}
+              icon={Filter}
+              options={[
+                { label: 'All Types', value: 'all' },
+                ...documentTypes.map((type: any) => ({ label: formatTypeName(type), value: type }))
+              ]}
+            />
           </div>
 
           <DataTable

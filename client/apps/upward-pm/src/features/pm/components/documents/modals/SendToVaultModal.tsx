@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { X, Upload, FileText, Loader2, CheckCircle2, AlertCircle, ChevronDown, ToggleLeft, ToggleRight, File } from 'lucide-react'
+import { X, Upload, FileText, Loader2, CheckCircle2, AlertCircle, ToggleLeft, ToggleRight, File, Paperclip } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useDocuments, useVaultActions } from '@/features/pm/hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 
@@ -101,24 +103,57 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: 580 }} onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--forest-faint)', color: 'var(--forest)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileText size={22} />
-            </div>
-            <div>
-              <h2 className="modal__title" style={{ marginBottom: 2 }}>Add Document to Vault</h2>
-              <p className="modal__desc" style={{ margin: 0 }}>
-                {tenantName ? `Push a document to ${tenantName}'s Upward profile.` : 'Push a document to the tenant\'s Upward profile.'}
-              </p>
-            </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Document to Vault"
+      subtitle={tenantName ? `Push a document to ${tenantName}'s Upward profile.` : 'Push a document to the tenant\'s Upward profile.'}
+      icon={FileText}
+      maxWidth={580}
+      footer={
+        activeTab === 'upload' ? (
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1 }}
+              disabled={!selectedFile || !fileSubject.trim() || isPending}
+              onClick={handleSubmitFile}
+            >
+              {sendFileToVault.isPending
+                ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />Sending...</>
+                : <><Upload size={16} style={{ marginRight: 8 }} />Send to Vault</>
+              }
+            </button>
           </div>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
-        </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
+            {selectedTemplateUuid && onProceedToEditor && (
+              <button
+                type="button"
+                className="btn btn--secondary"
+                style={{ flex: 1, borderColor: 'var(--forest)', color: 'var(--forest)' }}
+                onClick={() => onProceedToEditor(selectedTemplate)}
+              >
+                Edit & Customize
+              </button>
+            )}
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1 }}
+              disabled={!selectedTemplateUuid || !templateSubject.trim() || isPending}
+              onClick={handleSubmitTemplate}
+            >
+              {sendTemplateToVault.isPending
+                ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />Generating PDF...</>
+                : <><FileText size={16} style={{ marginRight: 8 }} />Send to Vault</>
+              }
+            </button>
+          </div>
+        )
+      }
+    >
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, background: 'var(--ivory-dim)', padding: 4, borderRadius: 12, marginBottom: 24 }}>
@@ -140,7 +175,15 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
                 boxShadow: activeTab === tab ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               }}
             >
-              {tab === 'upload' ? '📎 Upload File' : '📄 From Template'}
+              {tab === 'upload' ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <Paperclip size={16} /> Upload File
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <FileText size={16} /> From Template
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -222,20 +265,6 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-              <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-              <button
-                className="btn btn--primary"
-                style={{ flex: 1 }}
-                disabled={!selectedFile || !fileSubject.trim() || isPending}
-                onClick={handleSubmitFile}
-              >
-                {sendFileToVault.isPending
-                  ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />Sending...</>
-                  : <><Upload size={16} style={{ marginRight: 8 }} />Send to Vault</>
-                }
-              </button>
-            </div>
           </div>
         )}
 
@@ -249,23 +278,19 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
               {loadingTemplates ? (
                 <div style={{ height: 44, borderRadius: 12, background: 'var(--ivory-dim)', animation: 'pulse 1.5s ease-in-out infinite' }} />
               ) : (
-                <div style={{ position: 'relative' }}>
-                  <select
-                    className="form-input"
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <FormSelect
                     value={selectedTemplateUuid}
-                    onChange={e => {
-                      setSelectedTemplateUuid(e.target.value)
-                      const t = templates.find((t: any) => t.uuid === e.target.value)
+                    onChange={val => {
+                      setSelectedTemplateUuid(val)
+                      const t = templates.find((t: any) => t.uuid === val)
                       if (t && !templateSubject) setTemplateSubject(t.name)
                     }}
-                    style={{ height: 44, borderRadius: 12, fontSize: 14, appearance: 'none', paddingRight: 40 }}
-                  >
-                    <option value="">-- Choose a template --</option>
-                    {templates.map((t: any) => (
-                      <option key={t.uuid} value={t.uuid}>{t.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    options={templates
+                      .filter((t: any) => t.name !== 'Sample Template')
+                      .map((t: any) => ({ label: t.name, value: t.uuid }))}
+                    placeholder="-- Choose a template --"
+                  />
                 </div>
               )}
             </div>
@@ -321,35 +346,8 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
-              <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-              {selectedTemplateUuid && onProceedToEditor && (
-                <button
-                  type="button"
-                  className="btn btn--secondary"
-                  style={{ flex: 1, borderColor: 'var(--forest)', color: 'var(--forest)' }}
-                  onClick={() => {
-                    onProceedToEditor(selectedTemplate)
-                  }}
-                >
-                  Edit & Customize
-                </button>
-              )}
-              <button
-                className="btn btn--primary"
-                style={{ flex: 1 }}
-                disabled={!selectedTemplateUuid || !templateSubject.trim() || isPending}
-                onClick={handleSubmitTemplate}
-              >
-                {sendTemplateToVault.isPending
-                  ? <><Loader2 size={16} className="animate-spin" style={{ marginRight: 8 }} />Generating PDF...</>
-                  : <><FileText size={16} style={{ marginRight: 8 }} />Send to Vault</>
-                }
-              </button>
-            </div>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }

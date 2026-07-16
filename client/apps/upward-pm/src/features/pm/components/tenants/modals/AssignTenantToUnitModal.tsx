@@ -1,50 +1,44 @@
 import React, { useState } from 'react'
-import { Search, Building2, CheckCircle2, Calendar, CreditCard } from 'lucide-react'
+import { Search, UserPlus, CheckCircle2, Calendar, CreditCard } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
-import { useUnits } from '@/features/pm/hooks/useProperties'
-import { useTenantActions } from '@/features/pm/hooks/useTenants'
-import { cn } from '@/lib/utils'
+import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
+import { cn, formatTenantName } from '@/lib/utils'
+import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
-interface AssignUnitModalProps {
+interface AssignTenantToUnitModalProps {
   isOpen: boolean
   onClose: () => void
-  tenantUuid: string
-  tenantName: string
+  unitUuid: string
+  unitName: string
+  initialRentAmount?: number
+  initialRentType?: string
+  initialRentStartDate?: string
+  initialRentDueDate?: string
 }
 
-export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
+export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = ({
   isOpen,
   onClose,
-  tenantUuid,
-  tenantName
+  unitUuid,
+  unitName,
+  initialRentAmount,
+  initialRentType,
+  initialRentStartDate,
+  initialRentDueDate
 }) => {
-  const { data: units = [] } = useUnits()
+  const { data: tenants = [] } = useTenants()
   const { assignTenant } = useTenantActions()
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedUnitUuid, setSelectedUnitUuid] = useState<string | null>(null)
+  const [selectedTenantUuid, setSelectedTenantUuid] = useState<string | null>(null)
+  
   const [rentDetails, setRentDetails] = useState({
-    rentAmount: '',
-    rentType: 'Annually',
-    rentStartDate: '',
-    rentDueDate: '',
+    rentAmount: initialRentAmount?.toString() || '',
+    rentType: initialRentType || 'Annually',
+    rentStartDate: initialRentStartDate ? new Date(initialRentStartDate).toISOString().split('T')[0] : '',
+    rentDueDate: initialRentDueDate ? new Date(initialRentDueDate).toISOString().split('T')[0] : '',
     rentAmountPaid: '0'
   })
-
-  const selectedUnit = units.find(u => u.uuid === selectedUnitUuid)
-
-  // Update rent details when a unit is selected
-  React.useEffect(() => {
-    if (selectedUnit) {
-      setRentDetails({
-        rentAmount: selectedUnit.rentAmount?.toString() || '',
-        rentType: selectedUnit.rentType || 'Annually',
-        rentStartDate: selectedUnit.rentStartDate ? new Date(selectedUnit.rentStartDate).toISOString().split('T')[0] : '',
-        rentDueDate: selectedUnit.rentDueDate ? new Date(selectedUnit.rentDueDate).toISOString().split('T')[0] : '',
-        rentAmountPaid: '0'
-      })
-    }
-  }, [selectedUnit])
 
   // Auto-calculate End Date
   React.useEffect(() => {
@@ -64,15 +58,15 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
 
   if (!isOpen) return null
 
-  const availableUnits = units.filter(unit => {
-    const isAvailable = !unit.tenant && unit.status !== 'MAINTENANCE'
+  const filteredTenants = tenants.filter(t => {
     const matchesSearch = 
-      unit.unitName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (unit.property?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-    return isAvailable && matchesSearch
+      (t.firstName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (t.lastName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (t.email?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+    return matchesSearch
   })
 
-  const isInvalid = !!(selectedUnitUuid && (
+  const isInvalid = !!(selectedTenantUuid && (
     !rentDetails.rentAmount || 
     !rentDetails.rentType || 
     !rentDetails.rentStartDate || 
@@ -80,11 +74,11 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
   ))
 
   const handleConfirmAssign = () => {
-    if (!selectedUnitUuid) return
+    if (!selectedTenantUuid) return
 
     assignTenant.mutate({ 
-      tenantUuid, 
-      unitUuid: selectedUnitUuid,
+      tenantUuid: selectedTenantUuid, 
+      unitUuid,
       rentAmountPaid: parseFloat(rentDetails.rentAmountPaid) || 0,
       rentAmount: parseFloat(rentDetails.rentAmount),
       rentType: rentDetails.rentType,
@@ -99,8 +93,8 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Assign Unit"
-      subtitle={`Select a vacant unit to assign to ${tenantName}.`}
+      title="Assign Tenant"
+      subtitle={`Select a tenant to assign to ${unitName}.`}
       maxWidth={640}
       footer={
         <div style={{ display: 'flex', gap: 12, width: '100%' }}>
@@ -111,7 +105,7 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
             className="btn btn--primary" 
             style={{ flex: 1, fontSize: 13 }} 
             onClick={handleConfirmAssign}
-            disabled={!selectedUnitUuid || assignTenant.isPending || isInvalid}
+            disabled={!selectedTenantUuid || assignTenant.isPending || isInvalid}
           >
             {assignTenant.isPending ? 'Assigning...' : 'Confirm Assignment'}
           </button>
@@ -123,40 +117,42 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
           <input 
             type="text" 
             style={{ fontSize: 13, padding: '10px 14px 10px 40px' }}
-            placeholder="Search property or unit..." 
+            placeholder="Search tenant name or email..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         <div className="unit-selection-list" style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: 24 }}>
-          {availableUnits.map(unit => (
+          {filteredTenants.map(tenant => (
             <div 
-              key={unit.uuid} 
-              className={cn("unit-selection-item", selectedUnitUuid === unit.uuid && "unit-selection-item--selected")}
-              onClick={() => setSelectedUnitUuid(unit.uuid)}
+              key={tenant.uuid} 
+              className={cn("unit-selection-item", selectedTenantUuid === tenant.uuid && "unit-selection-item--selected")}
+              onClick={() => setSelectedTenantUuid(tenant.uuid)}
               style={{ padding: '10px 14px' }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="unit-icon-box" style={{ width: 32, height: 32 }}>
-                  <Building2 size={16} />
+                <div className="unit-icon-box" style={{ width: 32, height: 32, background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+                  <UserPlus size={16} />
                 </div>
                 <div>
-                  <div className="unit-name" style={{ fontSize: 13 }}>Unit {unit.unitName}</div>
-                  <div className="property-name" style={{ fontSize: 11 }}>{unit.property?.name}</div>
+                  <div className="unit-name" style={{ fontSize: 13 }}>
+                    <TenantNameDisplay tenant={tenant} fallback="No Tenant" />
+                  </div>
+                  <div className="property-name" style={{ fontSize: 11 }}>{tenant.email || tenant.phone}</div>
                 </div>
               </div>
-              {selectedUnitUuid === unit.uuid && <CheckCircle2 size={18} color="var(--forest)" />}
+              {selectedTenantUuid === tenant.uuid && <CheckCircle2 size={18} color="var(--clay)" />}
             </div>
           ))}
-          {availableUnits.length === 0 && (
+          {filteredTenants.length === 0 && (
             <div style={{ textAlign: 'center', padding: '20px' }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No units available.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 12 }}>No tenants found.</p>
             </div>
           )}
         </div>
 
-        {selectedUnitUuid && (
+        {selectedTenantUuid && (
           <div className="assignment-details animate-fade-in" style={{ background: 'var(--bg)', padding: 16, borderRadius: 16, border: '1px solid var(--border)', marginBottom: 24 }}>
              <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <CreditCard size={14} color="var(--forest)" />
@@ -246,23 +242,21 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
         }
         .unit-selection-item:hover {
           background: white;
-          border-color: var(--forest-faint);
+          border-color: var(--clay-faint);
           box-shadow: var(--shadow-sm);
         }
         .unit-selection-item--selected {
           background: white;
-          border-color: var(--forest);
+          border-color: var(--clay);
           box-shadow: var(--shadow-sm);
         }
         .unit-icon-box {
           width: 40px;
           height: 40px;
-          background: white;
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--forest);
         }
         .unit-name {
           font-weight: 700;

@@ -4,48 +4,99 @@ import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.servic
 
 const DEFAULT_TEMPLATES = [
   {
-    uuid: 'system-default-rent-review',
-    name: 'Rent Review Notice',
-    type: 'RENT_REVIEW',
+    uuid: 'system-sample-template',
+    name: 'Sample Template',
+    type: 'SAMPLE',
     content: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
-        <h1 style="text-align: center; color: #1a4d2e; font-size: 24px; margin-bottom: 20px;">Rent Review Notice</h1>
-        <div style="margin-bottom: 20px; color: #666;">
-          <p><strong>Date:</strong> [Date]</p>
-          <p><strong>To:</strong> [Tenant Name]</p>
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <!-- Header Section -->
+        <div style="text-align: center; padding: 40px 20px; background-color: #f8fafc; border-bottom: 3px solid #1a4d2e; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; color: #1a4d2e; font-size: 28px; letter-spacing: 1px; text-transform: uppercase;">Comprehensive Lease Review</h1>
+          <p style="margin: 10px 0 0 0; color: #64748b; font-size: 14px;">Document ID: <strong>[DocumentNumber]</strong> &bull; Type: <strong>[DocumentType]</strong></p>
         </div>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p>Dear [TenantFirstName],</p>
-        <p>This is to inform you of a rent review for your unit at <strong>[UnitName]</strong>, <strong>[PropertyName]</strong>.</p>
-        <p>As part of our commitment to maintaining high standards of property management and in line with current market trends, we have conducted a review of your current rental agreement.</p>
-        <p>Your current rent of <strong>[RentAmount]</strong> is being reviewed to ensure it aligns with the value and services provided at the property.</p>
-        <br />
-        <p>Best regards,</p>
-        <p><strong>[ManagerName]</strong></p>
-      </div>
-    `,
-    updatedAt: new Date().toISOString(),
-    isSystem: true
-  },
-  {
-    uuid: 'system-default-rent-renewal',
-    name: 'Rent Renewal Notice',
-    type: 'LEASE_AGREEMENT',
-    content: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee;">
-        <h1 style="text-align: center; color: #1a4d2e; font-size: 24px; margin-bottom: 20px;">Rent Renewal Notice</h1>
-        <div style="margin-bottom: 20px; color: #666;">
-          <p><strong>Date:</strong> [Date]</p>
-          <p><strong>To:</strong> [Tenant Name]</p>
+
+        <!-- Body Content -->
+        <div style="padding: 40px;">
+          <!-- Date and Parties Grid -->
+          <table style="width: 100%; margin-bottom: 30px; border-collapse: collapse;">
+            <tr>
+              <td style="width: 50%; vertical-align: top; padding-right: 20px;">
+                <h3 style="color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Prepared For</h3>
+                <p style="margin: 4px 0;"><strong>[TenantName]</strong></p>
+                <p style="margin: 4px 0; color: #475569;">[TenantPhone] | [TenantEmail]</p>
+                <p style="margin: 4px 0; color: #475569;">[TenantAddress]</p>
+              </td>
+              <td style="width: 50%; vertical-align: top; padding-left: 20px;">
+                <h3 style="color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Property Details</h3>
+                <p style="margin: 4px 0;"><strong>Unit:</strong> [UnitName]</p>
+                <p style="margin: 4px 0; color: #475569;"><strong>Property:</strong> [PropertyName]</p>
+                <p style="margin: 4px 0; color: #475569;">[PropertyAddress]</p>
+              </td>
+            </tr>
+          </table>
+
+          <div style="background-color: #f1f5f9; padding: 15px 20px; border-left: 4px solid #1a4d2e; border-radius: 0 4px 4px 0; margin-bottom: 30px;">
+            <p style="margin: 0; font-size: 14px;"><em>Issued on <strong>[Date]</strong>. This document covers the billing period from <strong>[PreviousMonth]</strong> to <strong>[NextMonth]</strong> of the year <strong>[CurrentYear]</strong>.</em></p>
+          </div>
+
+          <p>Dear <strong>[TenantFirstName] [TenantLastName]</strong>,</p>
+          <p>We hope this correspondence finds you well. As the designated management team representing your landlord, <strong>[LandlordName]</strong> ([LandlordEmail]), we are reaching out regarding your ongoing tenancy at <strong>[PropertyName]</strong>.</p>
+
+          <h2 style="color: #1a4d2e; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 30px;">Financial & Lease Summary</h2>
+          <p>Below is a dynamic breakdown of your current lease terms, automatically generated using our advanced placeholder system:</p>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <tr style="background-color: #1a4d2e; color: white; text-align: left;">
+              <th style="padding: 12px 15px; border-radius: 4px 0 0 0;">Description</th>
+              <th style="padding: 12px 15px; border-radius: 0 4px 0 0;">Detail</th>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 12px 15px; background-color: #f8fafc;"><strong>Rent Amount</strong></td>
+              <td style="padding: 12px 15px;">[RentAmount]</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 12px 15px; background-color: #ffffff;"><strong>Payment Cycle</strong></td>
+              <td style="padding: 12px 15px;">[RentType] ([RentDuration])</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 12px 15px; background-color: #f8fafc;"><strong>Lease Period</strong></td>
+              <td style="padding: 12px 15px;">[RentStartDate] to [RentEndDate]</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px 15px; background-color: #ffffff;"><strong>Next Payment Due</strong></td>
+              <td style="padding: 12px 15px; color: #b91c1c; font-weight: bold;">[RentDueDate]</td>
+            </tr>
+          </table>
+
+          <h2 style="color: #1a4d2e; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 30px;">Payment Instructions</h2>
+          <p>Please ensure your payments are routed to the following account to avoid any late penalties. You can pay directly online using the link below:</p>
+          
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; color: #92400e;"><strong>Bank Name:</strong> [BankName] &nbsp;&bull;&nbsp; <strong>Account Name:</strong> [AccountName]</p>
+            <p style="margin: 0 0 15px 0; font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #1e3a8a;">[AccountNumber]</p>
+            <a href="[PaymentLink]" style="display: inline-block; background-color: #1a4d2e; color: white; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: bold;">Pay Securely Online</a>
+          </div>
+
+          <p>If you require any assistance or wish to discuss these terms, please do not hesitate to contact our office.</p>
         </div>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p>Dear [TenantFirstName],</p>
-        <p>Your lease is due for renewal for your unit at <strong>[UnitName]</strong>, <strong>[PropertyName]</strong>.</p>
-        <p>We have enjoyed having you as a tenant and would like to offer you a renewal of your tenancy agreement. Your current lease is set to expire on <strong>[RentEndDate]</strong>.</p>
-        <p>Please contact our office at your earliest convenience to discuss the terms of your renewal and to ensure a seamless transition into your next lease term.</p>
-        <br />
-        <p>Best regards,</p>
-        <p><strong>[ManagerName]</strong></p>
+
+        <!-- Footer Section -->
+        <div style="background-color: #1e293b; color: #f8fafc; padding: 30px 40px; border-radius: 0 0 8px 8px; font-size: 13px;">
+          <table style="width: 100%;">
+            <tr>
+              <td style="width: 60%;">
+                <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: white;">[CompanyName]</p>
+                <p style="margin: 0; color: #94a3b8;">[CompanyAddress]</p>
+                <p style="margin: 5px 0 0 0; color: #94a3b8;">[CompanyEmail] &nbsp;&bull;&nbsp; [CompanyPhone]</p>
+              </td>
+              <td style="width: 40%; text-align: right; vertical-align: bottom;">
+                <p style="margin: 0; color: #94a3b8;">Digitally Issued By:</p>
+                <p style="margin: 5px 0 0 0; font-weight: bold; color: white;">[ManagerName]</p>
+                <p style="margin: 2px 0 0 0; color: #94a3b8;">[ManagerEmail] | [ManagerPhone]</p>
+              </td>
+            </tr>
+          </table>
+        </div>
       </div>
     `,
     updatedAt: new Date().toISOString(),

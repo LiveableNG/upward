@@ -14,8 +14,12 @@ import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 import { Building2 } from 'lucide-react'
+import { formatTenantName } from '@/lib/utils'
+import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
-export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
+import { UserPlus } from 'lucide-react'
+
+export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: any, onAddTenant?: () => void }) => {
   const router = useRouter()
   const { data: tenants = [], isLoading: loadingTenants } = useTenants(initialTenants)
   const { data: properties = [], isLoading: loadingProperties } = useProperties()
@@ -31,7 +35,7 @@ export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t: any) => {
-      const fullName = (t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim()).toLowerCase()
+      const fullName = formatTenantName(t).toLowerCase()
       const email = (t.email || '').toLowerCase()
       const query = searchQuery.toLowerCase()
       
@@ -95,7 +99,7 @@ export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
           </div>
           <div>
             <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14, marginBottom: 2 }}>
-              {tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}
+              <TenantNameDisplay tenant={tenant} fallback="No Tenant" />
             </div>
             {tenant.email?.endsWith('@upward.com') ? (
               <div style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -218,18 +222,28 @@ export const TenantList = ({ initialTenants }: { initialTenants?: any }) => {
   return (
     <div className="tenants-view animate-fade-in" style={{ padding: '24px 0' }}>
       <PageHeader 
-        title="Tenant Directory" 
+        title="Tenants Directory" 
         subtitle="Manage your tenants across all properties."
         actions={
-          selectedTenants.size > 0 && (
-            <button 
-              className="btn btn--primary" 
-              onClick={() => handleBulkInvite()}
-              style={{ borderRadius: 12 }}
-            >
-              <Users size={18} /> Invite Selected ({selectedTenants.size})
-            </button>
-          )
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            {selectedTenants.size > 0 && (
+              <button 
+                className="btn btn--outline" 
+                onClick={() => handleBulkInvite()}
+                style={{ borderRadius: 12 }}
+              >
+                <Users size={18} /> Invite Selected ({selectedTenants.size})
+              </button>
+            )}
+            {onAddTenant && (
+              <button 
+                className="btn btn--primary" 
+                onClick={onAddTenant}
+              >
+                <UserPlus size={18} /> Add Tenant
+              </button>
+            )}
+          </div>
         }
       />
 

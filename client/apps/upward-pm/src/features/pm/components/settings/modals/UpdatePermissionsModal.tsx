@@ -2,7 +2,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Shield, Building2, Check } from 'lucide-react'
+import { Shield, Building2, Check } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { useUpdateMemberPermissions } from '@/features/pm/hooks/useTeam'
 import { useProperties } from '@/features/pm/hooks/useProperties'
 import { cn } from '@/lib/utils'
@@ -50,54 +51,28 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
   )
 
   return (
-    <div className="modal-overlay" style={{ 
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 1100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-    }}>
-      <div className="modal-container" style={{ 
-          maxWidth: 540, 
-          width: '100%',
-          background: 'white',
-          borderRadius: 24,
-          boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-          overflow: 'hidden',
-          animation: 'modalSlideUp 0.3s ease-out'
-      }}>
-        <header className="modal-header" style={{ padding: '32px 32px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h2 className="modal-title" style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)' }}>Edit Team Permissions</h2>
-            <p className="modal-subtitle" style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 4 }}>
-                Update access for {collaboration.member.firstName} {collaboration.member.lastName}.
-            </p>
-          </div>
-          <button 
-            className="modal-close" 
-            onClick={onClose}
-            style={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: 8, 
-                border: '1px solid var(--border)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                cursor: 'pointer'
-            }}
-          >
-            <X size={18} />
-          </button>
-        </header>
-
-        <form onSubmit={handleSubmit} className="modal-body" style={{ padding: '0 32px 32px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title="Edit Team Permissions"
+      subtitle={`Update access for ${collaboration.member.firstName} ${collaboration.member.lastName}.`}
+      maxWidth={540}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button type="button" className="btn btn--secondary" style={{ flex: 1, height: 48, borderRadius: 12 }} onClick={onClose}>Cancel</button>
+            <button 
+                type="submit" 
+                form="update-permissions-form"
+                className="btn btn--primary" 
+                style={{ flex: 1, height: 48, borderRadius: 12 }} 
+                disabled={isPending || (formData.accessLevel === 'CUSTOM' && formData.propertyUuids.length === 0)}
+            >
+              {isPending ? 'Saving...' : 'Update Permissions'}
+            </button>
+        </div>
+      }
+    >
+        <form id="update-permissions-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             
             <div className="form-group">
                 <label className="form-label">Access Level</label>
@@ -196,33 +171,14 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
                 </div>
             )}
 
-          </div>
-
-          <div className="modal-footer" style={{ padding: '32px 0 0 0', display: 'flex', gap: 12 }}>
-            <button type="button" className="btn btn--secondary" style={{ flex: 1, height: 48, borderRadius: 12 }} onClick={onClose}>Cancel</button>
-            <button 
-                type="submit" 
-                className="btn btn--primary" 
-                style={{ flex: 1, height: 48, borderRadius: 12 }} 
-                disabled={isPending || (formData.accessLevel === 'CUSTOM' && formData.propertyUuids.length === 0)}
-            >
-              {isPending ? 'Saving...' : 'Update Permissions'}
-            </button>
-          </div>
         </form>
-      </div>
-
-      <style jsx>{`
-        @keyframes modalSlideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .access-btn--active {
-            border-color: var(--clay) !important;
-            background: var(--bg) !important;
-            color: var(--clay) !important;
-        }
-      `}</style>
-    </div>
+        <style jsx>{`
+            .access-btn--active {
+                border-color: var(--clay) !important;
+                background: var(--bg) !important;
+                color: var(--clay) !important;
+            }
+        `}</style>
+    </Modal>
   )
 }

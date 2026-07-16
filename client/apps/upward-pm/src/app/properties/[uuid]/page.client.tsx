@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useProperty, useUnits, useUpdateProperty, useDeleteProperty } from '@/features/pm/hooks/useProperties'
+import { getPropertyImageUploadUrl } from '@/features/pm/services/propertyService'
 import { PropertyDetailView } from '@/features/pm/components/properties/PropertyDetailView'
 import { DetailSkeleton } from '@/components/skeletons'
 import { EditPropertyModal } from '@/features/pm/components/properties/modals/EditPropertyModal'
@@ -47,11 +48,27 @@ function PropertyDetailContent() {
     setShowEditModal(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    let finalImageUrl = propForm.imageUrl;
+    
+    try {
+      if (propForm.imageFile) {
+        const { uploadUrl, publicUrl } = await getPropertyImageUploadUrl(propForm.imageFile.type, propForm.imageFile.name)
+        await fetch(uploadUrl, { method: 'PUT', body: propForm.imageFile, headers: { 'Content-Type': propForm.imageFile.type } })
+        finalImageUrl = publicUrl
+      }
+    } catch (err) {
+      notifyError("Failed to upload image")
+      return;
+    }
+
+    const { imageFile, ...restForm } = propForm;
     const dataToSend = {
-      ...propForm,
+      ...restForm,
+      imageUrl: finalImageUrl,
       totalUnits: parseInt(propForm.totalUnits, 10) || 0
     }
+
     updatePropertyMutation.mutate({ uuid: uuid as string, data: dataToSend as any }, {
       onSuccess: () => {
         success('Property updated successfully')

@@ -86,7 +86,7 @@
 .upward-filter-menu {
   position: absolute;
   top: calc(100% + 8px);
-  right: 0;
+  left: 0;
   background: white;
   border: 1px solid var(--border);
   border-radius: 16px;

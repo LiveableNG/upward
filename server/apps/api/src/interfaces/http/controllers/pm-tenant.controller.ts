@@ -92,6 +92,7 @@ export class PmTenantController {
       rentType?: string;
       rentStartDate?: string;
       rentDueDate?: string;
+      isFullyPaid?: boolean;
     }
   ) {
     const pmId = await this.getPmId(req);
@@ -103,7 +104,8 @@ export class PmTenantController {
       body.rentAmount,
       body.rentType,
       body.rentStartDate ? new Date(body.rentStartDate) : undefined,
-      body.rentDueDate ? new Date(body.rentDueDate) : undefined
+      body.rentDueDate ? new Date(body.rentDueDate) : undefined,
+      body.isFullyPaid
     );
   }
 

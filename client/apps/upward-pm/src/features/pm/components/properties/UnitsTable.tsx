@@ -25,10 +25,14 @@ interface UnitsTableProps {
   setSearchQuery: (query: string) => void;
   selectedPropertyFilter: string;
   setSelectedPropertyFilter: (filter: string) => void;
-  paymentFilter: 'all' | 'pending';
-  setPaymentFilter: (filter: 'all' | 'pending') => void;
+  paymentFilter: 'all' | 'pending' | 'paid';
+  setPaymentFilter: (filter: 'all' | 'pending' | 'paid') => void;
   dueFilter: 'all' | 'passed' | '30days' | '60days' | '90days';
   setDueFilter: (filter: 'all' | 'passed' | '30days' | '60days' | '90days') => void;
+  statusFilter?: 'all' | 'vacant' | 'occupied';
+  setStatusFilter?: (filter: 'all' | 'vacant' | 'occupied') => void;
+  tenantFilter?: 'all' | 'pending' | 'onboarded';
+  setTenantFilter?: (filter: 'all' | 'pending' | 'onboarded') => void;
   onAddUnit: () => void;
   onBulkImport: () => void;
   onRequestPayment: (unit: Unit) => void;
@@ -47,6 +51,10 @@ export function UnitsTable({
   setPaymentFilter,
   dueFilter,
   setDueFilter,
+  statusFilter = 'all',
+  setStatusFilter,
+  tenantFilter = 'all',
+  setTenantFilter,
   onAddUnit,
   onBulkImport,
   onRequestPayment,
@@ -214,7 +222,8 @@ export function UnitsTable({
             icon={CreditCardIcon}
             options={[
               { label: 'All Payments', value: 'all' },
-              { label: 'Pending Requests', value: 'pending' }
+              { label: 'Pending Requests', value: 'pending' },
+              { label: 'Completed', value: 'paid' }
             ]}
             onChange={(val) => setPaymentFilter(val as any)}
           />
@@ -232,6 +241,34 @@ export function UnitsTable({
             ]}
             onChange={(val) => setDueFilter(val as any)}
           />
+
+          {setStatusFilter && (
+            <FilterDropdown 
+              label="Status" 
+              value={statusFilter}
+              icon={Filter}
+              options={[
+                { label: 'All Statuses', value: 'all' },
+                { label: 'Occupied', value: 'occupied' },
+                { label: 'Vacant', value: 'vacant' }
+              ]}
+              onChange={(val) => setStatusFilter(val as any)}
+            />
+          )}
+
+          {setTenantFilter && (
+            <FilterDropdown 
+              label="Tenants" 
+              value={tenantFilter}
+              icon={Filter}
+              options={[
+                { label: 'All Tenants', value: 'all' },
+                { label: 'Onboarded', value: 'onboarded' },
+                { label: 'Pending Invites', value: 'pending' }
+              ]}
+              onChange={(val) => setTenantFilter(val as any)}
+            />
+          )}
           </FilterGroup>
       </ControlBar>
 

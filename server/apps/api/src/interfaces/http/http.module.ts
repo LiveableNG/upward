@@ -59,6 +59,7 @@ import { PublicBlogController } from './public/blog.controller'
 import { ManualPaymentsController } from './controllers/manual-payments.controller'
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
+import { PublicDocumentController } from './public/public-document.controller'
 import { WalletController } from './user/wallet.controller'
 
 @Module({
@@ -120,6 +121,7 @@ import { WalletController } from './user/wallet.controller'
     PublicBlogController,
     AdminWhatsappSequenceController,
     AdminEmailSequenceController,
+    PublicDocumentController,
     WalletController,
   ],
 })

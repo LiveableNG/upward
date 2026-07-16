@@ -11,6 +11,7 @@ interface RichTextEditorProps {
   placeholder?: string
   menubar?: boolean
   toolbar?: string
+  disabled?: boolean
 }
 
 export function RichTextEditor({ 
@@ -19,7 +20,8 @@ export function RichTextEditor({
   height = 500, 
   placeholder = 'Start typing...',
   menubar = true,
-  toolbar
+  toolbar,
+  disabled = false
 }: RichTextEditorProps) {
   const editorRef = useRef<any>(null)
 
@@ -31,6 +33,7 @@ export function RichTextEditor({
   return (
     <div className="rich-text-editor-container" style={{ height, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <Editor
+        disabled={disabled}
         onInit={(evt, editor) => editorRef.current = editor}
         value={value}
         init={{
@@ -90,7 +93,9 @@ export function RichTextEditor({
                         if (selectedSig.type === 'digital') {
                           editor.insertContent(selectedSig.content)
                         } else {
-                          editor.insertContent(`<img src="${selectedSig.fileUrl}" alt="${selectedSig.name}" style="max-height: 80px; width: auto;" />`)
+                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                          const absoluteUrl = selectedSig.fileUrl.startsWith('http') ? selectedSig.fileUrl : `${apiUrl}${selectedSig.fileUrl}`;
+                          editor.insertContent(`<img src="${absoluteUrl}" alt="${selectedSig.name}" style="max-height: 80px; width: auto;" />`)
                         }
                       }
                       apiInstance.close()

@@ -69,6 +69,7 @@ export const tenantService = {
 
   assignTenant: (tenantUuid: string, unitUuid: string, rentDetails?: {
     rentAmountPaid?: number;
+    isFullyPaid?: boolean;
     rentAmount?: number;
     rentType?: string;
     rentStartDate?: string;

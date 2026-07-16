@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 
 interface EditRentRecordModalProps {
   isOpen: boolean;
@@ -74,16 +76,28 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h2 className="modal__title">Edit Rent Record</h2>
-            <p className="modal__desc">Modify payment details for Unit {unitName}</p>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Edit Rent Record"
+      subtitle={`Modify payment details for Unit ${unitName}`}
+      maxWidth={500}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button 
+            className="btn btn--primary" 
+            style={{ flex: 1 }} 
+            onClick={handleSubmit} 
+            disabled={isPending || !formData.amount}
+          >
+            {isPending ? 'Saving...' : 'Update Record'}
+          </button>
         </div>
-
+      }
+    >
         <div className="form-group" style={{ marginTop: '20px' }}>
           <label className="form-label">Amount (₦)</label>
           <input
@@ -128,17 +142,17 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
 
         <div className="form-group">
           <label className="form-label">Payment Method</label>
-          <select
-            className="form-input"
+          <FormSelect
             value={formData.method}
-            onChange={e => setFormData({ ...formData, method: e.target.value })}
-          >
-            <option value="Bank Transfer">Bank Transfer</option>
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-            <option value="Other">Other</option>
-            <option value="PAYSTACK">Paystack</option>
-          </select>
+            onChange={val => setFormData({ ...formData, method: val })}
+            options={[
+              { label: 'Bank Transfer', value: 'Bank Transfer' },
+              { label: 'Cash', value: 'Cash' },
+              { label: 'Card', value: 'Card' },
+              { label: 'Other', value: 'Other' },
+              { label: 'Paystack', value: 'PAYSTACK' }
+            ]}
+          />
         </div>
 
         <div className="form-group">
@@ -152,20 +166,6 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-            Cancel
-          </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ flex: 1 }} 
-            onClick={handleSubmit} 
-            disabled={isPending || !formData.amount}
-          >
-            {isPending ? 'Saving...' : 'Update Record'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

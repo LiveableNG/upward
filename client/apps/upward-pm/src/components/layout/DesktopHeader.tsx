@@ -8,7 +8,7 @@ import { UserAvatar } from '@/components/common/UserAvatar'
 import { useVerificationStatus } from '@/features/pm/hooks/useVerification'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { AlertCircle, Calendar, Sparkles, Check, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NotificationsMenu } from '@/components/common/NotificationsMenu'
@@ -17,11 +17,12 @@ export function DesktopHeader() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { data: verification } = useVerificationStatus()
+  const pathname = usePathname()
 
   if (!user) return null
+  if (pathname !== '/dashboard') return null
 
   const isPending = verification?.status === 'PENDING'
-
 
   const getRelativeTime = (dateStr: string) => {
     const now = new Date()

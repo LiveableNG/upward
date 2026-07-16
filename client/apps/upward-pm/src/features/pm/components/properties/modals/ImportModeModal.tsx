@@ -1,5 +1,6 @@
 import React from 'react'
-import { X, Building, Home, ArrowRight } from 'lucide-react'
+import { Building, Home, ArrowRight } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/common/Toast'
 
@@ -25,13 +26,12 @@ export const ImportModeModal: React.FC<ImportModeModalProps> = ({ isOpen, onClos
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 className="modal__title">Choose Import Mode</h2>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
-        </div>
-
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Choose Import Mode"
+      maxWidth={500}
+    >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <button 
             className="import-mode-card"
@@ -129,7 +129,6 @@ export const ImportModeModal: React.FC<ImportModeModalProps> = ({ isOpen, onClos
             transform: translateX(4px);
           }
         `}</style>
-      </div>
-    </div>
+    </Modal>
   )
 }

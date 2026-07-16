@@ -131,13 +131,13 @@ export function CreatePaymentRequestModal({
       const totalPaidForPeriod = currentPeriodPayments.reduce((sum, p) => sum + p.amount, 0);
       const isFullyPaid = totalPaidForPeriod >= unit.rentAmount;
 
-      let requestAmountForRent = unit.rentAmount;
+      let requestAmountForRent = unit.rentAmount || 0;
       let finalStartDate = calculatedStartDate;
       let finalEndDate = calculatedEndDate;
 
       if (!isFullyPaid && totalPaidForPeriod > 0) {
         // Part-payment detected! Request the balance for the SAME period
-        requestAmountForRent = unit.rentAmount - totalPaidForPeriod;
+        requestAmountForRent = (unit.rentAmount || 0) - totalPaidForPeriod;
       } else if (isFullyPaid) {
         // Fully paid! Advance to the NEXT period
         finalStartDate = new Date(calculatedEndDate);
@@ -148,7 +148,7 @@ export function CreatePaymentRequestModal({
         else finalEndDate.setFullYear(finalEndDate.getFullYear() + 1);
         finalEndDate.setDate(finalEndDate.getDate() - 1);
         
-        requestAmountForRent = unit.rentAmount;
+        requestAmountForRent = unit.rentAmount || 0;
       }
 
       const items = [{ name: 'Rent', amount: requestAmountForRent.toString() }]
@@ -363,7 +363,7 @@ export function CreatePaymentRequestModal({
 
         <div className="form-group">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <label className="form-label" style={{ marginBottom: 0 }}>Breakdown</label>
+            <label className="form-label" style={{ marginBottom: 0 }}>Breakdown <span style={{ color: 'var(--error)' }}>*</span></label>
             {unit.managementFee > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Include Mgt. Fee</span>
@@ -412,7 +412,7 @@ export function CreatePaymentRequestModal({
 
         {lineItems.some(item => item.name === 'Rent') && (
           <div className="form-group" style={{ marginTop: 8, marginBottom: 24 }}>
-            <label className="form-label">Rent Type (Frequency)</label>
+            <label className="form-label">Rent Type (Frequency) <span style={{ color: 'var(--error)' }}>*</span></label>
             <FormSelect
               value={rentType}
               onChange={(val) => setRentType(val)}
@@ -469,7 +469,7 @@ export function CreatePaymentRequestModal({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="form-group">
-            <label className="form-label">Total Amount (₦)</label>
+            <label className="form-label">Total Amount (₦) <span style={{ color: 'var(--error)' }}>*</span></label>
             <input
               type="number"
               value={amount}
@@ -479,7 +479,7 @@ export function CreatePaymentRequestModal({
             />
           </div>
           <div className="form-group">
-            <label className="form-label">Payment Due Date</label>
+            <label className="form-label">Payment Due Date <span style={{ color: 'var(--error)' }}>*</span></label>
             <input
               type="date"
               value={dueDate}
@@ -629,15 +629,24 @@ export function CreatePaymentRequestModal({
 
           {!isEditing && (
             <div className="form-group">
-              <label className="form-label">Follow-up Document</label>
-              <FormSelect
-                value={selectedTemplateUuid}
-                onChange={(val) => setSelectedTemplateUuid(val)}
-                options={[
-                  { label: 'Select template (Optional)', value: '' },
-                  ...templates.map((t: any) => ({ label: t.name, value: t.uuid }))
-                ]}
-              />
+              <label className="form-label">Follow-up Document <span style={{ color: 'var(--error)' }}>*</span></label>
+              {templates.filter((t: any) => t.type !== 'SAMPLE' && t.uuid !== 'system-sample-template').length === 0 ? (
+                <div style={{ padding: '16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No custom templates available.</span>
+                  <a href="/pm/documents" style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--dark)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                    Create Template
+                  </a>
+                </div>
+              ) : (
+                <FormSelect
+                  value={selectedTemplateUuid}
+                  onChange={(val) => setSelectedTemplateUuid(val)}
+                  options={[
+                    { label: 'Select template', value: '' },
+                    ...templates.filter((t: any) => t.type !== 'SAMPLE' && t.uuid !== 'system-sample-template').map((t: any) => ({ label: t.name, value: t.uuid }))
+                  ]}
+                />
+              )}
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsBoolean } from 'class-validator';
 
 export class SendLandlordReportDto {
   @IsEmail()
@@ -17,5 +17,7 @@ export class SendLandlordReportDto {
   @IsNotEmpty()
   content!: string;
 
+  @IsOptional()
+  @IsBoolean()
   includeLetterhead?: boolean;
 }
