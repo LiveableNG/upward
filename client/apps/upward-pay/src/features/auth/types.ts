@@ -14,6 +14,7 @@ export interface UserProfile {
   phone?: string | null
   dateOfBirth?: string
   isIdentityVerified?: boolean
+  savingsWalletEnabled?: boolean
   verificationOn?: boolean
   gender?: string
   address?: string

@@ -102,7 +102,7 @@ export function StepByStep({
 
               <div className="step-by-step__content">
                 <div className="step-by-step__header">
-                  <h2 className="step-by-step__title">{step.title}</h2>
+                  {step.title ? <h2 className="step-by-step__title">{step.title}</h2> : null}
                   {step.subtitle && <p className="step-by-step__subtitle">{step.subtitle}</p>}
                 </div>
                 <div className="step-by-step__body">{step.content}</div>
@@ -143,7 +143,7 @@ export function StepByStep({
         </button>
 
         <div className="step-by-step__header">
-          <h2 className="step-by-step__title">{step.title}</h2>
+          {step.title ? <h2 className="step-by-step__title">{step.title}</h2> : null}
           {step.subtitle && <p className="step-by-step__subtitle">{step.subtitle}</p>}
         </div>
 

@@ -76,6 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
       {!showProfileBlocker &&
         !isSetupRoute &&
+        !pathname?.startsWith('/dashboard/savings/deposit') &&
         !pathname?.startsWith('/dashboard/notifications') &&
         !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
       </div>

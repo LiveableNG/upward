@@ -42,9 +42,13 @@ model upward_user {
   transactions         upward_transaction[]
   refundLogs           upward_refund_log[]
   benefitsSubscriptions upward_benefits_subscription[]
+  wallet               upward_wallet?
+  walletTransactions   upward_wallet_transaction[]
+  savingsGoals         upward_savings_goal[]
   campaignWeekSent     Int                              @default(0)
   unsubscribed         Boolean                          @default(false)
   unsubscribedAt       DateTime?
+  savingsWalletEnabled Boolean                          @default(false)
   communicationLogs    upward_communication_log[]
   whatsappSequenceLogs upward_whatsapp_sequence_log[]
   emailSequenceLogs    upward_email_sequence_log[]

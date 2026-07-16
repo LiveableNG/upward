@@ -29,6 +29,7 @@ export class PrismaUserRepository implements UserRepository {
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
       isIdentityVerified: model.isIdentityVerified,
+      savingsWalletEnabled: model.savingsWalletEnabled,
       isFromWaitlist: model.isFromWaitlist,
       isFromInvite: model.isFromInvite,
       profilePic: model.profilePic,

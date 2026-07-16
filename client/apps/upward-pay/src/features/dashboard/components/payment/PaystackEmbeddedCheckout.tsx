@@ -11,6 +11,7 @@ interface PaystackEmbeddedProps {
   amount: number
   currency?: string
   reference?: string
+  accessCode?: string
   companyName: string
   paymentType?: string
   propertyAddress?: string
@@ -29,6 +30,8 @@ export default function PaystackEmbeddedCheckout({
   email,
   amount,
   currency = 'NGN',
+  reference,
+  accessCode,
   companyName,
   paymentType,
   propertyAddress,
@@ -44,6 +47,16 @@ export default function PaystackEmbeddedCheckout({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (accessCode) {
+      setConfig({
+        type: 'PAYSTACK',
+        accessCode,
+        reference,
+        amount,
+      })
+      return
+    }
+
     async function init() {
       try {
         const description =
@@ -91,7 +104,7 @@ export default function PaystackEmbeddedCheckout({
       }
     }
     init()
-  }, [])
+  }, [accessCode, amount, companyName, lineItems, metadata, paymentRequestUuid, paymentType, propertyAddress, reference])
 
   useEffect(() => {
     if (config?.type === 'PAYSTACK' && config.accessCode) {
