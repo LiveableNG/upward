@@ -1,7 +1,7 @@
-import React from 'react'
-import { X } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal/Modal'
-import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { Calendar, History, User } from 'lucide-react'
+import { useToast } from '@/components/common/Toast'
 
 interface AddRentRecordModalProps {
   isOpen: boolean;
@@ -10,46 +10,44 @@ interface AddRentRecordModalProps {
   isPending: boolean;
   unitName: string;
   rentType?: string;
-  initialPeriodStart?: string;
-  initialPeriodEnd?: string;
   initialAmount?: number;
+  currentUnitStartDate?: string;
+  currentTenantName?: string;
 }
 
-
-
 export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
-  isOpen, onClose, onSave, isPending, unitName, rentType, initialPeriodStart, initialPeriodEnd, initialAmount
+  isOpen, onClose, onSave, isPending, unitName, rentType, initialAmount, currentUnitStartDate, currentTenantName
 }) => {
-  const [formData, setFormData] = React.useState({
+  const [paymentType, setPaymentType] = useState<'CURRENT' | 'PAST'>('CURRENT')
+  const [isForCurrentTenant, setIsForCurrentTenant] = useState(true)
+  const [formData, setFormData] = useState({
     amount: '',
     paymentDate: new Date().toISOString().split('T')[0],
     periodStart: '',
     periodEnd: '',
-    method: 'Bank Transfer',
-    status: 'SUCCESS',
-    notes: ''
+    tenantName: ''
   })
+  const [dateError, setDateError] = useState('')
+  const { error } = useToast()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
+      setPaymentType('CURRENT')
+      setIsForCurrentTenant(true)
       setFormData({
         amount: initialAmount?.toString() || '',
         paymentDate: new Date().toISOString().split('T')[0],
-        periodStart: initialPeriodStart || '',
-        periodEnd: initialPeriodEnd || '',
-        method: 'Bank Transfer',
-        status: 'SUCCESS',
-        notes: ''
+        periodStart: '',
+        periodEnd: '',
+        tenantName: ''
       })
+      setDateError('')
     }
-  }, [isOpen, initialPeriodStart, initialPeriodEnd, initialAmount])
-
+  }, [isOpen, initialAmount])
 
   // Auto-calculate Period End based on Period Start and rentType
-  React.useEffect(() => {
-    // Only auto-calculate if periodEnd is empty OR if periodStart just changed manually
-    if (formData.periodStart && rentType && !formData.periodEnd) {
-
+  useEffect(() => {
+    if (paymentType === 'PAST' && formData.periodStart && rentType) {
       const start = new Date(formData.periodStart)
       if (isNaN(start.getTime())) return
 
@@ -67,14 +65,63 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
         setFormData(prev => ({ ...prev, periodEnd: formattedEnd }))
       }
     }
-  }, [formData.periodStart, rentType])
+  }, [formData.periodStart, rentType, paymentType])
+
+  // Date validation for Past Payments
+  useEffect(() => {
+    if (paymentType === 'PAST' && formData.periodEnd && currentUnitStartDate) {
+      if (new Date(formData.periodEnd) >= new Date(currentUnitStartDate)) {
+        setDateError(`Past payment end date must be strictly before the unit's current rent start date (${new Date(currentUnitStartDate).toLocaleDateString()}).`)
+      } else {
+        setDateError('')
+      }
+    } else {
+      setDateError('')
+    }
+  }, [formData.periodEnd, currentUnitStartDate, paymentType])
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
+    if (!formData.amount || isNaN(parseFloat(formData.amount))) {
+      error('Please enter a valid payment amount.')
+      return
+    }
+
+    if (!formData.paymentDate) {
+      error('Please select a payment date.')
+      return
+    }
+
+    if (paymentType === 'PAST') {
+       if (!formData.periodStart) {
+         error('Please select a period start date for the past payment.')
+         return
+       }
+       if (!formData.periodEnd) {
+         error('Please select a period end date for the past payment.')
+         return
+       }
+       if (dateError) {
+         error(dateError)
+         return
+       }
+       if (!isForCurrentTenant && !formData.tenantName.trim()) {
+         error('Please enter the name of the past tenant.')
+         return
+       }
+    }
+
     onSave({
-      ...formData,
-      amount: parseFloat(formData.amount)
+      paymentType,
+      amount: parseFloat(formData.amount),
+      paymentDate: formData.paymentDate,
+      periodStart: paymentType === 'PAST' ? formData.periodStart : undefined,
+      periodEnd: paymentType === 'PAST' ? formData.periodEnd : undefined,
+      isForCurrentTenant: paymentType === 'CURRENT' ? true : isForCurrentTenant,
+      tenantName: (paymentType === 'PAST' && !isForCurrentTenant) ? formData.tenantName : undefined,
+      method: 'Bank Transfer',
+      status: 'SUCCESS'
     });
   }
 
@@ -84,7 +131,7 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       onClose={onClose}
       title="Add Rent Record"
       subtitle={`Record a payment for Unit ${unitName}`}
-      maxWidth={500}
+      maxWidth={550}
       footer={
         <div style={{ display: 'flex', gap: 12, width: '100%' }}>
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
@@ -94,15 +141,81 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
             className="btn btn--primary"
             style={{ flex: 1 }}
             onClick={handleSubmit}
-            disabled={isPending || !formData.amount}
+            disabled={isPending}
           >
-            {isPending ? 'Saving...' : 'Add Record'}
+            {isPending ? 'Saving...' : 'Save Record'}
           </button>
         </div>
       }
     >
-        <div className="form-group" style={{ marginTop: '20px' }}>
-          <label className="form-label">Amount (₦)</label>
+      <div style={{ marginTop: 24, marginBottom: 24 }}>
+        <label className="form-label" style={{ marginBottom: 12 }}>Payment Type</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div 
+            onClick={() => setPaymentType('CURRENT')}
+            style={{
+              padding: 16,
+              borderRadius: 12,
+              border: paymentType === 'CURRENT' ? '2px solid var(--forest)' : '1px solid var(--border)',
+              background: paymentType === 'CURRENT' ? 'var(--forest-faint)' : 'var(--bg)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              opacity: paymentType === 'CURRENT' ? 1 : 0.6
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: paymentType === 'CURRENT' ? 'var(--forest)' : 'var(--text-muted)' }}>
+                <Calendar size={18} />
+                <span style={{ fontWeight: 600, fontSize: 14 }}>Current / Upcoming</span>
+              </div>
+              <div style={{
+                width: 18, height: 18, borderRadius: '50%',
+                border: paymentType === 'CURRENT' ? '5px solid var(--forest)' : '2px solid var(--border)',
+                background: 'var(--bg)',
+                transition: 'all 0.2s ease'
+              }} />
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>For the active rent cycle</span>
+          </div>
+
+          <div 
+            onClick={() => setPaymentType('PAST')}
+            style={{
+              padding: 16,
+              borderRadius: 12,
+              border: paymentType === 'PAST' ? '2px solid var(--clay)' : '1px solid var(--border)',
+              background: paymentType === 'PAST' ? 'var(--clay-faint)' : 'var(--bg)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              opacity: paymentType === 'PAST' ? 1 : 0.6
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: paymentType === 'PAST' ? 'var(--clay)' : 'var(--text-muted)' }}>
+                <History size={18} />
+                <span style={{ fontWeight: 600, fontSize: 14 }}>Past Payment</span>
+              </div>
+              <div style={{
+                width: 18, height: 18, borderRadius: '50%',
+                border: paymentType === 'PAST' ? '5px solid var(--clay)' : '2px solid var(--border)',
+                background: 'var(--bg)',
+                transition: 'all 0.2s ease'
+              }} />
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>For historical records</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: paymentType === 'PAST' ? 16 : 24 }}>
+        <div className="form-group">
+          <label className="form-label">Amount Paid (₦)</label>
           <input
             type="number"
             className="form-input"
@@ -113,7 +226,7 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
         </div>
 
         <div className="form-group">
-          <label className="form-label">Payment Date</label>
+          <label className="form-label">Date Paid</label>
           <input
             type="date"
             className="form-input"
@@ -121,52 +234,95 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
             onChange={e => setFormData({ ...formData, paymentDate: e.target.value })}
           />
         </div>
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div className="form-group">
-            <label className="form-label">Period Start</label>
-            <input
-              type="date"
-              className="form-input"
-              value={formData.periodStart}
-              onChange={e => setFormData({ ...formData, periodStart: e.target.value })}
-            />
+      {paymentType === 'PAST' && (
+        <div className="animate-fade-in" style={{ padding: 20, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="form-group">
+              <label className="form-label">Period Start</label>
+              <input
+                type="date"
+                className="form-input"
+                value={formData.periodStart}
+                onChange={e => setFormData({ ...formData, periodStart: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Period End</label>
+              <input
+                type="date"
+                className="form-input"
+                value={formData.periodEnd}
+                style={{ borderColor: dateError ? 'var(--error)' : 'var(--border)' }}
+                onChange={e => setFormData({ ...formData, periodEnd: e.target.value })}
+              />
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Period End</label>
-            <input
-              type="date"
-              className="form-input"
-              value={formData.periodEnd}
-              onChange={e => setFormData({ ...formData, periodEnd: e.target.value })}
-            />
+          {dateError && (
+            <div style={{ fontSize: 12, color: 'var(--error)', marginBottom: 16, marginTop: -8 }}>
+              {dateError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+              <User size={14} /> Is this for the current tenant?
+            </label>
+            <div className="toggle-switch">
+              <input 
+                type="checkbox" 
+                id="isForCurrentTenant"
+                checked={isForCurrentTenant}
+                onChange={(e) => setIsForCurrentTenant(e.target.checked)}
+                style={{ display: 'none' }}
+              />
+              <label 
+                htmlFor="isForCurrentTenant"
+                style={{
+                  width: 44,
+                  height: 24,
+                  background: isForCurrentTenant ? 'var(--clay)' : '#cbd5e1',
+                  borderRadius: 12,
+                  display: 'block',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: '0.3s'
+                }}
+              >
+                <div style={{
+                  width: 20,
+                  height: 20,
+                  background: 'white',
+                  borderRadius: '50%',
+                  position: 'absolute',
+                  top: 2,
+                  left: isForCurrentTenant ? 22 : 2,
+                  transition: '0.3s',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                }} />
+              </label>
+            </div>
           </div>
-        </div>
 
-        <div className="form-group">
-          <label className="form-label">Payment Method</label>
-          <FormSelect
-            value={formData.method}
-            onChange={val => setFormData({ ...formData, method: val })}
-            options={[
-              { label: 'Bank Transfer', value: 'Bank Transfer' },
-              { label: 'Cash', value: 'Cash' },
-              { label: 'Card', value: 'Card' },
-              { label: 'Other', value: 'Other' }
-            ]}
-          />
+          {!isForCurrentTenant && (
+            <div className="form-group animate-fade-in">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Enter past tenant's full name"
+                value={formData.tenantName}
+                onChange={e => setFormData({ ...formData, tenantName: e.target.value })}
+              />
+            </div>
+          )}
+          {isForCurrentTenant && currentTenantName && (
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              This record will be attached to <strong>{currentTenantName}</strong>.
+            </div>
+          )}
         </div>
-
-        <div className="form-group">
-          <label className="form-label">Notes (Optional)</label>
-          <textarea
-            className="form-input"
-            style={{ height: '80px', padding: '12px' }}
-            placeholder="Additional details..."
-            value={formData.notes}
-            onChange={e => setFormData({ ...formData, notes: e.target.value })}
-          />
-        </div>
+      )}
 
     </Modal>
   )
