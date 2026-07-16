@@ -283,6 +283,17 @@ import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement
 import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPaymentUseCase, GetPaymentProofUploadUrlUseCase, GetPaymentProofUseCase, DeletePaymentProofUseCase } from './use-cases/payments/manual-payment.use-cases'
 import { GetPendingManualPaymentsUseCase } from './use-cases/payments/get-pending-manual-payments.use-case'
 import { SendRentReceiptEmailUseCase } from './use-cases/payments/send-rent-receipt-email.use-case'
+import {
+  ApplyDailySavingsInterestUseCase,
+  CreateSavingsGoalUseCase,
+  CreditWalletUseCase,
+  EnableSavingsWalletForUserUseCase,
+  FundWalletUseCase,
+  GetSavingsGoalsUseCase,
+  GetWalletUseCase,
+  SetDailySavingsInterestUseCase,
+  UpdateSavingsGoalUseCase,
+} from './use-cases/payments/wallet.use-cases'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
 import { GetContractUploadUrlUseCase } from './use-cases/contracts/get-contract-upload-url.use-case'
@@ -539,6 +550,15 @@ const UseCases = [
   DeletePaymentProofUseCase,
   GetPendingManualPaymentsUseCase,
   SendRentReceiptEmailUseCase,
+  GetWalletUseCase,
+  CreditWalletUseCase,
+  FundWalletUseCase,
+  GetSavingsGoalsUseCase,
+  CreateSavingsGoalUseCase,
+  UpdateSavingsGoalUseCase,
+  EnableSavingsWalletForUserUseCase,
+  SetDailySavingsInterestUseCase,
+  ApplyDailySavingsInterestUseCase,
   ResolvePendingRefundUseCase,
   GetPmUnresolvedTransactionsUseCase,
   RejectCredibilityRequestUseCase,

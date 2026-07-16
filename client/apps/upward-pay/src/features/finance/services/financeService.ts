@@ -2,30 +2,35 @@
 import { request } from '@/lib/api-client'
 
 export async function getWallet() {
-  return request<any>('/wallet', { method: 'GET' })
+  const res = await request<any>('/wallet', { method: 'GET' })
+  return res.data
 }
 
 export async function fundWallet(data: { amount: number }) {
-  return request<any>('/wallet/fund', {
+  const res = await request<any>('/wallet/fund', {
     method: 'POST',
     body: JSON.stringify(data),
   })
+  return res.data
 }
 
 export async function getSavingsGoals() {
-  return request<any[]>('/savings/goals', { method: 'GET' })
+  const res = await request<any>('/savings/goals', { method: 'GET' })
+  return res.data
 }
 
 export async function createSavingsGoal(data: any) {
-  return request<any>('/savings/goals', {
+  const res = await request<any>('/savings/goals', {
     method: 'POST',
     body: JSON.stringify(data),
   })
+  return res.data
 }
 
 export async function updateSavingsGoal(id: string, data: any) {
-  return request<any>(`/savings/goals/${id}`, {
+  const res = await request<any>(`/savings/goals/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
   })
+  return res.data
 }

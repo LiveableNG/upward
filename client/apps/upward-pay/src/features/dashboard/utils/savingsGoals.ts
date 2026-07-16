@@ -39,7 +39,7 @@ export function normalizeSavingsGoal(goal: any, index: number) {
   const isHome = goalType === 'home'
 
   return {
-    id: goal.id || goal.uuid || String(index),
+    id: goal.uuid || goal.id || String(index),
     name,
     target,
     current,

@@ -60,6 +60,7 @@ import { ManualPaymentsController } from './controllers/manual-payments.controll
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 import { PublicDocumentController } from './public/public-document.controller'
+import { WalletController } from './user/wallet.controller'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
@@ -121,6 +122,7 @@ import { PublicDocumentController } from './public/public-document.controller'
     AdminWhatsappSequenceController,
     AdminEmailSequenceController,
     PublicDocumentController,
+    WalletController,
   ],
 })
 export class HttpModule {}
