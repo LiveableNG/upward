@@ -1,7 +1,9 @@
 name: Test EC2 Connection
 
 on:
-  workflow_dispatch: {} # run manually from the Actions tab
+  push:
+    branches: [production]
+  workflow_dispatch: {} # also run manually from the Actions tab
 
 jobs:
   test-connection:
