@@ -47,14 +47,18 @@ jobs:
         # It builds packages in dependency order: shared-types → utils → apps.
         run: pnpm run build
 
-  deploy:
+  trigger-deploy:
     name: Trigger EC2 deploy
     needs: build
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/production'
     runs-on: ubuntu-latest
+    outputs:
+      triggered_at: ${{ steps.trigger.outputs.triggered_at }}
+      status_url: ${{ steps.trigger.outputs.status_url }}
 
     steps:
       - name: Call deploy-hook
+        id: trigger
         env:
           DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
           DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET_UPWARD }}
@@ -72,7 +76,6 @@ jobs:
           BODY=""
           TS="$(date +%s)"
 
-          # Pipe directly — bash $(...) strips trailing newlines and breaks HMAC
           SIG_HEX="$(printf '%s\n%s\n%s\n%s' "$METHOD" "$PATH_ONLY" "$TS" "$BODY" \
             | openssl dgst -sha256 -hmac "$DEPLOY_SECRET" | awk '{print $NF}')"
           SIG="sha256=${SIG_HEX}"
@@ -84,6 +87,84 @@ jobs:
             -H "X-Deploy-Timestamp: ${TS}" \
             -H "X-Deploy-Signature: ${SIG}" \
             --data-binary "${BODY}"
+          echo ""
 
-          echo "Deploy accepted (202). Poll status with:"
-          echo "  curl -s ${BASE}/status/upward"
+          echo "triggered_at=${TS}" >> "$GITHUB_OUTPUT"
+          echo "status_url=${BASE}/status/upward" >> "$GITHUB_OUTPUT"
+          echo "Deploy accepted (202). Waiting job will poll status."
+
+  wait-deploy:
+    name: Wait for deploy result
+    needs: trigger-deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Poll deploy status until success or failed
+        env:
+          STATUS_URL: ${{ needs.trigger-deploy.outputs.status_url }}
+          TRIGGERED_AT: ${{ needs.trigger-deploy.outputs.triggered_at }}
+          POLL_TIMEOUT_SEC: '1200'
+          POLL_INTERVAL_SEC: '10'
+        run: |
+          set -euo pipefail
+
+          if [ -z "${STATUS_URL:-}" ] || [ -z "${TRIGGERED_AT:-}" ]; then
+            echo "::error::Missing status_url or triggered_at from trigger job"
+            exit 1
+          fi
+
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y && sudo apt-get install -y jq
+          fi
+
+          echo "Polling ${STATUS_URL} (triggered_at=${TRIGGERED_AT})"
+          deadline=$((TRIGGERED_AT + POLL_TIMEOUT_SEC))
+
+          while true; do
+            now=$(date +%s)
+            if [ "$now" -ge "$deadline" ]; then
+              echo "::error::Timed out after ${POLL_TIMEOUT_SEC}s waiting for deploy"
+              curl -sS "$STATUS_URL" || true
+              exit 1
+            fi
+
+            payload="$(curl -fsS "$STATUS_URL")"
+            state="$(echo "$payload" | jq -r '.status.state // empty')"
+            started_at="$(echo "$payload" | jq -r '.status.startedAt // empty')"
+            exit_code="$(echo "$payload" | jq -r '.status.exitCode // empty')"
+            error="$(echo "$payload" | jq -r '.status.error // empty')"
+
+            started_epoch=0
+            if [ -n "$started_at" ] && [ "$started_at" != "null" ]; then
+              started_epoch="$(date -u -d "$started_at" +%s 2>/dev/null || echo 0)"
+            fi
+
+            # Ignore leftover status from a previous deploy
+            is_current=0
+            if [ "$started_epoch" -ge $((TRIGGERED_AT - 5)) ]; then
+              is_current=1
+            fi
+
+            echo "[$(date -u +%H:%M:%S)] state=${state:-none} current=${is_current} exit=${exit_code:--} error=${error:-}"
+
+            if [ "$is_current" -eq 1 ]; then
+              case "$state" in
+                running)
+                  ;;
+                success)
+                  echo "$payload" | jq .
+                  echo "Deploy succeeded"
+                  exit 0
+                  ;;
+                failed)
+                  echo "$payload" | jq .
+                  echo "::error::Deploy failed (exitCode=${exit_code}, error=${error})"
+                  echo "Logs on EC2: tail -n 200 /var/log/deploy/upward.log"
+                  exit 1
+                  ;;
+              esac
+            fi
+
+            sleep "$POLL_INTERVAL_SEC"
+          done
