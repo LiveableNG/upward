@@ -7,6 +7,7 @@ import { UnifiedReminderService } from '../shared/infrastructure/common/reminder
 import { RentReminderWorkflowUseCase } from '../application/use-cases/notifications/rent-reminder-workflow.use-case'
 import { ProcessHourlySettlementsUseCase } from '../application/use-cases/payments/settlement-cron.use-case'
 import { QueueDailySequencesUseCase } from '../application/use-cases/sequence/queue-daily-sequences.use-case'
+import { ApplyDailySavingsInterestUseCase } from '../application/use-cases/payments/wallet.use-cases'
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
 
 /**
@@ -32,6 +33,7 @@ export class ScheduleService implements OnModuleInit {
     private readonly rentReminderUseCase: RentReminderWorkflowUseCase,
     private readonly processHourlySettlementsUseCase: ProcessHourlySettlementsUseCase,
     private readonly queueDailySequencesUseCase: QueueDailySequencesUseCase,
+    private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
   ) {
     this.timeZone =
       this.config.get<string>('SCHEDULE_TIMEZONE') ||
@@ -87,6 +89,13 @@ export class ScheduleService implements OnModuleInit {
       .dailyAt('09:00')
       .withoutOverlapping()
       .description('PM daily rent digests')
+
+    s.call('savingsInterest', async () => {
+      await this.applyDailySavingsInterestUseCase.execute()
+    })
+      .dailyAt('00:00')
+      .withoutOverlapping()
+      .description('Apply daily savings interest')
 
     return s
   }
