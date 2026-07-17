@@ -1,6 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { Cron, CronExpression } from '@nestjs/schedule'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 
@@ -14,14 +13,9 @@ export class RentReminderWorkflowUseCase {
     private readonly notificationService: NotificationService,
   ) {}
 
-  // Run at 8:00 AM every day
-  @Cron(CronExpression.EVERY_DAY_AT_8AM)
-  async handleCron() {
-    this.logger.log('[Workflow] Starting daily rent reminder check...')
-    await this.execute()
-  }
-
+  /** Invoked by ScheduleService (Kernel) daily at 08:00. */
   async execute() {
+    this.logger.log('[Workflow] Starting daily rent reminder check...')
     const properties = await this.prisma.upward_user_property.findMany({
       where: {
         rentEndDate: { not: null },

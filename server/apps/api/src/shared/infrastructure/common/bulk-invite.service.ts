@@ -1,5 +1,4 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { BULK_INVITE_REPOSITORY, IBulkInviteRepository, BulkInvite } from '../../../domains/pm/IBulkInviteRepository';
 import { InviteTenantUseCase } from '../../../application/pm/use-cases/tenants/invite-tenant.use-case';
 import { PM_TENANT_REPOSITORY, ITenantRepository } from '../../../domains/pm/IPropertyRepository';
@@ -17,7 +16,7 @@ export class BulkInviteService {
     private readonly inviteTenantUseCase: InviteTenantUseCase,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  /** Invoked by ScheduleService (Kernel) every minute. */
   async processPendingInvites() {
     if (this.isProcessing) return;
     this.isProcessing = true;
