@@ -399,7 +399,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 value={activeTenants} 
                 icon={Users} 
                 tooltip="Tenants who have successfully onboarded."
-                onClick={() => router.push('/properties?tab=units&tenantFilter=onboarded')}
+                onClick={() => router.push('/tenants?statusFilter=on_upward')}
               />
               <StatCard 
                 label="Pending Invites" 
@@ -407,7 +407,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 icon={UserX}
                 variant="warning"
                 tooltip="Tenants invited who haven't accepted yet. Remind them!"
-                onClick={() => router.push('/properties?tab=units&tenantFilter=pending')}
+                onClick={() => router.push('/tenants?statusFilter=pending')}
               />
               <StatCard 
                 label="Pending Balance" 

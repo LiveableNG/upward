@@ -11,13 +11,15 @@ import {
   Filter,
   Mail,
   Edit,
-  MessageCircle
+  MessageCircle,
+  Users
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { downloadBlob } from '@/lib/download-helper'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { useRouter } from 'next/navigation'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -28,6 +30,7 @@ interface DocumentManagementViewProps {
 }
 
 export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate, onEditTemplate }: DocumentManagementViewProps) {
+  const router = useRouter()
   const { documents, templates, isLoading, generatePdf } = useDocuments()
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
@@ -226,15 +229,24 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   if (viewMode === 'all_templates') {
     return (
       <div className="document-management animate-fade-in">
-        <header style={{ marginBottom: 40 }}>
+        <header style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <button
+              onClick={() => setViewMode('dashboard')}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+            </button>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
+          </div>
           <button
-            onClick={() => setViewMode('dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => router.push('/documents/bulk')}
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+            <Users size={20} /> Send Bulk Document
           </button>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
@@ -272,34 +284,12 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button
-            onClick={() => document.getElementById('word-upload')?.click()}
+            onClick={() => router.push('/documents/bulk')}
             className="btn btn--secondary"
             style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Download size={20} /> Import Word Doc
+            <Users size={20} /> Send Bulk Document
           </button>
-          <input
-            id="word-upload"
-            type="file"
-            accept=".docx"
-            style={{ display: 'none' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-
-              try {
-                const arrayBuffer = await file.arrayBuffer()
-                const mammoth = (await import('mammoth')).default
-                const result = await mammoth.convertToHtml({ arrayBuffer })
-                onSelectTemplate({
-                  name: file.name.replace('.docx', ''),
-                  content: result.value
-                })
-              } catch (err) {
-                console.error('Failed to convert word doc:', err)
-              }
-            }}
-          />
           <button
             onClick={onCreateTemplate}
             className="btn btn--primary"

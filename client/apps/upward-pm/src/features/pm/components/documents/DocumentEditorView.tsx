@@ -95,7 +95,8 @@ export function DocumentEditorView({
     name: initialRecipient?.name || '', 
     email: initialRecipient?.email || '' 
   })
-  const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email' | 'sms' | 'whatsapp'>(initialRecipient?.deliveryMode || 'pdf')
+  const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email' | 'sms' | 'whatsapp'>(initialRecipient?.deliveryMode || 'email')
+  const [emailFormat, setEmailFormat] = useState<'pdf' | 'text'>('pdf')
   const [isSending, setIsSending] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
@@ -461,13 +462,24 @@ export function DocumentEditorView({
           })
           
           if (deliveryMode === 'whatsapp') {
-            const phone = selectedTenant?.phone ? selectedTenant.phone.replace(/[^0-9+]/g, '') : '';
-            const pdfUrl = (docResp as any)?.pdfUrl || '';
-            const message = encodeURIComponent(`Hello ${recipientName},\n\nPlease view your document (${subject}) here:\n${pdfUrl}\n\nThank you.`);
-            
-            // Open WhatsApp deep link with the S3 URL
-            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-            success('Document logged. WhatsApp opened with document link.');
+            try {
+              const blob = await generatePdf.mutateAsync({ 
+                content, 
+                tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
+                recipientName: recipientName || undefined,
+                includeLetterhead: hasLetterhead ? includeLetterhead : false
+              });
+              // @ts-ignore
+              await downloadBlob(blob, `${subject || 'document'}.pdf`);
+              
+              const phone = selectedTenant?.phone ? selectedTenant.phone.replace(/[^0-9+]/g, '') : '';
+              const message = encodeURIComponent(`Hello ${recipientName},\n\nPlease find your document (${subject}) attached.\n\nThank you.`);
+              
+              window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+              success('Document downloaded. WhatsApp opened to attach it.');
+            } catch (err) {
+              error('Failed to generate PDF for WhatsApp');
+            }
           } else {
             success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
           }
@@ -570,52 +582,15 @@ export function DocumentEditorView({
                 ) : (
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button 
-                      onClick={() => setDeliveryMode('pdf')}
-                      disabled={selectedTenant && !selectedTenant.email}
-                      style={{ 
-                        flex: 1, 
-                        padding: '12px', 
-                        borderRadius: 12, 
-                        border: `1px solid ${deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
-                        background: deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
-                        color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
-                        opacity: (selectedTenant && !selectedTenant.email) ? 0.5 : 1,
-                        cursor: (selectedTenant && !selectedTenant.email) ? 'not-allowed' : 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        position: 'relative'
-                      }}
-                    >
-                      <div style={{ 
-                          position: 'absolute', 
-                          top: 8, 
-                          left: 8, 
-                          width: 16, 
-                          height: 16, 
-                          borderRadius: '50%', 
-                          border: `1.5px solid ${deliveryMode === 'pdf' ? 'var(--dark)' : 'var(--border)'}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                       }}>
-                          {deliveryMode === 'pdf' && <Check size={10} color="var(--dark)" strokeWidth={3} />}
-                       </div>
-                      <Download size={18} /> <span style={{ whiteSpace: 'nowrap' }}>PDF Attachment</span>
-                    </button>
-                    <button 
                       onClick={() => setDeliveryMode('email')}
                       disabled={selectedTenant && !selectedTenant.email}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
                         borderRadius: 12, 
-                        border: `1px solid ${deliveryMode === 'email' ? 'var(--clay)' : 'var(--border)'}`,
-                        background: deliveryMode === 'email' ? 'var(--clay-faint)' : 'white',
-                        color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
+                        border: `1px solid ${deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                        background: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
+                        color: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
                         opacity: (selectedTenant && !selectedTenant.email) ? 0.5 : 1,
                         cursor: (selectedTenant && !selectedTenant.email) ? 'not-allowed' : 'pointer',
                         fontSize: 13,
@@ -634,15 +609,16 @@ export function DocumentEditorView({
                           width: 16, 
                           height: 16, 
                           borderRadius: '50%', 
-                          border: `1.5px solid ${deliveryMode === 'email' ? 'var(--dark)' : 'var(--border)'}`,
+                          border: `1.5px solid ${deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--dark)' : 'var(--border)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
                        }}>
-                          {deliveryMode === 'email' && <Check size={10} color="var(--dark)" strokeWidth={3} />}
+                          {(deliveryMode === 'email' || deliveryMode === 'pdf') && <Check size={10} color="var(--dark)" strokeWidth={3} />}
                        </div>
-                      <Mail size={18} /> <span style={{ whiteSpace: 'nowrap' }}>Email Body</span>
+                      <Mail size={18} /> <span style={{ whiteSpace: 'nowrap' }}>Email</span>
                     </button>
+
                     <button 
                       onClick={() => setDeliveryMode('whatsapp')}
                       disabled={selectedTenant && !selectedTenant.phone}
@@ -680,6 +656,69 @@ export function DocumentEditorView({
                        </div>
                       <MessageCircle size={18} /> <span style={{ whiteSpace: 'nowrap' }}>WhatsApp</span>
                     </button>
+                  </div>
+                )}
+                {(deliveryMode === 'email' || deliveryMode === 'pdf') && !isVaultMode && (
+                  <div style={{ marginTop: 12, display: 'flex', background: 'var(--bg)', borderRadius: 12, padding: 4 }}>
+                    <button
+                      onClick={() => { setEmailFormat('pdf'); setDeliveryMode('pdf'); }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        border: 'none',
+                        background: deliveryMode === 'pdf' ? 'white' : 'transparent',
+                        color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
+                        boxShadow: deliveryMode === 'pdf' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <Download size={14} /> PDF Attachment
+                    </button>
+                    <button
+                      onClick={() => { setEmailFormat('text'); setDeliveryMode('email'); }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        border: 'none',
+                        background: deliveryMode === 'email' ? 'white' : 'transparent',
+                        color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
+                        boxShadow: deliveryMode === 'email' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <Mail size={14} /> Email Text
+                    </button>
+                  </div>
+                )}
+                {deliveryMode === 'whatsapp' && (
+                  <div style={{
+                    marginTop: 12,
+                    padding: '12px 16px',
+                    background: '#f0fdf4',
+                    borderRadius: 12,
+                    border: '1px solid #bbf7d0',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10
+                  }}>
+                    <MessageCircle size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <p style={{ margin: 0, fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
+                      <strong>How it works:</strong> Clicking "{paymentContext ? 'Request Payment' : 'Send Document'}" will download the PDF locally and open a WhatsApp chat with the tenant's number. You can then attach the downloaded PDF to the chat.
+                    </p>
                   </div>
                 )}
              </div>
@@ -805,7 +844,7 @@ export function DocumentEditorView({
                 />
              </div>
 
-             {hasLetterhead && deliveryMode === 'pdf' && (
+             {hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') && (
                <div 
                  onClick={() => setIncludeLetterhead(!includeLetterhead)}
                  style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
