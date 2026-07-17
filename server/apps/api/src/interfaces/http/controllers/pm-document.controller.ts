@@ -58,7 +58,8 @@ export class PmDocumentController {
   @Post('send-bulk')
   async sendBulkDocument(@Request() req: any, @Body() data: BulkSendDocumentDto) {
     const pmId = await this.getPmId(req);
-    return this.sendBulkDocumentUseCase.execute(pmId, data);
+    const pmUuid = req.user?.sub;
+    return this.sendBulkDocumentUseCase.execute(pmId, pmUuid, data);
   }
 
   @Post('send-to-vault')

@@ -20,6 +20,9 @@ import { DataTable, Column } from '@/components/common/DataTable'
 import { downloadBlob } from '@/lib/download-helper'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 import { useRouter } from 'next/navigation'
+import { useSocket } from '@/hooks/useSocket'
+import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/common/Toast'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -32,6 +35,25 @@ interface DocumentManagementViewProps {
 export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate, onEditTemplate }: DocumentManagementViewProps) {
   const router = useRouter()
   const { documents, templates, isLoading, generatePdf } = useDocuments()
+  const { success } = useToast()
+  const queryClient = useQueryClient()
+  const socket = useSocket()
+  
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleBulkDispatchCompleted = (payload: any) => {
+      success(`Bulk dispatch completed: ${payload.successful} sent, ${payload.failed} failed.`);
+      queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
+    };
+
+    socket.on('bulk_dispatch_completed', handleBulkDispatchCompleted);
+
+    return () => {
+      socket.off('bulk_dispatch_completed', handleBulkDispatchCompleted);
+    };
+  }, [socket, queryClient, success]);
+
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
   const [previewDocument, setPreviewDocument] = useState<any>(null)
@@ -151,18 +173,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
     },
     {
       header: 'Status',
-      render: () => (
-        <span style={{
-          padding: '4px 12px',
-          borderRadius: 100,
-          fontSize: 12,
-          fontWeight: 600,
-          background: 'var(--forest-faint)',
-          color: 'var(--forest)'
-        }}>
-          Sent
-        </span>
-      )
+      render: (doc) => {
+        const isFailed = doc.status === 'FAILED';
+        return (
+          <span style={{
+            padding: '4px 12px',
+            borderRadius: 100,
+            fontSize: 12,
+            fontWeight: 600,
+            background: isFailed ? '#fee2e2' : 'var(--forest-faint)',
+            color: isFailed ? '#dc2626' : 'var(--forest)'
+          }}>
+            {isFailed ? 'Failed' : 'Sent'}
+          </span>
+        )
+      }
     },
     {
       header: 'Action',

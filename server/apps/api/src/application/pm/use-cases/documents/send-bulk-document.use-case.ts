@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendDocumentUseCase, SendDocumentDto } from './send-document.use-case';
 
 export interface BulkSendDocumentDto {
@@ -23,12 +24,13 @@ export class SendBulkDocumentUseCase {
 
   constructor(
     private readonly sendDocumentUseCase: SendDocumentUseCase,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(actorPmId: number, data: BulkSendDocumentDto) {
+  async execute(actorPmId: number, actorPmUuid: string, data: BulkSendDocumentDto) {
     this.logger.log(`Initiating bulk send for ${data.recipients.length} recipients...`);
 
-    this.processBulkDispatch(actorPmId, data);
+    this.processBulkDispatch(actorPmId, actorPmUuid, data);
 
     return {
       message: `Bulk dispatch initiated for ${data.recipients.length} recipients.`,
@@ -36,7 +38,7 @@ export class SendBulkDocumentUseCase {
     };
   }
 
-  private async processBulkDispatch(actorPmId: number, data: BulkSendDocumentDto) {
+  private async processBulkDispatch(actorPmId: number, actorPmUuid: string, data: BulkSendDocumentDto) {
     const results = await Promise.allSettled(
       data.recipients.map(async (recipient) => {
         const dto: SendDocumentDto = {
@@ -71,6 +73,14 @@ export class SendBulkDocumentUseCase {
       if (r.status === 'rejected') {
         this.logger.error(`Failed to send document to recipient at index ${index}`, r.reason);
       }
+    });
+
+    this.eventEmitter.emit('pm.bulk_dispatch.completed', {
+      pmUuid: actorPmUuid,
+      successful,
+      failed,
+      total: results.length,
+      timestamp: new Date()
     });
   }
 }
