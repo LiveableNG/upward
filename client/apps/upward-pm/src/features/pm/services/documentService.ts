@@ -49,6 +49,24 @@ export const documentService = {
     return api.post('/pm/documents/send', data);
   },
 
+  sendBulkDocument: async (data: {
+    subject: string;
+    content: string;
+    documentType: string;
+    fromEmail?: string;
+    includeLetterhead?: boolean;
+    deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
+    recipients: Array<{
+      uuid: string;
+      type: 'TENANT' | 'LANDLORD';
+      email: string;
+      phone?: string;
+      name: string;
+    }>;
+  }) => {
+    return api.post('/pm/documents/send-bulk', data);
+  },
+
   generatePdf: async (content: string, tenantUuid?: string, unitUuid?: string, recipientName?: string, includeLetterhead?: boolean) => {
     return api.post<Blob>('/pm/documents/generate-pdf', { content, tenantUuid, unitUuid, recipientName, includeLetterhead });
   },

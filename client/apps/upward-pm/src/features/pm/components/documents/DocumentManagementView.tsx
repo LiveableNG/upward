@@ -106,7 +106,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
 
   // Group templates by type
   const groupedTemplates = templates.reduce((acc: any, template: any) => {
-    if (template.type === 'SAMPLE') return acc; // Hide sample templates from grouped view
     
     const type = template.type || 'CUSTOM';
     if (!acc[type]) acc[type] = [];

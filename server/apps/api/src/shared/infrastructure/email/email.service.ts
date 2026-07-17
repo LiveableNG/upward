@@ -304,13 +304,15 @@ export class EmailService {
     return { success, mailgunId, error: lastError }
   }
 
-  async sendGenericEmail(email: string, subject: string, content: string, userId?: string) {
+  async sendGenericEmail(email: string, subject: string, content: string, userId?: string, pmUuid?: string, fromOverride?: string) {
     const result = await this.sendEmailWithRetry({
       userId,
+      pmUuid,
       email,
       subject,
       html: content,
       type: 'BULK',
+      fromOverride,
     })
     if (!result.success) {
       throw new Error(result.error || 'Failed to send generic email')

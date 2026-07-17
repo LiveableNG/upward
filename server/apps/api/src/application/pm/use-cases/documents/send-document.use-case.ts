@@ -23,6 +23,7 @@ export interface SendDocumentDto {
   tenantUuid?: string;
   unitUuid?: string;
   subject: string;
+  fromEmail?: string;
   content: string;
   documentType: string;
   recipientName: string;
@@ -394,11 +395,13 @@ export class SendDocumentUseCase {
       
       if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
         await this.emailService.sendEmailWithRetry({
-          userId: pm?.uuid || '',
+          userId: tenant?.uuid || '',
+          pmUuid: pm?.uuid,
           email: data.recipientEmail,
           subject: data.subject,
           html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
           type: 'DOCUMENT',
+          fromOverride: data.fromEmail,
           attachments: [
             {
               filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
@@ -413,7 +416,9 @@ export class SendDocumentUseCase {
           data.recipientEmail,
           data.subject,
           content,
-          pm?.uuid
+          tenant?.uuid,
+          pm?.uuid,
+          data.fromEmail
         );
       }
     }

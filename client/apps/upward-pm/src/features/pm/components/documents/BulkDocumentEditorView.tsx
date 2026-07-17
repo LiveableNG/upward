@@ -26,7 +26,7 @@ import { useDocuments, useVaultActions } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Modal } from '@/components/ui/Modal/Modal'
-import { BulkRecipientSelectModal } from './BulkRecipientSelectModal'
+import { BulkRecipientSelectModal, Recipient } from './BulkRecipientSelectModal'
 import { useCreatePaymentRequest } from '../../hooks/usePayments'
 import { CreditCard } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -37,12 +37,7 @@ interface BulkDocumentEditorViewProps {
   initialContent?: string
   initialSubject?: string
   initialTemplate?: any
-  initialRecipients?: Array<{
-    uuid: string
-    name: string
-    email: string
-    phone?: string
-  }>
+  initialRecipients?: Recipient[]
   onBack: () => void
 }
 
@@ -55,12 +50,14 @@ export function BulkDocumentEditorView({
 }: BulkDocumentEditorViewProps) {
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
-  const { sendDocument, generatePdf, templates = [] } = useDocuments()
+  const { sendBulkDocument, generatePdf, templates = [] } = useDocuments()
   const { sendTemplateToVault } = useVaultActions()
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
   
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
-  const [subject, setSubject] = useState(initialTemplate?.name || initialSubject)
+  const { user } = useAuth()
+  const [fromEmail, setFromEmail] = useState(user?.email || 'noreply@goodtenants.io')
+  const [subject, setSubject] = useState(initialTemplate?.subject || initialTemplate?.name || initialSubject)
   const [recipients, setRecipients] = useState(initialRecipients)
   const [deliveryMode, setDeliveryMode] = useState<'email' | 'sms' | 'whatsapp'>('email')
   const [emailFormat, setEmailFormat] = useState<'pdf' | 'text'>('pdf')
@@ -71,7 +68,6 @@ export function BulkDocumentEditorView({
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(!initialContent && !initialTemplate?.content)
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
   const [tempEmail, setTempEmail] = useState('')
-  const { user } = useAuth()
   const { updateTenant } = useTenantActions()
   const { data: letterheads = [] } = useQuery<any[]>({
     queryKey: ['letterheads'],
@@ -83,7 +79,8 @@ export function BulkDocumentEditorView({
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
 
-  const isSampleTemplate = false
+  const [currentTemplate, setCurrentTemplate] = useState<any>(initialTemplate)
+  const isSystemTemplate = currentTemplate?.type === 'SYSTEM' || currentTemplate?.isSystem
   const [previewMode, setPreviewMode] = useState(false)
 
   const validRecipients = React.useMemo(() => {
@@ -327,6 +324,9 @@ export function BulkDocumentEditorView({
   }
 
   const handleSendDocument = async () => {
+    if (isSystemTemplate && !fromEmail.trim()) {
+      return error('From email cannot be empty for system templates')
+    }
     if (!subject) {
       error("Please enter a document subject")
       return
@@ -344,25 +344,30 @@ export function BulkDocumentEditorView({
       // For WhatsApp, we download the PDF and show instructions
       return handleDownloadPdf()
     }
-
     setIsSending(true)
     try {
-      // Simulate sending in bulk for now
-      for (const rec of validRecipients) {
-        await sendDocument.mutateAsync({
-          subject,
-          content,
-          recipientName: rec.name,
-          recipientEmail: rec.email,
-          tenantUuid: rec.uuid,
-          includeLetterhead,
-          deliveryMode: deliveryMode === 'email' && emailFormat === 'pdf' ? 'pdf' : deliveryMode,
-        })
-      }
-      success(`Document sent to ${recipients.length} recipients successfully via ${deliveryMode.toUpperCase()}`)
-      onBack()
+      await sendBulkDocument.mutateAsync({
+        fromEmail: isSystemTemplate ? fromEmail : undefined,
+        subject,
+        content,
+        documentType: 'PDF',
+        includeLetterhead: hasLetterhead ? includeLetterhead : false,
+        deliveryChannel: deliveryMode === 'sms' ? 'SMS' : 'EMAIL',
+        recipients: validRecipients.map(r => ({
+          uuid: r.uuid,
+          type: r.type,
+          email: r.email,
+          phone: r.phone,
+          name: r.name
+        }))
+      })
+
+      success(`Document dispatch initiated for ${validRecipients.length} recipients.`)
+      setTimeout(() => {
+        onBack()
+      }, 1500)
     } catch (err: any) {
-      error(err.message || 'Failed to send documents')
+      error(err.response?.data?.message || 'Failed to send bulk documents')
     } finally {
       setIsSending(false)
     }
@@ -401,8 +406,7 @@ export function BulkDocumentEditorView({
             </h1>
           </div>
         </div>
-        {!isSampleTemplate && (
-          <div style={{ display: 'flex', gap: 12 }}>
+        <div className="settings-panel animate-slide-left" style={{ display: 'flex', gap: 12 }}>
             {deliveryMode !== 'whatsapp' ? (
               <button 
                 className="btn btn--primary" 
@@ -422,8 +426,7 @@ export function BulkDocumentEditorView({
                 {isDownloading ? <><Loader2 size={18} className="animate-spin" /> Generating PDF...</> : <><Download size={18} /> Generate PDF for WhatsApp</>}
               </button>
             )}
-          </div>
-        )}
+        </div>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: showSettings ? '400px 1fr' : '1fr', gap: 40, alignItems: 'start', transition: 'all 0.3s' }}>
@@ -570,6 +573,18 @@ export function BulkDocumentEditorView({
               )}
             </div>
 
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>From</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  value={isSystemTemplate ? fromEmail : 'noreply@goodtenants.io'} 
+                  onChange={(e) => setFromEmail(e.target.value)}
+                  disabled={!isSystemTemplate}
+                  style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
+                />
+              </div>
+
              <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Subject</label>
                 <input 
@@ -615,12 +630,12 @@ export function BulkDocumentEditorView({
 
           <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
             <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              {isSampleTemplate 
-                ? "This is a read-only sample template. It demonstrates how dynamic placeholders like [Tenant Name] or [RentAmount] are automatically filled with real data when sending actual documents." 
-                : "Use the professional editor to format your document. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+              {isSystemTemplate 
+                ? "This is a read-only system template provided by Upward. You can send it directly or include your custom letterhead."
+                : "Double check your document content and recipient details before sending. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
               }
-            </p>
+              </p>
           </div>
         </div>
         )}
@@ -629,7 +644,6 @@ export function BulkDocumentEditorView({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              {!isSampleTemplate && (
                 <button
                   onClick={() => setShowSettings(!showSettings)}
                   style={{
@@ -650,9 +664,8 @@ export function BulkDocumentEditorView({
                   <PanelLeft size={16} />
                   {showSettings ? 'Hide Settings' : 'Show Settings'}
                 </button>
-              )}
               <div style={{ 
-                display: isSampleTemplate ? 'none' : 'inline-flex', 
+                display: 'inline-flex',
                 background: 'var(--ivory-dim)', 
                 padding: 4, 
                 borderRadius: 12,
@@ -763,7 +776,7 @@ export function BulkDocumentEditorView({
           ) : (
             <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
               <RichTextEditor
-                disabled={isSampleTemplate}
+                disabled={isSystemTemplate}
                 value={content}
                 onChange={(newContent) => setContent(newContent)}
                 height="100%"
@@ -791,7 +804,15 @@ export function BulkDocumentEditorView({
         subtitle="Review formatting and custom letterhead overlay."
         maxWidth={1000}
         footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', gap: 12 }}>
+              <button 
+                onClick={onBack}
+                className="btn btn--secondary"
+                disabled={isSending || isDownloading}
+                style={{ borderRadius: 100, padding: '10px 24px', flex: 1, justifyContent: 'center' }}
+              >
+                Cancel
+              </button>
               <button 
                 onClick={() => setIsPreviewingPdf(false)}
                 className="btn btn--primary" 
@@ -836,8 +857,9 @@ export function BulkDocumentEditorView({
               <div 
                 key={t.uuid}
                 onClick={() => {
+                  setCurrentTemplate(t)
                   setContent(t.content)
-                  if (t.name) setSubject(t.name)
+                  setSubject(t.subject || t.name)
                   setIsTemplateModalOpen(false)
                 }}
                 style={{ 

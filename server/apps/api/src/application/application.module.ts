@@ -165,6 +165,7 @@ import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents
 import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
 import { SendDocumentUseCase } from './pm/use-cases/documents/send-document.use-case'
+import { SendBulkDocumentUseCase } from './pm/use-cases/documents/send-bulk-document.use-case'
 import { GenerateDocumentPdfUseCase } from './pm/use-cases/documents/generate-document-pdf.use-case'
 import { SendToTenantVaultUseCase } from './pm/use-cases/documents/send-to-tenant-vault.use-case'
 import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
@@ -505,6 +506,7 @@ const UseCases = [
   GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,
   SendDocumentUseCase,
+  SendBulkDocumentUseCase,
   GenerateDocumentPdfUseCase,
   SendToTenantVaultUseCase,
   GetPendingCredibilityRequestsUseCase,

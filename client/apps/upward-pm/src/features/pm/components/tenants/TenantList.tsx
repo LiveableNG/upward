@@ -18,6 +18,7 @@ import { formatTenantName } from '@/lib/utils'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
 import { UserPlus, ChevronDown } from 'lucide-react'
+import { BulkInviteModal } from './modals/BulkInviteModal'
 
 const TenantInviteAction = ({ tenant, inviteTenant }: { tenant: any, inviteTenant: any }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -152,6 +153,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
   const [statusFilter, setStatusFilter] = useState<'all' | 'on_upward' | 'pending'>(initialStatusFilter as any)
   const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set())
   const [bulkDeliveryChannel, setBulkDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
+  const [showBulkInviteModal, setShowBulkInviteModal] = useState(false)
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t: any) => {
@@ -357,6 +359,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
   ]
 
   return (
+    <>
     <div className="tenants-view animate-fade-in" style={{ padding: '24px 0' }}>
       <PageHeader
         title="Tenants Directory"
@@ -366,7 +369,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
             {selectedTenants.size > 0 && (
               <button
                 className="btn btn--outline"
-                onClick={() => handleBulkInvite()}
+                onClick={() => setShowBulkInviteModal(true)}
                 style={{ borderRadius: 12 }}
               >
                 <Users size={18} /> Invite Selected ({selectedTenants.size})
@@ -429,62 +432,6 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
         />
       </ControlBar>
 
-      {selectedTenants.size > 0 && (
-        <div
-          className="bulk-actions-bar animate-slide-up"
-          style={{
-            position: 'fixed',
-            bottom: 32,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 'auto',
-            borderRadius: 100,
-            padding: '12px 24px',
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 100
-          }}
-        >
-          <div className="bulk-actions-info">
-            <button className="btn-icon" onClick={clearSelection}>
-              <X size={18} />
-            </button>
-            <span style={{ fontWeight: 700 }}>{selectedTenants.size} Selected</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {hasOnUpward ? (
-              <button
-                className="btn btn--primary"
-                onClick={handleBulkDocument}
-                style={{ borderRadius: 100, padding: '10px 24px' }}
-              >
-                Send Document
-              </button>
-            ) : (
-              <>
-                <FilterDropdown
-                  label="Delivery"
-                  value={bulkDeliveryChannel}
-                  options={[
-                    { label: 'Email', value: 'EMAIL' },
-                    { label: 'SMS', value: 'SMS' },
-                    { label: 'WhatsApp', value: 'WHATSAPP' }
-                  ]}
-                  onChange={(val) => setBulkDeliveryChannel(val as any)}
-                />
-                <button
-                  className="btn btn--primary"
-                  onClick={handleBulkInvite}
-                  disabled={bulkInvite.isPending}
-                  style={{ borderRadius: 100, padding: '10px 24px' }}
-                >
-                  {bulkInvite.isPending ? 'Processing...' : 'Remind Selected'}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       <DataTable
         columns={columns}
         data={filteredTenants}
@@ -496,5 +443,47 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
         isLoading={isLoading}
       />
     </div>
+    
+    <BulkInviteModal
+      isOpen={showBulkInviteModal}
+      onClose={() => setShowBulkInviteModal(false)}
+      selectedTenantUuids={selectedTenants}
+      tenants={tenants}
+      onSuccess={() => setSelectedTenants(new Set())}
+    />
+
+    {selectedTenants.size > 0 && (
+      <div
+        className="bulk-actions-bar animate-slide-up"
+        style={{
+          position: 'fixed',
+          bottom: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'auto',
+          borderRadius: 100,
+          padding: '12px 24px',
+          boxShadow: 'var(--shadow-lg)',
+          zIndex: 100
+        }}
+      >
+        <div className="bulk-actions-info">
+          <button className="btn-icon" onClick={clearSelection}>
+            <X size={18} />
+          </button>
+          <span style={{ fontWeight: 700 }}>{selectedTenants.size} Selected</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            className="btn--primary"
+            onClick={handleBulkDocument}
+            style={{ borderRadius: 100, padding: '10px 24px' }}
+          >
+            Send Document
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
