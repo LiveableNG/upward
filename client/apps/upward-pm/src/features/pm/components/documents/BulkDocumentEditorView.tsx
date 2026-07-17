@@ -13,7 +13,9 @@ import {
   Loader2,
   MessageCircle,
   Check,
-  PanelLeft
+  PanelLeft,
+  ChevronDown,
+  FileText
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -64,6 +66,7 @@ export function BulkDocumentEditorView({
   const [isSending, setIsSending] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [showSettings, setShowSettings] = useState(true)
+  const [showRecipientsList, setShowRecipientsList] = useState(false)
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(!initialContent && !initialTemplate?.content)
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
@@ -91,6 +94,10 @@ export function BulkDocumentEditorView({
       return !!r.phone
     })
   }, [recipients, deliveryMode])
+
+  const invalidRecipients = React.useMemo(() => {
+    return recipients.filter(r => !validRecipients.find(v => v.uuid === r.uuid))
+  }, [recipients, validRecipients])
 
   const getRenderedContent = () => {
     let rendered = content
@@ -447,22 +454,31 @@ export function BulkDocumentEditorView({
                     Change Template
                   </button>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--dark)' }}>
-                  {subject || 'Blank Document'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border)', marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', color: 'var(--clay)' }}>
+                    <FileText size={16} />
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {subject || 'Blank Document'}
+                  </div>
                 </div>
               </div>
 
              <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: showRecipientsList ? 0 : 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <label className="form-label" style={{ marginBottom: 0 }}>Recipients</label>
-                  {validRecipients.length < recipients.length && (
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', background: '#fef3c7', padding: '2px 8px', borderRadius: 12 }}>
-                      {recipients.length - validRecipients.length} Excluded (Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'})
-                    </span>
+                  {invalidRecipients.length > 0 && (
+                    <button 
+                      onClick={() => setShowRecipientsList(true)}
+                      style={{ fontSize: 11, fontWeight: 600, color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <AlertCircle size={12} />
+                      {invalidRecipients.length} Excluded (Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'}) - Click to view
+                    </button>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
                     {validRecipients.length} Selected
                   </div>
@@ -472,17 +488,34 @@ export function BulkDocumentEditorView({
                   >
                     + Add
                   </button>
+                  <button
+                    onClick={() => setShowRecipientsList(!showRecipientsList)}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', width: '24px', height: '24px', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
+                  >
+                    <ChevronDown size={14} style={{ transform: showRecipientsList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                  </button>
                 </div>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', background: 'var(--bg)', borderRadius: 12, padding: 12, border: '1px solid var(--border)' }}>
-                {validRecipients.map(r => (
-                  <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)' }}>{r.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.email || r.phone || 'No Contact'}</div>
-                  </div>
-                ))}
-              </div>
+              {showRecipientsList && (
+                <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', background: 'var(--bg)', borderRadius: 12, padding: 12, border: '1px solid var(--border)', marginTop: 16 }}>
+                  {validRecipients.map(r => (
+                    <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)' }}>{r.name}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.email || r.phone || 'No Contact'}</div>
+                    </div>
+                  ))}
+                  {invalidRecipients.map(r => (
+                    <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, border: '1px dashed var(--border)', opacity: 0.6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <AlertCircle size={14} color="var(--error)" />
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{r.name}</div>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--error)' }}>Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
