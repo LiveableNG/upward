@@ -1,0 +1,196 @@
+name: Deploy Production
+
+# No branch protection required: we never listen to `push`.
+# Deploy only when a PR into production is merged (or manual Run workflow).
+# Direct pushes still land on the branch — they just won't trigger this deploy.
+on:
+  pull_request:
+    branches: [production]
+    types: [closed]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    # Skip closed PRs that were not merged (e.g. closed without merge)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      TURBO_TELEMETRY_DISABLED: '1'
+      # Vite embeds this at build time (.env is gitignored, so CI must set it)
+      VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      VITE_APP_ENV: production
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # After merge: build the merge commit. Manual run: tip of production.
+          ref: ${{ github.event.pull_request.merge_commit_sha || 'production' }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require VITE_API_URL
+        run: |
+          if [ -z "${VITE_API_URL:-}" ]; then
+            echo "::error::Set repo secret VITE_API_URL (e.g. https://upward.goodtenants.io/api/v1)"
+            exit 1
+          fi
+
+      - name: Build
+        # turbo is this monorepo's task runner (see package.json / turbo.json).
+        # It builds packages in dependency order: shared-types → utils → apps.
+        run: pnpm run build
+
+  trigger-deploy:
+    name: Trigger EC2 deploy
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      triggered_at: ${{ steps.trigger.outputs.triggered_at }}
+
+    steps:
+      - name: Call deploy-hook
+        id: trigger
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          DEPLOY_SECRET: ${{ secrets.DEPLOY_SECRET_UPWARD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_URL:-}" ] || [ -z "${DEPLOY_SECRET:-}" ]; then
+            echo "::error::Missing DEPLOY_URL or DEPLOY_SECRET_UPWARD secrets"
+            exit 1
+          fi
+
+          BASE="${DEPLOY_URL%/}"
+          PATH_ONLY="/deploy/upward"
+          METHOD="POST"
+          BODY=""
+          TS="$(date +%s)"
+
+          SIG_HEX="$(printf '%s\n%s\n%s\n%s' "$METHOD" "$PATH_ONLY" "$TS" "$BODY" \
+            | openssl dgst -sha256 -hmac "$DEPLOY_SECRET" | awk '{print $NF}')"
+          SIG="sha256=${SIG_HEX}"
+
+          echo "Triggering ${BASE}${PATH_ONLY} (ts=${TS})"
+          # Discard body to stdout so it cannot interfere with later output wiring
+          curl --fail-with-body --retry 3 --retry-delay 2 \
+            -X POST "${BASE}${PATH_ONLY}" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Timestamp: ${TS}" \
+            -H "X-Deploy-Signature: ${SIG}" \
+            --data-binary "${BODY}" \
+            -o /tmp/deploy-hook-response.json
+          echo "Hook response:"
+          cat /tmp/deploy-hook-response.json || true
+          echo ""
+
+          # Delimiter form is safer for job outputs
+          {
+            echo "triggered_at<<EOF"
+            echo "${TS}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Deploy accepted. triggered_at=${TS}"
+
+  wait-deploy:
+    name: Wait for deploy result
+    needs: trigger-deploy
+    if: needs.trigger-deploy.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Poll deploy status until success or failed
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+          TRIGGERED_AT: ${{ needs.trigger-deploy.outputs.triggered_at }}
+          POLL_TIMEOUT_SEC: '1200'
+          POLL_INTERVAL_SEC: '10'
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_URL:-}" ]; then
+            echo "::error::Missing DEPLOY_URL secret"
+            exit 1
+          fi
+          if [ -z "${TRIGGERED_AT:-}" ]; then
+            echo "::error::Missing triggered_at from trigger-deploy job"
+            echo "needs.trigger-deploy.outputs.triggered_at was empty"
+            exit 1
+          fi
+
+          BASE="${DEPLOY_URL%/}"
+          STATUS_URL="${BASE}/status/upward"
+
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y && sudo apt-get install -y jq
+          fi
+
+          echo "Polling ${STATUS_URL} (triggered_at=${TRIGGERED_AT})"
+          deadline=$((TRIGGERED_AT + POLL_TIMEOUT_SEC))
+
+          while true; do
+            now=$(date +%s)
+            if [ "$now" -ge "$deadline" ]; then
+              echo "::error::Timed out after ${POLL_TIMEOUT_SEC}s waiting for deploy"
+              curl -sS "$STATUS_URL" || true
+              exit 1
+            fi
+
+            payload="$(curl -fsS "$STATUS_URL")"
+            state="$(echo "$payload" | jq -r '.status.state // empty')"
+            started_at="$(echo "$payload" | jq -r '.status.startedAt // empty')"
+            exit_code="$(echo "$payload" | jq -r '.status.exitCode // empty')"
+            error="$(echo "$payload" | jq -r '.status.error // empty')"
+
+            started_epoch=0
+            if [ -n "$started_at" ] && [ "$started_at" != "null" ]; then
+              started_epoch="$(date -u -d "$started_at" +%s 2>/dev/null || echo 0)"
+            fi
+
+            # Ignore leftover status from a previous deploy
+            is_current=0
+            if [ "$started_epoch" -ge $((TRIGGERED_AT - 5)) ]; then
+              is_current=1
+            fi
+
+            echo "[$(date -u +%H:%M:%S)] state=${state:-none} current=${is_current} exit=${exit_code:--} error=${error:-}"
+
+            if [ "$is_current" -eq 1 ]; then
+              case "$state" in
+                running)
+                  ;;
+                success)
+                  echo "$payload" | jq .
+                  echo "Deploy succeeded"
+                  exit 0
+                  ;;
+                failed)
+                  echo "$payload" | jq .
+                  echo "::error::Deploy failed (exitCode=${exit_code}, error=${error})"
+                  echo "Logs on EC2: tail -n 200 /var/log/deploy/upward.log"
+                  exit 1
+                  ;;
+              esac
+            fi
+
+            sleep "$POLL_INTERVAL_SEC"
+          done

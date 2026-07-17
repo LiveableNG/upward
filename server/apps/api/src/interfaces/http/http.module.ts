@@ -3,6 +3,7 @@ import { ApplicationModule } from '../../application/application.module'
 import { AuthModule } from '../../application/auth/auth.module'
 import { AdminLogModule } from '../../shared/infrastructure/admin-log/admin-log.module'
 import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
+import { SchedulingModule } from '../../scheduling/scheduling.module'
 import { AdminAuthController } from './admin/admin-auth.controller'
 import { AdminFeesController } from './admin/admin-fees.controller'
 import { AdminLogController } from './admin/admin-log.controller'
@@ -65,7 +66,7 @@ import { WalletController } from './user/wallet.controller'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
 
 @Module({
-  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
+  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule],
   providers: [NotificationsGateway],
   controllers: [
     ManualPaymentsController,

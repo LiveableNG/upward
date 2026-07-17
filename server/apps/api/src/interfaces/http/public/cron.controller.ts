@@ -1,109 +1,50 @@
-import { Controller, Get, Query, UnauthorizedException, Logger } from '@nestjs/common';
-import { BulkInviteService } from '../../../shared/infrastructure/common/bulk-invite.service';
-import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service';
-import { RentReminderWorkflowUseCase } from '../../../application/use-cases/notifications/rent-reminder-workflow.use-case';
-import { UnifiedReminderService } from '../../../shared/infrastructure/common/reminder.service';
-import { ProcessHourlySettlementsUseCase } from '../../../application/use-cases/payments/settlement-cron.use-case';
-import { ApplyDailySavingsInterestUseCase } from '../../../application/use-cases/payments/wallet.use-cases';
+import { Controller, Get, Query, UnauthorizedException, Logger } from '@nestjs/common'
+import { ScheduleService } from '../../../scheduling/schedule.service'
 
+/**
+ * Manual / external trigger for the schedule Kernel.
+ * Preferred path in production is the in-process ScheduleService tick;
+ * this endpoint is for ops recovery and one-off runs.
+ *
+ * GET /api/v1/public/cron/run?secret=...&tasks=settlements,reminders
+ * Omit `tasks` to run every registered job once.
+ */
 @Controller('public/cron')
 export class CronController {
-  private readonly logger = new Logger(CronController.name);
+  private readonly logger = new Logger(CronController.name)
 
-  constructor(
-    private readonly bulkInviteService: BulkInviteService,
-    private readonly webhookService: WebhookService,
-    private readonly rentReminderUseCase: RentReminderWorkflowUseCase,
-    private readonly unifiedReminderService: UnifiedReminderService,
-    private readonly processHourlySettlementsUseCase: ProcessHourlySettlementsUseCase,
-    private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
-  ) {}
+  constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get('run')
   async runCron(
     @Query('secret') secret: string,
     @Query('tasks') tasks?: string,
   ) {
-    const cronSecret = process.env.CRON_SECRET || 'ab54714d7103723bafdfbd3a';
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+      throw new UnauthorizedException('CRON_SECRET is not configured')
+    }
     if (secret !== cronSecret) {
-      throw new UnauthorizedException('Invalid cron secret');
+      throw new UnauthorizedException('Invalid cron secret')
     }
 
-    this.logger.log(`Triggering cron tasks via HTTP (tasks: ${tasks || 'all'})...`);
+    this.logger.log(`Manual cron trigger (tasks: ${tasks || 'all'})`)
 
-    const runAll = !tasks;
-    const tasksToRun = tasks ? tasks.split(',').map(t => t.trim().toLowerCase()) : [];
-    const shouldRun = (taskName: string) => runAll || tasksToRun.includes(taskName.toLowerCase());
+    const results: Record<string, string> = {}
 
-    const results: any = {};
-
-    if (shouldRun('bulkInvites')) {
-      try {
-        await this.bulkInviteService.processPendingInvites();
-        results.bulkInvites = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in bulkInviteService.processPendingInvites', e);
-        results.bulkInvites = 'failed: ' + e.message;
+    if (!tasks) {
+      Object.assign(results, await this.scheduleService.runTask())
+    } else {
+      // Map legacy aliases → Kernel job names
+      const alias: Record<string, string> = {
+        paymentreminders: 'reminders',
+        processscheduledrequests: 'reminders',
+        refunds: 'settlements',
       }
-    }
 
-    if (shouldRun('webhooks')) {
-      try {
-        await this.webhookService.retryFailedWebhooks();
-        results.webhooks = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in webhookService.retryFailedWebhooks', e);
-        results.webhooks = 'failed: ' + e.message;
-      }
-    }
-
-    if (shouldRun('rentReminders')) {
-      try {
-        await this.rentReminderUseCase.execute();
-        results.rentReminders = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in rentReminderUseCase.execute', e);
-        results.rentReminders = 'failed: ' + e.message;
-      }
-    }
-
-    if (shouldRun('paymentReminders')) {
-      try {
-        await this.unifiedReminderService.handleReminders();
-        results.paymentReminders = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in unifiedReminderService.handleReminders', e);
-        results.paymentReminders = 'failed: ' + e.message;
-      }
-    }
-
-    if (shouldRun('pmDailyDigest')) {
-      try {
-        await this.unifiedReminderService.processPmDailyCrons();
-        results.pmDailyDigest = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in unifiedReminderService.processPmDailyCrons', e);
-        results.pmDailyDigest = 'failed: ' + e.message;
-      }
-    }
-
-    if (shouldRun('processScheduledRequests')) {
-      try {
-        await this.unifiedReminderService.processScheduledRequests();
-        results.processScheduledRequests = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in unifiedReminderService.processScheduledRequests', e);
-        results.processScheduledRequests = 'failed: ' + e.message;
-      }
-    }
-
-    if (shouldRun('settlements') || shouldRun('refunds')) {
-      try {
-        await this.processHourlySettlementsUseCase.execute();
-        results.settlements = 'completed';
-      } catch (e: any) {
-        this.logger.error('Error in processHourlySettlementsUseCase.execute', e);
-        results.settlements = 'failed: ' + e.message;
+      for (const raw of tasks.split(',').map((t) => t.trim()).filter(Boolean)) {
+        const name = alias[raw.toLowerCase()] || raw
+        Object.assign(results, await this.scheduleService.runTask(name))
       }
     }
 
@@ -120,7 +61,8 @@ export class CronController {
     return {
       success: true,
       timestamp: new Date().toISOString(),
-      results
-    };
+      jobs: this.scheduleService.listJobs(),
+      results,
+    }
   }
 }

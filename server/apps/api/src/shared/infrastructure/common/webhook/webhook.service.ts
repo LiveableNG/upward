@@ -1,7 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common'
 import { WEBHOOK_REPOSITORY, IWebhookRepository } from '../../../../domains/payments/payment.repository'
 import { PLATFORM_REPOSITORY, PlatformRepository } from '../../../../domains/companies/company.repository'
-import { Cron, CronExpression } from '@nestjs/schedule'
 
 @Injectable()
 export class WebhookService {
@@ -89,7 +88,7 @@ export class WebhookService {
     }
   }
 
-  @Cron('*/15 * * * *')
+  /** Invoked by ScheduleService (Kernel) every 15 minutes. */
   async retryFailedWebhooks() {
     this.logger.log('Running scheduled webhook retry job...')
     const failedLogs = await this.webhookRepo.findToRetry(this.MAX_RETRIES)

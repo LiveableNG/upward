@@ -18,6 +18,7 @@ import { AllExceptionsFilter } from './shared/infrastructure/common/filters/all-
 import { EventsModule } from './application/events/events.module'
 import { HttpModule } from './interfaces/http/http.module'
 import { ActivityTrackingModule } from './shared/infrastructure/activity-tracking/activity-tracking.module'
+import { SchedulingModule } from './scheduling/scheduling.module'
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ActivityTrackingModule } from './shared/infrastructure/activity-trackin
     LocationModule,
     BugsnagModule,
     ActivityTrackingModule,
+    SchedulingModule,
 
     // Core Layers
     AuthModule,
