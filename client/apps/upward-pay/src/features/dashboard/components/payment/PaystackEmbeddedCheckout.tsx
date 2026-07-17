@@ -11,6 +11,7 @@ interface PaystackEmbeddedProps {
   amount: number
   currency?: string
   reference?: string
+  accessCode?: string
   companyName: string
   paymentType?: string
   propertyAddress?: string
@@ -29,6 +30,8 @@ export default function PaystackEmbeddedCheckout({
   email,
   amount,
   currency = 'NGN',
+  reference,
+  accessCode,
   companyName,
   paymentType,
   propertyAddress,
@@ -43,21 +46,37 @@ export default function PaystackEmbeddedCheckout({
   const [config, setConfig] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const lineItemsStr = JSON.stringify(lineItems)
+  const metadataStr = JSON.stringify(metadata)
+
   useEffect(() => {
+    if (accessCode) {
+      setConfig({
+        type: 'PAYSTACK',
+        accessCode,
+        reference,
+        amount,
+      })
+      return
+    }
+
     async function init() {
       try {
+        const parsedLineItems = JSON.parse(lineItemsStr)
+        const parsedMetadata = JSON.parse(metadataStr)
+
         const description =
-          lineItems.length > 0
-            ? `Breakdown: ${lineItems.map((item) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
+          parsedLineItems.length > 0
+            ? `Breakdown: ${parsedLineItems.map((item: any) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
             : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
         const res = await api.initializePayment({
           amount,
           paymentRequestUuid,
           metadata: {
-            ...metadata,
+            ...parsedMetadata,
             description,
-            lineItems,
+            lineItems: parsedLineItems,
             paymentType,
             propertyAddress,
           }
@@ -91,7 +110,7 @@ export default function PaystackEmbeddedCheckout({
       }
     }
     init()
-  }, [])
+  }, [accessCode, amount, companyName, lineItemsStr, metadataStr, paymentRequestUuid, paymentType, propertyAddress, reference])
 
   useEffect(() => {
     if (config?.type === 'PAYSTACK' && config.accessCode) {

@@ -124,7 +124,7 @@ export class InitializeBenefitsPaymentUseCase {
 
     const initialization = await this.gateway.initializeTransaction({
       email: user.email,
-      amount: Math.round(amount * 100),
+      amount: amount,
       reference: `BEN-${randomUUID()}`,
       metadata,
       channels: ['card', 'bank', 'bank_transfer'],

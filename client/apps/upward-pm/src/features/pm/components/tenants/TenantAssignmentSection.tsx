@@ -7,20 +7,13 @@ import { useState } from 'react'
 
 interface TenantAssignmentSectionProps {
   unit: Unit
+  onAssignClick?: () => void
 }
 
-export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = ({ unit }) => {
-  const { data: tenants = [] } = useTenants()
-  const { assignTenant, unassignTenant } = useTenantActions()
+export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = ({ unit, onAssignClick }) => {
+  const { unassignTenant } = useTenantActions()
   const { mutate: syncToUpward, isPending: isSyncing } = useSyncToUpward()
-  const [isAssigning, setIsAssigning] = useState(false)
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
-
-  const handleAssign = (tenantUuid: string) => {
-    assignTenant.mutate({ tenantUuid, unitUuid: unit.uuid }, {
-      onSuccess: () => setIsAssigning(false)
-    })
-  }
 
   const handleUnassign = () => {
     if (unit.tenant?.uuid) {
@@ -38,15 +31,10 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
     <section className="detail-section">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 className="section-title" style={{ margin: 0 }}>Linked Tenant</h2>
-        {!currentTenant && !isAssigning && (
-          <button className="btn btn--secondary btn--sm" onClick={() => setIsAssigning(true)}>
+        {!currentTenant && onAssignClick && (
+          <button className="btn btn--secondary btn--sm" onClick={onAssignClick}>
             <UserPlus size={14} style={{ marginRight: 6 }} />
             Assign Tenant
-          </button>
-        )}
-        {isAssigning && (
-          <button className="btn btn--secondary btn--sm" onClick={() => setIsAssigning(false)}>
-            Cancel
           </button>
         )}
       </div>
@@ -109,35 +97,6 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
                   </>
                 )}
               </button>
-            </div>
-          )}
-        </div>
-      ) : isAssigning ? (
-        <div className="tenant-assignment-list" style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '12px' }}>
-          {tenants.map(tenant => (
-            <div 
-              key={tenant.uuid} 
-              className="tenant-assign-item"
-              style={{ 
-                padding: '12px 16px', 
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                cursor: 'pointer'
-              }}
-              onClick={() => handleAssign(tenant.uuid)}
-            >
-              <div>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim()}</span>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
-              </div>
-              <LinkIcon size={14} color="var(--forest)" />
-            </div>
-          ))}
-          {tenants.length === 0 && (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
-              No tenants found. Create one first in the Tenants Directory.
             </div>
           )}
         </div>

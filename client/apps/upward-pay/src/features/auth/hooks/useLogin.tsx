@@ -28,6 +28,7 @@ export function useLogin(redirect: string) {
       queryClient.clear()
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
+      router.refresh()
       router.push(redirect)
     },
   })
@@ -44,13 +45,14 @@ export function useLogin(redirect: string) {
       queryClient.clear()
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
+      router.refresh()
       router.push(redirect)
     },
   })
 
   return {
     login: (email: string, password: string, type?: 'email' | 'phone') => loginMutation.mutate({ email, password, type }),
-    otpLogin: (email: string, otp: string, type?: 'email' | 'phone') => otpLoginMutation.mutate({ email, otp, type }),
+    otpLogin: (email: string, otp: string, type?: 'email' | 'phone') => otpLoginMutation.mutateAsync({ email, otp, type }),
     loading: loginMutation.isPending || otpLoginMutation.isPending,
     error: (loginMutation.error || otpLoginMutation.error) as any,
   }

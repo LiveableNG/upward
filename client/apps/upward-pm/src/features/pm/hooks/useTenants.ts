@@ -60,6 +60,7 @@ export const useTenantActions = () => {
       tenantUuid: string, 
       unitUuid: string, 
       rentAmountPaid?: number,
+      isFullyPaid?: boolean,
       rentAmount?: number,
       rentType?: string,
       rentStartDate?: string,

@@ -72,25 +72,103 @@ export class SyncPmPaymentStatusUseCase {
         if (isRentFullyPaid) {
           const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } })
           if (unit && unit.rentDueDate) {
-            const baseDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate)
-            const newDueDate = new Date(baseDate)
-            const newStartDate = new Date(baseDate)
-            
-            const rentInterval = pmPr.rentType || unit.rentType
-            if (rentInterval === 'MONTHLY' || rentInterval === 'Monthly') {
-              newDueDate.setMonth(newDueDate.getMonth() + 1)
-            } else {
-              newDueDate.setFullYear(newDueDate.getFullYear() + 1)
+            let shouldAdvanceDates = false;
+
+            if (pmPr.isRecurring) {
+              shouldAdvanceDates = true;
+            } else if (pmPr.rentStartDate && new Date(pmPr.rentStartDate) >= new Date(unit.rentDueDate)) {
+              shouldAdvanceDates = true;
             }
 
-            await txClient.upward_pm_unit.update({
-              where: { id: unit.id },
-              data: { 
-                rentDueDate: newDueDate,
-                rentStartDate: newStartDate
+            let newStartDate = new Date(unit.rentStartDate || new Date());
+            let newDueDate = new Date(unit.rentDueDate);
+            const baseDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate);
+
+            if (shouldAdvanceDates) {
+              newStartDate = new Date(baseDate);
+              newStartDate.setDate(newStartDate.getDate() + 1);
+
+              newDueDate = new Date(newStartDate);
+              const rentInterval = pmPr.rentType || unit.rentType;
+              if (rentInterval === 'MONTHLY' || rentInterval === 'Monthly') {
+                newDueDate.setMonth(newDueDate.getMonth() + 1);
+              } else {
+                newDueDate.setFullYear(newDueDate.getFullYear() + 1);
               }
-            })
-            this.logger.log(`Rent fully paid for unit ${unit.id}. Advanced PM due date from ${baseDate.toISOString()} to ${newDueDate.toISOString()}`)
+              newDueDate.setDate(newDueDate.getDate() - 1);
+
+              await txClient.upward_pm_unit.update({
+                where: { id: unit.id },
+                data: { 
+                  rentDueDate: newDueDate,
+                  rentStartDate: newStartDate
+                }
+              });
+              this.logger.log(`Rent fully paid for unit ${unit.id}. Advanced PM due date from ${baseDate.toISOString()} to ${newDueDate.toISOString()}`);
+            } else {
+              this.logger.log(`Rent fully paid for unit ${unit.id}, but dates were NOT advanced (Payment was for the current active balance).`);
+            }
+
+            if (unit.userPropertyUuid) {
+              await txClient.upward_user_property.updateMany({
+                where: { uuid: unit.userPropertyUuid },
+                data: {
+                  rentStartDate: newStartDate,
+                  rentEndDate: newDueDate
+                }
+              })
+              this.logger.log(`Advanced UpwardPay rent dates for user property ${unit.userPropertyUuid}`)
+            }
+
+            if (pmPr.isRecurring && pmPr.recurrenceInterval) {
+              const interval = pmPr.recurrenceInterval;
+              
+              let nextScheduledAt: Date | null = null;
+              let nextDueDate: Date | null = null;
+              let nextRentStart: Date | null = null;
+              let nextRentEnd: Date | null = null;
+
+              const advanceDate = (date: Date, intervalStr: string): Date => {
+                const d = new Date(date);
+                if (intervalStr === 'MONTHLY') d.setMonth(d.getMonth() + 1);
+                else if (intervalStr === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
+                else if (intervalStr === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
+                return d;
+              };
+
+              if (pmPr.scheduledAt) nextScheduledAt = advanceDate(pmPr.scheduledAt, interval);
+              if (pmPr.dueDate) nextDueDate = advanceDate(pmPr.dueDate, interval);
+              if (pmPr.rentStartDate) nextRentStart = advanceDate(pmPr.rentStartDate, interval);
+              if (pmPr.rentEndDate) nextRentEnd = advanceDate(pmPr.rentEndDate, interval);
+
+              await txClient.upward_pm_payment_request.create({
+                data: {
+                  pmId: pmPr.pmId,
+                  unitId: pmPr.unitId,
+                  tenantId: pmPr.tenantId,
+                  paymentRequestId: null,
+                  amount: pmPr.amount,
+                  currency: pmPr.currency || 'NGN',
+                  description: pmPr.description,
+                  dueDate: nextDueDate || new Date(),
+                  rentStartDate: nextRentStart,
+                  rentEndDate: nextRentEnd,
+                  rentType: pmPr.rentType,
+                  reminderFrequency: pmPr.reminderFrequency,
+                  nextReminderAt: null,
+                  reminderCount: 0,
+                  status: 'SCHEDULED',
+                  amountPaid: 0,
+                  allowPartial: pmPr.allowPartial,
+                  minAmount: pmPr.minAmount,
+                  scheduledAt: nextScheduledAt,
+                  isRecurring: true,
+                  recurrenceInterval: interval
+                }
+              });
+              
+              this.logger.log(`Created recurring clone for request ${pmPr.uuid} scheduled for ${nextScheduledAt}`);
+            }
           }
         }
       }

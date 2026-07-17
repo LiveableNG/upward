@@ -21,6 +21,7 @@ import { type UserProfile } from '@/features/auth/types'
 import { ActionCarousel } from './ActionCarousel'
 import { ShareCredibility } from './ShareCredibility'
 import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
+import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -154,6 +155,7 @@ export function DashboardHome({
   isLoading = false,
 }: DashboardHomeProps) {
   const router = useRouter()
+  const savingsEnabled = isSavingsWalletEnabled(user)
 
   if (isLoading) {
     return (
@@ -197,18 +199,25 @@ export function DashboardHome({
     <div className="dash-home">
       <button
         type="button"
-        className={`dash-home__benefits-chip ${benefitsActive ? 'is-active' : ''}`}
+        className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
         onClick={() => router.push('/dashboard/benefits')}
       >
-        <ShieldCheck size={15} />
-        <span>
-          {benefitsActive
-            ? benefitsEndsAt
-              ? `Protected until ${formatDate(benefitsEndsAt)}`
-              : 'Protected with Upward Benefits'
-            : 'Get Upward Benefits'}
+        <span className="dash-home__benefits-card-icon">
+          <ShieldCheck size={18} />
         </span>
-        <ChevronRight size={14} />
+        <span className="dash-home__benefits-card-body">
+          <span className="dash-home__benefits-card-title">
+            {benefitsActive ? "You're covered" : 'Add account protection'}
+          </span>
+          <span className="dash-home__benefits-card-desc">
+            {benefitsActive
+              ? benefitsEndsAt
+                ? `Renews ${formatDate(benefitsEndsAt)} · View benefits`
+                : 'Upward Benefits is active · View benefits'
+              : 'Annual cover for your Upward account · Activate'}
+          </span>
+        </span>
+        <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
       </button>
       {showActivityCenter && (
         <div className={`dash-home__activity-center activity-center ${anyOverdue ? 'activity-center--critical' : ''}`}>
@@ -321,10 +330,25 @@ export function DashboardHome({
           <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
             Pay Rent
           </button>
-          <button type="button" className="dash-home__action dash-home__action--secondary dash-home__action--disabled" disabled aria-disabled="true">
-            <span>Save Rent</span>
-            <span className="dash-home__action-soon">Coming soon</span>
-          </button>
+          {savingsEnabled ? (
+            <button
+              type="button"
+              className="dash-home__action dash-home__action--secondary"
+              onClick={() => router.push('/dashboard/savings')}
+            >
+              <span>Save Rent</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="dash-home__action dash-home__action--secondary dash-home__action--disabled"
+              disabled
+              aria-disabled="true"
+            >
+              <span>Save Rent</span>
+              <span className="dash-home__action-soon">Coming soon</span>
+            </button>
+          )}
           <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
             Save for Home
           </button>

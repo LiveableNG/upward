@@ -168,8 +168,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     setAccessToken(null)
     setLoading(true)
+
     try {
-      // Try to unregister notifications and notify backend, but don't let them block local logout
+      // Try to unregister notifications and notify backend, and WAIT for the backend to clear the http-only cookie
       await Promise.allSettled([
         PushNotificationService.unregisterDevice(),
         authLogout()
@@ -200,7 +201,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname || '')
 
       if (!isPublicPath) {
-        router.replace('/login')
+        const redirectParam = pathname && pathname !== '/login' ? `?redirect=${pathname}` : ''
+        router.refresh()
+        router.replace(`/login${redirectParam}`)
       }
     }
   }

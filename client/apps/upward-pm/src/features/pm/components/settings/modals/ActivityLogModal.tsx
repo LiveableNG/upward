@@ -5,6 +5,7 @@ import React from 'react'
 import { X, History, FileText, Building2, User, CreditCard, Clock, Sparkles } from 'lucide-react'
 import { useCollaboratorActivities } from '@/features/pm/hooks/useTeam'
 import { formatDistanceToNow } from 'date-fns'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { cn } from '@/lib/utils'
 
 interface ActivityLogModalProps {
@@ -30,71 +31,20 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
   const collaborator = data?.collaborator
 
   return (
-    <div className="modal-overlay" style={{ 
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 1100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-    }}>
-      <div className="modal-container" style={{ 
-          maxWidth: 600, 
-          width: '100%', 
-          maxHeight: '85vh', 
-          background: 'white',
-          borderRadius: 24,
-          boxShadow: '0 20px 50px rgba(0,0,0,0.15)',
-          display: 'flex', 
-          flexDirection: 'column',
-          overflow: 'hidden',
-          animation: 'modalSlideUp 0.3s ease-out'
-      }}>
-        <header className="modal-header" style={{ padding: '32px 32px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-             <div style={{ 
-                 width: 48, 
-                 height: 48, 
-                 borderRadius: 16, 
-                 background: 'var(--bg)', 
-                 color: 'var(--clay)', 
-                 display: 'flex', 
-                 alignItems: 'center', 
-                 justifyContent: 'center',
-                 border: '1px solid var(--border)'
-             }}>
-                <History size={24} />
-             </div>
-             <div>
-                <h2 className="modal-title" style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)' }}>Activity Feed</h2>
-                <p className="modal-subtitle" style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    Recent actions by {collaborator ? `${collaborator.firstName} ${collaborator.lastName}` : 'this member'}
-                </p>
-             </div>
-          </div>
-          <button 
-            className="modal-close" 
-            onClick={onClose}
-            style={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: 8, 
-                border: '1px solid var(--border)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                cursor: 'pointer'
-            }}
-          >
-            <X size={18} />
-          </button>
-        </header>
-
-        <div className="modal-body" style={{ padding: '24px 32px', flex: 1, overflow: 'auto' }}>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title="Activity Feed"
+      subtitle={`Recent actions by ${collaborator ? `${collaborator.firstName} ${collaborator.lastName}` : 'this member'}`}
+      icon={History}
+      maxWidth={600}
+      footer={
+        <div style={{ display: 'flex', width: '100%' }}>
+            <button className="btn btn--secondary w-full" style={{ height: 48, borderRadius: 12, flex: 1 }} onClick={onClose}>Close Feed</button>
+        </div>
+      }
+    >
+        <div className="modal-body" style={{ flex: 1, overflow: 'auto', maxHeight: '60vh' }}>
           {isLoading ? (
             <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)' }}>Loading activities...</div>
           ) : logs.length === 0 ? (
@@ -174,18 +124,6 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
             </div>
           )}
         </div>
-
-        <div className="modal-footer" style={{ padding: '24px 32px', borderTop: '1px solid var(--border)', background: 'var(--bg-faint)' }}>
-            <button className="btn btn--secondary w-full" style={{ height: 48, borderRadius: 12 }} onClick={onClose}>Close Feed</button>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes modalSlideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-      `}</style>
-    </div>
+    </Modal>
   )
 }

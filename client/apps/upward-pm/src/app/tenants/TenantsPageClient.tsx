@@ -11,19 +11,11 @@ export function TenantsPageClient({ initialTenants }: { initialTenants?: any }) 
 
   return (
     <div className="properties-page animate-fade-only">
-      <header className="properties-header">
-        <div>
-          <h1 className="dashboard__title">Tenants Directory</h1>
-          <p className="dashboard__subtitle">Manage your tenants across all properties and units.</p>
-        </div>
-        <button className="btn btn--primary" onClick={() => setShowAddModal(true)}>
-          <Users size={18} />
-          Add Tenant
-        </button>
-      </header>
-
       <Suspense fallback={<TableSkeleton />}>
-        <TenantList initialTenants={initialTenants} />
+        <TenantList 
+          initialTenants={initialTenants} 
+          onAddTenant={() => setShowAddModal(true)} 
+        />
       </Suspense>
 
       <AddTenantModal 

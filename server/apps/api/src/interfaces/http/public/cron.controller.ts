@@ -48,6 +48,16 @@ export class CronController {
       }
     }
 
+    if (shouldRun('savingsInterest')) {
+      try {
+        await this.applyDailySavingsInterestUseCase.execute();
+        results.savingsInterest = 'completed';
+      } catch (e: any) {
+        this.logger.error('Error in applyDailySavingsInterestUseCase.execute', e);
+        results.savingsInterest = 'failed: ' + e.message;
+      }
+    }
+
     return {
       success: true,
       timestamp: new Date().toISOString(),

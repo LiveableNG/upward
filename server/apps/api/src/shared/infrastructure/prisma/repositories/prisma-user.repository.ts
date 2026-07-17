@@ -29,6 +29,7 @@ export class PrismaUserRepository implements UserRepository {
       gender: model.gender,
       dateOfBirth: model.dateOfBirth,
       isIdentityVerified: model.isIdentityVerified,
+      savingsWalletEnabled: model.savingsWalletEnabled,
       isFromWaitlist: model.isFromWaitlist,
       isFromInvite: model.isFromInvite,
       profilePic: model.profilePic,
@@ -37,8 +38,8 @@ export class PrismaUserRepository implements UserRepository {
       properties: model.properties ? model.properties.map((p: any) => ({
         id: p.id,
         uuid: p.uuid,
-        rentStartDate: p.rentStartDate,
-        rentEndDate: p.rentEndDate,
+        rentStartDate: p.pmUnit?.rentPayments?.[0]?.periodStart ? p.pmUnit.rentPayments[0].periodStart : p.rentStartDate,
+        rentEndDate: p.pmUnit?.rentPayments?.[0]?.periodEnd ? p.pmUnit.rentPayments[0].periodEnd : p.rentEndDate,
         rentAmount: p.rentAmount,
         amountPaid: p.amountPaid,
         amountRemaining: p.amountRemaining,
@@ -128,7 +129,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -154,7 +166,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -179,7 +202,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true,
@@ -204,7 +238,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -229,7 +274,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -254,7 +310,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -278,7 +345,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true
@@ -367,7 +445,18 @@ export class PrismaUserRepository implements UserRepository {
             subaccount: true,
             dedicatedAccount: true,
             manualAccount: true,
-            pmUnit: { include: { property: { include: { manualAccount: true } } } } } },
+            pmUnit: {
+              include: {
+                property: { include: { manualAccount: true } },
+                rentPayments: {
+                  where: { status: 'SUCCESS' },
+                  orderBy: { periodEnd: 'desc' },
+                  take: 1
+                }
+              }
+            }
+          }
+        },
         companyUsers: {
           include: {
             company: true

@@ -109,9 +109,12 @@ export class BulkFullImportUseCase {
       const lastName = row.tenantLastName?.trim();
 
       // A tenant row is valid if it has email, commercialName, or at least a name
-      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName);
+      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName || row.tenantPhone);
 
       if (hasTenantIdentifier) {
+        if (!commercialName && !firstName && !lastName) {
+          throw new BadRequestException(`Tenant with email/phone ${email || row.tenantPhone} must have a first/last name or commercial name provided.`);
+        }
         let phoneVal = row.tenantPhone?.trim() || undefined;
         let otherPhoneVal = undefined;
         if (phoneVal && phoneVal.includes(',')) {
@@ -173,6 +176,16 @@ export class BulkFullImportUseCase {
         continue;
       }
 
+      let inferredRentType = row.unitRentType;
+      if (!inferredRentType && row.unitRentStartDate && row.unitRentDueDate) {
+        const start = new Date(row.unitRentStartDate);
+        const due = new Date(row.unitRentDueDate);
+        const diffDays = Math.ceil(Math.abs(due.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        inferredRentType = diffDays > 300 ? 'Annually' : 'Monthly';
+      } else if (!inferredRentType) {
+        inferredRentType = 'Monthly';
+      }
+
       const newUnit = await this.unitRepository.create({
         propertyId: property.id,
         unitName: row.unitName.trim(),
@@ -180,7 +193,7 @@ export class BulkFullImportUseCase {
         managementFee: row.unitManagementFee ?? 0,
         rentStartDate: row.unitRentStartDate ? new Date(row.unitRentStartDate) : null,
         rentDueDate: row.unitRentDueDate ? new Date(row.unitRentDueDate) : null,
-        rentType: row.unitRentType || 'Monthly',
+        rentType: inferredRentType,
         currency: row.unitCurrency || 'NGN',
         notes: row.unitNotes || null,
         status: tenantId ? 'OCCUPIED' : 'VACANT',

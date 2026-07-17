@@ -21,6 +21,7 @@ import {
   hasRentalInfo,
   needsIdentityVerification,
 } from '../utils/profileCompletion'
+import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -111,9 +112,17 @@ export function ProfileSetupBlocker({
 
   const quickActions = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent', disabled: true, comingSoon: true },
+    isSavingsWalletEnabled(user)
+      ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }
+      : {
+          label: 'Save Rent',
+          icon: PiggyBank,
+          href: '/dashboard/save-for-rent',
+          disabled: true,
+          comingSoon: true,
+        },
     { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
-  ]
+  ] as Array<{ label: string; icon: any; href: string; disabled?: boolean; comingSoon?: boolean }>
 
   return (
     <div className="profile-setup-blocker" role="dialog" aria-modal="true" aria-label="Complete your profile setup">

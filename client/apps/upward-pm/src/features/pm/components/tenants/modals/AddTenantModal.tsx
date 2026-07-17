@@ -1,11 +1,11 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { Modal } from '@/components/ui/Modal/Modal'
 import { useTenantActions } from '../../../hooks/useTenants'
 import { useUnits, useProperties, useCreateProperty, useBulkCreateUnits } from '../../../hooks/useProperties'
 import { Property } from '../../../services/propertyService'
@@ -35,6 +35,8 @@ const tenantSchema = z.object({
   rentType: z.enum(['Monthly', 'Annually']).optional(),
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
+  isFullyPaid: z.boolean().optional(),
+  rentAmountPaid: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.tenantType === 'commercial') {
     if (!data.commercialName || data.commercialName.trim().length < 2) {
@@ -94,6 +96,7 @@ interface AddTenantModalProps {
   /** 'join-request' = opened from a tenant-initiated join request. 'add-tenant' = PM manually adding a tenant. Defaults to 'add-tenant'. */
   mode?: 'join-request' | 'add-tenant'
   initialData?: {
+    commercialName?: string
     firstName?: string
     lastName?: string
     email?: string
@@ -143,10 +146,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     mode: 'all',
     resolver: zodResolver(tenantSchema),
     defaultValues: {
-      tenantType: 'individual',
+      tenantType: initialData?.commercialName ? 'commercial' : 'individual',
       firstName: initialData?.firstName || '',
       lastName: initialData?.lastName || '',
-      commercialName: '',
+      commercialName: initialData?.commercialName || '',
       email: initialData?.email || '',
       phone: initialData?.phone || '',
       otherPhone: '',
@@ -160,6 +163,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       rentEndDate: initialData?.unitDetails?.rentEndDate
         ? new Date(initialData.unitDetails.rentEndDate).toISOString().split('T')[0]
         : '',
+      isFullyPaid: true,
+      rentAmountPaid: '0',
     }
   })
 
@@ -223,7 +228,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
 
   const onSubmit = async (data: TenantFormData) => {
-    const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, ...tenantData } = data
+    const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, ...tenantData } = data
 
     let email = tenantData.email || ''
     if (!email || email.trim() === '') {
@@ -313,7 +318,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               rentType: rentType || 'Annually',
               rentStartDate,
               rentDueDate: rentEndDate,
-              rentAmountPaid: 0
+              rentAmountPaid: parseFloat(rentAmountPaid || '0'),
+              isFullyPaid
             }, {
               onSuccess: () => {
                 reset()
@@ -338,7 +344,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               rentType,
               rentStartDate,
               rentDueDate: rentEndDate,
-              rentAmountPaid: 0
+              rentAmountPaid: parseFloat(rentAmountPaid || '0'),
+              isFullyPaid
             }, {
               onSuccess: () => {
                 reset()
@@ -361,30 +368,40 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     .filter(Boolean).join(', ')
 
   const modalContent = (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 620 }}>
-
-        {/* ── Header ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="modal-header-icon" style={{ background: isJoinRequest ? 'var(--forest-faint)' : 'var(--clay-faint)', color: isJoinRequest ? 'var(--forest)' : 'var(--clay)' }}>
-              {isJoinRequest ? <CheckCircle2 size={22} /> : <UserPlus size={22} />}
-            </div>
-            <div>
-              <h2 className="modal__title" style={{ marginBottom: 2 }}>
-                {isJoinRequest ? 'Fulfill Tenant Request' : 'Add New Tenant'}
-              </h2>
-              <p className="modal__desc" style={{ margin: 0 }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isJoinRequest ? 'Fulfill Tenant Request' : 'Add New Tenant'}
+      subtitle={isJoinRequest ? 'Review the tenant\'s connection request and assign them to a unit.' : 'Add a tenant manually and optionally assign them to a unit.'}
+      icon={isJoinRequest ? CheckCircle2 : UserPlus}
+      maxWidth={620}
+      footer={
+        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+          <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="add-tenant-form"
+            className="btn btn--primary"
+            style={{ flex: 1 }}
+            disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit || (!isValid && assignMode === 'existing')}
+          >
+            {createTenant.isPending || assignTenant.isPending || isCreatingUnit ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
                 {isJoinRequest
-                  ? 'Review the tenant\'s connection request and assign them to a unit.'
-                  : 'Add a tenant manually and optionally assign them to a unit.'}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
+                  ? (selectedUnitUuid || assignMode === 'create' ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
+                  : (selectedUnitUuid || assignMode === 'create' ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
+                }
+              </>
+            )}
+          </button>
         </div>
-
-        {/* ── Join Request Summary Card ── */}
+      }
+    >
+      <form id="add-tenant-form" onSubmit={handleSubmit(onSubmit)} className="animate-fade-in">
         {isJoinRequest && ud && requestedLocation && (
           <div className="join-request-card" style={{ marginTop: 24 }}>
             <div className="join-request-card__header">
@@ -424,7 +441,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 24 }}>
 
           {/* ── Tenant Identity Section ── */}
           <div className="form-section-label">
@@ -804,35 +821,42 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                         {errors.rentEndDate && <span className="form-error-text">{errors.rentEndDate.message}</span>}
                       </div>
                     </div>
+
+                    <div style={{ marginTop: 16, padding: 12, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: watch('isFullyPaid') ? 0 : 12 }}>
+                        <div>
+                          <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Toggle off if the tenant is making a partial payment initially.</p>
+                        </div>
+                        <label className="toggle-switch">
+                          <input 
+                            type="checkbox" 
+                            {...register('isFullyPaid')}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+
+                      {!watch('isFullyPaid') && (
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                          <label className="form-label" style={{ fontSize: 11 }}>Initial Amount Paid (₦)</label>
+                          <input
+                            type="number"
+                            className="form-input"
+                            style={{ fontSize: 13, padding: '10px 14px' }}
+                            placeholder="e.g. 500000"
+                            {...register('rentAmountPaid')}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
             )}
           </div>
 
-          {/* ── Actions ── */}
-          <div style={{ display: 'flex', gap: 12, marginTop: 40 }}>
-            <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn--primary"
-              style={{ flex: 1 }}
-              disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit || (!isValid && assignMode === 'existing')}
-            >
-              {createTenant.isPending || assignTenant.isPending || isCreatingUnit ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  {isJoinRequest
-                    ? (selectedUnitUuid || assignMode === 'create' ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
-                    : (selectedUnitUuid || assignMode === 'create' ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
-                  }
-                </>
-              )}
-            </button>
-          </div>
+        </div>
         </form>
 
         <style jsx>{`
@@ -976,9 +1000,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             border-width: 0;
           }
         `}</style>
-      </div>
-    </div>
+    </Modal>
   )
 
-  return createPortal(modalContent, document.body)
+  return modalContent
 }

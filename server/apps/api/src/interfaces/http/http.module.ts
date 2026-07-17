@@ -60,9 +60,14 @@ import { PublicBlogController } from './public/blog.controller'
 import { ManualPaymentsController } from './controllers/manual-payments.controller'
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
+import { PublicDocumentController } from './public/public-document.controller'
+import { WalletController } from './user/wallet.controller'
+
+import { NotificationsGateway } from '../websockets/notifications.gateway'
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule],
+  providers: [NotificationsGateway],
   controllers: [
     ManualPaymentsController,
     AdminAuthController,
@@ -120,6 +125,8 @@ import { AdminEmailSequenceController } from './admin/email-sequence.controller'
     PublicBlogController,
     AdminWhatsappSequenceController,
     AdminEmailSequenceController,
+    PublicDocumentController,
+    WalletController,
   ],
 })
 export class HttpModule {}

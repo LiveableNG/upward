@@ -29,6 +29,12 @@ export class CreateTenantUseCase {
   ) {}
 
   async execute(pmId: number, data: CreateTenantDto): Promise<TenantEntity> {
+    const hasIndividualName = !!data.firstName?.trim() || !!data.lastName?.trim();
+    const hasCommercialName = !!data.commercialName?.trim();
+    if (!hasIndividualName && !hasCommercialName) {
+      throw new BadRequestException('A tenant must have either a first/last name or a commercial/business name.');
+    }
+
     if (data.phone) {
       let cleaned = data.phone.trim().replace(/\s+/g, '');
       

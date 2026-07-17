@@ -50,8 +50,12 @@ export class GetSignedUpMetricsUseCase {
         let rentExpiryDate: Date | null | undefined = null
 
         u.properties.forEach((p: any) => {
-          if (p.rentEndDate && (!rentExpiryDate || p.rentEndDate > rentExpiryDate)) rentExpiryDate = p.rentEndDate
-          if (p.pmUnit?.rentDueDate && (!rentExpiryDate || p.pmUnit.rentDueDate > rentExpiryDate)) rentExpiryDate = p.pmUnit.rentDueDate
+          let propEndDate = p.rentEndDate
+          const latestPayment = p.pmUnit?.rentPayments?.[0]
+          if (latestPayment?.periodEnd) {
+            propEndDate = latestPayment.periodEnd
+          }
+          if (propEndDate && (!rentExpiryDate || propEndDate > rentExpiryDate)) rentExpiryDate = propEndDate
 
           let pmName = 'Platform'
           let pUuid = ''
@@ -76,6 +80,12 @@ export class GetSignedUpMetricsUseCase {
             }
           }
         })
+        if (!rentExpiryDate && pmMatch?.units && pmMatch.units.length > 0) {
+          const unit = pmMatch.units[0]
+          const latestPayment = unit.rentPayments?.[0]
+          rentExpiryDate = latestPayment?.periodEnd ? latestPayment.periodEnd : unit.rentDueDate
+        }
+
         const pmsList = Array.from(pmsMap.values())
 
         const isWaitlist = u.isFromWaitlist || waitlistEmails.has(decryptedEmail.toLowerCase())

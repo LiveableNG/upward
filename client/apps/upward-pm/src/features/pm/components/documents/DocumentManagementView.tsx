@@ -11,12 +11,18 @@ import {
   Filter,
   Mail,
   Edit,
-  MessageCircle
+  MessageCircle,
+  Users
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { downloadBlob } from '@/lib/download-helper'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { useRouter } from 'next/navigation'
+import { useSocket } from '@/hooks/useSocket'
+import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/common/Toast'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -27,18 +33,43 @@ interface DocumentManagementViewProps {
 }
 
 export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate, onEditTemplate }: DocumentManagementViewProps) {
+  const router = useRouter()
   const { documents, templates, isLoading, generatePdf } = useDocuments()
+  const { success } = useToast()
+  const queryClient = useQueryClient()
+  const socket = useSocket()
+  
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleBulkDispatchCompleted = (payload: any) => {
+      success(`Bulk dispatch completed: ${payload.successful} sent, ${payload.failed} failed.`);
+      queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
+    };
+
+    socket.on('bulk_dispatch_completed', handleBulkDispatchCompleted);
+
+    return () => {
+      socket.off('bulk_dispatch_completed', handleBulkDispatchCompleted);
+    };
+  }, [socket, queryClient, success]);
+
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
   const [previewDocument, setPreviewDocument] = useState<any>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState<string | null>(null)
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState('all')
 
-  const filteredHistory = documents.filter((doc: any) =>
-    doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const documentTypes = React.useMemo(() => Array.from(new Set(documents.map((d: any) => d.documentType))), [documents])
+
+  const filteredHistory = documents.filter((doc: any) => {
+    const matchesSearch = doc.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.recipientName.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesType = typeFilter === 'all' || doc.documentType === typeFilter
+    return matchesSearch && matchesType
+  })
 
   const handleDownload = async (doc: any) => {
     setIsDownloading(doc.uuid)
@@ -97,6 +128,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
 
   // Group templates by type
   const groupedTemplates = templates.reduce((acc: any, template: any) => {
+    
     const type = template.type || 'CUSTOM';
     if (!acc[type]) acc[type] = [];
     acc[type].push(template);
@@ -141,18 +173,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
     },
     {
       header: 'Status',
-      render: () => (
-        <span style={{
-          padding: '4px 12px',
-          borderRadius: 100,
-          fontSize: 12,
-          fontWeight: 600,
-          background: 'var(--forest-faint)',
-          color: 'var(--forest)'
-        }}>
-          Sent
-        </span>
-      )
+      render: (doc) => {
+        const isFailed = doc.status === 'FAILED';
+        return (
+          <span style={{
+            padding: '4px 12px',
+            borderRadius: 100,
+            fontSize: 12,
+            fontWeight: 600,
+            background: isFailed ? '#fee2e2' : 'var(--forest-faint)',
+            color: isFailed ? '#dc2626' : 'var(--forest)'
+          }}>
+            {isFailed ? 'Failed' : 'Sent'}
+          </span>
+        )
+      }
     },
     {
       header: 'Action',
@@ -175,19 +210,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 style={{ position: 'fixed', inset: 0, zIndex: 10 }}
                 onClick={(e) => { e.stopPropagation(); setActiveMenu(null); }}
               />
-              <div className="glass" style={{
-                position: 'absolute',
-                right: 0,
-                top: '100%',
-                background: 'white',
-                borderRadius: 12,
-                boxShadow: 'var(--shadow-lg)',
-                zIndex: 11,
-                minWidth: 180,
-                overflow: 'hidden',
-                border: '1px solid var(--border)',
-                textAlign: 'left'
-              }}>
+              <div className="glass action-dropdown">
                 <button
                   onClick={(e) => { e.stopPropagation(); setPreviewDocument(doc); setActiveMenu(null); }}
                   className="dropdown-item"
@@ -230,15 +253,24 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   if (viewMode === 'all_templates') {
     return (
       <div className="document-management animate-fade-in">
-        <header style={{ marginBottom: 40 }}>
+        <header style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <button
+              onClick={() => setViewMode('dashboard')}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+            </button>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
+          </div>
           <button
-            onClick={() => setViewMode('dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => router.push('/documents/bulk')}
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+            <Users size={20} /> Send Bulk Document
           </button>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
@@ -276,34 +308,12 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button
-            onClick={() => document.getElementById('word-upload')?.click()}
+            onClick={() => router.push('/documents/bulk')}
             className="btn btn--secondary"
             style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Download size={20} /> Import Word Doc
+            <Users size={20} /> Send Bulk Document
           </button>
-          <input
-            id="word-upload"
-            type="file"
-            accept=".docx"
-            style={{ display: 'none' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-
-              try {
-                const arrayBuffer = await file.arrayBuffer()
-                const mammoth = (await import('mammoth')).default
-                const result = await mammoth.convertToHtml({ arrayBuffer })
-                onSelectTemplate({
-                  name: file.name.replace('.docx', ''),
-                  content: result.value
-                })
-              } catch (err) {
-                console.error('Failed to convert word doc:', err)
-              }
-            }}
-          />
           <button
             onClick={onCreateTemplate}
             className="btn btn--primary"
@@ -343,11 +353,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)' }}>Document History</h2>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button className="btn btn--secondary" style={{ borderRadius: 10, height: 40, padding: '0 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Download size={16} /> Download documents
-            </button>
-          </div>
         </div>
 
         <div className="glass" style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)', background: 'white', marginBottom: 32 }}>
@@ -363,9 +368,16 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="btn btn--secondary" style={{ borderRadius: 12, width: 44, height: 44, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Filter size={18} />
-            </button>
+            <FilterDropdown
+              label="Document Type"
+              value={typeFilter}
+              onChange={(val) => setTypeFilter(val)}
+              icon={Filter}
+              options={[
+                { label: 'All Types', value: 'all' },
+                ...documentTypes.map((type: any) => ({ label: formatTypeName(type), value: type }))
+              ]}
+            />
           </div>
 
           <DataTable

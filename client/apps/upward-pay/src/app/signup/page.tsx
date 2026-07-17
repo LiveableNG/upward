@@ -59,13 +59,8 @@ function SignupPageContent() {
         router.replace(redirect)
         return
       }
-
-      if (mode !== 'biometrics' && mode !== 'welcome' && mode !== 'signup') {
-        const redirect = searchParams.get('redirect') || '/dashboard'
-        router.replace(redirect)
-      }
     }
-  }, [isLoggedIn, loading, authInitialized, isReturningUser, router, mode, searchParams])
+  }, [isLoggedIn, loading, authInitialized, isReturningUser, router, searchParams])
 
   if (loading) return <FallbackSuspense message="Getting ready…" />
 

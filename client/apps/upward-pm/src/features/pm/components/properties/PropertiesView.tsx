@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { isBefore, addDays, startOfDay } from 'date-fns'
 import { useToast } from '@/components/common/Toast'
 import { cn, formatTenantName } from '@/lib/utils'
@@ -33,14 +33,16 @@ type Tab = 'units' | 'properties'
 
 export function PropertiesView({ initialProperties, initialUnits }: { initialProperties?: any, initialUnits?: any }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { success, info, error } = useToast()
   
-  const [activeTab, setActiveTab] = useState<Tab>('units')
+  const [activeTab, setActiveTab] = useState<Tab>((searchParams.get('tab') as Tab) || 'units')
   
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [selectedPropertyFilter, setSelectedPropertyFilter] = useState('All Properties')
-  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending'>('all')
-  const [dueFilter, setDueFilter] = useState<'all' | 'passed' | '30days' | '60days' | '90days'>('all')
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'paid'>((searchParams.get('paymentFilter') as any) || 'all')
+  const [dueFilter, setDueFilter] = useState<'all' | 'passed' | '30days' | '60days' | '90days'>((searchParams.get('dueFilter') as any) || 'all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'vacant' | 'occupied'>((searchParams.get('statusFilter') as any) || 'all')
   
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
   const [showEditPropertyModal, setShowEditPropertyModal] = useState(false)
@@ -79,7 +81,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
     unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
     tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
     rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
-    unitType: '', rentAmountPaid: ''
+    unitType: '', rentAmountPaid: '', isFullyPaid: true
   })
 
   const handleConfirmDelete = () => {
@@ -115,7 +117,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
           rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
-          unitType: '', rentAmountPaid: ''
+          unitType: '', rentAmountPaid: '', isFullyPaid: true
         })
         setTargetPropertyUuid('')
       },
@@ -236,7 +238,10 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
       const matchesProp = selectedPropertyFilter === 'All Properties' || prop?.name === selectedPropertyFilter
       const unitRequests = paymentRequests?.filter((r: any) => r.unitId === unit.id) || []
       const hasPendingRequest = unitRequests.some((r: any) => r.status !== 'PAID')
-      const matchesPayment = paymentFilter === 'all' || (paymentFilter === 'pending' && hasPendingRequest)
+      const hasPaidRequest = unitRequests.some((r: any) => r.status === 'PAID')
+      let matchesPayment = true
+      if (paymentFilter === 'pending') matchesPayment = hasPendingRequest
+      else if (paymentFilter === 'paid') matchesPayment = hasPaidRequest && !hasPendingRequest
 
       let matchesDue = true
       if (dueFilter !== 'all' && unit.rentDueDate) {
@@ -246,9 +251,15 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
         else if (dueFilter === '30days') matchesDue = isBefore(dueDate, addDays(today, 30)) && !isBefore(dueDate, today)
         else if (dueFilter === '60days') matchesDue = isBefore(dueDate, addDays(today, 60)) && !isBefore(dueDate, today)
         else if (dueFilter === '90days') matchesDue = isBefore(dueDate, addDays(today, 90)) && !isBefore(dueDate, today)
-      } else if (dueFilter !== 'all' && !unit.rentDueDate) matchesDue = false
+      } else if (dueFilter !== 'all') {
+        matchesDue = false
+      }
 
-      return matchesSearch && matchesProp && matchesPayment && matchesDue
+      let matchesStatus = true
+      if (statusFilter === 'vacant') matchesStatus = unit.status === 'VACANT'
+      else if (statusFilter === 'occupied') matchesStatus = unit.status === 'OCCUPIED'
+
+      return matchesSearch && matchesProp && matchesPayment && matchesDue && matchesStatus
     }).sort((a: any, b: any) => {
       const aRequests = paymentRequests?.filter((r: any) => r.unitId === a.id) || []
       const bRequests = paymentRequests?.filter((r: any) => r.unitId === b.id) || []
@@ -267,7 +278,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
       // Finally sort by due date ascending
       return new Date(a.rentDueDate).getTime() - new Date(b.rentDueDate).getTime();
     })
-  }, [units, properties, paymentRequests, searchQuery, selectedPropertyFilter, paymentFilter, dueFilter])
+  }, [units, properties, paymentRequests, searchQuery, selectedPropertyFilter, paymentFilter, dueFilter, statusFilter])
 
   const filteredProperties = useMemo(() => {
     return properties.filter((prop: any) => 
@@ -294,6 +305,8 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
           setPaymentFilter={setPaymentFilter}
           dueFilter={dueFilter}
           setDueFilter={setDueFilter}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
           onAddUnit={() => {
             if (properties.length === 0) {
               info("Please add a property first before adding units.")

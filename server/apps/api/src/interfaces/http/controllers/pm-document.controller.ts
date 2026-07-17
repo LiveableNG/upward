@@ -4,6 +4,7 @@ import { GetPmDocumentsUseCase } from '../../../application/pm/use-cases/documen
 import { GetTenantUploadedDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-tenant-uploaded-documents.use-case';
 import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
 import { SendDocumentUseCase, SendDocumentDto } from '../../../application/pm/use-cases/documents/send-document.use-case';
+import { SendBulkDocumentUseCase, BulkSendDocumentDto } from '../../../application/pm/use-cases/documents/send-bulk-document.use-case';
 import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/documents/generate-document-pdf.use-case';
 import { SendToTenantVaultUseCase } from '../../../application/pm/use-cases/documents/send-to-tenant-vault.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
@@ -16,6 +17,7 @@ export class PmDocumentController {
     private readonly getTenantUploadedDocumentsUseCase: GetTenantUploadedDocumentsUseCase,
     private readonly saveTemplateUseCase: SaveDocumentTemplateUseCase,
     private readonly sendDocumentUseCase: SendDocumentUseCase,
+    private readonly sendBulkDocumentUseCase: SendBulkDocumentUseCase,
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
     private readonly sendToVaultUseCase: SendToTenantVaultUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
@@ -51,6 +53,13 @@ export class PmDocumentController {
   async sendDocument(@Request() req: any, @Body() data: SendDocumentDto) {
     const pmId = await this.getPmId(req);
     return this.sendDocumentUseCase.execute(pmId, data);
+  }
+
+  @Post('send-bulk')
+  async sendBulkDocument(@Request() req: any, @Body() data: BulkSendDocumentDto) {
+    const pmId = await this.getPmId(req);
+    const pmUuid = req.user?.sub;
+    return this.sendBulkDocumentUseCase.execute(pmId, pmUuid, data);
   }
 
   @Post('send-to-vault')

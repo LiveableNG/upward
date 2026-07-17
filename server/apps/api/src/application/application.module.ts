@@ -165,6 +165,7 @@ import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents
 import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
 import { SaveDocumentTemplateUseCase } from './pm/use-cases/documents/save-document-template.use-case'
 import { SendDocumentUseCase } from './pm/use-cases/documents/send-document.use-case'
+import { SendBulkDocumentUseCase } from './pm/use-cases/documents/send-bulk-document.use-case'
 import { GenerateDocumentPdfUseCase } from './pm/use-cases/documents/generate-document-pdf.use-case'
 import { SendToTenantVaultUseCase } from './pm/use-cases/documents/send-to-tenant-vault.use-case'
 import { GetPendingCredibilityRequestsUseCase } from './pm/use-cases/get-pending-credibility-requests.use-case'
@@ -283,6 +284,17 @@ import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement
 import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPaymentUseCase, GetPaymentProofUploadUrlUseCase, GetPaymentProofUseCase, DeletePaymentProofUseCase } from './use-cases/payments/manual-payment.use-cases'
 import { GetPendingManualPaymentsUseCase } from './use-cases/payments/get-pending-manual-payments.use-case'
 import { SendRentReceiptEmailUseCase } from './use-cases/payments/send-rent-receipt-email.use-case'
+import {
+  ApplyDailySavingsInterestUseCase,
+  CreateSavingsGoalUseCase,
+  CreditWalletUseCase,
+  EnableSavingsWalletForUserUseCase,
+  FundWalletUseCase,
+  GetSavingsGoalsUseCase,
+  GetWalletUseCase,
+  SetDailySavingsInterestUseCase,
+  UpdateSavingsGoalUseCase,
+} from './use-cases/payments/wallet.use-cases'
 
 import { UploadContractUseCase } from './use-cases/contracts/upload-contract.use-case'
 import { GetContractUploadUrlUseCase } from './use-cases/contracts/get-contract-upload-url.use-case'
@@ -494,6 +506,7 @@ const UseCases = [
   GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,
   SendDocumentUseCase,
+  SendBulkDocumentUseCase,
   GenerateDocumentPdfUseCase,
   SendToTenantVaultUseCase,
   GetPendingCredibilityRequestsUseCase,
@@ -539,6 +552,15 @@ const UseCases = [
   DeletePaymentProofUseCase,
   GetPendingManualPaymentsUseCase,
   SendRentReceiptEmailUseCase,
+  GetWalletUseCase,
+  CreditWalletUseCase,
+  FundWalletUseCase,
+  GetSavingsGoalsUseCase,
+  CreateSavingsGoalUseCase,
+  UpdateSavingsGoalUseCase,
+  EnableSavingsWalletForUserUseCase,
+  SetDailySavingsInterestUseCase,
+  ApplyDailySavingsInterestUseCase,
   ResolvePendingRefundUseCase,
   GetPmUnresolvedTransactionsUseCase,
   RejectCredibilityRequestUseCase,

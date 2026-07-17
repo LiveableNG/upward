@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export interface Column<T> {
-  header: string;
+  header: string | React.ReactNode;
   render: (item: T, index: number) => React.ReactNode;
   align?: 'left' | 'center' | 'right';
   width?: string | number;
@@ -239,7 +239,7 @@ export function DataTable<T>({
                 {/* Details Grid */}
                 <div className="upward-mobile-card__details">
                   {columns.slice(1).map((col, colIdx) => {
-                    if (col.header.toLowerCase() === 'actions') return null;
+                    if (typeof col.header === 'string' && col.header.toLowerCase() === 'actions') return null;
                     const rendered = col.render(item, idx);
                     if (!rendered) return null;
                     return (
@@ -253,7 +253,7 @@ export function DataTable<T>({
 
                 {/* Actions Footer */}
                 {columns.map((col, colIdx) => {
-                  if (col.header.toLowerCase() === 'actions') {
+                  if (typeof col.header === 'string' && col.header.toLowerCase() === 'actions') {
                     const rendered = col.render(item, idx);
                     if (!rendered) return null;
                     return (

@@ -29,12 +29,20 @@ export const useDocuments = () => {
       documentService.generatePdf(content, tenantUuid, unitUuid, recipientName, includeLetterhead),
   });
 
+  const sendBulkDocumentMutation = useMutation({
+    mutationFn: documentService.sendBulkDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
+    },
+  });
+
   return {
     documents: documentsQuery.data?.history || [],
     templates: documentsQuery.data?.templates || [],
     isLoading: documentsQuery.isLoading,
     saveTemplate: saveTemplateMutation,
     sendDocument: sendDocumentMutation,
+    sendBulkDocument: sendBulkDocumentMutation,
     generatePdf: generatePdfMutation,
   };
 };

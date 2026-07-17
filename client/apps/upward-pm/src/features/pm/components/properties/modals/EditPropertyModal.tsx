@@ -37,11 +37,11 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
   const { data: existingLandlords = [] } = useLandlords()
   const [showLandlordSuggestions, setShowLandlordSuggestions] = React.useState(false)
 
-  const filteredLandlords = existingLandlords.filter(l => 
-    (l.name.toLowerCase().includes((formData.landlordName || '').toLowerCase()) ||
-     l.email.toLowerCase().includes((formData.landlordEmail || '').toLowerCase())) &&
-    (formData.landlordName || formData.landlordEmail)
-  )
+  const filteredLandlords = existingLandlords.filter(l => {
+    const searchStr = (formData.landlordName || '').toLowerCase()
+    if (!searchStr) return true
+    return l.name.toLowerCase().includes(searchStr) || l.email.toLowerCase().includes(searchStr)
+  })
 
   const handleSelectLandlord = (l: any) => {
     setFormData({
