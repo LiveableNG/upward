@@ -165,6 +165,16 @@ export class BulkCreateUnitsUseCase {
         throw new BadRequestException(`Unit "${u.unitName}" already exists in this property.`);
       }
 
+      let inferredRentType = u.rentType;
+      if (!inferredRentType && u.rentStartDate && u.rentDueDate) {
+        const start = new Date(u.rentStartDate);
+        const due = new Date(u.rentDueDate);
+        const diffDays = Math.ceil(Math.abs(due.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        inferredRentType = diffDays > 300 ? 'Annually' : 'Monthly';
+      } else if (!inferredRentType) {
+        inferredRentType = 'Monthly';
+      }
+
       const newUnit = await this.unitRepository.create({
         propertyId: property.id,
         unitName: u.unitName,
@@ -172,7 +182,7 @@ export class BulkCreateUnitsUseCase {
         managementFee: u.managementFee ?? 0,
         rentStartDate: u.rentStartDate ? new Date(u.rentStartDate) : null,
         rentDueDate: u.rentDueDate ? new Date(u.rentDueDate) : null,
-        rentType: u.rentType || 'Monthly',
+        rentType: inferredRentType,
         currency: u.currency || 'NGN',
         notes: u.notes || null,
         status: tenantId ? (u.status || 'OCCUPIED') : 'VACANT',

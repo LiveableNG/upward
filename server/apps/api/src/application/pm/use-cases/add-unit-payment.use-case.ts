@@ -41,25 +41,14 @@ export class AddUnitPaymentUseCase {
       );
 
       const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-      const balanceBeforeThisPayment = unit.rentAmount - totalPaidForPeriod;
+      const totalPaidIncludingThis = totalPaidForPeriod + data.amount;
 
-      if (balanceBeforeThisPayment <= 0) {
-        // They were ALREADY fully paid for the current cycle.
-        // This new payment is technically advancing the cycle.
+      if (totalPaidIncludingThis >= unit.rentAmount) {
         shouldIncrementUnitDates = true;
 
-        const start = new Date(unit.rentStartDate);
-        const end = new Date(start);
-        
-        if (unit.rentType === 'Monthly') {
-          end.setMonth(end.getMonth() + 1);
-        } else if (unit.rentType === 'Annually' || unit.rentType === 'Yearly') {
-          end.setFullYear(end.getFullYear() + 1);
-        }
-        
-        newUnitStart = new Date(end);
+        newUnitStart = new Date(unit.rentDueDate);
         newUnitStart.setDate(newUnitStart.getDate() + 1);
-        
+
         newUnitEnd = new Date(newUnitStart);
         if (unit.rentType === 'Monthly') {
           newUnitEnd.setMonth(newUnitEnd.getMonth() + 1);

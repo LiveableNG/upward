@@ -85,15 +85,17 @@ export class SyncPmPaymentStatusUseCase {
             const baseDate = pmPr.rentEndDate ? new Date(pmPr.rentEndDate) : new Date(unit.rentDueDate);
 
             if (shouldAdvanceDates) {
-              newDueDate = new Date(baseDate);
               newStartDate = new Date(baseDate);
-              
+              newStartDate.setDate(newStartDate.getDate() + 1);
+
+              newDueDate = new Date(newStartDate);
               const rentInterval = pmPr.rentType || unit.rentType;
               if (rentInterval === 'MONTHLY' || rentInterval === 'Monthly') {
                 newDueDate.setMonth(newDueDate.getMonth() + 1);
               } else {
                 newDueDate.setFullYear(newDueDate.getFullYear() + 1);
               }
+              newDueDate.setDate(newDueDate.getDate() - 1);
 
               await txClient.upward_pm_unit.update({
                 where: { id: unit.id },

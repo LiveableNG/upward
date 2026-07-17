@@ -84,7 +84,23 @@ export class GetPerformanceMetricsUseCase {
               company: { select: { id: true, createdAt: true, uuid: true, name: true } },
               location: { select: { address: true } },
               rentEndDate: true,
-              pmUnit: { select: { unitName: true, rentDueDate: true, property: { select: { address: true } } } },
+              pmUnit: {
+                select: {
+                  unitName: true,
+                  rentDueDate: true,
+                  rentStartDate: true,
+                  property: { select: { address: true } },
+                  rentPayments: {
+                    where: { status: 'SUCCESS' },
+                    orderBy: { periodEnd: 'desc' },
+                    take: 1,
+                    select: {
+                      periodStart: true,
+                      periodEnd: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -115,7 +131,21 @@ export class GetPerformanceMetricsUseCase {
         },
         include: {
           pm: true,
-          units: { select: { rentDueDate: true } },
+          units: {
+            select: {
+              rentDueDate: true,
+              rentStartDate: true,
+              rentPayments: {
+                where: { status: 'SUCCESS' },
+                orderBy: { periodEnd: 'desc' },
+                take: 1,
+                select: {
+                  periodStart: true,
+                  periodEnd: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.prisma.upward_property_manager.findMany({
