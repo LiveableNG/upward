@@ -153,7 +153,8 @@ fi
 
 log "pm2 restart / start"
 if pm2 describe upward-api >/dev/null 2>&1; then
-  pm2 restart upward-api upward-web upward-pay upward-pm --update-env
+  # Restart via ecosystem file so env changes (e.g. NODE_OPTIONS) are re-read
+  pm2 restart "$ECOSYSTEM" --env production --update-env
 else
   pm2 start "$ECOSYSTEM" --env production
 fi

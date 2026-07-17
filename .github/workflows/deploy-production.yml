@@ -1,8 +1,12 @@
 name: Deploy Production
 
+# No branch protection required: we never listen to `push`.
+# Deploy only when a PR into production is merged (or manual Run workflow).
+# Direct pushes still land on the branch — they just won't trigger this deploy.
 on:
-  push:
+  pull_request:
     branches: [production]
+    types: [closed]
   workflow_dispatch: {}
 
 concurrency:
@@ -12,6 +16,8 @@ concurrency:
 jobs:
   build:
     name: Build
+    # Skip closed PRs that were not merged (e.g. closed without merge)
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     env:
@@ -24,6 +30,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # After merge: build the merge commit. Manual run: tip of production.
+          ref: ${{ github.event.pull_request.merge_commit_sha || 'production' }}
 
       - uses: pnpm/action-setup@v4
 
@@ -50,7 +59,7 @@ jobs:
   trigger-deploy:
     name: Trigger EC2 deploy
     needs: build
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/production'
+    if: needs.build.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       triggered_at: ${{ steps.trigger.outputs.triggered_at }}
