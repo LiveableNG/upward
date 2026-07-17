@@ -25,6 +25,8 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 4000,
+        // Allow large auth-cookie headers (must match nginx large_client_header_buffers)
+        NODE_OPTIONS: '--max-http-header-size=32768',
       },
       error_file: '/var/log/upward/api-error.log',
       out_file: '/var/log/upward/api-out.log',
@@ -44,6 +46,8 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
+        // Allow large auth-cookie headers (must match nginx large_client_header_buffers)
+        NODE_OPTIONS: '--max-http-header-size=32768',
       },
       error_file: '/var/log/upward/web-error.log',
       out_file: '/var/log/upward/web-out.log',
@@ -63,6 +67,8 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 3001,
+        // Allow large auth-cookie headers (must match nginx large_client_header_buffers)
+        NODE_OPTIONS: '--max-http-header-size=32768',
       },
       error_file: '/var/log/upward/pay-error.log',
       out_file: '/var/log/upward/pay-out.log',
@@ -82,6 +88,8 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         PORT: 3002,
+        // Allow large auth-cookie headers (must match nginx large_client_header_buffers)
+        NODE_OPTIONS: '--max-http-header-size=32768',
       },
       error_file: '/var/log/upward/pm-error.log',
       out_file: '/var/log/upward/pm-out.log',
