@@ -31,8 +31,6 @@ interface UnitsTableProps {
   setDueFilter: (filter: 'all' | 'passed' | '30days' | '60days' | '90days') => void;
   statusFilter?: 'all' | 'vacant' | 'occupied';
   setStatusFilter?: (filter: 'all' | 'vacant' | 'occupied') => void;
-  tenantFilter?: 'all' | 'pending' | 'onboarded';
-  setTenantFilter?: (filter: 'all' | 'pending' | 'onboarded') => void;
   onAddUnit: () => void;
   onBulkImport: () => void;
   onRequestPayment: (unit: Unit) => void;
@@ -53,8 +51,6 @@ export function UnitsTable({
   setDueFilter,
   statusFilter = 'all',
   setStatusFilter,
-  tenantFilter = 'all',
-  setTenantFilter,
   onAddUnit,
   onBulkImport,
   onRequestPayment,
@@ -255,21 +251,7 @@ export function UnitsTable({
               onChange={(val) => setStatusFilter(val as any)}
             />
           )}
-
-          {setTenantFilter && (
-            <FilterDropdown 
-              label="Tenants" 
-              value={tenantFilter}
-              icon={Filter}
-              options={[
-                { label: 'All Tenants', value: 'all' },
-                { label: 'Onboarded', value: 'onboarded' },
-                { label: 'Pending Invites', value: 'pending' }
-              ]}
-              onChange={(val) => setTenantFilter(val as any)}
-            />
-          )}
-          </FilterGroup>
+        </FilterGroup>
       </ControlBar>
 
       <DataTable

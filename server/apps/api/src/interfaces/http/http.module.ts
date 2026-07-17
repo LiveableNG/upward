@@ -62,8 +62,11 @@ import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 import { PublicDocumentController } from './public/public-document.controller'
 import { WalletController } from './user/wallet.controller'
 
+import { NotificationsGateway } from '../websockets/notifications.gateway'
+
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module],
+  providers: [NotificationsGateway],
   controllers: [
     ManualPaymentsController,
     AdminAuthController,

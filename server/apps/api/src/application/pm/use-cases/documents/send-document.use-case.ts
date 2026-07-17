@@ -23,6 +23,7 @@ export interface SendDocumentDto {
   tenantUuid?: string;
   unitUuid?: string;
   subject: string;
+  fromEmail?: string;
   content: string;
   documentType: string;
   recipientName: string;
@@ -360,17 +361,22 @@ export class SendDocumentUseCase {
       content = wrappedContent;
     }
 
-    // 3. Upload Snapshot to S3
-    await this.s3Service.uploadBuffer(
-      Buffer.from(content),
-      s3Key,
-      'text/html'
-    );
-
+    let finalStatus = 'SENT';
+    let s3UploadSuccess = false;
     let pdfS3Url: string | null = null;
-    if (data.documentType === 'PDF') {
-      let pdfBuffer;
-      try {
+    let finalError: any = null;
+
+    try {
+      // 3. Upload Snapshot to S3
+      await this.s3Service.uploadBuffer(
+        Buffer.from(content),
+        s3Key,
+        'text/html'
+      );
+      s3UploadSuccess = true;
+
+      if (data.documentType === 'PDF') {
+        let pdfBuffer;
         pdfBuffer = await this.generatePdfUseCase.execute({
           content: content,
           pmId,
@@ -387,48 +393,55 @@ export class SendDocumentUseCase {
                         this.configService.get<string>('BACKEND_URL') || 
                         'http://localhost:4000';
         pdfS3Url = `${baseUrl}/api/v1/public/documents/${sentUuid}/pdf`;
-      } catch (error) {
-        console.error('PDF Generation Error in SendDocument:', error);
-        throw error;
-      }
-      
-      if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
-        await this.emailService.sendEmailWithRetry({
-          userId: pm?.uuid || '',
-          email: data.recipientEmail,
-          subject: data.subject,
-          html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
-          type: 'DOCUMENT',
-          attachments: [
-            {
-              filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
-              content: pdfBuffer,
-            }
-          ]
-        } as any);
-      }
-    } else {
-      if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
-        await this.emailService.sendGenericEmail(
-          data.recipientEmail,
-          data.subject,
-          content,
-          pm?.uuid
-        );
-      }
-    }
-
-    if (data.deliveryChannel === 'SMS' || data.deliveryChannel === 'WHATSAPP') {
-      const plainText = content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
-      const message = `${data.subject}\n\n${plainText}`;
-      if (tenant?.phone) {
-        if (data.deliveryChannel === 'WHATSAPP') {
-          await this.whatsappService.sendMessage({ to: tenant.phone, message });
-        } else {
-          await this.smsService.sendSms({ to: tenant.phone, message });
+        
+        if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
+          await this.emailService.sendEmailWithRetry({
+            userId: tenant?.uuid || '',
+            pmUuid: pm?.uuid,
+            email: data.recipientEmail,
+            subject: data.subject,
+            html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
+            type: 'DOCUMENT',
+            fromOverride: data.fromEmail,
+            attachments: [
+              {
+                filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+                content: pdfBuffer,
+              }
+            ]
+          } as any);
+        }
+      } else {
+        if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
+          await this.emailService.sendGenericEmail(
+            data.recipientEmail,
+            data.subject,
+            content,
+            tenant?.uuid,
+            pm?.uuid,
+            data.fromEmail
+          );
         }
       }
+
+      if (data.deliveryChannel === 'SMS' || data.deliveryChannel === 'WHATSAPP') {
+        const plainText = content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+        const message = `${data.subject}\n\n${plainText}`;
+        if (tenant?.phone) {
+          if (data.deliveryChannel === 'WHATSAPP') {
+            await this.whatsappService.sendMessage({ to: tenant.phone, message });
+          } else {
+            await this.smsService.sendSms({ to: tenant.phone, message });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Document dispatch failed:', err);
+      finalStatus = 'FAILED';
+      finalError = err;
     }
+
+    const finalContent = s3UploadSuccess ? s3Key : content; // Save raw HTML if S3 upload didn't succeed
 
     // 5. Save the record
     if (isEdit) {
@@ -439,12 +452,13 @@ export class SendDocumentUseCase {
           documentType: data.documentType,
           recipientName: data.recipientName,
           recipientEmail: data.recipientEmail,
-          status: 'SENT',
+          status: finalStatus,
+          content: finalContent,
           includeLetterhead: data.includeLetterhead || false,
         }
       });
 
-
+      if (finalStatus === 'FAILED') throw finalError;
 
       const updatedDoc = await this.documentRepo.findSentDocumentByUuid(sentUuid);
       return { ...(updatedDoc as any), pdfUrl: pdfS3Url };
@@ -455,13 +469,15 @@ export class SendDocumentUseCase {
         tenantId,
         unitId,
         subject: data.subject,
-        content: s3Key,
+        content: finalContent,
         documentType: data.documentType,
         recipientName: data.recipientName,
         recipientEmail: data.recipientEmail,
-        status: 'SENT',
+        status: finalStatus,
         includeLetterhead: data.includeLetterhead || false,
       });
+
+      if (finalStatus === 'FAILED') throw finalError;
 
       return { ...(result as any), pdfUrl: pdfS3Url };
     }

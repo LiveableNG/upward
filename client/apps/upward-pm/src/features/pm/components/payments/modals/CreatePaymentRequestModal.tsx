@@ -630,7 +630,7 @@ export function CreatePaymentRequestModal({
           {!isEditing && (
             <div className="form-group">
               <label className="form-label">Follow-up Document <span style={{ color: 'var(--error)' }}>*</span></label>
-              {templates.filter((t: any) => t.type !== 'SAMPLE' && t.uuid !== 'system-sample-template').length === 0 ? (
+              {templates.filter((t: any) => t.type !== 'SYSTEM').length === 0 ? (
                 <div style={{ padding: '16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No custom templates available.</span>
                   <a href="/pm/documents" style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--dark)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
@@ -643,7 +643,7 @@ export function CreatePaymentRequestModal({
                   onChange={(val) => setSelectedTemplateUuid(val)}
                   options={[
                     { label: 'Select template', value: '' },
-                    ...templates.filter((t: any) => t.type !== 'SAMPLE' && t.uuid !== 'system-sample-template').map((t: any) => ({ label: t.name, value: t.uuid }))
+                    ...templates.filter((t: any) => t.type !== 'SYSTEM').map((t: any) => ({ label: t.name, value: t.uuid }))
                   ]}
                 />
               )}

@@ -28,7 +28,15 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         rentReminderEnabled: data.rentReminderEnabled,
         rentReminderDaysBefore: data.rentReminderDaysBefore,
       },
-      include: { property: true, tenant: true },
+            include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1
+        }
+      },
     });
     return this.mapUnit(unit);
   }
@@ -55,8 +63,19 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   }
 
   private mapUnit(u: any): UnitEntity {
+    let rentStartDate = u.rentStartDate;
+    let rentDueDate = u.rentDueDate;
+    
+    const latestPayment = u.rentPayments?.[0];
+    if (latestPayment && latestPayment.periodEnd) {
+      rentStartDate = latestPayment.periodStart;
+      rentDueDate = latestPayment.periodEnd;
+    }
+
     return {
       ...u,
+      rentStartDate,
+      rentDueDate,
       propertyUuid: u.property?.uuid,
       tenant: u.tenant ? {
         id: u.tenant.id,
@@ -78,7 +97,15 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   async findByUuid(uuid: string): Promise<UnitEntity | null> {
     const unit = await this.prisma.upward_pm_unit.findUnique({
       where: { uuid },
-      include: { property: true, tenant: true },
+            include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1
+        }
+      },
     });
     return unit ? this.mapUnit(unit) : null;
   }
@@ -86,7 +113,15 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   async findByPropertyId(propertyId: number): Promise<UnitEntity[]> {
     const units = await this.prisma.upward_pm_unit.findMany({
       where: { propertyId },
-      include: { property: true, tenant: true },
+            include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1
+        }
+      },
       orderBy: { unitName: 'asc' },
     });
     return units.map(u => this.mapUnit(u));
@@ -97,7 +132,15 @@ export class PrismaPmUnitRepository implements IUnitRepository {
       where: {
         property: { pmId },
       },
-      include: { property: true, tenant: true },
+            include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1
+        }
+      },
       orderBy: { unitName: 'asc' },
     });
     return units.map(u => this.mapUnit(u));
@@ -124,7 +167,15 @@ export class PrismaPmUnitRepository implements IUnitRepository {
           { propertyId: { in: collabPropertyIds } }
         ]
       },
-      include: { property: true, tenant: true },
+            include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1
+        }
+      },
       orderBy: { unitName: 'asc' },
     });
 
@@ -173,7 +224,15 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     const unit = await this.prisma.upward_pm_unit.update({
       where: { uuid },
       data: updateData,
-      include: { property: true, tenant: true }
+            include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1
+        }
+      }
     });
 
     return this.mapUnit(unit);

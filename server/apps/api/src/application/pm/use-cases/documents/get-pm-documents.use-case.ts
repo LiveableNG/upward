@@ -4,99 +4,178 @@ import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.servic
 
 const DEFAULT_TEMPLATES = [
   {
-    uuid: 'system-sample-template',
-    name: 'Sample Template',
-    type: 'SAMPLE',
+    uuid: 'system-onboarding-1',
+    name: 'Getting Started',
+    subject: 'Welcome to Upward — A Better Rental Experience Starts Here',
+    type: 'SYSTEM',
     content: `
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.6; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <!-- Header Section -->
-        <div style="text-align: center; padding: 40px 20px; background-color: #f8fafc; border-bottom: 3px solid #1a4d2e; border-radius: 8px 8px 0 0;">
-          <h1 style="margin: 0; color: #1a4d2e; font-size: 28px; letter-spacing: 1px; text-transform: uppercase;">Comprehensive Lease Review</h1>
-          <p style="margin: 10px 0 0 0; color: #64748b; font-size: 14px;">Document ID: <strong>[DocumentNumber]</strong> &bull; Type: <strong>[DocumentType]</strong></p>
+      <div style="max-width: 680px; margin: auto; padding: 48px; font-family: Arial, Helvetica, sans-serif; color: #4B5563; font-size: 16px; line-height: 1.75;">
+
+        <h1 style="font-size: 30px; font-weight: 700; color: #111827; margin-bottom: 30px;">
+          Welcome to Upward
+        </h1>
+
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          Dear [TenantFirstName],
+        </p>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          For most people, paying rent is something you simply have to do. But what if every rent payment could also work in your favour?
+        </p>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          That's exactly what we're bringing to you. We're excited to welcome you to Upward&mdash;a new experience designed to make renting simpler, more rewarding, and more beneficial for you.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 40px 0;">
+
+        <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 18px;">
+          What This Means For You
+        </h2>
+
+        <ul style="padding-left: 22px; margin: 0;">
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">Build Your Rental Reputation</strong><br>
+            Your consistent rent payments help create a verified rental history that demonstrates you're a reliable tenant.
+          </li>
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">Keep Your History When You Move</strong><br>
+            You'll no longer lose your rental history. You'll have a record that shows your payment reliability and can strengthen future rental applications.
+          </li>
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">Access All Tenancy Records</strong><br>
+            Everything you need about your tenancy will be in one place. Your rent records, receipts, and important tenancy information will always be available whenever you need them.
+          </li>
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">Simpler Payments</strong><br>
+            Paying rent becomes simpler and more transparent. You'll always know what you've paid, when you paid it, and have a permanent record for your own reference.
+          </li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 40px 0;">
+
+        <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 18px;">
+          We've Already Given You a Head Start
+        </h2>
+
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          Because many of our residents have built an excellent record of paying rent responsibly, we don't want anyone to lose the value of that history.
+        </p>
+
+        <div style="background: #F8FAFC; border-left: 4px solid #2563EB; padding: 18px 22px; margin: 30px 0; border-radius: 6px;">
+          <strong style="font-size: 16px; color: #111827;">Good News</strong>
+          <p style="margin: 10px 0 0;">
+            We'll automatically import your previous rent payment history into Upward so you don't start from scratch. If you've been a responsible tenant, your previous payment behaviour will help establish your rental profile from day one.
+          </p>
         </div>
 
-        <!-- Body Content -->
-        <div style="padding: 40px;">
-          <!-- Date and Parties Grid -->
-          <table style="width: 100%; margin-bottom: 30px; border-collapse: collapse;">
-            <tr>
-              <td style="width: 50%; vertical-align: top; padding-right: 20px;">
-                <h3 style="color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Prepared For</h3>
-                <p style="margin: 4px 0;"><strong>[TenantName]</strong></p>
-                <p style="margin: 4px 0; color: #475569;">[TenantPhone] | [TenantEmail]</p>
-                <p style="margin: 4px 0; color: #475569;">[TenantAddress]</p>
-              </td>
-              <td style="width: 50%; vertical-align: top; padding-left: 20px;">
-                <h3 style="color: #475569; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">Property Details</h3>
-                <p style="margin: 4px 0;"><strong>Unit:</strong> [UnitName]</p>
-                <p style="margin: 4px 0; color: #475569;"><strong>Property:</strong> [PropertyName]</p>
-                <p style="margin: 4px 0; color: #475569;">[PropertyAddress]</p>
-              </td>
-            </tr>
-          </table>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          Over the next few days, we'll introduce more ways Upward helps make renting easier and more rewarding. Thank you for being a valued resident. We look forward to bringing you a better rental experience.
+        </p>
 
-          <div style="background-color: #f1f5f9; padding: 15px 20px; border-left: 4px solid #1a4d2e; border-radius: 0 4px 4px 0; margin-bottom: 30px;">
-            <p style="margin: 0; font-size: 14px;"><em>Issued on <strong>[Date]</strong>. This document covers the billing period from <strong>[PreviousMonth]</strong> to <strong>[NextMonth]</strong> of the year <strong>[CurrentYear]</strong>.</em></p>
-          </div>
+        <p style="margin: 30px 0 0; font-size: 16px; line-height: 1.75; color: #6B7280;">
+          Regards,<br>
+          [CompanyName]
+        </p>
+      </div>
+    `,
+    updatedAt: new Date().toISOString(),
+    isSystem: true
+  },
+  {
+    uuid: 'system-onboarding-2',
+    name: 'Benefits',
+    subject: 'Your Good Rental History Should Work for You',
+    type: 'SYSTEM',
+    content: `
+      <div style="max-width: 680px; margin: auto; padding: 48px; font-family: Arial, Helvetica, sans-serif; color: #4B5563; font-size: 16px; line-height: 1.75;">
 
-          <p>Dear <strong>[TenantFirstName] [TenantLastName]</strong>,</p>
-          <p>We hope this correspondence finds you well. As the designated management team representing your landlord, <strong>[LandlordName]</strong> ([LandlordEmail]), we are reaching out regarding your ongoing tenancy at <strong>[PropertyName]</strong>.</p>
+        <h1 style="font-size: 30px; font-weight: 700; color: #111827; margin-bottom: 30px;">
+          Your Good Rental History Should Work for You
+        </h1>
 
-          <h2 style="color: #1a4d2e; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 30px;">Financial & Lease Summary</h2>
-          <p>Below is a dynamic breakdown of your current lease terms, automatically generated using our advanced placeholder system:</p>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          Dear [TenantFirstName],
+        </p>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          If you've been paying your rent on time, you've already done the hard part. The problem is that, until now, those years of responsible payments haven't always benefited you beyond satisfying your rent obligation.
+        </p>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          We believe they should. That's why your previous rent payment history will be brought into Upward, allowing your good payment habits to become a lasting record that belongs to you.
+        </p>
 
-          <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <tr style="background-color: #1a4d2e; color: white; text-align: left;">
-              <th style="padding: 12px 15px; border-radius: 4px 0 0 0;">Description</th>
-              <th style="padding: 12px 15px; border-radius: 0 4px 0 0;">Detail</th>
-            </tr>
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-              <td style="padding: 12px 15px; background-color: #f8fafc;"><strong>Rent Amount</strong></td>
-              <td style="padding: 12px 15px;">[RentAmount]</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-              <td style="padding: 12px 15px; background-color: #ffffff;"><strong>Payment Cycle</strong></td>
-              <td style="padding: 12px 15px;">[RentType] ([RentDuration])</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-              <td style="padding: 12px 15px; background-color: #f8fafc;"><strong>Lease Period</strong></td>
-              <td style="padding: 12px 15px;">[RentStartDate] to [RentEndDate]</td>
-            </tr>
-            <tr>
-              <td style="padding: 12px 15px; background-color: #ffffff;"><strong>Next Payment Due</strong></td>
-              <td style="padding: 12px 15px; color: #b91c1c; font-weight: bold;">[RentDueDate]</td>
-            </tr>
-          </table>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 40px 0;">
 
-          <h2 style="color: #1a4d2e; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; margin-top: 30px;">Payment Instructions</h2>
-          <p>Please ensure your payments are routed to the following account to avoid any late penalties. You can pay directly online using the link below:</p>
-          
-          <div style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0; color: #92400e;"><strong>Bank Name:</strong> [BankName] &nbsp;&bull;&nbsp; <strong>Account Name:</strong> [AccountName]</p>
-            <p style="margin: 0 0 15px 0; font-size: 24px; font-weight: bold; letter-spacing: 2px; color: #1e3a8a;">[AccountNumber]</p>
-            <a href="[PaymentLink]" style="display: inline-block; background-color: #1a4d2e; color: white; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: bold;">Pay Securely Online</a>
-          </div>
+        <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 18px;">
+          What This Means For You
+        </h2>
 
-          <p>If you require any assistance or wish to discuss these terms, please do not hesitate to contact our office.</p>
+        <ul style="padding-left: 22px; margin: 0;">
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">Remembered Payments</strong><br>
+            Your previous on-time and early rent payments won't be forgotten. They'll become part of your verified rental history.
+          </li>
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">An Established Profile</strong><br>
+            You'll begin with an established profile instead of a blank slate. Your reputation as a responsible tenant should reflect the consistency you've already demonstrated.
+          </li>
+          <li style="margin-bottom: 18px;">
+            <strong style="color: #111827;">Future Opportunities</strong><br>
+            A stronger rental history can create future opportunities. Whether you're applying for another apartment or becoming eligible for exclusive resident benefits, your payment record can work in your favour.
+          </li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 40px 0;">
+
+        <h2 style="font-size: 20px; font-weight: 700; color: #111827; margin: 0 0 18px;">
+          Questions You May Have
+        </h2>
+
+        <div style="border: 1px solid #E5E7EB; padding: 18px; margin-bottom: 14px; border-radius: 8px;">
+          <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 700; color: #111827;">
+            Is my money safe?
+          </h3>
+          <p style="margin: 0; line-height: 1.7;">
+            Yes. Your payments are processed through secure payment channels, giving you confidence that every payment is handled safely.
+          </p>
         </div>
 
-        <!-- Footer Section -->
-        <div style="background-color: #1e293b; color: #f8fafc; padding: 30px 40px; border-radius: 0 0 8px 8px; font-size: 13px;">
-          <table style="width: 100%;">
-            <tr>
-              <td style="width: 60%;">
-                <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: white;">[CompanyName]</p>
-                <p style="margin: 0; color: #94a3b8;">[CompanyAddress]</p>
-                <p style="margin: 5px 0 0 0; color: #94a3b8;">[CompanyEmail] &nbsp;&bull;&nbsp; [CompanyPhone]</p>
-              </td>
-              <td style="width: 40%; text-align: right; vertical-align: bottom;">
-                <p style="margin: 0; color: #94a3b8;">Digitally Issued By:</p>
-                <p style="margin: 5px 0 0 0; font-weight: bold; color: white;">[ManagerName]</p>
-                <p style="margin: 2px 0 0 0; color: #94a3b8;">[ManagerEmail] | [ManagerPhone]</p>
-              </td>
-            </tr>
-          </table>
+        <div style="border: 1px solid #E5E7EB; padding: 18px; margin-bottom: 14px; border-radius: 8px;">
+          <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 700; color: #111827;">
+            Will I still receive proof of payment?
+          </h3>
+          <p style="margin: 0; line-height: 1.7;">
+            Absolutely. Every successful payment automatically generates a receipt that is securely stored in your account, so you'll always have it when you need it.
+          </p>
         </div>
+
+        <div style="border: 1px solid #E5E7EB; padding: 18px; margin-bottom: 14px; border-radius: 8px;">
+          <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 700; color: #111827;">
+            Can I still see payments I've made before?
+          </h3>
+          <p style="margin: 0; line-height: 1.7;">
+            Yes. Your previous payment history will be added to your profile, giving you one complete record of your tenancy.
+          </p>
+        </div>
+
+        <div style="border: 1px solid #E5E7EB; padding: 18px; margin-bottom: 14px; border-radius: 8px;">
+          <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 700; color: #111827;">
+            Will paying rent become more complicated?
+          </h3>
+          <p style="margin: 0; line-height: 1.7;">
+            Not at all. Upward is designed to make rent payments and tenancy management simpler by giving you one place to manage everything related to your tenancy.
+          </p>
+        </div>
+
+        <p style="margin: 30px 0 18px; font-size: 16px; line-height: 1.75;">
+          Your commitment to paying rent responsibly deserves to be recognised. We're excited to make your rental experience easier, more transparent, and more rewarding.
+        </p>
+        <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.75;">
+          Welcome to a better rental experience.
+        </p>
+
+        <p style="margin: 30px 0 0; font-size: 16px; line-height: 1.75; color: #6B7280;">
+          Regards,<br>
+          [CompanyName]
+        </p>
       </div>
     `,
     updatedAt: new Date().toISOString(),

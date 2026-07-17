@@ -67,8 +67,12 @@ export class GetInvitedMetricsUseCase {
         let rentExpiryDate: Date | null | undefined = null
 
         u.properties.forEach((p: any) => {
-          if (p.rentEndDate && (!rentExpiryDate || p.rentEndDate > rentExpiryDate)) rentExpiryDate = p.rentEndDate
-          if (p.pmUnit?.rentDueDate && (!rentExpiryDate || p.pmUnit.rentDueDate > rentExpiryDate)) rentExpiryDate = p.pmUnit.rentDueDate
+          let propEndDate = p.rentEndDate
+          const latestPayment = p.pmUnit?.rentPayments?.[0]
+          if (latestPayment?.periodEnd) {
+            propEndDate = latestPayment.periodEnd
+          }
+          if (propEndDate && (!rentExpiryDate || propEndDate > rentExpiryDate)) rentExpiryDate = propEndDate
 
           let pmName = 'Platform'
           let pUuid = ''
@@ -174,7 +178,12 @@ export class GetInvitedMetricsUseCase {
           pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform'
         }
         const pmsList = t.pm?.uuid ? [{ uuid: t.pm.uuid, name: pmName, propertyAddress: t.pmUnit?.property?.address }] : []
-        const rentExpiryDate = t.units && t.units.length > 0 ? t.units[0].rentDueDate : null
+        let rentExpiryDate = null
+        if (t.units && t.units.length > 0) {
+          const unit = t.units[0]
+          const latestPayment = unit.rentPayments?.[0]
+          rentExpiryDate = latestPayment?.periodEnd ? latestPayment.periodEnd : unit.rentDueDate
+        }
 
         let resolvedChannel: 'EMAIL' | 'SMS' | 'WHATSAPP' | null = null
         if (email && inviteChannelMap.has(email.toLowerCase())) {

@@ -26,6 +26,7 @@ import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentReque
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
 import { DetailSkeleton } from '@/components/skeletons'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 export const TenantDetailView: React.FC = () => {
   const { uuid } = useParams()
@@ -152,24 +153,16 @@ export const TenantDetailView: React.FC = () => {
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {((tenant.email && !tenant.email.endsWith('@upward.com')) || tenant.phone) && (
-                <select
+                <FilterDropdown
+                  label="Delivery"
                   value={deliveryChannel}
-                  onChange={(e) => setDeliveryChannel(e.target.value as any)}
-                  className="form-input"
-                  style={{ 
-                    padding: '8px 12px', 
-                    height: '40px', 
-                    borderRadius: 100, 
-                    width: 'auto',
-                    minWidth: '110px',
-                    fontSize: 13,
-                    border: '1px solid var(--border)'
-                  }}
-                >
-                  {tenant.email && !tenant.email.endsWith('@upward.com') && <option value="EMAIL">Email</option>}
-                  {tenant.phone && <option value="SMS">SMS</option>}
-                  {tenant.phone && <option value="WHATSAPP">WhatsApp</option>}
-                </select>
+                  onChange={(val) => setDeliveryChannel(val as any)}
+                  options={[
+                    ...(tenant.email && !tenant.email.endsWith('@upward.com') ? [{ label: 'Email', value: 'EMAIL' }] : []),
+                    ...(tenant.phone ? [{ label: 'SMS', value: 'SMS' }] : []),
+                    ...(tenant.phone ? [{ label: 'WhatsApp', value: 'WHATSAPP' }] : [])
+                  ]}
+                />
               )}
               <button 
                 className="btn"

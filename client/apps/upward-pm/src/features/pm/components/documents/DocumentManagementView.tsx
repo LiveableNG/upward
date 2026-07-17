@@ -11,13 +11,18 @@ import {
   Filter,
   Mail,
   Edit,
-  MessageCircle
+  MessageCircle,
+  Users
 } from 'lucide-react'
 import { useDocuments } from '../../hooks/useDocuments'
 import { format } from 'date-fns'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { downloadBlob } from '@/lib/download-helper'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { useRouter } from 'next/navigation'
+import { useSocket } from '@/hooks/useSocket'
+import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/common/Toast'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -28,7 +33,27 @@ interface DocumentManagementViewProps {
 }
 
 export function DocumentManagementView({ onNewDocument, onSelectTemplate, onResendDocument, onCreateTemplate, onEditTemplate }: DocumentManagementViewProps) {
+  const router = useRouter()
   const { documents, templates, isLoading, generatePdf } = useDocuments()
+  const { success } = useToast()
+  const queryClient = useQueryClient()
+  const socket = useSocket()
+  
+  React.useEffect(() => {
+    if (!socket) return;
+    
+    const handleBulkDispatchCompleted = (payload: any) => {
+      success(`Bulk dispatch completed: ${payload.successful} sent, ${payload.failed} failed.`);
+      queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
+    };
+
+    socket.on('bulk_dispatch_completed', handleBulkDispatchCompleted);
+
+    return () => {
+      socket.off('bulk_dispatch_completed', handleBulkDispatchCompleted);
+    };
+  }, [socket, queryClient, success]);
+
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'dashboard' | 'all_templates'>('dashboard')
   const [previewDocument, setPreviewDocument] = useState<any>(null)
@@ -103,7 +128,6 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
 
   // Group templates by type
   const groupedTemplates = templates.reduce((acc: any, template: any) => {
-    if (template.type === 'SAMPLE') return acc; // Hide sample templates from grouped view
     
     const type = template.type || 'CUSTOM';
     if (!acc[type]) acc[type] = [];
@@ -149,18 +173,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
     },
     {
       header: 'Status',
-      render: () => (
-        <span style={{
-          padding: '4px 12px',
-          borderRadius: 100,
-          fontSize: 12,
-          fontWeight: 600,
-          background: 'var(--forest-faint)',
-          color: 'var(--forest)'
-        }}>
-          Sent
-        </span>
-      )
+      render: (doc) => {
+        const isFailed = doc.status === 'FAILED';
+        return (
+          <span style={{
+            padding: '4px 12px',
+            borderRadius: 100,
+            fontSize: 12,
+            fontWeight: 600,
+            background: isFailed ? '#fee2e2' : 'var(--forest-faint)',
+            color: isFailed ? '#dc2626' : 'var(--forest)'
+          }}>
+            {isFailed ? 'Failed' : 'Sent'}
+          </span>
+        )
+      }
     },
     {
       header: 'Action',
@@ -226,15 +253,24 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   if (viewMode === 'all_templates') {
     return (
       <div className="document-management animate-fade-in">
-        <header style={{ marginBottom: 40 }}>
+        <header style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <button
+              onClick={() => setViewMode('dashboard')}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+            </button>
+            <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
+          </div>
           <button
-            onClick={() => setViewMode('dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 12, background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => router.push('/documents/bulk')}
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Dashboard
+            <Users size={20} /> Send Bulk Document
           </button>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
@@ -272,34 +308,12 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button
-            onClick={() => document.getElementById('word-upload')?.click()}
+            onClick={() => router.push('/documents/bulk')}
             className="btn btn--secondary"
             style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Download size={20} /> Import Word Doc
+            <Users size={20} /> Send Bulk Document
           </button>
-          <input
-            id="word-upload"
-            type="file"
-            accept=".docx"
-            style={{ display: 'none' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-
-              try {
-                const arrayBuffer = await file.arrayBuffer()
-                const mammoth = (await import('mammoth')).default
-                const result = await mammoth.convertToHtml({ arrayBuffer })
-                onSelectTemplate({
-                  name: file.name.replace('.docx', ''),
-                  content: result.value
-                })
-              } catch (err) {
-                console.error('Failed to convert word doc:', err)
-              }
-            }}
-          />
           <button
             onClick={onCreateTemplate}
             className="btn btn--primary"

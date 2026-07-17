@@ -286,9 +286,7 @@ export function SendToVaultModal({ isOpen, onClose, unitUuid, tenantUuid, tenant
                       const t = templates.find((t: any) => t.uuid === val)
                       if (t && !templateSubject) setTemplateSubject(t.name)
                     }}
-                    options={templates
-                      .filter((t: any) => t.name !== 'Sample Template')
-                      .map((t: any) => ({ label: t.name, value: t.uuid }))}
+                    options={templates.map((t: any) => ({ label: t.name, value: t.uuid }))}
                     placeholder="-- Choose a template --"
                   />
                 </div>
