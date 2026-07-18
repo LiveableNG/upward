@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 
 interface PullToRefreshProps {
   children: React.ReactNode
 }
 
 export function PullToRefresh({ children }: PullToRefreshProps) {
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
@@ -16,11 +21,9 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Only enable on touch devices/mobile sizes
     if (typeof window === 'undefined' || window.innerWidth > 1024) return
 
     const handleTouchStart = (e: TouchEvent) => {
-      // Only allow pull-to-refresh if we are at the very top of the page
       if (window.scrollY > 0) return
       setStartY(e.touches[0].clientY)
       setIsPulling(true)
@@ -32,13 +35,10 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
       const y = e.touches[0].clientY
       const pullDistance = y - startY
       
-      // Only track downward pulls
       if (pullDistance > 0) {
-        // Prevent default scrolling when pulling down
         if (e.cancelable) {
           e.preventDefault()
         }
-        // Add resistance
         setCurrentY(Math.min(pullDistance * 0.4, 80))
       }
     }
@@ -48,14 +48,21 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
       
       if (currentY >= 60 && !refreshing) {
         setRefreshing(true)
-        setCurrentY(60) // Hold it at 60px while refreshing
+        setCurrentY(60)
         
-        // Trigger the refresh (reload page)
-        setTimeout(() => {
-          window.location.reload()
+        setTimeout(async () => {
+          try {
+            await queryClient.invalidateQueries()
+            router.refresh()
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('app:refresh'))
+            }
+          } finally {
+            setRefreshing(false)
+            setCurrentY(0)
+          }
         }, 500)
       } else {
-        // Snap back if didn't pull far enough
         setCurrentY(0)
       }
       
@@ -74,7 +81,7 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
   }, [startY, currentY, isPulling, refreshing])
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', minHeight: '100%' }}>
       <div 
         style={{
           position: 'absolute',
@@ -120,7 +127,7 @@ export function PullToRefresh({ children }: PullToRefreshProps) {
         style={{ 
           transition: isPulling ? 'none' : 'transform 0.3s ease',
           transform: currentY > 0 ? `translateY(${currentY}px)` : 'none',
-          height: '100%',
+          minHeight: '100%',
           width: '100%'
         }}
       >
