@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, Suspense, useMemo, useEffect } from 'react'
+import { DetailSkeleton } from '@/components/skeletons'
 import { useRouter } from 'next/navigation'
 import { FileSpreadsheet, Download, Plus, X, User, History, Trash2, CreditCard, Building2, Calendar } from 'lucide-react'
 import Papa from 'papaparse'
@@ -374,7 +375,7 @@ function TenantRecordsImportContent() {
 
 export default function TenantRecordsImportPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<DetailSkeleton />}>
       <TenantRecordsImportContent />
     </Suspense>
   )

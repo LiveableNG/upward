@@ -584,7 +584,10 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
       <DataTable
         columns={columns}
         data={filteredTenants}
-        onRowClick={(tenant) => router.push(`/tenants/${tenant.uuid}`)}
+        onRowClick={(tenant) => {
+          const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+          router.push(isPortal ? `/portal/tenants/view?uuid=${tenant.uuid}` : `/tenants/view?uuid=${tenant.uuid}`)
+        }}
         emptyMessage="No tenants found matching your search."
         keyExtractor={(tenant) => tenant.uuid}
         rowClassName={(tenant) => selectedTenants.has(tenant.uuid) ? 'selected' : ''}

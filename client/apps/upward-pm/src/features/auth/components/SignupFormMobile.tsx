@@ -83,7 +83,7 @@ export const SignupFormMobile = () => {
 
           if (res.isInvited && res.inviteToken) {
             setTimeout(() => {
-              router.push(`/invite/${res.inviteToken}`)
+              router.push(`/invite/view?uuid=${res.inviteToken}`)
             }, 1500)
           }
         } catch (err) {

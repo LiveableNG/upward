@@ -302,7 +302,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 className="payments-tracker__action-btn"
                 onClick={() => {
                   const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
-                  router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
+                  router.push(isPortal ? `/portal/payments/view?uuid=${req.uuid}` : `/payments/view?uuid=${req.uuid}`)
                 }}
                 title="View Request Details"
               >

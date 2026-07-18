@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   ChevronLeft, 
   Mail, 
@@ -29,7 +29,8 @@ import { DetailSkeleton } from '@/components/skeletons'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 export const TenantDetailView: React.FC = () => {
-  const { uuid } = useParams()
+  const searchParams = useSearchParams()
+  const uuid = searchParams.get('uuid')
   const router = useRouter()
   const { data: tenant, isLoading } = useTenant(uuid as string)
   const { data: paymentRequests } = usePaymentRequests()
@@ -300,7 +301,7 @@ export const TenantDetailView: React.FC = () => {
                       <span style={{ fontWeight: 600 }}>{unit.rentDueDate ? new Date(unit.rentDueDate).toLocaleDateString() : 'N/A'}</span>
                     </div>
                     <Link 
-                      href={`/properties/units/${unit.uuid}`}
+                      href={`/properties/units/view?uuid=${unit.uuid}`}
                       style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, textDecoration: 'none' }}
                     >
                       Go to unit <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
@@ -520,7 +521,7 @@ export const TenantDetailView: React.FC = () => {
                            >
                              <CreditCard size={14} style={{ marginRight: 6 }} /> Request Rent
                            </button>
-                           <Link href={`/properties/units/${unit.uuid}`} className="btn btn--secondary btn--sm" style={{ borderRadius: 8, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+                           <Link href={`/properties/units/view?uuid=${unit.uuid}`} className="btn btn--secondary btn--sm" style={{ borderRadius: 8, textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
                              <ExternalLink size={14} style={{ marginRight: 6 }} /> View Unit Details
                            </Link>
                          </div>

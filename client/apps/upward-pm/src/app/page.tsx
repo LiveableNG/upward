@@ -11,9 +11,18 @@ export default function RootPage() {
   const { isLoggedIn, loading } = useAuth()
 
   useEffect(() => {
-    if (loading) return;
+    const safetyTimer = setTimeout(() => {
+      if (Capacitor.isNativePlatform()) {
+        router.replace('/welcome')
+      } else {
+        router.replace('/login')
+      }
+    }, 4000)
+
+    if (loading) return () => clearTimeout(safetyTimer)
 
     const timer = setTimeout(() => {
+      clearTimeout(safetyTimer)
       if (isLoggedIn) {
         router.replace('/dashboard')
       } else {
@@ -24,7 +33,11 @@ export default function RootPage() {
         }
       }
     }, 1500)
-    return () => clearTimeout(timer)
+
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(safetyTimer)
+    }
   }, [router, isLoggedIn, loading])
 
   return <Splash />

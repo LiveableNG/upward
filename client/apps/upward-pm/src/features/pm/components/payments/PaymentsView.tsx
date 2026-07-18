@@ -202,7 +202,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
         })}
         onRowClick={(req) => {
           const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
-          router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
+          router.push(isPortal ? `/portal/payments/view?uuid=${req.uuid}` : `/payments/view?uuid=${req.uuid}`)
         }}
         emptyMessage="No payment requests found."
         pageSize={10}

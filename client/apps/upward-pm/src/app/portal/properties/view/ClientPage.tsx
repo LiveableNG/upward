@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   ArrowLeft, 
@@ -20,7 +20,7 @@ import {
   Settings2
 } from 'lucide-react'
 import { getLandlordPropertyDetails } from '@/features/auth/services/landlordAuthService'
-import styles from './page.module.css'
+import styles from '../[uuid]/page.module.css'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import { ManagedAddUnitModal } from '@/features/pm/components/properties/modals/ManagedAddUnitModal'
 import { EditPropertyModal } from '@/features/pm/components/properties/modals/EditPropertyModal'
@@ -29,7 +29,8 @@ import { useSyncToUpward, useUpdateProperty, useDeleteProperty } from '@/feature
 import { useToast } from '@/components/common/Toast'
 
 export default function LandlordPropertyDetail() {
-  const { uuid } = useParams()
+  const searchParams = useSearchParams()
+  const uuid = searchParams.get('uuid')
   const router = useRouter()
   const queryClient = useQueryClient()
   const { success, error: toastError } = useToast()
