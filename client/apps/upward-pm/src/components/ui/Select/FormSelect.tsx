@@ -16,6 +16,7 @@ interface FormSelectProps {
   onChange: (value: string) => void
   disabled?: boolean
   className?: string
+  triggerClassName?: string
   placeholder?: string
 }
 
@@ -26,6 +27,7 @@ export function FormSelect({
   onChange,
   disabled,
   className = '',
+  triggerClassName = '',
   placeholder = 'Select an option'
 }: FormSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -100,7 +102,7 @@ export function FormSelect({
       <button
         type="button"
         disabled={disabled}
-        className={`form-input upward-form-select-trigger ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+        className={`form-input upward-form-select-trigger ${triggerClassName} ${isOpen ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex',

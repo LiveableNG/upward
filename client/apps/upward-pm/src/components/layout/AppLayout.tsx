@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { MobileHeader } from "@/components/layout/MobileHeader"
 import { DesktopHeader } from "@/components/layout/DesktopHeader"
 import { NotificationPopup } from "@/components/common/NotificationPopup"
+import { PullToRefresh } from "@/components/common/PullToRefresh"
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -37,6 +38,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isAuthPage = pathname === '/signup' || pathname === '/login' || pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/forgot-password'
   const isPublicPage = 
     pathname === '/' ||
+    pathname === '/welcome' ||
     pathname?.startsWith('/public') || 
     pathname?.startsWith('/invite') || 
     pathname?.startsWith('/invited') ||
@@ -46,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     // Only protect routes after auth has finished loading
     if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
-      router.replace('/pm-login')
+      router.replace('/login')
     }
   }, [loading, isLoggedIn, isAuthPage, isPublicPage, isPortalPage, router])
 
@@ -72,7 +74,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         <DesktopHeader />
         <NotificationPopup />
         <main className="layout__main">
-          {children}
+          <PullToRefresh>
+            {children}
+          </PullToRefresh>
         </main>
       </div>
     </div>

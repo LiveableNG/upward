@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Splash } from '@/components/common/Splash'
 import { useAuth } from '@/features/auth/AuthContext'
+import { Capacitor } from '@capacitor/core'
 
 export default function RootPage() {
   const router = useRouter()
@@ -16,7 +17,11 @@ export default function RootPage() {
       if (isLoggedIn) {
         router.replace('/dashboard')
       } else {
-        router.replace('/pm-login')
+        if (Capacitor.isNativePlatform()) {
+          router.replace('/welcome')
+        } else {
+          router.replace('/login')
+        }
       }
     }, 1500)
     return () => clearTimeout(timer)

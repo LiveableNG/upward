@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -116,7 +116,7 @@ function LandlordLoginForm() {
       <div className="animate-fade-in">
         <div className="auth-role-toggle">
           <Link 
-            href="/pm-login"
+            href="/login"
             className="auth-role-toggle__btn"
           >
             Property Manager
@@ -248,7 +248,32 @@ function LandlordLoginForm() {
   )
 }
 
+import { LoginFormMobile } from '@/features/auth/components/LoginFormMobile'
+
 export default function LandlordLoginPage() {
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  if (isMobile === null) {
+    return <AuthSkeleton />
+  }
+
+  if (isMobile) {
+    return (
+      <Suspense fallback={<AuthSkeleton />}>
+        <LoginFormMobile initialRole="landlord" />
+      </Suspense>
+    )
+  }
+
   return (
     <Suspense fallback={<AuthSkeleton />}>
       <LandlordLoginForm />
