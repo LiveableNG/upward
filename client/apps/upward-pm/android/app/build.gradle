@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.goodtenant.upward.pm"
+    namespace = "com.goodtenants.upward.pm"
     compileSdk = rootProject.ext.compileSdkVersion
 
     signingConfigs {

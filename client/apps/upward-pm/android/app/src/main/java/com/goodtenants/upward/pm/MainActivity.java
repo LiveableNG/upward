@@ -1,4 +1,4 @@
-package com.goodtenant.upwardpm;
+package com.goodtenants.upward.pm;
 
 import com.getcapacitor.BridgeActivity;
 
