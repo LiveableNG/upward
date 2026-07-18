@@ -16,6 +16,8 @@ import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
+import { Capacitor } from '@capacitor/core'
+import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { type UserProfile, type ContractData } from '../../types'
 import { isOnboardingComplete } from '../../utils/profileCompletion'
 
@@ -63,10 +65,7 @@ export function ProfileMenuView({
     )
   }, [profile])
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  const uploadFile = async (file: File) => {
     try {
       const { uploadUrl, publicUrl } = await api.getAvatarUploadUrl(file.type, file.name)
       const response = await fetch(uploadUrl, {
@@ -82,6 +81,37 @@ export function ProfileMenuView({
       console.error('Upload error:', err)
       toastError('Failed to update picture')
     }
+  }
+
+  const handleAvatarClick = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const image = await CapacitorCamera.getPhoto({
+          quality: 90,
+          allowEditing: true,
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Prompt,
+        })
+
+        if (!image.base64String) return
+
+        const response = await fetch(`data:image/${image.format};base64,${image.base64String}`)
+        const blob = await response.blob()
+        const file = new File([blob], `avatar.${image.format}`, { type: `image/${image.format}` })
+
+        await uploadFile(file)
+      } catch (err) {
+        console.error('Camera error:', err)
+      }
+    } else {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await uploadFile(file)
   }
 
   const accountGroup = [
@@ -137,9 +167,9 @@ export function ProfileMenuView({
       <div className="profile-page__hero">
         <div
           className="profile-page__avatar-wrap"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={handleAvatarClick}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click()
+            if (e.key === 'Enter' || e.key === ' ') handleAvatarClick()
           }}
           role="button"
           tabIndex={0}

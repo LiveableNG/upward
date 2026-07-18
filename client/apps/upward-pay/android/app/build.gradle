@@ -12,7 +12,7 @@ android {
     compileSdk = rootProject.ext.compileSdkVersion
     signingConfigs {
         release {
-            storeFile file("keystore.jks")
+            storeFile file("upwardpay.jks")
             storePassword "UpwardPay123@"
             keyAlias "UpwardPay"
             keyPassword "UpwardPay123@"
@@ -45,6 +45,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 }
