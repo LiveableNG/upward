@@ -9,7 +9,8 @@
     "lint": "eslint",
     "cap:sync": "cross-env NEXT_OUTPUT=export next build && cap sync",
     "cap:open:ios": "cap open ios",
-    "cap:open:android": "cap open android"
+    "cap:open:android": "cap open android",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",

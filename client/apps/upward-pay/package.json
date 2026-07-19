@@ -9,7 +9,8 @@
     "lint": "eslint",
     "cap:sync": "next build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
