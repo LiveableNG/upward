@@ -62,6 +62,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'>('SIGNUP')
 
+  const [isNative, setIsNative] = useState(false)
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform())
+  }, [])
+
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
   const [isInvited, setIsInvited] = useState(false)
@@ -238,9 +244,15 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             <ChevronLeft size={20} />
           </button>
         </div>
-        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
-          <UpwardLogo size={28} color="var(--clay)" />
-        </a>
+        {isNative ? (
+          <div className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </div>
+        ) : (
+          <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </a>
+        )}
         <div className="auth-stage">
           <OTPInput
             email={identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email}
@@ -263,9 +275,15 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         </button>
       </div>
 
-      <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
-        <UpwardLogo size={28} color="var(--clay)" />
-      </a>
+      {isNative ? (
+        <div className="auth-shell__brand">
+          <UpwardLogo size={28} color="var(--clay)" />
+        </div>
+      ) : (
+        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+          <UpwardLogo size={28} color="var(--clay)" />
+        </a>
+      )}
 
       <div className="auth-stage">
         <div className="auth-stage__header">

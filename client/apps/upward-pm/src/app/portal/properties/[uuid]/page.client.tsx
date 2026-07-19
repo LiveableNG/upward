@@ -235,7 +235,7 @@ export default function LandlordPropertyDetail() {
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
                       <button 
                         className="btn btn--secondary btn--sm" 
-                        onClick={() => router.push(`/portal/properties/units/${unit.uuid}`)}
+                        onClick={() => router.push(`/portal/properties/units/view?uuid=${unit.uuid}`)}
                         style={{ fontSize: 12, height: 32, display: 'flex', alignItems: 'center', gap: 4 }}
                       >
                         View Unit

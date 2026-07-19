@@ -129,7 +129,7 @@ export function BankInfoForm() {
   return (
     <section className="settings__section" id="payment-info">
       <div className="settings__section-header">
-        <div className="flex justify-between items-center">
+        <div className="settings__section-header-wrap">
           <div>
             <h2 className="settings__section-title">Payment Information</h2>
             <p className="settings__section-subtitle">Where you'll receive your rent payouts.</p>

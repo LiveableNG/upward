@@ -45,6 +45,7 @@ export function middleware(request: NextRequest) {
   const isPortalPath = pathname.startsWith('/portal')
 
   const isPublicPath =
+    pathname === '/welcome' ||
     pathname === '/login' ||
     pathname === '/signup' ||
     pathname === '/pm-login' ||

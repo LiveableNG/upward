@@ -69,6 +69,12 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
   const [otpError, setOtpError] = useState<string | null>(null)
 
+  const [isNative, setIsNative] = useState(false)
+
+  useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform())
+  }, [])
+
   const [isCheckingEmail, setIsCheckingEmail] = useState(false)
   const [emailExists, setEmailExists] = useState(false)
   const [isInvited, setIsInvited] = useState(false)
@@ -282,27 +288,35 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           <button className="auth-shell__back" onClick={() => setStep('login')} disabled={loginLoading}>
             <ChevronLeft size={20} />
           </button>
-          <a 
-            href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
-            style={{ 
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-muted)',
-              fontSize: '13px',
-              fontWeight: 500,
-              textDecoration: 'none',
-              transition: 'color 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
-            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-          >
-            Back to Website
-          </a>
+          {!isNative && (
+            <a 
+              href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
+              style={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-muted)',
+                fontSize: '13px',
+                fontWeight: 500,
+                textDecoration: 'none',
+                transition: 'color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              Back to Website
+            </a>
+          )}
         </div>
-        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
-          <UpwardLogo size={28} color="var(--clay)" />
-        </a>
+        {isNative ? (
+          <div className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </div>
+        ) : (
+          <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </a>
+        )}
         <div className="auth-stage">
           <OTPInput
             email={identifierType === 'phone' ? loginPhone : loginEmail}
@@ -323,28 +337,36 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
         <button className="auth-shell__back" onClick={onBackToWelcome}>
           <ChevronLeft size={20} />
         </button>
-        <a 
-          href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
-          style={{ 
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            color: 'var(--text-muted)',
-            fontSize: '13px',
-            fontWeight: 500,
-            textDecoration: 'none',
-            transition: 'color 0.2s'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
-          onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-        >
-          Back to Website
-        </a>
+        {!isNative && (
+          <a 
+            href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
+            style={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'var(--text-muted)',
+              fontSize: '13px',
+              fontWeight: 500,
+              textDecoration: 'none',
+              transition: 'color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          >
+            Back to Website
+          </a>
+        )}
       </div>
 
-      <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
-        <UpwardLogo size={28} color="var(--clay)" />
-      </a>
+      {isNative ? (
+        <div className="auth-shell__brand">
+          <UpwardLogo size={28} color="var(--clay)" />
+        </div>
+      ) : (
+        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+          <UpwardLogo size={28} color="var(--clay)" />
+        </a>
+      )}
 
       <div className="auth-stage">
         <div className="auth-stage__header">

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   ChevronLeft, 
   CreditCard, 
@@ -34,7 +34,8 @@ const getStartOfDay = (date: Date) => {
 }
 
 export const PaymentDetailView: React.FC = () => {
-  const { uuid } = useParams()
+  const searchParams = useSearchParams()
+  const uuid = searchParams.get('uuid')
   const router = useRouter()
   const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
   const { success, error, info } = useToast()
@@ -270,7 +271,7 @@ export const PaymentDetailView: React.FC = () => {
                       </div>
                       {!isPortal && (
                         <Link 
-                          href={`/tenants/${request.tenant.uuid}`}
+                          href={`/tenants/view?uuid=${request.tenant.uuid}`}
                           style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
                         >
                           View Profile <ExternalLink size={14} />
@@ -298,7 +299,7 @@ export const PaymentDetailView: React.FC = () => {
                       </div>
                       {!isPortal && (
                         <Link 
-                          href={`/properties/units/${request.unit.uuid}`}
+                          href={`/properties/units/view?uuid=${request.unit.uuid}`}
                           style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
                         >
                           View Unit <ExternalLink size={14} />

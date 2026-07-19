@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useAuth } from '@/features/auth/AuthContext'
 import { Sidebar } from "@/components/layout/Sidebar"
 import { MobileHeader } from "@/components/layout/MobileHeader"
 import { DesktopHeader } from "@/components/layout/DesktopHeader"
 import { NotificationPopup } from "@/components/common/NotificationPopup"
+import { PullToRefresh } from "@/components/common/PullToRefresh"
 import { cn } from '@/lib/utils'
 
 interface AppLayoutProps {
@@ -16,6 +18,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
+
+  const { isLoggedIn, loading } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     const saved = localStorage.getItem('upward_sidebar_collapsed')
@@ -33,14 +38,27 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isAuthPage = pathname === '/signup' || pathname === '/login' || pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/forgot-password'
   const isPublicPage = 
     pathname === '/' ||
+    pathname === '/welcome' ||
     pathname?.startsWith('/public') || 
     pathname?.startsWith('/invite') || 
     pathname?.startsWith('/invited') ||
     pathname?.startsWith('/reset-password')
   const isPortalPage = pathname?.startsWith('/portal')
 
+  useEffect(() => {
+    // Only protect routes after auth has finished loading
+    if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
+      router.replace('/login')
+    }
+  }, [loading, isLoggedIn, isAuthPage, isPublicPage, isPortalPage, router])
+
   if (isAuthPage || isPublicPage || isPortalPage) {
     return <main>{children}</main>
+  }
+
+  // Prevent rendering protected content while redirecting
+  if (loading || (!isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage)) {
+    return null
   }
 
   return (
@@ -56,7 +74,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         <DesktopHeader />
         <NotificationPopup />
         <main className="layout__main">
-          {children}
+          <PullToRefresh>
+            {children}
+          </PullToRefresh>
         </main>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useUpdateProfile } from '@/features/pm/hooks/usePmSettings'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 
 const profileSchema = z.object({
   firstName: z.string().min(2, 'First name is too short'),
@@ -104,19 +105,27 @@ export function ProfileForm() {
             />
           </div>
           <div className="settings__field">
-            <label className="settings__label">Account Type</label>
-            <select 
-              {...register('pmType')}
-              className="settings__input"
-            >
-              <option value="">Select account type</option>
-              <option value="Landlord">Landlord</option>
-              <option value="Caretaker">Caretaker</option>
-              <option value="Lawyer">Lawyer</option>
-              <option value="Estate Agent">Estate Agent</option>
-              <option value="Property Manager">Property Manager</option>
-              <option value="Company">Property Management Company</option>
-            </select>
+            <Controller
+              name="pmType"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  label="Account Type"
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  placeholder="Select account type"
+                  options={[
+                    { label: 'Landlord', value: 'Landlord' },
+                    { label: 'Caretaker', value: 'Caretaker' },
+                    { label: 'Lawyer', value: 'Lawyer' },
+                    { label: 'Estate Agent', value: 'Estate Agent' },
+                    { label: 'Property Manager', value: 'Property Manager' },
+                    { label: 'Property Management Company', value: 'Company' }
+                  ]}
+                  triggerClassName="settings__input"
+                />
+              )}
+            />
           </div>
         </div>
 
@@ -140,15 +149,23 @@ export function ProfileForm() {
 
         <div className="settings__grid">
           <div className="settings__field">
-            <label className="settings__label">Country</label>
-            <select 
-              {...register('country')}
-              className="settings__input"
-            >
-              <option value="">Select country</option>
-              <option value="Nigeria">Nigeria</option>
-              <option value="Kenya">Kenya</option>
-            </select>
+            <Controller
+              name="country"
+              control={control}
+              render={({ field }) => (
+                <FormSelect
+                  label="Country"
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  placeholder="Select country"
+                  options={[
+                    { label: 'Nigeria', value: 'Nigeria' },
+                    { label: 'Kenya', value: 'Kenya' }
+                  ]}
+                  triggerClassName="settings__input"
+                />
+              )}
+            />
           </div>
           <div className="settings__field">
             <label className="settings__label">CAC Number (Optional)</label>

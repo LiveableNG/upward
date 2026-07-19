@@ -66,7 +66,7 @@ export const DASHBOARD_FEATURE_SECTIONS: DashboardFeatureSection[] = [
         id: 'receipts',
         title: 'Receipts',
         description: 'Browse your payment receipts',
-        href: '/dashboard/receipts',
+        href: '/dashboard/transactions',
         icon: Receipt,
         tone: 'primary',
       },

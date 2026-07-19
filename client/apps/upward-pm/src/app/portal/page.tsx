@@ -30,7 +30,7 @@ import { ManagedAddUnitModal } from '@/features/pm/components/properties/modals/
 import { ImportModeModal } from '@/features/pm/components/properties/modals/ImportModeModal'
 import { Property, Unit } from '@/features/pm/services/propertyService'
 import { SettlementSettings } from './components/SettlementSettings'
-import { Splash } from '@/components/common/Splash'
+import { ListSkeleton } from '@/components/skeletons'
 import { api } from '@/lib/api'
 import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
 import { PayoutsList } from '@/features/pm/components/payments/PayoutsList'
@@ -329,7 +329,7 @@ export default function LandlordDashboard() {
                       key={p.uuid} 
                       className={styles.clickableRow}
                     >
-                      <td onClick={() => router.push(`/portal/properties/${p.uuid}`)} style={{ cursor: 'pointer' }}>
+                      <td onClick={() => router.push(`/portal/properties/view?uuid=${p.uuid}`)} style={{ cursor: 'pointer' }}>
                         <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{p.address}</div>
                       </td>
@@ -357,7 +357,7 @@ export default function LandlordDashboard() {
                            </button>
                            <button 
                             className="btn-text" 
-                            onClick={() => router.push(`/portal/properties/${p.uuid}`)}
+                            onClick={() => router.push(`/portal/properties/view?uuid=${p.uuid}`)}
                             style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600 }}
                            >
                              Manage
@@ -377,9 +377,7 @@ export default function LandlordDashboard() {
         {activeTab === 'requests' && (
           <div className="animate-fade-in">
             {loadingCred || loadingJoin ? (
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <Splash />
-              </div>
+              <ListSkeleton />
             ) : (joinRequests.length === 0 && credibilityRequests.length === 0) ? (
               <div className="requests-empty">
                 <div className="requests-empty__icon">
@@ -484,7 +482,7 @@ export default function LandlordDashboard() {
                       {credibilityRequests.map((req: any) => (
                         <div 
                           key={req.uuid}
-                          onClick={() => router.push(`/requests/${req.uuid}`)}
+                          onClick={() => router.push(`/requests/view?uuid=${req.uuid}`)}
                           className="request-premium-card request-premium-card--orange"
                         >
                           <div className="request-premium-card__body">
