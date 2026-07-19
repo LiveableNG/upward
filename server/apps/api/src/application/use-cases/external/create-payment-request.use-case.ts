@@ -80,7 +80,11 @@ export class CreateExternalPaymentRequestUseCase {
 
     let subaccountId: number | undefined = property.subaccountId || undefined
 
-    if (payload.bankCode && payload.accountNumber) {
+    if (payload.bankCode || payload.accountNumber) {
+      if (!payload.bankCode || !payload.accountNumber) {
+        throw new BadRequestException('Both bankCode and accountNumber must be provided together')
+      }
+
       const businessName = property.company?.name ||
         (property.manager ? `${property.manager.firstName} ${property.manager.lastName}` : null)
 

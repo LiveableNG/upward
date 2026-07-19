@@ -272,7 +272,7 @@ describe('SingleInviteUseCase', () => {
         userPropertyUuid: 'property-uuid-001',
         email: 'john.doe@example.com',
       })
-      expect(result.inviteLink).toContain('/invite/user-uuid-001')
+      expect(result.inviteLink).toMatch(/\/invite\/[a-f0-9-]{36}/)
     })
 
     it('should work without a platformId', async () => {
@@ -465,6 +465,7 @@ describe('SingleInviteUseCase', () => {
 
     it('should throw BadRequestException when creating manager without required fields', async () => {
       setupCompany()
+      setupUser()
       managerRepository.findByEmail.mockResolvedValue(null)
 
       const payload = validInviteRequest()

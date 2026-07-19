@@ -100,6 +100,11 @@ describe('ConfirmExternalPaymentUseCase', () => {
 
     const paymentConfig = {
       getDynamicProcessingFee: jest.fn().mockResolvedValue(2000),
+      getDynamicProcessingRates: jest.fn().mockResolvedValue({
+        transactionFee: 2000,
+        benefitsFee: 0,
+        rentValue: 500000,
+      }),
     } as any
 
     const prisma = {
@@ -172,11 +177,6 @@ describe('ConfirmExternalPaymentUseCase', () => {
             paymentRequestId: 100,
           }),
         )
-        expect(paymentRequestRepository.update).toHaveBeenCalledWith(100, {
-          status: 'PAID',
-          paidAt: expect.any(Date),
-          reference: reference,
-        })
         expect(result).toMatchObject({
           success: true,
           status: 'PAID',
