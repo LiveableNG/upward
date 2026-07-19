@@ -3,6 +3,9 @@
 import React from 'react';
 import { UpwardLogo } from '../common/UpwardLogo';
 import { ChevronLeft } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+
+import Link from 'next/link';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -10,6 +13,7 @@ interface AuthLayoutProps {
   subtitle?: string;
   visualTitle?: React.ReactNode;
   visualDesc?: string;
+  hideMobileLogo?: boolean;
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ 
@@ -17,7 +21,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   title, 
   subtitle,
   visualTitle,
-  visualDesc 
+  visualDesc,
+  hideMobileLogo = false
 }) => {
   return (
     <div className="auth-layout">
@@ -100,29 +105,52 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
       {/* Form Panel */}
       <div className="auth-layout__form">
-        <header className="mobile-header">
-          <UpwardLogo size={32} />
-        </header>
+        {!hideMobileLogo && (
+          <header className="mobile-header">
+            <UpwardLogo size={32} />
+          </header>
+        )}
 
         <main className="auth-shell">
-          <a
-            href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-muted)',
-              fontSize: '14px',
-              textDecoration: 'none',
-              fontWeight: 500,
-              marginBottom: '24px',
-              transition: 'color 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
-            onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-          >
-            <ChevronLeft size={16} /> Back to Website
-          </a>
+          {Capacitor.isNativePlatform() ? (
+            <Link
+              href="/welcome"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-muted)',
+                fontSize: '14px',
+                textDecoration: 'none',
+                fontWeight: 500,
+                marginBottom: '24px',
+                transition: 'color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <ChevronLeft size={16} /> Back
+            </Link>
+          ) : (
+            <a
+              href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-muted)',
+                fontSize: '14px',
+                textDecoration: 'none',
+                fontWeight: 500,
+                marginBottom: '24px',
+                transition: 'color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <ChevronLeft size={16} /> Back to Website
+            </a>
+          )}
           {children}
         </main>
       </div>

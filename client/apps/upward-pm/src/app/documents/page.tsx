@@ -9,6 +9,7 @@ import { useTenants } from '@/features/pm/hooks/useTenants'
 import { ListSkeleton } from '@/components/skeletons'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { HardHat, Hammer, Wrench } from 'lucide-react'
 
 function DocumentManagementContent() {
   const router = useRouter()
@@ -170,17 +171,26 @@ function DocumentManagementContent() {
 
       <div className="documents-mobile-view">
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center' }}>
-          <div style={{ background: 'var(--surface-hover)', padding: 24, borderRadius: 24, marginBottom: 24 }}>
-            <span style={{ fontSize: 48 }}>💻</span>
+          
+          <div className="construction-scene" style={{ position: 'relative', width: 140, height: 140, marginBottom: 32 }}>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2 }}>
+              <div style={{ background: 'var(--surface-hover)', padding: 24, borderRadius: '50%', boxShadow: '0 8px 32px rgba(0,0,0,0.05)' }}>
+                <HardHat size={48} color="var(--clay)" />
+              </div>
+            </div>
+            <div className="animate-swing" style={{ position: 'absolute', top: 0, right: 10, transformOrigin: 'bottom left' }}>
+              <Hammer size={32} color="var(--forest)" />
+            </div>
+            <div className="animate-spin-slow" style={{ position: 'absolute', bottom: 10, left: 10, transformOrigin: 'center' }}>
+              <Wrench size={28} color="var(--blue, #0ea5e9)" />
+            </div>
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Desktop Only Feature</h2>
-          <p style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Document management requires complex configuration that is best handled on a larger screen.
+
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Under Construction</h2>
+          <p style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
+            We're currently building a powerful mobile experience for Document Management. Our tiny digital workers are on it!
           </p>
-          <div style={{ marginTop: 32, padding: 16, background: 'var(--ivory-dim)', borderRadius: 16, border: '1px dashed var(--border)' }}>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 8, fontWeight: 600 }}>Visit your dashboard on a computer at:</p>
-            <p style={{ fontSize: 16, color: 'var(--forest)', fontWeight: 700, wordBreak: 'break-all' }}>{process.env.NEXT_PUBLIC_WEB_URL || 'upward.com'}</p>
-          </div>
+
         </div>
       </div>
 
@@ -188,6 +198,26 @@ function DocumentManagementContent() {
         .documents-mobile-view {
           display: none;
         }
+        
+        @keyframes swing {
+          0% { transform: rotate(0deg); }
+          50% { transform: rotate(-45deg); }
+          100% { transform: rotate(0deg); }
+        }
+        
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .animate-swing {
+          animation: swing 2s infinite ease-in-out;
+        }
+        
+        .animate-spin-slow {
+          animation: spin-slow 4s infinite linear;
+        }
+
         @media (max-width: 768px) {
           .documents-desktop-view {
             display: none;

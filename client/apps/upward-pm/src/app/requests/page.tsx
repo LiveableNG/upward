@@ -289,7 +289,7 @@ export default function RequestsPage() {
                 {credibilityRequests.map((req: any) => (
                   <div 
                     key={req.uuid}
-                    onClick={() => router.push(`/requests/${req.uuid}`)}
+                    onClick={() => router.push(`/requests/view?uuid=${req.uuid}`)}
                     className="request-premium-card request-premium-card--orange"
                   >
                     <div className="request-premium-card__body">

@@ -33,9 +33,10 @@ import { useToast } from '@/components/common/Toast'
 import { DashboardSkeleton } from '@/components/skeletons'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
-import { DocumentEditorView } from '../documents/DocumentEditorView'
 import { ManagedAddPropertyModal } from '../properties/modals/ManagedAddPropertyModal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { formatTenantName } from '@/lib/utils'
+import { DocumentEditorView } from '../documents/DocumentEditorView'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
@@ -301,7 +302,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 className="payments-tracker__action-btn"
                 onClick={() => {
                   const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
-                  router.push(isPortal ? `/portal/payments/${req.uuid}` : `/payments/${req.uuid}`)
+                  router.push(isPortal ? `/portal/payments/view?uuid=${req.uuid}` : `/payments/view?uuid=${req.uuid}`)
                 }}
                 title="View Request Details"
               >
@@ -435,43 +436,17 @@ export function DashboardView({ initialData }: { initialData?: any }) {
               <p className="payments-tracker__subtitle">Monitor collections, outstanding balances, and arrears.</p>
             </div>
             
-            <div className="payments-tracker__tabs">
-              <button 
-                className={cn(
-                  "payments-tracker__tab-btn",
-                  activeTab === 'arrears' && "payments-tracker__tab-btn--active"
-                )}
-                onClick={() => setActiveTab('arrears')}
-              >
-                Arrears
-                <span className="payments-tracker__count payments-tracker__count--arrears">
-                  {overduePayments.length}
-                </span>
-              </button>
-              <button 
-                className={cn(
-                  "payments-tracker__tab-btn",
-                  activeTab === 'upcoming' && "payments-tracker__tab-btn--active"
-                )}
-                onClick={() => setActiveTab('upcoming')}
-              >
-                Upcoming
-                <span className="payments-tracker__count payments-tracker__count--upcoming">
-                  {upcomingPayments.length}
-                </span>
-              </button>
-              <button 
-                className={cn(
-                  "payments-tracker__tab-btn",
-                  activeTab === 'completed' && "payments-tracker__tab-btn--active"
-                )}
-                onClick={() => setActiveTab('completed')}
-              >
-                Paid
-                <span className="payments-tracker__count payments-tracker__count--completed">
-                  {completedPayments.length}
-                </span>
-              </button>
+            <div className="payments-tracker__filter">
+              <FormSelect 
+                triggerClassName="payments-tracker__select"
+                value={activeTab}
+                onChange={(val) => setActiveTab(val as any)}
+                options={[
+                  { label: `Arrears (${overduePayments.length})`, value: 'arrears' },
+                  { label: `Upcoming (${upcomingPayments.length})`, value: 'upcoming' },
+                  { label: `Paid (${completedPayments.length})`, value: 'completed' }
+                ]}
+              />
             </div>
           </div>
 

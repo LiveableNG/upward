@@ -109,13 +109,16 @@ describe('GetPublicPaymentDetailsUseCase', () => {
       upward_user_bank_details: {
         findUnique: jest.fn().mockResolvedValue(null),
       },
+      upward_payment_proof: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
     } as any
 
     paymentRequestRepository = {
       findByUuid: jest.fn(),
       findById: jest.fn(),
       findByUserId: jest.fn(),
-      findByUserIdAndStatus: jest.fn(),
+      findByUserIdAndStatus: jest.fn().mockResolvedValue([]),
       create: jest.fn(),
       update: jest.fn(),
     } as any
@@ -253,7 +256,7 @@ describe('GetPublicPaymentDetailsUseCase', () => {
 
     it('should indicate hasPassword=true for active users', async () => {
       paymentRequestRepository.findByUuid.mockResolvedValue(makePaymentRequest() as any)
-      userRepository.findById.mockResolvedValue(makeUser({ passwordHash: 'active-hash' }) as any)
+      userRepository.findById.mockResolvedValue(makeUser({ passwordHash: '$2b$10$active-hash' }) as any)
       propertyRepository.findById.mockResolvedValue(makeProperty() as any)
       companyRepository.findById.mockResolvedValue(makeCompany() as any)
 

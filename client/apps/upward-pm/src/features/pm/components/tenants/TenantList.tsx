@@ -358,6 +358,122 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
     }
   ]
 
+  const renderMobileTenantCard = (tenant: any) => {
+    const isSelected = selectedTenants.has(tenant.uuid);
+    const isOnUpward = tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED';
+    
+    return (
+      <div className="tenant-mobile-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSelectTenant(tenant.uuid, !isSelected);
+            }} 
+            style={{ display: 'flex', alignItems: 'center', padding: '4px', cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => {}} // Handled by click to prevent double event firing
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }}
+            />
+          </div>
+          
+          <div onClick={(e) => e.stopPropagation()}>
+            {isOnUpward ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--forest)',
+                background: 'var(--forest-faint)',
+                padding: '6px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                <CheckCircle2 size={14} />
+                ON UPWARD
+              </div>
+            ) : tenant.inviteStatus === 'PENDING' || tenant.inviteStatus === 'PROCESSING' ? (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--accent)',
+                background: 'var(--accent-faint)',
+                padding: '6px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                <Loader2 size={14} className="animate-spin" />
+                PROCESSING
+              </div>
+            ) : (
+              <TenantInviteAction tenant={tenant} inviteTenant={inviteTenant} />
+            )}
+          </div>
+        </div>
+
+        {/* Content Row: Tenant Profile */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'var(--dark)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 15,
+            fontWeight: 700,
+            flexShrink: 0
+          }}>
+            {((tenant.commercialName || tenant.firstName || 'T')[0] || '').toUpperCase()}
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 15, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <TenantNameDisplay tenant={tenant} fallback="No Tenant" />
+            </div>
+            {tenant.email?.endsWith('@upward.com') ? (
+              <div style={{ fontSize: 12, color: 'var(--error)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <AlertCircle size={12} /> Not Configured
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tenant.email}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Details Row: Residence info */}
+        <div style={{ 
+          background: 'var(--bg-soft, var(--ivory-dim))', 
+          padding: '12px 16px', 
+          borderRadius: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4
+        }}>
+          <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>Residence</div>
+          {tenant.units && tenant.units.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {tenant.units.map((unit: any) => (
+                <div key={unit.uuid} style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>
+                  {unit.unitName} <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>({unit.property.name})</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>N/A</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
     <div className="tenants-view animate-fade-in" style={{ padding: '24px 0' }}>
@@ -365,7 +481,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
         title="Tenants Directory"
         subtitle="Manage your tenants across all properties."
         actions={
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <>
             {selectedTenants.size > 0 && (
               <button
                 className="btn btn--outline"
@@ -383,7 +499,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
                 <UserPlus size={18} /> Add Tenant
               </button>
             )}
-          </div>
+          </>
         }
       />
 
@@ -432,15 +548,52 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
         />
       </ControlBar>
 
+      {filteredTenants.length > 0 && (
+        <div 
+          className="mobile-only-select-all" 
+          style={{
+            display: 'none',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            background: 'white',
+            borderRadius: '12px',
+            border: '1px solid var(--border)',
+            marginBottom: '16px',
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm)',
+            width: '100%'
+          }} 
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSelectAll();
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={() => {}} // Handled by click to prevent double event firing
+            style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }}
+          />
+          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+            {allSelected ? 'Deselect All' : `Select All Tenants (${filteredTenants.length})`}
+          </span>
+        </div>
+      )}
+
       <DataTable
         columns={columns}
         data={filteredTenants}
-        onRowClick={(tenant) => router.push(`/tenants/${tenant.uuid}`)}
+        onRowClick={(tenant) => {
+          const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+          router.push(isPortal ? `/portal/tenants/view?uuid=${tenant.uuid}` : `/tenants/view?uuid=${tenant.uuid}`)
+        }}
         emptyMessage="No tenants found matching your search."
         keyExtractor={(tenant) => tenant.uuid}
         rowClassName={(tenant) => selectedTenants.has(tenant.uuid) ? 'selected' : ''}
         pageSize={10}
         isLoading={isLoading}
+        renderMobileCard={renderMobileTenantCard}
       />
     </div>
     

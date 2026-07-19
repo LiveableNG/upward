@@ -9,11 +9,13 @@
     "lint": "eslint",
     "cap:sync": "next build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
     "@capacitor/app": "^8.0.0",
+    "@capacitor/camera": "^8.2.1",
     "@capacitor/core": "^8.2.0",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/ios": "^8.2.0",
@@ -43,6 +45,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

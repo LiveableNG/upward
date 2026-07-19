@@ -207,6 +207,7 @@
   justify-content: center;
   overflow: hidden;
   position: relative;
+  flex-shrink: 0;
 }
 
 .avatar-upload__img {
@@ -230,6 +231,10 @@
 }
 
 .avatar-upload__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
@@ -427,5 +432,18 @@
   }
   .bank-verification__verify-btn {
     width: 100%;
+  }
+  .settings__section-header-wrap {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .bank-summary__item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .bank-summary__value {
+    text-align: left;
   }
 }

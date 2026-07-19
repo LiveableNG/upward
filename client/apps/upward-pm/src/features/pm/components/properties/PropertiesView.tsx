@@ -334,7 +334,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
           setSelectedPropertyFilter(name)
           setActiveTab('units')
         }}
-        onViewPropertyDetail={(prop) => router.push(`/properties/${prop.uuid}`)}
+        onViewPropertyDetail={(prop) => router.push(`/properties/view?uuid=${prop.uuid}`)}
       />
     )
   }

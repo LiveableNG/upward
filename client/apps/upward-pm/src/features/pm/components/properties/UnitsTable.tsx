@@ -257,7 +257,7 @@ export function UnitsTable({
       <DataTable
         columns={columns}
         data={units}
-        onRowClick={(unit) => router.push(`/properties/units/${unit.uuid}`)}
+        onRowClick={(unit) => router.push(`/properties/units/view?uuid=${unit.uuid}`)}
         emptyMessage="No units found matching your filters."
         keyExtractor={(unit) => unit.uuid}
         pageSize={10}
@@ -327,7 +327,7 @@ function UnitActions({ unit, onRequestPayment }: { unit: Unit, onRequestPayment?
         )
       )}
       <Link 
-        href={`/properties/units/${unit.uuid}`} 
+        href={`/properties/units/view?uuid=${unit.uuid}`} 
         className="btn btn--secondary btn--sm" 
         style={{ fontSize: '12px', padding: '6px 12px' }}
         onClick={(e) => e.stopPropagation()}

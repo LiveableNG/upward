@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { requestOTP, verifyOTP, otpLogin } from '../services/authService'
+import { requestOTP, verifyOTP, otpLogin, logout as authLogout } from '../services/authService'
 import { useToast } from '@/components/common/Toast'
 
 export function useRequestOTP() {
@@ -37,8 +37,14 @@ export function useOtpLogin() {
   const { success, error } = useToast()
 
   return useMutation({
-    mutationFn: ({ email, otp }: { email: string; otp: string }) => 
-      otpLogin(email, otp),
+    mutationFn: async ({ email, otp }: { email: string; otp: string }) => {
+      const result = await otpLogin(email, otp);
+      if (result.user?.pmType === 'INDIVIDUAL_LANDLORD') {
+        await authLogout().catch(() => {});
+        throw new Error("Invalid details for Property Manager. Please use the Landlord portal.");
+      }
+      return result;
+    },
     onSuccess: () => {
       success("Logged in successfully")
     },

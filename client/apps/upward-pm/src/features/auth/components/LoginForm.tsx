@@ -8,12 +8,17 @@ import {
   ChevronRight,
   ArrowRight,
   Eye,
-  EyeOff
+  EyeOff,
+  Building,
+  User,
+  ShieldCheck
 } from 'lucide-react'
 import { useLogin } from '../hooks/useLogin'
 import { useRequestOTP, useOtpLogin } from '../hooks/useOtp'
+import { useToast } from '@/components/common/Toast'
 
 export const LoginForm = () => {
+  const { error: toastError } = useToast()
   const [stage, setStage] = useState<'credentials' | 'otp'>('credentials')
   const [useOtp, setUseOtp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -29,6 +34,17 @@ export const LoginForm = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!email) {
+      toastError("Please enter your email address");
+      return;
+    }
+
+    if (!useOtp && !password) {
+      toastError("Please enter your password");
+      return;
+    }
+
     if (useOtp) {
       requestOtpMutation.mutate(
         { email, context: 'LOGIN' },
@@ -79,8 +95,15 @@ export const LoginForm = () => {
     )
   }
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    const otpCode = otp.join('')
+    if (otpCode.length !== 6) {
+      toastError("Please enter a complete 6-digit verification code");
+      return;
+    }
+    
     triggerVerification(otp)
   }
 
@@ -91,13 +114,15 @@ export const LoginForm = () => {
           type="button"
           className="auth-role-toggle__btn auth-role-toggle__btn--active"
         >
-          Property Manager
+          <Building size={16} />
+          <span>Property Manager</span>
         </button>
         <Link 
           href="/portal/login"
           className="auth-role-toggle__btn"
         >
-          Landlord
+          <User size={16} />
+          <span>Landlord</span>
         </Link>
       </div>
 
@@ -105,7 +130,7 @@ export const LoginForm = () => {
         <h2 className="auth-card__title">
           {stage === 'credentials' ? 'Welcome back' : 'Verify your email'}
         </h2>
-        <p className="auth-card__subtitle">
+        <p className="auth-card__subtitle" style={{ fontSize: '15px', padding: '0 20px' }}>
           {stage === 'otp' ? (
             <>
               We've sent a 6-digit code to <strong>{email}</strong>.
@@ -115,7 +140,7 @@ export const LoginForm = () => {
           ) : useOtp ? (
             "Enter your email to receive a secure login code."
           ) : (
-            "Sign in to manage your property portfolio."
+            "Sign in to access and manage your property portfolio with ease."
           )}
         </p>
       </div>
@@ -132,7 +157,6 @@ export const LoginForm = () => {
                 placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
           </div>
@@ -153,7 +177,6 @@ export const LoginForm = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  required
                 />
                 <button
                   type="button"
@@ -177,23 +200,33 @@ export const LoginForm = () => {
             </div>
           )}
 
-          <button type="submit" className="auth-btn auth-btn--primary" disabled={loading}>
-            {loading ? "Please wait..." : (useOtp ? "Send Code" : "Sign In")} 
-            <ChevronRight size={18} />
+          <button type="submit" className="auth-btn auth-btn--primary auth-btn--large" disabled={loading} style={{ marginTop: '16px' }}>
+            <span>{loading ? "Please wait..." : (useOtp ? "Send Code" : "Sign in")}</span>
+            <ArrowRight size={18} />
           </button>
 
-          <div className="auth-separator">Or continue with</div>
+          <div className="auth-separator"><span>OR CONTINUE WITH</span></div>
 
           <button 
             type="button" 
-            className="auth-btn auth-btn--secondary"
+            className="auth-btn auth-btn--outline"
             onClick={() => setUseOtp(!useOtp)}
           >
-            {useOtp ? "Login with password" : "Login with verification code"}
+            {useOtp ? (
+              <>
+                <Lock size={18} />
+                <span>Login with password</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={18} />
+                <span>Login with verification code</span>
+              </>
+            )}
           </button>
 
-          <div className="auth-footer">
-            Don't have an account? <Link href="/pm-signup">Create one for free</Link>
+          <div className="auth-footer" style={{ marginTop: '32px' }}>
+            Don't have an account? <Link href="/signup">Create one for free</Link>
           </div>
         </form>
       ) : (
@@ -213,7 +246,6 @@ export const LoginForm = () => {
                     document.getElementById(`otp-${i - 1}`)?.focus()
                   }
                 }}
-                required
               />
             ))}
           </div>

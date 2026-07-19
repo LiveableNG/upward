@@ -1,0 +1,253 @@
+/* ── Mobile Scoped Auth Styles ── */
+.mobile-auth {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background-color: white;
+  color: var(--text);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.mobile-auth__container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.mobile-auth__header {
+  margin-bottom: 24px;
+}
+
+.mobile-auth__logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.mobile-auth__back-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mobile-auth__back-btn:hover {
+  color: var(--text);
+}
+
+.mobile-auth__progress-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mobile-auth__progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--ivory-dark, #e5d5b7);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.mobile-auth__progress-bar {
+  height: 100%;
+  background: var(--forest, #166534);
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.mobile-auth__progress-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--forest);
+  white-space: nowrap;
+}
+
+.mobile-auth__title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--forest, #166534);
+  margin-top: 12px;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.mobile-auth__subtitle {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── Mobile Form Styles ── */
+.mobile-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.mobile-auth__form-step {
+  animation: stepFadeIn 0.3s ease;
+}
+
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Role Selector Cards ── */
+.mobile-auth__role-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.role-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.role-card:hover, .role-card--active {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+}
+
+.role-card--manager {
+  border-color: rgba(22, 101, 52, 0.1);
+}
+
+.role-card--manager:hover, .role-card--manager.role-card--active {
+  border-color: var(--forest, #166534);
+  background: rgba(22, 101, 52, 0.02);
+}
+
+.role-card--landlord {
+  border-color: rgba(194, 80, 31, 0.1);
+}
+
+.role-card--landlord:hover, .role-card--landlord.role-card--active {
+  border-color: var(--accent, #c2501f);
+  background: rgba(194, 80, 31, 0.02);
+}
+
+.role-card__icon-wrapper {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.role-card--manager .role-card__icon-wrapper {
+  background: rgba(22, 101, 52, 0.08);
+  color: var(--forest, #166534);
+}
+
+.role-card--manager.role-card--active .role-card__icon-wrapper {
+  background: var(--forest, #166534);
+  color: white;
+}
+
+.role-card--landlord .role-card__icon-wrapper {
+  background: rgba(194, 80, 31, 0.08);
+  color: var(--accent, #c2501f);
+}
+
+.role-card--landlord.role-card--active .role-card__icon-wrapper {
+  background: var(--accent, #c2501f);
+  color: white;
+}
+
+.role-card__info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.role-card__title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.role-card__desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.role-card__check {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.2s;
+}
+
+.role-card--active .role-card__check {
+  border-color: transparent;
+}
+
+.role-card--manager.role-card--active .role-card__check {
+  background: var(--forest, #166534);
+}
+
+.role-card--landlord.role-card--active .role-card__check {
+  background: var(--accent, #c2501f);
+}
+
+/* Helper spacing */
+.mobile-auth__footer {
+  margin-top: auto;
+  padding-top: 32px;
+  text-align: center;
+}
+
+.mobile-auth__step-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}

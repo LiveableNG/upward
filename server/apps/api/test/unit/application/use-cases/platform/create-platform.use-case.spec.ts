@@ -36,9 +36,10 @@ describe('CreatePlatformUseCase', () => {
   describe('execute', () => {
     describe('happy path', () => {
       it('should create a new platform and return id, apiKey, name, email', async () => {
+        platformRepository.findByName.mockResolvedValueOnce(null)
         platformRepository.findByEmail.mockResolvedValueOnce(null) // no duplicate
         platformRepository.save.mockResolvedValue(mockPlatform)
-        platformRepository.findByEmail.mockResolvedValueOnce(mockPlatform) // after save
+        platformRepository.findByName.mockResolvedValueOnce(mockPlatform)
 
         const result = await useCase.execute({
           name: 'Acme Real Estate',
@@ -70,13 +71,14 @@ describe('CreatePlatformUseCase', () => {
       })
 
       it('should hash the API key before saving (saved key !== returned key)', async () => {
+        platformRepository.findByName.mockResolvedValueOnce(null)
         platformRepository.findByEmail.mockResolvedValueOnce(null)
         let savedApiKey: string | undefined
         platformRepository.save.mockImplementation((p: any) => {
           savedApiKey = p.apiKey
           return Promise.resolve(mockPlatform)
         })
-        platformRepository.findByEmail.mockResolvedValueOnce(mockPlatform)
+        platformRepository.findByName.mockResolvedValueOnce(mockPlatform)
 
         const result = await useCase.execute({
           name: 'Test Platform',

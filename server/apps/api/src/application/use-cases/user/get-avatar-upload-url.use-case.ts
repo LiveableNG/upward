@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, Inject } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { randomUUID } from 'crypto'
@@ -7,6 +8,7 @@ import { randomUUID } from 'crypto'
 export class GetAvatarUploadUrlUseCase {
   constructor(
     private readonly s3Service: S3Service,
+    private readonly configService: ConfigService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
@@ -21,15 +23,20 @@ export class GetAvatarUploadUrlUseCase {
     }
 
     const ext = filename.split('.').pop()
-    const key = `users/${user.uuid}/avatar/${randomUUID()}.${ext}`
+    const fileId = randomUUID()
+    const key = `users/${user.uuid}/avatar/${fileId}.${ext}`
 
     const uploadUrl = await this.s3Service.getUploadUrl(key, contentType)
+
+    const baseUrl = this.configService.get<string>('API_URL') || 
+                    this.configService.get<string>('BACKEND_URL') || 
+                    'http://localhost:4000';
 
     return {
       key,
       uploadUrl,
       // The public URL that will be stored in the DB after upload
-      publicUrl: `https://${process.env['AWS_S3_BUCKET']}.s3.${process.env['AWS_REGION']}.amazonaws.com/${key}`
+      publicUrl: `${baseUrl}/api/v1/public/documents/users/avatar/${user.uuid}/${fileId}.${ext}`
     }
   }
 }

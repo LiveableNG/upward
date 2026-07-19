@@ -15,7 +15,14 @@ import {
   Phone,
   MapPin,
   Users,
+  Building,
+  LogIn,
+  ShieldCheck,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
+import { UpwardLogo } from '../../../components/common/UpwardLogo'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
@@ -73,7 +80,7 @@ export const SignupForm = () => {
 
           if (res.isInvited && res.inviteToken) {
             setTimeout(() => {
-              router.push(`/invite/${res.inviteToken}`)
+              router.push(`/invite/view?uuid=${res.inviteToken}`)
             }, 1500)
           }
         } catch (err) {
@@ -257,34 +264,28 @@ export const SignupForm = () => {
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="auth-role-toggle">
-        <button type="button" className="auth-role-toggle__btn auth-role-toggle__btn--active">
-          Property Manager
-        </button>
-        <Link href="/portal/signup" className="auth-role-toggle__btn">
-          Landlord
-        </Link>
-      </div>
-
-      <div className="auth-header">
-        <h2 className="auth-card__title">
-          {stage === 'info' ? 'Get started' : 'Verify your email'}
-        </h2>
-
-        <p className="auth-card__subtitle">
-          {stage === 'info' ? (
-            'Create your property manager account in seconds.'
-          ) : (
-            <>
-              We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>. Enter it below to
-              continue. <br />
-              <span style={{ fontSize: '13px', opacity: 0.8 }}>
-                (Check your <strong>spam folder</strong> if you don&apos;t see it)
-              </span>
-            </>
-          )}
-        </p>
+    <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
+      <div className="auth-header auth-header--signup">
+        <div className="hide-on-desktop">
+          <UpwardLogo size={48} />
+        </div>
+        <div className="auth-header__text">
+          <h2 className="auth-card__title">
+            {stage === 'info' ? 'Create your account' : 'Verify your email'}
+          </h2>
+          <p className="auth-card__subtitle" style={{ fontSize: '13px', margin: 0 }}>
+            {stage === 'info' ? (
+              'Set up your property manager account in seconds.'
+            ) : (
+              <>
+                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>.<br />
+                <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                  (Check your <strong>spam folder</strong> if you don&apos;t see it)
+                </span>
+              </>
+            )}
+          </p>
+        </div>
       </div>
 
       {stage === 'info' ? (
@@ -292,7 +293,7 @@ export const SignupForm = () => {
           <div className="form-group">
             <label className="form-label">Company Name</label>
             <div className="input-wrapper">
-              <Briefcase size={18} className="input-icon" />
+              <Building size={18} className="input-icon" />
               <input
                 type="text"
                 className="form-input form-input--with-icon"
@@ -309,29 +310,28 @@ export const SignupForm = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Country</label>
-            <div className="input-wrapper">
-              <MapPin size={18} className="input-icon" />
-              <select
-                className="form-input form-input--with-icon"
-                value={formData.country}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    country: e.target.value,
-                  })
-                }
-                required
-              >
-                <option value="" disabled>
-                  Select country
-                </option>
-                <option value="Nigeria">Nigeria</option>
-                <option value="Kenya">Kenya</option>
-              </select>
+          <div className="grid-2">
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Country</label>
+              <div className="input-wrapper">
+                <MapPin size={18} className="input-icon" />
+                <FormSelect
+                  triggerClassName="form-input--with-icon"
+                  value={formData.country}
+                  onChange={(val) =>
+                    setFormData({
+                      ...formData,
+                      country: val,
+                    })
+                  }
+                  options={[
+                    { label: 'Nigeria', value: 'Nigeria' },
+                    { label: 'Kenya', value: 'Kenya' }
+                  ]}
+                  placeholder="Select country"
+                />
+              </div>
             </div>
-          </div>
 
           <div className="form-group">
             <label className="form-label">Company Email</label>
@@ -404,7 +404,7 @@ export const SignupForm = () => {
                         'This email is already registered.',
                       )}{' '}
                   <Link
-                    href="/pm-login"
+                    href="/login"
                     style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}
                   >
                     Log in instead?
@@ -454,30 +454,29 @@ export const SignupForm = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Account Type</label>
-            <div className="input-wrapper">
-              <Briefcase size={18} className="input-icon" />
-              <select
-                className="form-input form-input--with-icon"
-                value={formData.pmType}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    pmType: e.target.value,
-                  })
-                }
-                required
-              >
-                <option value="" disabled>
-                  Select account type
-                </option>
-                <option value="Caretaker">Caretaker</option>
-                <option value="Lawyer">Lawyer</option>
-                <option value="Estate Agent">Estate Agent</option>
-                <option value="Property Manager">Property Manager</option>
-                <option value="Company">Property Management Company</option>
-              </select>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Account Type</label>
+              <div className="input-wrapper">
+                <Briefcase size={18} className="input-icon" />
+                <FormSelect
+                  triggerClassName="form-input--with-icon"
+                  value={formData.pmType}
+                  onChange={(val) =>
+                    setFormData({
+                      ...formData,
+                      pmType: val,
+                    })
+                  }
+                  options={[
+                    { label: 'Caretaker', value: 'Caretaker' },
+                    { label: 'Lawyer', value: 'Lawyer' },
+                    { label: 'Estate Agent', value: 'Estate Agent' },
+                    { label: 'Property Manager', value: 'Property Manager' },
+                    { label: 'Property Management Company', value: 'Company' }
+                  ]}
+                  placeholder="Select account type"
+                />
+              </div>
             </div>
           </div>
 
@@ -485,26 +484,24 @@ export const SignupForm = () => {
             <label className="form-label">Number of tenants under management</label>
             <div className="input-wrapper">
               <Users size={18} className="input-icon" />
-              <select
-                className="form-input form-input--with-icon"
+              <FormSelect
+                triggerClassName="form-input--with-icon"
                 value={formData.tenantsNumber}
-                onChange={(e) =>
+                onChange={(val) =>
                   setFormData({
                     ...formData,
-                    tenantsNumber: e.target.value,
+                    tenantsNumber: val,
                   })
                 }
-                required
-              >
-                <option value="" disabled>
-                  Select an option
-                </option>
-                <option value="Less than 50">Less than 50</option>
-                <option value="51-100">51-100</option>
-                <option value="101-250">101-250</option>
-                <option value="251-500">251-500</option>
-                <option value="Greater than 500">Greater than 500</option>
-              </select>
+                options={[
+                  { label: 'Less than 50', value: 'Less than 50' },
+                  { label: '51-100', value: '51-100' },
+                  { label: '101-250', value: '101-250' },
+                  { label: '251-500', value: '251-500' },
+                  { label: 'Greater than 500', value: 'Greater than 500' }
+                ]}
+                placeholder="Select an option"
+              />
             </div>
           </div>
 
@@ -537,11 +534,14 @@ export const SignupForm = () => {
                   border: 'none',
                   cursor: 'pointer',
                   color: 'var(--forest)',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {showPassword ? 'Hide password' : 'Show password'}
+                Show {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -575,11 +575,14 @@ export const SignupForm = () => {
                   border: 'none',
                   cursor: 'pointer',
                   color: 'var(--forest)',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {showConfirmPassword ? 'Hide password' : 'Show password'}
+                Show {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {passwordError && (
@@ -597,14 +600,26 @@ export const SignupForm = () => {
 
           <button
             type="submit"
-            className="auth-btn auth-btn--primary"
+            className="auth-btn auth-btn--primary auth-btn--large"
             disabled={loading || emailExists || isCheckingEmail || isInvited}
+            style={{ marginTop: '16px' }}
           >
-            {loading ? 'Please wait...' : 'Continue'} <ChevronRight size={18} />
+            <span>{loading ? 'Please wait...' : 'Create account'}</span>
+            <ArrowRight size={18} />
           </button>
 
-          <div className="auth-footer">
-            Already have an account? <Link href="/pm-login">Log in</Link>
+          <div className="auth-separator"><span>OR</span></div>
+
+          <Link href="/login" style={{ textDecoration: 'none' }}>
+            <button type="button" className="auth-btn auth-btn--outline" style={{ width: '100%' }}>
+              <LogIn size={18} />
+              <span>Have an account? <strong>Log in</strong></span>
+            </button>
+          </Link>
+
+          <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--forest)', fontSize: '11.5px', fontWeight: 600 }}>
+            <ShieldCheck size={16} />
+            <span>Your information is secure and encrypted</span>
           </div>
         </form>
       ) : (

@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.goodtenant.upwardpm',
+  appId: 'com.goodtenants.upward.pm',
   appName: 'Upward PM',
   webDir: 'out',
   plugins: {
@@ -14,6 +14,9 @@ const config: CapacitorConfig = {
       forceCodeForRefreshToken: true,
     },
   },
+  server: {
+    cleartext: true
+  }
 };
 
 export default config;

@@ -66,4 +66,48 @@ export class PublicDocumentController {
       throw new NotFoundException('Signature image could not be retrieved from storage');
     }
   }
+
+  @Get('users/avatar/:uuid/:filename')
+  async getUserAvatar(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
+    const s3Key = `users/${uuid}/avatar/${filename}`;
+    try {
+      const buffer = await this.s3Service.getFileBuffer(s3Key);
+      const ext = filename.split('.').pop() || 'png';
+      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+      if (typeof res.set === 'function') {
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=31536000');
+      } else {
+        res.header('Content-Type', contentType);
+        res.header('Cache-Control', 'public, max-age=31536000');
+      }
+
+      return new StreamableFile(buffer);
+    } catch (err) {
+      throw new NotFoundException('Avatar could not be retrieved');
+    }
+  }
+
+  @Get('pm/avatar/:uuid/:filename')
+  async getPmAvatar(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
+    const s3Key = `pm/${uuid}/avatar/${filename}`;
+    try {
+      const buffer = await this.s3Service.getFileBuffer(s3Key);
+      const ext = filename.split('.').pop() || 'png';
+      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+
+      if (typeof res.set === 'function') {
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=31536000');
+      } else {
+        res.header('Content-Type', contentType);
+        res.header('Cache-Control', 'public, max-age=31536000');
+      }
+
+      return new StreamableFile(buffer);
+    } catch (err) {
+      throw new NotFoundException('Avatar could not be retrieved');
+    }
+  }
 }

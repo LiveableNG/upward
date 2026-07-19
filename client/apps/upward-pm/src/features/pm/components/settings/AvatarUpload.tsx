@@ -93,7 +93,7 @@ export function AvatarUpload() {
             disabled={isUploading}
           />
           <label htmlFor="avatar-input" className="avatar-upload__label">
-            <Camera size={16} className="inline mr-2" />
+            <Camera size={16} />
             Change Photo
           </label>
           <p className="text-xs text-muted">JPG, PNG or GIF. Max 5MB.</p>
