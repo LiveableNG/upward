@@ -7,7 +7,6 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 
 import dynamic from 'next/dynamic'
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
-import { FeaturesMenuProvider } from '@/features/dashboard/components/FeaturesMenuContext'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
@@ -51,8 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !blockerDismissed
 
   return (
-    <FeaturesMenuProvider>
-      <div className={`dashboard-layout${showProfileBlocker ? ' dashboard-layout--blocker' : ''}`}>
+    <div className={`dashboard-layout${showProfileBlocker ? ' dashboard-layout--blocker' : ''}`}>
       {showProfileBlocker && user && (
         <ProfileSetupBlocker
           user={user}
@@ -79,8 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         !pathname?.startsWith('/dashboard/savings/deposit') &&
         !pathname?.startsWith('/dashboard/notifications') &&
         !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
-      </div>
-    </FeaturesMenuProvider>
+    </div>
   )
 }
 
