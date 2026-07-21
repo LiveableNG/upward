@@ -129,9 +129,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     try {
-      return await res.json()
+      const text = await res.text()
+      if (!text) return {} as T
+      return JSON.parse(text)
     } catch (err) {
-      return {} as T
+      throw new Error('Invalid response format from server')
     }
   }
 
