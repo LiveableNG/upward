@@ -86,9 +86,9 @@ export class ProcessPendingSequencesUseCase {
             subject: `WhatsApp Sequence: ${log.stage}`,
             status,
             channel: 'WHATSAPP',
-            type: 'SEQUENCE',
+            type: `ONBOARDING_SEQUENCE_${log.stage}`,
             recipient: plainPhone,
-            body: `Template: ${log.templateName}`,
+            body: `Template: ${log.templateName}\n\nParameters Injected:\n${JSON.stringify(parameters, null, 2)}`,
             lastError: error,
             sentAt: status === 'SENT' ? new Date() : null,
           }
@@ -101,9 +101,9 @@ export class ProcessPendingSequencesUseCase {
             subject: `WhatsApp Sequence: ${log.stage}`,
             status: 'FAILED',
             channel: 'WHATSAPP',
-            type: 'SEQUENCE',
+            type: `ONBOARDING_SEQUENCE_${log.stage}`,
             recipient: plainPhone,
-            body: `Template: ${log.templateName}`,
+            body: `Template: ${log.templateName}\n\nParameters Injected:\n${JSON.stringify(parameters, null, 2)}`,
             lastError: error.message || 'Unknown internal error',
           }
         });

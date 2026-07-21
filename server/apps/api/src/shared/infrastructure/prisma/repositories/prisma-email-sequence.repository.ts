@@ -30,7 +30,7 @@ export class PrismaEmailSequenceRepository implements IEmailSequenceRepository {
         scheduledFor: { lte: date },
       },
       include: {
-        user: { select: { firstName: true } },
+        user: { select: { firstName: true, isInternal: true } },
       },
       take: limit,
     })

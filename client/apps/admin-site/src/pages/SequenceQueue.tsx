@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Clock, Mail, MessageCircle, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Clock, Mail, MessageCircle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { apiService } from '../services/api.service';
 
 interface QueuedSequence {
@@ -16,6 +16,28 @@ export const SequenceQueue: React.FC<SequenceQueueProps> = ({ token }) => {
   const [queued, setQueued] = useState<QueuedSequence[]>([]);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState<string | null>(null);
+
+  // ── Confirm modal ──
+  const confirmCallbackRef = useRef<(() => void) | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+  }>({ show: false, title: '', message: '' });
+
+  const openConfirm = (title: string, message: string, onConfirm: () => void) => {
+    confirmCallbackRef.current = onConfirm;
+    setConfirmModal({ show: true, title, message });
+  };
+
+  const closeConfirm = () => setConfirmModal((p) => ({ ...p, show: false }));
+
+  const handleConfirm = async () => {
+    if (confirmCallbackRef.current) {
+      await confirmCallbackRef.current();
+    }
+    closeConfirm();
+  };
 
   useEffect(() => {
     fetchQueued();
@@ -48,8 +70,8 @@ export const SequenceQueue: React.FC<SequenceQueueProps> = ({ token }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#009b79]"></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Loading sequence queue...</p>
       </div>
     );
   }
@@ -58,58 +80,60 @@ export const SequenceQueue: React.FC<SequenceQueueProps> = ({ token }) => {
   const whatsapp = queued.filter((q) => q.channel === 'WHATSAPP');
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="page-container fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Sequence Queue</h1>
-          <p className="text-gray-500 mt-1">Review and dispatch sequences currently on hold.</p>
+          <h2 className="section-title" style={{ margin: 0 }}>Sequence Queue</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>Review and dispatch sequences currently on hold.</p>
         </div>
         <button
           onClick={fetchQueued}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#009b79] shadow-sm transition-all duration-200"
+          className="btn btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <Clock className="w-4 h-4" />
+          <Clock size={16} />
           Refresh
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         {/* Email Sequences */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Mail className="w-5 h-5 text-blue-600" />
+        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ padding: '8px', background: '#eff6ff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Mail size={20} color="#2563eb" />
               </div>
-              <h2 className="font-semibold text-gray-900">Email Sequences</h2>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>Email Sequences</h3>
             </div>
-            <span className="bg-blue-100 text-blue-700 py-1 px-2.5 rounded-full text-xs font-medium">
+            <span className="badge" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '12px' }}>
               {emails.length} Pending
             </span>
           </div>
           
-          <div className="divide-y divide-gray-100">
+          <div>
             {emails.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 text-sm">
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                 No email sequences on hold
               </div>
             ) : (
               emails.map((item) => (
-                <div key={item.stage} className="p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={item.stage} style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <h3 className="font-medium text-gray-900">{item.stage}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{item.count} users waiting</p>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>{item.stage}</h4>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>{item.count} users waiting</p>
                   </div>
                   <button
-                    onClick={() => handleTrigger('EMAIL', item.stage)}
+                    onClick={() => openConfirm('Dispatch Email Sequence', `Are you sure you want to approve and dispatch the ${item.stage} sequence for ${item.count} users?`, () => handleTrigger('EMAIL', item.stage))}
                     disabled={triggering === `EMAIL-${item.stage}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px' }}
                   >
                     {triggering === `EMAIL-${item.stage}` ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      'Dispatching...'
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 size={16} />
                         Approve & Dispatch
                       </>
                     )}
@@ -121,41 +145,42 @@ export const SequenceQueue: React.FC<SequenceQueueProps> = ({ token }) => {
         </div>
 
         {/* WhatsApp Sequences */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <MessageCircle className="w-5 h-5 text-[#25D366]" />
+        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+          <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ padding: '8px', background: '#f0fdf4', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageCircle size={20} color="#16a34a" />
               </div>
-              <h2 className="font-semibold text-gray-900">WhatsApp Sequences</h2>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>WhatsApp Sequences</h3>
             </div>
-            <span className="bg-green-100 text-green-700 py-1 px-2.5 rounded-full text-xs font-medium">
+            <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#15803d', fontSize: '12px' }}>
               {whatsapp.length} Pending
             </span>
           </div>
           
-          <div className="divide-y divide-gray-100">
+          <div>
             {whatsapp.length === 0 ? (
-              <div className="p-8 text-center text-gray-500 text-sm">
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                 No WhatsApp sequences on hold
               </div>
             ) : (
               whatsapp.map((item) => (
-                <div key={item.stage} className="p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                <div key={item.stage} style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <h3 className="font-medium text-gray-900">{item.stage}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{item.count} users waiting</p>
+                    <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>{item.stage}</h4>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>{item.count} users waiting</p>
                   </div>
                   <button
-                    onClick={() => handleTrigger('WHATSAPP', item.stage)}
+                    onClick={() => openConfirm('Dispatch WhatsApp Sequence', `Are you sure you want to approve and dispatch the ${item.stage} sequence for ${item.count} users?`, () => handleTrigger('WHATSAPP', item.stage))}
                     disabled={triggering === `WHATSAPP-${item.stage}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#25D366] text-white text-sm font-medium rounded-lg hover:bg-[#1ebd5a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#25D366] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '13px', backgroundColor: '#25D366', borderColor: '#25D366' }}
                   >
                     {triggering === `WHATSAPP-${item.stage}` ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      'Dispatching...'
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 size={16} />
                         Approve & Dispatch
                       </>
                     )}
@@ -166,6 +191,64 @@ export const SequenceQueue: React.FC<SequenceQueueProps> = ({ token }) => {
           </div>
         </div>
       </div>
+
+      {/* ── Confirm Modal ── */}
+      {confirmModal.show && (
+        <div className="modal-overlay" style={{ alignItems: 'center' }} onClick={closeConfirm}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: '400px', backgroundColor: 'var(--white)', padding: '0', borderRadius: '20px', overflow: 'hidden' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '32px', textAlign: 'center' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: '#e0f2fe',
+                  color: '#0369a1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 24px',
+                }}
+              >
+                <AlertCircle size={32} />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: 'var(--text)' }}>
+                {confirmModal.title}
+              </h3>
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '14px',
+                  marginBottom: '28px',
+                  lineHeight: 1.6,
+                }}
+              >
+                {confirmModal.message}
+              </p>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={closeConfirm}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, padding: '12px', fontSize: '14px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className="btn btn-primary"
+                  style={{ flex: 1, padding: '12px', fontSize: '14px' }}
+                >
+                  Approve & Dispatch
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

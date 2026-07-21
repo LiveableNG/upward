@@ -14,8 +14,18 @@ export class TriggerSequencesUseCase {
     private readonly processWhatsappSequences: ProcessPendingSequencesUseCase,
   ) {}
 
-  async execute(channel: 'EMAIL' | 'WHATSAPP', stage: string): Promise<void> {
+  async execute(channel: 'EMAIL' | 'WHATSAPP', stage: string, adminId?: string): Promise<void> {
     this.logger.log(`Triggering sequences for channel: ${channel}, stage: ${stage}`);
+
+    if (adminId) {
+      await this.prisma.upward_admin_log.create({
+        data: {
+          adminId,
+          action: 'TRIGGER_SEQUENCE',
+          details: `Triggered dispatch for ${channel} sequence at stage ${stage}`,
+        }
+      });
+    }
 
     if (channel === 'EMAIL') {
       await this.prisma.upward_email_sequence_log.updateMany({
