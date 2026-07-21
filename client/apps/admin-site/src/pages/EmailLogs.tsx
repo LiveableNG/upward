@@ -53,6 +53,8 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const [typeFilter, setTypeFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [acquisitionFilter, setAcquisitionFilter] = useState('All')
+  const [channelFilter, setChannelFilter] = useState('All')
+  const [dateFilter, setDateFilter] = useState('')
   const [viewLog, setViewLog] = useState<EmailLog | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -139,7 +141,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     setLoading(true)
     try {
       const response = await apiService.get(
-        `/admin/email/logs?email=${debouncedSearch}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&page=${pageNum}&limit=10`,
+        `/admin/email/logs?email=${debouncedSearch}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&channel=${channelFilter}&date=${dateFilter}&page=${pageNum}&limit=10`,
         token,
       )
       if (response) {
@@ -191,12 +193,12 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   // Fetch logs when search criteria or page changes
   useEffect(() => {
     fetchLogs(page)
-  }, [page, debouncedSearch, typeFilter, statusFilter, acquisitionFilter])
+  }, [page, debouncedSearch, typeFilter, statusFilter, acquisitionFilter, channelFilter, dateFilter])
 
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, typeFilter, statusFilter, acquisitionFilter])
+  }, [debouncedSearch, typeFilter, statusFilter, acquisitionFilter, channelFilter, dateFilter])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -263,6 +265,21 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
       case 'CREDIBILITY_REQUEST':
         label = 'Credibility Request'
         break
+      case 'ONBOARDING_SEQUENCE_WELCOME':
+        label = 'Seq: Welcome'
+        break
+      case 'ONBOARDING_SEQUENCE_DAY_2':
+        label = 'Seq: Day 2'
+        break
+      case 'ONBOARDING_SEQUENCE_DAY_5':
+        label = 'Seq: Day 5'
+        break
+      case 'ONBOARDING_SEQUENCE_DAY_9':
+        label = 'Seq: Day 9'
+        break
+      case 'ONBOARDING_SEQUENCE_DAY_14':
+        label = 'Seq: Day 14'
+        break
       default:
         label = baseType
     }
@@ -299,7 +316,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               Communication Logs
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-              Track every email, SMS, and WhatsApp message sent to users.
+              Track every email, SMS, and WhatsApp message sent to users. <strong>({total} logs found)</strong>
             </p>
           </div>
         </div>
@@ -493,6 +510,11 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               <option value="CONFIRMATION">Signup Emails</option>
               <option value="BULK">Bulk Emails</option>
               <option value="CAMPAIGN">Drip Campaigns</option>
+              <option value="ONBOARDING_SEQUENCE_WELCOME">Seq: Welcome</option>
+              <option value="ONBOARDING_SEQUENCE_DAY_2">Seq: Day 2</option>
+              <option value="ONBOARDING_SEQUENCE_DAY_5">Seq: Day 5</option>
+              <option value="ONBOARDING_SEQUENCE_DAY_9">Seq: Day 9</option>
+              <option value="ONBOARDING_SEQUENCE_DAY_14">Seq: Day 14</option>
             </select>
 
             <select
@@ -515,6 +537,25 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
             </select>
 
             <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '120px',
+                padding: '11px 12px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                fontSize: '14px',
+              }}
+            >
+              <option value="All">All Channels</option>
+              <option value="EMAIL">Email</option>
+              <option value="SMS">SMS</option>
+              <option value="WHATSAPP">WhatsApp</option>
+            </select>
+
+            <select
               value={acquisitionFilter}
               onChange={(e) => setAcquisitionFilter(e.target.value)}
               style={{
@@ -532,6 +573,22 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               <option value="invited">Invited</option>
               <option value="self_signup">Self Sign-ups</option>
             </select>
+            
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '150px',
+                padding: '11px 12px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                fontSize: '14px',
+                color: dateFilter ? 'inherit' : 'var(--text-muted)',
+              }}
+            />
           </div>
         </div>
       </div>

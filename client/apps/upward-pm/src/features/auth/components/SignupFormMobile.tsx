@@ -443,7 +443,7 @@ export const SignupFormMobile = () => {
                   {emailExists && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '13px' }}>
                       <AlertCircle size={14} />
-                      <span>Email already registered. <Link href="/login" style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
+                      <span>Email already registered. <Link href="/pm-login" style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
                     </div>
                   )}
                 </div>
@@ -636,7 +636,7 @@ export const SignupFormMobile = () => {
             {step === 1 && (
               <>
                 <div className="auth-separator"><span>OR</span></div>
-                <Link href="/login" style={{ textDecoration: 'none' }}>
+                <Link href="/pm-login" style={{ textDecoration: 'none' }}>
                   <button type="button" className="auth-btn auth-btn--outline" style={{ width: '100%' }}>
                     <span>Have an account? <strong>Log in</strong></span>
                   </button>

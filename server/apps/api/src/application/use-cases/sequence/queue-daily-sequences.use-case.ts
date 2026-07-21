@@ -30,20 +30,47 @@ export class QueueDailySequencesUseCase {
     const pendingEmails = await this.emailSequenceRepo.findLogsBeforeByStatus('PENDING', endOfDay, 1000);
     const pendingWhatsapp = await this.whatsappSequenceRepo.findLogsBeforeByStatus('PENDING', endOfDay, 1000);
 
-    if (pendingEmails.length === 0 && pendingWhatsapp.length === 0) {
-      this.logger.log('No pending sequences for today.');
+    const validEmails = pendingEmails.filter(e => !e.user?.isInternal);
+    const internalEmails = pendingEmails.filter(e => e.user?.isInternal);
+
+    const validWhatsapp = pendingWhatsapp.filter(w => !w.user?.isInternal);
+    const internalWhatsapp = pendingWhatsapp.filter(w => w.user?.isInternal);
+
+    if (validEmails.length === 0 && validWhatsapp.length === 0) {
+      this.logger.log('No valid pending sequences for today (excluding internal users).');
+      // Still need to cancel the internal ones so they don't pile up
+      for (const email of internalEmails) {
+        await this.prisma.upward_email_sequence_log.update({ where: { id: email.id }, data: { status: 'FAILED', errorReason: 'User is marked as internal' } });
+      }
+      for (const wa of internalWhatsapp) {
+        await this.prisma.upward_whatsapp_sequence_log.update({ where: { id: wa.id }, data: { status: 'FAILED', errorReason: 'User is marked as internal' } });
+      }
       return;
     }
 
-    for (const email of pendingEmails) {
+    // Cancel internal sequences
+    for (const email of internalEmails) {
+      await this.prisma.upward_email_sequence_log.update({ where: { id: email.id }, data: { status: 'FAILED', errorReason: 'User is marked as internal' } });
+    }
+    for (const wa of internalWhatsapp) {
+      await this.prisma.upward_whatsapp_sequence_log.update({ where: { id: wa.id }, data: { status: 'FAILED', errorReason: 'User is marked as internal' } });
+    }
+
+    // Queue valid sequences
+    for (const email of validEmails) {
       await this.prisma.upward_email_sequence_log.update({ where: { id: email.id }, data: { status: 'ON_HOLD' } });
     }
-    for (const wa of pendingWhatsapp) {
+    for (const wa of validWhatsapp) {
       await this.prisma.upward_whatsapp_sequence_log.update({ where: { id: wa.id }, data: { status: 'ON_HOLD' } });
     }
 
     const alertAdmins = await this.prisma.upward_admin.findMany({
-      where: { receivesSystemAlerts: true },
+      where: {
+        OR: [
+          { receivesSystemAlerts: true },
+          { role: 'DEVELOPER' }
+        ]
+      },
     });
 
     if (alertAdmins.length === 0) {
@@ -54,16 +81,16 @@ export class QueueDailySequencesUseCase {
     const emailCounts: Record<string, number> = {};
     const whatsappCounts: Record<string, number> = {};
 
-    for (const email of pendingEmails) {
+    for (const email of validEmails) {
       emailCounts[email.stage] = (emailCounts[email.stage] || 0) + 1;
     }
-    for (const wa of pendingWhatsapp) {
+    for (const wa of validWhatsapp) {
       whatsappCounts[wa.stage] = (whatsappCounts[wa.stage] || 0) + 1;
     }
 
     for (const admin of alertAdmins) {
       for (const stage of Object.keys(emailCounts)) {
-        const sampleEmail = pendingEmails.find(e => e.stage === stage);
+        const sampleEmail = validEmails.find(e => e.stage === stage);
         if (sampleEmail) {
           await this.emailService.sendOnboardingSequenceEmail({
             email: admin.email,
@@ -77,7 +104,7 @@ export class QueueDailySequencesUseCase {
       const adminPhone = (admin as any).phone;
       if (adminPhone) {
         for (const stage of Object.keys(whatsappCounts)) {
-          const sampleWa = pendingWhatsapp.find(w => w.stage === stage);
+          const sampleWa = validWhatsapp.find(w => w.stage === stage);
           if (sampleWa && sampleWa.templateName) {
             const bodyTextArgs = sampleWa.templateData?.body_text?.[0] || [];
             const parameters = bodyTextArgs.map((text: string) => {

@@ -404,7 +404,7 @@ export const SignupForm = () => {
                         'This email is already registered.',
                       )}{' '}
                   <Link
-                    href="/login"
+                    href="/pm-login"
                     style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}
                   >
                     Log in instead?
@@ -610,7 +610,7 @@ export const SignupForm = () => {
 
           <div className="auth-separator"><span>OR</span></div>
 
-          <Link href="/login" style={{ textDecoration: 'none' }}>
+          <Link href="/pm-login" style={{ textDecoration: 'none' }}>
             <button type="button" className="auth-btn auth-btn--outline" style={{ width: '100%' }}>
               <LogIn size={18} />
               <span>Have an account? <strong>Log in</strong></span>

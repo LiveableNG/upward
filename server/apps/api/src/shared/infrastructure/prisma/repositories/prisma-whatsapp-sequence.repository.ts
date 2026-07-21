@@ -52,7 +52,7 @@ export class PrismaWhatsappSequenceLogRepository implements IWhatsappSequenceLog
         scheduledFor: { lte: date },
       },
       include: {
-        user: { select: { firstName: true, lastName: true, email: true, phone: true } },
+        user: { select: { firstName: true, lastName: true, email: true, phone: true, isInternal: true } },
       },
       take: limit,
       orderBy: { scheduledFor: 'asc' },

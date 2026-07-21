@@ -19,6 +19,7 @@ export interface EmailSequenceLog {
     lastName?: string | null
     email?: string | null
     phone?: string | null
+    isInternal?: boolean
   }
 }
 

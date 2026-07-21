@@ -19,6 +19,7 @@ export class WhatsappSequenceLogEntity {
       lastName: string | null;
       email: string;
       phone: string | null;
+      isInternal?: boolean;
     }
   ) {}
 }

@@ -15,10 +15,12 @@ export class GetEmailLogsUseCase {
     type?: string
     status?: string
     acquisition?: string
+    channel?: string
+    date?: string
     page?: number
     limit?: number
   }) {
-    const { email, type, status, acquisition, page = 1, limit = 10 } = query
+    const { email, type, status, acquisition, channel, date, page = 1, limit = 10 } = query
     const skip = (page - 1) * limit
     const where: Prisma.upward_communication_logWhereInput = {
       ...(email ? { 
@@ -27,12 +29,19 @@ export class GetEmailLogsUseCase {
           { recipient: { contains: email, mode: 'insensitive' as const } }
         ]
       } : {}),
+      ...(date ? {
+        createdAt: {
+          gte: new Date(`${date}T00:00:00.000Z`),
+          lte: new Date(`${date}T23:59:59.999Z`),
+        }
+      } : {}),
       ...(type && type !== 'All'
         ? type === 'CAMPAIGN'
           ? { type: { startsWith: 'CAMPAIGN' } }
           : { type }
         : {}),
       ...(status && status !== 'All' ? { status } : {}),
+      ...(channel && channel !== 'All' ? { channel } : {}),
       ...(acquisition && acquisition !== 'All'
         ? acquisition === 'waitlist_converted'
           ? { registeredUser: { isFromWaitlist: true } }

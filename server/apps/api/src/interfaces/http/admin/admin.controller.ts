@@ -360,11 +360,12 @@ export class AdminController {
   @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async triggerSequences(
     @Body() data: { channel: 'EMAIL' | 'WHATSAPP'; stage: string },
+    @Req() req: AuthenticatedRequest,
   ) {
     if (!data.channel || !data.stage) {
       throw new BadRequestException('channel and stage are required')
     }
-    await this.triggerSequencesUseCase.execute(data.channel, data.stage)
+    await this.triggerSequencesUseCase.execute(data.channel, data.stage, req.user.id)
     return { success: true }
   }
 
@@ -429,6 +430,8 @@ export class AdminController {
     @Query('type') type?: string,
     @Query('status') status?: string,
     @Query('acquisition') acquisition?: string,
+    @Query('channel') channel?: string,
+    @Query('date') date?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -437,6 +440,8 @@ export class AdminController {
       type,
       status,
       acquisition,
+      channel,
+      date,
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 10,
     })
