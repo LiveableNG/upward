@@ -92,8 +92,9 @@ export class QueueDailySequencesUseCase {
       for (const stage of Object.keys(emailCounts)) {
         const sampleEmail = validEmails.find(e => e.stage === stage);
         if (sampleEmail) {
+          const decryptedAdminEmail = admin.email.includes(':') ? this.encryption.decrypt(admin.email) : admin.email;
           await this.emailService.sendOnboardingSequenceEmail({
-            email: admin.email,
+            email: decryptedAdminEmail,
             firstName: 'Admin (Sample)',
             stage: stage as any,
           });
@@ -154,8 +155,9 @@ export class QueueDailySequencesUseCase {
 
       digestHtml += `<p>Please log in to the admin dashboard to review and approve these sequences.</p>`;
 
+      const decryptedAdminEmail = admin.email.includes(':') ? this.encryption.decrypt(admin.email) : admin.email;
       await this.emailService.sendEmailWithRetry({
-        email: admin.email,
+        email: decryptedAdminEmail,
         subject: 'Daily Sequence Dispatch Digest',
         html: digestHtml,
         type: 'ADMIN_SEQUENCE_DIGEST',
