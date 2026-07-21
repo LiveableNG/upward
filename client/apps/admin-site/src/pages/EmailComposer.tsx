@@ -500,6 +500,43 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                     placeholder={`Search and add ${targetGroup === 'TENANTS' ? 'tenants' : targetGroup === 'PMS' ? 'property managers' : 'waitlist contacts'} by name or email...`}
                     value={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
+                    onPaste={(e) => {
+                      const text = e.clipboardData.getData('Text')
+                      const potentialEmails = text.split(/[\n,;\s]+/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0)
+                      const validEmails = potentialEmails.filter(t => t.includes('@'))
+                      
+                      if (validEmails.length > 0) {
+                        e.preventDefault()
+                        const activeDir = getActiveDirectory()
+                        const matchedUsers = activeDir.filter((item: any) => item.email && validEmails.includes(item.email.toLowerCase()))
+                        
+                        if (matchedUsers.length > 0) {
+                          setRecipients(prev => {
+                            const existingIds = new Set(prev.map(r => r.id))
+                            const newRecipients = matchedUsers.filter((u: any) => !existingIds.has(u.uuid || u.id)).map((item: any) => {
+                              let name = ''
+                              if (targetGroup === 'PMS') {
+                                name = item.businessName || `${item.firstName} ${item.lastName}`.trim()
+                              } else {
+                                name = `${item.firstName} ${item.lastName}`.trim()
+                              }
+                              return {
+                                id: item.uuid || item.id,
+                                email: item.email,
+                                name: name || 'N/A',
+                                type: (targetGroup === 'TENANTS' ? 'TENANT' : targetGroup === 'PMS' ? 'PM' : 'WAITLIST') as 'TENANT' | 'PM' | 'WAITLIST',
+                              }
+                            })
+                            return [...prev, ...newRecipients]
+                          })
+                          showToast(`Successfully added ${matchedUsers.length} matching recipient(s)!`)
+                        } else {
+                          showToast(`No matching recipients found for the pasted emails`, true)
+                        }
+                        setSearchTerm('')
+                        setSuggestions([])
+                      }
+                    }}
                     style={{
                       width: '100%',
                       padding: '10px 12px 10px 36px',
