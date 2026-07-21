@@ -377,7 +377,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
             <div className="mobile-auth__footer">
               <p className="auth-footer">
-                Don&apos;t have an account? <Link href="/signup">Create one for free</Link>
+                Don&apos;t have an account? <Link href={isNative ? "/signup" : "/pm-signup"}>Create one for free</Link>
               </p>
             </div>
           </div>
