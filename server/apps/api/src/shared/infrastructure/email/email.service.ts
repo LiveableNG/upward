@@ -10,6 +10,7 @@ import { EmailSentEvent } from '../../../application/events/definition/email-sen
 import { Inject } from '@nestjs/common'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { formatName } from '@upward/common-utils'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import {
   applyPmBranding,
   getPmTypeLabel,
@@ -48,6 +49,7 @@ export class EmailService {
     private bugsnag: BugsnagService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     private s3Service: S3Service,
+    private encryption: EncryptionService,
   ) {
     this.frontendUrl =
       (this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io')
@@ -801,7 +803,7 @@ export class EmailService {
 
     if (csAdmins.length === 0) return;
 
-    const emails = csAdmins.map(admin => admin.email);
+    const emails = csAdmins.map(admin => admin.email.includes(':') ? this.encryption.decrypt(admin.email) : admin.email);
     const subject = type === 'USER' ? 'A new user just joined UpwardPay' : 'A new PM just joined UpwardPM';
     const text = type === 'USER' 
       ? 'A new user just joined UpwardPay. Login to see their details and take action.'

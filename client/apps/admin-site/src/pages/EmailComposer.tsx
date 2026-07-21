@@ -159,8 +159,20 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
       setLoadingDirectory(true)
       try {
         const res = await apiService.get('/admin/performance-metrics', token)
+        
+        const isValidEmail = (email: string) => {
+          if (!email) return false
+          const e = email.toLowerCase()
+          return e.includes('@') && !e.endsWith('@upward.com') && !e.endsWith('@upward.local')
+        }
+
+        const allTenants = [
+          ...(res.directories?.signedUp || []),
+          ...(res.directories?.invited || [])
+        ].filter(t => isValidEmail(t.email) && t.hasPassword)
+
         setDirectoryData({
-          tenants: res.directories?.signedUp || [],
+          tenants: allTenants,
           pms: res.directories?.pms || [],
           waitlist: res.directories?.waitlist || [],
         })

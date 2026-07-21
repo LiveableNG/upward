@@ -46,7 +46,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
-  const isSuperadmin = adminRole === 'SUPERADMIN'
+  const isSuperadmin = adminRole === 'SUPERADMIN' || adminRole === 'DEVELOPER'
 
   // ── Tab State (persisted) ──────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
@@ -204,10 +204,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   }
 
   const toggleSelectAllUsers = () => {
-    if (selectedUserIds.size === paginatedItems.length) {
+    if (selectedUserIds.size === currentDirectoryList.length) {
       setSelectedUserIds(new Set())
     } else {
-      setSelectedUserIds(new Set(paginatedItems.map((item: any) => item.uuid)))
+      setSelectedUserIds(new Set(currentDirectoryList.map((item: any) => item.uuid)))
     }
   }
 
@@ -819,6 +819,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   <UsersTable
                     isSuperadmin={isSuperadmin}
                     paginatedItems={paginatedItems as UnifiedUserRecord[]}
+                    fullListItems={currentDirectoryList as UnifiedUserRecord[]}
                     selectedUserIds={selectedUserIds}
                     toggleSelectAllUsers={toggleSelectAllUsers}
                     toggleSelectUser={toggleSelectUser}

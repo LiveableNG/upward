@@ -38,6 +38,7 @@ type SortDir = 'asc' | 'desc'
 interface UsersTableProps {
   isSuperadmin: boolean
   paginatedItems: UnifiedUserRecord[]
+  fullListItems: UnifiedUserRecord[]
   selectedUserIds: Set<string>
   toggleSelectAllUsers: () => void
   toggleSelectUser: (id: string, e: React.MouseEvent) => void
@@ -152,6 +153,7 @@ const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
 export const UsersTable: React.FC<UsersTableProps> = ({
   isSuperadmin,
   paginatedItems,
+  fullListItems,
   selectedUserIds,
   toggleSelectAllUsers,
   toggleSelectUser,
@@ -219,7 +221,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     whiteSpace: 'nowrap',
   }
 
-  const allSelected = paginatedItems.length > 0 && selectedUserIds.size === paginatedItems.length
+  const allSelected = paginatedItems.length > 0 && paginatedItems.every(item => selectedUserIds.has(item.uuid))
 
   const getOriginBadge = (origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE') => {
     switch (origin) {
@@ -270,7 +272,11 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
           <button
             onClick={() => {
-              const selectedUsers = paginatedItems.filter((u) => selectedUserIds.has(u.uuid))
+              const selectedUsers = fullListItems.filter((u) => {
+                if (!selectedUserIds.has(u.uuid)) return false
+                const email = u.email?.toLowerCase() || ''
+                return email.includes('@') && !email.endsWith('@upward.com') && !email.endsWith('@upward.local')
+              })
               navigate('/emails', { state: { selectedUsers } })
             }}
             className="btn"
