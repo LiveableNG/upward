@@ -1,3 +1,2 @@
-pnpm type-check
-pnpm test
+pnpm exec turbo run type-check test --filter="...[HEAD]"
 pnpm lint-staged
