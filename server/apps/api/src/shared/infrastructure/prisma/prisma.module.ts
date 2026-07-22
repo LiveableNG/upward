@@ -81,6 +81,8 @@ import { BULK_INVITE_REPOSITORY } from '../../../domains/pm/IBulkInviteRepositor
 import { FEEDBACK_REPOSITORY } from '../../../domains/feedback/feedback.repository'
 import { EMAIL_SEQUENCE_REPOSITORY } from '../../../domains/email-sequence/email-sequence.repository.interface'
 import { WHATSAPP_SEQUENCE_REPOSITORY } from '../../../domains/whatsapp-sequence/whatsapp-sequence.repository.interface'
+import { BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRepository'
+import { PrismaBulkImportJobRepository } from '../../../infrastructure/repositories/PrismaBulkImportJobRepository'
 
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
@@ -233,6 +235,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: WHATSAPP_SEQUENCE_REPOSITORY,
       useClass: PrismaWhatsappSequenceLogRepository,
     },
+    {
+      provide: BULK_IMPORT_JOB_REPOSITORY,
+      useClass: PrismaBulkImportJobRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -273,6 +279,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     PM_SIGNATURE_REPOSITORY,
     EMAIL_SEQUENCE_REPOSITORY,
     WHATSAPP_SEQUENCE_REPOSITORY,
+    BULK_IMPORT_JOB_REPOSITORY,
   ],
 })
 export class PrismaModule {}

@@ -13,9 +13,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Timer,
-  X,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
+import { Modal } from '../components/common/modal/Modal'
 
 interface WebhookLog {
   id: string
@@ -253,8 +253,8 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
               <select
                 value={statusFilter}
                 onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setPage(1);
+                  setStatusFilter(e.target.value)
+                  setPage(1)
                 }}
                 style={{
                   width: '100%',
@@ -285,7 +285,7 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
               />
             </div>
           </div>
-          
+
           <button type="submit" style={{ display: 'none' }}></button>
         </form>
       </div>
@@ -296,12 +296,73 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Time</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Event / Platform</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Target URL</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-                <th style={{ padding: '16px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Retries</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
+                <th
+                  style={{
+                    padding: '16px 24px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Time
+                </th>
+                <th
+                  style={{
+                    padding: '16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Event / Platform
+                </th>
+                <th
+                  style={{
+                    padding: '16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Target URL
+                </th>
+                <th
+                  style={{
+                    padding: '16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Status
+                </th>
+                <th
+                  style={{
+                    padding: '16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Retries
+                </th>
+                <th
+                  style={{
+                    padding: '16px 24px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    textAlign: 'right',
+                  }}
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -313,7 +374,10 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td
+                    colSpan={6}
+                    style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}
+                  >
                     No webhook logs found.
                   </td>
                 </tr>
@@ -321,15 +385,33 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                 logs.map((log) => (
                   <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '16px 24px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600 }}>{new Date(log.createdAt).toLocaleDateString()}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(log.createdAt).toLocaleTimeString()}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600 }}>
+                        {new Date(log.createdAt).toLocaleDateString()}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {new Date(log.createdAt).toLocaleTimeString()}
+                      </div>
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{log.event}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{log.platform?.name || 'Unknown Platform'}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)' }}>
+                        {log.event}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {log.platform?.name || 'Unknown Platform'}
+                      </div>
                     </td>
                     <td style={{ padding: '16px' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.url}>
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: 'var(--text-muted)',
+                          maxWidth: '200px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={log.url}
+                      >
                         {log.url}
                       </div>
                     </td>
@@ -345,16 +427,16 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                             color: getStatusColor(log.status),
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '4px',
                           }}
                         >
                           {getStatusIcon(log.status)}
                           {log.status}
                         </span>
                         {log.responseCode !== null && log.responseCode !== undefined && (
-                           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                             ({log.responseCode === 0 ? 'Err' : log.responseCode})
-                           </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            ({log.responseCode === 0 ? 'Err' : log.responseCode})
+                          </span>
                         )}
                       </div>
                     </td>
@@ -372,7 +454,7 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                             border: '1px solid var(--border)',
                             background: 'var(--white)',
                             cursor: 'pointer',
-                            color: 'var(--text-muted)'
+                            color: 'var(--text-muted)',
                           }}
                           title="View Details"
                         >
@@ -389,7 +471,7 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                             background: 'var(--white)',
                             cursor: 'pointer',
                             color: 'var(--accent)',
-                            opacity: retrying === log.id ? 0.5 : 1
+                            opacity: retrying === log.id ? 0.5 : 1,
                           }}
                           title="Retry Delivery"
                         >
@@ -427,10 +509,20 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                     gap: '12px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                    }}
+                  >
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{log.event}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{log.platform?.name || 'Unknown Platform'}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>
+                        {log.event}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {log.platform?.name || 'Unknown Platform'}
+                      </div>
                     </div>
                     <span
                       style={{
@@ -443,7 +535,7 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                         textTransform: 'uppercase',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '4px',
                       }}
                     >
                       {getStatusIcon(log.status)}
@@ -451,18 +543,64 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-muted)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
                     {log.url}
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
                       <Clock size={12} />
-                      {new Date(log.createdAt).toLocaleDateString()} · {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(log.createdAt).toLocaleDateString()} ·{' '}
+                      {new Date(log.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => setSelectedLog(log)} style={{ padding: '6px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--white)' }}><Eye size={16} /></button>
-                        <button onClick={() => handleRetry(log.id)} style={{ padding: '6px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--accent)' }}><Send size={16} /></button>
+                      <button
+                        onClick={() => setSelectedLog(log)}
+                        style={{
+                          padding: '6px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          background: 'var(--white)',
+                        }}
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleRetry(log.id)}
+                        style={{
+                          padding: '6px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border)',
+                          background: 'var(--white)',
+                          color: 'var(--accent)',
+                        }}
+                      >
+                        <Send size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -473,15 +611,50 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '16px', backgroundColor: 'var(--surface)' }}>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', flex: '1 0 100%', textAlign: 'center', marginBottom: '-8px', display: 'block' }}>
+          <div
+            style={{
+              padding: '16px',
+              borderTop: '1px solid var(--border)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '16px',
+              backgroundColor: 'var(--surface)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '13px',
+                color: 'var(--text-muted)',
+                flex: '1 0 100%',
+                textAlign: 'center',
+                marginBottom: '-8px',
+                display: 'block',
+              }}
+            >
               Page {page} of {totalPages} ({total} logs)
             </div>
-            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'space-between' }}>
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-pagination">
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                width: '100%',
+                justifyContent: 'space-between',
+              }}
+            >
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="btn-pagination"
+              >
                 <ArrowLeft size={16} /> Previous
               </button>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="btn-pagination">
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="btn-pagination"
+              >
                 Next <ArrowRight size={16} />
               </button>
             </div>
@@ -490,95 +663,225 @@ const Webhooks: React.FC<WebhooksProps> = ({ token }) => {
       </div>
 
       {/* Log Details Modal */}
-      {selectedLog && (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', zIndex: 2000, padding: '16px'
-        }}>
-            <div className="card" style={{
-                width: '100%', maxWidth: '700px', maxHeight: '90vh',
-                overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                position: 'relative', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-            }}>
-                <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ margin: 0 }}>Webhook Details</h3>
-                    <button onClick={() => setSelectedLog(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
+      <Modal
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        title="Webhook Details"
+        maxWidth="700px"
+      >
+        {selectedLog && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                  }}
+                >
+                  Event
                 </div>
-                
-                <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Event</div>
-                            <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedLog.event}</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Status</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: 600, color: getStatusColor(selectedLog.status) }}>
-                                {getStatusIcon(selectedLog.status)} {selectedLog.status}
-                                {selectedLog.responseCode !== null && (
-                                    <span style={{ fontWeight: 400, opacity: 0.8 }}>({selectedLog.responseCode === 0 ? 'Network Error' : selectedLog.responseCode})</span>
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Platform</div>
-                            <div style={{ fontSize: '14px' }}>{selectedLog.platform?.name || 'N/A'}</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Last Attempt</div>
-                            <div style={{ fontSize: '14px' }}>{selectedLog.lastTriedAt ? new Date(selectedLog.lastTriedAt).toLocaleString() : 'Never'}</div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>URL</div>
-                        <div style={{ fontSize: '13px', background: 'var(--surface)', padding: '10px', borderRadius: '8px', wordBreak: 'break-all', fontFamily: 'monospace' }}>{selectedLog.url}</div>
-                    </div>
-
-                    {selectedLog.errorMessage && (
-                        <div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Error Message</div>
-                            <div style={{ fontSize: '13px', background: '#fef2f2', color: '#991b1b', padding: '12px', borderRadius: '8px', border: '1px solid #fee2e2' }}>{selectedLog.errorMessage}</div>
-                        </div>
-                    )}
-
-                    <div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Payload</span>
-                            <button 
-                                onClick={() => copyToClipboard(JSON.stringify(selectedLog.payload, null, 2))}
-                                style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '10px', fontWeight: 700, cursor: 'pointer' }}
-                            >
-                                COPY JSON
-                            </button>
-                        </div>
-                        <pre style={{
-                            fontSize: '12px', background: 'var(--dark)', color: '#a5f3fc',
-                            padding: '16px', borderRadius: '12px', overflowX: 'auto',
-                            margin: 0, maxHeight: '300px'
-                        }}>
-                            {JSON.stringify(selectedLog.payload, null, 2)}
-                        </pre>
-                    </div>
+                <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedLog.event}</div>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                  }}
+                >
+                  Status
                 </div>
-
-                <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                    <button onClick={() => setSelectedLog(null)} className="btn btn-outline">Close</button>
-                    <button
-                        onClick={() => {
-                            handleRetry(selectedLog.id);
-                            setSelectedLog(null);
-                        }}
-                        className="btn btn-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '10px', fontWeight: 600 }}
-                    >
-                        <Send size={16} /> Retry Now
-                    </button>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: getStatusColor(selectedLog.status),
+                  }}
+                >
+                  {getStatusIcon(selectedLog.status)} {selectedLog.status}
+                  {selectedLog.responseCode !== null && (
+                    <span style={{ fontWeight: 400, opacity: 0.8 }}>
+                      ({selectedLog.responseCode === 0 ? 'Network Error' : selectedLog.responseCode}
+                      )
+                    </span>
+                  )}
                 </div>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                  }}
+                >
+                  Platform
+                </div>
+                <div style={{ fontSize: '14px' }}>{selectedLog.platform?.name || 'N/A'}</div>
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                  }}
+                >
+                  Last Attempt
+                </div>
+                <div style={{ fontSize: '14px' }}>
+                  {selectedLog.lastTriedAt
+                    ? new Date(selectedLog.lastTriedAt).toLocaleString()
+                    : 'Never'}
+                </div>
+              </div>
             </div>
-        </div>
-      )}
+
+            <div>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  marginBottom: '4px',
+                }}
+              >
+                URL
+              </div>
+              <div
+                style={{
+                  fontSize: '13px',
+                  background: 'var(--surface)',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  wordBreak: 'break-all',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {selectedLog.url}
+              </div>
+            </div>
+
+            {selectedLog.errorMessage && (
+              <div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    marginBottom: '4px',
+                  }}
+                >
+                  Error Message
+                </div>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    background: '#fef2f2',
+                    color: '#991b1b',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #fee2e2',
+                  }}
+                >
+                  {selectedLog.errorMessage}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                  marginBottom: '4px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>Payload</span>
+                <button
+                  onClick={() => copyToClipboard(JSON.stringify(selectedLog.payload, null, 2))}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--accent)',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  COPY JSON
+                </button>
+              </div>
+              <pre
+                style={{
+                  fontSize: '12px',
+                  background: 'var(--dark)',
+                  color: '#a5f3fc',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  overflowX: 'auto',
+                  margin: 0,
+                  maxHeight: '300px',
+                }}
+              >
+                {JSON.stringify(selectedLog.payload, null, 2)}
+              </pre>
+            </div>
+
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}
+            >
+              <button onClick={() => setSelectedLog(null)} className="btn btn-outline">
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  handleRetry(selectedLog.id)
+                  setSelectedLog(null)
+                }}
+                className="btn btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                }}
+              >
+                <Send size={16} /> Retry Now
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <style>{`
         .spin { animation: spin 1s linear infinite; }

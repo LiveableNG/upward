@@ -27,8 +27,21 @@ import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
 import { Capacitor } from '@capacitor/core'
+import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 import '@/styles/auth.css'
 import '@/styles/mobile-auth.css'
+
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+const ALL_COUNTRIES = getCountries().map(country => {
+  const code = getCountryCallingCode(country)
+  const name = regionNames.of(country) || country
+  return {
+    label: `${name} (+${code})`,
+    shortLabel: `+${code}`,
+    value: name,
+    code: country
+  }
+}).sort((a, b) => a.label.localeCompare(b.label))
 
 type RequestOtpResult = { context: 'SIGNUP' | 'LOGIN' }
 type OtpLoginResult = { user?: { pmType?: string } }
@@ -59,6 +72,7 @@ export const SignupFormMobile = () => {
   const [stepError, setStepError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [phoneCountryCode, setPhoneCountryCode] = useState('Nigeria')
 
   const signupMutation = useSignup()
   const requestOtpMutation = useRequestOTP()
@@ -215,7 +229,8 @@ export const SignupFormMobile = () => {
               const lastName = nameParts.slice(1).join(' ') || 'Manager'
 
               let formattedPhone = formData.phone.replace(/[^\d+]/g, '').trim()
-              const dialCode = formData.country === 'Kenya' ? '+254' : '+234'
+              const dialCodeOption = ALL_COUNTRIES.find(c => c.value === phoneCountryCode)
+              const dialCode = dialCodeOption ? `+${getCountryCallingCode(dialCodeOption.code)}` : '+234'
               if (!formattedPhone.startsWith('+')) {
                 if (formattedPhone.startsWith('0')) {
                   formattedPhone = formattedPhone.substring(1)
@@ -369,7 +384,27 @@ export const SignupFormMobile = () => {
             <>
               <h1 className="mobile-auth__title">Verify your email</h1>
               <p className="mobile-auth__subtitle">
-                We sent a code to <strong>{formData.email}</strong>.
+                We sent a code to <strong>{formData.email}</strong>.{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStage('info')
+                    setStep(2)
+                    setOtp(['', '', '', '', '', ''])
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--forest)',
+                    fontWeight: 700,
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: 'inherit'
+                  }}
+                >
+                  Change email?
+                </button>
               </p>
             </>
           )}
@@ -443,7 +478,7 @@ export const SignupFormMobile = () => {
                   {emailExists && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '13px' }}>
                       <AlertCircle size={14} />
-                      <span>Email already registered. <Link href="/pm-login" style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
+                      <span>Email already registered. <Link href={isNative ? "/login" : "/pm-login"} style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
                     </div>
                   )}
                 </div>
@@ -451,31 +486,20 @@ export const SignupFormMobile = () => {
                 <div className="form-group">
                   <label className="form-label">Company Phone Number</label>
                   <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
-                    <div
-                      className="form-input"
-                      style={{
-                        width: '80px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px',
-                        background: 'var(--bg-muted)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '10px',
-                        padding: '0 8px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <PhoneIcon size={16} className="text-muted" />
-                      <span style={{ fontSize: '13px', fontWeight: 500 }}>
-                        {formData.country === 'Kenya' ? '+254' : '+234'}
-                      </span>
-                    </div>
+                    <FormSelect
+                      width="95px"
+                      searchable={true}
+                      triggerStyle={{ height: '48px', padding: '0 8px', background: 'var(--bg)', fontSize: '13.5px' }}
+                      value={phoneCountryCode}
+                      onChange={setPhoneCountryCode}
+                      options={ALL_COUNTRIES}
+                      placeholder="+234"
+                    />
                     <input
                       type="tel"
                       className="form-input"
-                      style={{ flex: 1 }}
-                      placeholder={formData.country === 'Kenya' ? '712 345 678' : '908 155 2162'}
+                      style={{ flex: 1, height: '48px', paddingLeft: '14px' }}
+                      placeholder={phoneCountryCode === 'Kenya' ? '712 345 678' : '908 155 2162'}
                       value={formData.phone}
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
@@ -636,7 +660,7 @@ export const SignupFormMobile = () => {
             {step === 1 && (
               <>
                 <div className="auth-separator"><span>OR</span></div>
-                <Link href="/pm-login" style={{ textDecoration: 'none' }}>
+                <Link href={isNative ? "/login" : "/pm-login"} style={{ textDecoration: 'none' }}>
                   <button type="button" className="auth-btn auth-btn--outline" style={{ width: '100%' }}>
                     <span>Have an account? <strong>Log in</strong></span>
                   </button>

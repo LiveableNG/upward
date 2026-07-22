@@ -282,7 +282,7 @@
   font-size: 14px;
   font-weight: 600;
   font-family: var(--font-sans, system-ui);
-  z-index: 9999;
+  z-index: 999999;
   white-space: nowrap;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   transition:

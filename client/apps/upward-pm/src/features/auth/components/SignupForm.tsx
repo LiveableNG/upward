@@ -26,6 +26,19 @@ import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
+import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
+
+const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
+const ALL_COUNTRIES = getCountries().map(country => {
+  const code = getCountryCallingCode(country)
+  const name = regionNames.of(country) || country
+  return {
+    label: `${name} (+${code})`,
+    shortLabel: `+${code}`,
+    value: name,
+    code: country
+  }
+}).sort((a, b) => a.label.localeCompare(b.label))
 
 type RequestOtpResult = { context: 'SIGNUP' | 'LOGIN' }
 type OtpLoginResult = { user?: { pmType?: string } }
@@ -51,6 +64,7 @@ export const SignupForm = () => {
     confirmPassword: '',
   })
 
+  const [phoneCountryCode, setPhoneCountryCode] = useState('Nigeria')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [passwordError, setPasswordError] = useState('')
 
@@ -278,7 +292,27 @@ export const SignupForm = () => {
               'Set up your property manager account in seconds.'
             ) : (
               <>
-                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>.<br />
+                We&apos;ve sent a 6-digit code to <strong>{formData.email}</strong>.{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStage('info')
+                    setOtp(['', '', '', '', '', ''])
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--forest)',
+                    fontWeight: 700,
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: 'inherit'
+                  }}
+                >
+                  Change email?
+                </button>
+                <br />
                 <span style={{ fontSize: '12px', opacity: 0.8 }}>
                   (Check your <strong>spam folder</strong> if you don&apos;t see it)
                 </span>
@@ -309,29 +343,6 @@ export const SignupForm = () => {
               />
             </div>
           </div>
-
-          <div className="grid-2">
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Country</label>
-              <div className="input-wrapper">
-                <MapPin size={18} className="input-icon" />
-                <FormSelect
-                  triggerClassName="form-input--with-icon"
-                  value={formData.country}
-                  onChange={(val) =>
-                    setFormData({
-                      ...formData,
-                      country: val,
-                    })
-                  }
-                  options={[
-                    { label: 'Nigeria', value: 'Nigeria' },
-                    { label: 'Kenya', value: 'Kenya' }
-                  ]}
-                  placeholder="Select country"
-                />
-              </div>
-            </div>
 
           <div className="form-group">
             <label className="form-label">Company Email</label>
@@ -414,52 +425,70 @@ export const SignupForm = () => {
             )}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Company Phone Number</label>
-            <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
-              <div
-                className="form-input"
-                style={{
-                  width: '80px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px',
-                  background: 'var(--bg-muted)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '10px',
-                  padding: '0 8px',
-                  flexShrink: 0,
-                }}
-              >
-                <Phone size={16} className="text-muted" />
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>
-                  {formData.country === 'Kenya' ? '+254' : '+234'}
-                </span>
+          <div className="grid-2" style={{ marginBottom: '20px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Country</label>
+              <div className="input-wrapper">
+                <FormSelect
+                  width="100%"
+                  icon={<MapPin size={16} style={{ color: 'var(--forest)' }} />}
+                  triggerStyle={{ height: '48px' }}
+                  value={formData.country}
+                  onChange={(val) =>
+                    setFormData({
+                      ...formData,
+                      country: val,
+                    })
+                  }
+                  options={[
+                    { label: 'Nigeria', value: 'Nigeria' },
+                    { label: 'Kenya', value: 'Kenya' }
+                  ]}
+                  placeholder="Select country"
+                />
               </div>
-              <input
-                type="tel"
-                className="form-input"
-                style={{ flex: 1 }}
-                placeholder={formData.country === 'Kenya' ? '712 345 678' : '908 155 2162'}
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    phone: e.target.value,
-                  })
-                }
-                required
-              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Company Phone Number</label>
+              <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
+                <FormSelect
+                  width="95px"
+                  searchable={true}
+                  triggerStyle={{ height: '48px', padding: '0 8px', background: 'var(--bg)', fontSize: '13.5px' }}
+                  value={phoneCountryCode}
+                  onChange={setPhoneCountryCode}
+                  options={ALL_COUNTRIES}
+                  placeholder="+234"
+                />
+                <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    style={{ height: '48px', width: '100%', paddingLeft: '14px' }}
+                    placeholder={phoneCountryCode === 'Kenya' ? '712 345 678' : '908 155 2162'}
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        phone: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
+          <div className="grid-2" style={{ marginBottom: '20px' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Account Type</label>
               <div className="input-wrapper">
-                <Briefcase size={18} className="input-icon" />
                 <FormSelect
-                  triggerClassName="form-input--with-icon"
+                  width="100%"
+                  icon={<Briefcase size={18} style={{ color: 'var(--text-muted)' }} />}
+                  triggerStyle={{ height: '48px' }}
                   value={formData.pmType}
                   onChange={(val) =>
                     setFormData({
@@ -478,125 +507,131 @@ export const SignupForm = () => {
                 />
               </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Number of tenants under management</label>
-            <div className="input-wrapper">
-              <Users size={18} className="input-icon" />
-              <FormSelect
-                triggerClassName="form-input--with-icon"
-                value={formData.tenantsNumber}
-                onChange={(val) =>
-                  setFormData({
-                    ...formData,
-                    tenantsNumber: val,
-                  })
-                }
-                options={[
-                  { label: 'Less than 50', value: 'Less than 50' },
-                  { label: '51-100', value: '51-100' },
-                  { label: '101-250', value: '101-250' },
-                  { label: '251-500', value: '251-500' },
-                  { label: 'Greater than 500', value: 'Greater than 500' }
-                ]}
-                placeholder="Select an option"
-              />
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Tenants under management</label>
+              <div className="input-wrapper">
+                <FormSelect
+                  width="100%"
+                  icon={<Users size={18} style={{ color: 'var(--text-muted)' }} />}
+                  triggerStyle={{ height: '48px' }}
+                  value={formData.tenantsNumber}
+                  onChange={(val) =>
+                    setFormData({
+                      ...formData,
+                      tenantsNumber: val,
+                    })
+                  }
+                  options={[
+                    { label: 'Less than 50', value: 'Less than 50' },
+                    { label: '51-100', value: '51-100' },
+                    { label: '101-250', value: '101-250' },
+                    { label: '251-500', value: '251-500' },
+                    { label: 'Greater than 500', value: 'Greater than 500' }
+                  ]}
+                  placeholder="Select range"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Create Password</label>
-            <div className="input-wrapper" style={{ position: 'relative' }}>
-              <Lock size={18} className="input-icon" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className="form-input form-input--with-icon"
-                placeholder="•••••••••••••"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    password: e.target.value,
-                  })
-                }
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--forest)',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                Show {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+          <div className="grid-2" style={{ marginTop: '20px', marginBottom: '20px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Create Password</label>
+              <div className="input-wrapper" style={{ position: 'relative' }}>
+                <Lock size={18} className="input-icon" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-input form-input--with-icon"
+                  style={{ paddingRight: '60px' }}
+                  placeholder="•••••••••••••"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      password: e.target.value,
+                    })
+                  }
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--forest)',
+                    fontWeight: 700,
+                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Confirm Password</label>
-            <div className="input-wrapper" style={{ position: 'relative' }}>
-              <Lock size={18} className="input-icon" />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                className="form-input form-input--with-icon"
-                placeholder="•••••••••••••"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    confirmPassword: e.target.value,
-                  })
-                }
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--forest)',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                Show {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Confirm Password</label>
+              <div className="input-wrapper" style={{ position: 'relative' }}>
+                <Lock size={18} className="input-icon" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className="form-input form-input--with-icon"
+                  style={{ paddingRight: '60px' }}
+                  placeholder="•••••••••••••"
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--forest)',
+                    fontWeight: 700,
+                    fontSize: '11px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '2px'
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
-            {passwordError && (
-              <p
-                style={{
-                  color: 'red',
-                  fontSize: '14px',
-                  marginTop: '8px',
-                }}
-              >
-                {passwordError}
-              </p>
-            )}
           </div>
+          {passwordError && (
+            <p
+              style={{
+                color: 'red',
+                fontSize: '13px',
+                marginTop: '8px',
+                fontWeight: 500,
+              }}
+            >
+              {passwordError}
+            </p>
+          )}
 
           <button
             type="submit"
@@ -610,17 +645,13 @@ export const SignupForm = () => {
 
           <div className="auth-separator"><span>OR</span></div>
 
-          <Link href="/pm-login" style={{ textDecoration: 'none' }}>
-            <button type="button" className="auth-btn auth-btn--outline" style={{ width: '100%' }}>
-              <LogIn size={18} />
-              <span>Have an account? <strong>Log in</strong></span>
-            </button>
-          </Link>
-
-          <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--forest)', fontSize: '11.5px', fontWeight: 600 }}>
-            <ShieldCheck size={16} />
-            <span>Your information is secure and encrypted</span>
+          <div className="auth-footer" style={{ marginTop: '24px' }}>
+            <Link href="/pm-login" style={{ color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '14.5px' }}>
+              <span>Have an account? <strong style={{ textDecoration: 'underline' }}>Log in</strong></span>
+            </Link>
           </div>
+
+
         </form>
       ) : (
         <form onSubmit={handleOtpSubmit}>

@@ -263,9 +263,8 @@ export function Footer({
           </div>
           <div style={{ display: 'flex', gap: '20px' }} className="footer-socials">
             {[
-              { name: 'Twitter', href: 'https://x.com/UseGoodTenants' },
-              { name: 'LinkedIn', href: 'https://www.linkedin.com/company/good-tenants/' },
-              { name: 'Instagram', href: 'https://www.instagram.com/usegoodtenants' },
+              { name: 'Twitter', href: 'https://x.com/useupward' },
+              { name: 'LinkedIn', href: 'https://www.linkedin.com/company/useupward/' },
             ].map((social) => (
               <Link
                 key={social.name}

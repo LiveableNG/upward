@@ -53,7 +53,6 @@ model upward_user {
   whatsappSequenceLogs upward_whatsapp_sequence_log[]
   emailSequenceLogs    upward_email_sequence_log[]
 
-
   @@index([email])
   @@index([createdAt])
 }
@@ -118,6 +117,7 @@ model upward_admin {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   logs                 upward_admin_log[]
+  bulkImportJobs       upward_pm_bulk_import_job[]
 
   @@index([email])
 }

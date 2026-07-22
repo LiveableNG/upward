@@ -45,6 +45,7 @@ model upward_property_manager {
   propertyCollaborations upward_pm_property_collaboration[]
   activityLogsPerformed upward_pm_activity_log[] @relation("ActivityPerformer")
   activityLogsOwned     upward_pm_activity_log[] @relation("ActivityOwner")
+  bulkImportJobs        upward_pm_bulk_import_job[]
 
   @@index([email])
 }

@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ConfirmProvider } from './components/common'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import EmailComposer from './pages/EmailComposer'
@@ -29,10 +30,13 @@ import InvitationTracker from './pages/InvitationTracker'
 import WhatsappSequences from './pages/WhatsappSequences'
 import EmailSequences from './pages/EmailSequences'
 import { SequenceQueue } from './pages/SequenceQueue'
+import { BulkImportQueue } from './pages/BulkImportQueue'
+import { BulkImportDetail } from './pages/BulkImportDetail'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
-const isProd = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
+const isProd =
+  import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
 const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
 
 function AppRoutes() {
@@ -63,12 +67,21 @@ function AppRoutes() {
       <Layout adminEmail={auth.user.email} adminRole={auth.user.role} onLogout={logout}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard token={auth.token} adminRole={auth.user.role} />} />
-          <Route path="/overrides" element={<OverridesPage token={auth.token} adminRole={auth.user.role} />} />
+          <Route
+            path="/dashboard"
+            element={<Dashboard token={auth.token} adminRole={auth.user.role} />}
+          />
+          <Route
+            path="/overrides"
+            element={<OverridesPage token={auth.token} adminRole={auth.user.role} />}
+          />
           <Route path="/metrics" element={<Navigate to="/dashboard" replace />} />
           <Route path="/users/:uuid" element={<UserDetail token={auth.token} />} />
           <Route path="/pms/:uuid" element={<PmDetail token={auth.token} />} />
-          <Route path="/emails" element={<EmailComposer token={auth.token} adminEmail={auth.user.email} />} />
+          <Route
+            path="/emails"
+            element={<EmailComposer token={auth.token} adminEmail={auth.user.email} />}
+          />
           <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
           <Route path="/invitation-tracker" element={<InvitationTracker token={auth.token} />} />
           <Route path="/sessions" element={<Navigate to="/" replace />} />
@@ -84,9 +97,14 @@ function AppRoutes() {
           <Route path="/whatsapp-sequences" element={<WhatsappSequences token={auth.token} />} />
           <Route path="/email-sequences" element={<EmailSequences token={auth.token} />} />
           <Route path="/sequence-queue" element={<SequenceQueue token={auth.token} />} />
+          <Route path="/bulk-imports" element={<BulkImportQueue token={auth.token} />} />
+          <Route path="/bulk-imports/:uuid" element={<BulkImportDetail token={auth.token} />} />
+
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
-          {showSandboxTools && <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />}
+          {showSandboxTools && (
+            <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
+          )}
           {(auth.user.role === 'SUPERADMIN' || auth.user.role === 'DEVELOPER') && (
             <>
               <Route
@@ -96,10 +114,15 @@ function AppRoutes() {
               <Route path="/logs" element={<Logs token={auth.token} />} />
               <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
               <Route path="/feedback" element={<Feedback token={auth.token} />} />
-              {showSandboxTools && <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />}
+              {showSandboxTools && (
+                <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />
+              )}
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
               <Route path="/internal-accounts" element={<InternalAccounts token={auth.token} />} />
-              <Route path="/whatsapp-sequences" element={<WhatsappSequences token={auth.token} />} />
+              <Route
+                path="/whatsapp-sequences"
+                element={<WhatsappSequences token={auth.token} />}
+              />
             </>
           )}
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -112,7 +135,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ConfirmProvider>
+        <AppRoutes />
+      </ConfirmProvider>
     </AuthProvider>
   )
 }

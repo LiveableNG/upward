@@ -7,7 +7,7 @@ import { AuthSkeleton } from '@/features/auth/components/AuthSkeleton'
 
 export default function ForgotPasswordPage() {
   return (
-    <AuthLayout>
+    <AuthLayout hideBackToWebsite>
       <Suspense fallback={<AuthSkeleton />}>
         <ForgotPasswordFlow />
       </Suspense>

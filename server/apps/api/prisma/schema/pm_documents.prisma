@@ -41,3 +41,50 @@ model upward_pm_sent_document {
   @@index([recipientEmail])
   @@index([isVaultDocument])
 }
+
+model upward_pm_bulk_import_job {
+  id                 Int      @id @default(autoincrement())
+  uuid               String   @unique @default(uuid())
+  pmId               Int
+  targetPropertyUuid String?
+  mode               String   @default("full") // full | units
+  originalFileName   String
+  fileUrl            String
+  fileType           String
+  status             String   @default("PENDING_ASSIGNMENT") // PENDING_ASSIGNMENT, IN_PROGRESS, STAGED_FOR_REVIEW, COMPLETED, CANCELLED
+  
+  assignedAdminId    String?
+  assignedAdminName  String?
+  assignedAdminEmail String?
+  
+  stagedRowsJson     String?  @db.Text
+  unitsCreated       Int      @default(0)
+  propertiesCreated  Int      @default(0)
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  pm                 upward_property_manager   @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  assignedAdmin      upward_admin?             @relation(fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  logs               upward_pm_bulk_import_log[]
+
+  @@index([pmId])
+  @@index([assignedAdminId])
+  @@index([status])
+}
+
+model upward_pm_bulk_import_log {
+  id         Int                       @id @default(autoincrement())
+  jobId      Int
+  adminId    String?
+  adminEmail String?
+  action     String                    // CLAIMED, DOWNLOADED, STAGED_DATA, PM_APPROVED, EDITED_STAGED_DATA
+  details    String?                   @db.Text
+  createdAt  DateTime                  @default(now())
+
+  job        upward_pm_bulk_import_job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
+
+

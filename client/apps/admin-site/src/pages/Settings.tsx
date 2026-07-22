@@ -1,95 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react'
-import {
-  Shield,
-  UserPlus,
-  Trash2,
-  Mail,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  RefreshCw,
-} from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { UserPlus } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
-
-interface AdminUser {
-  id: string
-  email: string
-  phone?: string
-  receivesSystemAlerts?: boolean
-  role: 'SUPERADMIN' | 'CUSTOMER_SUPPORT' | 'DEVELOPER'
-  createdAt: string
-}
+import { AdminTable, type AdminUser } from '../features/settings/components/AdminTable'
+import { AddAdminModal } from '../features/settings/components/AddAdminModal'
+import { EditAdminModal } from '../features/settings/components/EditAdminModal'
+import { useConfirm } from '../components/common/modal/ConfirmModal'
 
 interface SettingsProps {
   token: string
   currentAdminId: string
 }
 
-// Generates a random password: mix of letters, digits, symbols
-function generatePassword(length = 12): string {
-  const lower = 'abcdefghijkmnopqrstuvwxyz'
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-  const digits = '23456789'
-  const symbols = '!@#$%^&*'
-  const all = lower + upper + digits + symbols
-  let pw = ''
-  // guarantee one of each category
-  pw += lower[Math.floor(Math.random() * lower.length)]
-  pw += upper[Math.floor(Math.random() * upper.length)]
-  pw += digits[Math.floor(Math.random() * digits.length)]
-  pw += symbols[Math.floor(Math.random() * symbols.length)]
-  for (let i = pw.length; i < length; i++) {
-    pw += all[Math.floor(Math.random() * all.length)]
-  }
-  // shuffle
-  return pw
-    .split('')
-    .sort(() => Math.random() - 0.5)
-    .join('')
-}
-
 const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const [admins, setAdmins] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Add Admin State
   const [showAddModal, setShowAddModal] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [newAdmin, setNewAdmin] = useState({
-    email: '',
-    passwordPlain: generatePassword(),
-    role: 'ADMIN',
-  })
-  const [error, setError] = useState('')
+  const [addError, setAddError] = useState('')
 
   // Edit Admin State
   const [showEditModal, setShowEditModal] = useState(false)
-  const [editingAdmin, setEditingAdmin] = useState<{ id: string; email: string; phone: string; receivesSystemAlerts: boolean }>({ id: '', email: '', phone: '', receivesSystemAlerts: false })
+  const [editingAdmin, setEditingAdmin] = useState<{
+    id: string
+    email: string
+    phone: string
+    receivesSystemAlerts: boolean
+  } | null>(null)
   const [editError, setEditError] = useState('')
 
-  // ── Confirm modal ─────────────────────────────────────────────────────────
-  // We store the callback in a ref so stale-closure bugs are impossible
-  const confirmCallbackRef = useRef<(() => void) | null>(null)
-  const [confirmModal, setConfirmModal] = useState<{
-    show: boolean
-    title: string
-    message: string
-    danger?: boolean
-  }>({ show: false, title: '', message: '', danger: false })
-
-  const openConfirm = (title: string, message: string, onConfirm: () => void, danger = false) => {
-    confirmCallbackRef.current = onConfirm
-    setConfirmModal({ show: true, title, message, danger })
-  }
-
-  const closeConfirm = () => setConfirmModal((p) => ({ ...p, show: false }))
-
-  const handleConfirm = async () => {
-    if (confirmCallbackRef.current) {
-      await confirmCallbackRef.current()
-    }
-    closeConfirm()
-  }
-  // ─────────────────────────────────────────────────────────────────────────
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     fetchAdmins()
@@ -106,52 +47,76 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     }
   }
 
-  const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+  const handleCreateAdmin = async (newAdmin: {
+    email: string
+    passwordPlain: string
+    role: string
+  }) => {
+    setAddError('')
     try {
       await apiService.post('/admin/admins', newAdmin, token)
       fetchAdmins()
       setShowAddModal(false)
-      setNewAdmin({ email: '', passwordPlain: generatePassword(), role: 'ADMIN' })
       showToast('Admin added successfully!')
-    } catch (err: unknown) {
-      const error = err as { message?: string }
-      setError(error.message || 'Failed to create admin')
-      showToast(error.message || 'Failed to create admin', true)
+    } catch (err: any) {
+      setAddError(err.message || 'Failed to create admin')
+      showToast(err.message || 'Failed to create admin', true)
     }
   }
 
-  const handleRoleChange = (id: string, newRole: string) => {
-    openConfirm(
-      'Change Admin Role',
-      `Are you sure you want to change this admin's role to ${newRole}?`,
-      async () => {
-        try {
-          await apiService.patch(`/admin/admins/${id}/role`, { role: newRole }, token)
-          fetchAdmins()
-          showToast(`Admin role changed to ${newRole}`)
-        } catch (err: any) {
-          showToast(err.message || 'Failed to change role', true)
-        }
-      },
-    )
+  const handleRoleChange = async (id: string, newRole: string) => {
+    const isConfirmed = await confirm({
+      title: 'Change Admin Role',
+      message: `Are you sure you want to change this admin's role to ${newRole}?`,
+    })
+
+    if (isConfirmed) {
+      try {
+        await apiService.patch(`/admin/admins/${id}/role`, { role: newRole }, token)
+        fetchAdmins()
+        showToast(`Admin role changed to ${newRole}`)
+      } catch (err: any) {
+        showToast(err.message || 'Failed to change role', true)
+      }
+    }
   }
 
-  const handleEditAdmin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleEditAdmin = async (formData: { phone: string; receivesSystemAlerts: boolean }) => {
+    if (!editingAdmin) return
     setEditError('')
     try {
-      await apiService.patch(`/admin/admins/${editingAdmin.id}/details`, { 
-        phone: editingAdmin.phone || null,
-        receivesSystemAlerts: editingAdmin.receivesSystemAlerts 
-      }, token)
+      await apiService.patch(
+        `/admin/admins/${editingAdmin.id}/details`,
+        {
+          phone: formData.phone || null,
+          receivesSystemAlerts: formData.receivesSystemAlerts,
+        },
+        token,
+      )
       fetchAdmins()
       setShowEditModal(false)
       showToast('Admin details updated successfully!')
     } catch (err: any) {
       setEditError(err.message || 'Failed to update admin details')
       showToast(err.message || 'Failed to update admin details', true)
+    }
+  }
+
+  const handleRemoveAdmin = async (admin: AdminUser) => {
+    const isConfirmed = await confirm({
+      title: 'Remove Administrator',
+      message: 'Are you sure you want to remove this admin?',
+      danger: true,
+    })
+
+    if (isConfirmed) {
+      try {
+        await apiService.delete(`/admin/admins/${admin.id}`, token)
+        fetchAdmins()
+        showToast('Admin removed')
+      } catch (err: any) {
+        showToast(err.message || 'Failed to remove admin', true)
+      }
     }
   }
 
@@ -180,8 +145,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         {isDeveloper && (
           <button
             onClick={() => {
-              setError('')
-              setNewAdmin({ email: '', passwordPlain: generatePassword(), role: 'CUSTOMER_SUPPORT' })
+              setAddError('')
               setShowAddModal(true)
             }}
             style={{
@@ -210,613 +174,41 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
             </p>
           </div>
 
-          <div className="table-wrapper">
-            <div className="table-container">
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Admin</th>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Phone</th>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Role</th>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Joined</th>
-                    <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        Loading administrators...
-                      </td>
-                    </tr>
-                  ) : admins.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No administrators found.
-                      </td>
-                    </tr>
-                  ) : (
-                    admins.map((admin) => (
-                      <tr
-                        key={admin.id}
-                        style={{
-                          borderBottom: '1px solid var(--border)',
-                          background: admin.role === 'DEVELOPER' ? 'var(--accent-faint)' : 'transparent',
-                          transition: 'var(--transition)'
-                        }}
-                      >
-                        <td style={{ padding: '16px 24px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div
-                              style={{
-                                width: '36px',
-                                height: '36px',
-                                borderRadius: '8px',
-                                backgroundColor: admin.role === 'DEVELOPER' ? 'var(--accent)' : 'var(--surface-hover)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: admin.role === 'DEVELOPER' ? 'white' : 'var(--text-muted)',
-                              }}
-                            >
-                              <Shield size={18} />
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontWeight: 600, fontSize: '14px' }}>{admin.email}</span>
-                                {admin.receivesSystemAlerts && (
-                                  <div title="Receives System Alerts" style={{ color: 'var(--accent)', display: 'flex' }}>
-                                    <Mail size={14} />
-                                  </div>
-                                )}
-                              </div>
-                              {admin.id === currentAdminId && (
-                                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)', marginTop: '2px' }}>YOU</span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                          {admin.phone || 'N/A'}
-                        </td>
-                        <td style={{ padding: '16px 24px' }}>
-                          <span
-                            className={`badge ${admin.role === 'DEVELOPER' ? 'badge-warning' : admin.role === 'SUPERADMIN' ? 'badge-success' : 'badge-secondary'}`}
-                            style={{ 
-                              backgroundColor: admin.role === 'DEVELOPER' ? 'var(--accent-faint)' : admin.role === 'SUPERADMIN' ? '#e0f2fe' : 'var(--surface-hover)',
-                              color: admin.role === 'DEVELOPER' ? 'var(--accent)' : admin.role === 'SUPERADMIN' ? '#0369a1' : 'var(--text-muted)'
-                            }}
-                          >
-                            {admin.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                          {new Date(admin.createdAt).toLocaleDateString()}
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                          {isDeveloper && admin.role !== 'DEVELOPER' && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                              <button
-                                onClick={() => {
-                                  setEditError('')
-                                  setEditingAdmin({ 
-                                    id: admin.id, 
-                                    email: admin.email, 
-                                    phone: admin.phone || '',
-                                    receivesSystemAlerts: !!admin.receivesSystemAlerts
-                                  })
-                                  setShowEditModal(true)
-                                }}
-                                title="Edit Details"
-                                className="btn btn-secondary"
-                                style={{ padding: '6px 10px', fontSize: '12px' }}
-                              >
-                                Edit Details
-                              </button>
-                              <select
-                                className="input"
-                                style={{ width: 'auto', padding: '6px 10px', fontSize: '12px' }}
-                                value={admin.role}
-                                onChange={(e) => handleRoleChange(admin.id, e.target.value)}
-                              >
-                                <option value="CUSTOMER_SUPPORT">CUSTOMER_SUPPORT</option>
-                                <option value="SUPERADMIN">SUPERADMIN</option>
-                              </select>
-                              <button
-                                onClick={() => openConfirm('Remove Administrator', 'Are you sure you want to remove this admin?', async () => {
-                                  await apiService.delete(`/admin/admins/${admin.id}`, token)
-                                  fetchAdmins()
-                                  showToast('Admin removed')
-                                }, true)}
-                                title="Remove Admin"
-                                className="btn btn-secondary"
-                                style={{ padding: '6px 10px', color: '#dc2626' }}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <AdminTable
+            admins={admins}
+            loading={loading}
+            currentAdminId={currentAdminId}
+            isDeveloper={isDeveloper}
+            onRoleChange={handleRoleChange}
+            onEdit={(admin) => {
+              setEditError('')
+              setEditingAdmin({
+                id: admin.id,
+                email: admin.email,
+                phone: admin.phone || '',
+                receivesSystemAlerts: !!admin.receivesSystemAlerts,
+              })
+              setShowEditModal(true)
+            }}
+            onRemove={handleRemoveAdmin}
+          />
         </div>
       </div>
 
-      {/* ── Add Admin Modal ── */}
-      {showAddModal && (
-        <div
-          className="modal-overlay"
-          style={{ alignItems: 'flex-start', paddingTop: '80px' }}
-          onClick={() => setShowAddModal(false)}
-        >
-          <div
-            className="modal-content"
-            style={{ maxWidth: '480px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '32px' }}>
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}
-              >
-                <div
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '12px',
-                    background: 'var(--accent-faint)',
-                    border: '1px solid var(--accent-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--accent)',
-                    flexShrink: 0,
-                  }}
-                >
-                  <UserPlus size={20} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
-                    Add Administrative User
-                  </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
-                    They'll receive login credentials via email.
-                  </p>
-                </div>
-              </div>
+      <AddAdminModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSubmit={handleCreateAdmin}
+        error={addError}
+      />
 
-              <form
-                onSubmit={handleCreateAdmin}
-                style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
-              >
-                {error && (
-                  <div
-                    style={{
-                      padding: '12px',
-                      backgroundColor: '#fee2e2',
-                      color: '#b91c1c',
-                      borderRadius: '10px',
-                      fontSize: '13px',
-                      display: 'flex',
-                      gap: '8px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <AlertCircle size={16} /> {error}
-                  </div>
-                )}
-
-                {/* Email */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Email Address
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail
-                      size={16}
-                      style={{
-                        position: 'absolute',
-                        left: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: 'var(--text-muted)',
-                      }}
-                    />
-                    <input
-                      required
-                      type="email"
-                      value={newAdmin.email}
-                      onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                      placeholder="admin@example.com"
-                      style={{
-                        width: '100%',
-                        padding: '11px 12px 11px 38px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                        fontSize: '14px',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Temp Password */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                      }}
-                    >
-                      Temporary Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setNewAdmin((p) => ({ ...p, passwordPlain: generatePassword() }))
-                      }
-                      title="Generate new password"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--accent)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        padding: 0,
-                      }}
-                    >
-                      <RefreshCw size={13} /> Regenerate
-                    </button>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      required
-                      type={showPassword ? 'text' : 'password'}
-                      value={newAdmin.passwordPlain}
-                      onChange={(e) => setNewAdmin({ ...newAdmin, passwordPlain: e.target.value })}
-                      placeholder="••••••••"
-                      style={{
-                        width: '100%',
-                        padding: '11px 42px 11px 12px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                        fontSize: '14px',
-                        fontFamily: showPassword ? 'inherit' : 'monospace',
-                        letterSpacing: showPassword ? 'normal' : '0.15em',
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((p) => !p)}
-                      style={{
-                        position: 'absolute',
-                        right: '10px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Auto-generated. Admin must change this on first login.
-                  </p>
-                </div>
-
-                {/* Role */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Initial Role
-                  </label>
-                  <select
-                    className="input"
-                    value={newAdmin.role}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value })}
-                    style={{
-                      paddingTop: '12px',
-                      paddingBottom: '12px',
-                      backgroundColor: 'var(--surface)',
-                    }}
-                  >
-                    <option value="CUSTOMER_SUPPORT">Customer Support</option>
-                    <option value="SUPERADMIN">Super Administrator</option>
-                  </select>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--white)',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: 'none',
-                      background: 'var(--accent)',
-                      color: 'var(--white)',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                    }}
-                  >
-                    Create Account
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Edit Admin Modal ── */}
-      {showEditModal && (
-        <div
-          className="modal-overlay"
-          style={{ alignItems: 'flex-start', paddingTop: '80px' }}
-          onClick={() => setShowEditModal(false)}
-        >
-          <div
-            className="modal-content"
-            style={{ maxWidth: '480px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '32px' }}>
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}
-              >
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
-                    Edit Admin Details
-                  </h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '2px' }}>
-                    Editing details for {editingAdmin.email}
-                  </p>
-                </div>
-              </div>
-
-              <form
-                onSubmit={handleEditAdmin}
-                style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
-              >
-                {editError && (
-                  <div
-                    style={{
-                      padding: '12px',
-                      backgroundColor: '#fee2e2',
-                      color: '#b91c1c',
-                      borderRadius: '10px',
-                      fontSize: '13px',
-                      display: 'flex',
-                      gap: '8px',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <AlertCircle size={16} /> {editError}
-                  </div>
-                )}
-
-                {/* Phone Number */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={editingAdmin.phone}
-                    onChange={(e) => setEditingAdmin({ ...editingAdmin, phone: e.target.value })}
-                    placeholder="+1234567890"
-                    style={{
-                      width: '100%',
-                      padding: '11px 12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                      fontSize: '14px',
-                    }}
-                  />
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Must be in international format (e.g. +1234567890). Leave blank to remove.
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                  <input
-                    type="checkbox"
-                    id="receivesSystemAlerts"
-                    checked={editingAdmin.receivesSystemAlerts}
-                    onChange={(e) => setEditingAdmin({ ...editingAdmin, receivesSystemAlerts: e.target.checked })}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      cursor: 'pointer'
-                    }}
-                  />
-                  <label
-                    htmlFor="receivesSystemAlerts"
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      userSelect: 'none'
-                    }}
-                  >
-                    Receive System Alerts
-                  </label>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowEditModal(false)}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--white)',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: 'none',
-                      background: 'var(--accent)',
-                      color: 'var(--white)',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                      fontSize: '14px',
-                    }}
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Confirm Modal ── */}
-      {confirmModal.show && (
-        <div className="modal-overlay" style={{ alignItems: 'center' }} onClick={closeConfirm}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: '400px' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '32px', textAlign: 'center' }}>
-              <div
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  background: confirmModal.danger ? '#fee2e2' : 'var(--accent-faint)',
-                  color: confirmModal.danger ? '#dc2626' : 'var(--accent)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 24px',
-                }}
-              >
-                <AlertCircle size={32} />
-              </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>
-                {confirmModal.title}
-              </h3>
-              <p
-                style={{
-                  color: 'var(--text-muted)',
-                  fontSize: '14px',
-                  marginBottom: '28px',
-                  lineHeight: 1.6,
-                }}
-              >
-                {confirmModal.message}
-              </p>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={closeConfirm}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: confirmModal.danger ? '#dc2626' : 'var(--accent)',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                  }}
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditAdminModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSubmit={handleEditAdmin}
+        admin={editingAdmin}
+        error={editError}
+      />
     </div>
   )
 }

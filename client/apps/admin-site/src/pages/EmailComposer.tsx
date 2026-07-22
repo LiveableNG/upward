@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Send, Search, Users, Monitor, EyeOff, Trash2, X, AlertTriangle, Building2, Clock, Mail } from 'lucide-react'
+import { Send, Search, Users, Monitor, EyeOff, Building2, Clock, Mail } from 'lucide-react'
 import { Editor } from '@hugerte/hugerte-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
-
-interface EmailRecipient {
-  id: string
-  email: string
-  name: string
-  type: 'TENANT' | 'PM' | 'WAITLIST'
-}
+import {
+  EmailReviewModal,
+  type EmailRecipient,
+} from '../features/emails/components/EmailReviewModal'
+import { EmailConfirmModal } from '../features/emails/components/EmailConfirmModal'
 
 interface EmailComposerProps {
   token: string
@@ -94,7 +92,7 @@ const buildPreviewHtml = (content: string, _subject: string = 'Upward Update') =
 
 const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
   const location = useLocation()
-  
+
   // Recipients & Target State
   const [targetGroup, setTargetGroup] = useState<'TENANTS' | 'PMS' | 'WAITLIST'>('TENANTS')
   const [recipients, setRecipients] = useState<EmailRecipient[]>([])
@@ -116,7 +114,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
   // Search & Suggestions
   const [searchTerm, setSearchTerm] = useState('')
   const [suggestions, setSuggestions] = useState<{ id: string; name: string; email: string }[]>([])
-  
+
   // Directory Caching
   const [directoryData, setDirectoryData] = useState<{
     tenants: any[]
@@ -135,7 +133,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
         id: u.uuid || u.id,
         email: u.email,
         name: `${u.firstName} ${u.lastName}`.trim(),
-        type: u.origin === 'WAITLIST' ? 'WAITLIST' as const : 'TENANT' as const
+        type: u.origin === 'WAITLIST' ? ('WAITLIST' as const) : ('TENANT' as const),
       }))
       setRecipients(mapped)
       // Deduce target group (Tenants vs Waitlist)
@@ -146,7 +144,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
         id: p.uuid || p.id,
         email: p.email,
         name: p.businessName || `${p.firstName} ${p.lastName}`.trim(),
-        type: 'PM' as const
+        type: 'PM' as const,
       }))
       setRecipients(mapped)
       setTargetGroup('PMS')
@@ -159,7 +157,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
       setLoadingDirectory(true)
       try {
         const res = await apiService.get('/admin/performance-metrics', token)
-        
+
         const isValidEmail = (email: string) => {
           if (!email) return false
           const e = email.toLowerCase()
@@ -168,8 +166,8 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
         const allTenants = [
           ...(res.directories?.signedUp || []),
-          ...(res.directories?.invited || [])
-        ].filter(t => isValidEmail(t.email) && t.hasPassword)
+          ...(res.directories?.invited || []),
+        ].filter((t) => isValidEmail(t.email) && t.hasPassword)
 
         setDirectoryData({
           tenants: allTenants,
@@ -267,7 +265,12 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
         id: item.uuid || item.id,
         email: item.email,
         name: name || 'N/A',
-        type: targetGroup === 'TENANTS' ? 'TENANT' as const : targetGroup === 'PMS' ? 'PM' as const : 'WAITLIST' as const,
+        type:
+          targetGroup === 'TENANTS'
+            ? ('TENANT' as const)
+            : targetGroup === 'PMS'
+              ? ('PM' as const)
+              : ('WAITLIST' as const),
       }
     })
 
@@ -330,7 +333,11 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
     setTestSending(true)
     try {
-      const res = await apiService.post('/admin/email/test-send', { emails, subject, content }, token)
+      const res = await apiService.post(
+        '/admin/email/test-send',
+        { emails, subject, content },
+        token,
+      )
       const failed = res.data?.filter((r: any) => r.status === 'FAILED') || []
       if (failed.length > 0) {
         const errMsgs = failed.map((f: any) => `${f.email}: ${f.error}`).join(', ')
@@ -371,7 +378,8 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
           userIds: recipients.map((r) => r.id),
           subject,
           content,
-          targetGroup: targetGroup === 'TENANTS' ? 'TENANTS' : targetGroup === 'PMS' ? 'PMS' : 'WAITLIST',
+          targetGroup:
+            targetGroup === 'TENANTS' ? 'TENANTS' : targetGroup === 'PMS' ? 'PMS' : 'WAITLIST',
         },
         token,
       )
@@ -390,12 +398,41 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
   return (
     <div className="page-container fade-in" style={{ paddingBottom: '40px' }}>
-      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 className="section-title" style={{ margin: 0 }}>Ecosystem Campaign Emailer</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-            Draft beautiful rich-text HTML communications and send them to customized segments.
-          </p>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          marginBottom: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Mail size={24} />
+          </div>
+          <div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Ecosystem Campaign Emailer
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Draft beautiful rich-text HTML communications and send them to customized segments.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setShowPreviewPanel(!showPreviewPanel)}
@@ -419,17 +456,32 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: showPreviewPanel ? '1fr 400px' : '1fr', gap: '24px', alignItems: 'start' }}>
-        
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: showPreviewPanel ? '1fr 400px' : '1fr',
+          gap: '24px',
+          alignItems: 'start',
+        }}
+      >
         {/* LEFT COLUMN: EDITOR & RECIPIENTS */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-          
+        <div
+          className="card"
+          style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}
+        >
           {/* Recipient Segment Input */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <label style={{ fontSize: '14px', fontWeight: 600 }}>Active Recipients</label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="badge" style={{ backgroundColor: 'var(--accent-faint)', color: 'var(--accent)', fontWeight: 600 }}>
+                <span
+                  className="badge"
+                  style={{
+                    backgroundColor: 'var(--accent-faint)',
+                    color: 'var(--accent)',
+                    fontWeight: 600,
+                  }}
+                >
                   {recipients.length} Recipient(s)
                 </span>
                 {recipients.length > 0 && (
@@ -455,7 +507,12 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
             {!location.state?.selectedUsers && !location.state?.selectedPms && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
                 {(['TENANTS', 'PMS', 'WAITLIST'] as const).map((group) => {
-                  const label = group === 'TENANTS' ? 'Tenants' : group === 'PMS' ? 'Property Managers' : 'Waitlist Contacts'
+                  const label =
+                    group === 'TENANTS'
+                      ? 'Tenants'
+                      : group === 'PMS'
+                        ? 'Property Managers'
+                        : 'Waitlist Contacts'
                   const Icon = group === 'TENANTS' ? Users : group === 'PMS' ? Building2 : Clock
                   return (
                     <button
@@ -494,7 +551,16 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
             <div style={{ position: 'relative' }}>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
-                  <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Search
+                    size={16}
+                    color="var(--text-muted)"
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                    }}
+                  />
                   <input
                     type="text"
                     placeholder={`Search and add ${targetGroup === 'TENANTS' ? 'tenants' : targetGroup === 'PMS' ? 'property managers' : 'waitlist contacts'} by name or email...`}
@@ -502,34 +568,49 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                     onChange={(e) => handleSearchChange(e.target.value)}
                     onPaste={(e) => {
                       const text = e.clipboardData.getData('Text')
-                      const potentialEmails = text.split(/[\n,;\s]+/).map(t => t.trim().toLowerCase()).filter(t => t.length > 0)
-                      const validEmails = potentialEmails.filter(t => t.includes('@'))
-                      
+                      const potentialEmails = text
+                        .split(/[\n,;\s]+/)
+                        .map((t) => t.trim().toLowerCase())
+                        .filter((t) => t.length > 0)
+                      const validEmails = potentialEmails.filter((t) => t.includes('@'))
+
                       if (validEmails.length > 0) {
                         e.preventDefault()
                         const activeDir = getActiveDirectory()
-                        const matchedUsers = activeDir.filter((item: any) => item.email && validEmails.includes(item.email.toLowerCase()))
-                        
+                        const matchedUsers = activeDir.filter(
+                          (item: any) =>
+                            item.email && validEmails.includes(item.email.toLowerCase()),
+                        )
+
                         if (matchedUsers.length > 0) {
-                          setRecipients(prev => {
-                            const existingIds = new Set(prev.map(r => r.id))
-                            const newRecipients = matchedUsers.filter((u: any) => !existingIds.has(u.uuid || u.id)).map((item: any) => {
-                              let name = ''
-                              if (targetGroup === 'PMS') {
-                                name = item.businessName || `${item.firstName} ${item.lastName}`.trim()
-                              } else {
-                                name = `${item.firstName} ${item.lastName}`.trim()
-                              }
-                              return {
-                                id: item.uuid || item.id,
-                                email: item.email,
-                                name: name || 'N/A',
-                                type: (targetGroup === 'TENANTS' ? 'TENANT' : targetGroup === 'PMS' ? 'PM' : 'WAITLIST') as 'TENANT' | 'PM' | 'WAITLIST',
-                              }
-                            })
+                          setRecipients((prev) => {
+                            const existingIds = new Set(prev.map((r) => r.id))
+                            const newRecipients = matchedUsers
+                              .filter((u: any) => !existingIds.has(u.uuid || u.id))
+                              .map((item: any) => {
+                                let name = ''
+                                if (targetGroup === 'PMS') {
+                                  name =
+                                    item.businessName || `${item.firstName} ${item.lastName}`.trim()
+                                } else {
+                                  name = `${item.firstName} ${item.lastName}`.trim()
+                                }
+                                return {
+                                  id: item.uuid || item.id,
+                                  email: item.email,
+                                  name: name || 'N/A',
+                                  type: (targetGroup === 'TENANTS'
+                                    ? 'TENANT'
+                                    : targetGroup === 'PMS'
+                                      ? 'PM'
+                                      : 'WAITLIST') as 'TENANT' | 'PM' | 'WAITLIST',
+                                }
+                              })
                             return [...prev, ...newRecipients]
                           })
-                          showToast(`Successfully added ${matchedUsers.length} matching recipient(s)!`)
+                          showToast(
+                            `Successfully added ${matchedUsers.length} matching recipient(s)!`,
+                          )
                         } else {
                           showToast(`No matching recipients found for the pasted emails`, true)
                         }
@@ -602,9 +683,13 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                     >
                       <div>
                         <strong style={{ display: 'block' }}>{item.name}</strong>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{item.email}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                          {item.email}
+                        </span>
                       </div>
-                      <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>+ Add</span>
+                      <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>
+                        + Add
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -650,13 +735,24 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                       color: 'var(--text-secondary)',
                     }}
                   >
-                    + {variable === 'firstName' ? 'First Name' : variable === 'lastName' ? 'Last Name' : 'Email'}
+                    +{' '}
+                    {variable === 'firstName'
+                      ? 'First Name'
+                      : variable === 'lastName'
+                        ? 'Last Name'
+                        : 'Email'}
                   </button>
                 ))}
               </div>
             </div>
-            
-            <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+
+            <div
+              style={{
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '1px solid var(--border)',
+              }}
+            >
               <Editor
                 value={content}
                 onInit={(_evt, editor) => {
@@ -668,11 +764,22 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                   menubar: false,
                   placeholder: 'Compose content here...',
                   plugins: [
-                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap',
-                    'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                    'table', 'help', 'wordcount'
+                    'advlist',
+                    'autolink',
+                    'lists',
+                    'link',
+                    'image',
+                    'charmap',
+                    'searchreplace',
+                    'visualblocks',
+                    'code',
+                    'fullscreen',
+                    'table',
+                    'help',
+                    'wordcount',
                   ],
-                  toolbar: 'undo redo | blocks fontfamily fontsize | ' +
+                  toolbar:
+                    'undo redo | blocks fontfamily fontsize | ' +
                     'bold italic forecolor backcolor | alignleft aligncenter ' +
                     'alignright alignjustify | bullist numlist outdent indent | ' +
                     'link localimage table | removeformat code',
@@ -694,13 +801,19 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                             const base64Data = (reader.result as string).split(',')[1]
                             try {
                               showToast('Uploading image to storage...', false)
-                              const res = await apiService.post('/admin/email/upload-image', {
-                                base64Data,
-                                contentType: file.type,
-                                originalName: file.name
-                              }, token)
+                              const res = await apiService.post(
+                                '/admin/email/upload-image',
+                                {
+                                  base64Data,
+                                  contentType: file.type,
+                                  originalName: file.name,
+                                },
+                                token,
+                              )
                               if (res && res.url) {
-                                editor.insertContent(`<img src="${res.url}" alt="${file.name}" style="max-width: 100%; height: auto;" />`)
+                                editor.insertContent(
+                                  `<img src="${res.url}" alt="${file.name}" style="max-width: 100%; height: auto;" />`,
+                                )
                                 showToast('Image uploaded and inserted! ✓')
                               } else {
                                 showToast('Failed to upload image', true)
@@ -713,14 +826,15 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                           reader.readAsDataURL(file)
                         }
                         input.click()
-                      }
+                      },
                     })
                   },
-                  content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; color: #374151; padding: 16px; }',
+                  content_style:
+                    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.6; color: #374151; padding: 16px; }',
                   branding: false,
                   promotion: false,
                   skin: 'oxide',
-                  content_css: 'default'
+                  content_css: 'default',
                 }}
               />
             </div>
@@ -755,10 +869,20 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
         {/* RIGHT COLUMN: LIVE PREVIEW & TESTING */}
         {showPreviewPanel && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'sticky', top: '24px' }}>
-            
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+              position: 'sticky',
+              top: '24px',
+            }}
+          >
             {/* Live Letterhead Preview */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div
+              className="card"
+              style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            >
               <div
                 style={{
                   padding: '12px 20px',
@@ -770,7 +894,15 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                 }}
               >
                 <Monitor size={14} color="var(--text-muted)" />
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
                   Live Letterhead Preview
                 </span>
               </div>
@@ -783,7 +915,17 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                     sandbox="allow-same-origin"
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '8px', color: 'var(--text-muted)' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      gap: '8px',
+                      color: 'var(--text-muted)',
+                    }}
+                  >
                     <Monitor size={32} style={{ opacity: 0.3 }} />
                     <span style={{ fontSize: '13px' }}>Type to preview rendering...</span>
                   </div>
@@ -793,10 +935,19 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
             {/* Test Send Card */}
             <div className="card" style={{ padding: '20px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  margin: '0 0 16px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
                 <Send size={15} color="var(--accent)" /> Dispatch Test Copy
               </h3>
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {adminEmail && (
                   <button
@@ -827,7 +978,15 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center', margin: '4px 0' }}>
                   <div style={{ height: '1px', flex: 1, background: 'var(--border)' }}></div>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>or custom emails</span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    or custom emails
+                  </span>
                   <div style={{ height: '1px', flex: 1, background: 'var(--border)' }}></div>
                 </div>
 
@@ -870,201 +1029,25 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
         )}
       </div>
 
-      {/* MODAL 1: REVIEW RECIPIENTS */}
-      {showReviewModal && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.5)', zIndex: 2000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div
-            style={{
-              background: 'var(--white)', borderRadius: '16px',
-              width: '100%', maxWidth: '500px', maxHeight: '80vh',
-              display: 'flex', flexDirection: 'column', overflow: 'hidden',
-              boxShadow: 'var(--shadow-xl)',
-            }}
-          >
-            <div
-              style={{
-                padding: '16px 20px', borderBottom: '1px solid var(--border)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Review Mailing List ({recipients.length})</h3>
-              <button onClick={() => setShowReviewModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
-              {recipients.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                  No recipients added yet.
-                </div>
-              ) : (
-                recipients.map((rec) => (
-                  <div
-                    key={rec.id}
-                    style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '8px 0', borderBottom: '1px solid var(--border)',
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: '13px', display: 'block' }}>{rec.name}</span>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>{rec.email}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setRecipients((prev) => prev.filter((r) => r.id !== rec.id))
-                      }}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: 'var(--danger)', padding: '4px',
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                onClick={() => {
-                  setRecipients([])
-                  setShowReviewModal(false)
-                }}
-                style={{
-                  padding: '8px 14px', background: 'none', border: '1px solid var(--border)',
-                  color: 'var(--danger)', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600,
-                }}
-              >
-                Clear All
-              </button>
-              <button
-                onClick={() => setShowReviewModal(false)}
-                style={{
-                  padding: '8px 14px', background: 'var(--accent)', color: 'var(--white)',
-                  borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, border: 'none',
-                }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EmailReviewModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        recipients={recipients}
+        onRemoveRecipient={(id) => setRecipients((prev) => prev.filter((r) => r.id !== id))}
+        onClearAll={() => setRecipients([])}
+      />
 
-      {/* MODAL 2: CONFIRM & PREVIEW DISPATCH */}
-      {showConfirmModal && (
-        <div
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', zIndex: 3000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backdropFilter: 'blur(6px)',
-          }}
-        >
-          <div
-            style={{
-              background: 'var(--white)', borderRadius: '20px',
-              width: '90%', maxWidth: '700px', maxHeight: '90vh',
-              display: 'flex', flexDirection: 'column', overflow: 'hidden',
-              boxShadow: 'var(--shadow-2xl)',
-            }}
-          >
-            <div
-              style={{
-                padding: '20px 24px', borderBottom: '1px solid var(--border)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                backgroundColor: 'var(--surface-hover)',
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Confirm Outgoing Dispatch</h3>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Review the rendered template below before initiating bulk transmission.
-                </p>
-              </div>
-              <button onClick={() => setShowConfirmModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)' }}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px', backgroundColor: '#f3f4f6' }}>
-              <div
-                style={{
-                  background: 'var(--white)', border: '1px solid var(--border)',
-                  borderRadius: '12px', padding: '16px', marginBottom: '20px',
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                }}
-              >
-                <AlertTriangle size={24} color="var(--warning)" style={{ flexShrink: 0 }} />
-                <div style={{ fontSize: '13px', lineHeight: 1.5 }}>
-                  You are about to send this campaign email to <strong style={{ color: 'var(--accent)' }}>{recipients.length} recipient(s)</strong> as a <strong>{targetGroup}</strong> target campaign. This action cannot be undone.
-                </div>
-              </div>
-              
-              <div style={{ marginBottom: '16px', padding: '0 8px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subject Line</span>
-                <div style={{ fontSize: '15px', fontWeight: 700, marginTop: '4px', color: 'var(--text)' }}>{subject}</div>
-              </div>
-              
-              <div
-                style={{
-                  border: '1px solid var(--border)', borderRadius: '12px',
-                  overflow: 'hidden', height: '360px', backgroundColor: 'var(--white)',
-                }}
-              >
-                <iframe
-                  srcDoc={buildPreviewHtml(content, subject)}
-                  title="Final confirmation preview"
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                  sandbox="allow-same-origin"
-                />
-              </div>
-            </div>
-            
-            <div
-              style={{
-                padding: '16px 24px', borderTop: '1px solid var(--border)',
-                display: 'flex', justifyContent: 'flex-end', gap: '12px',
-                backgroundColor: 'var(--surface-hover)',
-              }}
-            >
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                style={{
-                  padding: '12px 20px', background: 'var(--white)',
-                  border: '1px solid var(--border)', borderRadius: '10px',
-                  cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)',
-                }}
-              >
-                Cancel & Re-edit
-              </button>
-              <button
-                onClick={handleConfirmedSend}
-                disabled={sending}
-                style={{
-                  padding: '12px 24px', background: 'var(--accent)',
-                  color: 'var(--white)', border: 'none', borderRadius: '10px',
-                  cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  opacity: sending ? 0.6 : 1,
-                }}
-              >
-                {sending ? 'Sending...' : 'Confirm & Dispatch ✓'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EmailConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmedSend}
+        recipientsCount={recipients.length}
+        targetGroup={targetGroup}
+        subject={subject}
+        content={content}
+        sending={sending}
+        buildPreviewHtml={buildPreviewHtml}
+      />
     </div>
   )
 }

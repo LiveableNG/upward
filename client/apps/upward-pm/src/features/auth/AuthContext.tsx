@@ -52,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            window.location.pathname === '/signup' ||
                            window.location.pathname === '/pm-login' || 
                            window.location.pathname === '/pm-signup' ||
+                           window.location.pathname === '/forgot-password' ||
+                           window.location.pathname === '/pm-forgot-password' ||
                            window.location.pathname.startsWith('/invite') ||
                            window.location.pathname.startsWith('/reset-password') ||
                            isPortalPublic
@@ -149,11 +151,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const isPortal = window.location.pathname.startsWith('/portal')
       if (isPortal) {
-        router.replace('/portal/login')
+        window.location.href = '/portal/login'
       } else if (Capacitor.isNativePlatform()) {
         router.replace('/welcome')
       } else {
-        router.replace('/login')
+        window.location.href = '/pm-login'
       }
     }
   }
