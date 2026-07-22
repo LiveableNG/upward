@@ -97,4 +97,8 @@ export const api = {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined,
     }),
+  delete: <T = any>(url: string) => 
+    request<T>(url, { 
+      method: 'DELETE' 
+    }),
 }

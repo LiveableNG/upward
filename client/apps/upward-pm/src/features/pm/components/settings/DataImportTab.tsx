@@ -8,10 +8,17 @@ import { cn } from '@/lib/utils'
 import { useProperties, useBulkCreateUnits, useBulkFullImport } from '@/features/pm/hooks/useProperties'
 import { downloadBlob } from '@/lib/download-helper'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { api } from '@/lib/api'
 
 import { ImportMode, FULL_COLUMNS, UNIT_COLUMNS } from './data-import/types'
 import { useDataImport } from './data-import/useDataImport'
 import { ImportOverlay } from './data-import/ImportOverlay'
+import { RelayConfirmationModal } from './data-import/RelayConfirmationModal'
+import { ActiveImportJobsList } from './data-import/ActiveImportJobsList'
+import { StagedDataReviewModal } from './data-import/StagedDataReviewModal'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { AlertTriangle } from 'lucide-react'
+
 
 export const DataImportTab: React.FC = () => {
   const router = useRouter()
@@ -121,6 +128,126 @@ export const DataImportTab: React.FC = () => {
   }
 
 
+  const [pendingRelayFile, setPendingRelayFile] = useState<File | null>(null)
+  const [showRelayModal, setShowRelayModal] = useState(false)
+  const [isRelaying, setIsRelaying] = useState(false)
+  
+  const [activeJobs, setActiveJobs] = useState<any[]>([])
+  const [reviewJob, setReviewJob] = useState<any | null>(null)
+  const [showReviewModal, setShowReviewModal] = useState(false)
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const jobs = await api.get('/pm/bulk-imports')
+        setActiveJobs(jobs)
+      } catch (err) {
+        console.error('Failed to fetch bulk import jobs:', err)
+      }
+    }
+    fetchJobs()
+  }, [])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
+      importState.handleFileUpload(e, fileInputRef)
+    } else {
+      // Non-spreadsheet file (PDF, Image, Word document, etc.)
+      setPendingRelayFile(file)
+      setShowRelayModal(true)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleConfirmRelay = async () => {
+    if (!pendingRelayFile) return
+    setIsRelaying(true)
+    try {
+      const ext = pendingRelayFile.name.split('.').pop()?.toLowerCase() || 'doc'
+
+      // BYPASS S3 FOR TESTING: Convert file to base64 Data URL and send it directly
+      const getBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = error => reject(error)
+        })
+      }
+
+      const fileDataUrl = await getBase64(pendingRelayFile)
+
+      const newJob = await api.post('/pm/bulk-imports/relay', {
+        targetPropertyUuid,
+        mode,
+        originalFileName: pendingRelayFile.name,
+        fileUrl: fileDataUrl, // Store base64 directly
+        fileType: ext,
+      })
+
+      setActiveJobs(prev => [newJob, ...prev])
+      setShowRelayModal(false)
+      setPendingRelayFile(null)
+      success('Document sent to Customer Support team! We will notify you once processed (~48hrs).')
+    } catch (err) {
+      error('Failed to submit document relay request.')
+    } finally {
+      setIsRelaying(false)
+    }
+  }
+
+  const [jobToDelete, setJobToDelete] = useState<number | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteJob = (jobId: number) => {
+    setJobToDelete(jobId)
+  }
+
+  const confirmDeleteJob = async () => {
+    if (!jobToDelete) return
+    setIsDeleting(true)
+    try {
+      await api.delete(`/pm/bulk-imports/${jobToDelete}`)
+      setActiveJobs(prev => prev.filter(j => j.id !== jobToDelete))
+      success('Job deleted successfully')
+      setJobToDelete(null)
+    } catch (err) {
+      error('Failed to delete job')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleApproveStagedImport = (stagedRows: any[]) => {
+    if (!stagedRows || stagedRows.length === 0) return error("No rows to import")
+
+    if (mode === 'full') {
+      bulkFullImportMutation.mutate({ rows: stagedRows }, {
+        onSuccess: (res) => {
+          success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
+          setShowReviewModal(false)
+          setReviewJob(null)
+          router.push('/properties')
+        },
+        onError: (err: any) => error(err?.message || 'Failed to complete import')
+      })
+    } else {
+      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: stagedRows } as any, {
+        onSuccess: () => {
+          success('Units imported successfully!')
+          setShowReviewModal(false)
+          setReviewJob(null)
+          router.push('/properties')
+        },
+        onError: (err: any) => error(err?.message || 'Failed to complete import')
+      })
+    }
+  }
+
   return (
     <div className="import-tab animate-fade-in" style={{ padding: '16px 0', maxWidth: 900, margin: '0 auto' }}>
       
@@ -131,7 +258,7 @@ export const DataImportTab: React.FC = () => {
             Bulk Data Import
           </h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Import your properties, landlords, or units via CSV or Excel spreadsheet.
+            Import your properties, landlords, or units via CSV, Excel, PDF, or image documents.
           </p>
         </div>
 
@@ -191,6 +318,18 @@ export const DataImportTab: React.FC = () => {
         </div>
       )}
 
+      {/* Active Non-spreadsheet Import Jobs */}
+      <ActiveImportJobsList
+        jobs={activeJobs}
+        onOpenReviewModal={(job) => {
+          setReviewJob(job)
+          setShowReviewModal(true)
+        }}
+        onDeleteJob={handleDeleteJob}
+      />
+      
+      <div style={{ marginBottom: 32 }} />
+
       {/* Clean Dropzone Upload Box */}
       <div 
         style={{ 
@@ -207,17 +346,17 @@ export const DataImportTab: React.FC = () => {
         </div>
         
         <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-          Upload your Excel or CSV file
+          Upload your document or spreadsheet
         </h3>
         
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 420, margin: '0 auto 24px', lineHeight: 1.5 }}>
-          Drag and drop your spreadsheet here or click to browse. We support .csv, .xlsx, and .xls formats.
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
+          Drag and drop your file here or click to browse. Supports Excel (.xlsx, .csv) for direct import, or PDF/Images for assisted support onboarding.
         </p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
           <label className={cn('btn btn--primary', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')} style={{ borderRadius: 12, padding: '12px 28px', height: 44, cursor: 'pointer', fontSize: 14 }}>
             <Upload size={18} style={{ marginRight: 8 }} /> Select File
-            <input type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }} onChange={(e) => importState.handleFileUpload(e, fileInputRef)} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
+            <input type="file" accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
           </label>
           
           <button className="btn btn--secondary" onClick={handleDownloadTemplate} style={{ borderRadius: 12, padding: '12px 24px', height: 44, fontSize: 14 }}>
@@ -225,6 +364,28 @@ export const DataImportTab: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Relay Prompt Modal */}
+      <RelayConfirmationModal
+        isOpen={showRelayModal}
+        file={pendingRelayFile}
+        onClose={() => {
+          setShowRelayModal(false)
+          setPendingRelayFile(null)
+        }}
+        onConfirm={handleConfirmRelay}
+        isSubmitting={isRelaying}
+      />
+
+      {/* PM Staged Data Review Modal */}
+      <StagedDataReviewModal
+        isOpen={showReviewModal}
+        job={reviewJob}
+        columns={columns}
+        onClose={() => setShowReviewModal(false)}
+        onConfirm={handleApproveStagedImport}
+        isSubmitting={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}
+      />
 
       {importState.isOverlayOpen && (
         <ImportOverlay 
@@ -235,6 +396,30 @@ export const DataImportTab: React.FC = () => {
           handleConfirmImport={handleConfirmImport}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={jobToDelete !== null}
+        onClose={() => setJobToDelete(null)}
+        title="Delete Upload Request"
+        icon={AlertTriangle}
+        maxWidth={400}
+        footer={
+          <>
+            <button className="btn btn--secondary" onClick={() => setJobToDelete(null)} disabled={isDeleting}>
+              Cancel
+            </button>
+            <button className="btn btn--primary" onClick={confirmDeleteJob} disabled={isDeleting} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
+              {isDeleting ? 'Deleting...' : 'Delete Request'}
+            </button>
+          </>
+        }
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+          Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   )
 }
+
