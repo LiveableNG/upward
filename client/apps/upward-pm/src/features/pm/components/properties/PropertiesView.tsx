@@ -58,6 +58,12 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
   const [showEditor, setShowEditor] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
+
+  React.useEffect(() => {
+    if (searchParams.get('action') === 'add-property') {
+      setShowAddPropertyModal(true)
+    }
+  }, [searchParams])
   
   const { data: properties = [], isLoading: loadingProperties } = useProperties(initialProperties)
   const { data: units = [], isLoading: loadingUnits } = useUnits(undefined, initialUnits)

@@ -2,119 +2,31 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/features/auth/AuthContext'
-import { useProperties } from '@/features/pm/hooks/useProperties'
+import { useActivityTasks, CarouselItem } from '@/features/pm/hooks/useActivityTasks'
 import { 
-  CreditCard, 
-  UserCircle, 
-  Building2, 
   ChevronRight, 
-  ChevronLeft,
   AlertCircle,
-  ArrowRight,
-  UserPlus
+  ArrowRight
 } from 'lucide-react'
 
-interface CarouselItem {
-  id: string
-  title: string
-  description: string
-  icon: React.ElementType
-  link: string
-  color: string
-  actionLabel: string
-}
-
-const items: CarouselItem[] = [
-  {
-    id: 'payment-info',
-    title: 'Add Payment Info',
-    description: 'Connect your bank account to start receiving rent payments.',
-    icon: CreditCard,
-    link: '/settings?tab=payment',
-    color: 'forest',
-    actionLabel: 'Setup Payouts'
-  },
-  {
-    id: 'complete-profile',
-    title: 'Complete Profile',
-    description: 'Add your business details to build trust and professionalize your dashboard.',
-    icon: UserCircle,
-    link: '/settings?tab=profile',
-    color: 'clay',
-    actionLabel: 'Update Profile'
-  },
-  {
-    id: 'add-property',
-    title: 'Add First Property',
-    description: 'List your first property and start managing your tenants.',
-    icon: Building2,
-    link: '/properties',
-    color: 'info',
-    actionLabel: 'Add Property'
-  }
-]
-
 export function ActivityCarousel() {
-  const { user, loading } = useAuth()
-  const { data: properties = [], isLoading: isLoadingProperties } = useProperties()
-  const { data: credibilityRequests = [], isLoading: isLoadingCred } = useCredibilityRequests()
+  const { tasks: carouselItems, isLoading } = useActivityTasks()
   
-  // Create dynamic items based on fetched data
-  let dynamicItems = [...items]
-  
-  const { data: joinRequests = [] } = useQuery({
-    queryKey: ['tenant-join-requests'],
-    queryFn: async () => {
-      const res = await api.get('/pm/tenants/join-requests')
-      return res || []
-    }
-  })
-  
-  if (joinRequests.length > 0) {
-    dynamicItems.unshift({
-      id: 'join-requests',
-      title: 'New Tenant Requests',
-      description: `You have ${joinRequests.length} pending tenant${joinRequests.length > 1 ? 's' : ''} requesting to join your properties.`,
-      icon: UserPlus,
-      link: '/requests',
-      color: 'forest',
-      actionLabel: 'Handle Requests'
-    })
-  }
-
-  if (credibilityRequests.length > 0) {
-    dynamicItems.unshift({
-      id: 'credibility-requests',
-      title: 'Payment History Requests',
-      description: `You have ${credibilityRequests.length} request${credibilityRequests.length > 1 ? 's' : ''} for past payment records from tenants.`,
-      icon: CreditCard,
-      link: '/requests',
-      color: 'warning',
-      actionLabel: 'Review Records'
-    })
-  }
-
-  const carouselItems = dynamicItems.filter(item => {
-    if (item.id === 'payment-info') return !user?.bankCode
-    if (item.id === 'complete-profile') return !user?.businessName || !user?.country
-    if (item.id === 'add-property') return properties.length === 0
-    return true
-  })
-
-  if (carouselItems.length === 0 || loading || isLoadingProperties) return null
+  if (carouselItems.length === 0 || isLoading) return null
 
   return (
     <div className="activity-center">
-      <div className="activity-center__header">
-        <div className="activity-center__title-group">
-          <AlertCircle size={16} className="text-forest animate-pulse" />
-          <h2 className="activity-center__title">Action Center</h2>
+      <div className="activity-center__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div className="activity-center__title-group">
+            <h2 className="activity-center__title" style={{ fontSize: 16, textTransform: 'none', color: '#111827' }}>Action Center</h2>
+          </div>
+          <p className="activity-center__subtitle">Complete these important actions to keep your operations running smoothly.</p>
         </div>
+        <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--forest)', textDecoration: 'none' }}>
+          View all tasks <ArrowRight size={14} />
+        </Link>
       </div>
 
       <div className="activity-carousel-wrapper">
@@ -124,25 +36,110 @@ export function ActivityCarousel() {
             <div 
               key={item.id}
               className={cn(
-                'action-card animate-beam-forest',
+                'action-card',
+                `animate-beam-${item.color}`,
                 `action-card--${item.color}`
               )}
             >
               <div className="action-card__icon">
-                <Icon size={20} />
+                <Icon size={24} strokeWidth={2.5} />
               </div>
               <div className="action-card__content">
+                {item.priority && (
+                  <div className="priority-badge desktop-only">
+                    <span className="dot" />
+                    {item.priority}
+                  </div>
+                )}
                 <h3 className="action-card__item-title">{item.title}</h3>
                 <p className="action-card__description">{item.description}</p>
-                <Link href={item.link} className="action-card__btn">
-                  <span>{item.actionLabel}</span>
-                  <ArrowRight size={16} />
-                </Link>
+                
+                <div className="action-card__mobile-btn mobile-only" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
+                  {item.secondaryActionLabel ? (
+                    <MobileDropdownAction item={item} />
+                  ) : (
+                    <Link href={item.link} className="action-card__btn">
+                      <span>{item.actionLabel}</span>
+                      <ArrowRight size={16} />
+                    </Link>
+                  )}
+                </div>
+              </div>
+              
+              <div className="action-card__actions-wrapper desktop-only" style={{ position: 'relative' }}>
+                {item.secondaryActionLabel ? (
+                  <DropdownAction item={item} />
+                ) : (
+                  <Link href={item.link} className="action-card__circle-btn" title={item.actionLabel}>
+                    <ChevronRight size={18} strokeWidth={2.5} />
+                  </Link>
+                )}
               </div>
             </div>
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function DropdownAction({ item }: { item: CarouselItem }) {
+  const [open, setOpen] = useState(false)
+  
+  return (
+    <div style={{ position: 'relative' }}>
+      <button 
+        onClick={() => setOpen(!open)} 
+        className="action-card__circle-btn" 
+        title={item.actionLabel}
+      >
+        <ChevronRight size={18} strokeWidth={2.5} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: '0.2s' }} />
+      </button>
+      
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: 'white', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: 160, overflow: 'hidden' }}>
+          <Link href={item.link} style={{ display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--text)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
+            {item.actionLabel}
+          </Link>
+          {item.secondaryActionLink && (
+            <Link href={item.secondaryActionLink} style={{ display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
+              {item.secondaryActionLabel}
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MobileDropdownAction({ item }: { item: CarouselItem }) {
+  const [open, setOpen] = useState(false)
+  
+  return (
+    <div style={{ width: '100%' }}>
+      <button 
+        onClick={() => setOpen(!open)} 
+        className="action-card__btn"
+        style={{ width: '100%', justifyContent: 'space-between', border: '1px solid var(--border)', background: 'var(--surface)', padding: '10px 14px' }}
+      >
+        <span>{item.actionLabel} Options</span>
+        <ChevronRight size={16} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: '0.2s' }} />
+      </button>
+      
+      {open && (
+        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+          <Link href={item.link} className="action-card__btn" style={{ width: '100%', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '10px 14px', border: '1px solid var(--border)' }}>
+            <span>{item.actionLabel}</span>
+            <ArrowRight size={16} />
+          </Link>
+          {item.secondaryActionLink && (
+            <Link href={item.secondaryActionLink} className="action-card__btn" style={{ width: '100%', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '10px 14px', border: '1px solid var(--border)' }}>
+              <span>{item.secondaryActionLabel}</span>
+              <ArrowRight size={16} />
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   )
 }

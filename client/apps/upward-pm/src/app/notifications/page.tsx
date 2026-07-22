@@ -3,14 +3,18 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Check, AlertCircle, Calendar, Sparkles, CheckCircle2 } from 'lucide-react'
+import { useActivityTasks } from '@/features/pm/hooks/useActivityTasks'
 import { usePmNotifications, usePmNotificationActions } from '@/features/pm/hooks/usePmNotifications'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const { data, isLoading } = usePmNotifications()
+  const { data, isLoading: loadingNotifs } = usePmNotifications()
   const { notifications = [], unreadCount = 0 } = data || {}
   const { markRead, markAllRead } = usePmNotificationActions()
+  const { tasks, isLoading: loadingTasks } = useActivityTasks()
 
   const cleanEmoji = (text: string): string => {
     if (!text) return ''
@@ -69,8 +73,56 @@ export default function NotificationsPage() {
         </div>
       </header>
 
+      {tasks.length > 0 && !loadingTasks && (
+        <div className="notifications-hub__activity-center" style={{ marginBottom: 40 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>Pending Tasks</h2>
+          <div className="activity-carousel-wrapper" style={{ flexDirection: 'column' }}>
+            {tasks.map(item => {
+              const Icon = item.icon
+              return (
+                <div 
+                  key={item.id}
+                  className={cn(
+                    'action-card',
+                    `animate-beam-${item.color}`,
+                    `action-card--${item.color}`
+                  )}
+                  style={{ width: '100%', minWidth: 'unset' }}
+                >
+                  <div className="action-card__icon">
+                    <Icon size={24} strokeWidth={2.5} />
+                  </div>
+                  <div className="action-card__content">
+                    {item.priority && (
+                      <div className="priority-badge">
+                        <span className="dot" />
+                        {item.priority}
+                      </div>
+                    )}
+                    <h3 className="action-card__item-title">{item.title}</h3>
+                    <p className="action-card__description">{item.description}</p>
+                    <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                      <Link href={item.link} className="action-card__btn" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                        <span>{item.actionLabel}</span>
+                        <ArrowRight size={16} />
+                      </Link>
+                      {item.secondaryActionLabel && item.secondaryActionLink && (
+                        <Link href={item.secondaryActionLink} className="action-card__btn" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                          <span>{item.secondaryActionLabel}</span>
+                          <ArrowRight size={16} />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <main className="notifications-hub__content">
-        {isLoading ? (
+        {loadingNotifs ? (
           <div className="notifications-hub__loading">
             <div className="spinner" />
             <p>Loading your notifications...</p>
