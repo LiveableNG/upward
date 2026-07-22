@@ -18,7 +18,7 @@ export interface ImportJob {
 interface ActiveImportJobsListProps {
   jobs: ImportJob[]
   onOpenReviewModal: (job: ImportJob) => void
-  onDeleteJob?: (jobId: number) => void
+  onDeleteJob?: (jobUuid: string) => void
 }
 
 export const ActiveImportJobsList: React.FC<ActiveImportJobsListProps> = ({ jobs, onOpenReviewModal, onDeleteJob }) => {
@@ -111,7 +111,7 @@ export const ActiveImportJobsList: React.FC<ActiveImportJobsListProps> = ({ jobs
                 {onDeleteJob && (
                   <button
                     type="button"
-                    onClick={() => onDeleteJob(job.id)}
+                    onClick={() => onDeleteJob(job.uuid)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',

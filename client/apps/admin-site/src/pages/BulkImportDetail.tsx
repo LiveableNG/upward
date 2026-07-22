@@ -14,7 +14,7 @@ interface BulkImportDetailProps {
 export const BulkImportDetail: React.FC<BulkImportDetailProps> = ({ token }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { id } = useParams()
+  const { uuid } = useParams()
   
   const [selectedJob, setSelectedJob] = useState<any | null>(location.state?.job || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -56,7 +56,7 @@ export const BulkImportDetail: React.FC<BulkImportDetailProps> = ({ token }) => 
     if (!selectedJob) return
     try {
       await apiService.post(
-        `/admin/bulk-imports/${selectedJob.id}/stage`,
+        `/admin/bulk-imports/${selectedJob.uuid}/stage`,
         {
           stagedRowsJson: JSON.stringify(importState.previewRows),
         },

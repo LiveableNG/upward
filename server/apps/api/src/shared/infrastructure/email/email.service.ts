@@ -822,6 +822,34 @@ export class EmailService {
     }
   }
 
+  async sendSystemAlertToAdmins(subject: string, text: string, relatedId?: string) {
+    const csAdmins = await this.prisma.upward_admin.findMany({
+      where: {
+        OR: [
+          { receivesSystemAlerts: true },
+          { role: 'DEVELOPER' }
+        ]
+      },
+      select: { email: true }
+    });
+
+    if (csAdmins.length === 0) return;
+
+    const emails = csAdmins.map(admin => admin.email.includes(':') ? this.encryption.decrypt(admin.email) : admin.email);
+    
+    for (const email of emails) {
+      await this.sendEmailWithRetry({
+        userId: relatedId,
+        email,
+        subject,
+        html: `<p>${text}</p>`,
+        text,
+        type: 'SYSTEM_ALERT',
+        fromOverride: 'Upward System <admin@upward.com>'
+      });
+    }
+  }
+
   async sendOnboardingSequenceEmail(params: {
     email: string
     firstName: string

@@ -229,7 +229,7 @@ export const DataImportTab: React.FC = () => {
     if (!reviewJob) return
     setIsSavingDraft(true)
     try {
-      await api.patch(`/pm/bulk-imports/${reviewJob.id}/staged-data`, {
+      await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/staged-data`, {
         stagedRowsJson: JSON.stringify(importState.previewRows)
       })
       queryClient.invalidateQueries({ queryKey: ['pmImportJobs'] })
@@ -272,11 +272,11 @@ export const DataImportTab: React.FC = () => {
     }
   }
 
-  const [jobToDelete, setJobToDelete] = useState<number | null>(null)
+  const [jobToDelete, setJobToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleDeleteJob = (jobId: number) => {
-    setJobToDelete(jobId)
+  const handleDeleteJob = (jobUuid: string) => {
+    setJobToDelete(jobUuid)
   }
 
   const confirmDeleteJob = async () => {
@@ -284,7 +284,7 @@ export const DataImportTab: React.FC = () => {
     setIsDeleting(true)
     try {
       await api.delete(`/pm/bulk-imports/${jobToDelete}`)
-      setActiveJobs(prev => prev.filter(j => j.id !== jobToDelete))
+      setActiveJobs(prev => prev.filter(j => j.uuid !== jobToDelete))
       success('Job deleted successfully')
       setJobToDelete(null)
     } catch (err) {
@@ -310,11 +310,11 @@ export const DataImportTab: React.FC = () => {
     if (mode === 'full') {
       bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
         onSuccess: async (res) => {
-          if (reviewJob?.id) {
-            await api.patch(`/pm/bulk-imports/${reviewJob.id}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
-            const jobId = reviewJob.id
+          if (reviewJob?.uuid) {
+            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
+            const jobUuid = reviewJob.uuid
             setTimeout(() => {
-              setActiveJobs(prev => prev.filter(j => j.id !== jobId))
+              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
             }, 3000)
           }
           success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
@@ -327,11 +327,11 @@ export const DataImportTab: React.FC = () => {
     } else {
       bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: sanitizedRows } as any, {
         onSuccess: async () => {
-          if (reviewJob?.id) {
-            await api.patch(`/pm/bulk-imports/${reviewJob.id}/complete`, { unitsCreated: sanitizedRows.length }).catch(console.error)
-            const jobId = reviewJob.id
+          if (reviewJob?.uuid) {
+            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: sanitizedRows.length }).catch(console.error)
+            const jobUuid = reviewJob.uuid
             setTimeout(() => {
-              setActiveJobs(prev => prev.filter(j => j.id !== jobId))
+              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
             }, 3000)
           }
           success('Successfully imported units!')

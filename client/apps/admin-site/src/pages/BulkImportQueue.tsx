@@ -55,9 +55,9 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
     fetchJobs()
   }, [token])
 
-  const handleClaim = async (jobId: number) => {
+  const handleClaim = async (jobUuid: string) => {
     try {
-      await apiService.post(`/admin/bulk-imports/${jobId}/claim`, {}, token || undefined)
+      await apiService.post(`/admin/bulk-imports/${jobUuid}/claim`, {}, token || undefined)
       showToast('Task claimed successfully!')
       fetchJobs()
     } catch (e) {
@@ -68,7 +68,7 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
 
   const handleLogDownload = async (job: any) => {
     try {
-      await apiService.post(`/admin/bulk-imports/${job.id}/log-download`, {}, token || undefined)
+      await apiService.post(`/admin/bulk-imports/${job.uuid}/log-download`, {}, token || undefined)
     } catch (e) {}
 
     // For file downloads, we can't easily use apiService since it expects JSON.
@@ -307,7 +307,7 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
                       <button
                         onClick={() => {
                           setActiveMenuId(null)
-                          handleClaim(job.id)
+                          handleClaim(job.uuid)
                         }}
                         style={{
                           display: 'flex',
@@ -336,7 +336,7 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
                         <button
                           onClick={() => {
                             setActiveMenuId(null)
-                            navigate(`/bulk-imports/${job.id}`, { state: { job, forceUpload: true } })
+                            navigate(`/bulk-imports/${job.uuid}`, { state: { job, forceUpload: true } })
                           }}
                           style={{
                             display: 'flex',
@@ -363,7 +363,7 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
                           <button
                             onClick={() => {
                               setActiveMenuId(null)
-                              navigate(`/bulk-imports/${job.id}`, { state: { job, forceEdit: true } })
+                              navigate(`/bulk-imports/${job.uuid}`, { state: { job, forceEdit: true } })
                             }}
                             style={{
                               display: 'flex',

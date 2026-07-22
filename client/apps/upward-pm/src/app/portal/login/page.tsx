@@ -115,12 +115,12 @@ function LandlordLoginForm() {
     >
       <div className="animate-fade-in">
         <div className="auth-role-toggle">
-          <Link 
-            href="/login"
+          <a 
+            href="/pm-login"
             className="auth-role-toggle__btn"
           >
             Property Manager
-          </Link>
+          </a>
           <button 
             type="button"
             className="auth-role-toggle__btn auth-role-toggle__btn--active"

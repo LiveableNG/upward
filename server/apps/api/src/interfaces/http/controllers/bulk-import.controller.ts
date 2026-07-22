@@ -54,9 +54,9 @@ export class PmBulkImportController {
     return this.getPmImportJobsUseCase.execute(pm.id)
   }
 
-  @Patch(':id/staged-data')
+  @Patch(':uuid/staged-data')
   async updateStagedData(
-    @Param('id') id: string,
+    @Param('uuid') uuid: string,
     @Request() req: any,
     @Body() body: { stagedRowsJson: string }
   ) {
@@ -65,14 +65,14 @@ export class PmBulkImportController {
     
     return this.updateStagedDataUseCase.execute({
       pmId: pm.id,
-      jobId: parseInt(id, 10),
+      jobUuid: uuid,
       stagedRowsJson: body.stagedRowsJson,
     })
   }
 
-  @Patch(':id/complete')
+  @Patch(':uuid/complete')
   async completeJob(
-    @Param('id') id: string,
+    @Param('uuid') uuid: string,
     @Request() req: any,
     @Body() body: { unitsCreated?: number; propertiesCreated?: number }
   ) {
@@ -81,20 +81,20 @@ export class PmBulkImportController {
     
     return this.completeImportJobUseCase.execute({
       pmId: pm.id,
-      jobId: parseInt(id, 10),
+      jobUuid: uuid,
       unitsCreated: body.unitsCreated,
       propertiesCreated: body.propertiesCreated,
     })
   }
 
-  @Delete(':id')
-  async deleteJob(@Param('id') id: string, @Request() req: any) {
+  @Delete(':uuid')
+  async deleteJob(@Param('uuid') uuid: string, @Request() req: any) {
     const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
     if (!pm) throw new UnauthorizedException('PM not found')
     
     // Quick validation to ensure the job belongs to the PM before deleting
     const job = await (this.prisma as any).upward_pm_bulk_import_job.findUnique({
-      where: { id: parseInt(id, 10) }
+      where: { uuid }
     })
     
     if (!job || job.pmId !== pm.id) {
@@ -102,7 +102,7 @@ export class PmBulkImportController {
     }
 
     await (this.prisma as any).upward_pm_bulk_import_job.delete({
-      where: { id: parseInt(id, 10) }
+      where: { id: job.id }
     })
     
     return { success: true }
@@ -124,39 +124,39 @@ export class AdminBulkImportController {
     return this.adminListImportJobsUseCase.execute()
   }
 
-  @Post(':id/claim')
-  async claimJob(@Param('id') id: string, @Request() req: any) {
+  @Post(':uuid/claim')
+  async claimJob(@Param('uuid') uuid: string, @Request() req: any) {
     const adminId = req.user.id || req.user.uuid
     const adminName = `${req.user.firstName || 'Support'} ${req.user.lastName || 'Admin'}`.trim()
     const adminEmail = req.user.email
 
     return this.adminAssignImportJobUseCase.execute({
-      jobId: parseInt(id, 10),
+      jobUuid: uuid,
       adminId,
       adminName,
       adminEmail,
     })
   }
 
-  @Post(':id/log-download')
-  async logDownload(@Param('id') id: string, @Request() req: any) {
+  @Post(':uuid/log-download')
+  async logDownload(@Param('uuid') uuid: string, @Request() req: any) {
     const adminId = req.user.id || req.user.uuid
     const adminEmail = req.user.email
 
     return this.adminLogDocumentDownloadUseCase.execute({
-      jobId: parseInt(id, 10),
+      jobUuid: uuid,
       adminId,
       adminEmail,
     })
   }
 
-  @Post(':id/stage')
-  async stageData(@Param('id') id: string, @Request() req: any, @Body() body: { stagedRowsJson: string }) {
+  @Post(':uuid/stage')
+  async stageData(@Param('uuid') uuid: string, @Request() req: any, @Body() body: { stagedRowsJson: string }) {
     const adminId = req.user.id || req.user.uuid
     const adminEmail = req.user.email
 
     return this.adminStageImportDataUseCase.execute({
-      jobId: parseInt(id, 10),
+      jobUuid: uuid,
       adminId,
       adminEmail,
       stagedRowsJson: body.stagedRowsJson,

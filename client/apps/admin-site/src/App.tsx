@@ -98,7 +98,7 @@ function AppRoutes() {
           <Route path="/email-sequences" element={<EmailSequences token={auth.token} />} />
           <Route path="/sequence-queue" element={<SequenceQueue token={auth.token} />} />
           <Route path="/bulk-imports" element={<BulkImportQueue token={auth.token} />} />
-          <Route path="/bulk-imports/:id" element={<BulkImportDetail token={auth.token} />} />
+          <Route path="/bulk-imports/:uuid" element={<BulkImportDetail token={auth.token} />} />
 
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
