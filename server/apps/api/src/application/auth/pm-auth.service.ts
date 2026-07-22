@@ -384,4 +384,18 @@ export class PmAuthService extends BaseAuthService {
       resetPasswordExpires: null,
     })
   }
+
+  async verifyResetOTP(email: string, otp: string): Promise<{ success: boolean }> {
+    const pm = await this.pmRepository.findByEmail(email)
+
+    if (!pm || !pm.resetPasswordOTP || !pm.resetPasswordExpires) {
+      throw new UnauthorizedException('Invalid or expired verification code')
+    }
+
+    if (pm.resetPasswordOTP !== otp || new Date() > pm.resetPasswordExpires) {
+      throw new UnauthorizedException('Invalid or expired verification code')
+    }
+
+    return { success: true }
+  }
 }

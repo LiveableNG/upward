@@ -71,3 +71,10 @@ export const resetPassword = async (email: string, otp: string, newPass: string)
     body: JSON.stringify({ email, otp, new: newPass })
   })
 }
+
+export const verifyResetOtp = async (email: string, otp: string) => {
+  return request<{ success: boolean; message: string }>('/pm/auth/verify-reset-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp })
+  })
+}

@@ -205,4 +205,9 @@ export class PmAuthController {
     await this.pmAuthService.resetPassword(body.email, body.otp, body.new)
     return { success: true, message: 'Password reset successful' }
   }
+  @Post('verify-reset-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyResetOTP(@Body() body: { email: string; otp: string }) {
+    return this.pmAuthService.verifyResetOTP(body.email, body.otp)
+  }
 }

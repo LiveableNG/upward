@@ -285,6 +285,12 @@ export class UserController {
     return { success: true, message: 'Password reset successful' }
   }
 
+  @Post('verify-reset-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyResetOTP(@Body() body: { email: string; otp: string }) {
+    return this.userAuthService.verifyResetOTP(body.email, body.otp)
+  }
+
   @Post('check-email')
   @HttpCode(HttpStatus.OK)
   async checkEmail(@Body() body: { email: string; type?: 'email' | 'phone' }) {
