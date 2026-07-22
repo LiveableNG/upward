@@ -115,21 +115,9 @@ export function ActivityCarousel() {
           <AlertCircle size={16} className="text-forest animate-pulse" />
           <h2 className="activity-center__title">Action Center</h2>
         </div>
-        <p className="activity-center__subtitle">Required steps to manage your properties efficiently.</p>
       </div>
 
-      <div 
-        className="activity-carousel-wrapper" 
-        style={{ 
-          display: 'flex', 
-          gap: 'var(--space-4)', 
-          overflowX: 'auto', 
-          scrollSnapType: 'x mandatory', 
-          paddingBottom: 'var(--space-4)',
-          msOverflowStyle: 'none',
-          scrollbarWidth: 'none'
-        }}
-      >
+      <div className="activity-carousel-wrapper">
         {carouselItems.map(item => {
           const Icon = item.icon
           return (
@@ -139,22 +127,14 @@ export function ActivityCarousel() {
                 'action-card animate-beam-forest',
                 `action-card--${item.color}`
               )}
-              style={{ 
-                flex: '0 0 auto', 
-                width: '300px', 
-                scrollSnapAlign: 'start', 
-                flexDirection: 'column', 
-                alignItems: 'flex-start',
-                padding: 'var(--space-6)'
-              }}
             >
-              <div className="action-card__icon" style={{ width: 48, height: 48, marginBottom: 'var(--space-4)', marginRight: 0 }}>
-                <Icon size={24} />
+              <div className="action-card__icon">
+                <Icon size={20} />
               </div>
-              <div className="action-card__content" style={{ width: '100%' }}>
-                <h3 className="action-card__item-title" style={{ fontSize: 16 }}>{item.title}</h3>
-                <p className="action-card__description" style={{ fontSize: 13, minHeight: 40 }}>{item.description}</p>
-                <Link href={item.link} className="action-card__btn" style={{ width: '100%', justifyContent: 'space-between', marginTop: 'var(--space-2)' }}>
+              <div className="action-card__content">
+                <h3 className="action-card__item-title">{item.title}</h3>
+                <p className="action-card__description">{item.description}</p>
+                <Link href={item.link} className="action-card__btn">
                   <span>{item.actionLabel}</span>
                   <ArrowRight size={16} />
                 </Link>

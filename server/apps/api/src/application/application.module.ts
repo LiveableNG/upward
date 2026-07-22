@@ -242,6 +242,19 @@ import { RetryEmailSequenceUseCase } from './use-cases/email-sequence/retry-emai
 import { GetEmailSequenceLogsUseCase } from './use-cases/email-sequence/get-email-sequence-logs.use-case'
 import { PreviewWhatsappSequenceUseCase } from './use-cases/whatsapp-sequence/preview-whatsapp-sequence.use-case'
 import { PreviewEmailSequenceUseCase } from './use-cases/email-sequence/preview-email-sequence.use-case'
+import {
+  CreateRelayImportJobUseCase,
+  GetPmImportJobsUseCase,
+  AdminListImportJobsUseCase,
+  AdminAssignImportJobUseCase,
+  AdminStageImportDataUseCase,
+  AdminLogDocumentDownloadUseCase,
+  GetRelayDocumentUploadUrlUseCase,
+  UpdateStagedDataUseCase,
+  CompleteImportJobUseCase,
+} from './use-cases/pm/bulk-import.use-cases'
+
+
 
 // Payments
 import {
@@ -595,7 +608,17 @@ const UseCases = [
   GetEmailSequenceLogsUseCase,
   PreviewWhatsappSequenceUseCase,
   PreviewEmailSequenceUseCase,
+  CreateRelayImportJobUseCase,
+  GetPmImportJobsUseCase,
+  AdminListImportJobsUseCase,
+  AdminAssignImportJobUseCase,
+  AdminStageImportDataUseCase,
+  AdminLogDocumentDownloadUseCase,
+  GetRelayDocumentUploadUrlUseCase,
+  UpdateStagedDataUseCase,
+  CompleteImportJobUseCase,
 ]
+
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'

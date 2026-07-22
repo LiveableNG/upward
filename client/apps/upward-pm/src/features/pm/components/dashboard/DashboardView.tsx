@@ -337,17 +337,12 @@ export function DashboardView({ initialData }: { initialData?: any }) {
 
   return (
     <div className="dashboard animate-fade-in">
-      <PageHeader 
-        title={`Welcome back!`}
-        subtitle="Here is what is happening with your properties today."
-        actions={
-          (!hasProperties || propertiesCount === 0) ? (
-            <button className="btn btn--primary" onClick={() => setShowAddPropertyModal(true)}>
-              <PlusCircle size={18} /> Add Property
-            </button>
-          ) : null
-        }
-      />
+      <div className="dashboard-header-desktop-only">
+        <PageHeader 
+          title={`Welcome back!`}
+          subtitle="Here is what is happening with your properties today."
+        />
+      </div>
 
       <ActivityCarousel />
 
@@ -439,6 +434,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             <div className="payments-tracker__filter">
               <FormSelect 
                 triggerClassName="payments-tracker__select"
+                inline={true}
                 value={activeTab}
                 onChange={(val) => setActiveTab(val as any)}
                 options={[

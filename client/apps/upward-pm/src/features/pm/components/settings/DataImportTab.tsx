@@ -1,149 +1,29 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useEffect, useRef, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { 
-  FileSpreadsheet, 
-  Download, 
-  Plus, 
-  Trash2, 
-  AlertCircle, 
-  Building2,
-  User,
-  Home,
-  CreditCard,
-  Info
-} from 'lucide-react'
-import Papa from 'papaparse'
+import { FileSpreadsheet, Download, Upload } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import { useProperties, useBulkCreateUnits, useBulkFullImport } from '@/features/pm/hooks/useProperties'
-import { isValidPhoneNumber } from 'libphonenumber-js'
 import { downloadBlob } from '@/lib/download-helper'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { api } from '@/lib/api'
+import { useSocket } from '@/hooks/useSocket'
 
-type ImportMode = 'full' | 'units'
+import { ImportMode, FULL_COLUMNS, UNIT_COLUMNS } from './data-import/types'
+import { useDataImport } from './data-import/useDataImport'
+import { parseDateString } from './data-import/utils'
+import { ImportOverlay } from './data-import/ImportOverlay'
+import { RelayConfirmationModal } from './data-import/RelayConfirmationModal'
+import { ActiveImportJobsList } from './data-import/ActiveImportJobsList'
+import { Modal } from '@/components/ui/Modal/Modal'
+import { AlertTriangle } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 
-interface ColumnDef {
-  key: string
-  label: string
-  category: 'property' | 'landlord' | 'tenant' | 'unit' | 'payment'
-  required?: boolean
-  type?: 'text' | 'number' | 'email' | 'tel' | 'date' | 'select'
-  options?: string[]
-}
-
-const FULL_COLUMNS: ColumnDef[] = [
-  { key: 'propertyName', label: 'Property Name', category: 'property', required: true },
-  { key: 'propertyAddress', label: 'Address', category: 'property', required: true },
-  { key: 'propertyType', label: 'Type', category: 'property', type: 'select', options: ['Residential', 'Commercial', 'Industrial'] },
-  { key: 'propertyCountry', label: 'Country', category: 'property' },
-  { key: 'propertyState', label: 'State', category: 'property' },
-  { key: 'propertyArea', label: 'Area', category: 'property' },
-  
-  { key: 'landlordFirstName', label: 'Landlord First', category: 'landlord' },
-  { key: 'landlordLastName', label: 'Landlord Last', category: 'landlord' },
-  { key: 'landlordEmail', label: 'Landlord Email', category: 'landlord', type: 'email' },
-  { key: 'landlordPhone', label: 'Landlord Phone', category: 'landlord', type: 'tel' },
-
-  { key: 'tenantCommercialName', label: 'Tenant Commercial Name', category: 'tenant' },
-  { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant' },
-  { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant' },
-  { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', type: 'email' },
-  { key: 'tenantPhone', label: 'Tenant Phone', category: 'tenant', type: 'tel' },
-
-  { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
-  { key: 'unitRentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
-  { key: 'unitRentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
-  { key: 'unitRentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually'] },
-  { key: 'unitCurrency', label: 'Currency', category: 'unit', type: 'select', options: ['NGN', 'USD', 'GBP', 'EUR'] },
-  { key: 'unitRentStartDate', label: 'Start Date', category: 'unit', type: 'date' },
-  { key: 'unitRentDueDate', label: 'Due Date', category: 'unit', type: 'date' },
-  { key: 'unitManagementFee', label: 'Mgmt Fee', category: 'unit', type: 'number' },
-  { key: 'unitNotes', label: 'Notes', category: 'unit' },
-  { key: 'unitType', label: 'Unit Type', category: 'unit', type: 'select', options: ['Flat / Apartment', 'Duplex', 'Shared Apartment', 'Studio', 'Bungalow', '4 Bedroom Semi-detached Duplex', 'Detached Duplex', '2 Bedroom Flat', '2 Bedroom Serviced Flat', '3 Bedroom Flat', '3 Bedroom Serviced Flat', '2 Bedroom Apartment', 'Studio / Self Contained Flat', 'Mini Flat / 1 Bedroom Flat', 'Flats', 'Terrace House', 'Town House', 'Detached House', 'Semi-detached Duplex', 'Semi-detached House', 'Shortlet Apartment', 'Office Space', 'Studio Room / Self-contain', 'Block Of Flats'] },
-]
-
-const UNIT_COLUMNS: ColumnDef[] = [
-  { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
-  { key: 'tenantCommercialName', label: 'Tenant Commercial Name', category: 'tenant' },
-  { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant' },
-  { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant' },
-  { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', type: 'email' },
-  { key: 'tenantPhone', label: 'Tenant Phone', category: 'tenant', type: 'tel' },
-  { key: 'rentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
-  { key: 'rentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
-  { key: 'rentStartDate', label: 'Start Date', category: 'unit', type: 'date' },
-  { key: 'rentDueDate', label: 'Due Date', category: 'unit', type: 'date' },
-  { key: 'rentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually'] },
-  { key: 'managementFee', label: 'Mgmt Fee', category: 'unit', type: 'number' },
-  { key: 'currency', label: 'Currency', category: 'unit', type: 'select', options: ['NGN', 'USD', 'GBP', 'EUR'] },
-  { key: 'notes', label: 'Notes', category: 'unit' },
-  { key: 'unitType', label: 'Unit Type', category: 'unit', type: 'select', options: ['Flat / Apartment', 'Duplex', 'Shared Apartment', 'Studio', 'Bungalow', '4 Bedroom Semi-detached Duplex', 'Detached Duplex', '2 Bedroom Flat', '2 Bedroom Serviced Flat', '3 Bedroom Flat', '3 Bedroom Serviced Flat', '2 Bedroom Apartment', 'Studio / Self Contained Flat', 'Mini Flat / 1 Bedroom Flat', 'Flats', 'Terrace House', 'Town House', 'Detached House', 'Semi-detached Duplex', 'Semi-detached House', 'Shortlet Apartment', 'Office Space', 'Studio Room / Self-contain', 'Block Of Flats'] },
-]
-
-const formatPhoneNumberByCountry = (phone: string, country: string): string => {
-  const phoneStr = (phone || '').toString().trim()
-  if (!phoneStr) return ''
-
-  if (phoneStr.includes(',')) {
-    return phoneStr.split(',')
-      .map(part => formatPhoneNumberByCountry(part, country))
-      .filter(Boolean)
-      .join(',')
-  }
-
-  let cleaned = phoneStr.replace(/\s+/g, '')
-
-  if (cleaned.startsWith('+')) {
-    return cleaned
-  }
-
-  const normalizedCountry = (country || '').trim().toLowerCase()
-
-  if (normalizedCountry === 'nigeria') {
-    if (cleaned.startsWith('0') && cleaned.length === 11) {
-      return '+234' + cleaned.substring(1)
-    }
-    if (cleaned.length === 10 && !cleaned.startsWith('0')) {
-      return '+234' + cleaned
-    }
-  }
-
-  if (normalizedCountry === 'ghana') {
-    if (cleaned.startsWith('0') && cleaned.length === 10) {
-      return '+233' + cleaned.substring(1)
-    }
-    if (cleaned.length === 9 && !cleaned.startsWith('0')) {
-      return '+233' + cleaned
-    }
-  }
-
-  if (normalizedCountry === 'united kingdom' || normalizedCountry === 'uk') {
-    if (cleaned.startsWith('0') && cleaned.length === 11) {
-      return '+44' + cleaned.substring(1)
-    }
-    if (cleaned.length === 10 && !cleaned.startsWith('0')) {
-      return '+44' + cleaned
-    }
-  }
-
-  if (normalizedCountry === 'united states' || normalizedCountry === 'us' || normalizedCountry === 'usa' || normalizedCountry === 'canada') {
-    if (cleaned.startsWith('1') && cleaned.length === 11) {
-      return '+' + cleaned
-    }
-    if (cleaned.length === 10) {
-      return '+1' + cleaned
-    }
-  }
-
-  if (!cleaned.startsWith('+') && normalizedCountry === 'nigeria') {
-    return '+234' + cleaned
-  }
-
-  return cleaned
-}
 
 export const DataImportTab: React.FC = () => {
+  const queryClient = useQueryClient()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialMode = (searchParams.get('mode') as ImportMode) || 'full'
@@ -157,508 +37,481 @@ export const DataImportTab: React.FC = () => {
     }
   }, [searchParams])
   
-  const { success, info, error } = useToast()
+  const { success, error } = useToast()
   const { data: properties = [] } = useProperties()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
   const bulkFullImportMutation = useBulkFullImport()
 
   const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
-  const [previewRows, setPreviewRows] = useState<any[]>([])
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const columns = useMemo(() => mode === 'full' ? FULL_COLUMNS : UNIT_COLUMNS, [mode])
+
+  const importState = useDataImport(columns, mode, properties, targetPropertyUuid)
+
+  const propertyOptions = useMemo(() => {
+    return properties.map((p: any) => ({
+      label: p.name,
+      value: p.uuid
+    }))
+  }, [properties])
 
   const handleDownloadTemplate = () => {
     const headers = columns.map(c => c.label)
     
     const rows = mode === 'full' ? [
-      // Property 1: 5 Units, same Landlord (TenantCommercialName is empty for regular tenants)
       ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Apt 101', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Tenant with 3 units across 3 properties', 'Flat / Apartment'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Jane', 'Smith', 'jane@tenant.com', '+2348044445555', 'Apt 102', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Standard Unit', 'Flat / Apartment'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Robert', 'Jackson', 'rob@tenant.com', '+2348055556666', 'Apt 103', '2500000', '0', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Unpaid record', 'Flat / Apartment'],
-      // Commercial tenant example — use TenantCommercialName, leave first/last/email blank
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', 'Acme Holdings Ltd', '', '', '', '+2348066667777', 'Apt 104', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Commercial entity tenant', 'Office Space'],
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Michael', 'Brown', 'mike@tenant.com', '+2348077778888', 'Apt 105', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Property with 5 units total', 'Flat / Apartment'],
-
-      // Property 2: Same Landlord (Alice), Same Tenant (John Doe)
       ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Suite 2A', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Landlord with multiple properties', 'Office Space'],
-      ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'Sarah', 'Lee', 'sarah@tenant.com', '+2348088889999', 'Suite 2B', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Commercial Unit', 'Office Space'],
-
-      // Property 3: New Landlord, Same Tenant (John Doe)
-      ['Ruby Terraces', '88 Isaac John St, Ikeja', 'Residential', 'Nigeria', 'Lagos', 'Ikeja GRA', 'Charlie', 'Ventures', 'charlie@ventures.com', '+2348033334444', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Flat 1', '1800000', '1800000', 'Annually', 'NGN', '2024-03-01', '2025-03-01', '180000', 'Tenant with 3 units total', 'Flat / Apartment'],
-      ['Ruby Terraces', '88 Isaac John St, Ikeja', 'Residential', 'Nigeria', 'Lagos', 'Ikeja GRA', 'Charlie', 'Ventures', 'charlie@ventures.com', '+2348033334444', '', 'Olivia', 'Taylor', 'olivia@tenant.com', '+2348099990000', 'Flat 2', '1800000', '1800000', 'Annually', 'NGN', '2024-03-01', '2025-03-01', '180000', 'Standard Unit', 'Flat / Apartment'],
     ] : [
-      // Units-only: TenantCommercialName is after unitName, before TenantFirst
       ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2000000', '2000000', '2024-01-01', '2024-05-01', 'Monthly', '200000', 'NGN', 'Tenant Unit 1', 'Flat / Apartment'],
-      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348023456789', '2500000', '2500000', '2024-02-01', '2025-02-01', 'Annually', '250000', 'NGN', 'Tenant Unit 2', 'Flat / Apartment'],
-      // Commercial tenant example for units-only mode
-      ['103', 'TechCorp Ltd', '', '', '', '+2348023456789', '3000000', '3000000', '2024-03-01', '2025-03-01', 'Annually', '300000', 'NGN', 'Commercial Office Unit', 'Office Space'],
     ]
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     downloadBlob(blob, `upward_${mode}_import_template.csv`).then(() => {
-      success('Template downloaded!')
+      success('Template downloaded successfully!')
     }).catch((err: any) => console.error(err))
   }
 
-  const validateCell = (rowId: number, field: string, value: any, colDef?: ColumnDef, silent = false, rowData?: any) => {
-    let errorMsg = ''
-    const config = colDef || columns.find(c => c.key === field)
+  const parseBackendError = (message: string): string => {
+    if (!message) return 'Failed to import data'
     
-    const row = rowData || previewRows.find(r => r.id === rowId)
-    const hasAnyTenantData = row ? [
-      row.tenantCommercialName,
-      row.tenantFirstName,
-      row.tenantLastName,
-      row.tenantEmail,
-      row.tenantPhone
-    ].some(val => val && val.toString().trim() !== '') : false
-
-    const isTenantField = ['tenantFirstName', 'tenantLastName', 'tenantEmail'].includes(field)
-    const isRequired = config?.required && !(isTenantField && !hasAnyTenantData)
-
-    if (isRequired && !value && value !== 0) {
-      errorMsg = 'Required'
-    } else if (config?.type === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      errorMsg = 'Invalid email'
-    } else if (config?.type === 'tel' && value) {
-      const parts = value.toString().split(',')
-      const allValid = parts.every((part: string) => !part.trim() || isValidPhoneNumber(part.trim()))
-      if (!allValid) {
-        errorMsg = 'Invalid phone'
-      }
-    } else if (config?.type === 'number' && value !== '' && isNaN(parseFloat(value))) {
-      errorMsg = 'Must be a number'
-    }
-
-    if (!silent) {
-      const key = `${rowId}-${field}`
-      setValidationErrors(prev => {
-        const next = { ...prev }
-        if (errorMsg) next[key] = errorMsg
-        else delete next[key]
-        return next
-      })
-    }
-    return errorMsg
-  }
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setValidationErrors({}) // Clear previous errors
-
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: 'greedy',
-      complete: (results: any) => {
-        const newErrors: Record<string, string> = {}
-        
-        const filteredData = (results.data || []).filter((row: any) => 
-          Object.values(row).some(val => val !== null && val !== undefined && val.toString().trim() !== '')
-        )
-
-        const rows = filteredData.map((row: any, index: number) => {
-          const rowId = Date.now() + index
-          const mappedRow: any = { id: rowId }
-          
-          columns.forEach(col => {
-            const val = row[col.label] || ''
-            if (col.type === 'number') {
-              mappedRow[col.key] = val ? parseFloat(val.toString().replace(/[^0-9.]/g, '')) : 0
-            } else {
-              mappedRow[col.key] = val
-            }
-          })
-          
-          const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
-          const hasCommercialName = !!(mappedRow.tenantCommercialName?.trim())
-          if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
-            const cleanName = hasCommercialName
-              ? (mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-              : `${(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
-            const randomStr = Math.random().toString(36).substring(2, 8)
-            mappedRow.tenantEmail = `guest-${cleanName}-${randomStr}@upward.com`
-          }
-
-          const rowCountry = mode === 'full' 
-            ? (mappedRow.propertyCountry || 'Nigeria') 
-            : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
-
-          if (mappedRow.tenantPhone) {
-            mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
-          }
-          if (mappedRow.landlordPhone) {
-            mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
-          }
-
-          columns.forEach(col => {
-            const errorMsg = validateCell(rowId, col.key, mappedRow[col.key], col, true, mappedRow)
-            if (errorMsg) {
-              newErrors[`${rowId}-${col.key}`] = errorMsg
-            }
-          })
-          
-          return mappedRow
-        })
-        
-        const seenUnits = new Set<string>()
-        const filteredRows = rows.filter((row: any) => {
-          const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
-          const unitKey = (row.unitName || '').trim().toLowerCase()
-          
-          if (!unitKey) return true
-
-          const fullKey = `${propertyKey}|${unitKey}`
-          
-          if (seenUnits.has(fullKey)) return false
-          
-          const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
-          const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
-          
-          if (unitExists) return false
-          
-          seenUnits.add(fullKey)
-          return true
-        })
-
-        const finalErrors: Record<string, string> = {}
-        filteredRows.forEach((row:any) => {
-          Object.keys(newErrors).forEach(key => {
-            if (key.startsWith(`${row.id}-`)) {
-              finalErrors[key] = newErrors[key]
-            }
-          })
-        })
-
-        setPreviewRows(filteredRows)
-        setValidationErrors(finalErrors)
-        revalidateDuplicates(filteredRows)
-        
-        const filteredCount = rows.length - filteredRows.length
-        if (filteredCount > 0) {
-          info(`Previewing ${filteredRows.length} records. ${filteredCount} duplicates were filtered out.`)
-        } else {
-          info(`Previewing ${filteredRows.length} records.`)
+    // Parse nested class-validator messages like "rows.0.unitRentAmountPaid must be a number"
+    if (message.includes('rows.')) {
+      const parts = message.split(',').map(p => p.trim())
+      const formattedParts = parts.slice(0, 3).map(part => {
+        const match = part.match(/rows\.(\d+)\.([a-zA-Z0-9_]+)\s+(.+)/)
+        if (match) {
+          const rowNum = parseInt(match[1], 10) + 1
+          const fieldKey = match[2]
+          const restOfError = match[3]
+          const colLabel = columns.find(c => c.key === fieldKey)?.label || fieldKey
+          return `Row ${rowNum}: ${colLabel} ${restOfError}`
         }
-      }
-    })
-    e.target.value = ''
-  }
-
-  const updateRow = (index: number, field: string, value: any) => {
-    const updated = [...previewRows]
-    
-    let formattedValue = value
-    if (field === 'tenantPhone' || field === 'landlordPhone') {
-      const rowCountry = mode === 'full' ? (updated[index].propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
-      formattedValue = formatPhoneNumberByCountry(value, rowCountry)
-    }
-
-    updated[index][field] = formattedValue
-
-    if (field === 'propertyCountry') {
-      if (updated[index].tenantPhone) {
-        updated[index].tenantPhone = formatPhoneNumberByCountry(updated[index].tenantPhone, formattedValue)
-      }
-      if (updated[index].landlordPhone) {
-        updated[index].landlordPhone = formatPhoneNumberByCountry(updated[index].landlordPhone, formattedValue)
-      }
-    }
-
-    setPreviewRows(updated)
-    
-    if (['tenantFirstName', 'tenantLastName', 'tenantEmail', 'tenantPhone'].includes(field)) {
-      const row = updated[index]
-      const tenantFields = ['tenantFirstName', 'tenantLastName', 'tenantEmail', 'tenantPhone']
-      tenantFields.forEach(f => {
-        validateCell(row.id, f, row[f], undefined, false, row)
-      })
-    } else {
-      validateCell(updated[index].id, field, formattedValue, undefined, false, updated[index])
-    }
-    
-    // If unitName or propertyName changed, re-validate duplicates
-    if (field === 'unitName' || field === 'propertyName') {
-      revalidateDuplicates(updated)
-    }
-  }
-
-  const revalidateDuplicates = (rows: any[]) => {
-    const unitMap = new Map<string, number[]>() // key -> array of row indexes
-    
-    rows.forEach((row, idx) => {
-      const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
-      const unitKey = (row.unitName || '').trim().toLowerCase()
-      
-      if (unitKey) {
-        const fullKey = `${propertyKey}|${unitKey}`
-        if (!unitMap.has(fullKey)) unitMap.set(fullKey, [])
-        unitMap.get(fullKey)!.push(idx)
-
-      }
-    })
-
-    setValidationErrors(prev => {
-      const next = { ...prev }
-      // Clear all existing duplicate errors first
-      Object.keys(next).forEach(key => {
-        if (key.endsWith('-unitName') && (next[key] === 'Duplicate unit' || next[key] === 'Unit already exists in system')) {
-          delete next[key]
-        }
+        return part
       })
 
-      unitMap.forEach((indexes, fullKey) => {
-        if (indexes.length > 1) {
-          indexes.forEach(idx => {
-            const rowId = rows[idx].id
-            next[`${rowId}-unitName`] = 'Duplicate unit'
-          })
-        } else {
-          // Check against system for single occurrences
-          const idx = indexes[0]
-          const row = rows[idx]
-          const [propertyKey, unitKey] = fullKey.split('|')
-          
-          const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
-          const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
-          
-          if (unitExists) {
-            next[`${row.id}-unitName`] = 'Unit already exists in system'
-          }
-        }
-      })
-      return next
-    })
-  }
-
-  const handleAddRow = () => {
-    const rowId = Date.now()
-    const newRow: any = { id: rowId }
-    columns.forEach(col => {
-      newRow[col.key] = col.type === 'number' ? 0 : ''
-    })
-    
-    const updated = [...previewRows, newRow]
-    setPreviewRows(updated)
-    revalidateDuplicates(updated)
-    
-    // Initial validation for the new row
-    columns.forEach(col => {
-      validateCell(rowId, col.key, newRow[col.key], col, false, newRow)
-    })
+      const extraCount = parts.length > 3 ? parts.length - 3 : 0
+      return formattedParts.join('\n') + (extraCount > 0 ? `\n...and ${extraCount} more issue(s)` : '')
+    }
+    return message
   }
 
   const handleConfirmImport = () => {
-    if (mode === 'units' && !targetPropertyUuid) return error("Select a property first")
-    if (previewRows.length === 0) return error("No data to import")
-    
-    if (Object.keys(validationErrors).length > 0) {
-      const firstErrorKey = Object.keys(validationErrors)[0]
+    if (importState.previewRows.length === 0) return error("No data to import")
+    if (Object.keys(importState.validationErrors).length > 0) {
+      const firstErrorKey = Object.keys(importState.validationErrors)[0]
       const [rowId, field] = firstErrorKey.split('-')
-      const rowIndex = previewRows.findIndex(r => r.id.toString() === rowId)
+      const rowIndex = importState.previewRows.findIndex(r => r.id === rowId)
       const colLabel = columns.find(c => c.key === field)?.label || field
-      const errorMsg = validationErrors[firstErrorKey]
-      
-      return error(`Error at Row ${rowIndex + 1}, Column "${colLabel}": ${errorMsg}`)
+      return error(`Error at Row ${rowIndex + 1}, Column "${colLabel}": ${importState.validationErrors[firstErrorKey]}`)
+    }
+
+    const validKeys = new Set(columns.map(c => c.key))
+    const sanitizeRow = (row: any) => {
+      const clean: any = {}
+      validKeys.forEach(k => {
+        if (row[k] !== undefined) clean[k] = row[k]
+      })
+      return clean
     }
 
     if (mode === 'full') {
-      const rowsToSend = previewRows.map(({ id, ...rest }) => rest)
+      const rowsToSend = importState.previewRows.map(sanitizeRow)
       bulkFullImportMutation.mutate({ rows: rowsToSend }, {
         onSuccess: (res) => {
           success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
+          importState.setIsOverlayOpen(false)
           router.push('/properties')
         },
-        onError: (err: any) => error(err?.message || 'Failed to import data')
+        onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
       })
     } else {
-      const unitsToSend = previewRows.map(({ id, ...rest }) => rest)
-      bulkCreateUnitsMutation.mutate({ 
-        propertyUuid: targetPropertyUuid, 
-        units: unitsToSend
-      } as any, {
+      const unitsToSend = importState.previewRows.map(sanitizeRow)
+      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: unitsToSend } as any, {
         onSuccess: () => {
           success('Units imported successfully!')
+          importState.setIsOverlayOpen(false)
           router.push('/properties')
         },
-        onError: (err: any) => error(err?.message || 'Failed to import units')
+        onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import units'))
       })
     }
   }
+  const [pendingRelayFile, setPendingRelayFile] = useState<File | null>(null)
+  const [showRelayModal, setShowRelayModal] = useState(false)
+  const [isRelaying, setIsRelaying] = useState(false)
+  
+  const [activeJobs, setActiveJobs] = useState<any[]>([])
+  const [reviewJob, setReviewJob] = useState<any | null>(null)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [hasDirtyEdits, setHasDirtyEdits] = useState(false)
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'property': return <Building2 size={14} />
-      case 'landlord': return <User size={14} />
-      case 'tenant': return <User size={14} />
-      case 'unit': return <Home size={14} />
-      case 'payment': return <CreditCard size={14} />
-      default: return null
+  const socket = useSocket()
+
+  const fetchJobs = async () => {
+    try {
+      const jobs = await api.get('/pm/bulk-imports')
+      setActiveJobs(jobs)
+    } catch (err) {
+      console.error('Failed to fetch bulk import jobs:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchJobs()
+  }, [])
+
+  useEffect(() => {
+    if (!socket) return
+
+    const handleJobUpdated = () => {
+      fetchJobs()
+    }
+
+    socket.on('bulk_import_updated', handleJobUpdated)
+    return () => {
+      socket.off('bulk_import_updated', handleJobUpdated)
+    }
+  }, [socket])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
+      importState.handleFileUpload(e, fileInputRef)
+    } else {
+      setPendingRelayFile(file)
+      setShowRelayModal(true)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleConfirmRelay = async () => {
+    if (!pendingRelayFile) return
+    setIsRelaying(true)
+    try {
+      const ext = pendingRelayFile.name.split('.').pop()?.toLowerCase() || 'doc'
+
+      const { uploadUrl, fileKey } = await api.post('/pm/bulk-imports/relay-upload-url', {
+        fileName: pendingRelayFile.name,
+        fileType: pendingRelayFile.type || 'application/octet-stream',
+      });
+
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: pendingRelayFile,
+        headers: { 'Content-Type': pendingRelayFile.type || 'application/octet-stream' }
+      });
+
+      const newJob = await api.post('/pm/bulk-imports/relay', {
+        targetPropertyUuid,
+        mode,
+        originalFileName: pendingRelayFile.name,
+        fileUrl: fileKey,
+        fileType: ext,
+      })
+
+      setActiveJobs(prev => [newJob, ...prev])
+      setShowRelayModal(false)
+      setPendingRelayFile(null)
+      success('Document sent to Customer Support team! We will notify you once processed (~48hrs).')
+    } catch (err) {
+      error('Failed to submit document relay request.')
+    } finally {
+      setIsRelaying(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (!reviewJob) return
+    setIsSavingDraft(true)
+    try {
+      await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/staged-data`, {
+        stagedRowsJson: JSON.stringify(importState.previewRows)
+      })
+      queryClient.invalidateQueries({ queryKey: ['pmImportJobs'] })
+      setHasDirtyEdits(false)
+      success('Draft saved! The support agent can now see your changes.')
+    } catch (e: any) {
+      console.error(e)
+      error(e?.message || 'Failed to save draft.')
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
+  const handleOpenReviewModal = (job: any) => {
+    setReviewJob(job)
+    try {
+      const rows = typeof job.stagedRowsJson === 'string' ? JSON.parse(job.stagedRowsJson) : job.stagedRowsJson
+      
+      const cleanRows = rows.map((r: any) => {
+        if (r.tenantPhone && typeof r.tenantPhone === 'string' && r.tenantPhone.startsWith('+234234')) {
+          r.tenantPhone = r.tenantPhone.replace('+234234', '+234')
+        }
+        if (r.landlordPhone && typeof r.landlordPhone === 'string' && r.landlordPhone.startsWith('+234234')) {
+          r.landlordPhone = r.landlordPhone.replace('+234234', '+234')
+        }
+        columns.forEach(col => {
+          if (col.type === 'date' && r[col.key]) {
+            r[col.key] = parseDateString(r[col.key])
+          }
+        })
+        return r
+      })
+
+      importState.setPreviewRows(cleanRows)
+      importState.setPhase('preview')
+      importState.setIsOverlayOpen(true)
+      setHasDirtyEdits(false)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const [jobToDelete, setJobToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteJob = (jobUuid: string) => {
+    setJobToDelete(jobUuid)
+  }
+
+  const confirmDeleteJob = async () => {
+    if (!jobToDelete) return
+    setIsDeleting(true)
+    try {
+      await api.delete(`/pm/bulk-imports/${jobToDelete}`)
+      setActiveJobs(prev => prev.filter(j => j.uuid !== jobToDelete))
+      success('Job deleted successfully')
+      setJobToDelete(null)
+    } catch (err) {
+      error('Failed to delete job')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleApproveStagedImport = (stagedRows: any[]) => {
+    if (!stagedRows || stagedRows.length === 0) return error("No rows to import")
+
+    const validKeys = new Set(columns.map(c => c.key))
+    const sanitizeRow = (row: any) => {
+      const clean: any = {}
+      validKeys.forEach(k => {
+        if (row[k] !== undefined) clean[k] = row[k]
+      })
+      return clean
+    }
+    const sanitizedRows = stagedRows.map(sanitizeRow)
+
+    if (mode === 'full') {
+      bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
+        onSuccess: async (res) => {
+          if (reviewJob?.uuid) {
+            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
+            const jobUuid = reviewJob.uuid
+            setTimeout(() => {
+              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
+            }, 3000)
+          }
+          success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
+          importState.closeOverlay()
+          setReviewJob(null)
+          router.push('/properties')
+        },
+        onError: (err: any) => error(err?.message || 'Failed to complete import')
+      })
+    } else {
+      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: sanitizedRows } as any, {
+        onSuccess: async () => {
+          if (reviewJob?.uuid) {
+            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: sanitizedRows.length }).catch(console.error)
+            const jobUuid = reviewJob.uuid
+            setTimeout(() => {
+              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
+            }, 3000)
+          }
+          success('Successfully imported units!')
+          importState.closeOverlay()
+          setReviewJob(null)
+          queryClient.invalidateQueries({ queryKey: ['property', targetPropertyUuid] })
+          router.push('/properties')
+        },
+        onError: (err: any) => error(err?.message || 'Failed to complete import')
+      })
     }
   }
 
   return (
-    <div className="import-tab animate-fade-in" style={{ padding: '24px 0' }}>
-      <div className="import-tab__header" style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="import-tab animate-fade-in" style={{ padding: '16px 0', maxWidth: 900, margin: '0 auto' }}>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 8 }}>Bulk Data Import</h2>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Onboard properties and tenants in bulk via CSV upload.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>
+            Bulk Data Import
+          </h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            Import your properties, landlords, or units via CSV, Excel, PDF, or image documents.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', background: 'var(--bg)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
+          <button
+            onClick={() => setMode('full')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: 'none',
+              background: mode === 'full' ? 'white' : 'transparent',
+              color: mode === 'full' ? 'var(--dark)' : 'var(--text-muted)',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: mode === 'full' ? 'var(--shadow-sm)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            Full Portfolio
+          </button>
+          <button
+            onClick={() => setMode('units')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: 'none',
+              background: mode === 'units' ? 'white' : 'transparent',
+              color: mode === 'units' ? 'var(--dark)' : 'var(--text-muted)',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              boxShadow: mode === 'units' ? 'var(--shadow-sm)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            Units & Leases
+          </button>
+        </div>
+      </div>
+
+      {mode === 'units' && (
+        <div style={{ marginBottom: 20, background: 'white', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
+          <label className="form-label" style={{ fontWeight: 600, fontSize: 13, color: 'var(--dark)', display: 'block', marginBottom: 8 }}>
+            Select Target Property <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
+          <FormSelect
+            value={targetPropertyUuid}
+            onChange={val => setTargetPropertyUuid(val)}
+            options={propertyOptions}
+            placeholder="-- Choose property to add units into --"
+            triggerStyle={{ height: 44, borderRadius: 10 }}
+            searchable
+          />
+        </div>
+      )}
+
+      <ActiveImportJobsList
+        jobs={activeJobs}
+        onOpenReviewModal={handleOpenReviewModal}
+        onDeleteJob={handleDeleteJob}
+      />
+      
+      <div style={{ marginBottom: 32 }} />
+
+      <div 
+        style={{ 
+          border: '2px dashed var(--border)', 
+          borderRadius: 20, 
+          padding: '60px 32px', 
+          textAlign: 'center', 
+          background: 'white',
+          transition: 'all 0.2s'
+        }}
+      >
+        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid var(--border)' }}>
+          <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
         </div>
         
-        <div style={{ display: 'flex', background: 'var(--ivory-dim)', padding: 4, borderRadius: 12 }}>
-          <button 
-            className={cn('tab-btn', mode === 'full' && 'tab-btn--active')}
-            onClick={() => { setMode('full'); setPreviewRows([]); }}
-            style={tabBtnStyle(mode === 'full')}
-          >
-            Full Import
-          </button>
-          <button 
-            className={cn('tab-btn', mode === 'units' && 'tab-btn--active')}
-            onClick={() => { setMode('units'); setPreviewRows([]); }}
-            style={tabBtnStyle(mode === 'units')}
-          >
-            Units Only
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
+          Upload your document or spreadsheet
+        </h3>
+        
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
+          Drag and drop your file here or click to browse. Supports Excel (.xlsx, .csv) for direct import, or PDF/Images for assisted support onboarding.
+        </p>
+
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
+          <label className={cn('btn btn--primary', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')} style={{ borderRadius: 12, padding: '12px 28px', height: 44, cursor: 'pointer', fontSize: 14 }}>
+            <Upload size={18} style={{ marginRight: 8 }} /> Select File
+            <input type="file" accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
+          </label>
+          
+          <button className="btn btn--secondary" onClick={handleDownloadTemplate} style={{ borderRadius: 12, padding: '12px 24px', height: 44, fontSize: 14 }}>
+            <Download size={18} style={{ marginRight: 8 }} /> Download Template
           </button>
         </div>
       </div>
 
-      <div className="import-card" style={{ background: 'white', borderRadius: 24, border: '1px solid var(--border)', overflow: 'hidden' }}>
-        <div className="import-card__top" style={{ padding: 24, background: 'var(--ivory-dim)', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              {mode === 'units' && (
-                <select 
-                  className="form-input" 
-                  style={{ width: 250, height: 42 }}
-                  value={targetPropertyUuid} 
-                  onChange={e => setTargetPropertyUuid(e.target.value)}
-                >
-                  <option value="">-- Choose Property --</option>
-                  {properties.map((p: any) => <option key={p.uuid} value={p.uuid}>{p.name}</option>)}
-                </select>
-              )}
-              <label className={cn('btn btn--primary', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')} style={{ height: 42, borderRadius: 12 }}>
-                <FileSpreadsheet size={18} style={{ marginRight: 8 }} /> 
-                {previewRows.length > 0 ? 'Change File' : 'Upload CSV'}
-                <input type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileUpload} disabled={mode === 'units' && !targetPropertyUuid} />
-              </label>
-            </div>
-            
-            <button className="btn btn--secondary" onClick={handleDownloadTemplate} style={{ height: 42, borderRadius: 12 }}>
-              <Download size={18} style={{ marginRight: 8 }} /> Template
-            </button>
-            <button className="btn btn--secondary" onClick={handleAddRow} style={{ height: 42, borderRadius: 12, background: 'var(--forest-faint)', color: 'var(--forest)', borderColor: 'rgba(0,102,68,0.2)' }}>
-              <Plus size={18} style={{ marginRight: 8 }} /> Add Row
-            </button>
-          </div>
-        </div>
+      {/* Relay Prompt Modal */}
+      <RelayConfirmationModal
+        isOpen={showRelayModal}
+        file={pendingRelayFile}
+        onClose={() => {
+          setShowRelayModal(false)
+          setPendingRelayFile(null)
+        }}
+        onConfirm={handleConfirmRelay}
+        isSubmitting={isRelaying}
+      />
 
-        {previewRows.length > 0 ? (
-          <div className="import-preview">
-            <div className="import-table-container" style={{ maxHeight: 500, overflow: 'auto' }}>
-              <table className="import-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead style={{ position: 'sticky', top: 0, background: 'white', zIndex: 5 }}>
-                  <tr>
-                    {columns.map(col => (
-                      <th key={col.key} style={{ textAlign: 'left', padding: '16px', borderBottom: '2px solid var(--border)', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {getCategoryIcon(col.category)}
-                          {col.label}
-                          {col.required && <span style={{ color: 'var(--error)' }}>*</span>}
-                        </div>
-                      </th>
-                    ))}
-                    <th style={{ borderBottom: '2px solid var(--border)' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewRows.map((row, i) => (
-                    <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      {columns.map(col => (
-                        <td key={col.key} style={{ padding: '8px 12px' }}>
-                          <input 
-                            type="text"
-                            value={row[col.key]}
-                            onChange={e => updateRow(i, col.key, e.target.value)}
-                            style={{ 
-                              width: '100%', 
-                              padding: '8px', 
-                              border: '1px solid ' + (validationErrors[`${row.id}-${col.key}`] ? 'var(--error)' : 'transparent'),
-                              borderRadius: 4,
-                              background: validationErrors[`${row.id}-${col.key}`] ? 'var(--error-bg)' : 'transparent'
-                            }}
-                          />
-                        </td>
-                      ))}
-                      <td style={{ padding: '8px 12px' }}>
-                        <button 
-                          onClick={() => {
-                            const updated = previewRows.filter(r => r.id !== row.id);
-                            setPreviewRows(updated);
-                            // Clean up errors for this row
-                            setValidationErrors(prev => {
-                              const next = { ...prev };
-                              Object.keys(next).forEach(key => {
-                                if (key.startsWith(`${row.id}-`)) delete next[key];
-                              });
-                              return next;
-                            });
-                            revalidateDuplicates(updated);
-                          }} 
-                          style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="import-footer" style={{ padding: 24, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-                Total records: <strong>{previewRows.length}</strong>
-              </div>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button className="btn btn--secondary" onClick={() => setPreviewRows([])}>Cancel</button>
-                <button className="btn btn--primary" onClick={handleConfirmImport} disabled={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}>
-                   {bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending ? 'Processing...' : 'Confirm Import'}
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ padding: '80px 40px', textAlign: 'center' }}>
-            <FileSpreadsheet size={48} style={{ color: 'var(--forest)', opacity: 0.2, marginBottom: 16 }} />
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Ready to import?</h3>
-            <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto 24px' }}>
-              Download the template, fill in your data, and upload it here to preview before saving.
-            </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-              <button className="btn btn--primary" onClick={handleAddRow} style={{ borderRadius: 12, padding: '12px 32px' }}>
-                <Plus size={18} style={{ marginRight: 8 }} /> Start with Manual Entry
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {importState.isOverlayOpen && (
+        <ImportOverlay 
+          {...importState}
+          mode={mode}
+          columns={columns}
+          isPending={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}
+          handleConfirmImport={(rows) => handleApproveStagedImport(rows || importState.previewRows)}
+          reviewJob={reviewJob}
+          handleSaveDraft={handleSaveDraft}
+          isSavingDraft={isSavingDraft}
+          hasDirtyEdits={hasDirtyEdits}
+          setHasDirtyEdits={setHasDirtyEdits}
+          updateRowField={(rowId, field, value) => {
+            setHasDirtyEdits(true)
+            importState.updateRowField(rowId, field, value)
+          }}
+          closeOverlay={() => {
+            importState.closeOverlay()
+            setReviewJob(null)
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={jobToDelete !== null}
+        onClose={() => setJobToDelete(null)}
+        title="Delete Upload Request"
+        icon={AlertTriangle}
+        maxWidth={400}
+        footer={
+          <>
+            <button className="btn btn--secondary" onClick={() => setJobToDelete(null)} disabled={isDeleting}>
+              Cancel
+            </button>
+            <button className="btn btn--primary" onClick={confirmDeleteJob} disabled={isDeleting} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
+              {isDeleting ? 'Deleting...' : 'Delete Request'}
+            </button>
+          </>
+        }
+      >
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+          Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   )
 }
 
-const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-  padding: '8px 16px',
-  borderRadius: 10,
-  border: 'none',
-  background: active ? 'white' : 'transparent',
-  color: active ? 'var(--dark)' : 'var(--text-muted)',
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: 'pointer',
-  boxShadow: active ? 'var(--shadow-sm)' : 'none',
-  transition: 'all 0.2s'
-})

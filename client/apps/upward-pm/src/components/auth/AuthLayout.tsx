@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { UpwardLogo } from '../common/UpwardLogo';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ShieldCheck, CheckCircle2, Building, TrendingUp } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 
 import Link from 'next/link';
@@ -14,6 +14,7 @@ interface AuthLayoutProps {
   visualTitle?: React.ReactNode;
   visualDesc?: string;
   hideMobileLogo?: boolean;
+  hideBackToWebsite?: boolean;
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ 
@@ -22,7 +23,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
   subtitle,
   visualTitle,
   visualDesc,
-  hideMobileLogo = false
+  hideMobileLogo = false,
+  hideBackToWebsite = false
 }) => {
   return (
     <div className="auth-layout">
@@ -36,6 +38,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           </header>
 
           <main className="auth-layout__visual-body">
+
             <h1 className="auth-layout__visual-title">
               {visualTitle || (
                 <>
@@ -48,51 +51,43 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               {visualDesc || "Onboard tenants, manage payment requests, and track property performance in one premium dashboard designed for modern property managers."}
             </p>
             
-            <div className="auth-layout__visual-showcase" style={{ position: 'relative', width: '100%', height: '220px', marginTop: '40px' }}>
-              <div className="auth-layout__ambient-circle" style={{
-                position: 'absolute',
-                width: '300px',
-                height: '300px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.08)',
-                top: '-50px',
-                left: '-50px',
-                filter: 'blur(40px)',
-              }}></div>
-              
-              <div className="auth-layout__card-mock" style={{
-                position: 'absolute',
-                width: '320px',
-                height: '200px',
-                background: 'rgba(255, 255, 255, 0.12)',
-                backdropFilter: 'blur(16px)',
-                WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '20px',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) rotate(-6deg)',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
-                overflow: 'hidden',
-              }}>
-                <img 
-                  src="/attachments/pm-dashboard.png" 
-                  alt="Upward PM Dashboard Preview" 
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: 'inherit',
-                    opacity: 0.85,
-                    transition: 'transform 0.5s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.05)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)'
-                  }}
-                />
+            {/* Rich Feature Showcase */}
+            <div className="auth-layout__visual-showcase">
+              <div className="showcase-preview-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(22, 101, 52, 0.4)', border: '1px solid rgba(34, 197, 94, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4ade80' }}>
+                      <TrendingUp size={20} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'white' }}>Performance Overview</h4>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255, 255, 255, 0.6)' }}>Real-time rent & tenant tracking</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                    Active
+                  </span>
+                </div>
+
+                <div className="showcase-stats-grid">
+                  <div className="showcase-stat-box">
+                    <div className="showcase-stat-val">99.4%</div>
+                    <div className="showcase-stat-lbl">On-Time Collection</div>
+                  </div>
+                  <div className="showcase-stat-box">
+                    <div className="showcase-stat-val">5,000+</div>
+                    <div className="showcase-stat-lbl">Units Managed</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="auth-hero-features">
+                <div className="auth-hero-pill">
+                  <CheckCircle2 size={15} style={{ color: '#4ade80' }} /> Instant Direct Rent Receipts
+                </div>
+                <div className="auth-hero-pill">
+                  <ShieldCheck size={15} style={{ color: '#b49a69' }} /> Automated Reminders
+                </div>
               </div>
             </div>
           </main>
@@ -112,44 +107,46 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         )}
 
         <main className="auth-shell">
-          {Capacitor.isNativePlatform() ? (
-            <Link
-              href="/welcome"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--text-muted)',
-                fontSize: '14px',
-                textDecoration: 'none',
-                fontWeight: 500,
-                marginBottom: '24px',
-                transition: 'color 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
-              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
-              <ChevronLeft size={16} /> Back
-            </Link>
-          ) : (
-            <a
-              href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--text-muted)',
-                fontSize: '14px',
-                textDecoration: 'none',
-                fontWeight: 500,
-                marginBottom: '24px',
-                transition: 'color 0.2s'
-              }}
-              onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
-              onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
-              <ChevronLeft size={16} /> Back to Website
-            </a>
+          {!hideBackToWebsite && (
+            Capacitor.isNativePlatform() ? (
+              <Link
+                href="/welcome"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--text-muted)',
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  marginBottom: '24px',
+                  transition: 'color 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+                onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                <ChevronLeft size={16} /> Back
+              </Link>
+            ) : (
+              <a
+                href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--text-muted)',
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  marginBottom: '24px',
+                  transition: 'color 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.color = 'var(--text)'}
+                onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
+                <ChevronLeft size={16} /> Back to Website
+              </a>
+            )
           )}
           {children}
         </main>

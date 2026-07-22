@@ -61,9 +61,10 @@ import { ManualPaymentsController } from './controllers/manual-payments.controll
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 import { PublicDocumentController } from './public/public-document.controller'
-import { WalletController } from './user/wallet.controller'
+import { PmBulkImportController, AdminBulkImportController } from './controllers/bulk-import.controller'
 
 import { NotificationsGateway } from '../websockets/notifications.gateway'
+
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule],
@@ -126,7 +127,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     AdminWhatsappSequenceController,
     AdminEmailSequenceController,
     PublicDocumentController,
-    WalletController,
+    PmBulkImportController,
+    AdminBulkImportController,
   ],
 })
 export class HttpModule {}

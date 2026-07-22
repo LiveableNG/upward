@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { RefreshCcw, Clock } from 'lucide-react'
+import { RefreshCcw, Clock, LayoutDashboard } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
-
 
 import FilterToolbar, { type DateFilter } from '../features/dashboard/components/FilterToolbar'
 import { UsersTable, type UnifiedUserRecord } from '../features/dashboard/components/UsersTable'
@@ -12,7 +11,10 @@ import OverviewTab from '../features/dashboard/components/OverviewTab'
 import PreviewDrawer, { type DrawerEntity } from '../features/dashboard/components/PreviewDrawer'
 import { DeleteConfirmationModal } from '../features/dashboard/components/DeleteConfirmationModal'
 import { LoginSessionsTab } from '../features/dashboard/components/LoginSessionsTab'
-import SkeletonStyles, { MetricCardSkeleton, TableSkeleton } from '../features/dashboard/components/Skeletons'
+import SkeletonStyles, {
+  MetricCardSkeleton,
+  TableSkeleton,
+} from '../features/dashboard/components/Skeletons'
 
 // Feature Types
 import type {
@@ -32,12 +34,18 @@ function readLocalPref<T>(key: string, fallback: T): T {
   try {
     const val = localStorage.getItem(key)
     if (val !== null) return JSON.parse(val) as T
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return fallback
 }
 
 function writeLocalPref(key: string, value: unknown) {
-  try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* ignore */ }
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    /* ignore */
+  }
 }
 
 interface DashboardProps {
@@ -51,7 +59,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   // ── Tab State (persisted) ──────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const saved = readLocalPref<ActiveTab | string>('dash_activeTab', 'overview')
-    if (saved === 'waitlist' || saved === 'signedUp' || saved === 'invited' || saved === 'revenue') {
+    if (
+      saved === 'waitlist' ||
+      saved === 'signedUp' ||
+      saved === 'invited' ||
+      saved === 'revenue'
+    ) {
       return 'users'
     }
     return saved as ActiveTab
@@ -78,13 +91,20 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
   // ── Selection / Bulk Delete State ──────────────────────────────
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
-  const [deleteModal, setDeleteModal] = useState<{ show: boolean; ids: string[] }>({ show: false, ids: [] })
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; ids: string[] }>({
+    show: false,
+    ids: [],
+  })
   const [deleting, setDeleting] = useState(false)
 
   // ── Unified Users filters ──────────────────────────────────────
   const [usersSubtab, setUsersSubtab] = useState<'signedUp' | 'guest' | 'unsynced'>('signedUp')
-  const [originFilter, setOriginFilter] = useState<'all' | 'waitlist' | 'selfRegistered' | 'invited'>('all')
-  const [contactFilter, setContactFilter] = useState<'all' | 'emailOnly' | 'phoneOnly' | 'both' | 'neither'>('all')
+  const [originFilter, setOriginFilter] = useState<
+    'all' | 'waitlist' | 'selfRegistered' | 'invited'
+  >('all')
+  const [contactFilter, setContactFilter] = useState<
+    'all' | 'emailOnly' | 'phoneOnly' | 'both' | 'neither'
+  >('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -195,8 +215,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     setDeleteModal({ show: true, ids: Array.from(selectedUserIds) })
   }
 
-  const toggleSelectUser = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const toggleSelectUser = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
     const next = new Set(selectedUserIds)
     if (next.has(id)) next.delete(id)
     else next.add(id)
@@ -210,7 +230,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       setSelectedUserIds(new Set(currentDirectoryList.map((item: any) => item.uuid)))
     }
   }
-
 
   const openDrawerForUser = (item: UnifiedUserRecord | any) => {
     let userStatus = 'PENDING_TENANT'
@@ -228,7 +247,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         userStatus = isPaid ? 'TENANT' : 'PENDING_TENANT'
         userType = isPaid ? 'TENANT' : 'PENDING_TENANT'
       } else if ('status' in item) {
-        const isPaid = item.status === 'SIGNED_UP_PAID' || item.status === 'GUEST_PAID' || item.totalPaid > 0
+        const isPaid =
+          item.status === 'SIGNED_UP_PAID' || item.status === 'GUEST_PAID' || item.totalPaid > 0
         userStatus = isPaid ? 'TENANT' : 'PENDING_TENANT'
         userType = isPaid ? 'TENANT' : 'PENDING_TENANT'
       } else if ('converted' in item) {
@@ -265,7 +285,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       propertyCount: pm.propertiesCount,
     })
   }
-
 
   const unifiedUsers = useMemo((): UnifiedUserRecord[] => {
     const list: UnifiedUserRecord[] = []
@@ -386,7 +405,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     const originFiltered = usersFilteredByPm.filter((u) => {
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited' && u.origin !== 'INVITED_EMAIL' && u.origin !== 'INVITED_PHONE') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
       return true
     })
 
@@ -409,8 +433,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       // 1. Origin Filter
       if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
       if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
-      if (originFilter === 'invited' && u.origin !== 'INVITED_EMAIL' && u.origin !== 'INVITED_PHONE') return false
-      
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
       // 2. Contact Filter
       if (contactFilter !== 'all') {
         const emailStr = u.email || ''
@@ -430,9 +459,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
     switch (activeTab) {
-      case 'users': return filteredUsers
-      case 'pms': return pmList
-      default: return []
+      case 'users':
+        return filteredUsers
+      case 'pms':
+        return pmList
+      default:
+        return []
     }
   }, [activeTab, filteredUsers, pmList])
 
@@ -458,12 +490,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         const activity = u.totalPaid > 0 ? 'Payed' : 'None'
 
         return {
-          'Name': `${u.firstName} ${u.lastName}`.trim(),
+          Name: `${u.firstName} ${u.lastName}`.trim(),
           'Sign up date': new Date(u.createdAt).toLocaleDateString(),
           'Phone number': u.phone || 'N/A',
-          'Email': u.email,
-          'Source': source,
-          'Activity': activity,
+          Email: u.email,
+          Source: source,
+          Activity: activity,
         }
       })
     } else if (activeTab === 'pms') {
@@ -472,7 +504,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         'Manager Name': `${p.firstName} ${p.lastName}`,
         'Email Address': p.email,
         'Phone Number': p.phone,
-        'Status': p.isVerified ? 'Verified' : 'Unverified',
+        Status: p.isVerified ? 'Verified' : 'Unverified',
         'Properties Count': p.propertiesCount,
         'Units Count': p.unitsCount,
         'Revenue Generated (₦)': p.totalGenerated,
@@ -493,7 +525,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       ),
     }))
 
-    XLSX.writeFile(workbook, `Upward_Ecosystem_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`)
+    XLSX.writeFile(
+      workbook,
+      `Upward_Ecosystem_${activeTab}_${new Date().toISOString().split('T')[0]}.xlsx`,
+    )
     showToast(`Spreadsheet exported with ${worksheetData.length} records!`)
   }
 
@@ -517,16 +552,50 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       <SkeletonStyles />
 
       {/* ── Top Header & Actions ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontWeight: 800 }}>Ecosystem Dashboard</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-            Multi-team performance metrics, tenant directories, and platform health insights.
-          </p>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <LayoutDashboard size={24} />
+          </div>
+          <div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Ecosystem Dashboard
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Multi-team performance metrics, tenant directories, and platform health insights.
+            </p>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}
+        >
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <div className="date-chips" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <div
+              className="date-chips"
+              style={{ display: 'flex', gap: '6px', alignItems: 'center' }}
+            >
               {[
                 { value: 'all', label: 'All Time' },
                 { value: 'today', label: 'Today' },
@@ -556,7 +625,14 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                gap: '2px',
+              }}
+            >
               <button
                 onClick={fetchDashboardData}
                 className="btn btn-secondary"
@@ -576,19 +652,35 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 <RefreshCcw size={16} style={{ color: 'var(--text-secondary)' }} />
               </button>
               {elapsed && (
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   <Clock size={9} /> Updated {elapsed}
                 </span>
               )}
             </div>
           </div>
           {dateRange === 'custom' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', animation: 'fadeIn 0.2s ease-out' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                animation: 'fadeIn 0.2s ease-out',
+              }}
+            >
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
-                 style={{
+                style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
                   border: '1px solid var(--border)',
@@ -620,7 +712,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
       {/* ── Filter Toolbar (only for directory tabs) ── */}
       {showDirectoryControls && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}
+        >
           <FilterToolbar
             search={search}
             onSearchChange={setSearch}
@@ -630,18 +724,39 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             tabLabel={activeTab}
           />
           {activeTab === 'users' && (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              padding: '16px',
-              background: 'var(--surface-hover)',
-              borderRadius: '12px',
-              border: '1px solid var(--border)',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                padding: '16px',
+                background: 'var(--surface-hover)',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+              }}
+            >
               {/* Users Subtab Switcher */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '10px', background: 'var(--white)', padding: '3px', border: '1px solid var(--border)', width: 'fit-content' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    borderRadius: '10px',
+                    background: 'var(--white)',
+                    padding: '3px',
+                    border: '1px solid var(--border)',
+                    width: 'fit-content',
+                  }}
+                >
                   {(['signedUp', 'guest', 'unsynced'] as const).map((view) => (
                     <button
                       key={view}
@@ -651,8 +766,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                         setContactFilter('all')
                       }}
                       style={{
-                        padding: '6px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                        border: 'none', transition: 'all 0.15s ease',
+                        padding: '6px 16px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: 'none',
+                        transition: 'all 0.15s ease',
                         background: usersSubtab === view ? 'var(--white)' : 'transparent',
                         color: usersSubtab === view ? 'var(--text)' : 'var(--text-muted)',
                         boxShadow: usersSubtab === view ? 'var(--shadow-sm)' : 'none',
@@ -668,7 +788,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   value={pmFilter}
                   onChange={(e) => setPmFilter(e.target.value)}
                   className="input"
-                  style={{ height: '34px', width: '220px', fontSize: '12px', padding: '0 8px', fontWeight: 600 }}
+                  style={{
+                    height: '34px',
+                    width: '220px',
+                    fontSize: '12px',
+                    padding: '0 8px',
+                    fontWeight: 600,
+                  }}
                 >
                   <option value="all">All Managers & Platforms</option>
                   {pmList.map((pm) => (
@@ -680,7 +806,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
               </div>
 
               {/* Origin Filters with Counts */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  borderTop: '1px solid var(--border)',
+                  paddingTop: '12px',
+                }}
+              >
                 <button
                   onClick={() => setOriginFilter('all')}
                   className={`date-chip ${originFilter === 'all' ? 'active' : ''}`}
@@ -711,13 +845,33 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
               {/* Contact Filters with Counts */}
               {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', paddingRight: '8px', fontWeight: 600 }}>Contact Info:</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingRight: '8px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Contact Info:
+                  </span>
                   <button
                     onClick={() => setContactFilter('all')}
                     className={`date-chip ${contactFilter === 'all' ? 'active' : ''}`}
                   >
-                    All ({originCounts.waitlist + originCounts.invited + originCounts.selfRegistered})
+                    All (
+                    {originCounts.waitlist + originCounts.invited + originCounts.selfRegistered})
                   </button>
                   <button
                     onClick={() => setContactFilter('emailOnly')}
@@ -751,7 +905,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       )}
 
       {/* ── Segmented Display Tabs ── */}
-      <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid var(--border)', marginBottom: '20px', marginTop: '8px', overflowX: 'auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '4px',
+          borderBottom: '1px solid var(--border)',
+          marginBottom: '20px',
+          marginTop: '8px',
+          overflowX: 'auto',
+        }}
+      >
         {TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -776,11 +939,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       </div>
 
       {/* ── Overview Tab ── */}
-      {activeTab === 'overview' && (
-        loading ? (
+      {activeTab === 'overview' &&
+        (loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-              {Array.from({ length: 8 }).map((_, i) => <MetricCardSkeleton key={i} />)}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '16px',
+              }}
+            >
+              {Array.from({ length: 8 }).map((_, i) => (
+                <MetricCardSkeleton key={i} />
+              ))}
             </div>
           </div>
         ) : (
@@ -791,15 +962,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             onPreview={openDrawerForUser}
             token={token}
           />
-        )
-      )}
-
-
+        ))}
 
       {/* ── Sessions Tab ── */}
-      {activeTab === 'sessions' && (
-        <LoginSessionsTab token={token} />
-      )}
+      {activeTab === 'sessions' && <LoginSessionsTab token={token} />}
 
       {/* ── Directory Table Views ── */}
       {showDirectoryControls && (
@@ -841,21 +1007,38 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
           {/* ── Pagination Controls ── */}
           {!loading && totalPages >= 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '20px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   {currentDirectoryList.length > 0
-                    ? `Showing ${((currentPage - 1) * itemsPerPage) + 1}–${Math.min(currentPage * itemsPerPage, currentDirectoryList.length)} of ${currentDirectoryList.length}`
+                    ? `Showing ${(currentPage - 1) * itemsPerPage + 1}–${Math.min(currentPage * itemsPerPage, currentDirectoryList.length)} of ${currentDirectoryList.length}`
                     : 'No entries'}
                 </span>
                 <select
                   value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                   className="input"
-                  style={{ height: '34px', width: 'auto', padding: '0 10px', fontSize: '12px', fontWeight: 600 }}
+                  style={{
+                    height: '34px',
+                    width: 'auto',
+                    padding: '0 10px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
                 >
                   {ITEMS_PER_PAGE_OPTIONS.map((n) => (
-                    <option key={n} value={n}>{n} / page</option>
+                    <option key={n} value={n}>
+                      {n} / page
+                    </option>
                   ))}
                 </select>
               </div>
@@ -870,7 +1053,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   >
                     Previous
                   </button>
-                  <span style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', padding: '0 8px' }}>
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: 'var(--text-secondary)',
+                      padding: '0 8px',
+                    }}
+                  >
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
@@ -889,10 +1081,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       )}
 
       {/* ── Preview Drawer ── */}
-      <PreviewDrawer
-        entity={drawerEntity}
-        onClose={() => setDrawerEntity(null)}
-      />
+      <PreviewDrawer entity={drawerEntity} onClose={() => setDrawerEntity(null)} />
 
       {/* ── Delete Confirmation Modal ── */}
       <DeleteConfirmationModal

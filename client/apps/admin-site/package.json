@@ -17,6 +17,7 @@
     "@upward/common-utils": "workspace:*",
     "@upward/shared-types": "workspace:*",
     "clsx": "^2.1.1",
+    "libphonenumber-js": "^1.12.42",
     "lucide-react": "^0.477.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

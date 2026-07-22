@@ -101,10 +101,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
     setSendingNotif(true)
     try {
-      await apiService.post(`/admin/pms/${uuid}/notify`, {
-        title: notifTitle,
-        message: notifMessage,
-      }, token)
+      await apiService.post(
+        `/admin/pms/${uuid}/notify`,
+        {
+          title: notifTitle,
+          message: notifMessage,
+        },
+        token,
+      )
 
       showToast('Notification sent successfully!')
       setNotifTitle('')
@@ -123,13 +127,17 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
     setUpdatingProfile(true)
     try {
-      await apiService.patch(`/admin/pms/${uuid}`, {
-        firstName: editFirstName,
-        lastName: editLastName,
-        email: editEmail,
-        phone: editPhone,
-        businessName: editBusinessName,
-      }, token)
+      await apiService.patch(
+        `/admin/pms/${uuid}`,
+        {
+          firstName: editFirstName,
+          lastName: editLastName,
+          email: editEmail,
+          phone: editPhone,
+          businessName: editBusinessName,
+        },
+        token,
+      )
 
       showToast('Property manager profile updated successfully!')
       fetchPmDetails()
@@ -146,11 +154,19 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
     setUpdatingVerification(true)
     try {
       const nextVerified = !pm.isVerified
-      await apiService.patch(`/admin/pms/${uuid}`, {
-        isVerified: nextVerified,
-      }, token)
+      await apiService.patch(
+        `/admin/pms/${uuid}`,
+        {
+          isVerified: nextVerified,
+        },
+        token,
+      )
 
-      showToast(nextVerified ? 'Property manager verified successfully!' : 'Property manager verification revoked!')
+      showToast(
+        nextVerified
+          ? 'Property manager verified successfully!'
+          : 'Property manager verification revoked!',
+      )
       fetchPmDetails()
     } catch (err: any) {
       console.error(err)
@@ -183,25 +199,67 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
-      
       {/* Back & Breadcrumb header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <Link to="/metrics" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
-          <ArrowLeft size={16} />
-        </Link>
-        <div>
-          <h2 style={{ margin: 0 }}>Property Manager Detail</h2>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Ecosystem Registry / {pm.businessName || 'Property Manager'} • {pm.email}
-          </span>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to="/metrics" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
+            <ArrowLeft size={16} />
+          </Link>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Briefcase size={24} />
+          </div>
+          <div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Property Manager Detail
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Ecosystem Registry / {pm.businessName || 'Property Manager'} • {pm.email}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'start' }}>
-        
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gap: '24px',
+          alignItems: 'start',
+        }}
+      >
         {/* LEFT COLUMN: Overview & Quick Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'sticky', top: '84px', alignSelf: 'start' }}>
-          
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            position: 'sticky',
+            top: '84px',
+            alignSelf: 'start',
+          }}
+        >
           {/* Identity Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
             <div
@@ -217,7 +275,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px auto',
-                border: '1px solid rgba(99, 102, 241, 0.15)'
+                border: '1px solid rgba(99, 102, 241, 0.15)',
               }}
             >
               {pm.businessName ? pm.businessName[0] : 'PM'}
@@ -225,7 +283,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             <h3 style={{ margin: '0 0 6px 0', fontSize: '18px' }}>
               {pm.businessName || `${pm.firstName} ${pm.lastName}`}
             </h3>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '8px',
+                alignItems: 'center',
+              }}
+            >
               <span
                 style={{
                   fontSize: '11px',
@@ -234,7 +299,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   borderRadius: '12px',
                   backgroundColor: 'rgba(99, 102, 241, 0.08)',
                   color: '#6366f1',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
                 }}
               >
                 Upward PM
@@ -250,7 +315,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   textTransform: 'uppercase',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '4px',
                 }}
               >
                 {pm.isVerified ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
@@ -259,20 +324,59 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             </div>
 
             {/* Profile Contact info list */}
-            <div style={{ marginTop: '24px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+            <div
+              style={{
+                marginTop: '24px',
+                textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                fontSize: '13px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Briefcase size={14} style={{ color: 'var(--text-muted)' }} />
-                <span>Contact Manager: {pm.firstName} {pm.lastName}</span>
+                <span>
+                  Contact Manager: {pm.firstName} {pm.lastName}
+                </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Mail size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>{pm.email}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Phone size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>{pm.phone || 'No phone set'}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>Manager since {new Date(pm.createdAt).toLocaleDateString()}</span>
               </div>
@@ -280,14 +384,45 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
             {/* Verification details */}
             {pm.verification ? (
-              <div style={{ marginTop: '20px', padding: '14px', background: 'var(--surface-hover)', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>Verification Details</div>
-                <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div><strong style={{ color: 'var(--text-muted)' }}>ID Type:</strong> {pm.verification.idType}</div>
-                  <div><strong style={{ color: 'var(--text-muted)' }}>ID Number:</strong> {pm.verification.idNumber}</div>
+              <div
+                style={{
+                  marginTop: '20px',
+                  padding: '14px',
+                  background: 'var(--surface-hover)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  textAlign: 'left',
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Verification Details
+                </div>
+                <div
+                  style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}
+                >
+                  <div>
+                    <strong style={{ color: 'var(--text-muted)' }}>ID Type:</strong>{' '}
+                    {pm.verification.idType}
+                  </div>
+                  <div>
+                    <strong style={{ color: 'var(--text-muted)' }}>ID Number:</strong>{' '}
+                    {pm.verification.idNumber}
+                  </div>
                   {pm.verification.idImage && (
                     <div style={{ marginTop: '4px' }}>
-                      <a href={pm.verification.idImage} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                      <a
+                        href={pm.verification.idImage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
+                      >
                         View Uploaded Document
                       </a>
                     </div>
@@ -295,7 +430,18 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 </div>
               </div>
             ) : (
-              <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '8px', border: '1px dotted rgba(239, 68, 68, 0.2)', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'left' }}>
+              <div
+                style={{
+                  marginTop: '20px',
+                  padding: '12px',
+                  background: 'rgba(239, 68, 68, 0.05)',
+                  borderRadius: '8px',
+                  border: '1px dotted rgba(239, 68, 68, 0.2)',
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  textAlign: 'left',
+                }}
+              >
                 No uploaded verification files found for this manager.
               </div>
             )}
@@ -315,7 +461,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   border: '1px solid transparent',
                   fontWeight: 600,
                   fontSize: '13px',
-                  gap: '8px'
+                  gap: '8px',
                 }}
               >
                 {pm.isVerified ? <XCircle size={15} /> : <CheckCircle2 size={15} />}
@@ -331,9 +477,22 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
           {/* Contact & In-App Notification Tool */}
           <div className="card" style={{ padding: '24px' }}>
             <h4 style={{ margin: '0 0 16px 0', fontSize: '15px' }}>Send In-App Notification</h4>
-            <form onSubmit={handleSendNotification} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form
+              onSubmit={handleSendNotification}
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+            >
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Title</label>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Title
+                </label>
                 <input
                   type="text"
                   value={notifTitle}
@@ -344,7 +503,17 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Message</label>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Message
+                </label>
                 <textarea
                   value={notifMessage}
                   onChange={(e) => setNotifMessage(e.target.value)}
@@ -358,27 +527,46 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 type="submit"
                 disabled={sendingNotif}
                 className="btn btn-primary"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '38px', backgroundColor: '#6366f1', borderColor: '#6366f1' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  height: '38px',
+                  backgroundColor: '#6366f1',
+                  borderColor: '#6366f1',
+                }}
               >
                 <Send size={14} /> {sendingNotif ? 'Sending alert...' : 'Dispatch Message'}
               </button>
             </form>
           </div>
-
         </div>
 
         {/* RIGHT COLUMN: Details list & Logs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
           {/* Edit Profile Details */}
           {isDeveloper && (
             <div className="card" style={{ padding: '24px' }}>
-              <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h4
+                style={{
+                  margin: '0 0 16px 0',
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
                 <Edit2 size={16} /> Edit Manager Profile Details
               </h4>
-              <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <form
+                onSubmit={handleUpdateProfile}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}
+              >
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Business Name</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Business Name
+                  </label>
                   <input
                     type="text"
                     value={editBusinessName}
@@ -388,7 +576,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>First Name</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    First Name
+                  </label>
                   <input
                     type="text"
                     value={editFirstName}
@@ -398,7 +588,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Last Name</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     value={editLastName}
@@ -408,7 +600,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Email Address</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     value={editEmail}
@@ -418,7 +612,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Phone Number</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     value={editPhone}
@@ -426,8 +622,20 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     className="input"
                   />
                 </div>
-                <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                  <button type="submit" disabled={updatingProfile} className="btn btn-primary" style={{ height: '38px', backgroundColor: '#6366f1', borderColor: '#6366f1' }}>
+                <div
+                  style={{
+                    gridColumn: 'span 2',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    marginTop: '8px',
+                  }}
+                >
+                  <button
+                    type="submit"
+                    disabled={updatingProfile}
+                    className="btn btn-primary"
+                    style={{ height: '38px', backgroundColor: '#6366f1', borderColor: '#6366f1' }}
+                  >
                     {updatingProfile ? 'Saving updates...' : 'Save Profile Changes'}
                   </button>
                 </div>
@@ -437,11 +645,28 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
           {/* Managed Properties & Units */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <Home size={16} /> Managed Real Estate Properties
             </h4>
             {pm.properties && pm.properties.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  paddingRight: '4px',
+                }}
+              >
                 {pm.properties.map((prop: any) => (
                   <div
                     key={prop.id}
@@ -449,19 +674,40 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                       padding: '16px',
                       borderRadius: 'var(--radius-md)',
                       backgroundColor: 'var(--surface-hover)',
-                      border: '1px solid var(--border)'
+                      border: '1px solid var(--border)',
                     }}
                   >
-                    <span style={{ fontWeight: 700, display: 'block', fontSize: '14px', color: 'var(--text)' }}>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        display: 'block',
+                        fontSize: '14px',
+                        color: 'var(--text)',
+                      }}
+                    >
                       {prop.address || 'Property Listing'}
                     </span>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        display: 'block',
+                        marginBottom: '8px',
+                      }}
+                    >
                       Currency: {prop.currency} • Subaccount: {prop.subaccountId || 'None linked'}
                     </span>
-                    
+
                     {/* Units list */}
                     {prop.units && prop.units.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          marginTop: '12px',
+                        }}
+                      >
                         {prop.units.map((unit: any) => (
                           <div
                             key={unit.id}
@@ -473,37 +719,76 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
-                              fontSize: '12px'
+                              fontSize: '12px',
                             }}
                           >
                             <div>
-                              <strong style={{ color: 'var(--text)' }}>Unit {unit.unitName || unit.name || unit.id}</strong>
+                              <strong style={{ color: 'var(--text)' }}>
+                                Unit {unit.unitName || unit.name || unit.id}
+                              </strong>
                               {unit.unitType && (
-                                <span style={{ color: 'var(--text-muted)', marginLeft: '6px', fontSize: '11px', background: 'var(--surface-hover)', padding: '2px 6px', borderRadius: '4px' }}>
+                                <span
+                                  style={{
+                                    color: 'var(--text-muted)',
+                                    marginLeft: '6px',
+                                    fontSize: '11px',
+                                    background: 'var(--surface-hover)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                  }}
+                                >
                                   {unit.unitType}
                                 </span>
                               )}
-                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              <div
+                                style={{
+                                  fontSize: '11px',
+                                  color: 'var(--text-secondary)',
+                                  marginTop: '2px',
+                                }}
+                              >
                                 {unit.tenant ? (
                                   <>
                                     Tenant:{' '}
-                                    <Link to={`/users/${unit.tenant.uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                                    <Link
+                                      to={`/users/${unit.tenant.uuid}`}
+                                      style={{
+                                        color: 'var(--accent)',
+                                        textDecoration: 'none',
+                                        fontWeight: 600,
+                                      }}
+                                    >
                                       {unit.tenant.firstName} {unit.tenant.lastName}
                                     </Link>
                                   </>
                                 ) : (
-                                  <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>Vacant</span>
+                                  <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                                    Vacant
+                                  </span>
                                 )}
                               </div>
                             </div>
-                            <div style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                              ₦{unit.rentAmount ? unit.rentAmount.toLocaleString() : '0'} / {unit.rentType || 'year'}
+                            <div
+                              style={{
+                                textAlign: 'right',
+                                fontWeight: 600,
+                                color: 'var(--text-secondary)',
+                              }}
+                            >
+                              ₦{unit.rentAmount ? unit.rentAmount.toLocaleString() : '0'} /{' '}
+                              {unit.rentType || 'year'}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--text-muted)',
+                          fontStyle: 'italic',
+                        }}
+                      >
                         No units added to this property yet.
                       </span>
                     )}
@@ -519,14 +804,37 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
           {/* Invited Tenants Directory */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <Users size={16} /> Decrypted Tenant Registry
             </h4>
             {pm.tenants && pm.tenants.length > 0 ? (
-              <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+              <div
+                className="table-container"
+                style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}
+              >
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                  }}
+                >
                   <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                    <tr
+                      style={{
+                        borderBottom: '1px solid var(--border)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
                       <th style={{ padding: '8px 12px' }}>Name</th>
                       <th style={{ padding: '8px 12px' }}>Email</th>
                       <th style={{ padding: '8px 12px' }}>Phone</th>
@@ -537,8 +845,13 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     {pm.tenants.map((tenant: any) => (
                       <tr key={tenant.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '12px', fontWeight: 600 }}>
-                          <Link to={`/users/${tenant.uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-                            {tenant.firstName ? `${tenant.firstName} ${tenant.lastName}` : 'Invite Placeholder'}
+                          <Link
+                            to={`/users/${tenant.uuid}`}
+                            style={{ color: 'var(--accent)', textDecoration: 'none' }}
+                          >
+                            {tenant.firstName
+                              ? `${tenant.firstName} ${tenant.lastName}`
+                              : 'Invite Placeholder'}
                           </Link>
                         </td>
                         <td style={{ padding: '12px' }}>{tenant.email}</td>
@@ -547,8 +860,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                           <span
                             className="badge"
                             style={{
-                              backgroundColor: tenant.inviteStatus === 'ACCEPTED' ? 'var(--success-faint)' : 'var(--warning-faint)',
-                              color: tenant.inviteStatus === 'ACCEPTED' ? 'var(--success)' : 'var(--warning)'
+                              backgroundColor:
+                                tenant.inviteStatus === 'ACCEPTED'
+                                  ? 'var(--success-faint)'
+                                  : 'var(--warning-faint)',
+                              color:
+                                tenant.inviteStatus === 'ACCEPTED'
+                                  ? 'var(--success)'
+                                  : 'var(--warning)',
                             }}
                           >
                             {tenant.inviteStatus}
@@ -568,11 +887,28 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
           {/* Activity Log Feed */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <Activity size={16} /> App Action Logs
             </h4>
             {pm.activityLogs && pm.activityLogs.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  paddingRight: '4px',
+                }}
+              >
                 {pm.activityLogs.map((log: any) => (
                   <div
                     key={log.id}
@@ -581,16 +917,28 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: 'var(--surface-hover)',
                       border: '1px solid var(--border)',
-                      fontSize: '12px'
+                      fontSize: '12px',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '4px',
+                      }}
+                    >
                       <span style={{ fontWeight: 600 }}>{log.action}</span>
                       <span style={{ color: 'var(--text-muted)' }}>
-                        {new Date(log.createdAt).toLocaleDateString()} • {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(log.createdAt).toLocaleDateString()} •{' '}
+                        {new Date(log.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </div>
-                    <p style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)' }}>{log.description}</p>
+                    <p style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)' }}>
+                      {log.description}
+                    </p>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       IP: {log.ipAddress || 'unknown'} • App: {log.app}
                     </div>
@@ -603,11 +951,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               </p>
             )}
           </div>
-
         </div>
-
       </div>
-
     </div>
   )
 }

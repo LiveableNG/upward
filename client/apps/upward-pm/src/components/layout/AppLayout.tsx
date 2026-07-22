@@ -35,7 +35,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     localStorage.setItem('upward_sidebar_collapsed', String(newState))
   }
   
-  const isAuthPage = pathname === '/signup' || pathname === '/login' || pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/forgot-password'
+  const isAuthPage = pathname === '/signup' || pathname === '/login' || pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/forgot-password' || pathname === '/pm-forgot-password'
   const isPublicPage = 
     pathname === '/' ||
     pathname === '/welcome' ||

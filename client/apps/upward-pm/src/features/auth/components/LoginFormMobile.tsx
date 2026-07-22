@@ -48,8 +48,8 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
   const router = useRouter()
   const { error: toastError, success: toastSuccess } = useToast()
 
-  const [step, setStep] = useState<'role' | 'form'>(initialRole ? 'form' : 'role')
-  const [selectedRole, setSelectedRole] = useState<'manager' | 'landlord'>(initialRole || 'manager')
+  const [step, setStep] = useState<'role' | 'form'>('form')
+  const [selectedRole, setSelectedRole] = useState<'manager' | 'landlord'>('manager')
   const [loginType, setLoginType] = useState<'PASSWORD' | 'OTP'>('PASSWORD')
   
   const [showPassword, setShowPassword] = useState(false)
@@ -299,14 +299,11 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
         {/* Header Block */}
         <div className="mobile-auth__header">
           <div className="mobile-auth__logo-row">
-            {(step === 'form' || isNative) ? (
+            {isNative ? (
               <button 
                 type="button" 
                 className="mobile-auth__back-btn" 
-                onClick={() => {
-                  if (step === 'form') setStep('role')
-                  else router.push('/welcome')
-                }}
+                onClick={() => router.push('/welcome')}
               >
                 <ChevronLeft size={20} /> Back
               </button>
@@ -557,6 +554,12 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
               <span>{isLoadingGlobal ? 'Signing in...' : 'Sign in'}</span>
               <ArrowRight size={18} />
             </button>
+
+            <div className="mobile-auth__footer" style={{ marginTop: '24px', textAlign: 'center' }}>
+              <p className="auth-footer">
+                Don&apos;t have an account? <Link href={isNative ? "/signup" : "/pm-signup"}>Create one for free</Link>
+              </p>
+            </div>
           </form>
         )}
 

@@ -6,51 +6,28 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
-  Users,
   Eye,
-  EyeOff,
-  X,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
-  CheckCircle2,
   Loader2,
-  Clock,
-  Calendar,
-  UserPlus,
-  Monitor,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
-
-interface Campaign {
-  id: string
-  weekNumber: number
-  subject: string
-  htmlContent: string
-  textContent?: string
-  label?: string
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-interface AudiencePreview {
-  weekNumber: number
-  userCount: number
-  hasCampaign: boolean
-  campaignLabel: string | null
-  campaignSubject: string | null
-  isActive: boolean
-}
-
-interface TriggerResult {
-  processed: number
-  sent: number
-  failed: number
-  skipped: number
-  details: { weekNumber: number; userCount: number; sent: number; failed: number; status: string }[]
-}
+import { HowItWorksBanner } from '../features/campaigns/components/HowItWorksBanner'
+import {
+  TriggerResultBanner,
+  type TriggerResult,
+} from '../features/campaigns/components/TriggerResultBanner'
+import {
+  AudiencePreviewModal,
+  type AudiencePreview,
+} from '../features/campaigns/components/AudiencePreviewModal'
+import {
+  CampaignEditorModal,
+  wrapInPreviewTemplate,
+  type Campaign,
+  type CampaignFormData,
+} from '../features/campaigns/components/CampaignEditorModal'
 
 interface WaitlistCampaignsProps {
   token: string
@@ -73,81 +50,22 @@ const DEFAULT_WEEK1_HTML = `<h1 style="color:#111827;font-size:24px;font-weight:
 </table>
 <p style="color:#6B7280;font-size:15px;margin:0;">Stay tuned — exciting things are coming.</p>`
 
-const HOW_IT_WORKS = [
-  {
-    icon: <Clock size={18} color="#d97757" />,
-    title: 'Every Tuesday 19:00 WAT',
-    desc: 'Cron job runs automatically — no manual action needed.',
-  },
-  {
-    icon: <Calendar size={18} color="#d97757" />,
-    title: 'Week-based targeting',
-    desc: 'Users in their 1st week get Week 1 content. 2nd week users get Week 2, etc.',
-  },
-  {
-    icon: <UserPlus size={18} color="#d97757" />,
-    title: 'Current users → Week 1',
-    desc: 'All existing registered users are treated as enrolled "this week" until next Tuesday.',
-  },
-]
-
-const wrapInPreviewTemplate = (content: string) => {
-  if (content.toLowerCase().includes('<html') || content.toLowerCase().includes('<!doctype')) {
-    return content
-  }
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { background-color: #F9FAFB; margin: 0; padding: 0; font-family: -apple-system, system-ui, sans-serif; }
-    .main { padding: 40px 20px; }
-    .card { 
-      max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; 
-      border: 1px solid #E5E7EB; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
-    }
-    @media (max-width: 600px) {
-      .main { padding: 20px 0; }
-      .card { border-radius: 0; border-left: none; border-right: none; }
-      .inner { padding: 32px 20px !important; }
-    }
-  </style>
-</head>
-<body>
-  <div class="main">
-    <div class="card">
-      <div style="height:4px; background:#d97757;"></div>
-      <div class="inner" style="padding: 48px 40px;">
-        <div style="margin-bottom:40px;">
-          <span style="color:#d97757; font-size:14px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase;">Upward</span>
-          <div style="color:#6B7280; font-size:12px; margin-top:4px;">by GoodTenants</div>
-        </div>
-        
-        <div style="color:#374151; font-size:16px; line-height:1.7;">${content
-          .replace(/{{firstName}}/g, 'Recipient')
-          .replace(/{{lastName}}/g, '(Test)')}</div>
-        
-
-      </div>
-    </div>
-  </div>
-</body>
-</html>`
-}
-
 const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [audience, setAudience] = useState<AudiencePreview[]>([])
   const [loading, setLoading] = useState(true)
   const [audienceLoading, setAudienceLoading] = useState(false)
   const [triggerResult, setTriggerResult] = useState<TriggerResult | null>(null)
+
+  // Modals state
   const [showEditor, setShowEditor] = useState(false)
   const [showAudience, setShowAudience] = useState(false)
+
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null)
-  const [showEmailPreview, setShowEmailPreview] = useState(false)
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<CampaignFormData>({
     weekNumber: 1,
     subject: '',
     label: '',
@@ -186,7 +104,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
   const openCreateEditor = () => {
     const nextWeek = campaigns.length > 0 ? Math.max(...campaigns.map((c) => c.weekNumber)) + 1 : 1
     setEditingCampaign(null)
-    setShowEmailPreview(false)
     setForm({
       weekNumber: nextWeek,
       subject:
@@ -203,7 +120,6 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
 
   const openEditEditor = (campaign: Campaign) => {
     setEditingCampaign(campaign)
-    setShowEmailPreview(false)
     setForm({
       weekNumber: campaign.weekNumber,
       subject: campaign.subject,
@@ -268,208 +184,103 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
 
   return (
     <div className="page-container fade-in">
-      <div style={{ marginBottom: '32px' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            flexWrap: 'wrap',
-            gap: '16px',
-          }}
-        >
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <CalendarClock size={24} />
+          </div>
           <div>
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #d97757, #c2622e)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <CalendarClock size={20} color="#fff" />
-              </div>
-              <h2 className="section-title" style={{ margin: 0 }}>
-                Tuesday Drip Campaigns
-              </h2>
-            </div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Tuesday Drip Campaigns
+            </h1>
             <p
-              style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0, maxWidth: '560px' }}
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '14px',
+                margin: '4px 0 0 0',
+                maxWidth: '560px',
+              }}
             >
-              Auto-sends every <strong>Tuesday at 19:00 WAT</strong>. Each registered tenant receives
-              the content matching their week number — calculated from when they signed up.
+              Auto-sends every <strong>Tuesday at 19:00 WAT</strong>. Each registered tenant
+              receives the content matching their week number — calculated from when they signed up.
               Current users default to <strong>Week 1</strong> until next Tuesday.
             </p>
           </div>
-
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button
-              id="btn-preview-audience"
-              onClick={handleShowAudience}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: '1px solid var(--border)',
-                background: 'var(--white)',
-                color: 'var(--text)',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'var(--transition)',
-              }}
-            >
-              <Eye size={16} /> Preview Audience
-            </button>
-            <button
-              id="btn-add-week"
-              onClick={openCreateEditor}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 18px',
-                borderRadius: '12px',
-                border: 'none',
-                background: 'var(--text)',
-                color: 'var(--white)',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'var(--transition)',
-              }}
-            >
-              <Plus size={16} /> Add Week
-            </button>
-          </div>
         </div>
-      </div>
 
-      {/* ── How It Works Banner ── */}
-      <div
-        style={{
-          marginBottom: '28px',
-          padding: '20px 24px',
-          background: 'linear-gradient(135deg, rgba(217,119,87,0.08), rgba(217,119,87,0.04))',
-          border: '1px solid rgba(217,119,87,0.2)',
-          borderRadius: '16px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '20px',
-        }}
-        className="grid-mobile-1"
-      >
-        {HOW_IT_WORKS.map((item, i) => (
-          <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'rgba(217,119,87,0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {item.icon}
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}>
-                {item.title}
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                {item.desc}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Trigger Result ── */}
-      {triggerResult && (
-        <div
-          style={{
-            marginBottom: '24px',
-            padding: '20px 24px',
-            borderRadius: '16px',
-            background: triggerResult.failed > 0 ? '#fff7ed' : '#f0fdf4',
-            border: `1px solid ${triggerResult.failed > 0 ? '#fed7aa' : '#bbf7d0'}`,
-          }}
-        >
-          <div
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            id="btn-preview-audience"
+            onClick={handleShowAudience}
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '16px',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '12px',
+              border: '1px solid var(--border)',
+              background: 'var(--white)',
+              color: 'var(--text)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'var(--transition)',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                fontWeight: 700,
-                fontSize: '15px',
-              }}
-            >
-              {triggerResult.failed > 0 ? (
-                <AlertTriangle size={18} color="#d97757" />
-              ) : (
-                <CheckCircle2 size={18} color="#16a34a" />
-              )}
-              Campaign Run Complete
-            </div>
-            <button
-              onClick={() => setTriggerResult(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '14px' }}>
-            {[
-              { label: 'Processed', value: triggerResult.processed, color: '#111827' },
-              { label: 'Sent', value: triggerResult.sent, color: '#16a34a' },
-              { label: 'Failed', value: triggerResult.failed, color: '#dc2626' },
-              { label: 'Skipped', value: triggerResult.skipped, color: '#9a3412' },
-            ].map((s) => (
-              <div key={s.label}>
-                <span style={{ color: 'var(--text-muted)', marginRight: '6px' }}>{s.label}:</span>
-                <strong style={{ color: s.color }}>{s.value}</strong>
-              </div>
-            ))}
-          </div>
-          {triggerResult.details.length > 0 && (
-            <div
-              style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}
-            >
-              {triggerResult.details.map((d) => (
-                <div key={d.weekNumber} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Week {d.weekNumber}: {d.userCount} user{d.userCount !== 1 ? 's' : ''} — {d.status}
-                </div>
-              ))}
-            </div>
-          )}
+            <Eye size={16} /> Preview Audience
+          </button>
+          <button
+            id="btn-add-week"
+            onClick={openCreateEditor}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              borderRadius: '12px',
+              border: 'none',
+              background: 'var(--text)',
+              color: 'var(--white)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'var(--transition)',
+            }}
+          >
+            <Plus size={16} /> Add Week
+          </button>
         </div>
+      </div>
+
+      <HowItWorksBanner />
+
+      {triggerResult && (
+        <TriggerResultBanner triggerResult={triggerResult} onClose={() => setTriggerResult(null)} />
       )}
 
-      {/* ── Campaign Cards ── */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
           <Loader2
@@ -751,675 +562,22 @@ const WaitlistCampaigns: React.FC<WaitlistCampaignsProps> = ({ token }) => {
         </div>
       )}
 
-      {/* ── Editor Modal ── */}
-      {showEditor && (
-        <div
-          className="modal-overlay"
-          onClick={(e) => e.target === e.currentTarget && setShowEditor(false)}
-        >
-          <div
-            style={{
-              background: 'var(--white)',
-              borderRadius: '20px',
-              width: '100%',
-              maxWidth: showEmailPreview ? '1100px' : '780px',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
-              transition: 'max-width 0.3s ease',
-            }}
-          >
-            {/* Modal header */}
-            <div
-              style={{
-                padding: '24px 28px',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>
-                  {editingCampaign ? `Edit Week ${form.weekNumber} Campaign` : 'New Campaign Week'}
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  This email will be sent every Tuesday to users in their Week {form.weekNumber}.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
-                  id="btn-toggle-email-preview"
-                  onClick={() => setShowEmailPreview((v) => !v)}
-                  title={showEmailPreview ? 'Hide email preview' : 'Show email preview'}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '8px 14px',
-                    borderRadius: '10px',
-                    border: '1px solid var(--border)',
-                    background: showEmailPreview ? 'rgba(217,119,87,0.08)' : 'var(--white)',
-                    color: showEmailPreview ? 'var(--accent)' : 'var(--text-muted)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {showEmailPreview ? <EyeOff size={15} /> : <Monitor size={15} />}
-                  {showEmailPreview ? 'Hide Preview' : 'Preview Email'}
-                </button>
-                <button
-                  onClick={() => setShowEditor(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <X size={22} />
-                </button>
-              </div>
-            </div>
+      <CampaignEditorModal
+        isOpen={showEditor}
+        onClose={() => setShowEditor(false)}
+        onSave={handleSave}
+        form={form}
+        setForm={setForm}
+        editingCampaign={editingCampaign}
+      />
 
-            {/* Modal body — side-by-side when preview open */}
-            <div
-              style={{
-                flex: 1,
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: showEmailPreview && window.innerWidth < 1024 ? 'column' : 'row',
-                minHeight: 0,
-              }}
-            >
-              {/* Form pane */}
-              <div
-                style={{
-                  flex: showEmailPreview && window.innerWidth < 1024 ? 'none' : '0 0 auto',
-                  width: showEmailPreview ? (window.innerWidth < 1024 ? '100%' : '420px') : '100%',
-                  overflowY: 'auto',
-                  padding: '28px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '20px',
-                  borderRight:
-                    showEmailPreview && window.innerWidth >= 1024
-                      ? '1px solid var(--border)'
-                      : 'none',
-                  borderBottom:
-                    showEmailPreview && window.innerWidth < 1024
-                      ? '1px solid var(--border)'
-                      : 'none',
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      Week Number
-                    </label>
-                    <input
-                      id="input-week-number"
-                      type="number"
-                      min={1}
-                      value={form.weekNumber}
-                      disabled={!!editingCampaign}
-                      onChange={(e) =>
-                        setForm({ ...form, weekNumber: parseInt(e.target.value) || 1 })
-                      }
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        outline: 'none',
-                        background: editingCampaign ? 'var(--surface)' : 'var(--white)',
-                        color: 'var(--text)',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      Label (optional)
-                    </label>
-                    <input
-                      id="input-campaign-label"
-                      type="text"
-                      placeholder="e.g. Welcome to Upward"
-                      value={form.label}
-                      onChange={(e) => setForm({ ...form, label: e.target.value })}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        fontSize: '14px',
-                        outline: 'none',
-                        background: 'var(--white)',
-                        color: 'var(--text)',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    Email Subject Line *
-                  </label>
-                  <input
-                    id="input-campaign-subject"
-                    type="text"
-                    placeholder="Enter email subject…"
-                    value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      fontSize: '15px',
-                      outline: 'none',
-                      background: 'var(--white)',
-                      color: 'var(--text)',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      HTML Email Content *
-                    </label>
-                    <div
-                      style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}
-                    >
-                      Use <code>{'{{firstName}}'}</code>, <code>{'{{email}}'}</code> for
-                      personalisation
-                    </div>
-                  </div>
-                  <textarea
-                    id="input-campaign-html"
-                    rows={14}
-                    value={form.htmlContent}
-                    onChange={(e) => setForm({ ...form, htmlContent: e.target.value })}
-                    placeholder="Paste full HTML email here…"
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      fontSize: '13px',
-                      lineHeight: '1.6',
-                      fontFamily: 'monospace',
-                      outline: 'none',
-                      resize: 'vertical',
-                      background: '#0d1117',
-                      color: '#c9d1d9',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    Plain Text Fallback (optional)
-                  </label>
-                  <textarea
-                    id="input-campaign-text"
-                    rows={4}
-                    value={form.textContent}
-                    onChange={(e) => setForm({ ...form, textContent: e.target.value })}
-                    placeholder="Plain text version for email clients that don't render HTML…"
-                    style={{
-                      padding: '12px 16px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      fontSize: '13px',
-                      lineHeight: '1.6',
-                      outline: 'none',
-                      resize: 'vertical',
-                      background: 'var(--white)',
-                      color: 'var(--text)',
-                    }}
-                  />
-                </div>
-
-                <label
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-                >
-                  <div
-                    onClick={() => setForm({ ...form, isActive: !form.isActive })}
-                    style={{
-                      width: '44px',
-                      height: '24px',
-                      borderRadius: '12px',
-                      position: 'relative',
-                      background: form.isActive ? 'var(--accent)' : 'var(--border)',
-                      transition: 'background 0.2s',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '50%',
-                        background: '#fff',
-                        position: 'absolute',
-                        top: '3px',
-                        left: form.isActive ? '23px' : '3px',
-                        transition: 'left 0.2s',
-                      }}
-                    />
-                  </div>
-                  <span style={{ fontSize: '14px', fontWeight: 600 }}>
-                    {form.isActive
-                      ? 'Active — will be included in Tuesday sends'
-                      : 'Paused — will be skipped'}
-                  </span>
-                </label>
-              </div>
-
-              {/* Live preview pane */}
-              {showEmailPreview && (
-                <div
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                    minWidth: 0,
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: '10px 20px',
-                      background: 'var(--surface)',
-                      borderBottom: '1px solid var(--border)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Monitor size={14} color="var(--text-muted)" />
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      Live Email Preview
-                    </span>
-                    <span
-                      style={{
-                        marginLeft: 'auto',
-                        fontSize: '11px',
-                        color: 'var(--text-muted)',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      Updates as you type
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      background: '#f3f4f6',
-                      overflow: 'hidden',
-                      position: 'relative',
-                    }}
-                  >
-                    {form.htmlContent.trim() ? (
-                      <iframe
-                        srcDoc={wrapInPreviewTemplate(form.htmlContent)}
-                        title="Email preview"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          border: 'none',
-                          display: 'block',
-                        }}
-                        sandbox="allow-same-origin"
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          height: '100%',
-                          gap: '12px',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        <Monitor size={36} color="var(--border)" />
-                        <span style={{ fontSize: '13px' }}>Paste HTML to see a preview</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Modal footer */}
-            <div
-              style={{
-                padding: '20px 28px',
-                borderTop: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '12px',
-              }}
-            >
-              <button
-                onClick={() => setShowEditor(false)}
-                style={{
-                  padding: '11px 22px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--white)',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  color: 'var(--text)',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                id="btn-save-campaign"
-                onClick={handleSave}
-                style={{
-                  padding: '11px 24px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #d97757, #c2622e)',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {editingCampaign ? 'Save Changes' : 'Create Campaign'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Audience Preview Modal ── */}
-      {showAudience && (
-        <div
-          className="modal-overlay"
-          onClick={(e) => e.target === e.currentTarget && setShowAudience(false)}
-        >
-          <div
-            style={{
-              background: 'var(--white)',
-              borderRadius: '20px',
-              width: '100%',
-              maxWidth: '620px',
-              maxHeight: '85vh',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
-            }}
-          >
-            <div
-              style={{
-                padding: '24px 28px',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <div>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                  }}
-                >
-                  <Users size={20} color="var(--accent)" /> Audience Preview
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Users grouped by which campaign week they'd currently receive.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAudience(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                <X size={22} />
-              </button>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-              {audienceLoading ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
-                </div>
-              ) : audience.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px' }}>
-                  No opted-in users yet.
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {audience.map((row) => (
-                    <div
-                      key={row.weekNumber}
-                      style={{
-                        padding: '16px 20px',
-                        borderRadius: '14px',
-                        border: `1px solid ${row.hasCampaign && row.isActive ? 'rgba(217,119,87,0.25)' : 'var(--border)'}`,
-                        background:
-                          row.hasCampaign && row.isActive
-                            ? 'rgba(217,119,87,0.04)'
-                            : 'var(--surface)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '16px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                        <div
-                          style={{
-                            width: '42px',
-                            height: '42px',
-                            borderRadius: '12px',
-                            background:
-                              row.hasCampaign && row.isActive
-                                ? 'linear-gradient(135deg, #d97757, #c2622e)'
-                                : 'var(--border)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: '9px',
-                              fontWeight: 700,
-                              color:
-                                row.hasCampaign && row.isActive ? 'rgba(255,255,255,0.8)' : '#999',
-                              textTransform: 'uppercase',
-                            }}
-                          >
-                            WK
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '16px',
-                              fontWeight: 800,
-                              color: row.hasCampaign && row.isActive ? '#fff' : '#999',
-                              lineHeight: 1,
-                            }}
-                          >
-                            {row.weekNumber}
-                          </span>
-                        </div>
-                        <div>
-                          {row.campaignLabel && (
-                            <div
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                color: 'var(--accent)',
-                                textTransform: 'uppercase',
-                                marginBottom: '2px',
-                              }}
-                            >
-                              {row.campaignLabel}
-                            </div>
-                          )}
-                          <div
-                            style={{
-                              fontSize: '13px',
-                              fontWeight: 600,
-                              color: row.hasCampaign ? 'var(--text)' : 'var(--text-muted)',
-                            }}
-                          >
-                            {row.hasCampaign ? (
-                              row.campaignSubject
-                            ) : (
-                              <span
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                <AlertTriangle size={13} color="#d97757" /> No content (will skip)
-                              </span>
-                            )}
-                          </div>
-                          {row.hasCampaign && !row.isActive && (
-                            <div
-                              style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}
-                            >
-                              Paused
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div
-                          style={{
-                            fontSize: '22px',
-                            fontWeight: 800,
-                            color:
-                              row.hasCampaign && row.isActive
-                                ? 'var(--accent)'
-                                : 'var(--text-muted)',
-                          }}
-                        >
-                          {row.userCount}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          user{row.userCount !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {audience.filter((r) => !campaignWeekSet.has(r.weekNumber)).length > 0 && (
-                    <div
-                      style={{
-                        padding: '14px 18px',
-                        borderRadius: '12px',
-                        background: '#fff7ed',
-                        border: '1px solid #fed7aa',
-                        fontSize: '13px',
-                        color: '#9a3412',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '10px',
-                      }}
-                    >
-                      <AlertTriangle
-                        size={15}
-                        color="#d97757"
-                        style={{ flexShrink: 0, marginTop: '1px' }}
-                      />
-                      <span>
-                        <strong>Note:</strong> Some weeks have users but no campaign content — those
-                        users will be skipped on campaign day.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <AudiencePreviewModal
+        isOpen={showAudience}
+        onClose={() => setShowAudience(false)}
+        loading={audienceLoading}
+        audience={audience}
+        campaignWeekSet={campaignWeekSet}
+      />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

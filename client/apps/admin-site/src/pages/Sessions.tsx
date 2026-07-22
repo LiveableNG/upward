@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Calendar, Clock, Video, CheckCircle, Edit, Trash2, X } from 'lucide-react'
+import { Calendar, Clock, Video, CheckCircle, Edit, Trash2 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { formatName } from '@upward/common-utils'
+import { DataTable, type ColumnDef } from '../components/common/table/DataTable'
+import { SessionModal, type SessionForm } from '../features/activity/components/SessionModal'
+import { Circle } from 'lucide-react'
 
 interface Attendance {
   userId: string
@@ -33,7 +36,7 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [showModal, setShowModal] = useState<'create' | 'edit' | null>(null)
-  const [sessionForm, setSessionForm] = useState({
+  const [sessionForm, setSessionForm] = useState<SessionForm>({
     name: '',
     googleMeetLink: '',
     startTime: '',
@@ -171,6 +174,52 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
     })
     setShowModal('create')
   }
+
+  const columns: ColumnDef<Attendance>[] = [
+    {
+      key: 'participant',
+      label: 'Participant',
+      render: (row) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: 600, fontSize: '14px' }}>
+            {formatName(row.user.firstName)} {formatName(row.user.lastName)}
+          </span>
+          <span
+            style={{
+              fontSize: '12px',
+              color: 'var(--text-muted)',
+              wordBreak: 'break-all',
+              maxWidth: '200px',
+            }}
+          >
+            {row.user.email}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      align: 'center',
+      render: (row) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button
+            disabled={selectedSession?.isVirtual}
+            onClick={() => handleToggleAttendance(row.userId, !row.attended)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: selectedSession?.isVirtual ? 'default' : 'pointer',
+              color: row.attended ? '#10b981' : 'var(--text-muted)',
+              opacity: selectedSession?.isVirtual ? 0.5 : 1,
+            }}
+          >
+            {row.attended ? <CheckCircle size={24} /> : <Circle size={24} />}
+          </button>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="page-container fade-in">
@@ -495,92 +544,17 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
                     : 'Mark attendance manually'}
                 </div>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead>
-                    <tr
-                      style={{
-                        backgroundColor: 'var(--surface)',
-                        borderBottom: '1px solid var(--border)',
-                      }}
-                    >
-                      <th
-                        style={{
-                          padding: '16px 24px',
-                          fontSize: '12px',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                        }}
-                      >
-                        Participant
-                      </th>
-                      <th
-                        style={{
-                          padding: '16px 20px',
-                          fontSize: '12px',
-                          color: 'var(--text-muted)',
-                          textTransform: 'uppercase',
-                          textAlign: 'center',
-                        }}
-                      >
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedSession.attendances.map((att: Attendance) => (
-                      <tr key={att.userId} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '16px 24px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 600, fontSize: '14px' }}>
-                              {formatName(att.user.firstName)} {formatName(att.user.lastName)}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: '12px',
-                                color: 'var(--text-muted)',
-                                wordBreak: 'break-all',
-                                maxWidth: '200px',
-                              }}
-                            >
-                              {att.user.email}
-                            </span>
-                          </div>
-                        </td>
-                        <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                          <button
-                            disabled={selectedSession.isVirtual}
-                            onClick={() => handleToggleAttendance(att.userId, !att.attended)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: selectedSession.isVirtual ? 'default' : 'pointer',
-                              color: att.attended ? '#10b981' : 'var(--text-muted)',
-                              opacity: selectedSession.isVirtual ? 0.5 : 1,
-                            }}
-                          >
-                            {att.attended ? <CheckCircle size={24} /> : <CircleIcon size={24} />}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {selectedSession.attendances.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          style={{
-                            padding: '48px',
-                            textAlign: 'center',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          No attendees registered for this session from the waitlist.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={columns}
+                data={selectedSession.attendances}
+                keyExtractor={(row) => row.userId}
+                emptyTitle="No Attendees"
+                emptyDescription={
+                  selectedSession.attendances.length === 0
+                    ? 'No attendees registered for this session from the waitlist.'
+                    : undefined
+                }
+              />
             </div>
           </div>
         ) : (
@@ -601,196 +575,15 @@ const Sessions: React.FC<SessionsProps> = ({ token }) => {
         )}
       </div>
 
-      {/* Create/Edit Session Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ padding: '32px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '24px',
-                }}
-              >
-                <h3 style={{ fontSize: '20px', fontWeight: 800 }}>
-                  {showModal === 'create' ? 'Schedule New Session' : 'Edit Session Details'}
-                </h3>
-                <button
-                  onClick={() => setShowModal(null)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <form
-                onSubmit={handleSaveSession}
-                style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>
-                    Session Name (Identifier)
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    value={sessionForm.name}
-                    onChange={(e) => setSessionForm({ ...sessionForm, name: e.target.value })}
-                    placeholder="e.g. Information Session #12"
-                    style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                    }}
-                  />
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    Matches 'selectedSession' in waitlist table.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600 }}>Google Meet Link</label>
-                  <input
-                    required
-                    type="url"
-                    value={sessionForm.googleMeetLink}
-                    onChange={(e) =>
-                      setSessionForm({ ...sessionForm, googleMeetLink: e.target.value })
-                    }
-                    placeholder="https://meet.google.com/..."
-                    style={{
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                    }}
-                  />
-                </div>
-                <div
-                  className="flex-mobile-column"
-                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '14px', fontWeight: 600 }}>Start Time</label>
-                    <input
-                      required
-                      type="datetime-local"
-                      value={sessionForm.startTime}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        if (!val) {
-                          setSessionForm({ ...sessionForm, startTime: val })
-                          return
-                        }
-                        const d = new Date(val)
-                        const end = new Date(d.getTime() + sessionForm.duration * 60 * 60 * 1000)
-                        const endVal = new Date(end.getTime() - end.getTimezoneOffset() * 60000)
-                          .toISOString()
-                          .slice(0, 16)
-
-                        setSessionForm({
-                          ...sessionForm,
-                          startTime: val,
-                          endTime: endVal,
-                        })
-                      }}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                      }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '14px', fontWeight: 600 }}>Duration</label>
-                    <select
-                      value={sessionForm.duration}
-                      onChange={(e) => {
-                        const dur = parseInt(e.target.value)
-                        let endVal = sessionForm.endTime
-                        if (sessionForm.startTime) {
-                          const d = new Date(sessionForm.startTime)
-                          const end = new Date(d.getTime() + dur * 60 * 60 * 1000)
-                          endVal = new Date(end.getTime() - end.getTimezoneOffset() * 60000)
-                            .toISOString()
-                            .slice(0, 16)
-                        }
-                        setSessionForm({ ...sessionForm, duration: dur, endTime: endVal })
-                      }}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                      }}
-                    >
-                      {[1, 2, 3, 4].map((h) => (
-                        <option key={h} value={h}>
-                          {h} {h === 1 ? 'hour' : 'hours'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(null)}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: '1px solid var(--border)',
-                      background: 'var(--white)',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: 'none',
-                      background: 'var(--accent)',
-                      color: 'var(--white)',
-                      borderRadius: '12px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {showModal === 'create' ? 'Create Session' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <SessionModal
+        showModal={showModal}
+        onClose={() => setShowModal(null)}
+        sessionForm={sessionForm}
+        setSessionForm={setSessionForm}
+        onSave={handleSaveSession}
+      />
     </div>
   )
 }
-
-const CircleIcon = ({ size, color = 'currentColor' }: { size: number; color?: string }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-  </svg>
-)
 
 export default Sessions

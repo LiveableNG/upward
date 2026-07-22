@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { CheckCircle2, XCircle, Info, X } from 'lucide-react'
 import { generateId } from '@/lib/utils'
 import '@/styles/toast.css'
@@ -26,6 +27,11 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
@@ -56,13 +62,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     info: (message: string, title?: string) => addToast('info', message, title),
   }
 
-  return (
-    <ToastContext.Provider value={{ toast }}>
-      {children}
-      <div className="toast-container">
-        {toasts.map((t) => (
-          <div key={t.id} className={`toast toast--${t.type}`}>
-            <div className="toast__icon">
+  const toastContainer = mounted ? createPortal(
+    <div className="toast-container">
+      {toasts.map((t) => (
+        <div key={t.id} className={`toast toast--${t.type}`}>
+          <div className="toast__icon">
               {t.type === 'success' && <CheckCircle2 size={24} />}
               {t.type === 'error' && <XCircle size={24} />}
               {(t.type === 'info' || !t.type) && <Info size={24} />}
@@ -76,7 +80,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             </button>
           </div>
         ))}
-      </div>
+      </div>,
+      document.body
+    ) : null
+
+  return (
+    <ToastContext.Provider value={{ toast }}>
+      {children}
+      {toastContainer}
     </ToastContext.Provider>
   )
 }
