@@ -76,8 +76,11 @@ export const formatPhoneNumberByCountry = (phone: string, country: string): stri
 export const parseDateString = (val: any): string => {
   if (!val) return ''
   const strVal = String(val).trim()
-  if (/^\d{4,5}$/.test(strVal)) {
-    const serial = parseInt(strVal, 10)
+  
+  if (/^\d{4}-\d{2}-\d{2}$/.test(strVal)) return strVal;
+
+  if (/^\d{4,5}(\.\d+)?$/.test(strVal)) {
+    const serial = parseFloat(strVal)
     const date = new Date(Math.round((serial - 25569) * 86400 * 1000))
     if (!isNaN(date.getTime())) {
       return date.toISOString().split('T')[0]
@@ -85,7 +88,14 @@ export const parseDateString = (val: any): string => {
   }
   const date = new Date(strVal)
   if (!isNaN(date.getTime())) {
-    return date.toISOString().split('T')[0]
+    if (strVal.includes('T') || strVal.includes('Z')) {
+      return date.toISOString().split('T')[0]
+    } else {
+      const yyyy = date.getFullYear()
+      const mm = String(date.getMonth() + 1).padStart(2, '0')
+      const dd = String(date.getDate()).padStart(2, '0')
+      return `${yyyy}-${mm}-${dd}`
+    }
   }
   return strVal
 }

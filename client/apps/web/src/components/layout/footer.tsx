@@ -274,15 +274,15 @@ export function Footer({
                 rel={social.href !== '#' ? 'noopener noreferrer' : undefined}
                 style={{
                   fontSize: '11px',
-                  color: 'var(--muted)',
+                  color: 'rgba(255,255,255,0.6)',
                   textDecoration: 'none',
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
                   fontWeight: 600,
                   transition: 'all 0.2s',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
+                onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
               >
                 {social.name}
               </Link>
