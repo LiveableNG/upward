@@ -1,4 +1,4 @@
-import type { ColumnDef } from './types'
+import { type ColumnDef } from './types'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import * as XLSX from 'xlsx'
 
@@ -151,3 +151,9 @@ export const validateCell = (
   }
   return errorMsg
 }
+
+export function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(' ')
+}
+
+

@@ -9,18 +9,21 @@ import { useProperties, useBulkCreateUnits, useBulkFullImport } from '@/features
 import { downloadBlob } from '@/lib/download-helper'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { api } from '@/lib/api'
+import { useSocket } from '@/hooks/useSocket'
 
 import { ImportMode, FULL_COLUMNS, UNIT_COLUMNS } from './data-import/types'
 import { useDataImport } from './data-import/useDataImport'
+import { parseDateString } from './data-import/utils'
 import { ImportOverlay } from './data-import/ImportOverlay'
 import { RelayConfirmationModal } from './data-import/RelayConfirmationModal'
 import { ActiveImportJobsList } from './data-import/ActiveImportJobsList'
-import { StagedDataReviewModal } from './data-import/StagedDataReviewModal'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { AlertTriangle } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 
 
 export const DataImportTab: React.FC = () => {
+  const queryClient = useQueryClient()
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialMode = (searchParams.get('mode') as ImportMode) || 'full'
@@ -104,8 +107,17 @@ export const DataImportTab: React.FC = () => {
       return error(`Error at Row ${rowIndex + 1}, Column "${colLabel}": ${importState.validationErrors[firstErrorKey]}`)
     }
 
+    const validKeys = new Set(columns.map(c => c.key))
+    const sanitizeRow = (row: any) => {
+      const clean: any = {}
+      validKeys.forEach(k => {
+        if (row[k] !== undefined) clean[k] = row[k]
+      })
+      return clean
+    }
+
     if (mode === 'full') {
-      const rowsToSend = importState.previewRows.map(({ id, ...rest }) => rest)
+      const rowsToSend = importState.previewRows.map(sanitizeRow)
       bulkFullImportMutation.mutate({ rows: rowsToSend }, {
         onSuccess: (res) => {
           success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
@@ -115,7 +127,7 @@ export const DataImportTab: React.FC = () => {
         onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
       })
     } else {
-      const unitsToSend = importState.previewRows.map(({ id, ...rest }) => rest)
+      const unitsToSend = importState.previewRows.map(sanitizeRow)
       bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: unitsToSend } as any, {
         onSuccess: () => {
           success('Units imported successfully!')
@@ -126,27 +138,42 @@ export const DataImportTab: React.FC = () => {
       })
     }
   }
-
-
   const [pendingRelayFile, setPendingRelayFile] = useState<File | null>(null)
   const [showRelayModal, setShowRelayModal] = useState(false)
   const [isRelaying, setIsRelaying] = useState(false)
   
   const [activeJobs, setActiveJobs] = useState<any[]>([])
   const [reviewJob, setReviewJob] = useState<any | null>(null)
-  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [hasDirtyEdits, setHasDirtyEdits] = useState(false)
+
+  const socket = useSocket()
+
+  const fetchJobs = async () => {
+    try {
+      const jobs = await api.get('/pm/bulk-imports')
+      setActiveJobs(jobs)
+    } catch (err) {
+      console.error('Failed to fetch bulk import jobs:', err)
+    }
+  }
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const jobs = await api.get('/pm/bulk-imports')
-        setActiveJobs(jobs)
-      } catch (err) {
-        console.error('Failed to fetch bulk import jobs:', err)
-      }
-    }
     fetchJobs()
   }, [])
+
+  useEffect(() => {
+    if (!socket) return
+
+    const handleJobUpdated = () => {
+      fetchJobs()
+    }
+
+    socket.on('bulk_import_updated', handleJobUpdated)
+    return () => {
+      socket.off('bulk_import_updated', handleJobUpdated)
+    }
+  }, [socket])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -156,7 +183,6 @@ export const DataImportTab: React.FC = () => {
     if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
       importState.handleFileUpload(e, fileInputRef)
     } else {
-      // Non-spreadsheet file (PDF, Image, Word document, etc.)
       setPendingRelayFile(file)
       setShowRelayModal(true)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -169,7 +195,6 @@ export const DataImportTab: React.FC = () => {
     try {
       const ext = pendingRelayFile.name.split('.').pop()?.toLowerCase() || 'doc'
 
-      // BYPASS S3 FOR TESTING: Convert file to base64 Data URL and send it directly
       const getBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader()
@@ -185,7 +210,7 @@ export const DataImportTab: React.FC = () => {
         targetPropertyUuid,
         mode,
         originalFileName: pendingRelayFile.name,
-        fileUrl: fileDataUrl, // Store base64 directly
+        fileUrl: fileDataUrl,
         fileType: ext,
       })
 
@@ -197,6 +222,53 @@ export const DataImportTab: React.FC = () => {
       error('Failed to submit document relay request.')
     } finally {
       setIsRelaying(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (!reviewJob) return
+    setIsSavingDraft(true)
+    try {
+      await api.patch(`/pm/bulk-imports/${reviewJob.id}/staged-data`, {
+        stagedRowsJson: JSON.stringify(importState.previewRows)
+      })
+      queryClient.invalidateQueries({ queryKey: ['pmImportJobs'] })
+      setHasDirtyEdits(false)
+      success('Draft saved! The support agent can now see your changes.')
+    } catch (e: any) {
+      console.error(e)
+      error(e?.message || 'Failed to save draft.')
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
+  const handleOpenReviewModal = (job: any) => {
+    setReviewJob(job)
+    try {
+      const rows = typeof job.stagedRowsJson === 'string' ? JSON.parse(job.stagedRowsJson) : job.stagedRowsJson
+      
+      const cleanRows = rows.map((r: any) => {
+        if (r.tenantPhone && typeof r.tenantPhone === 'string' && r.tenantPhone.startsWith('+234234')) {
+          r.tenantPhone = r.tenantPhone.replace('+234234', '+234')
+        }
+        if (r.landlordPhone && typeof r.landlordPhone === 'string' && r.landlordPhone.startsWith('+234234')) {
+          r.landlordPhone = r.landlordPhone.replace('+234234', '+234')
+        }
+        columns.forEach(col => {
+          if (col.type === 'date' && r[col.key]) {
+            r[col.key] = parseDateString(r[col.key])
+          }
+        })
+        return r
+      })
+
+      importState.setPreviewRows(cleanRows)
+      importState.setPhase('preview')
+      importState.setIsOverlayOpen(true)
+      setHasDirtyEdits(false)
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -225,22 +297,47 @@ export const DataImportTab: React.FC = () => {
   const handleApproveStagedImport = (stagedRows: any[]) => {
     if (!stagedRows || stagedRows.length === 0) return error("No rows to import")
 
+    const validKeys = new Set(columns.map(c => c.key))
+    const sanitizeRow = (row: any) => {
+      const clean: any = {}
+      validKeys.forEach(k => {
+        if (row[k] !== undefined) clean[k] = row[k]
+      })
+      return clean
+    }
+    const sanitizedRows = stagedRows.map(sanitizeRow)
+
     if (mode === 'full') {
-      bulkFullImportMutation.mutate({ rows: stagedRows }, {
-        onSuccess: (res) => {
+      bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
+        onSuccess: async (res) => {
+          if (reviewJob?.id) {
+            await api.patch(`/pm/bulk-imports/${reviewJob.id}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
+            const jobId = reviewJob.id
+            setTimeout(() => {
+              setActiveJobs(prev => prev.filter(j => j.id !== jobId))
+            }, 3000)
+          }
           success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
-          setShowReviewModal(false)
+          importState.closeOverlay()
           setReviewJob(null)
           router.push('/properties')
         },
         onError: (err: any) => error(err?.message || 'Failed to complete import')
       })
     } else {
-      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: stagedRows } as any, {
-        onSuccess: () => {
-          success('Units imported successfully!')
-          setShowReviewModal(false)
+      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: sanitizedRows } as any, {
+        onSuccess: async () => {
+          if (reviewJob?.id) {
+            await api.patch(`/pm/bulk-imports/${reviewJob.id}/complete`, { unitsCreated: sanitizedRows.length }).catch(console.error)
+            const jobId = reviewJob.id
+            setTimeout(() => {
+              setActiveJobs(prev => prev.filter(j => j.id !== jobId))
+            }, 3000)
+          }
+          success('Successfully imported units!')
+          importState.closeOverlay()
           setReviewJob(null)
+          queryClient.invalidateQueries({ queryKey: ['property', targetPropertyUuid] })
           router.push('/properties')
         },
         onError: (err: any) => error(err?.message || 'Failed to complete import')
@@ -251,7 +348,6 @@ export const DataImportTab: React.FC = () => {
   return (
     <div className="import-tab animate-fade-in" style={{ padding: '16px 0', maxWidth: 900, margin: '0 auto' }}>
       
-      {/* Header and Mode Tabs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>
@@ -262,7 +358,6 @@ export const DataImportTab: React.FC = () => {
           </p>
         </div>
 
-        {/* Tab Switcher */}
         <div style={{ display: 'flex', background: 'var(--bg)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
           <button
             onClick={() => setMode('full')}
@@ -301,7 +396,6 @@ export const DataImportTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Target Property Selection for Units mode */}
       {mode === 'units' && (
         <div style={{ marginBottom: 20, background: 'white', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
           <label className="form-label" style={{ fontWeight: 600, fontSize: 13, color: 'var(--dark)', display: 'block', marginBottom: 8 }}>
@@ -318,19 +412,14 @@ export const DataImportTab: React.FC = () => {
         </div>
       )}
 
-      {/* Active Non-spreadsheet Import Jobs */}
       <ActiveImportJobsList
         jobs={activeJobs}
-        onOpenReviewModal={(job) => {
-          setReviewJob(job)
-          setShowReviewModal(true)
-        }}
+        onOpenReviewModal={handleOpenReviewModal}
         onDeleteJob={handleDeleteJob}
       />
       
       <div style={{ marginBottom: 32 }} />
 
-      {/* Clean Dropzone Upload Box */}
       <div 
         style={{ 
           border: '2px dashed var(--border)', 
@@ -377,23 +466,26 @@ export const DataImportTab: React.FC = () => {
         isSubmitting={isRelaying}
       />
 
-      {/* PM Staged Data Review Modal */}
-      <StagedDataReviewModal
-        isOpen={showReviewModal}
-        job={reviewJob}
-        columns={columns}
-        onClose={() => setShowReviewModal(false)}
-        onConfirm={handleApproveStagedImport}
-        isSubmitting={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}
-      />
-
       {importState.isOverlayOpen && (
         <ImportOverlay 
           {...importState}
           mode={mode}
           columns={columns}
           isPending={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}
-          handleConfirmImport={handleConfirmImport}
+          handleConfirmImport={(rows) => handleApproveStagedImport(rows || importState.previewRows)}
+          reviewJob={reviewJob}
+          handleSaveDraft={handleSaveDraft}
+          isSavingDraft={isSavingDraft}
+          hasDirtyEdits={hasDirtyEdits}
+          setHasDirtyEdits={setHasDirtyEdits}
+          updateRowField={(rowId, field, value) => {
+            setHasDirtyEdits(true)
+            importState.updateRowField(rowId, field, value)
+          }}
+          closeOverlay={() => {
+            importState.closeOverlay()
+            setReviewJob(null)
+          }}
         />
       )}
 

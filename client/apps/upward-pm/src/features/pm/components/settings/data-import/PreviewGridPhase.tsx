@@ -49,9 +49,31 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
           </button>
         </div>
         {Object.keys(validationErrors).length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)', fontSize: 13, fontWeight: 600, background: 'var(--error-bg)', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #fecaca' }}>
-            <AlertCircle size={16} /> {Object.keys(validationErrors).length} validation issues found. Click cells to edit.
-          </div>
+          <button 
+            type="button"
+            onClick={() => {
+              const firstErrorKey = Object.keys(validationErrors)[0]
+              if (firstErrorKey) {
+                const [rowId, ...fieldParts] = firstErrorKey.split('-')
+                // Reconstruct field key if it had hyphens (though our keys likely don't, safer this way)
+                const field = fieldParts.join('-')
+                
+                // Focus the cell
+                setEditingCell({ rowId, field })
+                
+                // Scroll into view
+                setTimeout(() => {
+                  const el = document.getElementById(`cell-${firstErrorKey}`)
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+                  }
+                }, 50)
+              }
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)', fontSize: 13, fontWeight: 600, background: 'var(--error-bg)', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #fecaca', cursor: 'pointer' }}
+          >
+            <AlertCircle size={16} /> {Object.keys(validationErrors).length} validation issues found. Click to view issue.
+          </button>
         )}
       </div>
       <div className="data-grid-table-wrapper">
@@ -73,7 +95,12 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                   const isEditing = editingCell?.rowId === row.id && editingCell?.field === col.key
                   const error = validationErrors[`${row.id}-${col.key}`]
                   return (
-                    <td key={col.key} onClick={() => setEditingCell({ rowId: row.id, field: col.key })} title={error || ''}>
+                    <td 
+                      key={col.key} 
+                      id={`cell-${row.id}-${col.key}`}
+                      onClick={() => setEditingCell({ rowId: row.id, field: col.key })} 
+                      title={error || ''}
+                    >
                       {isEditing ? (
                         <input 
                           className={cn('data-grid-input', error && 'data-grid-input--error')}

@@ -31,6 +31,7 @@ import WhatsappSequences from './pages/WhatsappSequences'
 import EmailSequences from './pages/EmailSequences'
 import { SequenceQueue } from './pages/SequenceQueue'
 import { BulkImportQueue } from './pages/BulkImportQueue'
+import { BulkImportDetail } from './pages/BulkImportDetail'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -97,6 +98,7 @@ function AppRoutes() {
           <Route path="/email-sequences" element={<EmailSequences token={auth.token} />} />
           <Route path="/sequence-queue" element={<SequenceQueue token={auth.token} />} />
           <Route path="/bulk-imports" element={<BulkImportQueue token={auth.token} />} />
+          <Route path="/bulk-imports/:id" element={<BulkImportDetail token={auth.token} />} />
 
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />

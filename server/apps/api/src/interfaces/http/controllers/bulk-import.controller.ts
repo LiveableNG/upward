@@ -9,6 +9,7 @@ import {
   AdminLogDocumentDownloadUseCase,
   GetRelayDocumentUploadUrlUseCase,
   UpdateStagedDataUseCase,
+  CompleteImportJobUseCase,
 } from '../../../application/use-cases/pm/bulk-import.use-cases'
 
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
@@ -21,6 +22,7 @@ export class PmBulkImportController {
     private readonly getPmImportJobsUseCase: GetPmImportJobsUseCase,
     private readonly getRelayDocumentUploadUrlUseCase: GetRelayDocumentUploadUrlUseCase,
     private readonly updateStagedDataUseCase: UpdateStagedDataUseCase,
+    private readonly completeImportJobUseCase: CompleteImportJobUseCase,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -65,6 +67,23 @@ export class PmBulkImportController {
       pmId: pm.id,
       jobId: parseInt(id, 10),
       stagedRowsJson: body.stagedRowsJson,
+    })
+  }
+
+  @Patch(':id/complete')
+  async completeJob(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() body: { unitsCreated?: number; propertiesCreated?: number }
+  ) {
+    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
+    if (!pm) throw new UnauthorizedException('PM not found')
+    
+    return this.completeImportJobUseCase.execute({
+      pmId: pm.id,
+      jobId: parseInt(id, 10),
+      unitsCreated: body.unitsCreated,
+      propertiesCreated: body.propertiesCreated,
     })
   }
 

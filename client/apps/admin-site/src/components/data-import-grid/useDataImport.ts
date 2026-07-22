@@ -1,11 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import * as XLSX from 'xlsx'
-import { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
-import { suggestMapping, formatPhoneNumberByCountry, validateCell, parseDateString } from './utils'
-import { useToast } from '@/components/common/Toast'
+import type { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
+import { suggestMapping, formatPhoneNumberByCountry, validateCell } from './utils'
+import { showToast } from '@upward/client-core'
 
 export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties: any[], targetPropertyUuid: string) => {
-  const { success, error } = useToast()
 
   // Overlay states
   const [isOverlayOpen, setIsOverlayOpen] = useState(false)
@@ -43,7 +42,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     const updated = [...savedTemplates, newTemplate]
     setSavedTemplates(updated)
     localStorage.setItem('upward_pm_import_templates', JSON.stringify(updated))
-    success('Template saved successfully')
+    showToast('Template saved successfully')
   }
 
   const applyTemplate = (templateId: string) => {
@@ -51,7 +50,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     if (template) {
       setMappings(template.data.mappings)
       setSplitConfigs(template.data.splitConfigs)
-      success('Template applied')
+      showToast('Template applied')
     }
   }
 
@@ -73,7 +72,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         })
 
         if (validSheets.length === 0) {
-          error('No valid sheets with data found in the file.')
+          showToast('No valid sheets with data found in the file.', true)
           return
         }
 
@@ -149,17 +148,15 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
                 if (col.type === 'number' && mappedRow[col.key]) {
                   const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
                   mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
-                } else if (col.type === 'date' && mappedRow[col.key]) {
-                  mappedRow[col.key] = parseDateString(mappedRow[col.key])
                 }
               })
 
-              const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
-              const hasCommercialName = !!(mappedRow.tenantCommercialName?.trim())
-              if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
+              const hasTenantName = !!(String(mappedRow.tenantFirstName || '').trim() || String(mappedRow.tenantLastName || '').trim())
+              const hasCommercialName = !!(String(mappedRow.tenantCommercialName || '').trim())
+              if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || String(mappedRow.tenantEmail || '').trim() === '')) {
                 const cleanName = hasCommercialName
-                  ? (mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-                  : `${(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
+                  ? String(mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                  : `${String(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${String(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
                 mappedRow.tenantEmail = `guest-${cleanName}-${Math.random().toString(36).substring(2, 8)}@upward.com`
               }
 
@@ -188,15 +185,15 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
             setValidationErrors(newErrors)
             revalidateDuplicates(newRows)
             setPhase('preview')
-            success('Template matched! Auto-advanced to Data Grid.')
+            showToast('Template matched! Auto-advanced to Data Grid.')
           }, 50)
         } else {
           setPhase('mapping')
-          success('File read successfully. Map your columns to proceed.')
+          showToast('File read successfully. Map your columns to proceed.')
         }
       } catch (err) {
         console.error(err)
-        error('Error reading file. Please ensure it is a valid Excel or CSV file.')
+        showToast('Error reading file. Please ensure it is a valid Excel or CSV file.', true)
       }
     }
     reader.readAsArrayBuffer(file)
@@ -380,19 +377,17 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
 
       columns.forEach(col => {
         if (col.type === 'number' && mappedRow[col.key]) {
-          const numValue = parseFloat(mappedRow[col.key].replace(/[^0-9.-]/g, ''))
+          const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
           mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
-        } else if (col.type === 'date' && mappedRow[col.key]) {
-          mappedRow[col.key] = parseDateString(mappedRow[col.key])
         }
       })
 
-      const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
-      const hasCommercialName = !!(mappedRow.tenantCommercialName?.trim())
-      if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
+      const hasTenantName = !!(String(mappedRow.tenantFirstName || '').trim() || String(mappedRow.tenantLastName || '').trim())
+      const hasCommercialName = !!(String(mappedRow.tenantCommercialName || '').trim())
+      if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || String(mappedRow.tenantEmail || '').trim() === '')) {
         const cleanName = hasCommercialName
-          ? (mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-          : `${(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
+          ? String(mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+          : `${String(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${String(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
         mappedRow.tenantEmail = `guest-${cleanName}-${Math.random().toString(36).substring(2, 8)}@upward.com`
       }
 
@@ -432,12 +427,8 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     let formattedValue = value
     
     if (field === 'tenantPhone' || field === 'landlordPhone') {
-      const rowCountry = mode === 'full' 
-        ? (updated[rowIndex].propertyCountry || 'Nigeria') 
-        : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
+      const rowCountry = mode === 'full' ? (updated[rowIndex].propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
       formattedValue = formatPhoneNumberByCountry(value, rowCountry)
-    } else if (columns.find(c => c.key === field)?.type === 'date') {
-      formattedValue = parseDateString(value)
     }
 
     updated[rowIndex][field] = formattedValue

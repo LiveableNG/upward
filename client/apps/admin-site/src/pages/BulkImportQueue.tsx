@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   FileSpreadsheet,
   Download,
@@ -9,11 +10,9 @@ import {
   History,
   AlertCircle,
   RefreshCcw,
+  MoreVertical,
+  Edit3,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
-import { PreviewGridPhase } from '../components/data-import-grid/PreviewGridPhase'
-import { FULL_COLUMNS, UNIT_COLUMNS } from '../components/data-import-grid/types'
-import { validateCell } from '../components/data-import-grid/utils'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { DataTable } from '../components/common/table/DataTable'
@@ -24,35 +23,21 @@ interface BulkImportQueueProps {
 }
 
 export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
+  const navigate = useNavigate()
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedJob, setSelectedJob] = useState<any | null>(null)
   const [activeTab, setActiveTab] = useState<'queue' | 'logs'>('queue')
-
-  // Grid State
-  const [previewRows, setPreviewRows] = useState<any[]>([])
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
-  const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null)
-
-  const columns = selectedJob?.mode === 'units' ? UNIT_COLUMNS : FULL_COLUMNS
+  const [activeMenuId, setActiveMenuId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (selectedJob && selectedJob.stagedRowsJson) {
-      try {
-        const parsed =
-          typeof selectedJob.stagedRowsJson === 'string'
-            ? JSON.parse(selectedJob.stagedRowsJson)
-            : selectedJob.stagedRowsJson
-        setPreviewRows(parsed)
-        // Optionally revalidate here, but it requires the function to be defined or hoisted.
-        // We can just rely on the manual revalidation logic when they upload/edit.
-      } catch (e) {
-        setPreviewRows([])
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.action-menu-container')) {
+        setActiveMenuId(null)
       }
-    } else {
-      setPreviewRows([])
     }
-  }, [selectedJob])
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
   const fetchJobs = async () => {
     setLoading(true)
@@ -93,97 +78,6 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
     window.open(`${backendUrl}/public/documents/relays/${job.uuid}/download`, '_blank')
   }
 
-  const handleSaveStagedRows = async () => {
-    try {
-      await apiService.post(
-        `/admin/bulk-imports/${selectedJob.id}/stage`,
-        {
-          stagedRowsJson: JSON.stringify(previewRows),
-        },
-        token || undefined,
-      )
-
-      showToast('Data successfully staged for PM review!')
-      setSelectedJob(null)
-      setPreviewRows([])
-      fetchJobs()
-    } catch (e) {
-      console.error(e)
-      showToast('Error saving staged data', true)
-    }
-  }
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result
-        const wb = XLSX.read(bstr, { type: 'binary' })
-        const wsname = wb.SheetNames[0]
-        const ws = wb.Sheets[wsname]
-        const data = XLSX.utils.sheet_to_json(ws)
-
-        // Convert array of objects to row format
-        const rows = data.map((d: any, i: number) => {
-          const row: any = { id: `row-${Date.now()}-${i}` }
-          columns.forEach((col) => {
-            row[col.key] = d[col.key] || d[col.label] || ''
-          })
-          return row
-        })
-
-        setPreviewRows(rows)
-        revalidateDuplicates(rows)
-      } catch (err) {
-        console.error(err)
-        showToast('Error parsing Excel file', true)
-      }
-    }
-    reader.readAsBinaryString(file)
-  }
-
-  const revalidateDuplicates = (rows: any[]) => {
-    const errors: Record<string, string> = {}
-
-    rows.forEach((row) => {
-      // Basic empty validation
-      columns.forEach((col) => {
-        validateCell(
-          row.id,
-          col.key,
-          row[col.key],
-          col,
-          columns,
-          row,
-          rows,
-          setValidationErrors,
-          true,
-        )
-      })
-    })
-
-    setValidationErrors(errors)
-  }
-
-  const updateRowField = (rowId: string, field: string, value: any) => {
-    setPreviewRows((prev) => {
-      const updated = prev.map((r) => (r.id === rowId ? { ...r, [field]: value } : r))
-      validateCell(
-        rowId,
-        field,
-        value,
-        undefined,
-        columns,
-        updated.find((r) => r.id === rowId),
-        updated,
-        setValidationErrors,
-      )
-      return updated
-    })
-  }
 
   const queueColumns: ColumnDef<any>[] = [
     {
@@ -333,6 +227,23 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
                 <CheckCircle2 size={14} /> Staged for PM
               </span>
             )}
+            {job.status === 'COMPLETED' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: 'var(--bg)',
+                  color: 'var(--text-muted)',
+                  padding: '4px 10px',
+                  borderRadius: 99,
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              >
+                <CheckCircle2 size={14} /> Completed
+              </span>
+            )}
           </>
         )
       },
@@ -344,25 +255,142 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
         const isPending = job.status === 'PENDING_ASSIGNMENT'
         const isInProgress = job.status === 'IN_PROGRESS'
         const isStaged = job.status === 'STAGED_FOR_REVIEW'
+        const hasStagedData = !!job.stagedRowsJson
+        const isOpen = activeMenuId === job.id
+
         return (
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            {isPending && (
-              <button
-                onClick={() => handleClaim(job.id)}
-                className="btn btn-primary"
-                style={{ padding: '6px 12px', fontSize: '12px', height: 'auto', gap: '6px' }}
-              >
-                <UserCheck size={14} /> Claim Task
-              </button>
-            )}
-            {(isInProgress || isStaged) && (
-              <button
-                onClick={() => setSelectedJob(job)}
-                className="btn btn-secondary"
-                style={{ padding: '6px 12px', fontSize: '12px', height: 'auto', gap: '6px' }}
-              >
-                <Upload size={14} /> Upload/Edit Staged JSON Data
-              </button>
+          <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
+            {job.status !== 'COMPLETED' && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveMenuId(isOpen ? null : job.id)
+                  }}
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="More Actions"
+                >
+                  <MoreVertical size={16} />
+                </button>
+
+                {isOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      background: 'white',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                      zIndex: 999,
+                      minWidth: '200px',
+                      padding: '6px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                    }}
+                  >
+                    {isPending && (
+                      <button
+                        onClick={() => {
+                          setActiveMenuId(null)
+                          handleClaim(job.id)
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          width: '100%',
+                          padding: '8px 12px',
+                          background: 'none',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: 'var(--dark)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                      >
+                        <UserCheck size={15} style={{ color: '#2563eb' }} /> Claim Task
+                      </button>
+                    )}
+
+                    {(isInProgress || isStaged) && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setActiveMenuId(null)
+                            navigate(`/bulk-imports/${job.id}`, { state: { job, forceUpload: true } })
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                            padding: '8px 12px',
+                            background: 'none',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: 'var(--dark)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                        >
+                          <Upload size={15} style={{ color: '#2563eb' }} /> {hasStagedData ? 'Upload & Overwrite File' : 'Upload Spreadsheet'}
+                        </button>
+
+                        {hasStagedData && (
+                          <button
+                            onClick={() => {
+                              setActiveMenuId(null)
+                              navigate(`/bulk-imports/${job.id}`, { state: { job, forceEdit: true } })
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              width: '100%',
+                              padding: '8px 12px',
+                              background: 'none',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              color: '#15803d',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f0fdf4')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                          >
+                            <Edit3 size={15} /> Edit Staged Data
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )
@@ -543,156 +571,8 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
         </div>
       )}
 
-      {/* JSON Data Staging Drawer / Modal */}
-      {selectedJob && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-          }}
-        >
-          <div
-            style={{
-              background: 'white',
-              width: '90vw',
-              maxWidth: 1200,
-              maxHeight: '90vh',
-              borderRadius: 16,
-              padding: 24,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 16,
-              overflowY: 'auto',
-            }}
-          >
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-            >
-              <div>
-                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-                  Stage Data for {selectedJob.originalFileName}
-                </h2>
-                <p style={{ fontSize: 13, color: '#64748b', margin: 0, marginTop: 4 }}>
-                  Upload the formatted Excel sheet. Review the structured data below, make any
-                  edits, and save it for the PM.
-                </p>
-              </div>
-              <label
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 16px',
-                  background: '#f8fafc',
-                  border: '1px dashed #cbd5e1',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: 13,
-                  color: '#0f172a',
-                }}
-              >
-                <Upload size={16} /> Upload Excel Sheet
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                />
-              </label>
-            </div>
 
-            {previewRows.length > 0 ? (
-              <div
-                style={{
-                  flex: 1,
-                  minHeight: 400,
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                }}
-              >
-                <PreviewGridPhase
-                  columns={columns}
-                  previewRows={previewRows}
-                  validationErrors={validationErrors}
-                  editingCell={editingCell}
-                  setEditingCell={setEditingCell}
-                  updateRowField={updateRowField}
-                  setPreviewRows={setPreviewRows}
-                  setValidationErrors={setValidationErrors}
-                  revalidateDuplicates={revalidateDuplicates}
-                />
-              </div>
-            ) : (
-              <div
-                style={{
-                  flex: 1,
-                  minHeight: 400,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  border: '1px dashed #cbd5e1',
-                  borderRadius: 8,
-                  background: '#f8fafc',
-                }}
-              >
-                <p style={{ color: '#94a3b8', fontSize: 14 }}>
-                  Upload an Excel file to see the data grid preview.
-                </p>
-              </div>
-            )}
-
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: 10,
-                paddingTop: 16,
-                borderTop: '1px solid #e2e8f0',
-              }}
-            >
-              <button
-                onClick={() => {
-                  setSelectedJob(null)
-                  setPreviewRows([])
-                }}
-                style={{
-                  padding: '8px 16px',
-                  background: '#f1f5f9',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveStagedRows}
-                disabled={previewRows.length === 0}
-                style={{
-                  padding: '8px 20px',
-                  background: '#2563eb',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  opacity: previewRows.length === 0 ? 0.5 : 1,
-                }}
-              >
-                Save & Stage for PM
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+

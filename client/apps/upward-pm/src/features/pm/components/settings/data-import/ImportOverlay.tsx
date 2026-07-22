@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, FileText, Save, X, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, FileText, Save, X, AlertTriangle, User, Mail, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { Modal } from '@/components/ui/Modal/Modal'
@@ -8,6 +8,7 @@ import { MappingPhase } from './MappingPhase'
 import { PreviewGridPhase } from './PreviewGridPhase'
 import { ColumnDef, ImportMode, ColumnMapping, SplitConfig } from './types'
 import * as XLSX from 'xlsx'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface ImportOverlayProps {
   mode: ImportMode
@@ -15,9 +16,16 @@ interface ImportOverlayProps {
   setPhase: (phase: 'mapping' | 'preview') => void
   closeOverlay: () => void
   transformData: () => void
-  handleConfirmImport: () => void
+  handleConfirmImport: (rows?: any[]) => void
   isPending: boolean
   
+  // Review Mode Props
+  reviewJob?: any
+  handleSaveDraft?: () => Promise<void>
+  isSavingDraft?: boolean
+  hasDirtyEdits?: boolean
+  setHasDirtyEdits?: (val: boolean) => void
+
   // States and actions
   columns: ColumnDef[]
   userColumns: string[]
@@ -47,6 +55,7 @@ interface ImportOverlayProps {
 
 export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   mode, phase, setPhase, closeOverlay, transformData, handleConfirmImport, isPending,
+  reviewJob, handleSaveDraft, isSavingDraft, hasDirtyEdits, setHasDirtyEdits,
   columns, userColumns, mappings, splitConfigs, activeSheet, workbook,
   savedTemplates, applyTemplate, saveTemplate, updateMapping, toggleSplit,
   updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
@@ -55,6 +64,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showDraftConfirm, setShowDraftConfirm] = useState(false)
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const { error: toastError } = useToast()
 
   useEffect(() => {
@@ -99,10 +110,10 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   const missingRequired = useMemo(() => {
     const mappedFields = new Set<string>()
     const sheetMappings = mappings[activeSheet] || []
-    sheetMappings.forEach(m => { if (m.systemField) mappedFields.add(m.systemField) })
+    sheetMappings.forEach(m => { if (m.systemField && m.entityType !== 'skip') mappedFields.add(m.systemField) })
     
     const sheetSplits = splitConfigs[activeSheet] || []
-    sheetSplits.forEach(s => s.parts.forEach(p => { if (p.systemField) mappedFields.add(p.systemField) }))
+    sheetSplits.forEach(s => s.parts.forEach(p => { if (p.systemField && p.entityType !== 'skip') mappedFields.add(p.systemField) }))
     
     return columns.filter(c => c.required && !mappedFields.has(c.key))
   }, [mappings, splitConfigs, activeSheet, columns])
@@ -124,19 +135,21 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
     <div className="import-overlay">
       <header className="import-overlay__header">
         <div className="import-overlay__header-title">
-          <h2>Bulk Data Import</h2>
-          <span className="import-overlay__mode-badge">
-            {mode === 'full' ? 'Full Portfolio Mode' : 'Units & Leases Mode'}
-          </span>
+          <h2>{reviewJob ? 'Review & Edit Prepared Data' : 'Bulk Data Import'}</h2>
+          {!reviewJob && (
+            <span className="import-overlay__mode-badge">
+              {mode === 'full' ? 'Full Portfolio Mode' : 'Units & Leases Mode'}
+            </span>
+          )}
         </div>
 
         <div className="import-overlay__actions">
-          {phase === 'preview' && (
+          {phase === 'preview' && !reviewJob && (
             <button className="btn btn--secondary" style={{ borderRadius: 10, height: 40 }} onClick={() => setPhase('mapping')}>
               <ArrowLeft size={16} style={{ marginRight: 8 }}/> Return to Mapping
             </button>
           )}
-          {phase === 'mapping' && (
+          {phase === 'mapping' && !reviewJob && (
             <button 
               type="button"
               className="btn btn--primary" 
@@ -146,17 +159,46 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               <FileText size={16} style={{ marginRight: 8 }}/> Preview Data Grid
             </button>
           )}
-          {phase === 'preview' && (
+          {phase === 'preview' && !reviewJob && (
             <button 
               type="button"
               className="btn btn--primary" 
               style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer' }}
-              onClick={handleConfirmImport}
+              onClick={() => handleConfirmImport()}
               disabled={Object.keys(validationErrors).length > 0 || isPending}
             >
               <Save size={16} style={{ marginRight: 8 }}/> 
               {isPending ? 'Saving Leases...' : 'Confirm & Complete Import'}
             </button>
+          )}
+          {phase === 'preview' && reviewJob && (
+            <>
+              <button
+                type="button"
+                className="btn btn--secondary"
+                style={{
+                  borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 8,
+                  background: hasDirtyEdits && Object.keys(validationErrors).length === 0 ? '#f8fafc' : '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  cursor: hasDirtyEdits && !isPending && !isSavingDraft && Object.keys(validationErrors).length === 0 ? 'pointer' : 'not-allowed',
+                  opacity: hasDirtyEdits && Object.keys(validationErrors).length === 0 ? 1 : 0.5
+                }}
+                onClick={() => setShowDraftConfirm(true)}
+                disabled={isPending || isSavingDraft || !hasDirtyEdits || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
+                title={Object.keys(validationErrors).length > 0 ? 'Resolve validation issues first' : !hasDirtyEdits ? 'Make edits to enable Save Draft' : 'Save draft edits'}
+              >
+                <Save size={16} /> {isSavingDraft ? 'Saving...' : 'Save Draft'}
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                style={{ borderRadius: 10, height: 40, cursor: isPending || isSavingDraft || Object.keys(validationErrors).length > 0 ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                onClick={() => setShowApproveConfirm(true)}
+                disabled={isPending || isSavingDraft || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
+              >
+                {isPending ? 'Confirming Import...' : 'Approve & Finalize Import'}
+              </button>
+            </>
           )}
           <button 
             type="button"
@@ -171,18 +213,20 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
 
       </header>
       
-      <div className="import-overlay__steps">
-        <div className={cn('import-step', phase === 'mapping' && 'import-step--active')}>
-          <span className="import-step__number">1</span> Column & Name Mapping
+      {!reviewJob && (
+        <div className="import-overlay__steps">
+          <div className={cn('import-step', phase === 'mapping' && 'import-step--active')}>
+            <span className="import-step__number">1</span> Column & Name Mapping
+          </div>
+          <div className="import-step__separator">—</div>
+          <div className={cn('import-step', phase === 'preview' && 'import-step--active')}>
+            <span className="import-step__number">2</span> Validation & Data Grid
+          </div>
         </div>
-        <div className="import-step__separator">—</div>
-        <div className={cn('import-step', phase === 'preview' && 'import-step--active')}>
-          <span className="import-step__number">2</span> Validation & Data Grid
-        </div>
-      </div>
+      )}
 
       <main className="import-overlay__content">
-        {phase === 'mapping' ? (
+        {phase === 'mapping' && !reviewJob ? (
           <MappingPhase
             columns={columns}
             userColumns={userColumns}
@@ -203,17 +247,48 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             missingRequired={missingRequired}
           />
         ) : (
-          <PreviewGridPhase 
-            columns={columns}
-            previewRows={previewRows}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
+            {reviewJob && (
+              <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: 16, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    Transcribed By Upward Support Agent
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <User size={16} style={{ color: 'var(--clay)' }} /> {reviewJob.assignedAdminName || 'Customer Support Agent'}
+                    </span>
+                    {reviewJob.assignedAdminEmail && (
+                      <button 
+                        onClick={() => {
+                          const subject = encodeURIComponent(`Re: Bulk Import Support - ${reviewJob.originalFileName}`)
+                          const body = encodeURIComponent(`Hi ${reviewJob.assignedAdminName || 'Support'},\n\nI have a question regarding my staged data for "${reviewJob.originalFileName}":\n\n`)
+                          const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(reviewJob.assignedAdminEmail!)}&su=${subject}&body=${body}`
+                          window.open(gmailUrl, '_blank')
+                        }}
+                        style={{ fontSize: 13, color: 'var(--clay)', fontWeight: 600, textDecoration: 'none', background: 'transparent', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, padding: 0 }}
+                      >
+                        <Mail size={14} /> Message Support
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: reviewJob ? 12 : 0, border: reviewJob ? '1px solid var(--border)' : 'none', overflow: 'hidden' }}>
+              <PreviewGridPhase 
+                columns={columns}
+                previewRows={previewRows}
             validationErrors={validationErrors}
             editingCell={editingCell}
             setEditingCell={setEditingCell}
             updateRowField={updateRowField}
             setPreviewRows={setPreviewRows}
-            setValidationErrors={setValidationErrors}
-            revalidateDuplicates={revalidateDuplicates}
-          />
+                setValidationErrors={setValidationErrors}
+                revalidateDuplicates={revalidateDuplicates}
+              />
+            </div>
+          </div>
         )}
       </main>
 
@@ -245,10 +320,76 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
           }
         >
           <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-            Are you sure you want to close the data import tool? You will need to re-upload your file to import again.
+            {reviewJob
+              ? 'Are you sure you want to exit the data editor? Any unsaved modifications will be lost.'
+              : 'Are you sure you want to close the data import tool? You will need to re-upload your file to import again.'}
           </p>
         </Modal>
       )}
+
+      {/* Confirmation Modal for Draft Save */}
+      <Modal
+        isOpen={showDraftConfirm}
+        onClose={() => setShowDraftConfirm(false)}
+        title="Save Draft Edits?"
+        subtitle="Save modifications so Customer Support can review your edits."
+        icon={Save}
+        maxWidth={460}
+        footer={
+          <>
+            <button className="btn btn--secondary" style={{ flex: 1, height: 44 }} onClick={() => setShowDraftConfirm(false)} disabled={isSavingDraft}>
+              Cancel
+            </button>
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1, height: 44 }}
+              onClick={() => {
+                setShowDraftConfirm(false)
+                handleSaveDraft?.()
+              }}
+              disabled={isSavingDraft}
+            >
+              {isSavingDraft ? 'Saving...' : 'Confirm Draft Save'}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+          Are you sure you want to save your current edits as a draft? The support agent will be able to see these updated rows.
+        </p>
+      </Modal>
+
+      {/* Confirmation Modal for Final Approval */}
+      <Modal
+        isOpen={showApproveConfirm}
+        onClose={() => setShowApproveConfirm(false)}
+        title="Approve & Finalize Data Import?"
+        subtitle="This will immediately create units and leases in your portfolio."
+        icon={CheckCircle2}
+        maxWidth={460}
+        footer={
+          <>
+            <button className="btn btn--secondary" style={{ flex: 1, height: 44 }} onClick={() => setShowApproveConfirm(false)} disabled={isPending}>
+              Cancel
+            </button>
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1, height: 44 }}
+              onClick={() => {
+                setShowApproveConfirm(false)
+                handleConfirmImport(previewRows)
+              }}
+              disabled={isPending}
+            >
+              {isPending ? 'Finalizing...' : 'Confirm Final Import'}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+          Are you ready to import {previewRows.length} record(s) into your Upward portfolio? This action will generate property units and lease records.
+        </p>
+      </Modal>
     </div>
   )
 

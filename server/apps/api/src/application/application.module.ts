@@ -251,6 +251,7 @@ import {
   AdminLogDocumentDownloadUseCase,
   GetRelayDocumentUploadUrlUseCase,
   UpdateStagedDataUseCase,
+  CompleteImportJobUseCase,
 } from './use-cases/pm/bulk-import.use-cases'
 
 
@@ -615,6 +616,7 @@ const UseCases = [
   AdminLogDocumentDownloadUseCase,
   GetRelayDocumentUploadUrlUseCase,
   UpdateStagedDataUseCase,
+  CompleteImportJobUseCase,
 ]
 
 

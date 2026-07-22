@@ -44,4 +44,10 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     this.logger.log(`Emitting bulk dispatch completed to room ${room}`);
     this.server.to(room).emit('bulk_dispatch_completed', payload);
   }
+
+  @OnEvent('pm.bulk_import.updated')
+  handleBulkImportUpdated(payload: { pmId: number; jobId: number }) {
+    this.logger.log(`Emitting bulk import updated event for job ${payload.jobId}`);
+    this.server.emit('bulk_import_updated', payload);
+  }
 }

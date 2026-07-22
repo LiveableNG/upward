@@ -1,4 +1,5 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { IBulkImportJobRepository, BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRepository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
@@ -41,6 +42,7 @@ export class UpdateStagedDataUseCase {
   constructor(
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(dto: { pmId: number; jobId: number; stagedRowsJson: string }) {
@@ -56,6 +58,8 @@ export class UpdateStagedDataUseCase {
       action: 'PM_SAVED_DRAFT',
       details: 'Property Manager saved a draft of the staged data',
     })
+
+    this.eventEmitter.emit('pm.bulk_import.updated', { pmId: dto.pmId, jobId: dto.jobId })
 
     return { success: true }
   }
@@ -109,6 +113,7 @@ export class AdminAssignImportJobUseCase {
   constructor(
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(dto: { jobId: number; adminId: string; adminName: string; adminEmail: string }) {
@@ -130,6 +135,8 @@ export class AdminAssignImportJobUseCase {
       details: `Admin ${dto.adminName} (${dto.adminEmail}) claimed task`,
     })
 
+    this.eventEmitter.emit('pm.bulk_import.updated', { pmId: job.pmId, jobId: dto.jobId })
+
     return updated
   }
 }
@@ -139,6 +146,7 @@ export class AdminStageImportDataUseCase {
   constructor(
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(dto: { jobId: number; adminId: string; adminEmail: string; stagedRowsJson: string }) {
@@ -154,6 +162,8 @@ export class AdminStageImportDataUseCase {
       action: 'STAGED_DATA',
       details: `Staged preview data rows for property manager review`,
     })
+
+    this.eventEmitter.emit('pm.bulk_import.updated', { pmId: job.pmId, jobId: dto.jobId })
 
     return updated
   }
@@ -174,5 +184,36 @@ export class AdminLogDocumentDownloadUseCase {
       action: 'DOWNLOADED_DOCUMENT',
       details: `Downloaded original file for processing`,
     })
+  }
+}
+
+@Injectable()
+export class CompleteImportJobUseCase {
+  constructor(
+    @Inject(BULK_IMPORT_JOB_REPOSITORY)
+    private readonly bulkImportJobRepo: IBulkImportJobRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async execute(dto: { pmId: number; jobId: number; unitsCreated?: number; propertiesCreated?: number }) {
+    const job = await this.bulkImportJobRepo.findById(dto.jobId)
+    if (!job || job.pmId !== dto.pmId) {
+      throw new NotFoundException('Import job not found or unauthorized')
+    }
+
+    const updated = await this.bulkImportJobRepo.updateStatus(dto.jobId, 'COMPLETED', {
+      unitsCreated: dto.unitsCreated,
+      propertiesCreated: dto.propertiesCreated
+    })
+
+    await this.bulkImportJobRepo.addLog({
+      jobId: dto.jobId,
+      action: 'PM_APPROVED',
+      details: `Property Manager approved and finalized the imported data (${dto.unitsCreated || 0} units)`,
+    })
+
+    this.eventEmitter.emit('pm.bulk_import.updated', { pmId: dto.pmId, jobId: dto.jobId })
+
+    return updated
   }
 }

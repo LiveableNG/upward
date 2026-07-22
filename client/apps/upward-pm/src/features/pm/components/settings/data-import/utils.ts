@@ -22,6 +22,9 @@ export const formatPhoneNumberByCountry = (phone: string, country: string): stri
   const normalizedCountry = (country || '').trim().toLowerCase()
 
   if (normalizedCountry === 'nigeria') {
+    if (cleaned.startsWith('234')) {
+      return '+' + cleaned
+    }
     if (cleaned.startsWith('0') && cleaned.length === 11) {
       return '+234' + cleaned.substring(1)
     }
@@ -31,6 +34,9 @@ export const formatPhoneNumberByCountry = (phone: string, country: string): stri
   }
 
   if (normalizedCountry === 'ghana') {
+    if (cleaned.startsWith('233')) {
+      return '+' + cleaned
+    }
     if (cleaned.startsWith('0') && cleaned.length === 10) {
       return '+233' + cleaned.substring(1)
     }
@@ -40,6 +46,9 @@ export const formatPhoneNumberByCountry = (phone: string, country: string): stri
   }
 
   if (normalizedCountry === 'united kingdom' || normalizedCountry === 'uk') {
+    if (cleaned.startsWith('44')) {
+      return '+' + cleaned
+    }
     if (cleaned.startsWith('0') && cleaned.length === 11) {
       return '+44' + cleaned.substring(1)
     }
@@ -49,7 +58,7 @@ export const formatPhoneNumberByCountry = (phone: string, country: string): stri
   }
 
   if (normalizedCountry === 'united states' || normalizedCountry === 'us' || normalizedCountry === 'usa' || normalizedCountry === 'canada') {
-    if (cleaned.startsWith('1') && cleaned.length === 11) {
+    if (cleaned.startsWith('1') && cleaned.length >= 10) {
       return '+' + cleaned
     }
     if (cleaned.length === 10) {
@@ -62,6 +71,23 @@ export const formatPhoneNumberByCountry = (phone: string, country: string): stri
   }
 
   return cleaned
+}
+
+export const parseDateString = (val: any): string => {
+  if (!val) return ''
+  const strVal = String(val).trim()
+  if (/^\d{4,5}$/.test(strVal)) {
+    const serial = parseInt(strVal, 10)
+    const date = new Date(Math.round((serial - 25569) * 86400 * 1000))
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0]
+    }
+  }
+  const date = new Date(strVal)
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0]
+  }
+  return strVal
 }
 
 export const suggestMapping = (userColumn: string, columns: ColumnDef[]): { field: string; entityType: string } | null => {
