@@ -154,6 +154,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
   const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set())
   const [bulkDeliveryChannel, setBulkDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
   const [showBulkInviteModal, setShowBulkInviteModal] = useState(false)
+  const [showMobileOverview, setShowMobileOverview] = useState(false)
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t: any) => {
@@ -503,83 +504,93 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
         }
       />
 
-      <StatGrid>
-        <StatCard
-          label="Total Tenants"
-          value={tenants.length}
-          icon={Users}
-          variant="accent"
-        />
-        <StatCard
-          label="Onboarding Pending"
-          value={tenants.filter((t: any) => t.inviteStatus === 'PENDING').length}
-          icon={Home}
-        />
-      </StatGrid>
+      <button 
+        className="mobile-only-overview-toggle" 
+        onClick={() => setShowMobileOverview(!showMobileOverview)}
+      >
+        <span>Overview & Filters</span>
+        <ChevronDown size={18} style={{ transform: showMobileOverview ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </button>
 
-      <ControlBar>
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search Tenant"
-        />
-
-        <FilterDropdown
-          label="Property"
-          value={propertyFilter}
-          icon={Building2}
-          options={[
-            { label: 'All Properties', value: 'all' },
-            ...properties.map((p: any) => ({ label: p.name, value: p.uuid }))
-          ]}
-          onChange={setPropertyFilter}
-        />
-
-        <FilterDropdown
-          label="Status"
-          value={statusFilter}
-          icon={Users}
-          options={[
-            { label: 'All Statuses', value: 'all' },
-            { label: 'On Upward', value: 'on_upward' },
-            { label: 'Pending Invite', value: 'pending' }
-          ]}
-          onChange={(val) => setStatusFilter(val as any)}
-        />
-      </ControlBar>
-
-      {filteredTenants.length > 0 && (
-        <div 
-          className="mobile-only-select-all" 
-          style={{
-            display: 'none',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 16px',
-            background: 'white',
-            borderRadius: '12px',
-            border: '1px solid var(--border)',
-            marginBottom: '16px',
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-sm)',
-            width: '100%'
-          }} 
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSelectAll();
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={() => {}} // Handled by click to prevent double event firing
-            style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }}
+      <div className={`mobile-overview-content ${showMobileOverview ? 'expanded' : ''}`}>
+        <StatGrid>
+          <StatCard
+            label="Total Tenants"
+            value={tenants.length}
+            icon={Users}
+            variant="accent"
           />
-          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
-            {allSelected ? 'Deselect All' : `Select All Tenants (${filteredTenants.length})`}
-          </span>
-        </div>
-      )}
+          <StatCard
+            label="Onboarding Pending"
+            value={tenants.filter((t: any) => t.inviteStatus === 'PENDING').length}
+            icon={Home}
+          />
+        </StatGrid>
+
+        <ControlBar>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search Tenant"
+          />
+
+          <FilterDropdown
+            label="Property"
+            value={propertyFilter}
+            icon={Building2}
+            options={[
+              { label: 'All Properties', value: 'all' },
+              ...properties.map((p: any) => ({ label: p.name, value: p.uuid }))
+            ]}
+            onChange={setPropertyFilter}
+          />
+
+          <FilterDropdown
+            label="Status"
+            value={statusFilter}
+            icon={Users}
+            options={[
+              { label: 'All Statuses', value: 'all' },
+              { label: 'On Upward', value: 'on_upward' },
+              { label: 'Pending Invite', value: 'pending' }
+            ]}
+            onChange={(val) => setStatusFilter(val as any)}
+          />
+        </ControlBar>
+
+        {filteredTenants.length > 0 && (
+          <div 
+            className="mobile-only-select-all" 
+            style={{
+              display: 'none',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 16px',
+              background: 'white',
+              borderRadius: '12px',
+              border: '1px solid var(--border)',
+              marginBottom: '16px',
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-sm)',
+              width: '100%'
+            }} 
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSelectAll();
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => {}} // Handled by click to prevent double event firing
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--forest)' }}
+            />
+            <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+              {allSelected ? 'Deselect All' : `Select All Tenants (${filteredTenants.length})`}
+            </span>
+          </div>
+        )}
+      </div>
 
       <DataTable
         columns={columns}

@@ -129,7 +129,7 @@ export function FormSelect({
 
   const mobilePortal = mounted && isOpen && isMobile ? (
     createPortal(
-      <div className="upward-modal-overlay" style={{ zIndex: 9999, alignItems: 'flex-end', padding: 0 }} onClick={() => setIsOpen(false)}>
+      <div className="upward-modal-overlay" style={{ zIndex: 100000, alignItems: 'flex-end', padding: 0 }} onClick={() => setIsOpen(false)}>
         {menuContent}
       </div>,
       document.body

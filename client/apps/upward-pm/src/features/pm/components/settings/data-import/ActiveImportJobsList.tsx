@@ -43,67 +43,57 @@ export const ActiveImportJobsList: React.FC<ActiveImportJobsListProps> = ({ jobs
           return (
             <div
               key={job.id}
-              style={{
-                background: 'white',
-                border: '1px solid var(--border)',
-                borderRadius: '16px',
-                padding: '20px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxShadow: 'var(--shadow-sm)',
-                borderLeft: borderLeftColor
-              }}
+              className="import-job-card"
+              style={{ borderLeft: borderLeftColor }}
             >
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clay)', fontWeight: 700, fontSize: 12 }}>
+              <div className="import-job-card__main">
+                <div className="import-job-card__icon">
                   {job.fileType?.toUpperCase() || 'FILE'}
                 </div>
 
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)' }}>{job.originalFileName}</span>
+                <div className="import-job-card__details">
+                  <div className="import-job-card__title-row">
+                    <span className="import-job-card__title">{job.originalFileName}</span>
                     
                     {isPending && (
-                      <span style={{ background: '#fef3c7', color: '#b45309', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="import-job-badge import-job-badge--pending">
                         <Clock size={12} /> Processing (~48hrs)
                       </span>
                     )}
 
                     {isReady && (
-                      <span style={{ background: 'var(--forest-faint, #dcfce7)', color: 'var(--forest, #15803d)', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="import-job-badge import-job-badge--ready">
                         <AlertCircle size={12} /> Ready for Review
                       </span>
                     )}
 
                     {isCompleted && (
-                      <span style={{ background: 'var(--bg)', color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 99, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="import-job-badge import-job-badge--completed">
                         <CheckCircle2 size={12} /> Imported
                       </span>
                     )}
                   </div>
 
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div className="import-job-card__meta">
                     <span>Uploaded {new Date(job.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="import-job-card__actions">
                 {isReady && (
                   <button
                     type="button"
-                    className="btn btn--primary"
+                    className="btn btn--primary import-job-btn"
                     onClick={() => onOpenReviewModal(job)}
-                    style={{ borderRadius: 10, padding: '8px 18px', height: 38, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     <Eye size={15} /> Preview Prepared Data
                   </button>
                 )}
 
                 {isPending && (
-                  <span style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  <span className="import-job-status-text">
                     Support team transcribing...
                   </span>
                 )}
@@ -111,20 +101,8 @@ export const ActiveImportJobsList: React.FC<ActiveImportJobsListProps> = ({ jobs
                 {onDeleteJob && (
                   <button
                     type="button"
+                    className="import-job-delete-btn"
                     onClick={() => onDeleteJob(job.uuid)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      background: '#fee2e2',
-                      color: '#dc2626',
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
                     title="Delete Job"
                   >
                     <Trash2 size={16} />

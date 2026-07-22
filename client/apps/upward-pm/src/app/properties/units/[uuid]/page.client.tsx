@@ -723,17 +723,17 @@ function UnitDetailContent() {
 
       {activeTab === 'overview' && (
         <>
-          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div className="automate-payments-banner">
+            <div className="automate-payments-banner__content">
               <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 500 }}>
-                  Request rent from your tenant on this unit. Payments made through Upward are automatically tracked and reconciled here.
+                <h3 className="automate-payments-banner__title">Automate Unit Payments</h3>
+                <p className="automate-payments-banner__desc">
+                  Request rent from your tenant on this unit. <span className="desktop-only">Payments made through Upward are automatically tracked and reconciled here.</span>
                 </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+            <button className="btn btn--primary automate-payments-banner__btn" onClick={requestRent}>Request Rent</button>
           </div>
 
           <div className="unit-detail__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -892,17 +892,17 @@ function UnitDetailContent() {
 
       {activeTab === 'rent' && (
         <div className="unit-rent-view animate-fade-in" style={{ paddingBottom: 60 }}>
-          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div className="automate-payments-banner">
+            <div className="automate-payments-banner__content">
               <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  Request rent from your tenant on this unit. Payments made through Upward are automatically tracked and reconciled here.
+                <h3 className="automate-payments-banner__title">Automate Unit Payments</h3>
+                <p className="automate-payments-banner__desc">
+                  Request rent from your tenant on this unit. <span className="desktop-only">Payments made through Upward are automatically tracked and reconciled here.</span>
                 </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+            <button className="btn btn--primary automate-payments-banner__btn" onClick={requestRent}>Request Rent</button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 24, marginBottom: 32 }}>
