@@ -26,6 +26,7 @@ interface FormSelectProps {
   icon?: React.ReactNode
   chevronSize?: number
   searchable?: boolean
+  inline?: boolean
 }
 
 export function FormSelect({
@@ -43,7 +44,8 @@ export function FormSelect({
   menuStyle,
   icon,
   chevronSize = 16,
-  searchable = false
+  searchable = false,
+  inline = false
 }: FormSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -136,18 +138,21 @@ export function FormSelect({
 
   const containerStyles: React.CSSProperties = {
     position: 'relative',
-    width: width ? width : undefined,
+    width: inline && !width ? 'auto' : (width ? width : undefined),
+    display: inline ? 'inline-block' : undefined,
     ...style,
   }
 
   const buttonStyles: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
+    display: inline ? 'inline-flex' : 'flex',
+    justifyContent: inline ? 'flex-start' : 'space-between',
     alignItems: 'center',
-    width: '100%',
+    width: inline ? 'auto' : '100%',
     textAlign: 'left',
     cursor: disabled ? 'not-allowed' : 'pointer',
     background: disabled ? 'var(--bg-soft)' : 'white',
+    gap: inline ? '8px' : undefined,
+    padding: inline && !icon ? '8px 16px' : undefined, // Fix form-input padding if inline
     ...triggerStyle,
   }
 
