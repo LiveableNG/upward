@@ -101,8 +101,17 @@ export class PmBulkImportController {
       throw new UnauthorizedException('Job not found or unauthorized')
     }
 
-    await (this.prisma as any).upward_pm_bulk_import_job.delete({
-      where: { id: job.id }
+    await (this.prisma as any).upward_pm_bulk_import_job.update({
+      where: { id: job.id },
+      data: { status: 'CANCELLED' }
+    })
+    
+    await (this.prisma as any).upward_pm_bulk_import_job_log.create({
+      data: {
+        jobId: job.id,
+        action: 'PM_CANCELLED',
+        details: 'Property Manager cancelled the request'
+      }
     })
     
     return { success: true }

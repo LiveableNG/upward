@@ -195,22 +195,22 @@ export const DataImportTab: React.FC = () => {
     try {
       const ext = pendingRelayFile.name.split('.').pop()?.toLowerCase() || 'doc'
 
-      const getBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.readAsDataURL(file)
-          reader.onload = () => resolve(reader.result as string)
-          reader.onerror = error => reject(error)
-        })
-      }
+      const { uploadUrl, fileKey } = await api.post('/pm/bulk-imports/relay-upload-url', {
+        fileName: pendingRelayFile.name,
+        fileType: pendingRelayFile.type || 'application/octet-stream',
+      });
 
-      const fileDataUrl = await getBase64(pendingRelayFile)
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: pendingRelayFile,
+        headers: { 'Content-Type': pendingRelayFile.type || 'application/octet-stream' }
+      });
 
       const newJob = await api.post('/pm/bulk-imports/relay', {
         targetPropertyUuid,
         mode,
         originalFileName: pendingRelayFile.name,
-        fileUrl: fileDataUrl,
+        fileUrl: fileKey,
         fileType: ext,
       })
 

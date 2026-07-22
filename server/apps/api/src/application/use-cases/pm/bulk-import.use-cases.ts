@@ -193,19 +193,23 @@ export class AdminLogDocumentDownloadUseCase {
   constructor(
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(dto: { jobUuid: string; adminId: string; adminEmail: string }) {
     const job = await this.bulkImportJobRepo.findByUuid(dto.jobUuid)
     if (!job) throw new NotFoundException('Import job not found')
 
-    return this.bulkImportJobRepo.addLog({
+    await this.bulkImportJobRepo.addLog({
       jobId: job.id,
       adminId: dto.adminId,
       adminEmail: dto.adminEmail,
       action: 'DOWNLOADED_DOCUMENT',
       details: `Downloaded original file for processing`,
     })
+
+    const downloadUrl = await this.s3Service.getDownloadUrl(job.fileUrl)
+    return { success: true, downloadUrl }
   }
 }
 

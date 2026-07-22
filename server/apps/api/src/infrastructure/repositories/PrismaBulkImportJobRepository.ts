@@ -43,7 +43,10 @@ export class PrismaBulkImportJobRepository implements IBulkImportJobRepository {
 
   async findByPmId(pmId: number) {
     return (this.prisma as any).upward_pm_bulk_import_job.findMany({
-      where: { pmId },
+      where: { 
+        pmId,
+        status: { notIn: ['COMPLETED', 'CANCELLED'] }
+      },
       orderBy: { createdAt: 'desc' },
       include: { logs: true },
     })

@@ -68,14 +68,16 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
 
   const handleLogDownload = async (job: any) => {
     try {
-      await apiService.post(`/admin/bulk-imports/${job.uuid}/log-download`, {}, token || undefined)
-    } catch (e) {}
-
-    // For file downloads, we can't easily use apiService since it expects JSON.
-    // We'll use the BASE_URL from import.meta.env manually or just rely on relative path if proxy is working.
-    // However, since it opens in a new tab, it MUST be the full backend URL if proxy isn't used in Vite.
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
-    window.open(`${backendUrl}/public/documents/relays/${job.uuid}/download`, '_blank')
+      const res = await apiService.post(`/admin/bulk-imports/${job.uuid}/log-download`, {}, token || undefined)
+      if (res?.downloadUrl) {
+        window.open(res.downloadUrl, '_blank')
+      } else {
+        throw new Error('No download URL returned from server')
+      }
+    } catch (e) {
+      console.error('Failed to get download URL', e)
+      showToast('Failed to download document', true)
+    }
   }
 
 
@@ -244,6 +246,23 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
                 <CheckCircle2 size={14} /> Completed
               </span>
             )}
+            {job.status === 'CANCELLED' && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: '#fee2e2',
+                  color: '#dc2626',
+                  padding: '4px 10px',
+                  borderRadius: 99,
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              >
+                <AlertCircle size={14} /> Cancelled
+              </span>
+            )}
           </>
         )
       },
@@ -260,7 +279,7 @@ export const BulkImportQueue: React.FC<BulkImportQueueProps> = ({ token }) => {
 
         return (
           <div className="action-menu-container" style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
-            {job.status !== 'COMPLETED' && (
+            {job.status !== 'COMPLETED' && job.status !== 'CANCELLED' && (
               <>
                 <button
                   type="button"
