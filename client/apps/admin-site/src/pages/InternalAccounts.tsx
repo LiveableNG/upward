@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { UserCog } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import SkeletonStyles from '../features/dashboard/components/Skeletons'
@@ -17,18 +18,18 @@ type InternalAccount = {
 }
 
 export default function InternalAccounts({ token }: { token: string }) {
-  const [data, setData] = useState<{ 
-    users: InternalAccount[]; 
-    pms: InternalAccount[]; 
-    companies: InternalAccount[]; 
-    guests: InternalAccount[];
-    waitlist: InternalAccount[];
+  const [data, setData] = useState<{
+    users: InternalAccount[]
+    pms: InternalAccount[]
+    companies: InternalAccount[]
+    guests: InternalAccount[]
+    waitlist: InternalAccount[]
   }>({
     users: [],
     pms: [],
     companies: [],
     guests: [],
-    waitlist: []
+    waitlist: [],
   })
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'users' | 'pms' | 'guests'>('users')
@@ -51,7 +52,11 @@ export default function InternalAccounts({ token }: { token: string }) {
 
   const handleToggle = async (type: string, uuid: string, currentStatus: boolean) => {
     try {
-      await apiService.patch(`/admin/internal-accounts/${type}/${uuid}`, { isInternal: !currentStatus }, token)
+      await apiService.patch(
+        `/admin/internal-accounts/${type}/${uuid}`,
+        { isInternal: !currentStatus },
+        token,
+      )
       showToast('Status updated successfully')
       fetchData()
     } catch (error) {
@@ -60,60 +65,134 @@ export default function InternalAccounts({ token }: { token: string }) {
   }
 
   // Filter lists to match the dashboard logic exactly
-  
+
   // Registered Tenants = upward_user with a real password
-  const registeredUsers = data.users.filter(u => u.hasRealPassword).map(u => ({ ...u, _type: 'user' as const }))
-  
+  const registeredUsers = data.users
+    .filter((u) => u.hasRealPassword)
+    .map((u) => ({ ...u, _type: 'user' as const }))
+
   // Guests = upward_pm_tenant + upward_users who are shadows + upward_waitlist
-  const shadowUsers = data.users.filter(u => !u.hasRealPassword).map(u => ({ ...u, _type: 'user' as const }))
+  const shadowUsers = data.users
+    .filter((u) => !u.hasRealPassword)
+    .map((u) => ({ ...u, _type: 'user' as const }))
   const guests = [
-    ...data.guests.map(g => ({ ...g, _type: 'guest' as const })), 
-    ...data.waitlist.map(w => ({ ...w, _type: 'waitlist' as const })),
-    ...shadowUsers
+    ...data.guests.map((g) => ({ ...g, _type: 'guest' as const })),
+    ...data.waitlist.map((w) => ({ ...w, _type: 'waitlist' as const })),
+    ...shadowUsers,
   ]
-  
+
   // PMs = upward_property_manager + upward_company
   const pms = [
-    ...data.pms.map(pm => ({ ...pm, _type: 'pm' as const })),
-    ...data.companies.map(c => ({ ...c, _type: 'company' as const }))
+    ...data.pms.map((pm) => ({ ...pm, _type: 'pm' as const })),
+    ...data.companies.map((c) => ({ ...c, _type: 'company' as const })),
   ]
 
   if (loading) {
     return (
-      <div className="page-container" style={{ padding: '24px' }}>
+      <div className="page-container fade-in" style={{ padding: '24px' }}>
+        <div
+          className="page-header flex-mobile-column"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '24px',
+            gap: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div
+              className="icon-container"
+              style={{
+                background: 'var(--accent-faint)',
+                color: 'var(--accent)',
+                width: '48px',
+                height: '48px',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <UserCog size={24} />
+            </div>
+            <div>
+              <h1 className="section-title" style={{ margin: 0 }}>
+                Internal Accounts Management
+              </h1>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+                Loading accounts...
+              </p>
+            </div>
+          </div>
+        </div>
         <SkeletonStyles />
-        <h2>Internal Accounts Management</h2>
-        <p>Loading accounts...</p>
       </div>
     )
   }
 
   const renderTable = (list: InternalAccount[]) => (
-    <div className="table-wrapper" style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+    <div
+      className="table-wrapper"
+      style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}
+    >
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
         <thead style={{ background: 'var(--surface-hover)' }}>
           <tr>
-            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>UUID</th>
-            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Name</th>
-            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Type</th>
-            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Email/Hash</th>
-            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Status</th>
-            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Action</th>
+            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              UUID
+            </th>
+            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Name
+            </th>
+            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Type
+            </th>
+            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Email/Hash
+            </th>
+            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Status
+            </th>
+            <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Action
+            </th>
           </tr>
         </thead>
         <tbody>
           {list.map((item, idx) => (
-            <tr key={item.uuid} style={{ borderTop: '1px solid var(--border)', background: idx % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-              <td style={{ padding: '12px 16px', fontSize: '13px' }}>{item.uuid.substring(0, 8)}...</td>
+            <tr
+              key={item.uuid}
+              style={{
+                borderTop: '1px solid var(--border)',
+                background: idx % 2 === 0 ? 'var(--white)' : 'var(--bg)',
+              }}
+            >
+              <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                {item.uuid.substring(0, 8)}...
+              </td>
               <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600 }}>
-                {item.businessName || `${item.firstName || ''} ${item.lastName || ''}`.trim() || 'Guest'}
+                {item.businessName ||
+                  `${item.firstName || ''} ${item.lastName || ''}`.trim() ||
+                  'Guest'}
               </td>
               <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                <span style={{ padding: '2px 6px', background: 'var(--surface-hover)', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>
+                <span
+                  style={{
+                    padding: '2px 6px',
+                    background: 'var(--surface-hover)',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   {item._type}
                 </span>
               </td>
-              <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <td
+                style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}
+              >
                 {item.email || item.emailHash || 'N/A'}
               </td>
               <td style={{ padding: '12px 16px', fontSize: '13px' }}>
@@ -144,7 +223,12 @@ export default function InternalAccounts({ token }: { token: string }) {
           ))}
           {list.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No records found</td>
+              <td
+                colSpan={6}
+                style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}
+              >
+                No records found
+              </td>
             </tr>
           )}
         </tbody>
@@ -154,14 +238,52 @@ export default function InternalAccounts({ token }: { token: string }) {
 
   return (
     <div className="page-container fade-in" style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: 0, fontWeight: 800 }}>Internal Accounts Management</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-          Toggle the "Internal" status for accounts to exclude them from dashboard metrics.
-        </p>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <UserCog size={24} />
+          </div>
+          <div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Internal Accounts Management
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Toggle the "Internal" status for accounts to exclude them from dashboard metrics.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid var(--border)' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '16px',
+          marginBottom: '24px',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
         <button
           onClick={() => setActiveTab('users')}
           style={{
@@ -171,7 +293,7 @@ export default function InternalAccounts({ token }: { token: string }) {
             borderBottom: activeTab === 'users' ? '2px solid var(--clay)' : '2px solid transparent',
             color: activeTab === 'users' ? 'var(--clay)' : 'var(--text-muted)',
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           Registered Tenants ({registeredUsers.length})
@@ -182,10 +304,11 @@ export default function InternalAccounts({ token }: { token: string }) {
             padding: '12px 16px',
             background: 'transparent',
             border: 'none',
-            borderBottom: activeTab === 'guests' ? '2px solid var(--clay)' : '2px solid transparent',
+            borderBottom:
+              activeTab === 'guests' ? '2px solid var(--clay)' : '2px solid transparent',
             color: activeTab === 'guests' ? 'var(--clay)' : 'var(--text-muted)',
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           Guests / Pending ({guests.length})
@@ -199,7 +322,7 @@ export default function InternalAccounts({ token }: { token: string }) {
             borderBottom: activeTab === 'pms' ? '2px solid var(--clay)' : '2px solid transparent',
             color: activeTab === 'pms' ? 'var(--clay)' : 'var(--text-muted)',
             fontWeight: 600,
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
         >
           Property Managers ({pms.length})

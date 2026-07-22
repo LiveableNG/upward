@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Save, Trash2, ShieldCheck, Landmark, Building, AppWindow, HelpCircle, Plus } from 'lucide-react'
+import {
+  ArrowLeft,
+  Save,
+  Trash2,
+  ShieldCheck,
+  Landmark,
+  Building,
+  AppWindow,
+  HelpCircle,
+  Plus,
+} from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import type { FeeOverride } from '../features/dashboard/types'
@@ -66,11 +76,15 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
     if (!isSuperadmin) return
     setSavingBaseFee(true)
     try {
-      await apiService.post('/admin/fees/overrides', {
-        targetType: 'PLATFORM',
-        targetId: 'GLOBAL_DEFAULT',
-        fee: parseFloat(baseFeeInput),
-      }, token)
+      await apiService.post(
+        '/admin/fees/overrides',
+        {
+          targetType: 'PLATFORM',
+          targetId: 'GLOBAL_DEFAULT',
+          fee: parseFloat(baseFeeInput),
+        },
+        token,
+      )
       showToast('Global fallback processing fee updated')
       fetchOverrides()
     } catch (err: any) {
@@ -86,11 +100,15 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
     if (!isSuperadmin) return
     setSavingOverride(true)
     try {
-      await apiService.post('/admin/fees/overrides', {
-        targetType: customOverrideType,
-        targetId: customOverrideId,
-        fee: parseFloat(customOverrideFee),
-      }, token)
+      await apiService.post(
+        '/admin/fees/overrides',
+        {
+          targetType: customOverrideType,
+          targetId: customOverrideId,
+          fee: parseFloat(customOverrideFee),
+        },
+        token,
+      )
       showToast('Fee override successfully applied')
       setCustomOverrideId('')
       fetchOverrides()
@@ -115,9 +133,12 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'PM': return <Building size={16} />
-      case 'COMPANY': return <Landmark size={16} />
-      default: return <AppWindow size={16} />
+      case 'PM':
+        return <Building size={16} />
+      case 'COMPANY':
+        return <Landmark size={16} />
+      default:
+        return <AppWindow size={16} />
     }
   }
 
@@ -127,41 +148,72 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
       ov.targetId.toLowerCase().includes(q) ||
       (ov.targetName && ov.targetName.toLowerCase().includes(q)) ||
       ov.targetType.toLowerCase().includes(q)
-    );
+    )
   })
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
-      
       {/* Top Navigation Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-        <Link to="/dashboard" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
-          <ArrowLeft size={16} />
-        </Link>
-        <div>
-          <h2 style={{ margin: 0, fontWeight: 800 }}>Fee Overrides Configuration</h2>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Administration / Custom & Platform Processing Fees
-          </span>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to="/dashboard" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
+            <ArrowLeft size={16} />
+          </Link>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <ShieldCheck size={24} />
+          </div>
+          <div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Fee Overrides Configuration
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Administration / Custom & Platform Processing Fees
+            </p>
+          </div>
         </div>
       </div>
 
       {pmUuidParam && pmNameParam && (
-        <div style={{
-          background: 'rgba(99, 102, 241, 0.06)',
-          border: '1px solid rgba(99, 102, 241, 0.15)',
-          padding: '16px 20px',
-          borderRadius: '12px',
-          marginBottom: '24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          fontSize: '14px',
-          color: 'var(--text-secondary)'
-        }}>
+        <div
+          style={{
+            background: 'rgba(99, 102, 241, 0.06)',
+            border: '1px solid rgba(99, 102, 241, 0.15)',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '14px',
+            color: 'var(--text-secondary)',
+          }}
+        >
           <ShieldCheck size={18} style={{ color: '#6366f1' }} />
           <span>
-            Quick Override pre-filled for PM <strong>{pmNameParam}</strong> ({pmUuidParam.slice(0, 8)}...). Set custom fee below.
+            Quick Override pre-filled for PM <strong>{pmNameParam}</strong> (
+            {pmUuidParam.slice(0, 8)}...). Set custom fee below.
           </span>
         </div>
       )}
@@ -172,20 +224,47 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
           <span>Loading override registry logs...</span>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'start' }} className="grid-mobile-1">
-          
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 2fr',
+            gap: '24px',
+            alignItems: 'start',
+          }}
+          className="grid-mobile-1"
+        >
           {/* LEFT SIDE: Override creators */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
             {/* Global Settings */}
             <div className="card">
-              <span className="section-label" style={{ display: 'block', marginBottom: '12px' }}>Global Base Fallback Fee</span>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '16px', lineHeight: 1.5 }}>
-                This is the standard transaction processing fee applied when no company or property manager override matches.
+              <span className="section-label" style={{ display: 'block', marginBottom: '12px' }}>
+                Global Base Fallback Fee
+              </span>
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '12px',
+                  marginBottom: '16px',
+                  lineHeight: 1.5,
+                }}
+              >
+                This is the standard transaction processing fee applied when no company or property
+                manager override matches.
               </p>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
-                  <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₦</span>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '16px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    ₦
+                  </span>
                   <input
                     type="number"
                     min="0"
@@ -197,7 +276,12 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                   />
                 </div>
                 {isSuperadmin && (
-                  <button onClick={handleSaveBaseFee} className="btn btn-primary" style={{ height: '44px' }} disabled={savingBaseFee}>
+                  <button
+                    onClick={handleSaveBaseFee}
+                    className="btn btn-primary"
+                    style={{ height: '44px' }}
+                    disabled={savingBaseFee}
+                  >
                     <Save size={16} /> Save
                   </button>
                 )}
@@ -207,14 +291,36 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
             {/* Custom Override Form */}
             {isSuperadmin && (
               <div className="card">
-                <span className="section-label" style={{ display: 'block', marginBottom: '12px' }}>Create Custom Fee Override</span>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '16px', lineHeight: 1.5 }}>
-                  Apply special fee packages for a Property Manager, PM Company group, or external platform integration.
+                <span className="section-label" style={{ display: 'block', marginBottom: '12px' }}>
+                  Create Custom Fee Override
+                </span>
+                <p
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: '12px',
+                    marginBottom: '16px',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Apply special fee packages for a Property Manager, PM Company group, or external
+                  platform integration.
                 </p>
-                <form onSubmit={handleSaveCustomOverride} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  
+                <form
+                  onSubmit={handleSaveCustomOverride}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+                >
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>Override Level</label>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      Override Level
+                    </label>
                     <select
                       value={customOverrideType}
                       onChange={(e) => setCustomOverrideType(e.target.value)}
@@ -227,7 +333,17 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>Entity UUID</label>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      Entity UUID
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. 1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
@@ -239,9 +355,30 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>Custom Fee Amount (₦)</label>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        marginBottom: '6px',
+                      }}
+                    >
+                      Custom Fee Amount (₦)
+                    </label>
                     <div style={{ position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--text-muted)' }}>₦</span>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: '16px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        ₦
+                      </span>
                       <input
                         type="number"
                         min="0"
@@ -254,26 +391,46 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                     </div>
                   </div>
 
-                  <button type="submit" className="btn btn-primary" style={{ width: '100%', height: '44px', marginTop: '8px' }} disabled={savingOverride}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{ width: '100%', height: '44px', marginTop: '8px' }}
+                    disabled={savingOverride}
+                  >
                     <Plus size={16} /> Apply Override
                   </button>
-
                 </form>
               </div>
             )}
-
           </div>
 
           {/* RIGHT SIDE: Active list overrides */}
           <div className="card" style={{ minHeight: '400px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
               <div>
                 <span className="section-label">Active Custom Override Profiles</span>
-                <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Matches prioritize PM overrides first, then Company overrides, then Global Fallbacks.
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    marginTop: '2px',
+                  }}
+                >
+                  Matches prioritize PM overrides first, then Company overrides, then Global
+                  Fallbacks.
                 </span>
               </div>
-              
+
               {/* Table search filter */}
               <input
                 type="text"
@@ -298,37 +455,58 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                       background: 'var(--surface-hover)',
                       borderRadius: '12px',
                       border: '1px solid var(--border)',
-                      transition: 'var(--transition)'
+                      transition: 'var(--transition)',
                     }}
                     className="table-row-hover"
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{
-                        width: '36px',
-                        height: '36px',
-                        borderRadius: '8px',
-                        backgroundColor: ov.targetType === 'PM' ? 'rgba(99, 102, 241, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-                        color: ov.targetType === 'PM' ? '#6366f1' : 'var(--warning)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          backgroundColor:
+                            ov.targetType === 'PM'
+                              ? 'rgba(99, 102, 241, 0.08)'
+                              : 'rgba(245, 158, 11, 0.08)',
+                          color: ov.targetType === 'PM' ? '#6366f1' : 'var(--warning)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
                         {getIcon(ov.targetType)}
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 700, fontSize: '14px' }}>{ov.targetName || 'Anonymous Account'}</span>
-                          <span className="badge" style={{
-                            fontSize: '9px',
-                            padding: '2px 6px',
-                            background: ov.targetType === 'PM' ? 'rgba(99, 102, 241, 0.08)' : 'var(--warning-faint)',
-                            color: ov.targetType === 'PM' ? '#6366f1' : 'var(--warning)',
-                            border: 'none'
-                          }}>
+                          <span style={{ fontWeight: 700, fontSize: '14px' }}>
+                            {ov.targetName || 'Anonymous Account'}
+                          </span>
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: '9px',
+                              padding: '2px 6px',
+                              background:
+                                ov.targetType === 'PM'
+                                  ? 'rgba(99, 102, 241, 0.08)'
+                                  : 'var(--warning-faint)',
+                              color: ov.targetType === 'PM' ? '#6366f1' : 'var(--warning)',
+                              border: 'none',
+                            }}
+                          >
                             {ov.targetType}
                           </span>
                         </div>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', display: 'block', marginTop: '2px' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--text-muted)',
+                            fontFamily: 'monospace',
+                            display: 'block',
+                            marginTop: '2px',
+                          }}
+                        >
                           ID: {ov.targetId}
                         </span>
                       </div>
@@ -336,8 +514,14 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>Fee Override</span>
-                        <strong style={{ fontSize: '16px', color: 'var(--accent)' }}>₦{ov.fee.toLocaleString()}</strong>
+                        <span
+                          style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}
+                        >
+                          Fee Override
+                        </span>
+                        <strong style={{ fontSize: '16px', color: 'var(--accent)' }}>
+                          ₦{ov.fee.toLocaleString()}
+                        </strong>
                       </div>
                       {isSuperadmin && (
                         <button
@@ -351,7 +535,7 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
                           }}
                           className="btn-secondary"
                         >
@@ -359,21 +543,28 @@ const OverridesPage: React.FC<OverridesPageProps> = ({ token, adminRole }) => {
                         </button>
                       )}
                     </div>
-
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '64px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '64px',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px',
+                }}
+              >
                 <HelpCircle size={40} style={{ color: 'var(--text-muted)' }} />
                 <span>No active fee overrides matching "{searchQuery}" found.</span>
               </div>
             )}
           </div>
-
         </div>
       )}
-
     </div>
   )
 }

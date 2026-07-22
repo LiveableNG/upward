@@ -11,10 +11,13 @@ import {
   Send,
   Edit2,
   ShieldAlert,
+  User,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { useAuth } from '../contexts/AuthContext'
+import { DataTable } from '../components/common/table/DataTable'
+import type { ColumnDef } from '../components/common/table/DataTable'
 
 interface UserDetailProps {
   token: string
@@ -45,7 +48,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
   const isDeveloper = auth?.user?.role === 'DEVELOPER'
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserDetailData | null>(null)
-  
+
   // Notification Form State
   const [notifTitle, setNotifTitle] = useState('')
   const [notifMessage, setNotifMessage] = useState('')
@@ -90,10 +93,14 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
     setSendingNotif(true)
     try {
-      await apiService.post(`/admin/users/${uuid}/notify`, {
-        title: notifTitle,
-        message: notifMessage,
-      }, token)
+      await apiService.post(
+        `/admin/users/${uuid}/notify`,
+        {
+          title: notifTitle,
+          message: notifMessage,
+        },
+        token,
+      )
 
       showToast('Notification sent successfully!')
       setNotifTitle('')
@@ -112,12 +119,16 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
     setUpdatingProfile(true)
     try {
-      await apiService.patch(`/admin/users/${uuid}`, {
-        firstName: editFirstName,
-        lastName: editLastName,
-        email: editEmail,
-        phone: editPhone,
-      }, token)
+      await apiService.patch(
+        `/admin/users/${uuid}`,
+        {
+          firstName: editFirstName,
+          lastName: editLastName,
+          email: editEmail,
+          phone: editPhone,
+        },
+        token,
+      )
 
       showToast('User profile updated successfully!')
       fetchUserDetails()
@@ -134,12 +145,10 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
     setUpdatingSavingsWallet(true)
     try {
       const nextEnabled = !user.savingsWalletEnabled
-      await apiService.patch(
-        `/admin/savings-wallet/users/${uuid}`,
-        { enabled: nextEnabled },
-        token,
+      await apiService.patch(`/admin/savings-wallet/users/${uuid}`, { enabled: nextEnabled }, token)
+      showToast(
+        nextEnabled ? 'Savings wallet enabled (₦1,000 prefunded)' : 'Savings wallet disabled',
       )
-      showToast(nextEnabled ? 'Savings wallet enabled (₦1,000 prefunded)' : 'Savings wallet disabled')
       fetchUserDetails()
     } catch (err: any) {
       console.error(err)
@@ -148,6 +157,58 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
       setUpdatingSavingsWallet(false)
     }
   }
+
+  const transactionColumns: ColumnDef<any>[] = [
+    {
+      key: 'reference',
+      label: 'Reference',
+      render: (tx) => tx.reference,
+    },
+    {
+      key: 'narration',
+      label: 'Narration',
+      render: (tx) => tx.narration,
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      render: (tx) => (
+        <span
+          style={{
+            fontWeight: 600,
+            color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--text-muted)',
+          }}
+        >
+          ₦{tx.amount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (tx) => (
+        <span
+          className="badge"
+          style={{
+            backgroundColor:
+              tx.status === 'SUCCESS' ? 'var(--success-faint)' : 'var(--danger-faint)',
+            color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--danger)',
+          }}
+        >
+          {tx.status}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'Date',
+      render: (tx) => (
+        <span style={{ color: 'var(--text-muted)' }}>
+          {new Date(tx.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    },
+  ]
 
   if (loading) {
     return (
@@ -172,25 +233,67 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
-      
       {/* Back & Breadcrumb header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <Link to="/metrics" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
-          <ArrowLeft size={16} />
-        </Link>
-        <div>
-          <h2 style={{ margin: 0 }}>Tenant Profile</h2>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Ecosystem Registry / {user.email}
-          </span>
+      <div
+        className="page-header flex-mobile-column"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '24px',
+          gap: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Link to="/metrics" className="btn btn-secondary" style={{ padding: '8px 12px' }}>
+            <ArrowLeft size={16} />
+          </Link>
+          <div
+            className="icon-container"
+            style={{
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <User size={24} />
+          </div>
+          <div>
+            <h1 className="section-title" style={{ margin: 0 }}>
+              Tenant Profile
+            </h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
+              Ecosystem Registry / {user.email}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'start' }}>
-        
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gap: '24px',
+          alignItems: 'start',
+        }}
+      >
         {/* LEFT COLUMN: Overview & Quick Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'sticky', top: '84px', alignSelf: 'start' }}>
-          
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px',
+            position: 'sticky',
+            top: '84px',
+            alignSelf: 'start',
+          }}
+        >
           {/* Identity Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
             <div
@@ -206,7 +309,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px auto',
-                border: '1px solid rgba(217, 119, 87, 0.15)'
+                border: '1px solid rgba(217, 119, 87, 0.15)',
               }}
             >
               {user.firstName ? user.firstName[0] : 'U'}
@@ -220,25 +323,56 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 fontWeight: 700,
                 padding: '4px 10px',
                 borderRadius: '12px',
-                backgroundColor: user.type === 'TENANT' ? 'var(--success-faint)' : 'var(--warning-faint)',
+                backgroundColor:
+                  user.type === 'TENANT' ? 'var(--success-faint)' : 'var(--warning-faint)',
                 color: user.type === 'TENANT' ? 'var(--success)' : 'var(--warning)',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
               }}
             >
               {user.type === 'TENANT' ? 'Onboarded Tenant' : 'Shadow / Guest'}
             </span>
 
             {/* Profile Contact info list */}
-            <div style={{ marginTop: '24px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+            <div
+              style={{
+                marginTop: '24px',
+                textAlign: 'left',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                fontSize: '13px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Mail size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>{user.email}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Phone size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>{user.phone || 'No phone set'}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
               </div>
@@ -251,10 +385,22 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 12px 0' }}>
               Enable per tenant. First-time enablement prefunds ₦1,000 automatically.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+              }}
+            >
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 Status:{' '}
-                <span style={{ fontWeight: 700, color: user.savingsWalletEnabled ? 'var(--success)' : 'var(--text-muted)' }}>
+                <span
+                  style={{
+                    fontWeight: 700,
+                    color: user.savingsWalletEnabled ? 'var(--success)' : 'var(--text-muted)',
+                  }}
+                >
                   {user.savingsWalletEnabled ? 'ENABLED' : 'DISABLED'}
                 </span>
               </div>
@@ -284,12 +430,26 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             <h4 style={{ margin: '0 0 16px 0', fontSize: '15px' }}>Send In-App Notification</h4>
             {user.type === 'PENDING_TENANT' ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                In-app notifications are not available. This user has been invited but hasn't created their password credentials.
+                In-app notifications are not available. This user has been invited but hasn't
+                created their password credentials.
               </p>
             ) : (
-              <form onSubmit={handleSendNotification} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <form
+                onSubmit={handleSendNotification}
+                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+              >
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Title</label>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Title
+                  </label>
                   <input
                     type="text"
                     value={notifTitle}
@@ -300,7 +460,17 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Message</label>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Message
+                  </label>
                   <textarea
                     value={notifMessage}
                     onChange={(e) => setNotifMessage(e.target.value)}
@@ -314,28 +484,45 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                   type="submit"
                   disabled={sendingNotif}
                   className="btn btn-primary"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '38px' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    height: '38px',
+                  }}
                 >
                   <Send size={14} /> {sendingNotif ? 'Sending alert...' : 'Dispatch Message'}
                 </button>
               </form>
             )}
           </div>
-
         </div>
 
         {/* RIGHT COLUMN: Details list & Logs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
           {/* Edit Profile Details */}
           {isDeveloper && (
             <div className="card" style={{ padding: '24px' }}>
-              <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h4
+                style={{
+                  margin: '0 0 16px 0',
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
                 <Edit2 size={16} /> Edit Profile Details
               </h4>
-              <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <form
+                onSubmit={handleUpdateProfile}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}
+              >
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>First Name</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    First Name
+                  </label>
                   <input
                     type="text"
                     value={editFirstName}
@@ -345,7 +532,9 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Last Name</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Last Name
+                  </label>
                   <input
                     type="text"
                     value={editLastName}
@@ -355,7 +544,9 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Email Address</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     value={editEmail}
@@ -365,7 +556,9 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                   />
                 </div>
                 <div>
-                  <label className="section-label" style={{ marginBottom: '4px' }}>Phone Number</label>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Phone Number
+                  </label>
                   <input
                     type="text"
                     value={editPhone}
@@ -373,8 +566,20 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                     className="input"
                   />
                 </div>
-                <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                  <button type="submit" disabled={updatingProfile} className="btn btn-primary" style={{ height: '38px' }}>
+                <div
+                  style={{
+                    gridColumn: 'span 2',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    marginTop: '8px',
+                  }}
+                >
+                  <button
+                    type="submit"
+                    disabled={updatingProfile}
+                    className="btn btn-primary"
+                    style={{ height: '38px' }}
+                  >
                     {updatingProfile ? 'Saving updates...' : 'Save Profile Changes'}
                   </button>
                 </div>
@@ -384,11 +589,28 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
           {/* Properties section */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <Home size={16} /> Linked Tenancy Properties
             </h4>
             {user.properties && user.properties.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  paddingRight: '4px',
+                }}
+              >
                 {user.properties.map((prop: any) => (
                   <div
                     key={prop.id}
@@ -399,17 +621,27 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                       border: '1px solid var(--border)',
                       display: 'flex',
                       justifyContent: 'space-between',
-                      alignItems: 'center'
+                      alignItems: 'center',
                     }}
                   >
                     <div>
                       <span style={{ fontWeight: 600, display: 'block', fontSize: '14px' }}>
-                        {prop.pmUnit?.property?.address || prop.location?.address || 'Property Tenancy'}
+                        {prop.pmUnit?.property?.address ||
+                          prop.location?.address ||
+                          'Property Tenancy'}
                       </span>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {prop.location?.area || prop.pmUnit?.property?.area}, {prop.location?.state || prop.pmUnit?.property?.state} •{' '}
+                        {prop.location?.area || prop.pmUnit?.property?.area},{' '}
+                        {prop.location?.state || prop.pmUnit?.property?.state} •{' '}
                         {prop.pm ? (
-                          <Link to={`/pms/${prop.pm.uuid}`} style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                          <Link
+                            to={`/pms/${prop.pm.uuid}`}
+                            style={{
+                              color: 'var(--accent)',
+                              textDecoration: 'none',
+                              fontWeight: 600,
+                            }}
+                          >
                             {prop.pm.businessName || 'Property Manager'}
                           </Link>
                         ) : (
@@ -422,8 +654,11 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                       <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--accent)' }}>
                         ₦{prop.rentAmount ? prop.rentAmount.toLocaleString() : '0'}
                       </span>
-                      <span style={{ fontSize: '11px', display: 'block', color: 'var(--text-muted)' }}>
-                        Remaining: ₦{prop.amountRemaining ? prop.amountRemaining.toLocaleString() : '0'}
+                      <span
+                        style={{ fontSize: '11px', display: 'block', color: 'var(--text-muted)' }}
+                      >
+                        Remaining: ₦
+                        {prop.amountRemaining ? prop.amountRemaining.toLocaleString() : '0'}
                       </span>
                     </div>
                   </div>
@@ -438,62 +673,49 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
           {/* Transaction Ledger */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <DollarSign size={16} /> Transaction Ledger
             </h4>
-            {user.transactions && user.transactions.length > 0 ? (
-              <div className="table-container" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
-                      <th style={{ padding: '8px 12px' }}>Reference</th>
-                      <th style={{ padding: '8px 12px' }}>Narration</th>
-                      <th style={{ padding: '8px 12px' }}>Amount</th>
-                      <th style={{ padding: '8px 12px' }}>Status</th>
-                      <th style={{ padding: '8px 12px' }}>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {user.transactions.map((tx: any) => (
-                      <tr key={tx.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '12px' }}>{tx.reference}</td>
-                        <td style={{ padding: '12px' }}>{tx.narration}</td>
-                        <td style={{ padding: '12px', fontWeight: 600, color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--text-muted)' }}>
-                          ₦{tx.amount.toLocaleString()}
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          <span
-                            className="badge"
-                            style={{
-                              backgroundColor: tx.status === 'SUCCESS' ? 'var(--success-faint)' : 'var(--danger-faint)',
-                              color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--danger)'
-                            }}
-                          >
-                            {tx.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px', color: 'var(--text-muted)' }}>
-                          {new Date(tx.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                No successful transaction history recorded for this user.
-              </p>
-            )}
+            <DataTable
+              data={user.transactions || []}
+              columns={transactionColumns}
+              emptyTitle="No successful transaction history recorded for this user."
+              keyExtractor={(tx) => tx.id.toString()}
+            />
           </div>
 
           {/* Activity Log Feed */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <Activity size={16} /> App Action Logs
             </h4>
             {user.activityLogs && user.activityLogs.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  paddingRight: '4px',
+                }}
+              >
                 {user.activityLogs.map((log: any) => (
                   <div
                     key={log.id}
@@ -502,16 +724,28 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: 'var(--surface-hover)',
                       border: '1px solid var(--border)',
-                      fontSize: '12px'
+                      fontSize: '12px',
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '4px',
+                      }}
+                    >
                       <span style={{ fontWeight: 600 }}>{log.action}</span>
                       <span style={{ color: 'var(--text-muted)' }}>
-                        {new Date(log.createdAt).toLocaleDateString()} • {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(log.createdAt).toLocaleDateString()} •{' '}
+                        {new Date(log.createdAt).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </div>
-                    <p style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)' }}>{log.description}</p>
+                    <p style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)' }}>
+                      {log.description}
+                    </p>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       IP: {log.ipAddress || 'unknown'} • App: {log.app}
                     </div>
@@ -524,11 +758,8 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
               </p>
             )}
           </div>
-
         </div>
-
       </div>
-
     </div>
   )
 }

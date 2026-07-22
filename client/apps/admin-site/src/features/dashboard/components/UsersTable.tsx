@@ -1,17 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ChevronUp,
-  ChevronDown,
-  MoreHorizontal,
-  Eye,
-  Copy,
-  Trash2,
-  Users,
-  Mail,
-  UserPlus,
-} from 'lucide-react'
-import { Square, CheckSquare } from './Checkbox'
+import { Eye, Copy, Trash2, Mail, UserPlus } from 'lucide-react'
+import { DataTable, type ColumnDef, type ActionItem, StatusBadge } from '../../../components/common'
 
 export interface UnifiedUserRecord {
   id: string
@@ -32,7 +22,15 @@ export interface UnifiedUserRecord {
   rawRecord: any
 }
 
-type SortKey = 'name' | 'email' | 'origin' | 'pmName' | 'totalPaid' | 'createdAt' | 'joinedAt' | 'rentExpiry'
+type SortKey =
+  | 'name'
+  | 'email'
+  | 'origin'
+  | 'pmName'
+  | 'totalPaid'
+  | 'createdAt'
+  | 'joinedAt'
+  | 'rentExpiry'
 type SortDir = 'asc' | 'desc'
 
 interface UsersTableProps {
@@ -41,26 +39,25 @@ interface UsersTableProps {
   fullListItems: UnifiedUserRecord[]
   selectedUserIds: Set<string>
   toggleSelectAllUsers: () => void
-  toggleSelectUser: (id: string, e: React.MouseEvent) => void
+  toggleSelectUser: (id: string, e?: React.MouseEvent) => void
   showFailureReason?: boolean
   onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
 }
 
-const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) =>
-  active === col
-    ? dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
-    : <ChevronDown size={12} style={{ opacity: 0.25 }} />
-
 const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
   const [openPmUuid, setOpenPmUuid] = useState<string | null>(null)
-  
-  const uniquePms = React.useMemo(() => {
+
+  const uniquePms = useMemo(() => {
     if (!pms) return []
     const map = new Map<string, { uuid: string; name: string; propertyAddresses: string[] }>()
-    pms.forEach(pm => {
+    pms.forEach((pm) => {
       if (!map.has(pm.name)) {
-        map.set(pm.name, { uuid: pm.uuid, name: pm.name, propertyAddresses: pm.propertyAddress ? [pm.propertyAddress] : [] })
+        map.set(pm.name, {
+          uuid: pm.uuid,
+          name: pm.name,
+          propertyAddresses: pm.propertyAddress ? [pm.propertyAddress] : [],
+        })
       } else {
         const existing = map.get(pm.name)!
         if (pm.propertyAddress && !existing.propertyAddresses.includes(pm.propertyAddress)) {
@@ -72,7 +69,11 @@ const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
   }, [pms])
 
   if (!uniquePms || uniquePms.length === 0) {
-    return <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>— <span style={{ fontSize: '11px', opacity: 0.6 }}>(Direct)</span></span>
+    return (
+      <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+        — <span style={{ fontSize: '11px', opacity: 0.6 }}>(Direct)</span>
+      </span>
+    )
   }
 
   return (
@@ -89,20 +90,20 @@ const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
               fontSize: '11px',
               fontWeight: 600,
               background: 'var(--surface)',
-              border: '1px solid var(--border-solid)',
+              border: '1px solid var(--border)',
               padding: '2px 8px',
               borderRadius: '100px',
               color: 'var(--text-secondary)',
               cursor: pm.propertyAddresses.length > 0 ? 'pointer' : 'default',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.15s ease',
             }}
-            className={pm.propertyAddresses.length > 0 ? "pm-badge-hover" : ""}
+            className={pm.propertyAddresses.length > 0 ? 'pm-badge-hover' : ''}
           >
             {pm.name}
           </button>
-          
+
           {openPmUuid === pm.uuid && pm.propertyAddresses.length > 0 && (
-            <div 
+            <div
               style={{
                 position: 'absolute',
                 top: '100%',
@@ -110,7 +111,7 @@ const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
                 transform: 'translateX(-50%)',
                 marginTop: '4px',
                 background: 'var(--bg)',
-                border: '1px solid var(--border-solid)',
+                border: '1px solid var(--border)',
                 padding: '8px 12px',
                 borderRadius: '8px',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
@@ -122,12 +123,15 @@ const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
                 maxWidth: '240px',
                 lineHeight: 1.4,
                 whiteSpace: 'normal',
-                animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
-              onMouseDown={(e) => e.stopPropagation()} // Prevent blur when clicking inside
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {pm.propertyAddresses.map((addr, idx) => (
-                <div key={idx} style={{ marginBottom: idx < pm.propertyAddresses.length - 1 ? '4px' : 0 }}>
+                <div
+                  key={idx}
+                  style={{ marginBottom: idx < pm.propertyAddresses.length - 1 ? '4px' : 0 }}
+                >
                   {addr}
                 </div>
               ))}
@@ -159,416 +163,382 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   toggleSelectUser,
   showFailureReason,
   onPreview,
-  onDeleteSelected
+  onDeleteSelected,
 }) => {
   const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [openJoinedId, setOpenJoinedId] = useState<string | null>(null)
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    else { setSortKey(key); setSortDir('asc') }
-  }
-
-  const sorted = [...paginatedItems].sort((a, b) => {
-    let va: string | number = '', vb: string | number = ''
-    if (sortKey === 'name') {
-      va = `${a.firstName} ${a.lastName}`.toLowerCase()
-      vb = `${b.firstName} ${b.lastName}`.toLowerCase()
-    } else if (sortKey === 'email') {
-      va = a.email.toLowerCase()
-      vb = b.email.toLowerCase()
-    } else if (sortKey === 'origin') {
-      va = a.origin
-      vb = b.origin
-    } else if (sortKey === 'pmName') {
-      va = (a.pms?.[0]?.name || '').toLowerCase()
-      vb = (b.pms?.[0]?.name || '').toLowerCase()
-    } else if (sortKey === 'totalPaid') {
-      va = a.totalPaid
-      vb = b.totalPaid
-    } else if (sortKey === 'createdAt') {
-      va = a.createdAt
-      vb = b.createdAt
-    } else if (sortKey === 'joinedAt') {
-      if (!a.joinedAt && b.joinedAt) return sortDir === 'asc' ? 1 : -1
-      if (a.joinedAt && !b.joinedAt) return sortDir === 'asc' ? -1 : 1
-      va = a.joinedAt || ''
-      vb = b.joinedAt || ''
-    } else if (sortKey === 'rentExpiry') {
-      // Put empty rent expiries at the end
-      if (!a.rentExpiryDate && b.rentExpiryDate) return sortDir === 'asc' ? 1 : -1
-      if (a.rentExpiryDate && !b.rentExpiryDate) return sortDir === 'asc' ? -1 : 1
-      va = a.rentExpiryDate || ''
-      vb = b.rentExpiryDate || ''
+  const handleSort = (key: string) => {
+    const sKey = key as SortKey
+    if (sortKey === sKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else {
+      setSortKey(sKey)
+      setSortDir('asc')
     }
-    if (va < vb) return sortDir === 'asc' ? -1 : 1
-    if (va > vb) return sortDir === 'asc' ? 1 : -1
-    return 0
-  })
-
-  const thStyle: React.CSSProperties = {
-    padding: '13px 16px',
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    cursor: 'pointer',
-    userSelect: 'none',
-    whiteSpace: 'nowrap',
   }
 
-  const allSelected = paginatedItems.length > 0 && paginatedItems.every(item => selectedUserIds.has(item.uuid))
+  const sorted = useMemo(() => {
+    return [...paginatedItems].sort((a, b) => {
+      let va: string | number = '',
+        vb: string | number = ''
+      if (sortKey === 'name') {
+        va = `${a.firstName} ${a.lastName}`.toLowerCase()
+        vb = `${b.firstName} ${b.lastName}`.toLowerCase()
+      } else if (sortKey === 'email') {
+        va = a.email.toLowerCase()
+        vb = b.email.toLowerCase()
+      } else if (sortKey === 'origin') {
+        va = a.origin
+        vb = b.origin
+      } else if (sortKey === 'pmName') {
+        va = (a.pms?.[0]?.name || '').toLowerCase()
+        vb = (b.pms?.[0]?.name || '').toLowerCase()
+      } else if (sortKey === 'totalPaid') {
+        va = a.totalPaid
+        vb = b.totalPaid
+      } else if (sortKey === 'createdAt') {
+        va = a.createdAt
+        vb = b.createdAt
+      } else if (sortKey === 'joinedAt') {
+        if (!a.joinedAt && b.joinedAt) return sortDir === 'asc' ? 1 : -1
+        if (a.joinedAt && !b.joinedAt) return sortDir === 'asc' ? -1 : 1
+        va = a.joinedAt || ''
+        vb = b.joinedAt || ''
+      } else if (sortKey === 'rentExpiry') {
+        if (!a.rentExpiryDate && b.rentExpiryDate) return sortDir === 'asc' ? 1 : -1
+        if (a.rentExpiryDate && !b.rentExpiryDate) return sortDir === 'asc' ? -1 : 1
+        va = a.rentExpiryDate || ''
+        vb = b.rentExpiryDate || ''
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1
+      if (va > vb) return sortDir === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [paginatedItems, sortKey, sortDir])
 
-  const getOriginBadge = (origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE') => {
+  const getOriginBadge = (
+    origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE',
+  ) => {
     switch (origin) {
       case 'WAITLIST':
-        return (
-          <span className="badge" style={{ background: 'rgba(99,102,241,0.08)', color: '#6366f1' }}>
-            Waitlist
-          </span>
-        )
+        return <StatusBadge variant="neutral" label="Waitlist" />
       case 'SELF_REGISTERED':
-        return (
-          <span className="badge" style={{ background: 'var(--success-faint)', color: 'var(--success)' }}>
-            Self Signed Up
-          </span>
-        )
+        return <StatusBadge variant="success" label="Self Signed Up" />
       case 'INVITED_EMAIL':
-        return (
-          <span className="badge" style={{ background: 'var(--accent-faint)', color: 'var(--accent)' }}>
-            Invited (Email)
-          </span>
-        )
+        return <StatusBadge variant="accent" label="Invited (Email)" />
       case 'INVITED_PHONE':
-        return (
-          <span className="badge" style={{ background: 'var(--accent-faint)', color: 'var(--accent)' }}>
-            Invited (Phone)
-          </span>
-        )
+        return <StatusBadge variant="accent" label="Invited (Phone)" />
       default:
         return null
     }
   }
 
-  return (
-    <>
-      {/* Bulk Action Bar */}
-      {selectedUserIds.size > 0 && isSuperadmin && (
-        <div style={{
-          background: 'var(--accent-faint)',
-          border: '1px solid var(--accent-muted)',
-          borderRadius: '10px',
-          padding: '10px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '8px',
-          fontSize: '13px',
-        }}>
-          <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
-          <button
-            onClick={() => {
-              const selectedUsers = fullListItems.filter((u) => {
-                if (!selectedUserIds.has(u.uuid)) return false
-                const email = u.email?.toLowerCase() || ''
-                return email.includes('@') && !email.endsWith('@upward.com') && !email.endsWith('@upward.local')
-              })
-              navigate('/emails', { state: { selectedUsers } })
-            }}
-            className="btn"
-            style={{
-              height: '30px',
-              padding: '0 12px',
-              background: 'var(--accent)',
-              color: 'var(--white)',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            <Mail size={13} /> Send Email
-          </button>
-          {onDeleteSelected && (
-            <button
-              onClick={onDeleteSelected}
-              className="btn"
+  const columns: ColumnDef<UnifiedUserRecord>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      render: (item) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: 600, fontSize: '13px' }}>
+            {item.firstName} {item.lastName}
+          </span>
+          {item.isExWaitlist && (
+            <span
               style={{
-                height: '30px',
-                padding: '0 12px',
-                background: 'var(--danger-faint)',
-                color: 'var(--danger)',
-                border: '1px solid transparent',
-                borderRadius: '6px',
-                fontSize: '12px',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: 'pointer',
+                padding: '2px 6px',
+                fontSize: '9px',
+                fontWeight: 700,
+                borderRadius: '4px',
+                background: 'rgba(217,119,87,0.1)',
+                color: 'var(--clay)',
               }}
             >
-              <Trash2 size={13} /> Delete Selected
-            </button>
+              Waitlist
+            </span>
           )}
         </div>
-      )}
-
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-        <thead>
-          <tr style={{ backgroundColor: 'var(--surface-hover)', borderBottom: '2px solid var(--border)' }}>
-            {isSuperadmin && (
-              <th style={{ padding: '13px 8px 13px 20px', width: '44px' }}>
-                <button onClick={toggleSelectAllUsers} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
-                  {allSelected ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
-                </button>
-              </th>
-            )}
-            <th style={thStyle} onClick={() => handleSort('name')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Name <SortIcon col="name" active={sortKey} dir={sortDir} /></span>
-            </th>
-            <th style={thStyle} onClick={() => handleSort('email')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Contact <SortIcon col="email" active={sortKey} dir={sortDir} /></span>
-            </th>
-            <th style={thStyle} onClick={() => handleSort('origin')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Origin <SortIcon col="origin" active={sortKey} dir={sortDir} /></span>
-            </th>
-            <th style={thStyle} onClick={() => handleSort('pmName')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Manager / Platform <SortIcon col="pmName" active={sortKey} dir={sortDir} /></span>
-            </th>
-            <th style={thStyle} onClick={() => handleSort('totalPaid')}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Paid <SortIcon col="totalPaid" active={sortKey} dir={sortDir} /></span>
-            </th>
-            <th style={{ padding: '14px 16px', fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Join Date
-            </th>
-            {showFailureReason ? (
-                <th style={{ padding: '14px 16px', fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Failure Log
-                </th>
-              ) : (
-                <th style={{ padding: '14px 16px', fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }} className="cursor-pointer hover:text-black" onClick={() => handleSort('rentExpiry')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Rent Expiry <SortIcon col="rentExpiry" active={sortKey} dir={sortDir} />
-                  </div>
-                </th>
-              )}
-            <th style={{ ...thStyle, width: '44px', cursor: 'default' }} />
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((item) => (
-            <tr
-              key={item.id}
-              style={{
-                borderBottom: '1px solid var(--border)',
-                background: selectedUserIds.has(item.uuid) ? 'rgba(217,119,87,0.04)' : 'transparent',
-                transition: 'background 0.15s',
-              }}
-              className="table-row-hover"
-            >
-              {isSuperadmin && (
-                <td style={{ padding: '14px 8px 14px 20px' }} onClick={(e) => toggleSelectUser(item.uuid, e)}>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)' }}>
-                    {selectedUserIds.has(item.uuid) ? <CheckSquare size={17} color="var(--accent)" /> : <Square size={17} />}
-                  </button>
-                </td>
-              )}
-              <td style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px' }}>{item.firstName} {item.lastName}</span>
-                  {item.isExWaitlist && (
-                    <span style={{
-                      padding: '2px 6px',
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      borderRadius: '4px',
-                      background: 'rgba(217,119,87,0.1)',
-                      color: 'var(--clay, #d97757)',
-                    }}>
-                      Waitlist
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td style={{ padding: '14px 16px' }}>
-                <div style={{ fontSize: '13px' }}>{item.email}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.phone}</div>
-              </td>
-              <td style={{ padding: '14px 16px' }}>
-                {getOriginBadge(item.origin)}
-              </td>
-              <td style={{ padding: '14px 16px' }}>
-                <PmBadgeList pms={item.pms} />
-              </td>
-              <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '13px' }}>
-                {item.totalPaid > 0 ? `₦${item.totalPaid.toLocaleString()}` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
-              </td>
-              <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
-                {item.joinedAt ? (
-                  <>
-                    <span 
-                      style={{ cursor: 'pointer', borderBottom: '1px dashed var(--border)', paddingBottom: '1px' }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setOpenJoinedId(openJoinedId === item.id ? null : item.id)
-                      }}
-                    >
-                      {new Date(item.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-                    {openJoinedId === item.id && (
-                      <div 
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          marginTop: '4px',
-                          background: 'var(--bg)',
-                          border: '1px solid var(--border-solid)',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                          color: 'var(--text)',
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          zIndex: 50,
-                          width: 'max-content',
-                          animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
-                        <span style={{ color: 'var(--text-muted)' }}>Invited / Created On:</span><br/>
-                        {new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <span style={{ opacity: 0.5 }}>—</span>
-                )}
-              </td>
-              {showFailureReason ? (
-                <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--error)', fontWeight: 600 }}>
-                  {item.failureReason || <span style={{ opacity: 0.5, color: 'var(--text-muted)' }}>—</span>}
-                </td>
-              ) : (
-                <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {item.rentExpiryDate ? new Date(item.rentExpiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : <span style={{ opacity: 0.5 }}>—</span>}
-                </td>
-              )}
-              {/* Actions */}
-              <td style={{ padding: '14px 12px', position: 'relative' }}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === item.id ? null : item.id) }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex', borderRadius: '6px' }}
-                >
-                  <MoreHorizontal size={16} />
-                </button>
-                {openMenuId === item.id && (
-                  <div style={{
-                    position: 'absolute',
-                    right: 0,
-                    top: '100%',
-                    background: 'var(--white)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '10px',
-                    boxShadow: 'var(--shadow-lg)',
-                    zIndex: 100,
-                    minWidth: '160px',
-                    overflow: 'hidden',
-                  }}>
-                    {onPreview && (
-                      <button
-                        onClick={() => { setOpenMenuId(null); onPreview(item) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}
-                        className="dropdown-item"
-                      >
-                        <Eye size={14} /> Quick Preview
-                      </button>
-                    )}
-                    {item.hasPassword && (
-                      <button
-                        onClick={() => { setOpenMenuId(null); navigate(`/users/${item.uuid}`) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}
-                        className="dropdown-item"
-                      >
-                        <Eye size={14} /> View Profile
-                      </button>
-                    )}
-                    {item.rawRecord?.isSynced === false && (
-                      <button
-                        onClick={async () => {
-                          setOpenMenuId(null)
-                          try {
-                            const { apiService } = await import('../../../services/api.service')
-                            await apiService.post(`/admin/users/sync-tenant/${item.uuid}`, {}, localStorage.getItem('upward_token') || '')
-                            window.location.reload()
-                          } catch (err) {
-                            alert('Failed to sync account')
-                          }
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--accent)' }}
-                        className="dropdown-item"
-                      >
-                        <UserPlus size={14} /> Sync Account
-                      </button>
-                    )}
-                    <button
-                      onClick={() => { setOpenMenuId(null); navigator.clipboard.writeText(item.email) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}
-                      className="dropdown-item"
-                    >
-                      <Copy size={14} /> Copy Email
-                    </button>
-                    <button
-                      onClick={() => { setOpenMenuId(null); navigator.clipboard.writeText(item.id) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)' }}
-                      className="dropdown-item"
-                    >
-                      <Copy size={14} /> Copy ID
-                    </button>
-                    {isSuperadmin && (
-                      <button
-                        onClick={() => { setOpenMenuId(null) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: 'var(--danger)' }}
-                        className="dropdown-item"
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    )}
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-
-          {/* Empty State */}
-          {sorted.length === 0 && (
-            <tr>
-              <td colSpan={isSuperadmin ? 9 : 8} style={{ padding: '64px 24px', textAlign: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
-                  <Users size={40} style={{ opacity: 0.3 }} />
-                  <span style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-secondary)' }}>No records found</span>
-                  <span style={{ fontSize: '13px' }}>Try adjusting your search or filters.</span>
-                </div>
-              </td>
-            </tr>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Contact',
+      sortable: true,
+      render: (item) => (
+        <>
+          <div style={{ fontSize: '13px' }}>{item.email}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {item.phone}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'origin',
+      label: 'Origin',
+      sortable: true,
+      render: (item) => getOriginBadge(item.origin),
+    },
+    {
+      key: 'pmName',
+      label: 'Manager / Platform',
+      sortable: true,
+      render: (item) => <PmBadgeList pms={item.pms} />,
+    },
+    {
+      key: 'totalPaid',
+      label: 'Paid',
+      sortable: true,
+      render: (item) => (
+        <span style={{ fontWeight: 700, fontSize: '13px' }}>
+          {item.totalPaid > 0 ? (
+            `₦${item.totalPaid.toLocaleString()}`
+          ) : (
+            <span style={{ color: 'var(--text-muted)' }}>—</span>
           )}
-        </tbody>
-      </table>
+        </span>
+      ),
+    },
+    {
+      key: 'joinedAt',
+      label: 'Join Date',
+      sortable: false,
+      render: (item) => (
+        <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
+          {item.joinedAt ? (
+            <>
+              <span
+                style={{
+                  cursor: 'pointer',
+                  borderBottom: '1px dashed var(--border)',
+                  paddingBottom: '1px',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setOpenJoinedId(openJoinedId === item.id ? null : item.id)
+                }}
+              >
+                {new Date(item.joinedAt).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </span>
+              {openJoinedId === item.id && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    marginTop: '4px',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    color: 'var(--text)',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    zIndex: 50,
+                    width: 'max-content',
+                    animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Invited / Created On:</span>
+                  <br />
+                  {new Date(item.createdAt).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            <span style={{ opacity: 0.5 }}>—</span>
+          )}
+        </div>
+      ),
+    },
+    showFailureReason
+      ? {
+          key: 'failureReason',
+          label: 'Failure Log',
+          sortable: false,
+          render: (item) => (
+            <span style={{ fontSize: '12px', color: 'var(--error)', fontWeight: 600 }}>
+              {item.failureReason || (
+                <span style={{ opacity: 0.5, color: 'var(--text-muted)' }}>—</span>
+              )}
+            </span>
+          ),
+        }
+      : {
+          key: 'rentExpiry',
+          label: 'Rent Expiry',
+          sortable: true,
+          render: (item) => (
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {item.rentExpiryDate ? (
+                new Date(item.rentExpiryDate).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              ) : (
+                <span style={{ opacity: 0.5 }}>—</span>
+              )}
+            </span>
+          ),
+        },
+  ]
 
-      <style>{`
-        .dropdown-item:hover { background: var(--surface-hover) !important; }
-        .table-row-hover:hover { background: var(--surface-hover) !important; }
-      `}</style>
+  const bulkActions = isSuperadmin ? (
+    <>
+      <button
+        onClick={() => {
+          const selectedUsers = fullListItems.filter((u) => {
+            if (!selectedUserIds.has(u.uuid)) return false
+            const email = u.email?.toLowerCase() || ''
+            return (
+              email.includes('@') &&
+              !email.endsWith('@upward.com') &&
+              !email.endsWith('@upward.local')
+            )
+          })
+          navigate('/emails', { state: { selectedUsers } })
+        }}
+        className="btn"
+        style={{
+          height: '30px',
+          padding: '0 12px',
+          background: 'var(--accent)',
+          color: 'var(--white)',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          cursor: 'pointer',
+        }}
+      >
+        <Mail size={13} /> Send Email
+      </button>
+      {onDeleteSelected && (
+        <button
+          onClick={onDeleteSelected}
+          className="btn"
+          style={{
+            height: '30px',
+            padding: '0 12px',
+            background: 'var(--danger-faint)',
+            color: 'var(--danger)',
+            border: '1px solid transparent',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={13} /> Delete Selected
+        </button>
+      )}
     </>
+  ) : undefined
+
+  const buildRowActions = (item: UnifiedUserRecord): ActionItem<UnifiedUserRecord>[] => {
+    const actions: ActionItem<UnifiedUserRecord>[] = []
+
+    if (onPreview) {
+      actions.push({
+        label: 'Quick Preview',
+        icon: <Eye size={14} />,
+        onClick: () => onPreview(item),
+      })
+    }
+    if (item.hasPassword) {
+      actions.push({
+        label: 'View Profile',
+        icon: <Eye size={14} />,
+        onClick: () => navigate(`/users/${item.uuid}`),
+      })
+    }
+    if (item.rawRecord?.isSynced === false) {
+      actions.push({
+        label: 'Sync Account',
+        icon: <UserPlus size={14} />,
+        onClick: async () => {
+          try {
+            const { apiService } = await import('../../../services/api.service')
+            await apiService.post(
+              `/admin/users/sync-tenant/${item.uuid}`,
+              {},
+              localStorage.getItem('upward_token') || '',
+            )
+            window.location.reload()
+          } catch (err) {
+            alert('Failed to sync account')
+          }
+        },
+      })
+    }
+    actions.push({
+      label: 'Copy Email',
+      icon: <Copy size={14} />,
+      onClick: () => navigator.clipboard.writeText(item.email),
+    })
+    actions.push({
+      label: 'Copy ID',
+      icon: <Copy size={14} />,
+      onClick: () => navigator.clipboard.writeText(item.id),
+    })
+    if (isSuperadmin) {
+      actions.push({
+        label: 'Delete',
+        icon: <Trash2 size={14} />,
+        danger: true,
+        onClick: () => {}, // Custom delete per row logic goes here if needed, omitted from original file for now
+      })
+    }
+
+    return actions
+  }
+
+  // Workaround for DataTable API requiring static actions, we dynamically create them via map and use a single flattened placeholder
+  // A better DataTable implementation would accept (item: T) => ActionItem<T>[] but for now we pass a flat list to map out inside
+  // Wait, the DataTable implementation we wrote earlier has `rowActions?: ActionItem<T>[]`. It evaluates them exactly statically.
+  // Actually, we can update our DataTable to support `(item: T) => ActionItem<T>[]` or `ActionItem<T>[]`.
+  // Let's quickly update DataTable.tsx if we want dynamic row actions.
+  // For now, let's just pass `buildRowActions(item)` mapped somehow? No, `rowActions` in DataTable is applied identically to every row right now.
+  // Let's just pass static actions that check the item condition in their render or `onClick` or we just update `DataTable.tsx` to handle a function.
+  // We will fix `DataTable` to accept `rowActions?: ActionItem<T>[] | ((item: T) => ActionItem<T>[])` later if needed.
+  // For now, let's just render all actions and filter inside their execution or pass them statically.
+  // I will just modify `DataTable` slightly via multi_replace in a bit. Let's pass undefined for now and I'll update it.
+
+  return (
+    <DataTable
+      data={sorted}
+      columns={columns}
+      keyExtractor={(item) => item.uuid}
+      sortKey={sortKey}
+      sortDir={sortDir}
+      onSort={handleSort}
+      selectedIds={selectedUserIds}
+      onToggleSelectAll={toggleSelectAllUsers}
+      onToggleSelect={toggleSelectUser}
+      bulkActions={bulkActions}
+      emptyTitle="No records found"
+      emptyDescription="Try adjusting your search or filters."
+      rowActions={buildRowActions}
+    />
   )
 }
