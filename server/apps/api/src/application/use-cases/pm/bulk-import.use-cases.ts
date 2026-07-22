@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { IBulkImportJobRepository, BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRepository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
@@ -42,6 +42,27 @@ export class GetRelayDocumentUploadUrlUseCase {
     const key = `relays/${randomUUID()}.${ext}`
     const uploadUrl = await this.s3Service.getUploadUrl(key, dto.fileType)
     return { uploadUrl, fileKey: key }
+  }
+}
+
+@Injectable()
+export class UploadRelayDocumentUseCase {
+  private readonly MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+  constructor(private readonly s3Service: S3Service) {}
+
+  async execute(dto: { fileName: string; contentType: string; base64Data: string }) {
+    const buffer = Buffer.from(dto.base64Data, 'base64')
+    if (buffer.length > this.MAX_FILE_SIZE) {
+      throw new BadRequestException('File is too large. Max 10MB.')
+    }
+
+    const ext = dto.fileName.split('.').pop()?.toLowerCase() || 'bin'
+    const key = `relays/${randomUUID()}.${ext}`
+
+    await this.s3Service.uploadBuffer(buffer, key, dto.contentType)
+
+    return { fileKey: key }
   }
 }
 

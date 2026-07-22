@@ -192,37 +192,42 @@ export const DataImportTab: React.FC = () => {
   const handleConfirmRelay = async () => {
     if (!pendingRelayFile) return
     setIsRelaying(true)
-    try {
-      const ext = pendingRelayFile.name.split('.').pop()?.toLowerCase() || 'doc'
+    const ext = pendingRelayFile.name.split('.').pop()?.toLowerCase() || 'doc'
 
-      const { uploadUrl, fileKey } = await api.post('/pm/bulk-imports/relay-upload-url', {
-        fileName: pendingRelayFile.name,
-        fileType: pendingRelayFile.type || 'application/octet-stream',
-      });
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const base64Data = (e.target?.result as string).split(',')[1]
 
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        body: pendingRelayFile,
-        headers: { 'Content-Type': pendingRelayFile.type || 'application/octet-stream' }
-      });
+        const { fileKey } = await api.post('/pm/bulk-imports/relay-upload', {
+          fileName: pendingRelayFile.name,
+          contentType: pendingRelayFile.type || 'application/octet-stream',
+          base64Data,
+        })
 
-      const newJob = await api.post('/pm/bulk-imports/relay', {
-        targetPropertyUuid,
-        mode,
-        originalFileName: pendingRelayFile.name,
-        fileUrl: fileKey,
-        fileType: ext,
-      })
+        const newJob = await api.post('/pm/bulk-imports/relay', {
+          targetPropertyUuid,
+          mode,
+          originalFileName: pendingRelayFile.name,
+          fileUrl: fileKey,
+          fileType: ext,
+        })
 
       setActiveJobs(prev => [newJob, ...prev])
       setShowRelayModal(false)
       setPendingRelayFile(null)
-      success('Document sent to Customer Support team! We will notify you once processed (~48hrs).')
-    } catch (err) {
-      error('Failed to submit document relay request.')
-    } finally {
+        success('Document sent to Customer Support team! We will notify you once processed (~48hrs).')
+      } catch (err) {
+        error('Failed to submit document relay request.')
+      } finally {
+        setIsRelaying(false)
+      }
+    }
+    reader.onerror = () => {
+      error('Failed to read file.')
       setIsRelaying(false)
     }
+    reader.readAsDataURL(pendingRelayFile)
   }
 
   const handleSaveDraft = async () => {

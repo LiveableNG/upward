@@ -40,8 +40,7 @@ export class EncryptionService {
       decrypted += decipher.final('utf8');
       return decrypted;
     } catch (error) {
-      console.error('Decryption failed:', error);
-      return encryptedText; // Fallback to original if failed (e.g., if not actually encrypted)
+      return encryptedText;
     }
   }
 

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, Request, UnauthorizedException } from '@nestjs/common'
+import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, Request, UnauthorizedException, BadRequestException } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import {
   CreateRelayImportJobUseCase,
@@ -8,6 +8,7 @@ import {
   AdminStageImportDataUseCase,
   AdminLogDocumentDownloadUseCase,
   GetRelayDocumentUploadUrlUseCase,
+  UploadRelayDocumentUseCase,
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
 } from '../../../application/use-cases/pm/bulk-import.use-cases'
@@ -21,6 +22,7 @@ export class PmBulkImportController {
     private readonly createRelayImportJobUseCase: CreateRelayImportJobUseCase,
     private readonly getPmImportJobsUseCase: GetPmImportJobsUseCase,
     private readonly getRelayDocumentUploadUrlUseCase: GetRelayDocumentUploadUrlUseCase,
+    private readonly uploadRelayDocumentUseCase: UploadRelayDocumentUseCase,
     private readonly updateStagedDataUseCase: UpdateStagedDataUseCase,
     private readonly completeImportJobUseCase: CompleteImportJobUseCase,
     private readonly prisma: PrismaService,
@@ -29,6 +31,14 @@ export class PmBulkImportController {
   @Post('relay-upload-url')
   async getRelayUploadUrl(@Body() body: { fileName: string; fileType: string }) {
     return this.getRelayDocumentUploadUrlUseCase.execute(body)
+  }
+
+  @Post('relay-upload')
+  async uploadRelayDocument(@Body() body: { fileName: string; contentType: string; base64Data: string }) {
+    if (!body.base64Data || !body.contentType) {
+      throw new BadRequestException('base64Data and contentType are required')
+    }
+    return this.uploadRelayDocumentUseCase.execute(body)
   }
 
   @Post('relay')
