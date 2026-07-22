@@ -15,6 +15,7 @@ export interface CarouselItem {
   id: string
   title: string
   description: string
+  descriptionExtended?: string
   icon: React.ElementType
   link: string
   color: string
@@ -28,7 +29,8 @@ const defaultItems: CarouselItem[] = [
   {
     id: 'payment-info',
     title: 'Add Payment Info',
-    description: 'Connect your bank account to start receiving rent payments.',
+    description: 'Connect your bank account',
+    descriptionExtended: ' to start receiving rent payments.',
     icon: CreditCard,
     link: '/settings?tab=payment',
     color: 'warning',
@@ -38,7 +40,8 @@ const defaultItems: CarouselItem[] = [
   {
     id: 'complete-profile',
     title: 'Complete Profile',
-    description: 'Add your business details to build trust and professionalize your dashboard.',
+    description: 'Add your business details',
+    descriptionExtended: ' to build trust and professionalize your dashboard.',
     icon: UserCircle,
     link: '/settings?tab=profile',
     color: 'clay',
@@ -48,7 +51,8 @@ const defaultItems: CarouselItem[] = [
   {
     id: 'add-property',
     title: 'Add First Property',
-    description: 'List your first property and start managing your tenants.',
+    description: 'List your first property',
+    descriptionExtended: ' and start managing your tenants.',
     icon: Building2,
     link: '/properties?action=add-property',
     color: 'warning',
@@ -80,7 +84,8 @@ export function useActivityTasks() {
     dynamicItems.unshift({
       id: 'join-requests',
       title: 'New Tenant Requests',
-      description: `You have ${joinRequests.length} pending tenant${joinRequests.length > 1 ? 's' : ''} requesting to join your properties.`,
+      description: `You have ${joinRequests.length} pending tenant request${joinRequests.length > 1 ? 's' : ''}`,
+      descriptionExtended: ' to join your properties.',
       icon: UserPlus,
       link: '/requests',
       color: 'warning',
@@ -93,7 +98,8 @@ export function useActivityTasks() {
     dynamicItems.unshift({
       id: 'credibility-requests',
       title: 'Payment History Requests',
-      description: `You have ${credibilityRequests.length} request${credibilityRequests.length > 1 ? 's' : ''} for past payment records from tenants.`,
+      description: `You have ${credibilityRequests.length} request${credibilityRequests.length > 1 ? 's' : ''}`,
+      descriptionExtended: ' for past payment records from tenants.',
       icon: CreditCard,
       link: '/requests',
       color: 'warning',

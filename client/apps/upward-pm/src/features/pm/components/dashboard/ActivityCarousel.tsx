@@ -24,7 +24,7 @@ export function ActivityCarousel() {
           </div>
           <p className="activity-center__subtitle">Complete these important actions to keep your operations running smoothly.</p>
         </div>
-        <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--forest)', textDecoration: 'none' }}>
+        <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--forest)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
           View all tasks <ArrowRight size={14} />
         </Link>
       </div>
@@ -52,7 +52,10 @@ export function ActivityCarousel() {
                   </div>
                 )}
                 <h3 className="action-card__item-title">{item.title}</h3>
-                <p className="action-card__description">{item.description}</p>
+                <p className="action-card__description">
+                  {item.description}
+                  {item.descriptionExtended && <span className="desktop-only">{item.descriptionExtended}</span>}
+                </p>
                 
                 <div className="action-card__mobile-btn mobile-only" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
                   {item.secondaryActionLabel ? (
