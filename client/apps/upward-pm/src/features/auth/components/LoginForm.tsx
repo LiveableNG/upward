@@ -2,16 +2,17 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { Capacitor } from '@capacitor/core'
 import { 
   Mail, 
   Lock, 
-  ChevronRight,
   ArrowRight,
   Eye,
   EyeOff,
   Building,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Loader2
 } from 'lucide-react'
 import { useLogin } from '../hooks/useLogin'
 import { useRequestOTP, useOtpLogin } from '../hooks/useOtp'
@@ -19,8 +20,8 @@ import { useToast } from '@/components/common/Toast'
 
 export const LoginForm = () => {
   const { error: toastError } = useToast()
-  const [stage, setStage] = useState<'credentials' | 'otp'>('credentials')
-  const [useOtp, setUseOtp] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<'password' | 'code'>('password')
+  const [otpStage, setOtpStage] = useState<'request' | 'verify'>('request')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,36 +33,37 @@ export const LoginForm = () => {
 
   const loading = loginMutation.isPending || requestOtpMutation.isPending || otpLoginMutation.isPending
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!email) {
-      toastError("Please enter your email address");
-      return;
+      toastError("Please enter your email address")
+      return
     }
-
-    if (!useOtp && !password) {
-      toastError("Please enter your password");
-      return;
+    if (!password) {
+      toastError("Please enter your password")
+      return
     }
+    loginMutation.mutate({ email, password })
+  }
 
-    if (useOtp) {
-      requestOtpMutation.mutate(
-        { email, context: 'LOGIN' },
-        {
-          onSuccess: () => {
-            setStage('otp')
-          }
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) {
+      toastError("Please enter your email address")
+      return
+    }
+    requestOtpMutation.mutate(
+      { email, context: 'LOGIN' },
+      {
+        onSuccess: () => {
+          setOtpStage('verify')
         }
-      )
-    } else {
-      loginMutation.mutate({ email, password })
-    }
+      }
+    )
   }
 
   const handleOtpChange = (index: number, value: string) => {
     if (otpLoginMutation.isError) otpLoginMutation.reset()
-
     if (value.length > 1) value = value[0]
 
     const newOtp = [...otp]
@@ -84,12 +86,8 @@ export const LoginForm = () => {
     otpLoginMutation.mutate(
       { email, otp: otpCode },
       {
-        onSuccess: (res: any) => {
-          if (res.user?.pmType === 'INDIVIDUAL_LANDLORD') {
-            window.location.href = '/portal'
-          } else {
-            window.location.href = '/dashboard'
-          }
+        onSuccess: () => {
+          window.location.href = '/dashboard'
         }
       }
     )
@@ -97,18 +95,17 @@ export const LoginForm = () => {
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     const otpCode = otp.join('')
     if (otpCode.length !== 6) {
-      toastError("Please enter a complete 6-digit verification code");
-      return;
+      toastError("Please enter a complete 6-digit verification code")
+      return
     }
-    
     triggerVerification(otp)
   }
 
   return (
     <div className="animate-fade-in">
+      {/* Role Switcher Tabs - Hidden for now
       <div className="auth-role-toggle">
         <button 
           type="button"
@@ -122,31 +119,53 @@ export const LoginForm = () => {
           className="auth-role-toggle__btn"
         >
           <User size={16} />
-          <span>Landlord</span>
+          <span>Landlord Portal</span>
         </Link>
       </div>
+      */}
 
+      {/* Header */}
       <div className="auth-header">
         <h2 className="auth-card__title">
-          {stage === 'credentials' ? 'Welcome back' : 'Verify your email'}
+          {otpStage === 'verify' && loginMethod === 'code' ? 'Enter Verification Code' : 'Welcome Back'}
         </h2>
-        <p className="auth-card__subtitle" style={{ fontSize: '15px', padding: '0 20px' }}>
-          {stage === 'otp' ? (
+        <p className="auth-card__subtitle">
+          {loginMethod === 'code' && otpStage === 'verify' ? (
             <>
-              We've sent a 6-digit code to <strong>{email}</strong>.
-              Enter it below to continue. <br />
-              <span style={{ fontSize: '13px', opacity: 0.8 }}>(Check your <strong>spam folder</strong> if you don't see it)</span>
+              Code sent to <strong>{email}</strong>. Check your inbox & spam.
             </>
-          ) : useOtp ? (
-            "Enter your email to receive a secure login code."
           ) : (
-            "Sign in to access and manage your property portfolio with ease."
+            'Sign in to access your properties, tenants, and collections.'
           )}
         </p>
       </div>
 
-      {stage === 'credentials' ? (
-        <form onSubmit={handleLogin}>
+      {/* Sign-In Method Switcher Tabs */}
+      <div className="auth-method-toggle">
+        <button
+          type="button"
+          className={`auth-method-toggle__option ${loginMethod === 'password' ? 'is-active' : ''}`}
+          onClick={() => {
+            setLoginMethod('password')
+            setOtpStage('request')
+          }}
+        >
+          <Lock size={15} />
+          <span>Password</span>
+        </button>
+        <button
+          type="button"
+          className={`auth-method-toggle__option ${loginMethod === 'code' ? 'is-active' : ''}`}
+          onClick={() => setLoginMethod('code')}
+        >
+          <ShieldCheck size={15} />
+          <span>Verification Code</span>
+        </button>
+      </div>
+
+      {/* Forms */}
+      {loginMethod === 'password' ? (
+        <form onSubmit={handlePasswordLogin}>
           <div className="form-group">
             <label className="form-label">Email Address</label>
             <div className="input-wrapper">
@@ -157,77 +176,88 @@ export const LoginForm = () => {
                 placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
           </div>
 
-          {!useOtp && (
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
-                <Link href="/pm-forgot-password" style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
-                  Forgot?
-                </Link>
-              </div>
-              <div className="input-wrapper" style={{ position: 'relative' }}>
-                <Lock size={18} className="input-icon" />
-                <input 
-                  type={showPassword ? 'text' : 'password'} 
-                  className="form-input form-input--with-icon" 
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '16px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+          <div className="form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
+              <Link href={Capacitor.isNativePlatform() ? '/forgot-password' : '/pm-forgot-password'} style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
+                Forgot Password?
+              </Link>
             </div>
-          )}
-
-          <button type="submit" className="auth-btn auth-btn--primary auth-btn--large" disabled={loading} style={{ marginTop: '16px' }}>
-            <span>{loading ? "Please wait..." : (useOtp ? "Send Code" : "Sign in")}</span>
-            <ArrowRight size={18} />
-          </button>
-
-          <div className="auth-separator"><span>OR CONTINUE WITH</span></div>
+            <div className="input-wrapper" style={{ position: 'relative' }}>
+              <Lock size={18} className="input-icon" />
+              <input 
+                type={showPassword ? 'text' : 'password'} 
+                className="form-input form-input--with-icon" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
 
           <button 
-            type="button" 
-            className="auth-btn auth-btn--outline"
-            onClick={() => setUseOtp(!useOtp)}
+            type="submit" 
+            className="auth-btn auth-btn--primary auth-btn--large" 
+            disabled={loading}
+            style={{ marginTop: '24px' }}
           >
-            {useOtp ? (
-              <>
-                <Lock size={18} />
-                <span>Login with password</span>
-              </>
-            ) : (
-              <>
-                <ShieldCheck size={18} />
-                <span>Login with verification code</span>
-              </>
-            )}
+            <span>{loading ? "Signing in..." : "Sign In"}</span>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
           </button>
-
-          <div className="auth-footer" style={{ marginTop: '32px' }}>
-            Don't have an account? <Link href="/pm-signup">Create one for free</Link>
+        </form>
+      ) : otpStage === 'request' ? (
+        <form onSubmit={handleRequestOtp}>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <div className="input-wrapper">
+              <Mail size={18} className="input-icon" />
+              <input 
+                type="email" 
+                className="form-input form-input--with-icon" 
+                placeholder="name@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4 }}>
+              We'll send a 6-digit verification code to your email address — no password needed.
+            </p>
           </div>
+
+          <button 
+            type="submit" 
+            className="auth-btn auth-btn--primary auth-btn--large" 
+            disabled={loading}
+            style={{ marginTop: '24px' }}
+          >
+            <span>{loading ? "Sending Code..." : "Send Verification Code"}</span>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+          </button>
         </form>
       ) : (
         <form onSubmit={handleOtpSubmit}>
@@ -251,74 +281,49 @@ export const LoginForm = () => {
           </div>
 
           {otpLoginMutation.isError && (
-            <p
-              style={{
-                color: '#ef4444',
-                fontSize: '14px',
-                textAlign: 'center',
-                marginTop: '-24px',
-                marginBottom: '24px',
-                fontWeight: 500,
-              }}
-            >
+            <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', marginTop: '-12px', marginBottom: '16px', fontWeight: 500 }}>
               {(otpLoginMutation.error as any)?.message || 'Invalid verification code'}
             </p>
           )}
 
           <button
             type="submit"
-            className="auth-btn auth-btn--primary"
+            className="auth-btn auth-btn--primary auth-btn--large"
             disabled={loading}
           >
-            {loading ? 'Verifying...' : 'Verify & Complete'} <ArrowRight size={18} />
+            <span>{loading ? 'Verifying...' : 'Verify & Sign In'}</span>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
           </button>
 
-          <div className="auth-footer">
-            Didn't receive the code?{' '}
-            <button
-              type="button"
-              onClick={() =>
-                requestOtpMutation.mutate({
-                  email,
-                  context: 'LOGIN',
-                })
-              }
-              style={{
-                color: 'var(--forest)',
-                fontWeight: 700,
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-              }}
-            >
-              Resend
-            </button>
-          </div>
-
-          <div className="auth-footer" style={{ marginTop: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', fontSize: '13px' }}>
             <button
               type="button"
               onClick={() => {
-                setStage('credentials')
+                setOtpStage('request')
                 setOtp(['', '', '', '', '', ''])
               }}
-              style={{
-                color: 'var(--text-muted)',
-                fontWeight: 500,
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                textDecoration: 'underline'
-              }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 500 }}
             >
-              Go Back
+              Change Email
+            </button>
+            <button
+              type="button"
+              onClick={() => requestOtpMutation.mutate({ email, context: 'LOGIN' })}
+              disabled={requestOtpMutation.isPending}
+              style={{ background: 'none', border: 'none', color: 'var(--forest)', cursor: 'pointer', fontWeight: 700 }}
+            >
+              Resend Code
             </button>
           </div>
         </form>
       )}
+
+      {/* Footer */}
+      <div className="auth-footer" style={{ marginTop: '28px' }}>
+        Don't have an account? <Link href={Capacitor.isNativePlatform() ? '/signup' : '/pm-signup'}>Create one for free</Link>
+      </div>
     </div>
   )
 }
+
 

@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ArrowRight
 } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { useMutation } from '@tanstack/react-query'
 import { forgotPassword, resetPassword } from '../services/authService'
 import { useToast } from '@/components/common/Toast'
@@ -109,7 +110,7 @@ export default function ForgotPasswordFlow() {
           className="btn-back" 
           onClick={() => {
             if (step === 'EMAIL') {
-              router.push('/login')
+              window.location.href = Capacitor.isNativePlatform() ? '/login' : '/pm-login'
             } else if (step === 'OTP') {
               setStep('EMAIL')
             } else {
@@ -320,7 +321,7 @@ export default function ForgotPasswordFlow() {
             Your password has been successfully updated. You can now log in using your new password.
           </p>
           <button 
-            onClick={() => router.push('/login')} 
+            onClick={() => window.location.href = Capacitor.isNativePlatform() ? '/login' : '/pm-login'} 
             className="auth-btn auth-btn--primary"
           >
             Back to Sign In

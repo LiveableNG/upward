@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import type { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
 import { suggestMapping, formatPhoneNumberByCountry, validateCell } from './utils'

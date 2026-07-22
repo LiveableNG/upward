@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/:path*`,
       })
     }
+    
+    // Gateway-style aliases
+    rules.push({ source: '/pm-login', destination: '/login' })
+    rules.push({ source: '/pm-signup', destination: '/signup' })
+    rules.push({ source: '/pm-forgot-password', destination: '/forgot-password' })
 
     // Dev fallback: tolerate stale/cached HTML that still references prefixed asset URLs
     if (process.env.NODE_ENV !== 'production') {

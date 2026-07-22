@@ -304,26 +304,30 @@ export async function middleware(request: NextRequest) {
     return proxyAssetRewrite(request, targetPath, search, PM_URL, protocol, 'pm')
   }
 
-  const isAuthPage =
-    pathname === '/' ||
-    pathname === '/login' ||
-    pathname === '/signup' ||
+  const isPmAuthPage =
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
     pathname === '/pm-forgot-password'
 
-  if (isAuthPage) {
+  const isPayAuthPage =
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/forgot-password'
+
+  if (isPmAuthPage || isPayAuthPage) {
     const currentRedirect = request.nextUrl.searchParams.get('redirect')
-    // Avoid redirect loop: don't redirect if we're already heading to /dashboard
     const alreadyGoingToDashboard = currentRedirect === '/dashboard'
+    
     if (!alreadyGoingToDashboard) {
       const dashboardUrl = new URL('/dashboard', request.url)
-      // 1. If PM/Landlord user has an active token, redirect straight to PM dashboard
-      if (hasActivePmToken) {
+      
+      if (isPmAuthPage && hasActivePmToken) {
         return NextResponse.redirect(dashboardUrl)
       }
-      // 2. If Tenant user has an active token, redirect straight to Tenant dashboard
-      if (hasActivePayToken) {
+      
+      
+      if (isPayAuthPage && hasActivePayToken) {
         return NextResponse.redirect(dashboardUrl)
       }
     }
@@ -351,7 +355,6 @@ export async function middleware(request: NextRequest) {
         ? '/portal/login'
         : '/pm-login'
       : '/login'
-    // Prevent redirect loop: if we're already on the login page, don't redirect again
     if (pathname === loginPath || pathname === '/login' || pathname === '/pm-login') {
       return NextResponse.next()
     }
@@ -362,7 +365,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 9. Proxy/Rewrite Logic for API
   if (pathname.startsWith('/api/v1')) {
     const apiBase = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL
     const pathWithoutPrefix = pathname.replace('/api/v1', '')

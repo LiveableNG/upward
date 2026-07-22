@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Upload, ArrowLeft, FileSpreadsheet } from 'lucide-react'
 import { FULL_COLUMNS, UNIT_COLUMNS } from '../components/data-import-grid/types'
 import { apiService } from '../services/api.service'
@@ -14,9 +14,8 @@ interface BulkImportDetailProps {
 export const BulkImportDetail: React.FC<BulkImportDetailProps> = ({ token }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { uuid } = useParams()
   
-  const [selectedJob, setSelectedJob] = useState<any | null>(location.state?.job || null)
+  const [selectedJob] = useState<any | null>(location.state?.job || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const mode = selectedJob?.mode === 'units' ? 'units' : 'full'

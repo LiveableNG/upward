@@ -12,10 +12,9 @@ export interface FormSelectProps {
   placeholder?: string
   triggerStyle?: React.CSSProperties
   style?: React.CSSProperties
-  searchable?: boolean
 }
 
-export function FormSelect({ value, onChange, options, placeholder, triggerStyle, style, searchable }: FormSelectProps) {
+export function FormSelect({ value, onChange, options, placeholder, triggerStyle, style }: FormSelectProps) {
   return (
     <select
       value={value}
@@ -56,14 +55,13 @@ interface MappingPhaseProps {
   addSplitPart: (userColumn: string) => void
   removeSplitPart: (userColumn: string, partIndex: number) => void
   duplicateMappings: { field: string, columns: string[] }[]
-  missingRequired: ColumnDef[]
 }
 
 export const MappingPhase: React.FC<MappingPhaseProps> = ({
   columns, userColumns, mappings, splitConfigs, activeSheet, workbook,
   updateMapping, toggleSplit,
   updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
-  duplicateMappings, missingRequired
+  duplicateMappings
 }) => {
   const systemFieldsGrouped = useMemo(() => {
     const groups: Record<string, ColumnDef[]> = {}
@@ -156,7 +154,6 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
                         options={fieldOptions}
                         placeholder="-- Select Field --"
                         triggerStyle={{ height: 42, borderRadius: 10, borderColor: isDuplicate ? 'var(--error)' : undefined }}
-                        searchable
                       />
                     </div>
                   ) : (
@@ -231,7 +228,6 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
                               placeholder="Field"
                               triggerStyle={{ height: 38, borderRadius: 8 }}
                               style={{ flex: 1 }}
-                              searchable
                             />
                           )}
                           <button onClick={() => removeSplitPart(col, part.index)} style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>

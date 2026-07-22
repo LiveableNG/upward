@@ -199,7 +199,6 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             addSplitPart={addSplitPart}
             removeSplitPart={removeSplitPart}
             duplicateMappings={duplicateMappings}
-            missingRequired={missingRequired}
           />
         ) : (
           <PreviewGridPhase 
