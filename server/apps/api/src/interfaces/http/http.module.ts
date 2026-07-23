@@ -30,6 +30,8 @@ import { ExternalCredibilityController } from './external/external-credibility.c
 import { WellKnownController } from './public/well-known.controller'
 import { PublicUserController } from './public/user-data.controller'
 import { FeedbackController } from './public/feedback.controller'
+import { HomeRequestController } from './public/home-request.controller'
+import { PmHomeRequestController } from './controllers/pm-home-request.controller'
 import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmVerificationAdminController } from './admin/pm-verification-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
@@ -111,6 +113,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PmNotificationController,
     PublicUserController,
     FeedbackController,
+    HomeRequestController,
+    PmHomeRequestController,
     LandlordAuthController,
     LandlordPortfolioController,
     LandlordManagementController,
