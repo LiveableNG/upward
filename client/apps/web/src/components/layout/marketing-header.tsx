@@ -28,10 +28,10 @@ export function MarketingHeader() {
             </Link>
 
             <nav className="marketing-header__nav" aria-label="Primary">
-              <Link href="/blog">Blog</Link>
-              <Link href="/request-a-home">Request a Home</Link>
               <Link href="/portal/login">Landlords</Link>
               <Link href="/pm-login">Property Managers</Link>
+              <Link href="/blog">Blog</Link>
+              <Link href="/request-a-home">Request a Home</Link>
             </nav>
           </div>
 
