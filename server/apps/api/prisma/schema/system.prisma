@@ -349,6 +349,27 @@ model upward_home_request_contact_reveal {
   @@index([createdAt])
 }
 
+/// Aggregated listing price floor/ceiling per location, used to advise
+/// prospects on the home-request budget step. subArea/baths are nullable
+/// where source data lacked that granularity.
+model upward_area_price_guide {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid())
+  state      String
+  area       String
+  subArea    String?
+  bedrooms   Int
+  baths      Int?
+  minPrice   Float
+  maxPrice   Float
+  sampleSize Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([state, area, subArea, bedrooms, baths])
+  @@index([state, area, bedrooms])
+}
+
 model upward_app_activity_log {
   id           Int      @id @default(autoincrement())
   uuid         String   @unique @default(uuid())
