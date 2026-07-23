@@ -36,6 +36,7 @@ import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency, formatTenantName } from '@/lib/utils'
 import { DetailSkeleton } from '@/components/skeletons'
+import { DataTable, Column } from '@/components/common/DataTable'
 
 function UnitDetailContent() {
   const { uuid } = useParams()
@@ -116,6 +117,201 @@ function UnitDetailContent() {
   const unitRequests = allRequests.filter(r => r.unitId === unit?.id && r.tenantId === unit?.tenantId)
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
+
+  const maxCurrentAmount = React.useMemo(() => {
+    if (!unit?.rentAmount) return 0;
+    if (!unit?.rentStartDate) return unit.rentAmount;
+
+    const rentStartStr = new Date(unit.rentStartDate).toISOString().split('T')[0];
+    const currentCyclePaid = payments
+      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === rentStartStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    if (currentCyclePaid < unit.rentAmount) {
+      return Math.max(0, unit.rentAmount - currentCyclePaid);
+    }
+
+    const currentEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date(unit.rentStartDate);
+    const nextCycleStart = new Date(currentEnd);
+    nextCycleStart.setDate(nextCycleStart.getDate() + 1);
+    const nextCycleStartStr = nextCycleStart.toISOString().split('T')[0];
+
+    const nextCyclePaid = payments
+      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === nextCycleStartStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    return Math.max(0, unit.rentAmount - nextCyclePaid);
+  }, [payments, unit?.rentStartDate, unit?.rentDueDate, unit?.rentAmount]);
+
+  const enhancedPayments = React.useMemo(() => {
+    return (payments as any[]).map((row, index) => {
+      const samePeriodPayments = (payments as any[]).filter(p => 
+        p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
+      );
+
+      const paidUntilThisRow = (payments as any[])
+        .slice(index)
+        .filter(p => p.periodStart === row.periodStart && p.periodEnd === row.periodEnd)
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const balance = (unit?.rentAmount || 0) - paidUntilThisRow;
+      
+      const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
+      const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+      
+      const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
+      
+      const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+
+      return {
+        ...row,
+        computedBalance: balance,
+        statusLabel
+      }
+    });
+  }, [payments, unit?.rentAmount]);
+
+  const columns: Column<any>[] = [
+    {
+      header: 'Tenant Name',
+      render: (row) => (
+        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
+          {row.tenant 
+            ? formatTenantName(row.tenant)
+            : (row.notes && !['Bulk Import', 'Manual Entry', 'Imported initial payment'].some(note => row.notes.includes(note)) && !row.notes.includes('Rent Portion'))
+              ? row.notes
+              : unit?.tenant
+                ? formatTenantName(unit.tenant)
+                : 'Past Tenant'
+          }
+        </span>
+      )
+    },
+    {
+      header: 'Rent Period',
+      sortable: true,
+      sortKey: 'periodStart',
+      render: (row) => (
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {row.periodStart ? (
+            <>
+              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              {' - '}
+              {row.periodEnd
+                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : '...'
+              }
+            </>
+          ) : 'N/A'}
+        </span>
+      )
+    },
+    {
+      header: 'Date Paid',
+      sortable: true,
+      sortKey: 'paymentDate',
+      render: (row) => (
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
+        </span>
+      )
+    },
+    {
+      header: 'Amount Paid',
+      render: (row) => (
+        <>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
+            {formatCurrency(row.amount, unit?.currency || 'NGN')}
+          </div>
+          {row.computedBalance > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
+              Bal. {formatCurrency(row.computedBalance, unit?.currency || 'NGN')}
+            </div>
+          )}
+        </>
+      )
+    },
+    {
+      header: 'Status',
+      render: (row) => (
+        <span style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: row.statusLabel === 'Paid' ? 'var(--forest)' : 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          {row.statusLabel}
+        </span>
+      )
+    },
+    {
+      header: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <div style={{ position: 'relative' }}>
+          <button
+            className="btn-icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
+            }}
+          >
+            <MoreVertical size={16} />
+          </button>
+
+          {activeMenuId === row.uuid && (
+            <>
+              <div
+                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                onClick={() => setActiveMenuId(null)}
+              />
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                background: 'white',
+                borderRadius: 8,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                border: '1px solid var(--border)',
+                zIndex: 11,
+                minWidth: 140,
+                overflow: 'hidden'
+              }}>
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--dark)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  onClick={() => {
+                    setSelectedRecordForEdit(row)
+                    setIsEditRentModalOpen(true)
+                    setActiveMenuId(null)
+                  }}
+                >
+                  <Edit size={14} />
+                  Edit Record
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
 
   // Auto-calculate Rent Due Date (End Date)
   useEffect(() => {
@@ -447,17 +643,17 @@ function UnitDetailContent() {
 
       {activeTab === 'overview' && (
         <>
-          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div className="automate-payments-banner">
+            <div className="automate-payments-banner__content">
               <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 500 }}>
-                  Request rent from your tenant on this unit. Payments made through Upward are automatically tracked and reconciled here.
+                <h3 className="automate-payments-banner__title">Automate Unit Payments</h3>
+                <p className="automate-payments-banner__desc">
+                  Request rent from your tenant on this unit. <span className="desktop-only">Payments made through Upward are automatically tracked and reconciled here.</span>
                 </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+            <button className="btn btn--primary automate-payments-banner__btn" onClick={requestRent}>Request Rent</button>
           </div>
 
           <div className="unit-detail__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -615,17 +811,17 @@ function UnitDetailContent() {
 
       {activeTab === 'rent' && (
         <div className="unit-rent-view animate-fade-in" style={{ paddingBottom: 60 }}>
-          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div className="automate-payments-banner">
+            <div className="automate-payments-banner__content">
               <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  Request rent from your tenant on this unit. Payments made through Upward are automatically tracked and reconciled here.
+                <h3 className="automate-payments-banner__title">Automate Unit Payments</h3>
+                <p className="automate-payments-banner__desc">
+                  Request rent from your tenant on this unit. <span className="desktop-only">Payments made through Upward are automatically tracked and reconciled here.</span>
                 </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+            <button className="btn btn--primary automate-payments-banner__btn" onClick={requestRent}>Request Rent</button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 24, marginBottom: 32 }}>
@@ -694,158 +890,13 @@ function UnitDetailContent() {
             <button className="btn btn--primary" style={{ height: 42, padding: '0 24px', borderRadius: 12 }}>Filter</button>
           </div>
 
-          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
+          <div className="rent-history glass" style={{ padding: '24px 0', overflow: 'hidden', borderRadius: 16 }}>
             <div className="rent-history__table-container">
-              <table className="rent-history__table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ background: 'var(--ivory-dim)' }}>
-                  <tr>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Tenant Name</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Rent Period</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Date Paid</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Amount Paid</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Status</th>
-                    <th style={{ padding: '16px 24px', textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.length > 0 ? (payments as any[]).map((row, index) => {
-                    const samePeriodPayments = (payments as any[]).filter(p => 
-                      p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
-                    );
-
-                    const paidUntilThisRow = (payments as any[])
-                      .slice(index)
-                      .filter(p => p.periodStart === row.periodStart && p.periodEnd === row.periodEnd)
-                      .reduce((sum, p) => sum + p.amount, 0);
-
-                    const balance = (unit?.rentAmount || 0) - paidUntilThisRow;
-                    
-                    const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-                    const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
-                    
-                    const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
-                    
-                    const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
-
-                    return (
-                      <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 500, color: 'var(--dark)' }}>
-                          {row.tenant 
-                            ? formatTenantName(row.tenant)
-                            : (row.notes && !['Bulk Import', 'Manual Entry', 'Imported initial payment'].some(note => row.notes.includes(note)) && !row.notes.includes('Rent Portion'))
-                              ? row.notes
-                              : unit?.tenant
-                                ? formatTenantName(unit.tenant)
-                                : 'Past Tenant'
-                          }
-                        </td>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-                          {row.periodStart ? (
-                            <>
-                              {new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                              {' - '}
-                              {row.periodEnd
-                                ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                                : '...'
-                              }
-                            </>
-                          ) : 'N/A'}
-                        </td>
-                        <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>
-                          {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
-                        </td>
-                        <td style={{ padding: '20px 24px' }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
-                            {formatCurrency(row.amount, unit?.currency || 'NGN')}
-                          </div>
-                          {balance > 0 && (
-                            <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
-                              Bal. {formatCurrency(balance, unit?.currency || 'NGN')}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '20px 24px' }}>
-                          <span style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: statusLabel === 'Paid' ? 'var(--forest)' : 'var(--text-muted)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                          }}>
-                            {statusLabel}
-                          </span>
-                        </td>
-                        <td style={{ padding: '20px 24px', textAlign: 'right', position: 'relative' }}>
-                          <button
-                            className="btn-icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
-                            }}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
-
-                          {activeMenuId === row.uuid && (
-                            <>
-                              <div
-                                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-                                onClick={() => setActiveMenuId(null)}
-                              />
-                              <div style={{
-                                position: 'absolute',
-                                top: '100%',
-                                right: 24,
-                                background: 'white',
-                                borderRadius: 8,
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                                border: '1px solid var(--border)',
-                                zIndex: 11,
-                                minWidth: 140,
-                                overflow: 'hidden'
-                              }}>
-                                <button
-                                  style={{
-                                    width: '100%',
-                                    padding: '12px 16px',
-                                    textAlign: 'left',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 10,
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    color: 'var(--dark)',
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                  }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                                  onClick={() => {
-                                    setSelectedRecordForEdit(row)
-                                    setIsEditRentModalOpen(true)
-                                    setActiveMenuId(null)
-                                  }}
-                                >
-                                  <Edit size={14} />
-                                  Edit Record
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  }) : (
-                    <tr>
-                      <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                        No rent payments recorded yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+              <DataTable 
+                columns={columns}
+                data={enhancedPayments}
+                emptyMessage="No rent payments recorded yet."
+              />
             </div>
           </div>
         </div>
@@ -908,6 +959,7 @@ function UnitDetailContent() {
         initialAmount={unit?.rentAmount}
         currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined}
         currentTenantName={unit?.tenant ? formatTenantName(unit.tenant) : ''}
+        maxCurrentAmount={maxCurrentAmount}
       />
 
       <RentHistoryEntryModeModal

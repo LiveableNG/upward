@@ -111,6 +111,8 @@ export const useAddUnitPayment = () => {
       api.addUnitPayment(unitUuid, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pm-unit-payments', variables.unitUuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-unit', variables.unitUuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
     }
   })
 }
@@ -122,6 +124,7 @@ export const useUpdateUnitPayment = () => {
       api.updateUnitPayment(unitUuid, paymentUuid, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pm-unit-payments', variables.unitUuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-unit', variables.unitUuid] })
     }
   })
 }

@@ -353,8 +353,8 @@ export const DataImportTab: React.FC = () => {
   return (
     <div className="import-tab animate-fade-in" style={{ padding: '16px 0', maxWidth: 900, margin: '0 auto' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-        <div>
+      <div className="import-tab__header">
+        <div className="import-tab__header-text">
           <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>
             Bulk Data Import
           </h2>
@@ -363,38 +363,16 @@ export const DataImportTab: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', background: 'var(--bg)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
+        <div className="import-tab__mode-toggle">
           <button
             onClick={() => setMode('full')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              background: mode === 'full' ? 'white' : 'transparent',
-              color: mode === 'full' ? 'var(--dark)' : 'var(--text-muted)',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: mode === 'full' ? 'var(--shadow-sm)' : 'none',
-              transition: 'all 0.2s'
-            }}
+            className={cn('import-tab__mode-btn', mode === 'full' && 'import-tab__mode-btn--active')}
           >
             Full Portfolio
           </button>
           <button
             onClick={() => setMode('units')}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              background: mode === 'units' ? 'white' : 'transparent',
-              color: mode === 'units' ? 'var(--dark)' : 'var(--text-muted)',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: mode === 'units' ? 'var(--shadow-sm)' : 'none',
-              transition: 'all 0.2s'
-            }}
+            className={cn('import-tab__mode-btn', mode === 'units' && 'import-tab__mode-btn--active')}
           >
             Units & Leases
           </button>
@@ -447,13 +425,13 @@ export const DataImportTab: React.FC = () => {
           Drag and drop your file here or click to browse. Supports Excel (.xlsx, .csv) for direct import, or PDF/Images for assisted support onboarding.
         </p>
 
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'center' }}>
-          <label className={cn('btn btn--primary', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')} style={{ borderRadius: 12, padding: '12px 28px', height: 44, cursor: 'pointer', fontSize: 14 }}>
+        <div className="import-tab__actions">
+          <label className={cn('btn btn--primary import-tab__action-btn', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')}>
             <Upload size={18} style={{ marginRight: 8 }} /> Select File
             <input type="file" accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
           </label>
           
-          <button className="btn btn--secondary" onClick={handleDownloadTemplate} style={{ borderRadius: 12, padding: '12px 24px', height: 44, fontSize: 14 }}>
+          <button className="btn btn--secondary import-tab__action-btn" onClick={handleDownloadTemplate}>
             <Download size={18} style={{ marginRight: 8 }} /> Download Template
           </button>
         </div>
@@ -516,6 +494,95 @@ export const DataImportTab: React.FC = () => {
           Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
         </p>
       </Modal>
+
+      <style jsx>{`
+        .import-tab__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 28px;
+          gap: 16px;
+        }
+
+        .import-tab__mode-toggle {
+          display: flex;
+          background: var(--bg);
+          padding: 4px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          flex-shrink: 0;
+        }
+
+        .import-tab__mode-btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: var(--text-muted);
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .import-tab__mode-btn--active {
+          background: white;
+          color: var(--dark);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .import-tab__actions {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .import-tab__action-btn {
+          border-radius: 12px;
+          padding: 12px 24px;
+          height: 44px;
+          font-size: 14px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+          .import-tab__header {
+            flex-direction: column;
+            align-items: stretch;
+            text-align: left;
+          }
+
+          .import-tab__header-text h2 {
+            font-size: 18px !important;
+          }
+
+          .import-tab__header-text p {
+            margin-bottom: 16px;
+          }
+
+          .import-tab__mode-toggle {
+            width: 100%;
+          }
+
+          .import-tab__mode-btn {
+            flex: 1;
+            text-align: center;
+          }
+
+          .import-tab__actions {
+            flex-direction: column;
+            width: 100%;
+          }
+
+          .import-tab__action-btn {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   )
 }

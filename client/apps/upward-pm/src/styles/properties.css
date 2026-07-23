@@ -577,3 +577,58 @@
     flex-direction: column;
   }
 }
+
+.automate-payments-banner {
+  background: var(--ivory-dim);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.automate-payments-banner__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.automate-payments-banner__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 4px;
+}
+
+.automate-payments-banner__desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 500px;
+}
+
+.automate-payments-banner__btn {
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .automate-payments-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .automate-payments-banner__desc span.desktop-only {
+    display: none;
+  }
+  
+  .automate-payments-banner__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

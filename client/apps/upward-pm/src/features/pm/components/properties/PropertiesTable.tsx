@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Plus, Search, Menu, Building2, Filter } from 'lucide-react'
+import React, { useState } from 'react'
+import { Plus, Search, Menu, Building2, Filter, ChevronDown } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -33,6 +33,8 @@ export function PropertiesTable({
   onViewPropertyDetail
 }: PropertiesTableProps) {
   
+  const [showMobileOverview, setShowMobileOverview] = useState(false);
+
   const columns: Column<Property>[] = [
     {
       header: 'PROPERTY',
@@ -110,40 +112,50 @@ export function PropertiesTable({
         }
       />
 
-      <StatGrid>
-        <StatCard 
-          label="Total Properties" 
-          value={properties.length} 
-          icon={Building2} 
-          variant="accent"
-        />
-        <StatCard 
-          label="Total Units" 
-          value={units.length} 
-          icon={Building2} 
-        />
-      </StatGrid>
+      <button 
+        className="mobile-only-overview-toggle" 
+        onClick={() => setShowMobileOverview(!showMobileOverview)}
+      >
+        <span>Overview & Filters</span>
+        <ChevronDown size={18} style={{ transform: showMobileOverview ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </button>
 
-      <ControlBar>
-        <SearchInput 
-          value={searchQuery} 
-          onChange={setSearchQuery} 
-          placeholder="Search Property" 
-        />
-        
-        <FilterGroup>
-          <FilterDropdown 
-            label="Service Type" 
-            value="All"
-            options={[{ label: 'All', value: 'All' }]}
+      <div className={`mobile-overview-content ${showMobileOverview ? 'expanded' : ''}`}>
+        <StatGrid>
+          <StatCard 
+            label="Total Properties" 
+            value={properties.length} 
+            icon={Building2} 
+            variant="accent"
           />
-          <FilterDropdown 
-            label="Purpose" 
-            value="All"
-            options={[{ label: 'All', value: 'All' }]}
+          <StatCard 
+            label="Total Units" 
+            value={units.length} 
+            icon={Building2} 
           />
-        </FilterGroup>
-      </ControlBar>
+        </StatGrid>
+
+        <ControlBar>
+          <SearchInput 
+            value={searchQuery} 
+            onChange={setSearchQuery} 
+            placeholder="Search Property" 
+          />
+          
+          <FilterGroup>
+            <FilterDropdown 
+              label="Service Type" 
+              value="All"
+              options={[{ label: 'All', value: 'All' }]}
+            />
+            <FilterDropdown 
+              label="Purpose" 
+              value="All"
+              options={[{ label: 'All', value: 'All' }]}
+            />
+          </FilterGroup>
+        </ControlBar>
+      </div>
 
       <DataTable
         columns={columns}

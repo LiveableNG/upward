@@ -1,13 +1,15 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 
 export interface Column<T> {
   header: string | React.ReactNode;
   render: (item: T, index: number) => React.ReactNode;
   align?: 'left' | 'center' | 'right';
   width?: string | number;
+  sortable?: boolean;
+  sortKey?: string | ((item: T) => any);
 }
 
 interface DataTableProps<T> {
@@ -20,6 +22,7 @@ interface DataTableProps<T> {
   rowClassName?: (item: T) => string;
   pageSize?: number;
   renderMobileCard?: (item: T) => React.ReactNode;
+  defaultSortConfig?: { key: string | ((item: T) => any), direction: 'asc' | 'desc' };
 }
 
 export function DataTable<T>({
@@ -31,11 +34,24 @@ export function DataTable<T>({
   keyExtractor,
   rowClassName,
   pageSize,
-  renderMobileCard
+  renderMobileCard,
+  defaultSortConfig
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileVisibleCount, setMobileVisibleCount] = useState(pageSize || 10);
   const observerTarget = React.useRef<HTMLDivElement>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string | ((item: T) => any), direction: 'asc' | 'desc' } | null>(defaultSortConfig || null);
+
+  const handleSort = (key?: string | ((item: T) => any)) => {
+    if (!key) return;
+    setSortConfig(current => {
+      if (current?.key === key) {
+        if (current.direction === 'asc') return { key, direction: 'desc' };
+        return null; // toggle off
+      }
+      return { key, direction: 'asc' };
+    });
+  };
 
   // Reset desktop page if data or pageSize changes
   React.useEffect(() => {
@@ -63,15 +79,38 @@ export function DataTable<T>({
     return () => observer.disconnect();
   }, [data.length, pageSize]);
 
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return data;
+    return [...data].sort((a, b) => {
+      const key = sortConfig.key;
+      let aVal = typeof key === 'function' ? key(a) : (a as any)[key as string];
+      let bVal = typeof key === 'function' ? key(b) : (b as any)[key as string];
+
+      if (aVal === bVal) return 0;
+      if (aVal === null || aVal === undefined) return sortConfig.direction === 'asc' ? 1 : -1;
+      if (bVal === null || bVal === undefined) return sortConfig.direction === 'asc' ? -1 : 1;
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [data, sortConfig]);
+
   const paginatedData = useMemo(() => {
-    if (!pageSize) return data;
+    if (!pageSize) return sortedData;
     const start = (currentPage - 1) * pageSize;
-    return data.slice(start, start + pageSize);
-  }, [data, currentPage, pageSize]);
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, currentPage, pageSize]);
 
   const mobileVisibleData = useMemo(() => {
-    return data.slice(0, mobileVisibleCount);
-  }, [data, mobileVisibleCount]);
+    return sortedData.slice(0, mobileVisibleCount);
+  }, [sortedData, mobileVisibleCount]);
 
   const totalPages = pageSize ? Math.ceil(data.length / pageSize) : 0;
 
@@ -101,12 +140,12 @@ export function DataTable<T>({
           </tbody>
         </table>
         <div className="mobile-cards-view">
-           {Array.from({ length: 5 }).map((_, idx) => (
-             <div key={idx} className="upward-mobile-card skeleton-card">
-                <div style={{ height: '20px', backgroundColor: 'var(--surface2)', borderRadius: '4px', width: '80%', marginBottom: '16px' }}></div>
-                <div style={{ height: '16px', backgroundColor: 'var(--surface2)', borderRadius: '4px', width: '50%' }}></div>
-             </div>
-           ))}
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <div key={idx} className="upward-mobile-card skeleton-card">
+              <div style={{ height: '20px', backgroundColor: 'var(--surface2)', borderRadius: '4px', width: '80%', marginBottom: '16px' }}></div>
+              <div style={{ height: '16px', backgroundColor: 'var(--surface2)', borderRadius: '4px', width: '50%' }}></div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -120,27 +159,41 @@ export function DataTable<T>({
           <thead>
             <tr>
               {columns.map((col, idx) => (
-                <th 
-                  key={idx} 
-                  style={{ 
+                <th
+                  key={idx}
+                  style={{
                     textAlign: col.align || 'left',
-                    width: col.width 
+                    width: col.width,
+                    cursor: col.sortable ? 'pointer' : 'default',
+                    userSelect: 'none'
                   }}
+                  onClick={() => col.sortable && handleSort(col.sortKey)}
                 >
-                  {col.header}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: col.align === 'right' ? 'flex-end' : (col.align === 'center' ? 'center' : 'flex-start'), gap: '6px' }}>
+                    {col.header}
+                    {col.sortable && (
+                      <span style={{ color: 'var(--text-muted)', display: 'flex' }}>
+                        {sortConfig?.key === col.sortKey ? (
+                          sortConfig?.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                        ) : (
+                          <ArrowUpDown size={14} />
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {paginatedData.map((item, idx) => (
-              <tr 
+              <tr
                 key={keyExtractor ? keyExtractor(item) : idx}
                 onClick={() => onRowClick?.(item)}
                 className={`${onRowClick ? 'upward-table__row--clickable' : ''} ${rowClassName ? rowClassName(item) : ''}`}
               >
                 {columns.map((col, colIdx) => (
-                  <td 
+                  <td
                     key={colIdx}
                     style={{ textAlign: col.align || 'left' }}
                   >
@@ -164,8 +217,8 @@ export function DataTable<T>({
             <div className="upward-pagination__info">
               Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, data.length)} of {data.length} entries
             </div>
-            
-            <button 
+
+            <button
               className="upward-pagination__btn"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
@@ -177,8 +230,8 @@ export function DataTable<T>({
             <div style={{ display: 'flex', gap: 4 }}>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
                 if (
-                  page === 1 || 
-                  page === totalPages || 
+                  page === 1 ||
+                  page === totalPages ||
                   (page >= currentPage - 1 && page <= currentPage + 1)
                 ) {
                   return (
@@ -198,7 +251,7 @@ export function DataTable<T>({
               })}
             </div>
 
-            <button 
+            <button
               className="upward-pagination__btn"
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
@@ -217,9 +270,9 @@ export function DataTable<T>({
             {emptyMessage}
           </div>
         )}
-        
+
         {mobileVisibleData.map((item, idx) => (
-          <div 
+          <div
             key={keyExtractor ? keyExtractor(item) : idx}
             className={`upward-mobile-card ${onRowClick ? 'clickable' : ''} ${rowClassName ? rowClassName(item) : ''}`}
             onClick={() => onRowClick?.(item)}
@@ -257,8 +310,8 @@ export function DataTable<T>({
                     const rendered = col.render(item, idx);
                     if (!rendered) return null;
                     return (
-                      <div 
-                        key={colIdx} 
+                      <div
+                        key={colIdx}
                         className="upward-mobile-card__actions"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -272,13 +325,13 @@ export function DataTable<T>({
             )}
           </div>
         ))}
-        
+
         {/* Infinite Scroll trigger element */}
         {mobileVisibleCount < data.length && (
           <div ref={observerTarget} className="mobile-infinite-loader">
-             <div className="loader-dot"></div>
-             <div className="loader-dot"></div>
-             <div className="loader-dot"></div>
+            <div className="loader-dot"></div>
+            <div className="loader-dot"></div>
+            <div className="loader-dot"></div>
           </div>
         )}
       </div>

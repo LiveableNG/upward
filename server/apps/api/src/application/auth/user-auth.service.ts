@@ -821,6 +821,20 @@ export class UserAuthService extends BaseAuthService {
     await this.syncTenantStatuses(email)
   }
 
+  async verifyResetOTP(email: string, otp: string): Promise<{ success: boolean }> {
+    const user = await this.userRepository.findByEmail(email)
+
+    if (!user || !user.resetPasswordOTP || !user.resetPasswordExpires) {
+      throw new UnauthorizedException('Invalid or expired verification code')
+    }
+
+    if (user.resetPasswordOTP !== otp || new Date() > user.resetPasswordExpires) {
+      throw new UnauthorizedException('Invalid or expired verification code')
+    }
+
+    return { success: true }
+  }
+
   async checkEmail(identifier: string, type: 'email' | 'phone' = 'email'): Promise<{ 
     exists: boolean; 
     hasPassword?: boolean; 

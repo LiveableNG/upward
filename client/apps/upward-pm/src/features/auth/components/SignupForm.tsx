@@ -643,12 +643,8 @@ export const SignupForm = () => {
             <ArrowRight size={18} />
           </button>
 
-          <div className="auth-separator"><span>OR</span></div>
-
-          <div className="auth-footer" style={{ marginTop: '24px' }}>
-            <Link href="/pm-login" style={{ color: '#111827', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '14.5px' }}>
-              <span>Have an account? <strong style={{ textDecoration: 'underline' }}>Log in</strong></span>
-            </Link>
+          <div className="auth-footer" style={{ marginTop: '24px', textAlign: 'center' }}>
+            Already have an account? <Link href="/pm-login">Log in</Link>
           </div>
 
 

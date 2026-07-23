@@ -658,14 +658,11 @@ export const SignupFormMobile = () => {
             </button>
 
             {step === 1 && (
-              <>
-                <div className="auth-separator"><span>OR</span></div>
-                <Link href={isNative ? "/login" : "/pm-login"} style={{ textDecoration: 'none' }}>
-                  <button type="button" className="auth-btn auth-btn--outline" style={{ width: '100%' }}>
-                    <span>Have an account? <strong>Log in</strong></span>
-                  </button>
-                </Link>
-              </>
+              <div className="mobile-auth__footer" style={{ marginTop: '24px', textAlign: 'center' }}>
+                <p className="auth-footer">
+                  Already have an account? <Link href={isNative ? "/login" : "/pm-login"}>Log in</Link>
+                </p>
+              </div>
             )}
           </div>
         ) : (

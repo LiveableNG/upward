@@ -692,3 +692,99 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Tenant Detail View Responsive Grid */
+.tenant-detail-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.tenant-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+@media (max-width: 1024px) {
+  .tenant-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tenant-info-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.tenant-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.tenant-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tenant-detail-actions-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .tenant-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .tenant-detail-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  
+  .tenant-detail-actions-inner {
+    flex-wrap: wrap;
+  }
+}
+
+.mobile-only-overview-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only-overview-toggle {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    cursor: pointer;
+  }
+
+  .mobile-overview-content {
+    display: none;
+  }
+
+  .mobile-overview-content.expanded {
+    display: block;
+    animation: fade-only 0.3s ease-out;
+  }
+}

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useMutation } from '@tanstack/react-query'
-import { forgotPassword, resetPassword } from '../services/authService'
+import { forgotPassword, resetPassword, verifyResetOtp } from '../services/authService'
 import { useToast } from '@/components/common/Toast'
 
 type Step = 'EMAIL' | 'OTP' | 'PASSWORD' | 'SUCCESS'
@@ -56,6 +56,16 @@ export default function ForgotPasswordFlow() {
     }
   })
 
+  const verifyOtpMutation = useMutation({
+    mutationFn: (data: { email: string; otp: string }) => verifyResetOtp(data.email, data.otp),
+    onSuccess: () => {
+      setStep('PASSWORD')
+    },
+    onError: (err: any) => {
+      error(err.message || 'Invalid verification code')
+    }
+  })
+
   const handleSendOTP = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
@@ -66,7 +76,7 @@ export default function ForgotPasswordFlow() {
     e.preventDefault()
     const otpCode = otp.join('')
     if (otpCode.length === 6) {
-      setStep('PASSWORD')
+      verifyOtpMutation.mutate({ email, otp: otpCode })
     } else {
       error('Please enter the complete 6-digit code')
     }
@@ -101,7 +111,7 @@ export default function ForgotPasswordFlow() {
     }
   }
 
-  const loading = forgotMutation.isPending || resetMutation.isPending
+  const loading = forgotMutation.isPending || resetMutation.isPending || verifyOtpMutation.isPending
 
   return (
     <div className="animate-fade-in">
