@@ -148,6 +148,8 @@
 .rah-amount__currency {
   position: absolute;
   left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 1;
   font-size: 0.95rem;
   font-weight: 700;
@@ -155,7 +157,7 @@
   pointer-events: none;
 }
 
-.rah-amount__input {
+.rah-amount .rah-amount__input {
   padding-left: 2.15rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
