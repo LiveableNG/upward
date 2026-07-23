@@ -41,11 +41,9 @@ export class AddUnitPaymentUseCase {
       );
 
       const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-      const totalPaidIncludingThis = totalPaidForPeriod + data.amount;
 
-      if (totalPaidIncludingThis >= unit.rentAmount) {
-        shouldIncrementUnitDates = true;
-
+      // If the current period is ALREADY fully paid off, this payment belongs to the UPCOMING cycle
+      if (totalPaidForPeriod >= unit.rentAmount) {
         newUnitStart = new Date(unit.rentDueDate);
         newUnitStart.setDate(newUnitStart.getDate() + 1);
 
@@ -59,6 +57,17 @@ export class AddUnitPaymentUseCase {
 
         effectivePeriodStart = newUnitStart;
         effectivePeriodEnd = newUnitEnd;
+
+        const upcomingPeriodPayments = allPayments.filter(p => 
+          p.tenantId === unit.tenantId && 
+          p.periodStart && 
+          new Date(p.periodStart).getTime() === newUnitStart!.getTime()
+        );
+        const upcomingPaidSoFar = upcomingPeriodPayments.reduce((sum, p) => sum + p.amount, 0);
+        
+        if (upcomingPaidSoFar + data.amount >= unit.rentAmount) {
+          shouldIncrementUnitDates = true;
+        }
       }
     }
 
@@ -80,18 +89,41 @@ export class AddUnitPaymentUseCase {
 
     const payment = await this.unitRepository.addRentPayment(unitUuid, paymentData);
 
-    if (shouldIncrementUnitDates && newUnitStart && newUnitEnd) {
+    const allPaymentsAfter = await this.unitRepository.getRentPayments(unitUuid);
+    const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
+
+    const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
+    for (const p of tenantPayments) {
+      const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
+      if (!periodMap.has(key)) {
+        periodMap.set(key, {
+          periodStart: new Date(p.periodStart!),
+          periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
+          total: 0
+        });
+      }
+      periodMap.get(key)!.total += p.amount;
+    }
+
+    const sortedPeriods = Array.from(periodMap.values()).sort(
+      (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
+    );
+
+    const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0));
+
+    if (fullyPaidPeriods.length > 0) {
+      const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
       await this.unitRepository.update(unitUuid, {
-        rentStartDate: newUnitStart,
-        rentDueDate: newUnitEnd
+        rentStartDate: latestFullyPaid.periodStart,
+        rentDueDate: latestFullyPaid.periodEnd
       });
 
       if (unit.isSynced && unit.userPropertyUuid) {
         await this.prisma.upward_user_property.updateMany({
           where: { uuid: unit.userPropertyUuid },
           data: {
-            rentStartDate: newUnitStart,
-            rentEndDate: newUnitEnd
+            rentStartDate: latestFullyPaid.periodStart,
+            rentEndDate: latestFullyPaid.periodEnd
           }
         });
       }

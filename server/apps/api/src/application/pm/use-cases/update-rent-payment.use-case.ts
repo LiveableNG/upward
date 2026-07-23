@@ -30,6 +30,49 @@ export class UpdateRentPaymentUseCase {
     // 2. Update the PM record
     const updatedPayment = await this.unitRepository.updateRentPayment(paymentUuid, data);
 
+    // Recalculate unit's active occupancy period.
+    const unitUuid = payment.unit.uuid;
+    const unit = payment.unit;
+    const allPaymentsAfter = await this.unitRepository.getRentPayments(unitUuid);
+    const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
+
+    const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
+    for (const p of tenantPayments) {
+      const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
+      if (!periodMap.has(key)) {
+        periodMap.set(key, {
+          periodStart: new Date(p.periodStart!),
+          periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
+          total: 0
+        });
+      }
+      periodMap.get(key)!.total += p.amount;
+    }
+
+    const sortedPeriods = Array.from(periodMap.values()).sort(
+      (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
+    );
+
+    const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0));
+
+    if (fullyPaidPeriods.length > 0) {
+      const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
+      await this.unitRepository.update(unitUuid, {
+        rentStartDate: latestFullyPaid.periodStart,
+        rentDueDate: latestFullyPaid.periodEnd
+      });
+
+      if (unit.isSynced && unit.userPropertyUuid) {
+        await this.prisma.upward_user_property.updateMany({
+          where: { uuid: unit.userPropertyUuid },
+          data: {
+            rentStartDate: latestFullyPaid.periodStart,
+            rentEndDate: latestFullyPaid.periodEnd
+          }
+        });
+      }
+    }
+
     // Log Activity
     await this.activityLog.log({
         pmId,

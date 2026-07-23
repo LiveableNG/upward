@@ -13,10 +13,11 @@ interface AddRentRecordModalProps {
   initialAmount?: number;
   currentUnitStartDate?: string;
   currentTenantName?: string;
+  maxCurrentAmount?: number;
 }
 
 export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
-  isOpen, onClose, onSave, isPending, unitName, rentType, initialAmount, currentUnitStartDate, currentTenantName
+  isOpen, onClose, onSave, isPending, unitName, rentType, initialAmount, currentUnitStartDate, currentTenantName, maxCurrentAmount
 }) => {
   const [paymentType, setPaymentType] = useState<'CURRENT' | 'PAST'>('CURRENT')
   const [isForCurrentTenant, setIsForCurrentTenant] = useState(true)
@@ -34,8 +35,14 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
     if (isOpen) {
       setPaymentType('CURRENT')
       setIsForCurrentTenant(true)
+      
+      let defaultAmount = initialAmount?.toString() || '';
+      if (maxCurrentAmount !== undefined) {
+        defaultAmount = maxCurrentAmount.toString();
+      }
+
       setFormData({
-        amount: initialAmount?.toString() || '',
+        amount: defaultAmount,
         paymentDate: new Date().toISOString().split('T')[0],
         periodStart: '',
         periodEnd: '',
@@ -43,7 +50,7 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       })
       setDateError('')
     }
-  }, [isOpen, initialAmount])
+  }, [isOpen, initialAmount, maxCurrentAmount])
 
   // Auto-calculate Period End based on Period Start and rentType
   useEffect(() => {
@@ -83,9 +90,16 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    if (!formData.amount || isNaN(parseFloat(formData.amount))) {
+    if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) <= 0) {
       error('Please enter a valid payment amount.')
       return
+    }
+
+    if (paymentType === 'CURRENT' && maxCurrentAmount !== undefined) {
+      if (parseFloat(formData.amount) > maxCurrentAmount) {
+        error(`Amount cannot exceed the remaining balance of ₦${maxCurrentAmount.toLocaleString()} for the current cycle.`)
+        return
+      }
     }
 
     if (!formData.paymentDate) {
@@ -220,9 +234,21 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
             type="number"
             className="form-input"
             placeholder="e.g. 500000"
+            max={paymentType === 'CURRENT' ? maxCurrentAmount : undefined}
             value={formData.amount}
-            onChange={e => setFormData({ ...formData, amount: e.target.value })}
+            onChange={e => {
+              let val = e.target.value;
+              if (paymentType === 'CURRENT' && maxCurrentAmount !== undefined && parseFloat(val) > maxCurrentAmount) {
+                val = maxCurrentAmount.toString();
+              }
+              setFormData({ ...formData, amount: val })
+            }}
           />
+          {paymentType === 'CURRENT' && maxCurrentAmount !== undefined && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              Remaining balance: ₦{maxCurrentAmount.toLocaleString()}
+            </div>
+          )}
         </div>
 
         <div className="form-group">

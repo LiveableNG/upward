@@ -142,6 +142,31 @@ function UnitDetailContent() {
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
 
+  const maxCurrentAmount = React.useMemo(() => {
+    if (!unit?.rentAmount) return 0;
+    if (!unit?.rentStartDate) return unit.rentAmount;
+
+    const rentStartStr = new Date(unit.rentStartDate).toISOString().split('T')[0];
+    const currentCyclePaid = payments
+      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === rentStartStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    if (currentCyclePaid < unit.rentAmount) {
+      return Math.max(0, unit.rentAmount - currentCyclePaid);
+    }
+
+    const currentEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date(unit.rentStartDate);
+    const nextCycleStart = new Date(currentEnd);
+    nextCycleStart.setDate(nextCycleStart.getDate() + 1);
+    const nextCycleStartStr = nextCycleStart.toISOString().split('T')[0];
+
+    const nextCyclePaid = payments
+      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === nextCycleStartStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    return Math.max(0, unit.rentAmount - nextCyclePaid);
+  }, [payments, unit?.rentStartDate, unit?.rentDueDate, unit?.rentAmount]);
+
   const filteredPayments = React.useMemo(() => {
     return payments.filter(p => {
       if (rentFilters.startDate && new Date(p.paymentDate).getTime() < new Date(rentFilters.startDate).getTime()) return false;
@@ -331,6 +356,8 @@ function UnitDetailContent() {
     },
     {
       header: 'RENT PERIOD',
+      sortable: true,
+      sortKey: 'periodStart',
       render: (row) => (
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           {row.periodStart ? (
@@ -348,6 +375,8 @@ function UnitDetailContent() {
     },
     {
       header: 'DATE PAID',
+      sortable: true,
+      sortKey: 'paymentDate',
       render: (row) => (
         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
           {new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
@@ -981,6 +1010,7 @@ function UnitDetailContent() {
             keyExtractor={(row) => row.uuid}
             emptyMessage="No rent payments recorded yet."
             pageSize={10}
+            defaultSortConfig={{ key: 'periodStart', direction: 'desc' }}
           />
         </div>
       )}
@@ -1071,6 +1101,7 @@ function UnitDetailContent() {
         initialAmount={unit?.rentAmount}
         currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined}
         currentTenantName={unit?.tenant ? formatTenantName(unit.tenant) : ''}
+        maxCurrentAmount={maxCurrentAmount}
       />
 
 
