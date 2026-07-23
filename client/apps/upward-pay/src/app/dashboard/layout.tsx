@@ -43,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isDashboardHome = pathname === '/dashboard'
   const isSetupRoute = pathname?.startsWith('/dashboard/setup')
+  const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
   const showProfileBlocker =
     isDashboardHome &&
     user &&
@@ -74,6 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
       {!showProfileBlocker &&
         !isSetupRoute &&
+        !isHomeRequestRoute &&
         !pathname?.startsWith('/dashboard/savings/deposit') &&
         !pathname?.startsWith('/dashboard/notifications') &&
         !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
