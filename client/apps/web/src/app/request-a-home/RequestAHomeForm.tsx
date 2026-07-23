@@ -23,6 +23,7 @@ import { useToast } from '@/components/common/Toast'
 import type { RequestHomeLocation } from '@/lib/request-home-locations'
 import { AmountInput } from './AmountInput'
 import { LocationMultiSelect } from './LocationMultiSelect'
+import { BudgetGuidance } from './BudgetGuidance'
 
 const PROPERTY_TYPES = [
   { value: 'apartment', label: 'Apartment' },
@@ -56,10 +57,7 @@ const schema = z
   .object({
     fullName: z.string().max(120).optional().or(z.literal('')),
     email: z.string().email('Enter a valid email'),
-    phone: z
-      .string()
-      .min(7, 'Enter a valid phone number')
-      .max(40, 'Phone number is too long'),
+    phone: z.string().min(7, 'Enter a valid phone number').max(40, 'Phone number is too long'),
     budgetMin: z.coerce.number().min(1, 'Enter a minimum budget'),
     budgetMax: z.coerce.number().min(1, 'Enter a maximum budget'),
     beds: z.coerce.number().int().min(1).max(6),
@@ -178,9 +176,7 @@ export function RequestAHomeForm() {
 
       if (!response.ok) {
         const result = await response.json().catch(() => ({}))
-        const apiMessage = Array.isArray(result.message)
-          ? result.message[0]
-          : result.message
+        const apiMessage = Array.isArray(result.message) ? result.message[0] : result.message
         throw new Error(
           typeof apiMessage === 'string' && apiMessage.trim()
             ? apiMessage
@@ -225,8 +221,8 @@ export function RequestAHomeForm() {
             We match your brief to verified listings
           </li>
           <li>
-            <span className="rah-success__step-num">2</span>
-            A NIESV-verified agent reaches out to you
+            <span className="rah-success__step-num">2</span>A NIESV-verified agent reaches out to
+            you
           </li>
           <li>
             <span className="rah-success__step-num">3</span>
@@ -285,7 +281,12 @@ export function RequestAHomeForm() {
               <label className="rah-label" htmlFor="rah-name">
                 Full name <span className="rah-optional">(optional)</span>
               </label>
-              <input id="rah-name" className="rah-input" placeholder="Adaeze Okonkwo" {...register('fullName')} />
+              <input
+                id="rah-name"
+                className="rah-input"
+                placeholder="Adaeze Okonkwo"
+                {...register('fullName')}
+              />
               {errors.fullName && <span className="rah-error">{errors.fullName.message}</span>}
             </div>
             <div className="rah-field">
@@ -312,7 +313,9 @@ export function RequestAHomeForm() {
                 placeholder="0803 000 0000"
                 {...register('phone')}
               />
-              <p className="rah-field-hint">Prefer a number you use on WhatsApp — agents will message you there.</p>
+              <p className="rah-field-hint">
+                Prefer a number you use on WhatsApp — agents will message you there.
+              </p>
               {errors.phone && <span className="rah-error">{errors.phone.message}</span>}
             </div>
           </div>
@@ -334,56 +337,6 @@ export function RequestAHomeForm() {
           {status === 'error' && selectedLocations.length === 0 && (
             <span className="rah-error">Select at least one location</span>
           )}
-        </div>
-
-        <div className="rah-card">
-          <div className="rah-card__header">
-            <span className="rah-icon">
-              <Wallet size={18} aria-hidden />
-            </span>
-            <div>
-              <h2 className="rah-card__title">Budget</h2>
-              <p className="rah-card__hint">Annual rent range in Naira.</p>
-            </div>
-          </div>
-          <div className="rah-grid rah-grid--2">
-            <div className="rah-field">
-              <label className="rah-label" htmlFor="rah-budget-min">
-                Minimum (₦ / year)
-              </label>
-              <AmountInput
-                id="rah-budget-min"
-                value={budgetMin}
-                placeholder="2,000,000"
-                aria-invalid={Boolean(errors.budgetMin)}
-                onChange={(value) =>
-                  setValue('budgetMin', value as FormData['budgetMin'], {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              />
-              {errors.budgetMin && <span className="rah-error">{errors.budgetMin.message}</span>}
-            </div>
-            <div className="rah-field">
-              <label className="rah-label" htmlFor="rah-budget-max">
-                Maximum (₦ / year)
-              </label>
-              <AmountInput
-                id="rah-budget-max"
-                value={budgetMax}
-                placeholder="3,500,000"
-                aria-invalid={Boolean(errors.budgetMax)}
-                onChange={(value) =>
-                  setValue('budgetMax', value as FormData['budgetMax'], {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              />
-              {errors.budgetMax && <span className="rah-error">{errors.budgetMax.message}</span>}
-            </div>
-          </div>
         </div>
 
         <div className="rah-card">
@@ -435,6 +388,66 @@ export function RequestAHomeForm() {
                 {value === 4 ? '4+' : `${value} bed`}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="rah-card">
+          <div className="rah-card__header">
+            <span className="rah-icon">
+              <Wallet size={18} aria-hidden />
+            </span>
+            <div>
+              <h2 className="rah-card__title">Budget</h2>
+              <p className="rah-card__hint">Annual rent range in Naira.</p>
+            </div>
+          </div>
+          <BudgetGuidance
+            locations={selectedLocations}
+            bedrooms={beds}
+            onApplyMin={(value) =>
+              setValue('budgetMin', value as FormData['budgetMin'], {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
+          />
+          <div className="rah-grid rah-grid--2">
+            <div className="rah-field">
+              <label className="rah-label" htmlFor="rah-budget-min">
+                Minimum (₦ / year)
+              </label>
+              <AmountInput
+                id="rah-budget-min"
+                value={budgetMin}
+                placeholder="2,000,000"
+                aria-invalid={Boolean(errors.budgetMin)}
+                onChange={(value) =>
+                  setValue('budgetMin', value as FormData['budgetMin'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+              />
+              {errors.budgetMin && <span className="rah-error">{errors.budgetMin.message}</span>}
+            </div>
+            <div className="rah-field">
+              <label className="rah-label" htmlFor="rah-budget-max">
+                Maximum (₦ / year)
+              </label>
+              <AmountInput
+                id="rah-budget-max"
+                value={budgetMax}
+                placeholder="3,500,000"
+                aria-invalid={Boolean(errors.budgetMax)}
+                onChange={(value) =>
+                  setValue('budgetMax', value as FormData['budgetMax'], {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
+              />
+              {errors.budgetMax && <span className="rah-error">{errors.budgetMax.message}</span>}
+            </div>
           </div>
         </div>
 

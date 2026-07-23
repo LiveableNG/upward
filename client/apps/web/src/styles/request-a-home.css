@@ -27,7 +27,11 @@
 }
 
 .rah__title {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-weight: 900;
   font-size: clamp(2.1rem, 5vw, 3rem);
   letter-spacing: -0.03em;
@@ -163,6 +167,99 @@
   letter-spacing: 0.01em;
 }
 
+.rah-guidance {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 1rem;
+  background: var(--landing-terracotta-50, rgba(234, 88, 12, 0.06));
+  border: 1px solid var(--landing-terracotta-200, rgba(234, 88, 12, 0.2));
+  border-radius: 12px;
+  color: var(--landing-slate-600);
+}
+
+.rah-guidance svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--landing-terracotta-600);
+}
+
+.rah-guidance--loading,
+.rah-guidance--muted {
+  color: var(--landing-slate-500);
+}
+
+.rah-guidance--muted {
+  background: var(--landing-slate-50, rgba(100, 116, 139, 0.06));
+  border-color: var(--landing-slate-200, rgba(100, 116, 139, 0.2));
+}
+
+.rah-guidance--muted svg {
+  color: var(--landing-slate-400);
+}
+
+.rah-guidance__note {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--landing-slate-500);
+  font-style: italic;
+}
+
+.rah-guidance__spinner {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--landing-slate-400);
+  animation: rah-spin 0.8s linear infinite;
+}
+
+@keyframes rah-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rah-guidance__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.rah-guidance__text {
+  margin: 0;
+  font-size: 0.825rem;
+  line-height: 1.5;
+}
+
+.rah-guidance__breakdown {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  font-size: 0.78rem;
+  color: var(--landing-slate-500);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.rah-guidance__apply {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--landing-terracotta-700, #9a3412);
+  background: #fff;
+  border: 1px solid var(--landing-terracotta-300, rgba(234, 88, 12, 0.35));
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rah-guidance__apply:hover {
+  background: var(--landing-terracotta-50, rgba(234, 88, 12, 0.08));
+}
+
 .rah-optional {
   font-weight: 500;
   color: var(--landing-slate-400);
@@ -214,7 +311,14 @@
   padding: 0.85rem 1rem;
   border-radius: 12px;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.rah-input::placeholder,
+.rah-textarea::placeholder {
+  color: var(--landing-slate-400);
 }
 
 .rah-input:focus,
@@ -373,7 +477,11 @@
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s,
+    transform 0.15s;
 }
 
 .rah-chip:hover {
@@ -440,11 +548,18 @@
   border-radius: 14px;
   background: var(--landing-terracotta-600);
   color: #fff;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-weight: 800;
   font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 10px 24px rgba(178, 107, 80, 0.22);
 }
 
@@ -486,7 +601,11 @@
 }
 
 .rah-success__title {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-weight: 800;
   font-size: clamp(1.8rem, 4vw, 2.4rem);
   letter-spacing: -0.03em;

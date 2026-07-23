@@ -175,10 +175,10 @@ import { GetPendingJoinRequestsUseCase } from './pm/use-cases/tenants/get-pendin
 import { DismissJoinRequestUseCase } from './pm/use-cases/tenants/dismiss-join-request.use-case'
 import { ResolveDuplicateJoinRequestUseCase } from './pm/use-cases/tenants/resolve-duplicate-join-request.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
-import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case';
-import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case';
-import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case';
-import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case';
+import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case'
+import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case'
+import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case'
+import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case'
 import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
 import { ActivityLogService } from '../shared/application/activity-log.service'
 import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
@@ -187,6 +187,7 @@ import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
+import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
 import {
   GetPmHomeRequestUseCase,
   ListPmHomeRequestsUseCase,
@@ -261,8 +262,6 @@ import {
   CompleteImportJobUseCase,
 } from './use-cases/pm/bulk-import.use-cases'
 
-
-
 // Payments
 import {
   SaveLandlordUseCase,
@@ -301,7 +300,14 @@ import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.
 import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
-import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPaymentUseCase, GetPaymentProofUploadUrlUseCase, GetPaymentProofUseCase, DeletePaymentProofUseCase } from './use-cases/payments/manual-payment.use-cases'
+import {
+  AddManualAccountUseCase,
+  UploadProofOfPaymentUseCase,
+  ReviewManualPaymentUseCase,
+  GetPaymentProofUploadUrlUseCase,
+  GetPaymentProofUseCase,
+  DeletePaymentProofUseCase,
+} from './use-cases/payments/manual-payment.use-cases'
 import { GetPendingManualPaymentsUseCase } from './use-cases/payments/get-pending-manual-payments.use-case'
 import { SendRentReceiptEmailUseCase } from './use-cases/payments/send-rent-receipt-email.use-case'
 import {
@@ -326,7 +332,11 @@ import { CreateSupportTicketUseCase } from './use-cases/support/create-support-t
 import { GetUserTicketsUseCase } from './use-cases/support/get-user-tickets.use-case'
 import { GetAllTicketsUseCase } from './use-cases/support/get-all-tickets.use-case'
 import { ResolveTicketUseCase } from './use-cases/support/resolve-ticket.use-case'
-import { RegisterDeviceTokenUseCase, UnregisterDeviceTokenUseCase, SendPushToUserUseCase } from './use-cases/push/push.use-cases'
+import {
+  RegisterDeviceTokenUseCase,
+  UnregisterDeviceTokenUseCase,
+  SendPushToUserUseCase,
+} from './use-cases/push/push.use-cases'
 import { PushNotificationService } from '../shared/infrastructure/common/push-notification.service'
 import { PmPaymentNotificationHandler } from './events/handlers/pm-payment-notification.handler'
 import { TenantSyncHandler } from './events/handlers/tenant-sync.handler'
@@ -546,6 +556,7 @@ const UseCases = [
   RequestDataDeletionUseCase,
   SubmitFeedbackUseCase,
   SubmitHomeRequestUseCase,
+  BudgetGuidanceUseCase,
   ListPmHomeRequestsUseCase,
   GetPmHomeRequestUseCase,
   RevealPmHomeRequestContactUseCase,
@@ -631,7 +642,6 @@ const UseCases = [
   CompleteImportJobUseCase,
 ]
 
-
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
 
@@ -661,7 +671,20 @@ import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.modul
     TriggerSequencesUseCase,
     ...UseCases,
   ],
-  exports: [WebhookService, BulkInviteService, EncryptionService, PushNotificationService, NotificationService, GoogleAnalyticsService, PrismaDeviceTokenRepository, UnifiedReminderService, PaymentConfigurationService, QueueDailySequencesUseCase, GetQueuedSequencesUseCase, TriggerSequencesUseCase, ...UseCases],
-
+  exports: [
+    WebhookService,
+    BulkInviteService,
+    EncryptionService,
+    PushNotificationService,
+    NotificationService,
+    GoogleAnalyticsService,
+    PrismaDeviceTokenRepository,
+    UnifiedReminderService,
+    PaymentConfigurationService,
+    QueueDailySequencesUseCase,
+    GetQueuedSequencesUseCase,
+    TriggerSequencesUseCase,
+    ...UseCases,
+  ],
 })
-export class ApplicationModule { }
+export class ApplicationModule {}
