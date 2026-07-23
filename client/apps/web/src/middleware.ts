@@ -35,6 +35,9 @@ const PM_ROUTE_PREFIXES = [
   '/payments',
   '/requests',
   '/documents',
+  '/rent-requests',
+  '/rent-request',
+  '/home-requests',
 ]
 
 const PAY_ROUTE_PREFIXES = [
@@ -142,6 +145,18 @@ function gtag(){dataLayer.push(arguments);}
 }
 
 export async function middleware(request: NextRequest) {
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, x-proxy-source',
+        'Access-Control-Max-Age': '86400',
+      },
+    })
+  }
+
   const { pathname, search } = request.nextUrl
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
   const protocol =
@@ -213,6 +228,9 @@ export async function middleware(request: NextRequest) {
     redirectParam.startsWith('/payments') ||
     redirectParam.startsWith('/requests') ||
     redirectParam.startsWith('/documents') ||
+    redirectParam.startsWith('/rent-requests') ||
+    redirectParam.startsWith('/rent-request') ||
+    redirectParam.startsWith('/home-requests') ||
     redirectParam.startsWith('/pm')
 
   const isPmPath =
@@ -223,6 +241,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/payments') ||
     pathname.startsWith('/requests') ||
     pathname.startsWith('/documents') ||
+    pathname.startsWith('/rent-requests') ||
+    pathname.startsWith('/rent-request') ||
+    pathname.startsWith('/home-requests') ||
     pathname.startsWith('/_upward_pm') ||
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
@@ -342,6 +363,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/payments') ||
     pathname.startsWith('/requests') ||
     pathname.startsWith('/documents') ||
+    pathname.startsWith('/rent-requests') ||
+    pathname.startsWith('/rent-request') ||
+    pathname.startsWith('/home-requests') ||
     pathname.startsWith('/api/v1')
 
   const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
@@ -451,6 +475,9 @@ export const config = {
     '/payments/:path*',
     '/requests/:path*',
     '/documents/:path*',
+    '/rent-requests/:path*',
+    '/rent-request/:path*',
+    '/home-requests/:path*',
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',

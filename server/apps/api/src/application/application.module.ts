@@ -186,6 +186,12 @@ import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
+import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
+import {
+  GetPmHomeRequestUseCase,
+  ListPmHomeRequestsUseCase,
+  RevealPmHomeRequestContactUseCase,
+} from './pm/use-cases/home-requests/pm-home-request.use-cases'
 import { BulkAddRentHistoryUseCase } from './pm/use-cases/bulk-add-rent-history.use-case'
 import { MarkCredibilityRequestDoneUseCase } from './pm/use-cases/mark-credibility-request-done.use-case'
 import { GetLandlordPortfolioUseCase } from './pm/use-cases/landlord/get-landlord-portfolio.use-case'
@@ -539,6 +545,10 @@ const UseCases = [
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
   SubmitFeedbackUseCase,
+  SubmitHomeRequestUseCase,
+  ListPmHomeRequestsUseCase,
+  GetPmHomeRequestUseCase,
+  RevealPmHomeRequestContactUseCase,
   InviteTeamMemberUseCase,
   GetTeamMembersUseCase,
   UpdateTeamMemberPermissionsUseCase,

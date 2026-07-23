@@ -15,12 +15,14 @@ import {
   ChevronRight,
   Contact,
   FileText,
-  Inbox
+  Inbox,
+  Search
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
 import { cn } from '@/lib/utils'
 import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
+import { listHomeRequests } from '@/features/pm/services/homeRequestService'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -29,6 +31,7 @@ const navItems = [
   { icon: Building2, label: 'Properties', href: '/properties' },
   { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
+  { icon: Search, label: 'Home Requests', href: '/home-requests' },
   { icon: Inbox, label: 'Requests', href: '/requests' },
   { icon: FileText, label: 'Documents', href: '/documents' },
   { icon: CreditCard, label: 'Payments', href: '/payments' },
@@ -52,8 +55,13 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
       return res || []
     }
   })
+  const { data: homeRequests = [] } = useQuery({
+    queryKey: ['pm-home-requests'],
+    queryFn: listHomeRequests,
+  })
 
   const totalRequests = (credibilityRequests?.length || 0) + (joinRequests?.length || 0)
+  const newHomeRequests = homeRequests.filter((request) => request.status === 'submitted').length
 
   return (
     <>
@@ -84,8 +92,12 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
             <ul className="sidebar__list">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
-                const hasBadge = item.label === 'Requests' && totalRequests > 0
+                const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
+                const hasBadge =
+                  (item.label === 'Requests' && totalRequests > 0) ||
+                  (item.label === 'Home Requests' && newHomeRequests > 0)
+                const badgeCount =
+                  item.label === 'Home Requests' ? newHomeRequests : totalRequests
 
                 return (
                   <li key={item.href} className="sidebar__item">
@@ -108,7 +120,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                         <>
                           <span style={{ flex: 1 }}>{item.label}</span>
                           {hasBadge && (
-                            <span className="sidebar__badge">{totalRequests}</span>
+                            <span className="sidebar__badge">{badgeCount}</span>
                           )}
                         </>
                       )}

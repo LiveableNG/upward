@@ -30,8 +30,8 @@ export const UPCOMING_FEATURES: UpcomingFeature[] = [
   },
   {
     id: 'property-search',
-    title: 'Advanced Property Search',
-    description: 'Browse verified listings and manage your lease details seamlessly.',
+    title: 'Exclusive Homes',
+    description: 'Browse verified listings with 0% agent fees for Upward members.',
     preview: 'Browse verified listings',
     icon: Smartphone,
     tone: 'blue',
