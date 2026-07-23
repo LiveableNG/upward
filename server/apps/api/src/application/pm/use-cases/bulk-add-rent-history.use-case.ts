@@ -56,11 +56,23 @@ export class BulkAddRentHistoryUseCase {
           : await this.tenantRepository.findByEmailHash(pmId, emailHash);
 
         // 2. Add Rent Payment on PM Side
+        let periodEnd: Date | null = row.periodEnd ? new Date(row.periodEnd) : null;
+        if (!periodEnd) {
+          const start = new Date(row.periodStart);
+          periodEnd = new Date(start);
+          if (unit.rentType === 'Monthly') {
+            periodEnd.setMonth(periodEnd.getMonth() + 1);
+          } else {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          }
+          periodEnd.setDate(periodEnd.getDate() - 1);
+        }
+
         const payment = await this.unitRepository.addRentPayment(dto.unitUuid, {
           amount: row.amount,
           paymentDate: new Date(row.paymentDate),
           periodStart: new Date(row.periodStart),
-          periodEnd: row.periodEnd ? new Date(row.periodEnd) : null,
+          periodEnd,
           method: row.method || 'Bank Transfer',
           reference: null,
           status: 'SUCCESS',
@@ -162,6 +174,53 @@ export class BulkAddRentHistoryUseCase {
       } catch (err: any) {
         results.failed++;
         results.errors.push(`Row for ${row.tenantEmail}: ${err.message}`);
+      }
+    }
+
+    // Recalculate unit's active occupancy period based on all payments after bulk import
+    if (unit.tenantId) {
+      try {
+        const allPaymentsAfter = await this.unitRepository.getRentPayments(dto.unitUuid);
+        const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
+
+        const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
+        for (const p of tenantPayments) {
+          const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
+          if (!periodMap.has(key)) {
+            periodMap.set(key, {
+              periodStart: new Date(p.periodStart!),
+              periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
+              total: 0
+            });
+          }
+          periodMap.get(key)!.total += p.amount;
+        }
+
+        const sortedPeriods = Array.from(periodMap.values()).sort(
+          (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
+        );
+
+        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0));
+
+        if (fullyPaidPeriods.length > 0) {
+          const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
+          await this.unitRepository.update(dto.unitUuid, {
+            rentStartDate: latestFullyPaid.periodStart,
+            rentDueDate: latestFullyPaid.periodEnd
+          });
+
+          if (unit.isSynced && unit.userPropertyUuid) {
+            await this.prisma.upward_user_property.updateMany({
+              where: { uuid: unit.userPropertyUuid },
+              data: {
+                rentStartDate: latestFullyPaid.periodStart,
+                rentEndDate: latestFullyPaid.periodEnd
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to recalculate unit dates after bulk rent history import:', err);
       }
     }
 

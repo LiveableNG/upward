@@ -14,6 +14,12 @@
   --accent: #3d5a45; /* Deep Sage/Moss */
   --accent-faint: rgba(61, 90, 69, 0.1);
 
+  --clay: #d97757;
+  --clay-rgb: 217, 119, 87;
+  --clay-hover: #c2501f;
+  --clay-glow: rgba(217, 119, 87, 0.2);
+  --clay-faint: rgba(217, 119, 87, 0.06);
+
   --dark: #0a0a0f;
   --dark-surface: #141413;
   --text: #0a0a0f;
