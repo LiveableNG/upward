@@ -666,7 +666,7 @@ function UnitDetailContent() {
                   <div>
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Property</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{unit?.property?.name || 'N/A'}</div>
-                    <a href={`/portal/properties/${unit?.property?.uuid}`} style={{ fontSize: 11, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>Go to property &gt;</a>
+                    <a href={`/portal/properties/view?uuid=${unit?.property?.uuid}`} style={{ fontSize: 11, color: 'var(--info)', marginTop: 4, display: 'inline-block' }}>Go to property &gt;</a>
                   </div>
                   <div>
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>Unit Type</div>
@@ -774,7 +774,7 @@ function UnitDetailContent() {
                           {formatTenantName(unit.tenant)}
                         </div>
                       </div>
-                      <button className="btn btn--secondary btn--sm" onClick={() => router.push(`/portal/tenants/${unit.tenant?.uuid}`)} style={{ borderRadius: 100, fontSize: 12 }}>
+                      <button className="btn btn--secondary btn--sm" onClick={() => router.push(`/portal/tenants/view?uuid=${unit.tenant?.uuid}`)} style={{ borderRadius: 100, fontSize: 12 }}>
                         View Tenant
                       </button>
                     </div>

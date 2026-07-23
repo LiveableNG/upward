@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertCircle, AlertTriangle, Trash2, Plus } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Trash2, Plus, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ColumnDef } from './types'
 
@@ -55,10 +55,10 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {warningCount > 0 && (
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b45309', fontSize: 13, fontWeight: 600, background: '#fef3c7', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #fde68a' }}
-              title="Rent due dates were auto-calculated or adjusted based on tenancy start date and term frequency."
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#166534', fontSize: 13, fontWeight: 600, background: '#dcfce7', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #bbf7d0' }}
+              title="Rent end dates were successfully auto-calculated based on your tenancy terms."
             >
-              <AlertTriangle size={16} /> {warningCount} auto-adjusted dates (Amber Notices)
+              <CheckCircle size={16} /> {warningCount} rent end dates auto-calculated
             </div>
           )}
 
@@ -104,32 +104,50 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
             {previewRows.map(row => (
               <tr key={row.id}>
                 {columns.map(col => {
-                  const isEditing = !col.readOnly && editingCell?.rowId === row.id && editingCell?.field === col.key
+                  const isLeaseYears = col.key === 'leaseYears'
+                  const rentTypeVal = row.unitRentType || row.rentType
+                  const isLeaseYearsDisabled = isLeaseYears && rentTypeVal !== 'Lease'
+                  const isReadOnly = col.readOnly || isLeaseYearsDisabled
+
+                  const isEditing = !isReadOnly && editingCell?.rowId === row.id && editingCell?.field === col.key
                   const error = validationErrors[`${row.id}-${col.key}`]
                   const warning = amberWarnings[`${row.id}-${col.key}`]
                   return (
                     <td 
                       key={col.key} 
                       id={`cell-${row.id}-${col.key}`}
-                      onClick={() => !col.readOnly && setEditingCell({ rowId: row.id, field: col.key })} 
-                      title={col.readOnly ? 'Auto-calculated date (Read-only)' : (error || warning || '')}
+                      onClick={() => !isReadOnly && setEditingCell({ rowId: row.id, field: col.key })} 
+                      title={isReadOnly ? (isLeaseYearsDisabled ? 'Only applicable for Lease rent type' : 'Auto-calculated date (Read-only)') : (error || warning || '')}
                     >
                       {isEditing ? (
-                        <input 
-                          className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')}
-                          autoFocus
-                          onBlur={() => setEditingCell(null)}
-                          value={row[col.key]}
-                          onChange={(e) => updateRowField(row.id, col.key, e.target.value)}
-                        />
+                        col.type === 'select' && col.options ? (
+                          <select
+                            className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')}
+                            autoFocus
+                            onBlur={() => setEditingCell(null)}
+                            value={row[col.key]}
+                            onChange={(e) => updateRowField(row.id, col.key, e.target.value)}
+                          >
+                            <option value="">Select...</option>
+                            {col.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        ) : (
+                          <input 
+                            className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')}
+                            autoFocus
+                            onBlur={() => setEditingCell(null)}
+                            value={row[col.key]}
+                            onChange={(e) => updateRowField(row.id, col.key, e.target.value)}
+                          />
+                        )
                       ) : (
                         <div 
                           className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')} 
-                          style={{ cursor: col.readOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, background: col.readOnly ? 'rgba(0,0,0,0.02)' : undefined }}
+                          style={{ cursor: isReadOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, background: isReadOnly ? 'rgba(0,0,0,0.02)' : undefined }}
                         >
                           <span>{row[col.key] || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
                           {!error && warning && (
-                            <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0 }} title={warning} />
+                            <CheckCircle size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
                           )}
                         </div>
                       )}

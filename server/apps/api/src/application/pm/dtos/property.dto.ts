@@ -149,6 +149,7 @@ export class UnitImportDto {
 
   @IsNumber()
   @IsOptional()
+  @Type(() => Number)
   leaseYears?: number;
 
   @IsString()
@@ -276,6 +277,7 @@ export class FullImportRowDto {
 
   @IsNumber()
   @IsOptional()
+  @Type(() => Number)
   leaseYears?: number;
 
   @IsString()

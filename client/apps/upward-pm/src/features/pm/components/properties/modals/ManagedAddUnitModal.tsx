@@ -66,7 +66,7 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
         rentAmount: parseFloat(unitForm.rentAmount) || 0,
         rentAmountPaid: parseFloat(unitForm.rentAmountPaid) || 0,
         managementFee: parseFloat(unitForm.managementFee) || 0,
-        leaseYears: parseInt(String(unitForm.leaseYears || 1), 10) || 1,
+        leaseYears: unitForm.rentType === 'Lease' ? (parseInt(String(unitForm.leaseYears || 1), 10) || 1) : undefined,
         status: (unitForm.tenantEmail?.trim() || unitForm.tenantFirstName?.trim() || unitForm.tenantLastName?.trim() || unitForm.tenantUuid) ? 'OCCUPIED' : 'VACANT'
       }]
     }, {

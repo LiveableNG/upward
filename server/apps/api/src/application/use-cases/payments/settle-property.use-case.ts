@@ -42,34 +42,21 @@ export class SettlePropertyBalanceUseCase {
 
     const updateData: any = {
       amountPaid: totalRentPaidForProp,
-      amountRemaining: newRemaining
+      amountRemaining: newRemaining,
+    }
+    if (rentType || prop.rentType) {
+      updateData.rentType = rentType || prop.rentType
     }
 
-    // Advance Core Due Date if fully paid
+    // Advance balance and status if fully paid
     if (rentPortion > 0 && newRemaining === 0 && totalRentPaidForProp >= totalOwedForProp && totalOwedForProp > 0) {
       const overpayment = totalRentPaidForProp - totalOwedForProp
+      updateData.isPastTenancy = false
+      const nextYearRent = prop.rentAmount || totalOwedForProp
+      updateData.amountPaid = overpayment
+      updateData.amountRemaining = Math.max(0, nextYearRent - overpayment)
 
-      if (prop.rentEndDate) {
-        const baseDate = rentEndDate ? new Date(rentEndDate) : new Date(prop.rentEndDate)
-        const newDate = new Date(baseDate)
-        
-        updateData.rentStartDate = new Date(baseDate)
-
-        const rentInterval = rentType || prop.rentType
-        if (rentInterval === 'Monthly' || rentInterval === 'MONTHLY') {
-          newDate.setMonth(newDate.getMonth() + 1)
-        } else {
-          newDate.setFullYear(newDate.getFullYear() + 1)
-        }
-        updateData.rentEndDate = newDate
-        updateData.isPastTenancy = false
-
-        const nextYearRent = prop.rentAmount || totalOwedForProp
-        updateData.amountPaid = overpayment
-        updateData.amountRemaining = Math.max(0, nextYearRent - overpayment)
-
-        this.logger.log(`Property ${prop.uuid} fully settled. Core rent due date moved from ${baseDate.toISOString()} to ${newDate.toISOString()}`)
-      }
+      this.logger.log(`Property ${prop.uuid} fully settled. Updated remaining balance to ${updateData.amountRemaining}`)
     }
 
     await this.propertyRepo.update(prop.id!, updateData, txClient)

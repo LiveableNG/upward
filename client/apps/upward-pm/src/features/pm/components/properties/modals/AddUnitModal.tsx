@@ -353,7 +353,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                         style={{ fontSize: 13, padding: '10px 14px' }}
                         placeholder="e.g. 3"
                         value={formData.leaseYears || '1'}
-                        onChange={e => setFormData({ ...formData, leaseYears: e.target.value })}
+                        onChange={e => setFormData({ ...formData, leaseYears: e.target.value === '' ? '' : parseInt(e.target.value, 10) })}
                       />
                     </div>
                   )}

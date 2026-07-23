@@ -114,7 +114,7 @@ export class CreatePmPaymentRequestUseCase {
         allowPartial: data.allowPartial,
         minAmount: data.allowPartial === false ? 0 : data.minAmount,
         lineItems: data.lineItems,
-        rentType: data.rentType,
+        rentType: data.rentType || unit.rentType || undefined,
         bankCode: pm.bankCode ?? undefined,
         accountNumber: pm.accountNumber ?? undefined,
       };
@@ -152,7 +152,7 @@ export class CreatePmPaymentRequestUseCase {
       dueDate: new Date(data.rentEndDate || data.dueDate),
       rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
       rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
-      rentType: data.rentType || null,
+      rentType: data.rentType || unit.rentType || null,
       reminderFrequency: frequency,
       nextReminderAt,
       reminderCount: 0,

@@ -51,6 +51,7 @@ export interface Unit {
   notes?: string;
   status: string;
   currency: string;
+  leaseYears?: number;
   unitType?: string;
   rentAmountPaid?: number;
   rentReminderEnabled: boolean;

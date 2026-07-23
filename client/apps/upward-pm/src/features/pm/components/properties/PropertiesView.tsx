@@ -86,7 +86,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
   const [unitForm, setUnitForm] = useState({
     unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
     tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
-    rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
+    rentType: 'Annually', leaseYears: 1, managementFee: '', notes: '', tenantUuid: '',
     unitType: '', rentAmountPaid: '', isFullyPaid: true
   })
 
@@ -113,6 +113,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
         rentAmount: parseFloat(unitForm.rentAmount) || 0,
         rentAmountPaid: parseFloat(unitForm.rentAmountPaid) || 0,
         managementFee: parseFloat(unitForm.managementFee) || 0,
+        leaseYears: unitForm.rentType === 'Lease' ? (parseInt(String((unitForm as any).leaseYears || 1), 10) || 1) : undefined,
         status: (unitForm.tenantEmail?.trim() || unitForm.tenantFirstName?.trim() || unitForm.tenantLastName?.trim() || unitForm.tenantUuid) ? 'OCCUPIED' : 'VACANT'
       }]
     }, {
@@ -122,7 +123,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
         setUnitForm({ 
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
-          rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
+          rentType: 'Annually', leaseYears: 1, managementFee: '', notes: '', tenantUuid: '',
           unitType: '', rentAmountPaid: '', isFullyPaid: true
         })
         setTargetPropertyUuid('')

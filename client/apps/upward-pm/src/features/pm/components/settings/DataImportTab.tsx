@@ -57,13 +57,20 @@ export const DataImportTab: React.FC = () => {
   }, [properties])
 
   const handleDownloadTemplate = () => {
-    const headers = columns.map(c => c.label)
+    const exportColumns = columns.filter(c => 
+      c.key !== 'unitRentDueDate' && 
+      c.key !== 'rentDueDate'
+    );
+    const headers = exportColumns.map(c => c.label)
     
-    const rows = mode === 'full' ? [
-      ['Emerald Court', '12 Admiralty Way, Lekki', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Apt 101', '2500000', '2500000', 'Annually', 'NGN', '2024-01-01', '2025-01-01', '250000', 'Tenant with 3 units across 3 properties', 'Flat / Apartment'],
-      ['Sapphire Heights', '45 Glover Road, Ikoyi', 'Residential', 'Nigeria', 'Lagos', 'Ikoyi', 'Alice', 'Owner', 'alice@landlord.com', '+2348011112222', '', 'John', 'Doe', 'john@tenant.com', '+2348033334444', 'Suite 2A', '3500000', '3500000', 'Annually', 'NGN', '2024-02-01', '2025-02-01', '350000', 'Landlord with multiple properties', 'Office Space'],
-    ] : [
-      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2000000', '2000000', '2024-01-01', '2024-05-01', 'Monthly', '200000', 'NGN', 'Tenant Unit 1', 'Flat / Apartment'],
+    const rows = mode === 'full' ?[
+        ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
+        ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
+        ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.ogunleye@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
+      ] : [
+      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2400000', '2400000', '2024-01-01', 'Annually', '', '240000', 'NGN', 'Annual tenant', 'Flat / Apartment'],
+      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348012345679', '200000', '200000', '2024-02-01', 'Monthly', '', '20000', 'NGN', 'Monthly tenant', 'Flat / Apartment'],
+      ['103', 'XYZ Biz', '', '', 'contact@xyz.com', '+2348012345680', '5000000', '5000000', '2024-03-01', 'Lease', '5', '500000', 'NGN', '5-year lease', 'Office Space']
     ]
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
@@ -107,11 +114,18 @@ export const DataImportTab: React.FC = () => {
       return error(`Error at Row ${rowIndex + 1}, Column "${colLabel}": ${importState.validationErrors[firstErrorKey]}`)
     }
 
-    const validKeys = new Set(columns.map(c => c.key))
     const sanitizeRow = (row: any) => {
       const clean: any = {}
-      validKeys.forEach(k => {
-        if (row[k] !== undefined) clean[k] = row[k]
+      columns.forEach(col => {
+        const val = row[col.key]
+        if (val !== undefined && val !== '') {
+          if (col.type === 'number') {
+            const parsed = parseFloat(val)
+            clean[col.key] = isNaN(parsed) ? val : parsed
+          } else {
+            clean[col.key] = val
+          }
+        }
       })
       return clean
     }
@@ -302,11 +316,18 @@ export const DataImportTab: React.FC = () => {
   const handleApproveStagedImport = (stagedRows: any[]) => {
     if (!stagedRows || stagedRows.length === 0) return error("No rows to import")
 
-    const validKeys = new Set(columns.map(c => c.key))
     const sanitizeRow = (row: any) => {
       const clean: any = {}
-      validKeys.forEach(k => {
-        if (row[k] !== undefined) clean[k] = row[k]
+      columns.forEach(col => {
+        const val = row[col.key]
+        if (val !== undefined && val !== '') {
+          if (col.type === 'number') {
+            const parsed = parseFloat(val)
+            clean[col.key] = isNaN(parsed) ? val : parsed
+          } else {
+            clean[col.key] = val
+          }
+        }
       })
       return clean
     }

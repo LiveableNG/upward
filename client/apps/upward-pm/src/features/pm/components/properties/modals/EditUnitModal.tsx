@@ -14,6 +14,18 @@ interface EditUnitModalProps {
   hasPayments?: boolean;
 }
 
+const getInitialLeaseYears = (unit: any) => {
+  if (unit && unit.rentType && String(unit.rentType).toUpperCase().trim() === 'LEASE' && unit.rentStartDate && unit.rentDueDate) {
+    const start = new Date(unit.rentStartDate);
+    const end = new Date(unit.rentDueDate);
+    const diffTime = end.getTime() - start.getTime();
+    if (diffTime > 0) {
+      return Math.round(diffTime / (1000 * 60 * 60 * 24 * 365));
+    }
+  }
+  return '';
+}
+
 export const EditUnitModal: React.FC<EditUnitModalProps> = ({
   isOpen, onClose, unit, onSave, isPending, hasPayments
 }) => {
@@ -29,6 +41,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
       rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
       rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
+      leaseYears: (unit as any).leaseYears || getInitialLeaseYears(unit),
     }
   })
 
@@ -48,6 +61,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
         rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
         rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
+        leaseYears: (unit as any).leaseYears || getInitialLeaseYears(unit),
       })
 
     }
@@ -57,6 +71,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
   useEffect(() => {
     const rentStartDate = watch('rentStartDate')
     const rentType = watch('rentType')
+    const leaseYears = watch('leaseYears')
 
     if (rentStartDate && rentType) {
       const start = new Date(rentStartDate)
@@ -67,6 +82,8 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         end.setMonth(end.getMonth() + 1)
       } else if (rentType === 'Annually' || rentType === 'Yearly') {
         end.setFullYear(end.getFullYear() + 1)
+      } else if (rentType === 'Lease' && leaseYears) {
+        end.setFullYear(end.getFullYear() + Number(leaseYears))
       }
 
       end.setDate(end.getDate() - 1)
@@ -76,7 +93,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         setValue('rentDueDate', formattedEnd, { shouldValidate: true })
       }
     }
-  }, [watch('rentStartDate'), watch('rentType')])
+  }, [watch('rentStartDate'), watch('rentType'), watch('leaseYears')])
 
   if (!isOpen) return null;
 
@@ -86,6 +103,10 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       rentAmount: Number(data.rentAmount),
       managementFee: Number(data.managementFee),
       rentReminderDaysBefore: data.rentReminderDaysBefore ? Number(data.rentReminderDaysBefore) : null,
+      leaseYears: data.rentType === 'Lease' && data.leaseYears ? Number(data.leaseYears) : undefined,
+    }
+    if (data.rentType !== 'Lease') {
+      delete processedData.leaseYears
     }
     onSave(processedData)
   }
@@ -172,11 +193,18 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
               onChange={val => setValue('rentType', val, { shouldValidate: true })}
               options={[
                 { label: 'Annually', value: 'Annually' },
-                { label: 'Monthly', value: 'Monthly' }
+                { label: 'Monthly', value: 'Monthly' },
+                { label: 'Lease', value: 'Lease' }
               ]}
               disabled={hasPayments}
             />
           </div>
+          {watch('rentType') === 'Lease' && (
+            <div className="form-group">
+              <label className="form-label">Lease Years</label>
+              <input type="number" {...register('leaseYears')} className="form-input" disabled={hasPayments} placeholder="e.g. 5" />
+            </div>
+          )}
           <div className="form-group">
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <CreditCard size={14} color="var(--forest)" /> Rent Amount

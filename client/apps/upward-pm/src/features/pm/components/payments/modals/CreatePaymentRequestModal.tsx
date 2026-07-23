@@ -21,6 +21,18 @@ interface CreatePaymentRequestModalProps {
   onProceedToEditor?: (template: any, paymentContext: any) => void;
 }
 
+const getInitialLeaseYears = (unit: any) => {
+  if (unit && unit.rentType && String(unit.rentType).toUpperCase().trim() === 'LEASE' && unit.rentStartDate && unit.rentDueDate) {
+    const start = new Date(unit.rentStartDate);
+    const end = new Date(unit.rentDueDate);
+    const diffTime = end.getTime() - start.getTime();
+    if (diffTime > 0) {
+      return Math.round(diffTime / (1000 * 60 * 60 * 24 * 365));
+    }
+  }
+  return 1; // Default to 1 year if we can't calculate
+}
+
 const EMPTY_PAYMENTS: any[] = []
 
 export function CreatePaymentRequestModal({
@@ -112,7 +124,9 @@ export function CreatePaymentRequestModal({
       if (!unit.rentDueDate && unit.rentStartDate) {
         // Calculate initial end date if missing
         const end = new Date(unit.rentStartDate)
+        const computedLeaseYears = (unit as any).leaseYears || getInitialLeaseYears(unit)
         if (type === 'MONTHLY') end.setMonth(end.getMonth() + 1)
+        else if (type === 'LEASE') end.setFullYear(end.getFullYear() + Number(computedLeaseYears))
         else end.setFullYear(end.getFullYear() + 1)
         end.setDate(end.getDate() - 1)
         calculatedEndDate = end
@@ -144,7 +158,9 @@ export function CreatePaymentRequestModal({
         finalStartDate.setDate(finalStartDate.getDate() + 1);
 
         finalEndDate = new Date(finalStartDate);
+        const computedLeaseYears = (unit as any).leaseYears || getInitialLeaseYears(unit)
         if (type === 'MONTHLY') finalEndDate.setMonth(finalEndDate.getMonth() + 1);
+        else if (type === 'LEASE') finalEndDate.setFullYear(finalEndDate.getFullYear() + Number(computedLeaseYears));
         else finalEndDate.setFullYear(finalEndDate.getFullYear() + 1);
         finalEndDate.setDate(finalEndDate.getDate() - 1);
         
@@ -177,11 +193,15 @@ export function CreatePaymentRequestModal({
     if (isEditing || !rentStartDate) return
 
     const endDate = new Date(rentStartDate)
+    const computedLeaseYears = (unit as any).leaseYears || getInitialLeaseYears(unit)
     if (rentType === 'MONTHLY') {
       endDate.setMonth(endDate.getMonth() + 1)
+    } else if (rentType === 'LEASE') {
+      endDate.setFullYear(endDate.getFullYear() + Number(computedLeaseYears))
     } else {
       endDate.setFullYear(endDate.getFullYear() + 1)
     }
+    endDate.setDate(endDate.getDate() - 1)
     const endDateStr = endDate.toISOString().split('T')[0]
     setRentEndDate(endDateStr)
     setDueDate(rentStartDate)
@@ -410,22 +430,7 @@ export function CreatePaymentRequestModal({
           </div>
         </div>
 
-        {lineItems.some(item => item.name === 'Rent') && (
-          <div className="form-group" style={{ marginTop: 8, marginBottom: 24 }}>
-            <label className="form-label">Rent Type (Frequency) <span style={{ color: 'var(--error)' }}>*</span></label>
-            <FormSelect
-              value={rentType}
-              onChange={(val) => setRentType(val)}
-              options={[
-                { label: 'Annually', value: 'ANNUALLY' },
-                { label: 'Monthly', value: 'MONTHLY' }
-              ]}
-            />
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ color: 'var(--clay)' }}>ℹ️</span> This determines how the next due date is calculated after payment.
-            </p>
-          </div>
-        )}
+
 
         <div style={{
           background: 'var(--ivory-dim)',
@@ -603,6 +608,7 @@ export function CreatePaymentRequestModal({
                       { label: 'Quarterly', value: 'QUARTERLY' },
                       { label: 'Yearly', value: 'YEARLY' }
                     ]}
+                    portalOnDesktop
                   />
                 </div>
               )}
@@ -624,6 +630,7 @@ export function CreatePaymentRequestModal({
                 { label: 'Every 2 Days', value: 'EVERY_2_DAYS' },
                 { label: 'Every Week', value: 'WEEKLY' }
               ]}
+              portalOnDesktop
             />
           </div>
 
@@ -631,9 +638,9 @@ export function CreatePaymentRequestModal({
             <div className="form-group">
               <label className="form-label">Follow-up Document <span style={{ color: 'var(--error)' }}>*</span></label>
               {templates.filter((t: any) => t.type !== 'SYSTEM').length === 0 ? (
-                <div style={{ padding: '16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No custom templates available.</span>
-                  <a href="/pm/documents" style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--dark)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                <div style={{ padding: '12px 16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No custom templates available.</span>
+                  <a href="/documents" className="btn btn--secondary" style={{ padding: '6px 12px', height: 'auto', fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}>
                     Create Template
                   </a>
                 </div>
@@ -645,6 +652,7 @@ export function CreatePaymentRequestModal({
                     { label: 'Select template', value: '' },
                     ...templates.filter((t: any) => t.type !== 'SYSTEM').map((t: any) => ({ label: t.name, value: t.uuid }))
                   ]}
+                  portalOnDesktop
                 />
               )}
             </div>

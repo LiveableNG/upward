@@ -50,8 +50,21 @@ export class AddUnitPaymentUseCase {
         newUnitEnd = new Date(newUnitStart);
         if (unit.rentType === 'Monthly') {
           newUnitEnd.setMonth(newUnitEnd.getMonth() + 1);
-        } else if (unit.rentType === 'Lease') {
-          const years = Math.max(1, (unit as any).leaseYears || 1);
+        } else if (unit.rentType === 'Lease' || unit.rentType === 'LEASE') {
+          let years = (unit as any).leaseYears;
+          if (!years || years <= 0) {
+            for (const p of allPayments) {
+              if (p.periodStart && p.periodEnd) {
+                const diffTime = new Date(p.periodEnd).getTime() - new Date(p.periodStart).getTime();
+                const diffYears = Math.round(diffTime / (1000 * 60 * 60 * 24 * 365.25));
+                if (diffYears >= 1) {
+                  years = diffYears;
+                  break;
+                }
+              }
+            }
+          }
+          years = Math.max(1, years || 1);
           newUnitEnd.setFullYear(newUnitEnd.getFullYear() + years);
         } else {
           newUnitEnd.setFullYear(newUnitEnd.getFullYear() + 1);

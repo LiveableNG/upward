@@ -879,7 +879,7 @@ function UnitDetailContent() {
                           {formatTenantName(unit.tenant)}
                         </div>
                       </div>
-                      <button className="btn btn--secondary btn--sm" onClick={() => router.push(`/tenants/${unit.tenant?.uuid}`)} style={{ borderRadius: 100, fontSize: 12 }}>
+                      <button className="btn btn--secondary btn--sm" onClick={() => router.push(`/tenants/view?uuid=${unit.tenant?.uuid}`)} style={{ borderRadius: 100, fontSize: 12 }}>
                         View Tenant
                       </button>
                     </div>
