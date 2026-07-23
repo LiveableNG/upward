@@ -23,6 +23,7 @@ interface AddUnitModalProps {
     rentStartDate: string;
     rentDueDate: string;
     rentType: string;
+    leaseYears?: number | string;
     managementFee: string;
     notes: string;
     tenantFirstName: string;
@@ -46,24 +47,30 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   // Auto-calculate Rent Due Date (End Date)
   React.useEffect(() => {
     if (formData.rentStartDate && formData.rentType) {
-      const start = new Date(formData.rentStartDate)
+      const [y, m, d] = formData.rentStartDate.split('-').map(Number)
+      if (!y || !m || !d) return
+
+      const start = new Date(Date.UTC(y, m - 1, d))
       if (isNaN(start.getTime())) return
 
-      const end = new Date(start)
+      const end = new Date(start.getTime())
       if (formData.rentType === 'Monthly') {
-        end.setMonth(end.getMonth() + 1)
-      } else if (formData.rentType === 'Annually') {
-        end.setFullYear(end.getFullYear() + 1)
+        end.setUTCMonth(end.getUTCMonth() + 1)
+      } else if (formData.rentType === 'Lease') {
+        const years = Math.max(1, parseInt(String(formData.leaseYears || '1'), 10) || 1)
+        end.setUTCFullYear(end.getUTCFullYear() + years)
+      } else {
+        end.setUTCFullYear(end.getUTCFullYear() + 1)
       }
       
-      end.setDate(end.getDate() - 1)
+      end.setUTCDate(end.getUTCDate() - 1)
       
       const formattedEnd = end.toISOString().split('T')[0]
       if (formattedEnd !== formData.rentDueDate) {
         setFormData({ ...formData, rentDueDate: formattedEnd })
       }
     }
-  }, [formData.rentStartDate, formData.rentType, formData.rentDueDate, setFormData])
+  }, [formData.rentStartDate, formData.rentType, formData.leaseYears, formData.rentDueDate, setFormData])
 
   if (!isOpen) return null;
 
@@ -83,7 +90,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   const hasTenant = tenantMode !== 'NONE'
   
   // Validation for Rent Fields (Required if tenant is assigned)
-  const rentFieldsError = hasTenant && (!formData.rentAmount || !formData.rentType || !formData.rentStartDate || !formData.rentDueDate)
+  const rentFieldsError = hasTenant && (!formData.rentAmount || !formData.rentType || !formData.rentStartDate || !formData.rentDueDate || (formData.rentType === 'Lease' && (!formData.leaseYears || parseInt(String(formData.leaseYears), 10) < 1)))
 
   const isInvalid = !!phoneError || !!emailError || isDuplicateUnit || !formData.unitName || !targetPropertyUuid || (hasTenant && rentFieldsError)
 
@@ -310,7 +317,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     <h5 style={{ fontSize: 11, fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rent Configuration</h5>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: formData.rentType === 'Lease' ? '1fr 1fr 1fr' : '1fr 1fr', gap: 12 }}>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: 11 }}>Rent Amount (₦)</label>
                     <input
@@ -330,11 +337,26 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                       onChange={val => setFormData({ ...formData, rentType: val })}
                       options={[
                         { label: 'Annually', value: 'Annually' },
-                        { label: 'Monthly', value: 'Monthly' }
+                        { label: 'Monthly', value: 'Monthly' },
+                        { label: 'Lease', value: 'Lease' }
                       ]}
                       placeholder="Select Rent Cycle"
                     />
                   </div>
+                  {formData.rentType === 'Lease' && (
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: 11 }}>Lease Years</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className={cn("form-input", (!formData.leaseYears || parseInt(String(formData.leaseYears), 10) < 1) && "form-input--error")}
+                        style={{ fontSize: 13, padding: '10px 14px' }}
+                        placeholder="e.g. 3"
+                        value={formData.leaseYears || '1'}
+                        onChange={e => setFormData({ ...formData, leaseYears: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -352,17 +374,19 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                   </div>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Calendar size={12} /> Rent End Date
+                        <Calendar size={12} /> Rent End Date (Auto-calculated)
                     </label>
                     <input
                       type="date"
+                      readOnly
                       className={cn("form-input", !formData.rentDueDate && "form-input--error")}
-                      style={{ fontSize: 13, padding: '10px 14px' }}
+                      style={{ fontSize: 13, padding: '10px 14px', background: 'var(--bg)', cursor: 'not-allowed', opacity: 0.8 }}
                       value={formData.rentDueDate}
-                      onChange={e => setFormData({ ...formData, rentDueDate: e.target.value })}
+                      title="Auto-calculated based on rent start date and cycle"
                     />
                   </div>
                 </div>
+
 
                 <div style={{ marginTop: 16, padding: 12, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.isFullyPaid ? 0 : 12 }}>

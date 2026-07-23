@@ -50,10 +50,14 @@ export class AddUnitPaymentUseCase {
         newUnitEnd = new Date(newUnitStart);
         if (unit.rentType === 'Monthly') {
           newUnitEnd.setMonth(newUnitEnd.getMonth() + 1);
-        } else if (unit.rentType === 'Annually' || unit.rentType === 'Yearly') {
+        } else if (unit.rentType === 'Lease') {
+          const years = Math.max(1, (unit as any).leaseYears || 1);
+          newUnitEnd.setFullYear(newUnitEnd.getFullYear() + years);
+        } else {
           newUnitEnd.setFullYear(newUnitEnd.getFullYear() + 1);
         }
         newUnitEnd.setDate(newUnitEnd.getDate() - 1);
+
 
         effectivePeriodStart = newUnitStart;
         effectivePeriodEnd = newUnitEnd;

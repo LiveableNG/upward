@@ -37,7 +37,8 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
     rentAmount: '', 
     rentStartDate: '', 
     rentDueDate: '',
-    rentType: 'Annually', 
+    rentType: 'Annually',
+    leaseYears: 1, 
     managementFee: '', 
     notes: '', 
     tenantUuid: '',
@@ -65,6 +66,7 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
         rentAmount: parseFloat(unitForm.rentAmount) || 0,
         rentAmountPaid: parseFloat(unitForm.rentAmountPaid) || 0,
         managementFee: parseFloat(unitForm.managementFee) || 0,
+        leaseYears: parseInt(String(unitForm.leaseYears || 1), 10) || 1,
         status: (unitForm.tenantEmail?.trim() || unitForm.tenantFirstName?.trim() || unitForm.tenantLastName?.trim() || unitForm.tenantUuid) ? 'OCCUPIED' : 'VACANT'
       }]
     }, {
@@ -76,13 +78,14 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
         setUnitForm({ 
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
-          rentType: 'Annually', managementFee: '', notes: '', tenantUuid: '',
+          rentType: 'Annually', leaseYears: 1, managementFee: '', notes: '', tenantUuid: '',
           unitType: '', rentAmountPaid: '0', isFullyPaid: true
         })
       },
       onError: (err: any) => error(err?.message || 'Failed to create unit')
     })
   }
+
 
   return (
     <AddUnitModal 

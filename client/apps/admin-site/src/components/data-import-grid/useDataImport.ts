@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import type { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
-import { suggestMapping, formatPhoneNumberByCountry, validateCell, parseDateString } from './utils'
+import { suggestMapping, formatPhoneNumberByCountry, validateCell, parseDateString, calculateRentEndDateAndWarning } from './utils'
 import { showToast } from '@upward/client-core'
 
 export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties: any[], targetPropertyUuid: string) => {
@@ -18,6 +18,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   // Data table states
   const [previewRows, setPreviewRows] = useState<any[]>([])
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [amberWarnings, setAmberWarnings] = useState<Record<string, string>>({})
   const [editingCell, setEditingCell] = useState<{ rowId: string, field: string } | null>(null)
   
   // Template states
@@ -170,7 +171,25 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
             })
 
             const newErrors: Record<string, string> = {}
+            const newWarnings: Record<string, string> = {}
+
             newRows.forEach(row => {
+              const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
+              const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
+              const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
+
+              const startDateVal = row[startDateField]
+              const rentTypeVal = row[rentTypeField] || 'Annually'
+              const leaseYearsVal = row.leaseYears
+
+              if (startDateVal) {
+                const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
+                row[dueDateField] = fixedEndDate
+                if (warningMessage) {
+                  newWarnings[`${row.id}-${dueDateField}`] = warningMessage
+                }
+              }
+
               columns.forEach(col => {
                 validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, (val) => {
                   if (typeof val === 'function') {
@@ -185,6 +204,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
 
             setPreviewRows(newRows)
             setValidationErrors(newErrors)
+            setAmberWarnings(newWarnings)
             revalidateDuplicates(newRows)
             setPhase('preview')
             showToast('Template matched! Auto-advanced to Data Grid.')
@@ -403,7 +423,25 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     })
 
     const newErrors: Record<string, string> = {}
+    const newWarnings: Record<string, string> = {}
+
     newRows.forEach(row => {
+      const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
+      const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
+      const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
+
+      const startDateVal = row[startDateField]
+      const rentTypeVal = row[rentTypeField] || 'Annually'
+      const leaseYearsVal = row.leaseYears
+
+      if (startDateVal) {
+        const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
+        row[dueDateField] = fixedEndDate
+        if (warningMessage) {
+          newWarnings[`${row.id}-${dueDateField}`] = warningMessage
+        }
+      }
+
       columns.forEach(col => {
         validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, (val) => {
           if (typeof val === 'function') {
@@ -418,6 +456,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
 
     setPreviewRows(newRows)
     setValidationErrors(newErrors)
+    setAmberWarnings(newWarnings)
     revalidateDuplicates(newRows)
 
     setPhase('preview')
@@ -439,8 +478,44 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
 
     updated[rowIndex][field] = formattedValue
 
+    const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
+    const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
+    const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
+
+    if (field === startDateField || field === rentTypeField || field === 'leaseYears') {
+      const row = updated[rowIndex]
+      const startDateVal = row[startDateField]
+      const rentTypeVal = row[rentTypeField] || 'Annually'
+      const leaseYearsVal = row.leaseYears
+
+      if (startDateVal) {
+        const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(
+          startDateVal,
+          rentTypeVal,
+          leaseYearsVal
+        )
+        row[dueDateField] = fixedEndDate
+
+        setAmberWarnings(prev => {
+          const next = { ...prev }
+          const key = `${rowId}-${dueDateField}`
+          if (warningMessage) {
+            next[key] = warningMessage
+          } else {
+            delete next[key]
+          }
+          return next
+        })
+      }
+    }
+
     setPreviewRows(updated)
     validateCell(rowId, field, formattedValue, undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
+    if (field === rentTypeField || field === 'leaseYears') {
+      validateCell(rowId, 'leaseYears', updated[rowIndex].leaseYears, undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
+      validateCell(rowId, rentTypeField, updated[rowIndex][rentTypeField], undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
+    }
+
     
     if (field === 'unitName' || field === 'propertyName') {
       revalidateDuplicates(updated)
@@ -452,6 +527,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     setWorkbook(null)
     setPreviewRows([])
     setValidationErrors({})
+    setAmberWarnings({})
   }
 
 
@@ -465,6 +541,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     splitConfigs, setSplitConfigs,
     previewRows, setPreviewRows,
     validationErrors, setValidationErrors,
+    amberWarnings, setAmberWarnings,
     editingCell, setEditingCell,
     savedTemplates,
     saveTemplate, applyTemplate,
@@ -473,3 +550,4 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     transformData, updateRowField, closeOverlay, revalidateDuplicates
   }
 }
+

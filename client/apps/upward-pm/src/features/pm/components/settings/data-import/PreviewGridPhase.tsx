@@ -1,5 +1,5 @@
 import React from 'react'
-import { AlertCircle, Trash2, Plus } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ColumnDef } from './types'
 
@@ -7,6 +7,7 @@ interface PreviewGridPhaseProps {
   columns: ColumnDef[]
   previewRows: any[]
   validationErrors: Record<string, string>
+  amberWarnings?: Record<string, string>
   editingCell: { rowId: string, field: string } | null
   setEditingCell: (cell: { rowId: string, field: string } | null) => void
   updateRowField: (rowId: string, field: string, value: any) => void
@@ -16,7 +17,7 @@ interface PreviewGridPhaseProps {
 }
 
 export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
-  columns, previewRows, validationErrors, editingCell, setEditingCell,
+  columns, previewRows, validationErrors, amberWarnings = {}, editingCell, setEditingCell,
   updateRowField, setPreviewRows, setValidationErrors, revalidateDuplicates
 }) => {
   const handleAddRow = () => {
@@ -31,6 +32,8 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
     // Focus first cell of the newly added row
     setEditingCell({ rowId: newId, field: columns[0]?.key || '' })
   }
+
+  const warningCount = Object.keys(amberWarnings).length
 
   return (
     <div className="data-grid-container animate-fade-in">
@@ -48,33 +51,42 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
             <Plus size={14} /> Add Row
           </button>
         </div>
-        {Object.keys(validationErrors).length > 0 && (
-          <button 
-            type="button"
-            onClick={() => {
-              const firstErrorKey = Object.keys(validationErrors)[0]
-              if (firstErrorKey) {
-                const [rowId, ...fieldParts] = firstErrorKey.split('-')
-                // Reconstruct field key if it had hyphens (though our keys likely don't, safer this way)
-                const field = fieldParts.join('-')
-                
-                // Focus the cell
-                setEditingCell({ rowId, field })
-                
-                // Scroll into view
-                setTimeout(() => {
-                  const el = document.getElementById(`cell-${firstErrorKey}`)
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
-                  }
-                }, 50)
-              }
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)', fontSize: 13, fontWeight: 600, background: 'var(--error-bg)', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #fecaca', cursor: 'pointer' }}
-          >
-            <AlertCircle size={16} /> {Object.keys(validationErrors).length} validation issues found. Click to view issue.
-          </button>
-        )}
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {warningCount > 0 && (
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#b45309', fontSize: 13, fontWeight: 600, background: '#fef3c7', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #fde68a' }}
+              title="Rent due dates were auto-calculated or adjusted based on tenancy start date and term frequency."
+            >
+              <AlertTriangle size={16} /> {warningCount} auto-adjusted dates (Amber Notices)
+            </div>
+          )}
+
+          {Object.keys(validationErrors).length > 0 && (
+            <button 
+              type="button"
+              onClick={() => {
+                const firstErrorKey = Object.keys(validationErrors)[0]
+                if (firstErrorKey) {
+                  const [rowId, ...fieldParts] = firstErrorKey.split('-')
+                  const field = fieldParts.join('-')
+                  
+                  setEditingCell({ rowId, field })
+                  
+                  setTimeout(() => {
+                    const el = document.getElementById(`cell-${firstErrorKey}`)
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+                    }
+                  }, 50)
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)', fontSize: 13, fontWeight: 600, background: 'var(--error-bg)', padding: '6px 14px', borderRadius: 'var(--radius-full)', border: '1px solid #fecaca', cursor: 'pointer' }}
+            >
+              <AlertCircle size={16} /> {Object.keys(validationErrors).length} validation issues found. Click to view issue.
+            </button>
+          )}
+        </div>
       </div>
       <div className="data-grid-table-wrapper">
         <table className="data-grid-table">
@@ -92,31 +104,39 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
             {previewRows.map(row => (
               <tr key={row.id}>
                 {columns.map(col => {
-                  const isEditing = editingCell?.rowId === row.id && editingCell?.field === col.key
+                  const isEditing = !col.readOnly && editingCell?.rowId === row.id && editingCell?.field === col.key
                   const error = validationErrors[`${row.id}-${col.key}`]
+                  const warning = amberWarnings[`${row.id}-${col.key}`]
                   return (
                     <td 
                       key={col.key} 
                       id={`cell-${row.id}-${col.key}`}
-                      onClick={() => setEditingCell({ rowId: row.id, field: col.key })} 
-                      title={error || ''}
+                      onClick={() => !col.readOnly && setEditingCell({ rowId: row.id, field: col.key })} 
+                      title={col.readOnly ? 'Auto-calculated date (Read-only)' : (error || warning || '')}
                     >
                       {isEditing ? (
                         <input 
-                          className={cn('data-grid-input', error && 'data-grid-input--error')}
+                          className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')}
                           autoFocus
                           onBlur={() => setEditingCell(null)}
                           value={row[col.key]}
                           onChange={(e) => updateRowField(row.id, col.key, e.target.value)}
                         />
                       ) : (
-                        <div className={cn('data-grid-input', error && 'data-grid-input--error')} style={{ cursor: 'pointer' }}>
-                          {row[col.key] || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}
+                        <div 
+                          className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')} 
+                          style={{ cursor: col.readOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, background: col.readOnly ? 'rgba(0,0,0,0.02)' : undefined }}
+                        >
+                          <span>{row[col.key] || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
+                          {!error && warning && (
+                            <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0 }} title={warning} />
+                          )}
                         </div>
                       )}
                     </td>
                   )
                 })}
+
                 <td style={{ textAlign: 'center' }}>
                   <button onClick={() => {
                     const updated = previewRows.filter(r => r.id !== row.id)
@@ -139,5 +159,6 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
     </div>
   )
 }
+
 
 

@@ -62,10 +62,14 @@ export class BulkAddRentHistoryUseCase {
           periodEnd = new Date(start);
           if (unit.rentType === 'Monthly') {
             periodEnd.setMonth(periodEnd.getMonth() + 1);
+          } else if (unit.rentType === 'Lease') {
+            const years = Math.max(1, (unit as any).leaseYears || 1);
+            periodEnd.setFullYear(periodEnd.getFullYear() + years);
           } else {
             periodEnd.setFullYear(periodEnd.getFullYear() + 1);
           }
           periodEnd.setDate(periodEnd.getDate() - 1);
+
         }
 
         const payment = await this.unitRepository.addRentPayment(dto.unitUuid, {

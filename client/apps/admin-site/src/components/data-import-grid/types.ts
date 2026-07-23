@@ -5,6 +5,7 @@ export interface ColumnDef {
   label: string
   category: 'property' | 'landlord' | 'tenant' | 'unit' | 'payment'
   required?: boolean
+  readOnly?: boolean
   type?: 'text' | 'number' | 'email' | 'tel' | 'date' | 'select'
   options?: string[]
 }
@@ -31,10 +32,11 @@ export const FULL_COLUMNS: ColumnDef[] = [
   { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
   { key: 'unitRentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
   { key: 'unitRentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
-  { key: 'unitRentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually'] },
+  { key: 'unitRentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'] },
+  { key: 'leaseYears', label: 'Lease Years', category: 'unit', type: 'number' },
   { key: 'unitCurrency', label: 'Currency', category: 'unit', type: 'select', options: ['NGN', 'USD', 'GBP', 'EUR'] },
   { key: 'unitRentStartDate', label: 'Start Date', category: 'unit', type: 'date' },
-  { key: 'unitRentDueDate', label: 'Due Date', category: 'unit', type: 'date' },
+  { key: 'unitRentDueDate', label: 'Rent End Date', category: 'unit', type: 'date', readOnly: true },
   { key: 'unitManagementFee', label: 'Mgmt Fee', category: 'unit', type: 'number' },
   { key: 'unitNotes', label: 'Notes', category: 'unit' },
   { key: 'unitType', label: 'Unit Type', category: 'unit', type: 'select', options: ['Flat / Apartment', 'Duplex', 'Shared Apartment', 'Studio', 'Bungalow', '4 Bedroom Semi-detached Duplex', 'Detached Duplex', '2 Bedroom Flat', '2 Bedroom Serviced Flat', '3 Bedroom Flat', '3 Bedroom Serviced Flat', '2 Bedroom Apartment', 'Studio / Self Contained Flat', 'Mini Flat / 1 Bedroom Flat', 'Flats', 'Terrace House', 'Town House', 'Detached House', 'Semi-detached Duplex', 'Semi-detached House', 'Shortlet Apartment', 'Office Space', 'Studio Room / Self-contain', 'Block Of Flats'] },
@@ -50,13 +52,15 @@ export const UNIT_COLUMNS: ColumnDef[] = [
   { key: 'rentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
   { key: 'rentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
   { key: 'rentStartDate', label: 'Start Date', category: 'unit', type: 'date' },
-  { key: 'rentDueDate', label: 'Due Date', category: 'unit', type: 'date' },
-  { key: 'rentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually'] },
+  { key: 'rentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'] },
+  { key: 'leaseYears', label: 'Lease Years', category: 'unit', type: 'number' },
+  { key: 'rentDueDate', label: 'Rent End Date', category: 'unit', type: 'date', readOnly: true },
   { key: 'managementFee', label: 'Mgmt Fee', category: 'unit', type: 'number' },
   { key: 'currency', label: 'Currency', category: 'unit', type: 'select', options: ['NGN', 'USD', 'GBP', 'EUR'] },
   { key: 'notes', label: 'Notes', category: 'unit' },
   { key: 'unitType', label: 'Unit Type', category: 'unit', type: 'select', options: ['Flat / Apartment', 'Duplex', 'Shared Apartment', 'Studio', 'Bungalow', '4 Bedroom Semi-detached Duplex', 'Detached Duplex', '2 Bedroom Flat', '2 Bedroom Serviced Flat', '3 Bedroom Flat', '3 Bedroom Serviced Flat', '2 Bedroom Apartment', 'Studio / Self Contained Flat', 'Mini Flat / 1 Bedroom Flat', 'Flats', 'Terrace House', 'Town House', 'Detached House', 'Semi-detached Duplex', 'Semi-detached House', 'Shortlet Apartment', 'Office Space', 'Studio Room / Self-contain', 'Block Of Flats'] },
 ]
+
 
 export interface ColumnMapping {
   userColumn: string;
