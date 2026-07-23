@@ -48,6 +48,10 @@ const AMENITY_OPTIONS = [
   'Close to main road',
 ] as const
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 const schema = z
   .object({
     fullName: z.string().max(120).optional().or(z.literal('')),
@@ -65,6 +69,10 @@ const schema = z
   .refine((data) => data.budgetMax >= data.budgetMin, {
     message: 'Max budget must be at least the min budget',
     path: ['budgetMax'],
+  })
+  .refine((data) => !data.moveInDate || data.moveInDate >= todayIsoDate(), {
+    message: 'Move-in date cannot be in the past',
+    path: ['moveInDate'],
   })
 
 type FormData = z.infer<typeof schema>
@@ -478,7 +486,15 @@ export function RequestAHomeForm() {
             <label className="rah-label" htmlFor="rah-move-in">
               Move-in date
             </label>
-            <input id="rah-move-in" type="date" className="rah-input" {...register('moveInDate')} />
+            <input
+              id="rah-move-in"
+              type="date"
+              className="rah-input"
+              min={todayIsoDate()}
+              aria-invalid={Boolean(errors.moveInDate)}
+              {...register('moveInDate')}
+            />
+            {errors.moveInDate && <span className="rah-error">{errors.moveInDate.message}</span>}
           </div>
 
           <div className="rah-field rah-field--spaced">
