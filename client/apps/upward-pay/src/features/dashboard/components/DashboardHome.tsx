@@ -21,6 +21,9 @@ import { type UserProfile } from '@/features/auth/types'
 import { ActionCarousel } from './ActionCarousel'
 import { ShareCredibility } from './ShareCredibility'
 import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
+import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
+// Hidden for now — leave Find a home / request flow intact
+// import { ExclusiveHomesPromo, ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 
 interface DashboardHomeProps {
@@ -432,6 +435,14 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
+        <div className="dash-home__discover">
+          <h2 className="dash-home__discover-title">Discover</h2>
+          {/* Hidden for now — leave Find a home / request flow intact
+          <ExclusiveHomesPromo />
+          */}
+          <ExclusiveHomesBrowseLink />
+        </div>
+
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>
           {recent.length > 0 && (

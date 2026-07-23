@@ -306,6 +306,49 @@ model upward_feedback {
   @@index([createdAt])
 }
 
+/// Public website apartment briefs (request-a-home). Contact fields are for outreach.
+model upward_home_request {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  email         String
+  phone         String
+  fullName      String?
+  locations     Json // [{ state, area, subArea? }]
+  budgetMin     Float
+  budgetMax     Float
+  propertyType  Json     // string[] — e.g. ["apartment","duplex"]
+  beds          Int
+  moveInDate    DateTime?
+  amenities     Json     @default("[]") // string[]
+  notes         String?
+  source        String   @default("website")
+  status        String   @default("submitted") // submitted | contacted | assigned | closed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contactReveals upward_home_request_contact_reveal[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Logs each PM who revealed prospect contact (intent to reach out).
+model upward_home_request_contact_reveal {
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid())
+  homeRequestId Int
+  pmId          Int
+  createdAt     DateTime @default(now())
+
+  homeRequest upward_home_request @relation(fields: [homeRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([homeRequestId, pmId])
+  @@index([pmId])
+  @@index([createdAt])
+}
+
 model upward_app_activity_log {
   id           Int      @id @default(autoincrement())
   uuid         String   @unique @default(uuid())
