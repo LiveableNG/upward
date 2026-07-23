@@ -43,10 +43,20 @@ export default function ForgotPasswordFlow() {
     }
   }
 
-  const handleVerifyOTP = (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault()
     if (otp.length === 6) {
-      setStep('PASSWORD')
+      setLoading(true)
+      setError(null)
+      try {
+        await api.verifyResetOtp(email, otp)
+        setStep('PASSWORD')
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Invalid verification code'
+        setError(message)
+      } finally {
+        setLoading(false)
+      }
     } else {
       setError('Please enter a 6-digit code')
     }

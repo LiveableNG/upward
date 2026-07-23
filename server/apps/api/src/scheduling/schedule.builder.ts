@@ -117,8 +117,9 @@ export class Schedule {
 
 /** Extract calendar parts in a given IANA timezone. */
 export function getZonedParts(date: Date, timeZone: string): ZonedParts {
+  const cleanTimeZone = timeZone.startsWith(':') ? timeZone.substring(1) : timeZone;
   const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
+    timeZone: cleanTimeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

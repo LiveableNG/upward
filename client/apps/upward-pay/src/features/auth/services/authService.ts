@@ -110,6 +110,13 @@ export async function resetPassword(data: { email: string; otp: string; new: str
   })
 }
 
+export async function verifyResetOtp(email: string, otp: string) {
+  return request<{ success: boolean; message: string }>('/user/auth/verify-reset-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  })
+}
+
 export async function checkEmail(email: string, type?: 'email' | 'phone') {
   return request<{
     exists: boolean

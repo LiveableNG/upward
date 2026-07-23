@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { Twitter, Linkedin } from 'lucide-react'
 
 const LEGAL_LINKS = [
   { label: 'Privacy Policy', href: '/legal/privacy' },
@@ -31,6 +32,25 @@ export function MarketingFooter() {
         <div className="marketing-footer__contact">
           <a href="mailto:hello@goodtenants.africa">hello@goodtenants.africa</a>
           <a href="tel:09040969943">09040969943</a>
+        </div>
+
+        <div className="marketing-footer__socials">
+          <a
+            href="https://x.com/useupward"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Twitter size={16} />
+            Twitter
+          </a>
+          <a
+            href="https://www.linkedin.com/company/useupward/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Linkedin size={16} />
+            LinkedIn
+          </a>
         </div>
 
         <nav className="marketing-footer__legal" aria-label="Legal">

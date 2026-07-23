@@ -22,6 +22,7 @@ export const api = {
   forgotPassword: authService.forgotPassword,
   resetPassword: (email: string, otp: string, newPass: string) =>
     authService.resetPassword({ email, otp, new: newPass }),
+  verifyResetOtp: authService.verifyResetOtp,
   checkSlug: (slug: string) =>
     request<any>(`/user/auth/check-slug/${slug}`, { method: 'GET' }),
 

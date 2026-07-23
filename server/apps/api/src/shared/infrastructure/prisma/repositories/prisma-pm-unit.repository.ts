@@ -63,14 +63,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   }
 
   private mapUnit(u: any): UnitEntity {
-    let rentStartDate = u.rentStartDate;
-    let rentDueDate = u.rentDueDate;
-    
-    const latestPayment = u.rentPayments?.[0];
-    if (latestPayment && latestPayment.periodEnd) {
-      rentStartDate = latestPayment.periodStart;
-      rentDueDate = latestPayment.periodEnd;
-    }
+    const rentStartDate = u.rentStartDate;
+    const rentDueDate = u.rentDueDate;
 
     return {
       ...u,

@@ -502,3 +502,258 @@
   color: var(--clay, #1e40af);
 }
 
+@media (max-width: 768px) {
+  .import-overlay__header {
+    flex-wrap: wrap;
+    padding: 16px 48px 16px 16px;
+    height: auto;
+    gap: 12px;
+    position: relative;
+  }
+  
+  .import-overlay__header-title h2 {
+    font-size: 16px;
+  }
+  
+  .import-overlay__mode-badge {
+    display: none;
+  }
+  
+  .import-overlay__actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .import-overlay__actions button.btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .import-overlay__close-icon {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  
+  .import-overlay__steps {
+    padding: 12px 16px;
+    gap: 4px;
+    text-align: center;
+  }
+  
+  .import-step {
+    font-size: 12px;
+    gap: 6px;
+  }
+  
+  .import-step__separator {
+    margin: 0 8px;
+  }
+  
+  .import-overlay__content {
+    padding: 16px 0; /* Removing horizontal padding for full-width grid */
+  }
+  
+  .mapping-layout {
+    padding: 0 16px; /* Add back padding to mapping phase but keep grid full width */
+  }
+
+  .data-grid-container {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .data-grid-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  
+  .data-grid-header > div {
+    flex-wrap: wrap;
+  }
+  
+  .mapping-card {
+    padding: 16px;
+  }
+  
+  .mapping-card__body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .mapping-sidebar {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* Import Job Cards (Assisted Uploads) */
+.import-job-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  gap: 16px;
+}
+
+.import-job-card__main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.import-job-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--clay);
+  font-weight: 700;
+  font-size: 12px;
+  flex: 0 0 44px;
+}
+
+.import-job-card__details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.import-job-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.import-job-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.import-job-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.import-job-badge--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.import-job-badge--ready {
+  background: var(--forest-faint, #dcfce7);
+  color: var(--forest, #15803d);
+}
+
+.import-job-badge--completed {
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
+.import-job-card__meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.import-job-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.import-job-btn {
+  border-radius: 10px;
+  padding: 8px 18px;
+  height: 38px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.import-job-status-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.import-job-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.import-job-delete-btn:hover {
+  background: #fca5a5;
+}
+
+@media (max-width: 768px) {
+  .import-job-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .import-job-card__main {
+    width: 100%;
+  }
+
+  .import-job-card__title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .import-job-card__actions {
+    width: 100%;
+    justify-content: space-between;
+    flex-direction: row;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .import-job-status-text {
+    font-size: 12px;
+  }
+}
+

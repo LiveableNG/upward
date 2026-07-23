@@ -15,6 +15,8 @@ import {
   Check
 } from 'lucide-react'
 import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
+import { parseDateString } from '@/features/pm/components/settings/data-import/utils'
 import { useToast } from '@/components/common/Toast'
 import { useUnit, useBulkAddRentHistory } from '@/features/pm/hooks/useProperties'
 import { cn, formatCurrency } from '@/lib/utils'
@@ -53,9 +55,18 @@ export default function BulkRentPage() {
 
   const handleDownloadTemplate = () => {
     const headers = RENT_COLUMNS.map(c => c.label)
+    const email = unit?.tenant?.email || 'tenant@example.com'
+    const firstName = unit?.tenant?.firstName || 'John'
+    const lastName = unit?.tenant?.lastName || 'Doe'
+    const rentVal = unit?.rentAmount || '1000000'
+
     const rows = [
-      [unit?.tenant?.email || 'tenant@example.com', unit?.tenant?.firstName || 'John', unit?.tenant?.lastName || 'Doe', unit?.rentAmount || '500000', '2024-05-01', '2024-05-01', '2024-05-31', 'Bank Transfer', 'Manual Bulk Entry'],
-      ['past_tenant@example.com', 'Jane', 'Smith', unit?.rentAmount || '500000', '2024-04-01', '2024-04-01', '2024-04-30', 'Bank Transfer', 'Historical Record'],
+      ['past_tenant@example.com', 'Jane', 'Smith', rentVal, '2024-01-15', '2024-01-01', '2024-12-31', 'Bank Transfer', 'Historical 2024 (Fully Paid)'],
+      ['past_tenant@example.com', 'Jane', 'Smith', rentVal, '2025-01-15', '2025-01-01', '2025-12-31', 'Bank Transfer', 'Historical 2025 (Fully Paid)'],
+      [email, firstName, lastName, rentVal, '2026-01-10', '2026-01-01', '2026-12-31', 'Bank Transfer', 'Rent 2026 (Fully Paid)'],
+      [email, firstName, lastName, rentVal, '2027-01-10', '2027-01-01', '2027-12-31', 'Bank Transfer', 'Rent 2027 (Fully Paid)'],
+      [email, firstName, lastName, '200000', '2028-01-10', '2028-01-01', '2028-12-31', 'Bank Transfer', 'Rent 2028 (Partial Payment)'],
+      [email, firstName, lastName, rentVal, '2029-01-10', '2029-01-01', '2029-12-31', 'Bank Transfer', 'Rent 2029 (Fully Paid)']
     ]
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
@@ -91,43 +102,90 @@ export default function BulkRentPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: 'greedy',
-      complete: (results: any) => {
-        const filteredData = (results.data || []).filter((row: any) => 
-          Object.values(row).some(val => val !== null && val !== undefined && val.toString().trim() !== '')
-        )
+    const fileName = file.name.toLowerCase()
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target?.result as ArrayBuffer)
+          const workbook = XLSX.read(data, { type: 'array' })
+          const sheetName = workbook.SheetNames[0]!
+          const worksheet = workbook.Sheets[sheetName]!
+          const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
-        const rows = filteredData.map((row: any, index: number) => {
-          const rowId = Date.now() + index
-          const mappedRow: any = { id: rowId }
-          
-          RENT_COLUMNS.forEach(col => {
-            const val = row[col.label] || ''
-            if (col.type === 'number') {
-              mappedRow[col.key] = val ? parseFloat(val.toString().replace(/[^0-9.]/g, '')) : 0
-            } else {
-              mappedRow[col.key] = val
-            }
-            validateCell(rowId, col.key, mappedRow[col.key], col)
+          const rows = jsonData.map((row: any, index: number) => {
+            const rowId = Date.now() + index
+            const mappedRow: any = { id: rowId }
+
+            RENT_COLUMNS.forEach(col => {
+              const val = row[col.label] || ''
+              if (col.type === 'number') {
+                mappedRow[col.key] = val !== '' ? parseFloat(val.toString().replace(/[^0-9.]/g, '')) : 0
+              } else if (col.type === 'date') {
+                mappedRow[col.key] = val ? parseDateString(val) : ''
+              } else {
+                mappedRow[col.key] = val
+              }
+              validateCell(rowId, col.key, mappedRow[col.key], col)
+            })
+
+            return mappedRow
+          })
+
+          setPreviewRows(rows)
+          info(`Previewing ${rows.length} records from Excel.`)
+        } catch (err) {
+          console.error(err)
+          error('Failed to parse Excel file.')
+        }
+      }
+      reader.readAsArrayBuffer(file)
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: 'greedy',
+        complete: (results: any) => {
+          // Filter out completely empty rows
+          const filteredData = (results.data || []).filter((row: any) => 
+            Object.values(row).some(val => val !== null && val !== undefined && val.toString().trim() !== '')
+          )
+
+          const rows = filteredData.map((row: any, index: number) => {
+            const rowId = Date.now() + index
+            const mappedRow: any = { id: rowId }
+            
+            RENT_COLUMNS.forEach(col => {
+              const val = row[col.label] || ''
+              if (col.type === 'number') {
+                mappedRow[col.key] = val ? parseFloat(val.toString().replace(/[^0-9.]/g, '')) : 0
+              } else if (col.type === 'date') {
+                mappedRow[col.key] = val ? parseDateString(val) : ''
+              } else {
+                mappedRow[col.key] = val
+              }
+              validateCell(rowId, col.key, mappedRow[col.key], col)
+            })
+            
+            return mappedRow
           })
           
-          return mappedRow
-        })
-        
-        setPreviewRows(rows)
-        info(`Previewing ${rows.length} records.`)
-      }
-    })
+          setPreviewRows(rows)
+          info(`Previewing ${rows.length} records.`)
+        }
+      })
+    }
     e.target.value = ''
   }
 
   const updateRow = (index: number, field: string, value: any) => {
     const updated = [...previewRows]
-    updated[index][field] = value
+    let val = value
+    if (RENT_COLUMNS.find(c => c.key === field)?.type === 'date') {
+      val = parseDateString(value)
+    }
+    updated[index][field] = val
     setPreviewRows(updated)
-    validateCell(updated[index].id, field, value)
+    validateCell(updated[index].id, field, val)
   }
 
   const handleAddRow = () => {

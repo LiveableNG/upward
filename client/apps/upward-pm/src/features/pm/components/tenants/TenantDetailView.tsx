@@ -112,7 +112,7 @@ export const TenantDetailView: React.FC = () => {
     <>
       <div className="tenant-detail-view animate-fade-in" style={{ paddingBottom: 60 }}>
         {/* Top Navigation */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+      <header className="tenant-detail-header">
         <button 
           onClick={() => router.back()} 
           style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
@@ -120,7 +120,7 @@ export const TenantDetailView: React.FC = () => {
           <ChevronLeft size={18} /> Back
         </button>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="tenant-detail-actions">
           {isOnUpward ? (
             <div style={{ 
               display: 'flex', 
@@ -152,7 +152,7 @@ export const TenantDetailView: React.FC = () => {
               PROCESSING
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="tenant-detail-actions-inner">
               {((tenant.email && !tenant.email.endsWith('@upward.com')) || tenant.phone) && (
                 <FilterDropdown
                   label="Delivery"
@@ -207,7 +207,7 @@ export const TenantDetailView: React.FC = () => {
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 40, alignItems: 'start' }}>
+      <div className="tenant-detail-grid">
         {/* Left Profile Card */}
         <div style={{ background: 'white', borderRadius: 24, border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ height: 100, background: '#f59e0b' }} />
@@ -346,7 +346,7 @@ export const TenantDetailView: React.FC = () => {
               {/* Contact Information */}
               <div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Contact Details</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                <div className="tenant-info-grid">
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Phone Number</label>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)' }}>{tenant.phone || 'N/A'}</div>
@@ -378,7 +378,7 @@ export const TenantDetailView: React.FC = () => {
               {/* Next of Kin */}
               <div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Next of Kin Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                <div className="tenant-info-grid">
                   {[
                     { label: 'Next of Kin Name', value: tenant.nextOfKinName },
                     { label: 'Next of Kin Email', value: tenant.nextOfKinEmail },
@@ -395,7 +395,7 @@ export const TenantDetailView: React.FC = () => {
               {/* Guarantor */}
               <div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Guarantor Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                <div className="tenant-info-grid">
                   {[
                     { label: 'Guarantor Name', value: tenant.guarantorName },
                     { label: 'Guarantor Contact', value: tenant.guarantorPhone },
@@ -412,7 +412,7 @@ export const TenantDetailView: React.FC = () => {
               {/* Contact Persons */}
               <div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--dark)', marginBottom: 24 }}>Contact Persons Information</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+                <div className="tenant-info-grid">
                   {[
                     { label: 'Contact Person Name', value: tenant.emergencyContactName },
                     { label: 'Contact Person Contact', value: tenant.emergencyContactPhone },
@@ -455,7 +455,7 @@ export const TenantDetailView: React.FC = () => {
                            </div>
                          </div>
 
-                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
+                         <div className="tenant-info-grid" style={{ padding: '16px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
                            <div>
                              <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>TENANCY START</label>
                              <div style={{ fontSize: 13, fontWeight: 600 }}>{unit.rentStartDate ? new Date(unit.rentStartDate).toLocaleDateString() : 'N/A'}</div>

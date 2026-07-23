@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import type { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
-import { suggestMapping, formatPhoneNumberByCountry, validateCell } from './utils'
+import { suggestMapping, formatPhoneNumberByCountry, validateCell, parseDateString } from './utils'
 import { showToast } from '@upward/client-core'
 
 export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties: any[], targetPropertyUuid: string) => {
@@ -148,6 +148,8 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
                 if (col.type === 'number' && mappedRow[col.key]) {
                   const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
                   mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
+                } else if (col.type === 'date' && mappedRow[col.key]) {
+                  mappedRow[col.key] = parseDateString(mappedRow[col.key])
                 }
               })
 
@@ -379,6 +381,8 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         if (col.type === 'number' && mappedRow[col.key]) {
           const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
           mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
+        } else if (col.type === 'date' && mappedRow[col.key]) {
+          mappedRow[col.key] = parseDateString(mappedRow[col.key])
         }
       })
 
@@ -429,6 +433,8 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     if (field === 'tenantPhone' || field === 'landlordPhone') {
       const rowCountry = mode === 'full' ? (updated[rowIndex].propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
       formattedValue = formatPhoneNumberByCountry(value, rowCountry)
+    } else if (columns.find(c => c.key === field)?.type === 'date') {
+      formattedValue = parseDateString(value)
     }
 
     updated[rowIndex][field] = formattedValue

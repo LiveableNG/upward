@@ -117,6 +117,31 @@ function UnitDetailContent() {
   const activeRequest = unitRequests.find(r => r.status !== 'PAID')
   const amountRemaining = activeRequest ? (activeRequest.amount - activeRequest.amountPaid) : 0
 
+  const maxCurrentAmount = React.useMemo(() => {
+    if (!unit?.rentAmount) return 0;
+    if (!unit?.rentStartDate) return unit.rentAmount;
+
+    const rentStartStr = new Date(unit.rentStartDate).toISOString().split('T')[0];
+    const currentCyclePaid = payments
+      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === rentStartStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    if (currentCyclePaid < unit.rentAmount) {
+      return Math.max(0, unit.rentAmount - currentCyclePaid);
+    }
+
+    const currentEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date(unit.rentStartDate);
+    const nextCycleStart = new Date(currentEnd);
+    nextCycleStart.setDate(nextCycleStart.getDate() + 1);
+    const nextCycleStartStr = nextCycleStart.toISOString().split('T')[0];
+
+    const nextCyclePaid = payments
+      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === nextCycleStartStr)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+    return Math.max(0, unit.rentAmount - nextCyclePaid);
+  }, [payments, unit?.rentStartDate, unit?.rentDueDate, unit?.rentAmount]);
+
   useEffect(() => {
     if (isEditing && formData.rentStartDate && formData.rentType) {
       const start = new Date(formData.rentStartDate)
@@ -365,15 +390,17 @@ function UnitDetailContent() {
 
       {activeTab === 'overview' && (
         <>
-          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div className="automate-payments-banner">
+            <div className="automate-payments-banner__content">
               <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 500 }}>Request rent from your tenant on this unit.</p>
+                <h3 className="automate-payments-banner__title">Automate Unit Payments</h3>
+                <p className="automate-payments-banner__desc">
+                  Request rent from your tenant on this unit. <span className="desktop-only">Payments made through Upward are automatically tracked and reconciled here.</span>
+                </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+            <button className="btn btn--primary automate-payments-banner__btn" onClick={requestRent}>Request Rent</button>
           </div>
 
           <div className="unit-detail__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
@@ -454,15 +481,17 @@ function UnitDetailContent() {
 
       {activeTab === 'rent' && (
         <div className="unit-rent-view animate-fade-in" style={{ paddingBottom: 60 }}>
-          <div style={{ background: 'var(--ivory-dim)', border: '1px solid var(--border)', padding: '24px', borderRadius: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <div className="automate-payments-banner">
+            <div className="automate-payments-banner__content">
               <div style={{ color: 'var(--forest)', marginTop: 4, fontSize: 20, fontWeight: 700 }}>↗</div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>Automate Unit Payments</h3>
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Request rent from your tenant on this unit.</p>
+                <h3 className="automate-payments-banner__title">Automate Unit Payments</h3>
+                <p className="automate-payments-banner__desc">
+                  Request rent from your tenant on this unit. <span className="desktop-only">Payments made through Upward are automatically tracked and reconciled here.</span>
+                </p>
               </div>
             </div>
-            <button className="btn btn--primary" style={{ height: 48, padding: '0 24px', borderRadius: 12 }} onClick={requestRent}>Request Rent</button>
+            <button className="btn btn--primary automate-payments-banner__btn" onClick={requestRent}>Request Rent</button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 24, marginBottom: 32 }}>
@@ -544,7 +573,7 @@ function UnitDetailContent() {
 
       <ConfirmationModal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} onConfirm={handleDelete} title="Delete Unit" message="Are you sure you want to delete this unit? This action cannot be undone." confirmText="Delete Unit" type="danger" isPending={deleteUnitMutation.isPending} />
 
-      <AddRentRecordModal isOpen={isAddRecordModalOpen} onClose={() => setIsAddRecordModalOpen(false)} onSave={handleSaveNewPayment} isPending={addPaymentMutation.isPending} unitName={unit?.unitName || ''} rentType={unit?.rentType} initialAmount={unit?.rentAmount} currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined} currentTenantName={unit?.tenant ? formatTenantName(unit.tenant) : ''} />
+      <AddRentRecordModal isOpen={isAddRecordModalOpen} onClose={() => setIsAddRecordModalOpen(false)} onSave={handleSaveNewPayment} isPending={addPaymentMutation.isPending} unitName={unit?.unitName || ''} rentType={unit?.rentType} initialAmount={unit?.rentAmount} currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined} currentTenantName={unit?.tenant ? formatTenantName(unit.tenant) : ''} maxCurrentAmount={maxCurrentAmount} />
 
       <RentHistoryEntryModeModal isOpen={isEntryModeModalOpen} onClose={() => setIsEntryModeModalOpen(false)} onManualEntry={handleManualEntry} onBulkEntry={handleBulkEntry} />
 
