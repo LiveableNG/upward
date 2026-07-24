@@ -57,8 +57,8 @@ export class BulkInviteService {
       if (item.retries >= 3) continue; // Max retries
 
       try {
-        this.logger.log(`Sending invite for tenant ${item.tenantUuid} (Bulk Job: ${bulkInvite.id})`);
-        await this.inviteTenantUseCase.execute(bulkInvite.pmId, item.tenantUuid);
+        this.logger.log(`Sending invite for tenant ${item.tenantUuid} (Bulk Job: ${bulkInvite.id}) via ${bulkInvite.channel || 'EMAIL'}`);
+        await this.inviteTenantUseCase.execute(bulkInvite.pmId, item.tenantUuid, bulkInvite.channel as any);
         
         await this.bulkInviteRepo.updateItem(item.id!, { 
           status: 'SENT',

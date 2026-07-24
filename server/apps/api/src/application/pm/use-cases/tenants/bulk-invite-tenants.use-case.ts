@@ -7,6 +7,7 @@ import { BULK_INVITE_REPOSITORY, IBulkInviteRepository } from '../../../../domai
 
 export interface BulkInviteDto {
   tenantUuids: string[];
+  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
 }
 
 @Injectable()
@@ -19,7 +20,7 @@ export class BulkInviteTenantsUseCase {
   ) {}
 
   async execute(pmId: number, dto: BulkInviteDto): Promise<{ bulkInviteId: string }> {
-    const { tenantUuids } = dto;
+    const { tenantUuids, deliveryChannel } = dto;
 
     const tenants = await this.tenantRepo.findByUuids(tenantUuids);
     const eligibleTenants = tenants.filter(t => t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED');
@@ -34,6 +35,7 @@ export class BulkInviteTenantsUseCase {
       totalTenants: eligibleTenants.length,
       sentCount: 0,
       failedCount: 0,
+      channel: deliveryChannel || 'EMAIL',
       items: eligibleTenants.map(t => ({
         tenantUuid: t.uuid,
         status: 'PENDING',

@@ -20,6 +20,7 @@ export interface BulkInvite {
   sentCount: number;
   failedCount: number;
   error?: string;
+  channel?: string;
   items?: BulkInviteItem[];
   createdAt?: Date;
   updatedAt?: Date;

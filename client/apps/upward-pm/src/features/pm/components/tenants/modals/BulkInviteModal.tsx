@@ -26,8 +26,14 @@ export const BulkInviteModal: React.FC<BulkInviteModalProps> = ({ isOpen, onClos
     let withPhone = 0
     let withBoth = 0
     let withNeither = 0
+    let alreadyOnUpward = 0
 
     selectedTenantsData.forEach(t => {
+      if (t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED') {
+        alreadyOnUpward++
+        return
+      }
+
       const hasRealEmail = !!t.email && !t.email.endsWith('@upward.com')
       const hasPhone = !!t.phone
 
@@ -40,7 +46,7 @@ export const BulkInviteModal: React.FC<BulkInviteModalProps> = ({ isOpen, onClos
     const totalValidEmail = withEmail + withBoth
     const totalValidPhone = withPhone + withBoth
 
-    return { totalValidEmail, totalValidPhone, withNeither, total: selectedTenantsData.length }
+    return { totalValidEmail, totalValidPhone, withNeither, alreadyOnUpward, total: selectedTenantsData.length }
   }, [selectedTenantsData])
 
   // Reset or select default channel when opened
@@ -56,6 +62,7 @@ export const BulkInviteModal: React.FC<BulkInviteModalProps> = ({ isOpen, onClos
 
   const handleSend = () => {
     const validUuids = selectedTenantsData.filter(t => {
+      if (t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED') return false
       if (deliveryChannel === 'EMAIL') return !!t.email && !t.email.endsWith('@upward.com')
       if (deliveryChannel === 'SMS' || deliveryChannel === 'WHATSAPP') return !!t.phone
       return false
@@ -116,6 +123,12 @@ export const BulkInviteModal: React.FC<BulkInviteModalProps> = ({ isOpen, onClos
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--error)' }}>
                 <span>Missing Contact Info:</span>
                 <span style={{ fontWeight: 600 }}>{stats.withNeither}</span>
+              </div>
+            )}
+            {stats.alreadyOnUpward > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--forest)' }}>
+                <span>Already on Upward (Skipped):</span>
+                <span style={{ fontWeight: 600 }}>{stats.alreadyOnUpward}</span>
               </div>
             )}
           </div>

@@ -93,8 +93,8 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
 
     const pmUnitCondition = {
       OR: [
-        { pmId },
-        { pmId: { in: ownerPmIds } },
+        { property: { pmId } },
+        { property: { pmId: { in: ownerPmIds } } },
         { propertyId: { in: collabPropertyIds } }
       ]
     };
