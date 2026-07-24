@@ -129,6 +129,19 @@ export const useUpdateUnitPayment = () => {
   })
 }
 
+export const useDeleteUnitPayment = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ unitUuid, paymentUuid }: { unitUuid: string, paymentUuid: string }) => 
+      api.deleteUnitPayment(unitUuid, paymentUuid),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['pm-unit-payments', variables.unitUuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-unit', variables.unitUuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+    }
+  })
+}
+
 export const useBulkCreateUnits = () => {
   const queryClient = useQueryClient()
   

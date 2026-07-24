@@ -22,7 +22,7 @@ import {
   FileText,
   Plus
 } from 'lucide-react'
-import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment, useDeleteUnitPayment } from '@/features/pm/hooks/useProperties'
 import { useDocuments, useUnitDocuments } from '@/features/pm/hooks/useDocuments'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
@@ -60,11 +60,14 @@ function UnitDetailContent() {
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const updatePaymentMutation = useUpdateUnitPayment()
+  const deletePaymentMutation = useDeleteUnitPayment()
   const addPaymentMutation = useAddUnitPayment()
   const createPaymentRequestMutation = useCreatePaymentRequest()
 
   const [isEditRentModalOpen, setIsEditRentModalOpen] = useState(false)
   const [selectedRecordForEdit, setSelectedRecordForEdit] = useState<any>(null)
+  const [isDeleteRentConfirmOpen, setIsDeleteRentConfirmOpen] = useState(false)
+  const [selectedRecordForDelete, setSelectedRecordForDelete] = useState<any>(null)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
@@ -337,6 +340,23 @@ function UnitDetailContent() {
     })
   }
 
+  const handleDeletePayment = () => {
+    if (!selectedRecordForDelete) return
+    deletePaymentMutation.mutate({
+      unitUuid: uuid as string,
+      paymentUuid: selectedRecordForDelete.uuid
+    }, {
+      onSuccess: () => {
+        success('Rent record deleted successfully')
+        setIsDeleteRentConfirmOpen(false)
+        setSelectedRecordForDelete(null)
+      },
+      onError: (err: any) => {
+        error(err.message || 'Failed to delete rent record')
+      }
+    })
+  }
+
   const rentHistoryColumns: Column<any>[] = [
     {
       header: 'TENANT NAME',
@@ -381,20 +401,20 @@ function UnitDetailContent() {
     {
       header: 'AMOUNT PAID',
       render: (row) => {
-        const index = payments.findIndex(p => p.uuid === row.uuid);
-        const paidUntilThisRow = payments
-          .slice(index)
-          .filter(p => p.periodStart === row.periodStart && p.periodEnd === row.periodEnd)
-          .reduce((sum, p) => sum + p.amount, 0);
-
-        const balance = (unit?.rentAmount || 0) - paidUntilThisRow;
+        const samePeriodPayments = payments.filter(p => 
+          p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
+        );
+        const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
+        const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+        const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
+        const balance = (unit?.rentAmount || 0) - totalPaidForPeriod;
         
         return (
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
               {formatCurrency(row.amount, unit?.currency || 'NGN')}
             </div>
-            {balance > 0 && (
+            {!isFullyPaid && isLatestForPeriod && balance > 0 && (
               <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
                 Bal. {formatCurrency(balance, unit?.currency || 'NGN')}
               </div>
@@ -431,67 +451,76 @@ function UnitDetailContent() {
     {
       header: 'ACTIONS',
       align: 'right',
-      render: (row) => (
-        <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-          <button
-            className="btn-icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
-            }}
-          >
-            <MoreVertical size={16} />
-          </button>
+      render: (row) => {
+        const isPaystack = row.method?.toUpperCase() === 'PAYSTACK';
+        return (
+          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+            <button
+              className="btn-icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid)
+              }}
+            >
+              <MoreVertical size={16} />
+            </button>
 
-          {activeMenuId === row.uuid && (
-            <>
-              <div
-                style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-                onClick={() => setActiveMenuId(null)}
-              />
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 24,
-                background: 'white',
-                borderRadius: 8,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                border: '1px solid var(--border)',
-                zIndex: 11,
-                minWidth: 140,
-                overflow: 'hidden'
-              }}>
-                <button
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    textAlign: 'left',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--dark)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                  onClick={() => {
-                    setSelectedRecordForEdit(row)
-                    setIsEditRentModalOpen(true)
-                    setActiveMenuId(null)
-                  }}
-                >
-                  <Edit size={14} />
-                  Edit Record
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )
+            {activeMenuId === row.uuid && (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                  onClick={() => setActiveMenuId(null)}
+                />
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  right: 0,
+                  marginBottom: 4,
+                  background: 'white',
+                  borderRadius: 10,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  border: '1px solid var(--border)',
+                  zIndex: 50,
+                  minWidth: 140,
+                  padding: 4
+                }}>
+                  <button
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: isPaystack ? 'var(--text-muted)' : 'var(--error)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: isPaystack ? 'not-allowed' : 'pointer',
+                      opacity: isPaystack ? 0.6 : 1,
+                      borderRadius: 6
+                    }}
+                    title={isPaystack ? 'Online Paystack payments cannot be deleted' : undefined}
+                    disabled={isPaystack}
+                    onMouseEnter={(e) => { if (!isPaystack) e.currentTarget.style.background = 'var(--error-bg, #fef2f2)' }}
+                    onMouseLeave={(e) => { if (!isPaystack) e.currentTarget.style.background = 'none' }}
+                    onClick={() => {
+                      if (isPaystack) return;
+                      setSelectedRecordForDelete(row)
+                      setIsDeleteRentConfirmOpen(true)
+                      setActiveMenuId(null)
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Delete Record
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      }
     }
   ];
 
@@ -1051,6 +1080,24 @@ function UnitDetailContent() {
         unitName={unit?.unitName || ''}
         rentType={unit?.rentType}
         record={selectedRecordForEdit}
+      />
+
+      <ConfirmationModal
+        isOpen={isDeleteRentConfirmOpen}
+        onClose={() => {
+          setIsDeleteRentConfirmOpen(false)
+          setSelectedRecordForDelete(null)
+        }}
+        onConfirm={handleDeletePayment}
+        title="Delete Rent Record"
+        message={
+          selectedRecordForDelete
+            ? `Are you sure you want to delete the rent payment record of ${formatCurrency(selectedRecordForDelete.amount, unit?.currency || 'NGN')} paid on ${new Date(selectedRecordForDelete.paymentDate).toLocaleDateString()}? This action cannot be undone.`
+            : 'Are you sure you want to delete this rent payment record?'
+        }
+        confirmText="Delete Record"
+        type="danger"
+        isPending={deletePaymentMutation.isPending}
       />
 
       {unit && (

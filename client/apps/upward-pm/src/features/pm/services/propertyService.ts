@@ -148,6 +148,12 @@ export const updateUnitPayment = (unitUuid: string, paymentUuid: string, data: a
   })
 }
 
+export const deleteUnitPayment = (unitUuid: string, paymentUuid: string) => {
+  return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
+    method: 'DELETE'
+  })
+}
+
 export const bulkCreateUnits = (propertyUuid: string, units: Partial<Unit>[]) => {
   return request<{ success: boolean; count: number }>('/pm/units/bulk', {
     method: 'POST',

@@ -21,7 +21,7 @@ export class UpdateUnitUseCase {
     const updatedUnit = await this.unitRepository.update(uuid, data);
 
     // If unit has a tenant assigned and rent dates or amount were updated, update active rent payment record
-    if (updatedUnit.tenantId && (data.rentStartDate || data.rentDueDate || data.rentAmount)) {
+    if (updatedUnit.tenantId && (data.rentStartDate || data.rentDueDate)) {
       try {
         const activePayments = await this.prisma.upward_pm_rent_payment.findMany({
           where: {
@@ -34,14 +34,16 @@ export class UpdateUnitUseCase {
         });
 
         if (activePayments.length > 0 && activePayments[0]) {
-          await this.prisma.upward_pm_rent_payment.update({
-            where: { id: activePayments[0].id },
-            data: {
-              periodStart: updatedUnit.rentStartDate || undefined,
-              periodEnd: updatedUnit.rentDueDate || undefined,
-              amount: data.rentAmount ? Number(data.rentAmount) : undefined,
-            },
-          });
+          const updateData: any = {};
+          if (data.rentStartDate) updateData.periodStart = updatedUnit.rentStartDate;
+          if (data.rentDueDate) updateData.periodEnd = updatedUnit.rentDueDate;
+
+          if (Object.keys(updateData).length > 0) {
+            await this.prisma.upward_pm_rent_payment.update({
+              where: { id: activePayments[0].id },
+              data: updateData,
+            });
+          }
         }
       } catch (error) {
         console.error(`Failed to update rent payments for unit ${uuid}:`, error);
@@ -51,23 +53,27 @@ export class UpdateUnitUseCase {
     // If unit is synced, update the upward_user_property and upward_rent_cycle records too
     if (updatedUnit.isSynced && updatedUnit.userPropertyUuid) {
       try {
-        await this.prisma.upward_user_property.updateMany({
+        const userProps = await this.prisma.upward_user_property.findMany({
           where: { uuid: updatedUnit.userPropertyUuid },
-          data: {
-            rentAmount: updatedUnit.rentAmount,
-            rentType: updatedUnit.rentType,
-            currency: updatedUnit.currency,
-            rentStartDate: updatedUnit.rentStartDate || undefined,
-            rentEndDate: updatedUnit.rentDueDate || undefined,
-            rentReminderEnabled: updatedUnit.rentReminderEnabled,
-            rentReminderDaysBefore: updatedUnit.rentReminderDaysBefore,
-          }
         });
 
-        const userProp = await this.prisma.upward_user_property.findUnique({
-          where: { uuid: updatedUnit.userPropertyUuid }
-        });
-        if (userProp) {
+        for (const userProp of userProps) {
+          const newAmountPaid = userProp.amountPaid || 0;
+          const newAmountRemaining = Math.max(0, updatedUnit.rentAmount - newAmountPaid);
+          await this.prisma.upward_user_property.update({
+            where: { id: userProp.id },
+            data: {
+              rentAmount: updatedUnit.rentAmount,
+              amountRemaining: newAmountRemaining,
+              rentType: updatedUnit.rentType,
+              currency: updatedUnit.currency,
+              rentStartDate: updatedUnit.rentStartDate || undefined,
+              rentEndDate: updatedUnit.rentDueDate || undefined,
+              rentReminderEnabled: updatedUnit.rentReminderEnabled,
+              rentReminderDaysBefore: updatedUnit.rentReminderDaysBefore,
+            },
+          });
+
           const latestCycle = await this.prisma.upward_rent_cycle.findFirst({
             where: { userPropertyId: userProp.id },
             orderBy: { createdAt: 'desc' }

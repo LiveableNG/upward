@@ -32,38 +32,78 @@ export class SyncPmPaymentStatusUseCase {
 
     try {
       const pmPr = await this.pmPaymentRepo.findByPaymentRequestId(paymentRequestId, txClient)
-      if (!pmPr) return
-
       const pr = await this.paymentRequestRepo.findById(paymentRequestId, txClient)
       if (!pr) return
 
-      // Update PM request status
-      await this.pmPaymentRepo.update(pmPr.uuid, {
-        amountPaid: pr.amountPaid, // Status and amountPaid come from the core PR which was already updated
-        status: pr.status,
-      }, txClient)
+      let unitId: number | null = pmPr?.unitId || null
+      let tenantId: number | null = pmPr?.tenantId || null
+
+      if (!unitId && pr.userPropertyId) {
+        const userProp = await txClient.upward_user_property.findUnique({
+          where: { id: pr.userPropertyId }
+        })
+        if (userProp && userProp.pmUnitId) {
+          unitId = userProp.pmUnitId
+          const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
+          if (unit) {
+            tenantId = unit.tenantId
+          }
+        }
+      }
+
+      if (!unitId) {
+        this.logger.log(`No PM unit associated with payment request ${paymentRequestId}`)
+        return
+      }
+
+      if (pmPr) {
+        // Update PM request status
+        await this.pmPaymentRepo.update(pmPr.uuid, {
+          amountPaid: pr.amountPaid, // Status and amountPaid come from the core PR which was already updated
+          status: pr.status,
+        }, txClient)
+      }
 
       if (rentPortion > 0) {
+        const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
+        const effectivePeriodStart = pr.rentStartDate
+          ? new Date(pr.rentStartDate)
+          : (unit?.rentStartDate ? new Date(unit.rentStartDate) : (pr.dueDate ? new Date(pr.dueDate) : null))
+        let effectivePeriodEnd = pr.rentEndDate
+          ? new Date(pr.rentEndDate)
+          : (unit?.rentDueDate ? new Date(unit.rentDueDate) : null)
+
+        if (effectivePeriodStart && !effectivePeriodEnd && unit) {
+          const endD = new Date(effectivePeriodStart)
+          if (unit.rentType === 'Monthly') {
+            endD.setMonth(endD.getMonth() + 1)
+          } else {
+            const years = (unit as any).leaseYears || 1
+            endD.setFullYear(endD.getFullYear() + years)
+          }
+          endD.setDate(endD.getDate() - 1)
+          effectivePeriodEnd = endD
+        }
+
         // Record in PM Rent History
         await txClient.upward_pm_rent_payment.create({
           data: {
-            unitId: pmPr.unitId,
-            tenantId: pmPr.tenantId,
+            unitId: unitId,
+            tenantId: tenantId,
             amount: rentPortion,
             paymentDate: new Date(),
             method: 'PAYSTACK',
             status: 'SUCCESS',
-            notes: `Rent Portion for request ${pmPr.uuid.slice(-8)}`,
-            periodStart: pr.rentStartDate ? new Date(pr.rentStartDate) : (pr.dueDate ? new Date(pr.dueDate) : null),
-            periodEnd: pr.rentEndDate ? new Date(pr.rentEndDate) : null,
+            notes: pr.description || `Rent Portion for request ${pr.uuid.slice(-8)}`,
+            periodStart: effectivePeriodStart,
+            periodEnd: effectivePeriodEnd,
           }
         })
 
         // Recalculate and sync active tenancy dates to latest fully paid period
-        const unit = await txClient.upward_pm_unit.findUnique({ where: { id: pmPr.unitId } })
         if (unit) {
           const tenantPayments = await txClient.upward_pm_rent_payment.findMany({
-            where: { unitId: unit.id, tenantId: pmPr.tenantId, status: 'SUCCESS' }
+            where: { unitId: unit.id, tenantId: tenantId || undefined, status: 'SUCCESS' }
           });
 
           const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
@@ -88,11 +128,24 @@ export class SyncPmPaymentStatusUseCase {
 
           if (fullyPaidPeriods.length > 0) {
             const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
+            
+            let nextStart = new Date(latestFullyPaid.periodEnd);
+            nextStart.setDate(nextStart.getDate() + 1);
+
+            let nextEnd = new Date(nextStart);
+            if (unit.rentType === 'Monthly') {
+              nextEnd.setMonth(nextEnd.getMonth() + 1);
+            } else {
+              const years = (unit as any).leaseYears || 1;
+              nextEnd.setFullYear(nextEnd.getFullYear() + years);
+            }
+            nextEnd.setDate(nextEnd.getDate() - 1);
+
             await txClient.upward_pm_unit.update({
               where: { id: unit.id },
               data: {
-                rentStartDate: latestFullyPaid.periodStart,
-                rentDueDate: latestFullyPaid.periodEnd
+                rentStartDate: nextStart,
+                rentDueDate: nextEnd
               }
             });
 
@@ -100,16 +153,18 @@ export class SyncPmPaymentStatusUseCase {
               await txClient.upward_user_property.updateMany({
                 where: { uuid: unit.userPropertyUuid },
                 data: {
-                  rentStartDate: latestFullyPaid.periodStart,
-                  rentEndDate: latestFullyPaid.periodEnd
+                  rentStartDate: nextStart,
+                  rentEndDate: nextEnd,
+                  amountRemaining: Math.max(0, unit.rentAmount),
+                  amountPaid: 0
                 }
               });
             }
-            this.logger.log(`Synced active tenancy dates for unit ${unit.id} to latest fully paid period: ${latestFullyPaid.periodStart.toISOString()} - ${latestFullyPaid.periodEnd.toISOString()}`);
+            this.logger.log(`Synced active tenancy dates for unit ${unit.id} to next upcoming period: ${nextStart.toISOString()} - ${nextEnd.toISOString()}`);
           }
         }
 
-        if (pmPr.isRecurring && pmPr.recurrenceInterval) {
+        if (pmPr && pmPr.isRecurring && pmPr.recurrenceInterval) {
           const interval = pmPr.recurrenceInterval;
           
           let nextScheduledAt: Date | null = null;
@@ -161,6 +216,115 @@ export class SyncPmPaymentStatusUseCase {
       }
     } catch (err) {
       this.logger.error(`Failed to sync PM payment status for core request ${paymentRequestId}:`, err)
+    }
+  }
+
+  async executeForProperty(params: {
+    userPropertyUuid: string
+    rentPortion: number
+    narration?: string
+    txClient: any
+  }) {
+    const { userPropertyUuid, rentPortion, narration, txClient } = params
+    try {
+      const userProp = await txClient.upward_user_property.findUnique({
+        where: { uuid: userPropertyUuid }
+      })
+      if (!userProp || !userProp.pmUnitId) return
+
+      const unit = await txClient.upward_pm_unit.findUnique({ where: { id: userProp.pmUnitId } })
+      if (!unit) return
+
+      const effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null
+      let effectivePeriodEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : null
+
+      if (effectivePeriodStart && !effectivePeriodEnd) {
+        const endD = new Date(effectivePeriodStart)
+        if (unit.rentType === 'Monthly') {
+          endD.setMonth(endD.getMonth() + 1)
+        } else {
+          const years = (unit as any).leaseYears || 1
+          endD.setFullYear(endD.getFullYear() + years)
+        }
+        endD.setDate(endD.getDate() - 1)
+        effectivePeriodEnd = endD
+      }
+
+      await txClient.upward_pm_rent_payment.create({
+        data: {
+          unitId: unit.id,
+          tenantId: unit.tenantId,
+          amount: rentPortion,
+          paymentDate: new Date(),
+          method: 'PAYSTACK',
+          status: 'SUCCESS',
+          notes: narration || 'Tenant Manual Payment',
+          periodStart: effectivePeriodStart,
+          periodEnd: effectivePeriodEnd,
+        }
+      })
+
+      const tenantPayments = await txClient.upward_pm_rent_payment.findMany({
+        where: { unitId: unit.id, tenantId: unit.tenantId || undefined, status: 'SUCCESS' }
+      })
+
+      const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>()
+      for (const p of tenantPayments) {
+        if (!p.periodStart) continue
+        const key = new Date(p.periodStart).toISOString().split('T')[0]!
+        if (!periodMap.has(key)) {
+          periodMap.set(key, {
+            periodStart: new Date(p.periodStart),
+            periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart),
+            total: 0
+          })
+        }
+        periodMap.get(key)!.total += p.amount
+      }
+
+      const sortedPeriods = Array.from(periodMap.values()).sort(
+        (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
+      )
+
+      const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0))
+
+      if (fullyPaidPeriods.length > 0) {
+        const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!
+
+        let nextStart = new Date(latestFullyPaid.periodEnd)
+        nextStart.setDate(nextStart.getDate() + 1)
+
+        let nextEnd = new Date(nextStart)
+        if (unit.rentType === 'Monthly') {
+          nextEnd.setMonth(nextEnd.getMonth() + 1)
+        } else {
+          const years = (unit as any).leaseYears || 1
+          nextEnd.setFullYear(nextEnd.getFullYear() + years)
+        }
+        nextEnd.setDate(nextEnd.getDate() - 1)
+
+        await txClient.upward_pm_unit.update({
+          where: { id: unit.id },
+          data: {
+            rentStartDate: nextStart,
+            rentDueDate: nextEnd
+          }
+        })
+
+        if (unit.isSynced && unit.userPropertyUuid) {
+          await txClient.upward_user_property.updateMany({
+            where: { uuid: unit.userPropertyUuid },
+            data: {
+              rentStartDate: nextStart,
+              rentEndDate: nextEnd,
+              amountRemaining: Math.max(0, unit.rentAmount),
+              amountPaid: 0
+            }
+          })
+        }
+      }
+    } catch (err) {
+      this.logger.error(`Failed to sync PM payment status for property ${userPropertyUuid}:`, err)
     }
   }
 }

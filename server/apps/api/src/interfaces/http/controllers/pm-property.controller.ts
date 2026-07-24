@@ -14,6 +14,7 @@ import { DeleteUnitUseCase } from '../../../application/pm/use-cases/delete-unit
 import { GetUnitPaymentsUseCase } from '../../../application/pm/use-cases/get-unit-payments.use-case';
 import { AddUnitPaymentUseCase } from '../../../application/pm/use-cases/add-unit-payment.use-case';
 import { UpdateRentPaymentUseCase } from '../../../application/pm/use-cases/update-rent-payment.use-case';
+import { DeleteRentPaymentUseCase } from '../../../application/pm/use-cases/delete-rent-payment.use-case';
 import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-cases/get-property-image-upload-url.use-case';
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
@@ -60,6 +61,7 @@ export class PmPropertyController {
     private readonly getUnitPaymentsUseCase: GetUnitPaymentsUseCase,
     private readonly addUnitPaymentUseCase: AddUnitPaymentUseCase,
     private readonly updateRentPaymentUseCase: UpdateRentPaymentUseCase,
+    private readonly deleteRentPaymentUseCase: DeleteRentPaymentUseCase,
     private readonly getPropertyImageUploadUrlUseCase: GetPropertyImageUploadUrlUseCase,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
@@ -193,6 +195,12 @@ export class PmPropertyController {
   async updateUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string, @Body() dto: any) {
     const pmId = await this.getPmId(req);
     return this.updateRentPaymentUseCase.execute(pmId, paymentUuid, dto);
+  }
+
+  @Delete('units/:unitUuid/payments/:paymentUuid')
+  async deleteUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.deleteRentPaymentUseCase.execute(pmId, paymentUuid);
   }
 
   @Post('units/:unitUuid/sync-to-upward')

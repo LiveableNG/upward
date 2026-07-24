@@ -8,7 +8,7 @@ export class AddUnitPaymentUseCase {
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async execute(pmId: number, unitUuid: string, data: any) {
     const unit = await this.unitRepository.findByUuid(unitUuid);
@@ -33,10 +33,10 @@ export class AddUnitPaymentUseCase {
 
     if (data.paymentType === 'CURRENT' && unit.rentStartDate && unit.rentDueDate && unit.rentAmount) {
       const allPayments = await this.unitRepository.getRentPayments(unitUuid);
-      
-      const samePeriodPayments = allPayments.filter(p => 
-        p.tenantId === unit.tenantId && 
-        p.periodStart && 
+
+      const samePeriodPayments = allPayments.filter(p =>
+        p.tenantId === unit.tenantId &&
+        p.periodStart &&
         new Date(p.periodStart).getTime() === new Date(unit.rentStartDate as Date).getTime()
       );
 
@@ -75,13 +75,13 @@ export class AddUnitPaymentUseCase {
         effectivePeriodStart = newUnitStart;
         effectivePeriodEnd = newUnitEnd;
 
-        const upcomingPeriodPayments = allPayments.filter(p => 
-          p.tenantId === unit.tenantId && 
-          p.periodStart && 
+        const upcomingPeriodPayments = allPayments.filter(p =>
+          p.tenantId === unit.tenantId &&
+          p.periodStart &&
           new Date(p.periodStart).getTime() === newUnitStart!.getTime()
         );
         const upcomingPaidSoFar = upcomingPeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-        
+
         if (upcomingPaidSoFar + data.amount >= unit.rentAmount) {
           shouldIncrementUnitDates = true;
         }
@@ -91,7 +91,7 @@ export class AddUnitPaymentUseCase {
     if (data.paymentType === 'PAST') {
       paymentData.periodStart = data.periodStart ? new Date(data.periodStart) : null;
       paymentData.periodEnd = data.periodEnd ? new Date(data.periodEnd) : null;
-      
+
       if (data.isForCurrentTenant) {
         paymentData.tenantId = unit.tenantId;
         paymentData.notes = 'Past Payment';

@@ -519,6 +519,13 @@ export class RecordTransactionUseCase {
             rentPortion,
             txClient
           })
+        } else if (data.userPropertyUuid && rentPortion > 0) {
+          await this.syncPmStatus.executeForProperty({
+            userPropertyUuid: data.userPropertyUuid,
+            rentPortion,
+            narration: result.narration,
+            txClient
+          })
         }
 
         propertyId = pr?.userPropertyId
@@ -1595,9 +1602,10 @@ export class GetPropertyBalanceUseCase {
 
     const totalOwed = prop.rentAmount || requestTotal || 0
     const amountPaid = prop.amountPaid || 0
-    const remainingBalance = (prop.amountRemaining === 0 && amountPaid < totalOwed)
-      ? Math.max(0, totalOwed - amountPaid)
-      : (prop.amountRemaining ?? Math.max(0, totalOwed - amountPaid))
+    const calculatedRemaining = Math.max(0, totalOwed - amountPaid)
+    const remainingBalance = (prop.amountRemaining === 0 || prop.amountRemaining > totalOwed)
+      ? calculatedRemaining
+      : (prop.amountRemaining ?? calculatedRemaining)
 
     const sortedRequests = [...propRequests].sort(
       (a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),

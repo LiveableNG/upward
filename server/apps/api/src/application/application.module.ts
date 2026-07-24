@@ -185,6 +185,7 @@ import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.u
 import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use-case'
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
+import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import {
@@ -541,6 +542,7 @@ const UseCases = [
   GetLandlordReportUseCase,
   PmBulkRentReminderUseCase,
   UpdateRentPaymentUseCase,
+  DeleteRentPaymentUseCase,
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
