@@ -525,6 +525,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         scheduledAt: data.scheduledAt,
         isRecurring: data.isRecurring,
         recurrenceInterval: data.recurrenceInterval,
+        userPropertyId: data.userPropertyId,
+        subaccountId: data.subaccountId,
       },
       include: this.paymentRequestInclude,
     })

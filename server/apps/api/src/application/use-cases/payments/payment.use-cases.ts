@@ -671,8 +671,12 @@ export class ResolveDedicatedAccountUseCase {
     if (existingByAccount) {
       if (existingByAccount.userPropertyId === data.userPropertyId) return existingByAccount
       
-      this.logger.warn(`Account ${account.account_number} already exists for another property (${existingByAccount.userPropertyId}). Re-associating to current property.`)
-      return existingByAccount
+      this.logger.warn(`Account ${account.account_number} already exists for another property (${existingByAccount.userPropertyId}). Re-associating to current property (${data.userPropertyId}).`)
+      await this.prisma.upward_dedicated_virtual_account.update({
+        where: { id: existingByAccount.id },
+        data: { userPropertyId: data.userPropertyId }
+      })
+      return { ...existingByAccount, userPropertyId: data.userPropertyId }
     }
 
     return await this.dvaRepo.create({
