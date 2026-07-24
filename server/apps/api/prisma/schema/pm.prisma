@@ -262,6 +262,7 @@ model upward_pm_bulk_invite {
   sentCount    Int                          @default(0)
   failedCount  Int                          @default(0)
   error        String?
+  channel      String?
   createdAt    DateTime                     @default(now())
   updatedAt    DateTime                     @updatedAt
   pm           upward_property_manager      @relation(fields: [pmId], references: [id], onDelete: Cascade)

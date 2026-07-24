@@ -235,30 +235,40 @@ export class InviteTenantUseCase {
         inviteSentAt: !isActuallyOnUpward ? new Date() : tenant.inviteSentAt,
       });
 
-      // Log invitation to upward_communication_log
-      let registeredUserId = existingUser?.id;
-      if (!registeredUserId) {
-        const createdUser = tenant.email
-          ? await this.userRepo.findByEmail(tenant.email)
-          : await this.userRepo.findByPhone(tenant.phone!);
-        registeredUserId = createdUser?.id;
-      }
+      if (actualChannel !== 'EMAIL') {
+        let registeredUserId = existingUser?.id;
+        if (!registeredUserId) {
+          const createdUser = tenant.email
+            ? await this.userRepo.findByEmail(tenant.email)
+            : await this.userRepo.findByPhone(tenant.phone!);
+          registeredUserId = createdUser?.id;
+        }
 
-      await this.prisma.upward_communication_log.create({
-        data: {
-          registeredUserId: registeredUserId ?? null,
-          email: tenant.email ?? null,
-          subject: isActuallyOnUpward ? `New Property Unit Added by ${pmName}` : `Invitation to join Upward from ${pmName}`,
-          type: 'TENANT_INVITE',
-          status: 'SENT',
-          channel: actualChannel || 'EMAIL',
-          recipient: (actualChannel === 'EMAIL' ? tenant.email : tenant.phone) ?? '',
-          body: isActuallyOnUpward
-            ? `New property unit added on Upward by PM ${pmName}`
-            : `Invited to claim Upward account. Link: ${inviteResult.inviteLink}`,
-          sentAt: new Date(),
-        },
-      });
+        let logBody = '';
+        if (actualChannel === 'WHATSAPP') {
+          logBody = isActuallyOnUpward 
+            ? `WhatsApp notification sent: New property unit added by PM ${pmName}`
+            : `WhatsApp Template (upward_tenant_invite_v3) sent. Includes link: ${inviteResult.inviteLink}`;
+        } else {
+          logBody = isActuallyOnUpward
+            ? `SMS Sent: Hi ${displayName}, ${pmName} has added a new property unit for you on Upward. Log in to your Upward account at https://upward.goodtenants.io/login to view your property details and manage your rent payments.`
+            : `SMS Sent: Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
+        }
+
+        await this.prisma.upward_communication_log.create({
+          data: {
+            registeredUserId: registeredUserId ?? null,
+            email: tenant.email ?? null,
+            subject: isActuallyOnUpward ? `New Property Unit Added by ${pmName}` : `Invitation to join Upward from ${pmName}`,
+            type: 'TENANT_INVITE',
+            status: 'SENT',
+            channel: actualChannel || 'SMS',
+            recipient: tenant.phone ?? '',
+            body: logBody,
+            sentAt: new Date(),
+          },
+        });
+      }
 
 
       if (tenant.units && inviteResult.properties) {
