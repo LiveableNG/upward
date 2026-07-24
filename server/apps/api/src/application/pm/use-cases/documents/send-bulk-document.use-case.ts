@@ -39,29 +39,33 @@ export class SendBulkDocumentUseCase {
   }
 
   private async processBulkDispatch(actorPmId: number, actorPmUuid: string, data: BulkSendDocumentDto) {
-    const results = await Promise.allSettled(
-      data.recipients.map(async (recipient) => {
-        const dto: SendDocumentDto = {
-          subject: data.subject,
-          content: data.content,
-          documentType: data.documentType,
-          includeLetterhead: data.includeLetterhead,
-          deliveryChannel: data.deliveryChannel,
-          fromEmail: data.fromEmail,
-          recipientName: recipient.name,
-          recipientEmail: recipient.email,
-        };
+    const BATCH_SIZE = 3;
+    const results: PromiseSettledResult<any>[] = [];
 
-        if (recipient.type === 'TENANT') {
-          dto.tenantUuid = recipient.uuid;
-        } else {
-          // If it's landlord, the logic currently expects unitUuid or we just send generic email
-          // Depending on implementation, we just pass name and email
-        }
+    for (let i = 0; i < data.recipients.length; i += BATCH_SIZE) {
+      const batch = data.recipients.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (recipient) => {
+          const dto: SendDocumentDto = {
+            subject: data.subject,
+            content: data.content,
+            documentType: data.documentType,
+            includeLetterhead: data.includeLetterhead,
+            deliveryChannel: data.deliveryChannel,
+            fromEmail: data.fromEmail,
+            recipientName: recipient.name,
+            recipientEmail: recipient.email,
+          };
 
-        return this.sendDocumentUseCase.execute(actorPmId, dto);
-      })
-    );
+          if (recipient.type === 'TENANT') {
+            dto.tenantUuid = recipient.uuid;
+          }
+
+          return this.sendDocumentUseCase.execute(actorPmId, dto);
+        })
+      );
+      results.push(...batchResults);
+    }
 
     const successful = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.filter((r) => r.status === 'rejected').length;
@@ -71,7 +75,7 @@ export class SendBulkDocumentUseCase {
     // Log failures if any for debugging
     results.forEach((r, index) => {
       if (r.status === 'rejected') {
-        this.logger.error(`Failed to send document to recipient at index ${index}`, r.reason);
+        this.logger.error(`Failed to send document to recipient at index ${index}:`, r.reason);
       }
     });
 
