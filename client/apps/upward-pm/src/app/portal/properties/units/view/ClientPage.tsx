@@ -20,7 +20,7 @@ import {
   Download,
   Edit
 } from 'lucide-react'
-import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment } from '@/features/pm/hooks/useProperties'
+import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment, useDeleteUnitPayment } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests, useCreatePaymentRequest } from '@/features/pm/hooks/usePayments'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { AssignTenantToUnitModal } from '@/features/pm/components/tenants/modals/AssignTenantToUnitModal'
@@ -52,11 +52,14 @@ function UnitDetailContent() {
   const updateUnitMutation = useUpdateUnit()
   const deleteUnitMutation = useDeleteUnit()
   const updatePaymentMutation = useUpdateUnitPayment()
+  const deletePaymentMutation = useDeleteUnitPayment()
   const addPaymentMutation = useAddUnitPayment()
   const createPaymentRequestMutation = useCreatePaymentRequest()
 
   const [isEditRentModalOpen, setIsEditRentModalOpen] = useState(false)
   const [selectedRecordForEdit, setSelectedRecordForEdit] = useState<any>(null)
+  const [isDeleteRentConfirmOpen, setIsDeleteRentConfirmOpen] = useState(false)
+  const [selectedRecordForDelete, setSelectedRecordForDelete] = useState<any>(null)
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false)
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
@@ -288,6 +291,23 @@ function UnitDetailContent() {
     })
   }
 
+  const handleDeletePayment = () => {
+    if (!selectedRecordForDelete) return
+    deletePaymentMutation.mutate({
+      unitUuid: uuid as string,
+      paymentUuid: selectedRecordForDelete.uuid
+    }, {
+      onSuccess: () => {
+        success('Rent record deleted successfully')
+        setIsDeleteRentConfirmOpen(false)
+        setSelectedRecordForDelete(null)
+      },
+      onError: (err: any) => {
+        error(err.message || 'Failed to delete rent record')
+      }
+    })
+  }
+
   if (showEditor) {
     return (
       <div className="container" style={{ padding: '20px 0' }}>
@@ -510,7 +530,7 @@ function UnitDetailContent() {
             <button className="btn btn--primary" onClick={addRentRecord} style={{ borderRadius: 12, height: 42 }}>Enter Rent Payment</button>
           </div>
 
-          <div className="rent-history glass" style={{ padding: 0, overflow: 'hidden', borderRadius: 16 }}>
+          <div className="rent-history glass" style={{ padding: 0, overflow: 'visible', borderRadius: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ background: 'var(--ivory-dim)' }}>
                 <tr>
@@ -536,7 +556,14 @@ function UnitDetailContent() {
                         {row.periodStart ? `${new Date(row.periodStart).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - ${row.periodEnd ? new Date(row.periodEnd).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '...'}` : 'N/A'}
                       </td>
                       <td style={{ padding: '20px 24px', fontSize: 13, color: 'var(--text-muted)' }}>{new Date(row.paymentDate).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                      <td style={{ padding: '20px 24px' }}><div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{formatCurrency(row.amount, unit?.currency || 'NGN')}</div></td>
+                      <td style={{ padding: '20px 24px' }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{formatCurrency(row.amount, unit?.currency || 'NGN')}</div>
+                        {!isFullyPaid && isLatestForPeriod && ((unit?.rentAmount || 0) - totalPaidForPeriod) > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--error)', marginTop: 2, fontWeight: 500 }}>
+                            Bal. {formatCurrency((unit?.rentAmount || 0) - totalPaidForPeriod, unit?.currency || 'NGN')}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '20px 24px' }}><span style={{ fontSize: 12, fontWeight: 600, color: statusLabel === 'Paid' ? 'var(--forest)' : 'var(--text-muted)' }}>{statusLabel}</span></td>
                       <td style={{ padding: '20px 24px', textAlign: 'right', position: 'relative' }}>
                         <button className="btn-icon" onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === row.uuid ? null : row.uuid) }}>
@@ -545,10 +572,18 @@ function UnitDetailContent() {
                         {activeMenuId === row.uuid && (
                           <>
                             <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setActiveMenuId(null)} />
-                            <div style={{ position: 'absolute', top: '100%', right: 24, background: 'white', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', border: '1px solid var(--border)', zIndex: 11, minWidth: 140, overflow: 'hidden' }}>
-                              <button style={{ width: '100%', padding: '12px 16px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: 'var(--dark)', background: 'none', border: 'none', cursor: 'pointer' }}
-                                onClick={() => { setSelectedRecordForEdit(row); setIsEditRentModalOpen(true); setActiveMenuId(null) }}>
-                                <Edit size={14} /> Edit Record
+                            <div style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 4, background: 'white', borderRadius: 10, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: '1px solid var(--border)', zIndex: 50, minWidth: 140, padding: 4 }}>
+                              <button style={{ width: '100%', padding: '10px 14px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: row.method?.toUpperCase() === 'PAYSTACK' ? 'var(--text-muted)' : 'var(--error)', background: 'none', border: 'none', cursor: row.method?.toUpperCase() === 'PAYSTACK' ? 'not-allowed' : 'pointer', opacity: row.method?.toUpperCase() === 'PAYSTACK' ? 0.6 : 1, borderRadius: 6 }}
+                                disabled={row.method?.toUpperCase() === 'PAYSTACK'}
+                                onMouseEnter={(e) => { if (row.method?.toUpperCase() !== 'PAYSTACK') e.currentTarget.style.background = 'var(--error-bg, #fef2f2)' }}
+                                onMouseLeave={(e) => { if (row.method?.toUpperCase() !== 'PAYSTACK') e.currentTarget.style.background = 'none' }}
+                                onClick={() => {
+                                  if (row.method?.toUpperCase() === 'PAYSTACK') return;
+                                  setSelectedRecordForDelete(row);
+                                  setIsDeleteRentConfirmOpen(true);
+                                  setActiveMenuId(null);
+                                }}>
+                                <Trash2 size={14} /> Delete Record
                               </button>
                             </div>
                           </>
@@ -566,6 +601,8 @@ function UnitDetailContent() {
       )}
 
       <EditRentRecordModal isOpen={isEditRentModalOpen} onClose={() => { setIsEditRentModalOpen(false); setSelectedRecordForEdit(null) }} onSave={handleUpdatePayment} isPending={updatePaymentMutation.isPending} unitName={unit?.unitName || ''} rentType={unit?.rentType} record={selectedRecordForEdit} />
+
+      <ConfirmationModal isOpen={isDeleteRentConfirmOpen} onClose={() => { setIsDeleteRentConfirmOpen(false); setSelectedRecordForDelete(null) }} onConfirm={handleDeletePayment} title="Delete Rent Record" message={selectedRecordForDelete ? `Are you sure you want to delete the rent payment record of ${formatCurrency(selectedRecordForDelete.amount, unit?.currency || 'NGN')} paid on ${new Date(selectedRecordForDelete.paymentDate).toLocaleDateString()}? This action cannot be undone.` : 'Are you sure you want to delete this rent payment record?'} confirmText="Delete Record" type="danger" isPending={deletePaymentMutation.isPending} />
 
       {unit && <EditUnitModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} unit={unit} onSave={handleUpdate} isPending={updateUnitMutation.isPending} hasPayments={totalPaid > 0} />}
 

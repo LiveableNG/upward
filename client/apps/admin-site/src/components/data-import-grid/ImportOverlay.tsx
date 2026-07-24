@@ -36,6 +36,7 @@ interface ImportOverlayProps {
   
   previewRows: any[]
   validationErrors: Record<string, string>
+  amberWarnings?: Record<string, string>
   editingCell: { rowId: string, field: string } | null
   setEditingCell: (cell: { rowId: string, field: string } | null) => void
   updateRowField: (rowId: string, field: string, value: any) => void
@@ -49,9 +50,10 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   columns, userColumns, mappings, splitConfigs, activeSheet, workbook,
   updateMapping, toggleSplit,
   updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
-  previewRows, validationErrors, editingCell, setEditingCell,
+  previewRows, validationErrors, amberWarnings, editingCell, setEditingCell,
   updateRowField, setPreviewRows, setValidationErrors, revalidateDuplicates
 }) => {
+
   const [mounted, setMounted] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showSaveConfirm, setShowSaveConfirm] = useState(false)
@@ -205,6 +207,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             columns={columns}
             previewRows={previewRows}
             validationErrors={validationErrors}
+            amberWarnings={amberWarnings}
             editingCell={editingCell}
             setEditingCell={setEditingCell}
             updateRowField={updateRowField}
@@ -212,6 +215,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             setValidationErrors={setValidationErrors}
             revalidateDuplicates={revalidateDuplicates}
           />
+
         )}
       </main>
 

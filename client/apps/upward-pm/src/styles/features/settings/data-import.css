@@ -474,6 +474,18 @@
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
+.data-grid-input--warning {
+  border-color: #22c55e;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.data-grid-input--warning:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+
+
 /* Custom Alert Boxes */
 .mapping-alert {
   padding: 14px 18px;

@@ -59,6 +59,7 @@ export const api = {
   getUnitPayments: propertyService.getUnitPayments,
   addUnitPayment: propertyService.addUnitPayment,
   updateUnitPayment: propertyService.updateUnitPayment,
+  deleteUnitPayment: propertyService.deleteUnitPayment,
   bulkCreateUnits: propertyService.bulkCreateUnits,
   syncToUpward: propertyService.syncToUpward,
   bulkFullImport: propertyService.bulkFullImport,

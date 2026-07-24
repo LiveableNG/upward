@@ -27,6 +27,7 @@ interface FormSelectProps {
   chevronSize?: number
   searchable?: boolean
   inline?: boolean
+  portalOnDesktop?: boolean
 }
 
 export function FormSelect({
@@ -45,13 +46,15 @@ export function FormSelect({
   icon,
   chevronSize = 16,
   searchable = false,
-  inline = false
+  inline = false,
+  portalOnDesktop = false
 }: FormSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({})
 
   useEffect(() => {
     setMounted(true)
@@ -64,15 +67,53 @@ export function FormSelect({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
+        // Also check if click is inside the portal menu
+        const target = event.target as Element;
+        if (!target.closest('.upward-form-select-portal')) {
+          setIsOpen(false)
+        }
       }
     }
-    // Only apply outside click listener for desktop (inline menu)
     if (!isMobile && isOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen, isMobile])
+
+  const updatePosition = React.useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const menuHeight = 300 // approx max height
+      
+      let top = rect.bottom + window.scrollY + 4
+      if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        // Show above if not enough space below
+        top = rect.top + window.scrollY - menuHeight - 4
+      }
+      
+      setPortalStyle({
+        position: 'absolute',
+        top,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        zIndex: 9999999,
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isOpen && !isMobile && portalOnDesktop) {
+      updatePosition()
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+    }
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen, isMobile, portalOnDesktop, updatePosition])
 
   const activeOption = options?.find(o => o.value === value)
   const displayLabel = activeOption ? (activeOption.shortLabel || activeOption.label) : placeholder
@@ -91,7 +132,7 @@ export function FormSelect({
     <div
       className="upward-form-select-menu animate-scale-in"
       onClick={e => e.stopPropagation()}
-      style={{ ...menuStyle, display: 'flex', flexDirection: 'column' }}
+      style={{ ...menuStyle, display: 'flex', flexDirection: 'column', position: portalOnDesktop ? 'relative' : 'absolute', top: portalOnDesktop ? 0 : undefined, width: '100%', height: portalOnDesktop && portalStyle.top && (portalStyle.top as number) < (containerRef.current?.getBoundingClientRect().top || 0) ? 300 : undefined }}
     >
       <div className="upward-filter-menu__header mobile-only" style={{ display: isMobile ? 'flex' : 'none', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{label || placeholder}</h3>
@@ -136,6 +177,15 @@ export function FormSelect({
     )
   ) : null;
 
+  const desktopPortal = mounted && isOpen && !isMobile && portalOnDesktop ? (
+    createPortal(
+      <div style={portalStyle} className="upward-form-select-portal">
+        {menuContent}
+      </div>,
+      document.body
+    )
+  ) : null;
+
   const containerStyles: React.CSSProperties = {
     position: 'relative',
     width: inline && !width ? 'auto' : (width ? width : undefined),
@@ -173,7 +223,7 @@ export function FormSelect({
       </button>
 
       {/* Render mobile portal or inline desktop menu */}
-      {isMobile ? mobilePortal : (isOpen && menuContent)}
+      {isMobile ? mobilePortal : (portalOnDesktop ? desktopPortal : (isOpen && menuContent))}
     </div>
   )
 }

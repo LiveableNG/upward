@@ -48,7 +48,7 @@ async function bootstrap() {
     ? frontendUrl.split(',').map((url) => url.trim())
     : ['http://localhost:3000', 'http://localhost:5173']
     
-  const origins = [...baseOrigins, 'http://localhost', 'https://localhost', 'capacitor://localhost']
+  const origins = [...baseOrigins, 'http://localhost', 'https://localhost', 'capacitor://localhost', 'https://upward-web.vercel.app']
 
   app.enableCors({
     origin: origins,

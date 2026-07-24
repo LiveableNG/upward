@@ -82,7 +82,7 @@ export class PmSignatureController {
     return Promise.all(
       signatures.map(async (sig) => ({
         ...sig,
-        fileUrl: sig.fileKey ? `/public/documents/signatures/${sig.uuid}/image` : null,
+        fileUrl: sig.fileKey ? `/api/v1/public/documents/signatures/${sig.uuid}/image` : null,
       }))
     )
   }

@@ -213,11 +213,15 @@ export class BulkFullImportUseCase {
           periodEnd = new Date(newUnit.rentStartDate);
           if (newUnit.rentType === 'Monthly') {
             periodEnd.setMonth(periodEnd.getMonth() + 1);
+          } else if (newUnit.rentType === 'Lease') {
+            const years = Math.max(1, row.leaseYears || 1);
+            periodEnd.setFullYear(periodEnd.getFullYear() + years);
           } else {
             periodEnd.setFullYear(periodEnd.getFullYear() + 1);
           }
           periodEnd.setDate(periodEnd.getDate() - 1);
         }
+
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: row.unitRentAmountPaid,

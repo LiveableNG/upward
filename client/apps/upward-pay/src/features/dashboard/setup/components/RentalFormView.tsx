@@ -405,6 +405,7 @@ export function RentalFormView() {
               >
                 <option value="Monthly">Monthly</option>
                 <option value="Annually">Annually</option>
+                <option value="Lease">Lease</option>
               </select>
             </div>
 

@@ -391,6 +391,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                     >
                       <option value="Monthly">Monthly</option>
                       <option value="Annually">Annually</option>
+                      <option value="Lease">Lease</option>
                     </select>
                   </div>
                 </div>

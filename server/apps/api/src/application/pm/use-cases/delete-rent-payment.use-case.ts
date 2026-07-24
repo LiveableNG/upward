@@ -4,15 +4,15 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 @Injectable()
-export class UpdateRentPaymentUseCase {
+export class DeleteRentPaymentUseCase {
   constructor(
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
     private readonly prisma: PrismaService,
     private readonly activityLog: ActivityLogService,
-  ) { }
+  ) {}
 
-  async execute(pmId: number, paymentUuid: string, data: any) {
+  async execute(pmId: number, paymentUuid: string) {
     // 1. Find the payment and verify ownership
     const payment = await this.prisma.upward_pm_rent_payment.findUnique({
       where: { uuid: paymentUuid },
@@ -24,15 +24,16 @@ export class UpdateRentPaymentUseCase {
     }
 
     if (payment.method?.toUpperCase() === 'PAYSTACK') {
-      throw new BadRequestException('Payments recorded automatically via the Upward Pay app cannot be edited.');
+      throw new BadRequestException('Payments recorded automatically via the Upward Pay app cannot be deleted.');
     }
 
-    // 2. Update the PM record
-    const updatedPayment = await this.unitRepository.updateRentPayment(paymentUuid, data);
-
-    // Recalculate unit's active occupancy period.
     const unitUuid = payment.unit.uuid;
     const unit = payment.unit;
+
+    // 2. Delete PM payment record directly from database
+    await this.unitRepository.deleteRentPayment(paymentUuid);
+
+    // 3. Recalculate unit's active occupancy period based on remaining payments
     const allPaymentsAfter = await this.unitRepository.getRentPayments(unitUuid);
     const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
 
@@ -71,31 +72,45 @@ export class UpdateRentPaymentUseCase {
           }
         });
       }
+    } else if (sortedPeriods.length > 0) {
+      const incompletePeriod = sortedPeriods[0]!;
+      await this.unitRepository.update(unitUuid, {
+        rentStartDate: incompletePeriod.periodStart,
+        rentDueDate: incompletePeriod.periodEnd
+      });
+
+      if (unit.isSynced && unit.userPropertyUuid) {
+        await this.prisma.upward_user_property.updateMany({
+          where: { uuid: unit.userPropertyUuid },
+          data: {
+            rentStartDate: incompletePeriod.periodStart,
+            rentEndDate: incompletePeriod.periodEnd
+          }
+        });
+      }
     }
 
     // Log Activity
     await this.activityLog.log({
       pmId,
       ownerPmId: payment.unit.property.pmId,
-      action: ActivityAction.UPDATE_RENT,
+      action: ActivityAction.DELETE_RENT,
       entityType: 'PAYMENT',
       entityId: paymentUuid,
-      description: `Updated rent payment for ${payment.unit.unitName} (${payment.unit.property.name})`,
+      description: `Deleted rent payment record of ${payment.amount} for ${payment.unit.unitName} (${payment.unit.property.name})`,
       metadata: {
-        before: { amount: payment.amount, date: payment.paymentDate },
-        after: data
+        amount: payment.amount,
+        paymentDate: payment.paymentDate
       }
     });
 
-    // 3. If unit is synced, try to update the corresponding rent cycle in Upward Core
+    // 4. If unit is synced, clean up matching rent cycle record in Upward Core
     if (payment.unit.isSynced && payment.unit.userPropertyUuid) {
       const userProperty = await this.prisma.upward_user_property.findUnique({
         where: { uuid: payment.unit.userPropertyUuid }
       });
 
       if (userProperty) {
-        // Try to find the matching rent cycle
-        // We match by the old values to find the right record
         const matchingCycle = await this.prisma.upward_rent_cycle.findFirst({
           where: {
             userPropertyId: userProperty.id,
@@ -105,20 +120,13 @@ export class UpdateRentPaymentUseCase {
         });
 
         if (matchingCycle) {
-          await this.prisma.upward_rent_cycle.update({
-            where: { id: matchingCycle.id },
-            data: {
-              amountPaid: data.amount !== undefined ? data.amount : undefined,
-              amountOwed: data.amount !== undefined ? data.amount : undefined, // Keep in sync for history
-              paidAt: data.paymentDate ? new Date(data.paymentDate) : undefined,
-              dueDate: data.periodEnd ? new Date(data.periodEnd) : (data.paymentDate ? new Date(data.paymentDate) : undefined),
-              description: data.notes !== undefined ? data.notes : undefined,
-            }
-          });
+          await this.prisma.upward_rent_cycle.delete({
+            where: { id: matchingCycle.id }
+          }).catch(() => null);
         }
       }
     }
 
-    return updatedPayment;
+    return { success: true, message: 'Rent payment record deleted' };
   }
 }
