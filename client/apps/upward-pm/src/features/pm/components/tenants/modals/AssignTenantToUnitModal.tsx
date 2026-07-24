@@ -94,7 +94,6 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
       rentAmountPaid: parseFloat(rentDetails.rentAmountPaid) || 0,
       rentAmount: parseFloat(rentDetails.rentAmount),
       rentType: rentDetails.rentType,
-      leaseYears: parseInt(String(rentDetails.leaseYears || '1'), 10) || 1,
       rentStartDate: rentDetails.rentStartDate,
       rentDueDate: rentDetails.rentDueDate
     }, {
