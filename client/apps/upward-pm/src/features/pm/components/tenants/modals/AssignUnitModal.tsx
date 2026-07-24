@@ -26,6 +26,7 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
   const [rentDetails, setRentDetails] = useState({
     rentAmount: '',
     rentType: 'Annually',
+    leaseYears: '1',
     rentStartDate: '',
     rentDueDate: '',
     rentAmountPaid: '0'
@@ -39,6 +40,7 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
       setRentDetails({
         rentAmount: selectedUnit.rentAmount?.toString() || '',
         rentType: selectedUnit.rentType || 'Annually',
+        leaseYears: (selectedUnit as any).leaseYears?.toString() || '1',
         rentStartDate: selectedUnit.rentStartDate ? new Date(selectedUnit.rentStartDate).toISOString().split('T')[0] : '',
         rentDueDate: selectedUnit.rentDueDate ? new Date(selectedUnit.rentDueDate).toISOString().split('T')[0] : '',
         rentAmountPaid: '0'
@@ -49,18 +51,28 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
   // Auto-calculate End Date
   React.useEffect(() => {
     if (rentDetails.rentStartDate && rentDetails.rentType) {
-      const start = new Date(rentDetails.rentStartDate)
+      const [y, m, d] = rentDetails.rentStartDate.split('-').map(Number)
+      if (!y || !m || !d) return
+      const start = new Date(Date.UTC(y, m - 1, d))
       if (isNaN(start.getTime())) return
-      const end = new Date(start)
-      if (rentDetails.rentType === 'Monthly') end.setMonth(end.getMonth() + 1)
-      else end.setFullYear(end.getFullYear() + 1)
-      end.setDate(end.getDate() - 1)
+
+      const end = new Date(start.getTime())
+      if (rentDetails.rentType === 'Monthly') {
+        end.setUTCMonth(end.getUTCMonth() + 1)
+      } else if (rentDetails.rentType === 'Lease') {
+        const years = Math.max(1, parseInt(String(rentDetails.leaseYears || '1'), 10) || 1)
+        end.setUTCFullYear(end.getUTCFullYear() + years)
+      } else {
+        end.setUTCFullYear(end.getUTCFullYear() + 1)
+      }
+      end.setUTCDate(end.getUTCDate() - 1)
+
       const formatted = end.toISOString().split('T')[0]
       if (formatted !== rentDetails.rentDueDate) {
         setRentDetails(prev => ({ ...prev, rentDueDate: formatted }))
       }
     }
-  }, [rentDetails.rentStartDate, rentDetails.rentType])
+  }, [rentDetails.rentStartDate, rentDetails.rentType, rentDetails.leaseYears])
 
   if (!isOpen) return null
 
@@ -76,7 +88,8 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
     !rentDetails.rentAmount || 
     !rentDetails.rentType || 
     !rentDetails.rentStartDate || 
-    !rentDetails.rentDueDate
+    !rentDetails.rentDueDate ||
+    (rentDetails.rentType === 'Lease' && (!rentDetails.leaseYears || parseInt(String(rentDetails.leaseYears), 10) < 1))
   ))
 
   const handleConfirmAssign = () => {
@@ -163,7 +176,7 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
                 <h5 style={{ fontSize: 11, fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tenancy Terms</h5>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: rentDetails.rentType === 'Lease' ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr', gap: 12 }}>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: 11 }}>Rent Amount (₦)</label>
                 <input 
@@ -192,10 +205,24 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
                   onChange={(val) => setRentDetails({...rentDetails, rentType: val})}
                   options={[
                     { label: 'Annually', value: 'Annually' },
-                    { label: 'Monthly', value: 'Monthly' }
+                    { label: 'Monthly', value: 'Monthly' },
+                    { label: 'Lease', value: 'Lease' }
                   ]}
                 />
               </div>
+              {rentDetails.rentType === 'Lease' && (
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: 11 }}>Lease Years</label>
+                  <input 
+                    type="number"
+                    min="1"
+                    className={cn("form-input", (!rentDetails.leaseYears || parseInt(String(rentDetails.leaseYears), 10) < 1) && "form-input--error")}
+                    style={{ fontSize: 13, padding: '10px 14px' }}
+                    value={rentDetails.leaseYears}
+                    onChange={(e) => setRentDetails({...rentDetails, leaseYears: e.target.value})}
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -213,19 +240,21 @@ export const AssignUnitModal: React.FC<AssignUnitModalProps> = ({
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Calendar size={12} /> End Date
+                    <Calendar size={12} /> End Date (Auto-calculated)
                 </label>
                 <input 
                   type="date"
+                  readOnly
                   className={cn("form-input", !rentDetails.rentDueDate && "form-input--error")}
-                  style={{ fontSize: 13, padding: '10px 14px' }}
+                  style={{ fontSize: 13, padding: '10px 14px', background: 'var(--bg)', cursor: 'not-allowed', opacity: 0.8 }}
                   value={rentDetails.rentDueDate}
-                  onChange={(e) => setRentDetails({...rentDetails, rentDueDate: e.target.value})}
+                  title="Auto-calculated based on rent start date and cycle"
                 />
               </div>
             </div>
           </div>
         )}
+
 
       <style jsx>{`
         .unit-selection-list {

@@ -290,4 +290,11 @@ export class PrismaPmUnitRepository implements IUnitRepository {
       } : undefined
     };
   }
+
+  async deleteRentPayment(paymentUuid: string): Promise<boolean> {
+    await this.prisma.upward_pm_rent_payment.delete({
+      where: { uuid: paymentUuid }
+    });
+    return true;
+  }
 }

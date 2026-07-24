@@ -66,7 +66,13 @@ export function RentalConfirmView() {
         <ConfirmRow label="Payment account" value={paymentLabel} />
         <ConfirmRow label="Landlord / manager" value={managerLabel || '—'} />
         <ConfirmRow
-          label={draft.formData.rentType === 'Monthly' ? 'Monthly rent' : 'Annual rent'}
+          label={
+            draft.formData.rentType === 'Monthly'
+              ? 'Monthly rent'
+              : draft.formData.rentType === 'Lease'
+                ? 'Lease rent'
+                : 'Annual rent'
+          }
           value={
             draft.formData.rentAmount
               ? formatCurrency(parseFloat(draft.formData.rentAmount.replace(/,/g, '')), 'NGN')

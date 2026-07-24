@@ -147,9 +147,15 @@ export class UnitImportDto {
   @IsOptional()
   rentType?: string;
 
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  leaseYears?: number;
+
   @IsString()
   @IsOptional()
   currency?: string;
+
 
   @IsString()
   @IsOptional()
@@ -269,9 +275,15 @@ export class FullImportRowDto {
   @IsOptional()
   unitRentType?: string;
 
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  leaseYears?: number;
+
   @IsString()
   @IsOptional()
   unitCurrency?: string;
+
 
   @IsString()
   @IsOptional()

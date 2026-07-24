@@ -49,6 +49,7 @@ import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/do
 import { GetUnitPaymentsUseCase } from '../../../application/pm/use-cases/get-unit-payments.use-case';
 import { AddUnitPaymentUseCase } from '../../../application/pm/use-cases/add-unit-payment.use-case';
 import { UpdateRentPaymentUseCase } from '../../../application/pm/use-cases/update-rent-payment.use-case';
+import { DeleteRentPaymentUseCase } from '../../../application/pm/use-cases/delete-rent-payment.use-case';
 import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
 
 import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-full-import.use-case';
@@ -99,6 +100,7 @@ export class LandlordManagementController {
     private readonly getUnitPaymentsUseCase: GetUnitPaymentsUseCase,
     private readonly addUnitPaymentUseCase: AddUnitPaymentUseCase,
     private readonly updateRentPaymentUseCase: UpdateRentPaymentUseCase,
+    private readonly deleteRentPaymentUseCase: DeleteRentPaymentUseCase,
     private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
 
     private readonly getPendingCredibilityRequestsUseCase: GetPendingCredibilityRequestsUseCase,
@@ -385,6 +387,12 @@ export class LandlordManagementController {
   async updateUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string, @Body() dto: any) {
     const pmId = await this.getElevatedPmId(req);
     return this.updateRentPaymentUseCase.execute(pmId, paymentUuid, dto);
+  }
+
+  @Delete('units/:unitUuid/payments/:paymentUuid')
+  async deleteUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string) {
+    const pmId = await this.getElevatedPmId(req);
+    return this.deleteRentPaymentUseCase.execute(pmId, paymentUuid);
   }
 
   @Post('units/:unitUuid/payments/bulk')

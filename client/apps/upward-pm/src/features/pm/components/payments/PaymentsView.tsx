@@ -112,9 +112,16 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
     {
       header: 'Status',
       render: (req) => (
-        <span className={`status-chip status-chip--${req.status.toLowerCase()}`}>
-          {req.status}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className={`status-chip status-chip--${req.status.toLowerCase()}`}>
+            {req.status}
+          </span>
+          {req.isSelfPayment && (
+            <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--accent-faint)', color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' }}>
+              Self-Paid
+            </span>
+          )}
+        </div>
       )
     },
     {

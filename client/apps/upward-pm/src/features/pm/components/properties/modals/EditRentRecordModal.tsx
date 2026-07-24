@@ -16,6 +16,8 @@ interface EditRentRecordModalProps {
 export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
   isOpen, onClose, onSave, isPending, unitName, rentType, record
 }) => {
+  const isPaystack = record?.method?.toUpperCase() === 'PAYSTACK'
+
   const [formData, setFormData] = useState({
     amount: '',
     paymentDate: '',
@@ -43,7 +45,6 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
   // Auto-calculate Period End based on Period Start and rentType
   useEffect(() => {
     if (formData.periodStart && rentType && record) {
-        // Only auto-calc if periodStart changed from original OR if periodEnd was empty
         const originalStart = record.periodStart ? new Date(record.periodStart).toISOString().split('T')[0] : ''
         if (formData.periodStart !== originalStart || !formData.periodEnd) {
             const start = new Date(formData.periodStart)
@@ -69,6 +70,7 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
   if (!isOpen) return null;
 
   const handleSubmit = () => {
+    if (isPaystack) return
     onSave({
       ...formData,
       amount: parseFloat(formData.amount)
@@ -91,19 +93,26 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
             className="btn btn--primary" 
             style={{ flex: 1 }} 
             onClick={handleSubmit} 
-            disabled={isPending || !formData.amount}
+            disabled={isPending || !formData.amount || isPaystack}
           >
             {isPending ? 'Saving...' : 'Update Record'}
           </button>
         </div>
       }
     >
-        <div className="form-group" style={{ marginTop: '20px' }}>
+        {isPaystack && (
+          <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fecaca)', color: 'var(--error, #991b1b)', fontSize: 13, lineHeight: 1.4 }}>
+            🔒 <strong>Automated Payment Record:</strong> Payments recorded automatically via Upward Pay (Paystack) are verified online transactions and cannot be edited.
+          </div>
+        )}
+
+        <div className="form-group" style={{ marginTop: isPaystack ? '16px' : '20px' }}>
           <label className="form-label">Amount (₦)</label>
           <input
             type="number"
             className="form-input"
             placeholder="e.g. 500000"
+            disabled={isPaystack}
             value={formData.amount}
             onChange={e => setFormData({ ...formData, amount: e.target.value })}
           />
@@ -114,6 +123,7 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
           <input
             type="date"
             className="form-input"
+            disabled={isPaystack}
             value={formData.paymentDate}
             onChange={e => setFormData({ ...formData, paymentDate: e.target.value })}
           />
@@ -125,6 +135,7 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
             <input
               type="date"
               className="form-input"
+              disabled={isPaystack}
               value={formData.periodStart}
               onChange={e => setFormData({ ...formData, periodStart: e.target.value })}
             />
@@ -134,6 +145,7 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
             <input
               type="date"
               className="form-input"
+              disabled={isPaystack}
               value={formData.periodEnd}
               onChange={e => setFormData({ ...formData, periodEnd: e.target.value })}
             />
@@ -144,13 +156,15 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
           <label className="form-label">Payment Method</label>
           <FormSelect
             value={formData.method}
+            disabled={isPaystack}
             onChange={val => setFormData({ ...formData, method: val })}
             options={[
               { label: 'Bank Transfer', value: 'Bank Transfer' },
               { label: 'Cash', value: 'Cash' },
               { label: 'Card', value: 'Card' },
+              { label: 'Cheque', value: 'Cheque' },
               { label: 'Other', value: 'Other' },
-              { label: 'Paystack', value: 'PAYSTACK' }
+              ...(isPaystack ? [{ label: 'Paystack', value: 'PAYSTACK' }] : [])
             ]}
           />
         </div>
@@ -159,6 +173,7 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
           <label className="form-label">Notes (Optional)</label>
           <textarea
             className="form-input"
+            disabled={isPaystack}
             style={{ height: '80px', padding: '12px' }}
             placeholder="Additional details..."
             value={formData.notes}

@@ -213,27 +213,25 @@ export class VerifyGatewayTransactionUseCase {
       return { isVerified: false, user, isNew: true }
     }
 
+    const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
+    if (isTestKey && data.reference.startsWith('TFD_')) {
+      const parts = data.reference.split('_')
+      const mockAmount = parseFloat(parts[2]!) || 50000
+      this.logger.log(`[MOCK] Allowing verification bypass for test reference: ${data.reference}, verifiedAmount: ${mockAmount}`)
+      return { 
+        isVerified: true, 
+        verifiedAmount: mockAmount, 
+        user, 
+        isNew: true 
+      }
+    }
+
     let verifiedData: any = { status: false }
     try {
       verifiedData = await this.gateway.verifyTransaction(data.reference)
     } catch (e) {
       this.logger.error(`Gateway verification failed for ${data.reference}:`, e)
       return { isVerified: false, user, isNew: true }
-    }
-
-    if (!verifiedData.status) {
-      const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
-      if (isTestKey && data.reference.startsWith('TFD_')) {
-        const parts = data.reference.split('_')
-        const mockAmount = parseFloat(parts[2]!) || 50000
-        this.logger.log(`[MOCK] Allowing verification bypass for test reference: ${data.reference}, verifiedAmount: ${mockAmount}`)
-        return { 
-          isVerified: true, 
-          verifiedAmount: mockAmount, 
-          user, 
-          isNew: true 
-        }
-      }
     }
 
     return { 

@@ -94,7 +94,11 @@ export function RichTextEditor({
                           editor.insertContent(selectedSig.content)
                         } else {
                           const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-                          const absoluteUrl = selectedSig.fileUrl.startsWith('http') ? selectedSig.fileUrl : `${apiUrl}${selectedSig.fileUrl}`;
+                          let absoluteUrl = selectedSig.fileUrl;
+                          if (!absoluteUrl.startsWith('http')) {
+                            const base = apiUrl.replace(/\/api\/v1\/?$/, '');
+                            absoluteUrl = `${base}${selectedSig.fileUrl}`;
+                          }
                           editor.insertContent(`<img src="${absoluteUrl}" alt="${selectedSig.name}" style="max-height: 80px; width: auto;" />`)
                         }
                       }

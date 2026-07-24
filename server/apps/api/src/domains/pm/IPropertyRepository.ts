@@ -123,6 +123,7 @@ export interface IUnitRepository {
   getRentPayments(unitUuid: string): Promise<RentPaymentEntity[]>;
   addRentPayment(unitUuid: string, data: Omit<RentPaymentEntity, 'id' | 'uuid' | 'unitId'>): Promise<RentPaymentEntity>;
   updateRentPayment(paymentUuid: string, data: Partial<Omit<RentPaymentEntity, 'id' | 'uuid' | 'unitId'>>): Promise<RentPaymentEntity>;
+  deleteRentPayment(paymentUuid: string): Promise<boolean>;
 }
 
 export const PM_TENANT_REPOSITORY = Symbol('PM_TENANT_REPOSITORY');

@@ -51,6 +51,7 @@ export interface Unit {
   notes?: string;
   status: string;
   currency: string;
+  leaseYears?: number;
   unitType?: string;
   rentAmountPaid?: number;
   rentReminderEnabled: boolean;
@@ -144,6 +145,12 @@ export const updateUnitPayment = (unitUuid: string, paymentUuid: string, data: a
   return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
     method: 'PATCH',
     body: JSON.stringify(data)
+  })
+}
+
+export const deleteUnitPayment = (unitUuid: string, paymentUuid: string) => {
+  return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
+    method: 'DELETE'
   })
 }
 

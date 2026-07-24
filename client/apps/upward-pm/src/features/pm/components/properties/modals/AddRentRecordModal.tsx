@@ -61,7 +61,9 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       const end = new Date(start)
       if (rentType === 'Monthly') {
         end.setMonth(end.getMonth() + 1)
-      } else if (rentType === 'Annually' || rentType === 'Yearly') {
+      } else if (rentType === 'Lease' || rentType === 'LEASE') {
+        end.setFullYear(end.getFullYear() + 1)
+      } else {
         end.setFullYear(end.getFullYear() + 1)
       }
 

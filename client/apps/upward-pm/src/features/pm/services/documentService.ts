@@ -56,6 +56,8 @@ export const documentService = {
     fromEmail?: string;
     includeLetterhead?: boolean;
     deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
+    templateId?: number;
+    templateName?: string;
     recipients: Array<{
       uuid: string;
       type: 'TENANT' | 'LANDLORD';
