@@ -114,7 +114,7 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                         >
                           <span>{row[col.key] || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
                           {!error && warning && (
-                            <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0 }} title={warning} />
+                            <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0 }} />
                           )}
                         </div>
                       )}
