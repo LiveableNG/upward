@@ -347,19 +347,17 @@ export function BulkDocumentEditorView({
       return
     }
 
-    if (deliveryMode === 'whatsapp') {
-      // For WhatsApp, we download the PDF and show instructions
-      return handleDownloadPdf()
-    }
     setIsSending(true)
     try {
       await sendBulkDocument.mutateAsync({
         fromEmail: isSystemTemplate ? fromEmail : undefined,
         subject,
         content,
-        documentType: deliveryMode === 'email' ? (emailFormat === 'pdf' ? 'PDF' : 'EMAIL') : 'SMS',
+        documentType: deliveryMode === 'whatsapp' ? 'PDF' : (deliveryMode === 'email' ? (emailFormat === 'pdf' ? 'PDF' : 'EMAIL') : 'SMS'),
         includeLetterhead: hasLetterhead ? includeLetterhead : false,
-        deliveryChannel: deliveryMode === 'sms' ? 'SMS' : 'EMAIL',
+        deliveryChannel: deliveryMode === 'whatsapp' ? 'WHATSAPP' : (deliveryMode === 'sms' ? 'SMS' : 'EMAIL'),
+        templateId: currentTemplate?.id,
+        templateName: currentTemplate?.name || currentTemplate?.subject || subject,
         recipients: validRecipients.map(r => ({
           uuid: r.uuid,
           type: r.type,
@@ -369,7 +367,11 @@ export function BulkDocumentEditorView({
         }))
       })
 
-      success(`Document dispatch initiated for ${validRecipients.length} recipients.`)
+      if (deliveryMode === 'whatsapp') {
+        await handleDownloadPdf()
+      } else {
+        success(`Document dispatch initiated for ${validRecipients.length} recipients.`)
+      }
       setTimeout(() => {
         onBack()
       }, 1500)

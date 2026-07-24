@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendDocumentUseCase, SendDocumentDto } from './send-document.use-case';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 
 export interface BulkSendDocumentDto {
   subject: string;
@@ -9,6 +10,8 @@ export interface BulkSendDocumentDto {
   includeLetterhead?: boolean;
   deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
   fromEmail?: string;
+  templateId?: number;
+  templateName?: string;
   recipients: Array<{
     uuid: string;
     type: 'TENANT' | 'LANDLORD';
@@ -25,10 +28,37 @@ export class SendBulkDocumentUseCase {
   constructor(
     private readonly sendDocumentUseCase: SendDocumentUseCase,
     private readonly eventEmitter: EventEmitter2,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(actorPmId: number, actorPmUuid: string, data: BulkSendDocumentDto) {
-    this.logger.log(`Initiating bulk send for ${data.recipients.length} recipients...`);
+    const templateLabel = data.templateName ? `template "${data.templateName}" (ID: ${data.templateId ?? 'N/A'})` : `custom subject "${data.subject}"`;
+    this.logger.log(`Initiating bulk send for ${data.recipients.length} recipients using ${templateLabel}...`);
+
+    try {
+      const isWhatsapp = data.deliveryChannel === 'WHATSAPP';
+      const actionVerb = isWhatsapp
+        ? `Generated WhatsApp bulk PDF for "${data.subject}"`
+        : `Bulk sent document "${data.subject}"`;
+
+      await this.activityLog.log({
+        pmId: actorPmId,
+        ownerPmId: actorPmId,
+        action: ActivityAction.BULK_SEND_DOCUMENT,
+        entityType: 'DOCUMENT',
+        entityId: data.templateId ? String(data.templateId) : undefined,
+        description: `${actionVerb} using ${data.templateName ? `template "${data.templateName}"` : 'custom content'} for ${data.recipients.length} recipients`,
+        metadata: {
+          templateId: data.templateId,
+          templateName: data.templateName,
+          recipientCount: data.recipients.length,
+          documentType: data.documentType,
+          deliveryChannel: data.deliveryChannel,
+        },
+      });
+    } catch (err) {
+      this.logger.error('Failed to write bulk document activity log:', err);
+    }
 
     this.processBulkDispatch(actorPmId, actorPmUuid, data);
 
