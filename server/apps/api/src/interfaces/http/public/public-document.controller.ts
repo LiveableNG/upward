@@ -22,17 +22,7 @@ export class PublicDocumentController {
     const pdfS3Key = document.content.replace('.html', '.pdf');
     
     try {
-      const buffer = await this.s3Service.getFileBuffer(pdfS3Key);
-
-      if (typeof res.set === 'function') {
-        res.set('Content-Type', 'application/pdf');
-        res.set('Content-Disposition', 'inline; filename=document.pdf');
-      } else {
-        res.header('Content-Type', 'application/pdf');
-        res.header('Content-Disposition', 'inline; filename=document.pdf');
-      }
-
-      return new StreamableFile(buffer);
+      return await this.s3Service.streamFile(pdfS3Key, res, { filename: 'document.pdf', contentType: 'application/pdf' });
     } catch (err) {
       throw new NotFoundException('Document PDF could not be retrieved from storage');
     }
@@ -49,19 +39,7 @@ export class PublicDocumentController {
     }
 
     try {
-      const buffer = await this.s3Service.getFileBuffer(signature.fileKey);
-      const ext = signature.fileKey.split('.').pop() || 'png';
-      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-
-      if (typeof res.set === 'function') {
-        res.set('Content-Type', contentType);
-        res.set('Cache-Control', 'public, max-age=31536000');
-      } else {
-        res.header('Content-Type', contentType);
-        res.header('Cache-Control', 'public, max-age=31536000');
-      }
-
-      return new StreamableFile(buffer);
+      return await this.s3Service.streamFile(signature.fileKey, res, { cacheControl: 'public, max-age=31536000' });
     } catch (err) {
       throw new NotFoundException('Signature image could not be retrieved from storage');
     }
@@ -71,19 +49,7 @@ export class PublicDocumentController {
   async getUserAvatar(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
     const s3Key = `users/${uuid}/avatar/${filename}`;
     try {
-      const buffer = await this.s3Service.getFileBuffer(s3Key);
-      const ext = filename.split('.').pop() || 'png';
-      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-
-      if (typeof res.set === 'function') {
-        res.set('Content-Type', contentType);
-        res.set('Cache-Control', 'public, max-age=31536000');
-      } else {
-        res.header('Content-Type', contentType);
-        res.header('Cache-Control', 'public, max-age=31536000');
-      }
-
-      return new StreamableFile(buffer);
+      return await this.s3Service.streamFile(s3Key, res, { cacheControl: 'public, max-age=31536000' });
     } catch (err) {
       throw new NotFoundException('Avatar could not be retrieved');
     }
@@ -93,19 +59,7 @@ export class PublicDocumentController {
   async getPmAvatar(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
     const s3Key = `pm/${uuid}/avatar/${filename}`;
     try {
-      const buffer = await this.s3Service.getFileBuffer(s3Key);
-      const ext = filename.split('.').pop() || 'png';
-      const contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-
-      if (typeof res.set === 'function') {
-        res.set('Content-Type', contentType);
-        res.set('Cache-Control', 'public, max-age=31536000');
-      } else {
-        res.header('Content-Type', contentType);
-        res.header('Cache-Control', 'public, max-age=31536000');
-      }
-
-      return new StreamableFile(buffer);
+      return await this.s3Service.streamFile(s3Key, res, { cacheControl: 'public, max-age=31536000' });
     } catch (err) {
       throw new NotFoundException('Avatar could not be retrieved');
     }
@@ -127,34 +81,10 @@ export class PublicDocumentController {
         const mimeTypeMatch = job.fileUrl.match(/^data:([^;]+);/);
         const contentType = mimeTypeMatch ? mimeTypeMatch[1] : 'application/octet-stream';
         const buffer = Buffer.from(base64Data, 'base64');
-        
-        if (typeof res.set === 'function') {
-          res.set('Content-Type', contentType);
-          res.set('Content-Disposition', `inline; filename="${job.originalFileName}"`);
-        } else {
-          res.header('Content-Type', contentType);
-          res.header('Content-Disposition', `inline; filename="${job.originalFileName}"`);
-        }
-        return new StreamableFile(buffer);
+        return S3Service.streamBuffer(buffer, job.originalFileName || 'file', res, { contentType });
       }
 
-      const buffer = await this.s3Service.getFileBuffer(job.fileUrl); // fileUrl stores the S3 key
-      const ext = job.fileUrl.split('.').pop() || 'bin';
-      let contentType = 'application/octet-stream';
-      if (ext === 'pdf') contentType = 'application/pdf';
-      else if (ext === 'png') contentType = 'image/png';
-      else if (ext === 'jpg' || ext === 'jpeg') contentType = 'image/jpeg';
-      else if (ext === 'csv') contentType = 'text/csv';
-
-      if (typeof res.set === 'function') {
-        res.set('Content-Type', contentType);
-        res.set('Content-Disposition', `inline; filename="${job.originalFileName}"`);
-      } else {
-        res.header('Content-Type', contentType);
-        res.header('Content-Disposition', `inline; filename="${job.originalFileName}"`);
-      }
-
-      return new StreamableFile(buffer);
+      return await this.s3Service.streamFile(job.fileUrl, res, { filename: job.originalFileName });
     } catch (err) {
       throw new NotFoundException('Relay document could not be retrieved from storage');
     }

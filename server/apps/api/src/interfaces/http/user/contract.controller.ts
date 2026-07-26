@@ -18,6 +18,7 @@ import { GetContractUploadUrlUseCase } from '../../../application/use-cases/cont
 import { GetContractsUseCase } from '../../../application/use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from '../../../application/use-cases/contracts/delete-contract.use-case'
 import { DownloadContractUseCase } from '../../../application/use-cases/contracts/download-contract.use-case'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Controller('user/contracts')
 @UseGuards(JwtAuthGuard)
@@ -104,26 +105,15 @@ export class ContractController {
   async download(
     @Req() req: any,
     @Param('uuid') uuid: string,
-    @Res() res: any,
+    @Res({ passthrough: true }) res: any,
   ) {
     const userId = req.user.id
     const { buffer, fileName, fileType } = await this.downloadContract.execute(userId, uuid)
 
-    const sanitizedFileName = encodeURIComponent(fileName || 'document.pdf')
-
-    if (typeof res.set === 'function') {
-      res.set({
-        'Content-Type': fileType || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${sanitizedFileName}"`,
-        'Content-Length': buffer.length,
-      })
-      res.send(buffer)
-    } else {
-      res.header('Content-Type', fileType || 'application/octet-stream')
-      res.header('Content-Disposition', `attachment; filename="${sanitizedFileName}"`)
-      res.header('Content-Length', buffer.length)
-      res.send(buffer)
-    }
+    return S3Service.streamBuffer(buffer, fileName || 'document.pdf', res, {
+      isAttachment: true,
+      contentType: fileType,
+    })
   }
 
   @Delete(':uuid')

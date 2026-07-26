@@ -92,6 +92,7 @@ export class DevEmailAdminController {
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async clearAllDevEmails() {
     await this.prisma.upward_dev_email_preview.deleteMany()
+    await this.s3Service.deleteObjectsWithPrefix('dev-emails/')
     return { success: true, message: 'All dev preview emails have been cleared.' }
   }
 }
