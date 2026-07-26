@@ -647,6 +647,35 @@ const templates = [
     ]
   },
   {
+    name: 'tenant_property_verified_v1',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nYour property at *{{2}}* has been verified by your property manager *{{3}}*.\n\nYou can now manage payments for this unit and build your Rent Passport on Upward.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', '123 Main St', 'Jane Doe']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+
+  {
     name: 'upward_system_alert',
     category: 'UTILITY',
     language: 'en_US',

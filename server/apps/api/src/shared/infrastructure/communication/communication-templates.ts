@@ -368,6 +368,25 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       }),
   },
 
+  TENANT_PROPERTY_VERIFIED: {
+    recipientRole: 'TENANT',
+    subjectTemplate: 'Your property has been verified! 🎉',
+    plainTextTemplate: 'Hello {{tenantName}}, your property at {{propertyName}} has been verified by {{pmName}}. You can now manage your rent payments on Upward.',
+    whatsappTemplateName: 'tenant_property_verified_v1',
+    whatsappParams: ['tenantName', 'propertyName', 'pmName'],
+    buildHtml: (ctx) => buildGlobalLayoutHtml({
+      role: 'TENANT',
+      title: 'Property Verified',
+      contentHtml: `
+        <p>Hello ${ctx.tenantName},</p>
+        <p>Great news! Your property at <strong>${ctx.propertyName}</strong> has been successfully verified by your property manager, <strong>${ctx.pmName}</strong>.</p>
+        <p>You can now log in to your Upward account to view your tenancy details, track your rent payments, and build your rental credibility score.</p>
+      `,
+      buttonText: 'View Property Dashboard',
+      buttonUrl: ctx.portalUrl || 'https://upward.goodtenants.io/login',
+    }),
+  },
+
   PM_CONNECTION_REQUEST: {
     recipientRole: 'PM',
     subjectTemplate: 'New Connection Request: {{tenantName}}',
