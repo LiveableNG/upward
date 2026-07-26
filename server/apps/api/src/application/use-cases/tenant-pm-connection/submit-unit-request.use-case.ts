@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { ActivityLogService } from '../../../shared/application/activity-log.service';
 import { InvitePmUseCase } from './invite-pm.use-case';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/payment.repository';
@@ -40,6 +41,7 @@ export class SubmitUnitRequestUseCase {
     private readonly encryption: EncryptionService,
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(
@@ -130,6 +132,41 @@ export class SubmitUnitRequestUseCase {
             unitDetails: unitDetails,
           }
         });
+
+        // 1. Create In-App Notification for PM
+        await this.prisma.upward_pm_notification.create({
+          data: {
+            pmId: pm.id!,
+            title: 'New Connection Request',
+            message: `${decryptedFirstName} ${decryptedLastName} wants to connect and sync their unit (${unitDetails.address}) with you.`,
+            type: 'TENANT_REQUEST',
+            isPopup: false,
+            url: '/dashboard',
+          }
+        });
+
+        // 2. If the PM is already registered (not shadow/pending invite), send a notification email
+        if (pm.passwordHash && !pm.passwordHash.includes('PENDING_INVITE') && pm.passwordHash !== 'PENDING_INVITE') {
+          const pmDecryptedEmail = pm.email ? (this.encryption.decrypt(pm.email).includes('@') ? this.encryption.decrypt(pm.email) : pm.email) : undefined;
+          const pmDecryptedName = pm.firstName ? `${this.encryption.decrypt(pm.firstName)} ${pm.lastName ? this.encryption.decrypt(pm.lastName) : ''}`.trim() : 'Property Manager';
+          
+          if (pmDecryptedEmail) {
+            await this.unifiedCommService.processCommunication({
+              recipientEmail: pmDecryptedEmail,
+              recipientName: pmDecryptedName,
+              recipientRole: 'PM',
+              pmUuid: pm.uuid,
+              type: 'PM_CONNECTION_REQUEST',
+              context: {
+                pmName: pmDecryptedName,
+                tenantName: `${decryptedFirstName} ${decryptedLastName}`.trim(),
+                unitAddress: unitDetails.address,
+                rentAmount: unitDetails.rentAmount,
+                portalUrl: process.env.PM_APP_URL || 'https://upward-pm.vercel.app/dashboard',
+              }
+            }).catch((err: any) => this.logger.error(`Failed to send PM connection request email: ${err.message}`));
+          }
+        }
       }
     }
 

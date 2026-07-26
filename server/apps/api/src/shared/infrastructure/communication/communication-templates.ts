@@ -368,6 +368,27 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       }),
   },
 
+  PM_CONNECTION_REQUEST: {
+    recipientRole: 'PM',
+    subjectTemplate: 'New Connection Request: {{tenantName}}',
+    plainTextTemplate: 'Hello {{pmName}}, {{tenantName}} wants to connect and sync their unit ({{unitAddress}}) with you. Log in to your dashboard to review this request.',
+    buildHtml: (ctx) => buildGlobalLayoutHtml({
+      role: 'PM',
+      title: 'New Connection Request',
+      contentHtml: `
+        <p>Hello ${ctx.pmName},</p>
+        <p><strong>${ctx.tenantName}</strong> wants to connect and sync a unit with you on Upward.</p>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
+          <p style="margin: 0; font-size: 14px; color: #4b5563;"><strong>Unit Address:</strong> ${ctx.unitAddress}</p>
+          <p style="margin: 8px 0 0 0; font-size: 14px; color: #4b5563;"><strong>Rent Amount:</strong> NGN ${ctx.rentAmount.toLocaleString()}</p>
+        </div>
+        <p>Please log in to your property manager portal to approve or decline this request.</p>
+      `,
+      buttonText: 'Review Connection Request',
+      buttonUrl: ctx.portalUrl || 'https://upward-pm.vercel.app/dashboard',
+    }),
+  },
+
   PM_INVITE: {
     recipientRole: 'PM',
     subjectTemplate: '{{userName}} wants to connect on Upward',

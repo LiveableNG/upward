@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { 
-  ChevronLeft, 
-  CreditCard, 
-  Calendar, 
-  User, 
-  Building2, 
-  CheckCircle2, 
-  Clock, 
+import {
+  ChevronLeft,
+  CreditCard,
+  Calendar,
+  User,
+  Building2,
+  CheckCircle2,
+  Clock,
   AlertCircle,
   Copy,
   ExternalLink,
@@ -42,7 +42,7 @@ export const PaymentDetailView: React.FC = () => {
   const { data: request, isLoading } = usePaymentRequest(uuid as string)
   const { mutate: resendInvoice, isPending: isResending } = useResendPaymentRequest()
   const cancelMutation = useCancelPaymentRequest()
-  
+
   const [activeTab, setActiveTab] = useState<'overview' | 'breakdown' | 'history'>('overview')
   const [showResendModal, setShowResendModal] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
@@ -142,33 +142,33 @@ export const PaymentDetailView: React.FC = () => {
     <div className="payment-detail-view animate-fade-in" style={{ paddingBottom: 60 }}>
       {/* Header */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-        <button 
-          onClick={() => router.back()} 
+        <button
+          onClick={() => router.back()}
           style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}
         >
           <ChevronLeft size={18} /> Back to Payments
         </button>
-        
+
         <div style={{ display: 'flex', gap: 12 }}>
           {request.status === 'PENDING' && request.amountPaid === 0 && (
-            <button 
-              className="btn btn--secondary" 
+            <button
+              className="btn btn--secondary"
               style={{ borderRadius: 12, padding: '10px 20px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--error)' }}
               onClick={() => setShowCancelConfirm(true)}
             >
               <Trash2 size={16} /> Cancel Request
             </button>
           )}
-          <button 
-            className="btn btn--secondary" 
+          <button
+            className="btn btn--secondary"
             style={{ borderRadius: 12, padding: '10px 20px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
             onClick={handleCopyLink}
           >
             <Copy size={16} /> Copy Link
           </button>
           {request.status !== 'PAID' && request.status !== 'CANCELLED' && (
-            <button 
-              className="btn btn--primary" 
+            <button
+              className="btn btn--primary"
               style={{ borderRadius: 12, padding: '10px 24px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}
               onClick={handleResendInvoice}
               disabled={isResending}
@@ -178,7 +178,7 @@ export const PaymentDetailView: React.FC = () => {
           )}
         </div>
       </header>
- 
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 32, alignItems: 'start' }}>
         {/* Main Content */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
@@ -187,7 +187,7 @@ export const PaymentDetailView: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                   <div style={{ padding: 10, background: 'var(--ivory-dim)', borderRadius: 12, color: 'var(--clay)' }}>
+                  <div style={{ padding: 10, background: 'var(--ivory-dim)', borderRadius: 12, color: 'var(--clay)' }}>
                     <Receipt size={24} />
                   </div>
                   <div>
@@ -203,7 +203,7 @@ export const PaymentDetailView: React.FC = () => {
                 </span>
               </div>
             </div>
- 
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
               <div style={{ padding: '20px', background: 'var(--bg)', borderRadius: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>Total Amount</label>
@@ -215,10 +215,10 @@ export const PaymentDetailView: React.FC = () => {
               </div>
               <div style={{ padding: '20px', background: 'var(--bg)', borderRadius: 16 }}>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 8, textTransform: 'uppercase' }}>Due Date</label>
-                <div style={{ 
-                  fontSize: 24, 
-                  fontWeight: 800, 
-                  color: (request.status === 'PENDING' || request.status === 'PARTIAL') && getStartOfDay(new Date(request.dueDate)) < getStartOfDay(new Date()) ? 'var(--error)' : 'var(--dark)' 
+                <div style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: (request.status === 'PENDING' || request.status === 'PARTIAL') && getStartOfDay(new Date(request.dueDate)) < getStartOfDay(new Date()) ? 'var(--error)' : 'var(--dark)'
                 }}>
                   {formatDate(request.dueDate)}
                 </div>
@@ -234,13 +234,13 @@ export const PaymentDetailView: React.FC = () => {
                 { id: 'breakdown', label: 'Payment Breakdown' },
                 { id: 'history', label: 'Transaction History' },
               ].map(tab => (
-                <button 
+                <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  style={{ 
-                    padding: '12px 4px', 
-                    fontSize: 14, 
-                    fontWeight: 700, 
+                  style={{
+                    padding: '12px 4px',
+                    fontSize: 14,
+                    fontWeight: 700,
                     color: activeTab === tab.id ? 'var(--dark)' : 'var(--text-muted)',
                     borderBottom: activeTab === tab.id ? '2px solid var(--clay)' : '2px solid transparent',
                     background: 'none',
@@ -270,7 +270,7 @@ export const PaymentDetailView: React.FC = () => {
                         <div style={{ fontWeight: 600 }}>{request.tenant.email}</div>
                       </div>
                       {!isPortal && (
-                        <Link 
+                        <Link
                           href={`/tenants/view?uuid=${request.tenant.uuid}`}
                           style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
                         >
@@ -298,7 +298,7 @@ export const PaymentDetailView: React.FC = () => {
                         <div style={{ fontWeight: 600 }}>{request.unit.property?.name || 'N/A'}</div>
                       </div>
                       {!isPortal && (
-                        <Link 
+                        <Link
                           href={`/properties/units/view?uuid=${request.unit.uuid}`}
                           style={{ fontSize: 12, fontWeight: 700, color: 'var(--clay)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 8 }}
                         >
@@ -336,10 +336,10 @@ export const PaymentDetailView: React.FC = () => {
                             <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right' }}>{request.currency} {item.amount.toLocaleString()}</td>
                             <td style={{ padding: '16px 0', fontSize: 14, fontWeight: 600, textAlign: 'right', color: statusColor }}>{request.currency} {paid.toLocaleString()}</td>
                             <td style={{ padding: '16px 0', textAlign: 'right' }}>
-                              <span style={{ 
+                              <span style={{
                                 fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 100,
                                 background: status === 'PAID' ? 'var(--forest-faint)' : status === 'PARTIAL' ? 'var(--ivory-dim)' : 'var(--bg)',
-                                color: statusColor 
+                                color: statusColor
                               }}>
                                 {status}
                               </span>
@@ -452,16 +452,16 @@ export const PaymentDetailView: React.FC = () => {
         maxWidth={450}
         footer={
           <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-            <button 
-              className="btn btn--secondary" 
-              style={{ flex: 1 }} 
+            <button
+              className="btn btn--secondary"
+              style={{ flex: 1 }}
               onClick={() => setShowResendModal(false)}
             >
               Cancel
             </button>
-            <button 
-              className="btn btn--primary" 
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} 
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               onClick={handleConfirmResend}
               disabled={isResending || !resendEmail}
             >
@@ -470,47 +470,47 @@ export const PaymentDetailView: React.FC = () => {
           </div>
         }
       >
-            <div className="form-group">
-              <label className="form-label">Recipient Email</label>
-              <input 
-                type="email" 
-                className="form-input"
-                value={resendEmail}
-                onChange={e => setResendEmail(e.target.value)}
-                placeholder="tenant@example.com"
-              />
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-                You can keep the current email or enter a different one to redirect the invoice.
-              </p>
-            </div>
+        <div className="form-group">
+          <label className="form-label">Recipient Email</label>
+          <input
+            type="email"
+            className="form-input"
+            value={resendEmail}
+            onChange={e => setResendEmail(e.target.value)}
+            placeholder="tenant@example.com"
+          />
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
+            You can keep the current email or enter a different one to redirect the invoice.
+          </p>
+        </div>
 
-            <div className="form-group" style={{ marginTop: 20 }}>
-              <label className="form-label">Delivery Channels</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-                {['EMAIL', 'SMS', 'WHATSAPP'].map(channel => (
-                  <label key={channel} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedChannels.includes(channel)}
-                      onChange={e => {
-                        if (e.target.checked) setSelectedChannels(prev => [...prev, channel])
-                        else setSelectedChannels(prev => prev.filter(c => c !== channel))
-                      }}
-                      style={{ accentColor: 'var(--clay)' }}
-                    />
-                    {channel === 'EMAIL' ? 'Email' : channel === 'SMS' ? 'SMS Text Message' : 'WhatsApp'}
-                  </label>
-                ))}
-              </div>
-              {request.tenant && !request.tenant.phone && (selectedChannels.includes('SMS') || selectedChannels.includes('WHATSAPP')) && (
-                <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <AlertCircle size={12} /> Tenant does not have a phone number on file. Delivery will fail.
-                </p>
-              )}
-            </div>
+        <div className="form-group" style={{ marginTop: 20 }}>
+          <label className="form-label">Delivery Channels</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+            {['EMAIL', 'SMS', 'WHATSAPP'].map(channel => (
+              <label key={channel} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedChannels.includes(channel)}
+                  onChange={e => {
+                    if (e.target.checked) setSelectedChannels(prev => [...prev, channel])
+                    else setSelectedChannels(prev => prev.filter(c => c !== channel))
+                  }}
+                  style={{ accentColor: 'var(--clay)' }}
+                />
+                {channel === 'EMAIL' ? 'Email' : channel === 'SMS' ? 'SMS Text Message' : 'WhatsApp'}
+              </label>
+            ))}
+          </div>
+          {request.tenant && !request.tenant.phone && (selectedChannels.includes('SMS') || selectedChannels.includes('WHATSAPP')) && (
+            <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <AlertCircle size={12} /> Tenant does not have a phone number on file. Delivery will fail.
+            </p>
+          )}
+        </div>
       </Modal>
 
-      <ConfirmationModal 
+      <ConfirmationModal
         isOpen={showCancelConfirm}
         onClose={() => setShowCancelConfirm(false)}
         onConfirm={handleCancel}
