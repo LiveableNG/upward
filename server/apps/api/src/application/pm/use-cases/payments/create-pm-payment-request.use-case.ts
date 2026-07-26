@@ -27,6 +27,7 @@ export interface CreatePmPaymentRequestDto {
   scheduledAt?: string; // Future scheduled delivery time
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
+  silent?: boolean;
 }
 
 @Injectable()
@@ -200,7 +201,7 @@ export class CreatePmPaymentRequestUseCase {
           url: '/dashboard',
         }
       });
-    } else if (unit.tenantId) {
+    } else if (unit.tenantId && !data.silent) {
       // Trigger Notification Event asynchronously
       this.pmTenantRepo.findById(unit.tenantId).then(tenant => {
         if (tenant && tenant.email) {

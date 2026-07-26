@@ -349,6 +349,25 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       }),
   },
 
+  PM_PASSWORD_RESET_OTP: {
+    recipientRole: 'PM',
+    subjectTemplate: 'Reset Your Upward Password: {{otp}}',
+    plainTextTemplate: 'Your Upward password reset code is {{otp}}. It expires in 15 minutes.',
+    buildHtml: (ctx) =>
+      buildGlobalLayoutHtml({
+        role: 'PM',
+        title: ctx.title || 'PM Password Reset Request',
+        contentHtml: `
+          <p>Hello ${ctx.displayName || ctx.greeting || 'there'},</p>
+          <p>${ctx.message || 'We received a request to reset your password. Use the verification code below to proceed:'}</p>
+          <div style="text-align: center; margin: 32px 0;">
+            <span style="font-size: 32px; font-weight: 800; color: #166534; letter-spacing: 4px; background: #faf9f5; border: 1px dashed #166534; padding: 12px 24px; border-radius: 8px; display: inline-block;">${ctx.otp || ''}</span>
+          </div>
+          <p>${ctx.expiryText || 'This code expires in 15 minutes. If you did not request this, please ignore this message.'}</p>
+        `,
+      }),
+  },
+
   PM_INVITE: {
     recipientRole: 'PM',
     subjectTemplate: '{{userName}} wants to connect on Upward',

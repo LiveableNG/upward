@@ -419,7 +419,7 @@ export class SendDocumentUseCase {
           context: {
             displayName: data.recipientName,
             subject: data.subject,
-            content,
+            htmlOverride: content,
           },
         });
     } catch (err) {

@@ -446,7 +446,7 @@ export function DocumentEditorView({
 
         if (paymentContext) {
           // 1. Create Payment Request
-          const resp = await createPaymentRequest(paymentContext);
+          const resp = await createPaymentRequest({ ...paymentContext, silent: true });
           paymentRequestUuid = resp.uuid;
         }
 

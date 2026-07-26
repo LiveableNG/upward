@@ -299,19 +299,20 @@ export class UnifiedCommunicationService {
           lastError = smsRes ? '' : 'SMS dispatch failed';
         }
 
-        // Record EVERY attempt (FAILED or SENT) in upward_communication_log
-        await this.logCommunication({
-          userId: payload.userId,
-          registeredUserId: payload.registeredUserId,
-          type: payload.type,
-          channel,
-          subject,
-          body: plainText,
-          recipient: channel === 'EMAIL' ? email : phone,
-          email: email || null,
-          status: channelSuccess ? 'SENT' : 'FAILED',
-          lastError: channelSuccess ? null : lastError,
-        });
+        if (channel !== 'EMAIL') {
+          await this.logCommunication({
+            userId: payload.userId,
+            registeredUserId: payload.registeredUserId,
+            type: payload.type,
+            channel,
+            subject,
+            body: plainText,
+            recipient: phone,
+            email: email || null,
+            status: channelSuccess ? 'SENT' : 'FAILED',
+            lastError: channelSuccess ? null : lastError,
+          });
+        }
 
         if (channelSuccess) {
           success = true;
@@ -426,24 +427,34 @@ export class UnifiedCommunicationService {
   }) {
     try {
       let registeredUserId = data.registeredUserId || null;
-      let userId = data.userId || null;
+      let waitlistUserId: string | null = null;
 
-      // Auto-resolution of registeredUserId or userId if missing
+      // 1. Resolve registeredUserId (upward_user) if email matches
       if (!registeredUserId && data.email) {
         const hashedEmail = this.encryption.hash(data.email);
         const user = await this.prisma.upward_user.findFirst({
           where: { OR: [{ email: data.email }, { emailHash: hashedEmail }] },
-          select: { id: true, uuid: true },
+          select: { id: true },
         });
         if (user) {
           registeredUserId = user.id;
-          if (!userId) userId = user.uuid;
+        }
+      }
+
+      // 2. Resolve waitlistUserId (upward_waitlist) if email or waitlist ID matches
+      if (data.email) {
+        const waitlist = await this.prisma.upward_waitlist.findFirst({
+          where: { email: data.email },
+          select: { id: true },
+        });
+        if (waitlist) {
+          waitlistUserId = waitlist.id;
         }
       }
 
       await this.prisma.upward_communication_log.create({
         data: {
-          userId,
+          userId: waitlistUserId,
           registeredUserId,
           type: data.type,
           channel: data.channel,

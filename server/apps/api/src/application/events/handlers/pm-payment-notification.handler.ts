@@ -26,16 +26,30 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
       async (event) => {
         try {
           let pmUuid: string | undefined = undefined;
+          let propertyName = 'Property';
+          let unitName = 'Unit';
+
           if (event.corePrUuid) {
             const pr = await this.prisma.upward_pm_payment_request.findFirst({
               where: {
                 paymentRequest: { uuid: event.corePrUuid }
               },
               include: {
-                pm: true
+                pm: true,
+                unit: {
+                  include: {
+                    property: true
+                  }
+                }
               }
             });
             pmUuid = pr?.pm?.uuid;
+            if (pr?.unit) {
+              unitName = pr.unit.unitName;
+              if (pr.unit.property) {
+                propertyName = pr.unit.property.name;
+              }
+            }
           }
 
           // Unified Multi-Channel Dispatch (EMAIL, WHATSAPP, SMS)
@@ -65,6 +79,8 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
               description: event.description,
               paymentLink: event.paymentLink,
               pmRole: event.pmType,
+              propertyName,
+              unitName,
             },
           });
 
