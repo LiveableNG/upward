@@ -3,7 +3,7 @@ import {
   IEmailSequenceRepository,
   EMAIL_SEQUENCE_REPOSITORY,
 } from '../../../domains/email-sequence/email-sequence.repository.interface'
-import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
@@ -13,8 +13,8 @@ export class ProcessPendingEmailSequencesUseCase {
   constructor(
     @Inject(EMAIL_SEQUENCE_REPOSITORY)
     private readonly sequenceRepository: IEmailSequenceRepository,
-    private readonly emailService: EmailService,
     private readonly encryptionService: EncryptionService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(): Promise<void> {
@@ -41,12 +41,19 @@ export class ProcessPendingEmailSequencesUseCase {
           decryptedFirstName = this.encryptionService.decrypt(log.user.firstName);
         }
 
-        const success = await this.emailService.sendOnboardingSequenceEmail({
-          email: log.email,
-          firstName: decryptedFirstName,
-          stage: log.stage,
-          userId: log.userId.toString(),
-        })
+        const res = await this.unifiedCommService.processCommunication({
+          recipientEmail: log.email,
+          recipientName: decryptedFirstName,
+          recipientRole: 'TENANT',
+          registeredUserId: log.userId,
+          type: `ONBOARDING_SEQUENCE_${log.stage}` as any,
+          context: {
+            firstName: decryptedFirstName,
+            stage: log.stage,
+          },
+        });
+
+        const success = res;
 
         if (success) {
           await this.sequenceRepository.updateStatus(log.id!, 'SENT', undefined, new Date())

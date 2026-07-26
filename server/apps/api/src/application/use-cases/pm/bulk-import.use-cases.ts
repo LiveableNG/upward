@@ -4,14 +4,14 @@ import { IBulkImportJobRepository, BULK_IMPORT_JOB_REPOSITORY } from '../../../d
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { randomUUID } from 'crypto'
-import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
 @Injectable()
 export class CreateRelayImportJobUseCase {
   constructor(
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(dto: {
@@ -24,10 +24,16 @@ export class CreateRelayImportJobUseCase {
   }) {
     const job = await this.bulkImportJobRepo.create(dto)
     
-    this.emailService.sendSystemAlertToAdmins(
-      'New Assisted Upload Request',
-      `A new assisted upload request was created for file: ${dto.originalFileName}. Please check the Admin Queue to claim and process this task.`
-    ).catch(e => console.error('Failed to notify admins of relay job', e))
+    this.unifiedCommService.processCommunication({
+      recipientEmail: 'admin@goodtenants.io',
+      recipientName: 'System Admin',
+      recipientRole: 'ADMIN',
+      type: 'SYSTEM_ALERT',
+      title: 'New Assisted Upload Request',
+      context: {
+        message: `A new assisted upload request was created for file: ${dto.originalFileName}. Please check the Admin Queue to claim and process this task.`
+      }
+    }).catch(e => console.error('Failed to notify admins of relay job', e))
 
     return job
   }
@@ -176,7 +182,7 @@ export class AdminStageImportDataUseCase {
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly encryptionService: EncryptionService,
   ) {}
 
@@ -198,11 +204,21 @@ export class AdminStageImportDataUseCase {
 
     if (job.pm?.email) {
       const pmEmail = job.pm.email.includes(':') ? this.encryptionService.decrypt(job.pm.email) : job.pm.email;
-      this.emailService.sendGenericEmail(
-        pmEmail,
-        'Your Assisted Upload is Ready for Review',
-        `The data from your file ${job.originalFileName} has been transcribed and staged. Please log in to your dashboard to review, edit, and approve the import.`
-      ).catch(e => console.error('Failed to notify PM of staged data', e))
+      const pmFirstName = job.pm.firstName ? this.encryptionService.decrypt(job.pm.firstName) : '';
+      const pmLastName = job.pm.lastName ? this.encryptionService.decrypt(job.pm.lastName) : '';
+      const pmName = `${pmFirstName} ${pmLastName}`.trim() || 'Property Manager';
+
+      this.unifiedCommService.processCommunication({
+        recipientEmail: pmEmail,
+        recipientName: pmName,
+        recipientRole: 'PM',
+        pmUuid: job.pm.uuid,
+        type: 'ASSISTED_UPLOAD_REVIEW',
+        context: {
+          pmName,
+          fileName: job.originalFileName,
+        }
+      }).catch(e => console.error('Failed to notify PM of staged data', e))
     }
 
     return updated
@@ -240,7 +256,7 @@ export class CompleteImportJobUseCase {
     @Inject(BULK_IMPORT_JOB_REPOSITORY)
     private readonly bulkImportJobRepo: IBulkImportJobRepository,
     private readonly eventEmitter: EventEmitter2,
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly encryptionService: EncryptionService,
   ) {}
 
@@ -265,11 +281,17 @@ export class CompleteImportJobUseCase {
 
     if (job.assignedAdminEmail) {
       const adminEmail = job.assignedAdminEmail.includes(':') ? this.encryptionService.decrypt(job.assignedAdminEmail) : job.assignedAdminEmail;
-      this.emailService.sendGenericEmail(
-        adminEmail,
-        'Assisted Upload Approved',
-        `The PM has approved and completed the import for file ${job.originalFileName}. The job is now marked as Completed.`
-      ).catch(e => console.error('Failed to notify admin of completed job', e))
+      
+      this.unifiedCommService.processCommunication({
+        recipientEmail: adminEmail,
+        recipientName: job.assignedAdminName || 'Admin',
+        recipientRole: 'ADMIN',
+        type: 'SYSTEM_ALERT',
+        title: 'Assisted Upload Approved',
+        context: {
+          message: `The PM has approved and completed the import for file ${job.originalFileName}. The job is now marked as Completed.`
+        }
+      }).catch(e => console.error('Failed to notify admin of completed job', e))
     }
 
     return updated

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { EmailService } from '../../../shared/infrastructure/email/email.service';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 
 @Injectable()
 export class RejectCredibilityRequestUseCase {
@@ -9,6 +10,7 @@ export class RejectCredibilityRequestUseCase {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(requestUuid: string) {
@@ -38,20 +40,26 @@ export class RejectCredibilityRequestUseCase {
       });
 
       if (user && property) {
-        const tenantEmail = this.encryption.decrypt(user.email);
-        const tenantFirstName = this.encryption.decrypt(user.firstName);
+        const tenantEmail = user.email;
+        const tenantFirstName = user.firstName;
         
         const decryptedBusinessName = property.pm?.businessName ? this.encryption.decrypt(property.pm.businessName) : '';
         const decryptedFirstName = property.pm?.firstName ? this.encryption.decrypt(property.pm.firstName) : '';
         const decryptedLastName = property.pm?.lastName ? this.encryption.decrypt(property.pm.lastName) : '';
         const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Your Property Manager';
 
-        await this.emailService.sendCredibilityRequestRejection({
-          email: tenantEmail,
-          tenantName: tenantFirstName,
-          pmName,
-          propertyAddress: property.location?.address || 'Unknown Address',
+        await this.unifiedCommService.processCommunication({
+          recipientEmail: tenantEmail,
+          recipientName: tenantFirstName,
+          recipientRole: 'TENANT',
+          registeredUserId: user.id,
           pmUuid: property.pm?.uuid,
+          type: 'CREDIBILITY_REJECTION',
+          context: {
+            tenantName: tenantFirstName,
+            propertyAddress: property.location?.address || 'Unknown Address',
+            reason: 'Declined by Property Manager',
+          },
         });
       }
     } catch (e) {

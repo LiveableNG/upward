@@ -52,7 +52,7 @@ const templates = [
           {
             type: 'URL',
             text: 'Log in',
-            url: 'https://upward.goodtenants.io/signup?mode=login'
+            url: 'https://upward.goodtenants.io/login'
           }
         ]
       }
@@ -80,7 +80,7 @@ const templates = [
           {
             type: 'URL',
             text: 'Log in',
-            url: 'https://upward.goodtenants.io/signup?mode=login'
+            url: 'https://upward.goodtenants.io/login'
           }
         ]
       }
@@ -108,7 +108,7 @@ const templates = [
           {
             type: 'URL',
             text: 'Log in',
-            url: 'https://upward.goodtenants.io/signup?mode=login'
+            url: 'https://upward.goodtenants.io/login'
           }
         ]
       }
@@ -136,7 +136,7 @@ const templates = [
           {
             type: 'URL',
             text: 'Log in',
-            url: 'https://upward.goodtenants.io/signup?mode=login'
+            url: 'https://upward.goodtenants.io/login'
           }
         ]
       }
@@ -164,7 +164,511 @@ const templates = [
           {
             type: 'URL',
             text: 'Log in',
-            url: 'https://upward.goodtenants.io/signup?mode=login'
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_waitlist_confirmation',
+    category: 'MARKETING',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nYou're officially on the waitlist for Upward by GoodTenants.\n\nWe are building Upward to make renting simpler, more transparent, and more rewarding. We will notify you as soon as early access becomes available.\n\nThank you for joining early!\n\n*The Upward Team*",
+        example: {
+          body_text: [['John']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_data_deletion_request',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nWe received a request to delete all data associated with your email from our systems.\n\n*Important:* This process is irreversible. Your Rent Passport, payment history, and all account details will be permanently removed.\n\nIf you did not request this, please ignore this message.\n\n*The Upward Privacy Team*",
+        example: {
+          body_text: [['John']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_pm_invite',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\n*{{2}}* has requested to connect with you on Upward as their {{3}}!\n\nUpward is a platform designed to automate rent collection, streamline tenant communication, and provide powerful financial insights.\n\nClaim your profile or log in to approve this request.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe', 'Property Manager']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_team_invitation',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\n*{{2}}* has invited you to collaborate on their properties on the Upward PM platform.\n\nClaim your access or log in to your dashboard to start managing properties.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_pm_password_reset_otp',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nWe received a request to reset your password for your Upward PM account.\n\nYour verification code is: *{{2}}*\n\nThis code expires in 15 minutes. If you did not request this, please ignore this message.\n\n*The Upward PM Team*",
+        example: {
+          body_text: [['John', '123456']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_pm_auth_otp',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nUse the verification code below to securely access your Upward PM dashboard.\n\nVerification Code: *{{2}}*\n\nThis code expires in 10 minutes. If you did not request this, please ignore this message.\n\n*The Upward PM Team*",
+        example: {
+          body_text: [['John', '123456']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_user_password_reset_otp',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nWe received a request to reset your password for your Upward account.\n\nYour verification code is: *{{2}}*\n\nThis code expires in 15 minutes. If you did not request this, please ignore this message.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', '123456']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_payment_request',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nYou have a new payment request for your property unit from *{{2}}*.\n\n*Amount:* {{3}}\n\nLog in to your Upward account to view details and make your payment securely.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe', 'NGN 1,000,000']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_credibility_request',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\n*{{2}}* has requested their past tenancy and payment records for *{{3}}*.\n\nFulfilling this request helps your former tenant build their credibility profile on Upward. Log in to your PM dashboard to fulfill the request.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe', '123 Main St']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_new_user_records',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\n*{{2}}* has added your past rent records for *{{3}}* to Upward.\n\nLog in to complete your profile and see how this strengthens your Rent Passport.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe', '123 Main St']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_landlord_welcome',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nYou have been invited to the Upward Landlord Portal by your property manager.\n\nYour temporary password is: *{{2}}*\n\nPlease log in to change your password and view real-time analysis of your rental portfolio.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'tempPassword123']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_landlord_property_assignment',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nA new property has been assigned to your portfolio on Upward by your property manager.\n\nLog in to your dashboard to view real-time analytics and updates.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_record_added',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\n*{{2}}* has updated your rental payment history for *{{3}}* on Upward.\n\nThis update strengthens your Rent Passport score. Log in to view your profile.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe', '123 Main St']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_join_request_rejection',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nYour request to connect with *{{2}}* for the property at *{{3}}* has been declined.\n\n*Reason:* {{4}}\n\nLog in to try connecting again or contact the manager directly.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'Jane Doe', '123 Main St', 'Not a valid tenant']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_credibility_rejection',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nYour request for past tenancy records for *{{2}}* has been declined by the manager.\n\n*Reason:* {{3}}\n\nLog in to your dashboard to view updates.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', '123 Main St', 'Incorrect rent amount']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_rent_receipt',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nYour rent payment of *{{2}}* for *{{3}}* was successful.\n\n*Receipt Number:* {{4}}\n\nLog in to view your digital receipt and download your rent payment history.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John', 'NGN 1,000,000', '123 Main St', 'RCP-12345']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_support_ticket_resolved',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Hello {{1}},\n\nThere is an update on your support ticket. Our team has marked it as resolved.\n\nLog in to check the details or reply to this message if you need further assistance.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward.goodtenants.io/login'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'upward_system_alert',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'BODY',
+        text: "Alert: {{1}}\n\nDetails: {{2}}\n\nLog in to the admin panel to view details.\n\n*The Upward Team*",
+        example: {
+          body_text: [['Bulk Import Failure', '10 records failed due to invalid emails']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward PM'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Log in',
+            url: 'https://upward-pm.vercel.app/pm-login'
           }
         ]
       }

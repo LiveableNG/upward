@@ -1,10 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ILandlordRepository, PM_LANDLORD_REPOSITORY } from '../../../domains/pm/ILandlordRepository';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
-import { EmailService } from '../../../shared/infrastructure/email/email.service';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 
 @Injectable()
 export class LandlordService {
@@ -12,8 +13,8 @@ export class LandlordService {
     @Inject(PM_LANDLORD_REPOSITORY)
     private readonly landlordRepository: ILandlordRepository,
     private readonly encryption: EncryptionService,
-    private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async ensureLandlord(email: string, name?: string, phone?: string, pmUuid?: string) {
@@ -23,11 +24,17 @@ export class LandlordService {
     if (existing) {
       const defaultPortalUrl = this.config.get<string>('PM_APP_URL') ? `${this.config.get<string>('PM_APP_URL')}/portal/login` : 'http://localhost:3000/portal/login';
       const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', defaultPortalUrl);
-      await this.emailService.sendLandlordNewPropertyAssignment({
-        email,
-        landlordName: existing.firstName || name || 'Landlord',
-        portalLink: portalUrl,
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: email,
+        recipientPhone: phone,
+        recipientName: existing.firstName || name || 'Landlord',
+        recipientRole: 'LANDLORD',
         pmUuid,
+        type: 'LANDLORD_PROPERTY_ASSIGNMENT',
+        context: {
+          landlordName: existing.firstName || name || 'Landlord',
+          portalLink: portalUrl,
+        },
       });
       return existing;
     }
@@ -49,12 +56,18 @@ export class LandlordService {
 
       const defaultPortalUrl = this.config.get<string>('PM_APP_URL') ? `${this.config.get<string>('PM_APP_URL')}/portal/login` : 'https://upward-pm.vercel.app/portal/login';
       const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', defaultPortalUrl);
-      await this.emailService.sendLandlordWelcome({
-        email,
-        landlordName: name || 'Landlord',
-        tempPassword,
-        portalLink: portalUrl,
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: email,
+        recipientPhone: phone,
+        recipientName: name || 'Landlord',
+        recipientRole: 'LANDLORD',
         pmUuid,
+        type: 'LANDLORD_WELCOME',
+        context: {
+          landlordName: name || 'Landlord',
+          tempPassword,
+          portalLink: portalUrl,
+        },
       });
 
       return landlord;

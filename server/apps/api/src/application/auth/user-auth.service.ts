@@ -13,6 +13,7 @@ import { UserAuthResponse } from '@upward/shared-types'
 import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
 import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.service'
+import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
 
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
@@ -30,6 +31,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly s3Service: S3Service,
     private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
     private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -295,11 +297,16 @@ export class UserAuthService extends BaseAuthService {
 
     if (sendEmail) {
       // 1. Send Welcome Email
-      await this.emailService.sendOnboardingSequenceEmail({
-        email: user.email,
-        firstName,
-        stage: 'WELCOME',
-        userId: user.uuid,
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: user.email,
+        recipientName: firstName,
+        recipientRole: 'TENANT',
+        registeredUserId: user.id!,
+        type: 'ONBOARDING_SEQUENCE_WELCOME',
+        context: {
+          firstName,
+          stage: 'WELCOME',
+        }
       });
     }
 
@@ -798,7 +805,20 @@ export class UserAuthService extends BaseAuthService {
     })
 
     const fullName = `${user.firstName} ${user.lastName}`
-    await this.emailService.sendPasswordResetOTP(user.email, fullName, otp)
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: user.email,
+      recipientName: fullName,
+      recipientRole: 'TENANT',
+      registeredUserId: user.id,
+      type: 'AUTH_OTP',
+      context: {
+        otp,
+        title: 'Password Reset Request',
+        greeting: fullName,
+        message: 'We received a request to reset your password. Use the code below to proceed.',
+        expiryText: 'This code expires in 15 minutes.',
+      },
+    });
   }
 
   async resetPassword(email: string, otp: string, newPlain: string): Promise<void> {
@@ -917,41 +937,19 @@ export class UserAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    // 4. Send email or SMS/WhatsApp
-    if (type === 'phone') {
-      const messageText = `Your Upward verification code is ${otp}. It expires in 10 minutes.`;
-      if (channel === 'WHATSAPP') {
-        await this.whatsappService.sendMessage({
-          to: identifier,
-          template: {
-            name: 'upward_auth_otp_v3',
-            components: [
-              {
-                type: 'body',
-                parameters: [
-                  { type: 'text', text: otp }
-                ]
-              },
-              {
-                type: 'button',
-                sub_type: 'url',
-                index: '0',
-                parameters: [
-                  { type: 'text', text: otp }
-                ]
-              }
-            ]
-          }
-        }).catch((e: any) => console.error(`Failed to send WhatsApp OTP to ${identifier}:`, e.message));
-      } else {
-        await this.smsService.sendSms({
-          to: identifier,
-          message: messageText,
-        }).catch((e: any) => console.error(`Failed to send SMS OTP to ${identifier}:`, e.message));
-      }
-    } else {
-      await this.emailService.sendAuthOTP(identifier, otp, effectiveContext as any)
-    }
+    // 4. Send via Unified Communication Architecture
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: type === 'email' ? identifier : undefined,
+      recipientPhone: type === 'phone' ? identifier : undefined,
+      recipientRole: 'TENANT',
+      type: 'AUTH_OTP',
+      forceChannel: type === 'phone' ? (channel === 'WHATSAPP' ? 'WHATSAPP' : 'SMS') : 'EMAIL',
+      context: {
+        otp,
+        context: effectiveContext,
+        title: effectiveContext === 'SIGNUP' ? 'Verify your email' : 'Login Verification',
+      },
+    });
     return { context: effectiveContext }
   }
 
