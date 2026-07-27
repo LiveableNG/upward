@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository';
 import { SendNotificationUseCase } from '../../use-cases/notifications/notification.use-cases';
-import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { ConfigService } from '@nestjs/config';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { randomUUID } from 'crypto';
@@ -29,7 +29,7 @@ export class BulkCreateTenantRecordsUseCase {
     private readonly prisma: PrismaService,
     @Inject(RENT_CYCLE_REPOSITORY) private readonly rentCycleRepo: IRentCycleRepository,
     private readonly sendNotification: SendNotificationUseCase,
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly configService: ConfigService,
     private readonly encryption: EncryptionService
   ) { }
@@ -127,12 +127,16 @@ export class BulkCreateTenantRecordsUseCase {
       const upwardPayUrl = this.configService.get<string>('PAY_APP_URL') || 'http://localhost:3000';
       const completeProfileLink = `${upwardPayUrl}/signup?email=${encodeURIComponent(emailLower)}`;
 
-      await this.emailService.sendNewUserRecordsEmail({
-        email: emailLower,
-        pmName,
-        propertyAddress: input.propertyAddress,
-        completeProfileLink,
-        pmUuid: pm.uuid,
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: emailLower,
+        recipientName: input.firstName || 'Tenant',
+        recipientRole: 'TENANT',
+        type: 'NEW_USER_RECORDS',
+        context: {
+          pmName,
+          propertyAddress: input.propertyAddress,
+          completeProfileLink,
+        },
       });
     } else {
       await this.sendNotification.execute({

@@ -24,15 +24,17 @@ interface BulkRecipientSelectModalProps {
   onClose: () => void
   onConfirm: (recipients: Recipient[]) => void
   initialSelected?: Recipient[]
+  templateUuid?: string
 }
 
-export function BulkRecipientSelectModal({ isOpen, onClose, onConfirm, initialSelected = [] }: BulkRecipientSelectModalProps) {
+export function BulkRecipientSelectModal({ isOpen, onClose, onConfirm, initialSelected = [], templateUuid }: BulkRecipientSelectModalProps) {
   const { data: tenants = [] } = useTenants()
   const { data: properties = [] } = useProperties()
   
   const [activeTab, setActiveTab] = useState<'TENANT' | 'LANDLORD'>('TENANT')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState('')
+  const [filterNoWelcome, setFilterNoWelcome] = useState(false)
 
   const [selectedMap, setSelectedMap] = useState<Map<string, Recipient>>(new Map())
 
@@ -42,14 +44,19 @@ export function BulkRecipientSelectModal({ isOpen, onClose, onConfirm, initialSe
       const map = new Map<string, Recipient>()
       initialSelected.forEach(r => map.set(r.uuid, r))
       setSelectedMap(map)
+      setFilterNoWelcome(!!templateUuid)
     }
-  }, [isOpen, initialSelected])
+  }, [isOpen, initialSelected, templateUuid])
 
   const filteredRecipients = useMemo<Recipient[]>(() => {
     let list: Recipient[] = []
     
     if (activeTab === 'TENANT') {
-      list = tenants.filter(t => !(!t.phone && (!t.email || t.email.endsWith('@upward.com')))).map(t => ({
+      let tenantList = tenants.filter(t => !(!t.phone && (!t.email || t.email.endsWith('@upward.com'))))
+      if (filterNoWelcome && (templateUuid === 'system-onboarding-1' || templateUuid === 'system-onboarding-2')) {
+        tenantList = tenantList.filter(t => !t.hasReceivedWelcomeTemplate)
+      }
+      list = tenantList.map(t => ({
         uuid: t.uuid,
         name: t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Tenant',
         email: t.email || 'N/A',
@@ -191,6 +198,20 @@ export function BulkRecipientSelectModal({ isOpen, onClose, onConfirm, initialSe
               />
             </div>
           </div>
+          
+          {(templateUuid === 'system-onboarding-1' || templateUuid === 'system-onboarding-2') && activeTab === 'TENANT' && (
+            <div style={{ marginTop: 4 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--clay)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={filterNoWelcome}
+                  onChange={(e) => setFilterNoWelcome(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--clay)' }}
+                />
+                Filter to tenants who haven't received the Getting Started template
+              </label>
+            </div>
+          )}
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <button 

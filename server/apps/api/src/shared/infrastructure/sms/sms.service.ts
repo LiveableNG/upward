@@ -32,6 +32,8 @@ export class SmsService {
           text: finalMessage,
         }
       });
+      this.logger.log(`SMS preview saved for ${options.to}`);
+      return true;
     }
 
     if (!this.termiiApiKey) {

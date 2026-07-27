@@ -3,11 +3,11 @@ import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { ILandlordRepository, PM_LANDLORD_REPOSITORY, LandlordEntity } from '../../domains/pm/ILandlordRepository'
 import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
-import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
+import { EncryptionService } from '../../shared/infrastructure/common/encryption.service';
 import * as bcrypt from 'bcrypt'
 import { BaseAuthService } from './base-auth.service'
-import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
+import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
 import * as crypto from 'crypto'
 
 @Injectable()
@@ -16,8 +16,8 @@ export class LandlordAuthService extends BaseAuthService {
     @Inject(PM_LANDLORD_REPOSITORY) private readonly landlordRepository: ILandlordRepository,
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly prisma: PrismaService,
-    private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -108,7 +108,17 @@ export class LandlordAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    await this.emailService.sendAuthOTP(email, otp, 'LOGIN', 'FOREST') 
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: email,
+      recipientName: landlord.firstName || 'Landlord',
+      recipientRole: 'LANDLORD',
+      type: 'AUTH_OTP',
+      context: {
+        otp,
+        title: 'Landlord Portal Login',
+        message: 'Use the code below to securely access your Landlord Portal dashboard.',
+      },
+    });
     return { success: true }
   }
 
@@ -211,7 +221,17 @@ export class LandlordAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    await this.emailService.sendAuthOTP(email, otp, 'SIGNUP', 'FOREST') 
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: email,
+      recipientName: 'Landlord',
+      recipientRole: 'LANDLORD',
+      type: 'AUTH_OTP',
+      context: {
+        otp,
+        title: 'Create Your Landlord Account',
+        message: 'Use the code below to verify your email and complete your Landlord signup.',
+      },
+    });
     return { success: true }
   }
 

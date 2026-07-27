@@ -6,7 +6,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { BulkAddRentHistoryDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { SingleInviteUseCase } from '../../use-cases/external/single-invite.use-case';
-import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 
 @Injectable()
 export class BulkAddRentHistoryUseCase {
@@ -22,7 +22,7 @@ export class BulkAddRentHistoryUseCase {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly singleInviteUseCase: SingleInviteUseCase,
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(pmId: number, dto: BulkAddRentHistoryDto) {
@@ -147,27 +147,26 @@ export class BulkAddRentHistoryUseCase {
                 }
               });
 
-              // 5. Email Notification Logic
               if (!emailedUsers.has(email)) {
                 const isShadowUser = user.passwordHash === PASS_PLACEHOLDERS.INVITED || user.passwordHash === PASS_PLACEHOLDERS.SHADOW;
                 const propertyAddress = unit.property?.address || unit.property?.name || 'your rental property';
+                const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
 
-                if (isShadowUser) {
-                  await this.emailService.sendNewUserRecordsEmail({
-                    email,
-                    pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
+                await this.unifiedCommService.processCommunication({
+                  recipientEmail: email,
+                  recipientName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant',
+                  recipientRole: 'TENANT',
+                  registeredUserId: user.id,
+                  pmUuid: pm.uuid,
+                  type: isShadowUser ? 'NEW_USER_RECORDS' : 'RECORD_ADDED',
+                  context: {
+                    displayName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant',
+                    pmName,
                     propertyAddress,
                     completeProfileLink: inviteResult.inviteLink,
-                    pmUuid: pm.uuid,
-                  });
-                } else {
-                  await this.emailService.sendRecordAddedEmail({
-                    email,
-                    pmName: pm.businessName || `${pm.firstName} ${pm.lastName}`,
-                    propertyAddress,
-                    pmUuid: pm.uuid,
-                  });
-                }
+                    frontendUrl: 'https://upward.goodtenants.io',
+                  },
+                });
                 emailedUsers.add(email);
               }
             }

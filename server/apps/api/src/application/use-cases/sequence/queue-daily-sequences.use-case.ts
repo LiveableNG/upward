@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { EmailService } from '../../../shared/infrastructure/email/email.service';
 import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { IEmailSequenceRepository, EMAIL_SEQUENCE_REPOSITORY } from '../../../domains/email-sequence/email-sequence.repository.interface';
 import { IWhatsappSequenceLogRepository, WHATSAPP_SEQUENCE_REPOSITORY } from '../../../domains/whatsapp-sequence/whatsapp-sequence.repository.interface';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
@@ -14,6 +15,7 @@ export class QueueDailySequencesUseCase {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly whatsappService: WhatsappService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly encryption: EncryptionService,
     @Inject(EMAIL_SEQUENCE_REPOSITORY)
     private readonly emailSequenceRepo: IEmailSequenceRepository,
@@ -93,10 +95,15 @@ export class QueueDailySequencesUseCase {
         const sampleEmail = validEmails.find(e => e.stage === stage);
         if (sampleEmail) {
           const decryptedAdminEmail = admin.email.includes(':') ? this.encryption.decrypt(admin.email) : admin.email;
-          await this.emailService.sendOnboardingSequenceEmail({
-            email: decryptedAdminEmail,
-            firstName: 'Admin (Sample)',
-            stage: stage as any,
+          await this.unifiedCommService.processCommunication({
+            recipientEmail: decryptedAdminEmail,
+            recipientName: 'Admin (Sample)',
+            recipientRole: 'ADMIN',
+            type: `ONBOARDING_SEQUENCE_${stage}` as any,
+            context: {
+              firstName: 'Admin (Sample)',
+              stage: stage,
+            }
           });
         }
       }
@@ -107,29 +114,17 @@ export class QueueDailySequencesUseCase {
         for (const stage of Object.keys(whatsappCounts)) {
           const sampleWa = validWhatsapp.find(w => w.stage === stage);
           if (sampleWa && sampleWa.templateName) {
-            const bodyTextArgs = sampleWa.templateData?.body_text?.[0] || [];
-            const parameters = bodyTextArgs.map((text: string) => {
-              let decoded = text || '';
-              if (text && text.includes(':')) {
-                decoded = this.encryption.decrypt(text);
+            await this.unifiedCommService.processCommunication({
+              recipientPhone: adminPhone,
+              recipientName: 'Admin (Sample)',
+              recipientRole: 'ADMIN',
+              type: `ONBOARDING_SEQUENCE_${stage}` as any,
+              forceChannel: 'WHATSAPP',
+              context: {
+                firstName: 'Admin (Sample)',
+                displayName: 'Admin (Sample)',
+                stage: stage,
               }
-              return {
-                type: 'text',
-                text: decoded,
-              };
-            });
-
-            await this.whatsappService.sendMessage({
-              to: adminPhone.replace('+', ''), // Whatsapp service might expect without + depending on implementation, but typically accepts standard format. Wait, the process-pending-sequences passes plainPhone directly.
-              template: {
-                name: sampleWa.templateName,
-                components: [
-                  {
-                    type: 'body',
-                    parameters,
-                  }
-                ],
-              },
             });
           }
         }

@@ -1,0 +1,118 @@
+/* payments-view.css */
+
+/* Design tokens (assumed defined in variables.css) */
+
+.payments-view {
+  background: var(--bg);
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.payments-view__header {
+  margin-bottom: 16px;
+}
+
+.payments-view__stats-grid {
+  margin-bottom: 24px;
+}
+
+.payments-view__table-wrapper {
+  overflow-x: auto;
+}
+
+/* Table cell styling */
+.payments-view__cell {
+  display: inline-block;
+  color: var(--dark);
+}
+
+.payments-view__cell--id {
+  font-weight: 600;
+  color: var(--clay);
+}
+
+.payments-view__tenant-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.payments-view__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-faint);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.payments-view__info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.payments-view__name,
+.payments-view__unit {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.payments-view__name {
+  font-weight: 500;
+}
+
+.payments-view__unit {
+  color: var(--text-muted);
+}
+
+/* Status chip */
+.status-chip {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-chip--pending {
+  background: var(--accent-faint);
+  color: var(--accent);
+}
+
+.status-chip--partial {
+  background: #fde047;
+  color: #b45309;
+}
+
+.status-chip--paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-chip--cancelled {
+  background: var(--error);
+  color: #fff;
+}
+
+.status-chip--self-paid {
+  background: var(--accent-faint);
+  color: var(--accent);
+}
+
+.payments-view__actions .btn-icon-sm {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.payments-view__actions .btn-icon-sm:hover {
+  opacity: 0.8;
+}

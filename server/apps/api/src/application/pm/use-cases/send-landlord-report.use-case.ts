@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository';
@@ -11,7 +11,7 @@ export class SendLandlordReportUseCase {
   private readonly logger = new Logger(SendLandlordReportUseCase.name);
 
   constructor(
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     @Inject(PROPERTY_MANAGER_REPOSITORY)
@@ -63,13 +63,18 @@ export class SendLandlordReportUseCase {
       }
     }
 
-    // 2. Send email
-    await this.emailService.sendGenericEmail(
-      dto.landlordEmail,
-      dto.subject || `Property Performance Report - ${dto.landlordName}`,
-      content,
-      undefined
-    );
+    // 2. Send via Unified Communication Service
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: dto.landlordEmail,
+      recipientName: dto.landlordName,
+      recipientRole: 'LANDLORD',
+      pmUuid: undefined, // Will resolve inside unified service or PM settings
+      type: 'LANDLORD_REPORT',
+      context: {
+        htmlOverride: content,
+        title: dto.subject || `Property Performance Report - ${dto.landlordName}`,
+      }
+    });
 
     return { success: true };
   }

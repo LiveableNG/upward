@@ -9,15 +9,10 @@ import { ProcessHourlySettlementsUseCase } from '../application/use-cases/paymen
 import { QueueDailySequencesUseCase } from '../application/use-cases/sequence/queue-daily-sequences.use-case'
 import { ApplyDailySavingsInterestUseCase } from '../application/use-cases/payments/wallet.use-cases'
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
+import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../shared/infrastructure/common/s3/s3.service'
 
-/**
- * Laravel Kernel equivalent for Nest.
- *
- * - `defineSchedule()` is the single source of truth for what runs when
- * - A 1-minute tick (`@Cron EVERY_MINUTE`) asks each job if it is due
- * - `withoutOverlapping()` skips a job still running from a previous tick
- * - Manual runs go through `runTask()` / `runDue()` (used by CronController)
- */
+
 @Injectable()
 export class ScheduleService implements OnModuleInit {
   private readonly logger = new Logger(ScheduleService.name)
@@ -34,6 +29,8 @@ export class ScheduleService implements OnModuleInit {
     private readonly processHourlySettlementsUseCase: ProcessHourlySettlementsUseCase,
     private readonly queueDailySequencesUseCase: QueueDailySequencesUseCase,
     private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
   ) {
     this.timeZone =
       this.config.get<string>('SCHEDULE_TIMEZONE') ||
@@ -48,10 +45,6 @@ export class ScheduleService implements OnModuleInit {
     )
   }
 
-  /**
-   * Kernel::schedule() — register every recurring job here.
-   * Do not put @Cron on the underlying services; this is the only schedule.
-   */
   private defineSchedule(): Schedule {
     const s = new Schedule()
 
@@ -96,6 +89,20 @@ export class ScheduleService implements OnModuleInit {
       .dailyAt('00:00')
       .withoutOverlapping()
       .description('Apply daily savings interest')
+
+    s.call('cleanupDevEmails', async () => {
+      this.logger.log('Starting daily dev-emails S3 and database cleanup task...')
+      try {
+        await this.prisma.upward_dev_email_preview.deleteMany()
+        await this.s3Service.deleteObjectsWithPrefix('dev-emails/')
+        this.logger.log('Daily dev-emails S3 and database cleanup task completed successfully.')
+      } catch (err) {
+        this.logger.error('Failed to run daily dev-emails S3 and database cleanup task:', err)
+      }
+    })
+      .dailyAt('03:00')
+      .withoutOverlapping()
+      .description('Daily cleanup of mock dev emails from S3 and database')
 
     return s
   }

@@ -19,6 +19,7 @@ export class GetPmDashboardSummaryUseCase {
       pmId: tenant.pmId,
       firstName: tenant.firstNameEncrypted ? this.encryption.decrypt(tenant.firstNameEncrypted) : null,
       lastName: tenant.lastNameEncrypted ? this.encryption.decrypt(tenant.lastNameEncrypted) : null,
+      commercialName: tenant.commercialNameEncrypted ? this.encryption.decrypt(tenant.commercialNameEncrypted) : null,
       email: tenant.emailEncrypted ? this.encryption.decrypt(tenant.emailEncrypted) : null,
       phone: tenant.phoneEncrypted ? this.encryption.decrypt(tenant.phoneEncrypted) : null,
       inviteStatus: tenant.inviteStatus,

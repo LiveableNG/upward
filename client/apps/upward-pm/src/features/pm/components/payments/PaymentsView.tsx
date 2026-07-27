@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   Download, 
@@ -22,6 +22,8 @@ import { useToast } from '@/components/common/Toast'
 import { PayoutsList } from './PayoutsList'
 import { ApprovePaymentsQueue } from './ApprovePaymentsQueue'
 import { downloadBlob } from '@/lib/download-helper'
+import { formatTenantName } from '@/lib/utils'
+import '@/styles/payments-view.css'
 
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -42,7 +44,6 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
 
   const displayRequests = requestsOverride || []
   const statsSource = allRequests || displayRequests
-
 
   const totalCollected = statsSource
     .filter(r => r.status === 'PAID' || r.status === 'PARTIAL')
@@ -75,49 +76,58 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
   const columns: Column<any>[] = [
     {
       header: 'ID',
-      render: (req) => <span style={{ fontWeight: 600, fontSize: 13 }}>{req.uuid.slice(-8).toUpperCase()}</span>
+      render: (req) => <span className="payments-view__cell payments-view__cell--id" style={{ fontWeight: 600, fontSize: 13, minWidth: 80, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{req.uuid.slice(-8).toUpperCase()}</span>
     },
     {
       header: 'Tenant & Unit',
-      render: (req) => (
-        <div className="tenant-cell">
-          <div className="tenant-avatar">
-            {req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'}
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, color: 'var(--text)' }}>
-              {req.tenant ? `${req.tenant.firstName} ${req.tenant.lastName}` : 'No Tenant'}
+      render: (req) => {
+        const tenantName = req.tenant ? formatTenantName(req.tenant) : 'No Tenant'
+        const initials = (() => {
+          if (!req.tenant) return 'U'
+          const name = formatTenantName(req.tenant)
+          if (!name) return 'U'
+          const parts = name.split(/\s+/).filter(Boolean)
+          if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+          }
+          return name[0]?.toUpperCase() || 'U'
+        })()
+        return (
+          <div className="payments-view__tenant-cell">
+            <div className="payments-view__avatar">{initials}</div>
+            <div className="payments-view__info">
+              <div className="payments-view__name" title={tenantName}>{tenantName}</div>
+              <div className="payments-view__unit" title={`Unit ${req.unit?.unitName || ''}`}>Unit {req.unit?.unitName || 'N/A'}</div>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Unit {req.unit?.unitName}</div>
           </div>
-        </div>
-      )
+        )
+      }
     },
     {
       header: 'Property',
-      render: (req) => <span style={{ fontSize: 13 }}>{req.unit?.property?.name}</span>
+      render: (req) => <span className="payments-view__cell payments-view__cell--property" title={req.unit?.property?.name} style={{ fontSize: 13, minWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{req.unit?.property?.name || 'N/A'}</span>
     },
     {
       header: 'Amount',
       render: (req) => (
-        <div className="amount-text">
+        <div className="payments-view__cell payments-view__cell--amount" style={{ minWidth: 120, whiteSpace: 'nowrap' }}>
           {req.currency} {req.amountPaid.toLocaleString()} / {req.amount.toLocaleString()}
         </div>
       )
     },
     {
       header: 'Due Date',
-      render: (req) => <div style={{ fontSize: 13 }}>{formatDate(req.dueDate)}</div>
+      render: (req) => <div className="payments-view__cell payments-view__cell--date" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>{formatDate(req.dueDate)}</div>
     },
     {
       header: 'Status',
       render: (req) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="payments-view__cell payments-view__cell--status" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 130, whiteSpace: 'nowrap' }}>
           <span className={`status-chip status-chip--${req.status.toLowerCase()}`}>
             {req.status}
           </span>
           {req.isSelfPayment && (
-            <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'var(--accent-faint)', color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' }}>
+            <span className="status-chip status-chip--self-paid">
               Self-Paid
             </span>
           )}
@@ -128,7 +138,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
       header: '',
       align: 'right',
       render: (req) => (
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div className="payments-view__actions" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           {(req.status === 'PENDING' || req.status === 'SCHEDULED') && req.amountPaid === 0 && (
             <button 
               className="btn-icon-sm" 
@@ -172,7 +182,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
 
   return (
     <>
-      <StatGrid>
+      <StatGrid className="payments-view__stats-grid">
         <StatCard 
           label="Total Collected" 
           value={`₦${totalCollected.toLocaleString()}`} 
@@ -196,24 +206,25 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
         />
       </StatGrid>
       
-      {/* Status-based sorting: PENDING > PARTIAL > Others, then by Due Date */}
-      <DataTable
-        columns={columns}
-        data={[...displayRequests].sort((a, b) => {
-          const statusPriority: Record<string, number> = { 'PENDING': 0, 'PARTIAL': 1, 'PAID': 2, 'CANCELLED': 3 }
-          const priorityA = statusPriority[a.status] ?? 4
-          const priorityB = statusPriority[b.status] ?? 4
-          
-          if (priorityA !== priorityB) return priorityA - priorityB
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-        })}
-        onRowClick={(req) => {
-          const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
-          router.push(isPortal ? `/portal/payments/view?uuid=${req.uuid}` : `/payments/view?uuid=${req.uuid}`)
-        }}
-        emptyMessage="No payment requests found."
-        pageSize={10}
-      />
+      <div className="payments-view__table-wrapper">
+        <DataTable
+          columns={columns}
+          data={[...displayRequests].sort((a, b) => {
+            const statusPriority: Record<string, number> = { 'PENDING': 0, 'PARTIAL': 1, 'PAID': 2, 'CANCELLED': 3 }
+            const priorityA = statusPriority[a.status] ?? 4
+            const priorityB = statusPriority[b.status] ?? 4
+            
+            if (priorityA !== priorityB) return priorityA - priorityB
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          })}
+          onRowClick={(req) => {
+            const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+            router.push(isPortal ? `/portal/payments/view?uuid=${req.uuid}` : `/payments/view?uuid=${req.uuid}`)
+          }}
+          emptyMessage="No payment requests found."
+          pageSize={10}
+        />
+      </div>
 
       <ConfirmationModal 
         isOpen={!!requestToCancel}
@@ -257,9 +268,6 @@ export function PaymentsView({ initialPaymentRequests }: { initialPaymentRequest
     initialTab === 'proofs' || initialTab === 'payouts' ? initialTab : 'requests',
   )
   
-  const [isDateOpen, setIsDateOpen] = useState(false)
-  const [isMoreOpen, setIsMoreOpen] = useState(false)
-
   useEffect(() => {
     const statusParam = searchParams?.get('status')
     if (statusParam) {
@@ -309,11 +317,9 @@ export function PaymentsView({ initialPaymentRequests }: { initialPaymentRequest
 
     if (!matchesStatus) return false
 
-    // 2. Property Filter
     const matchesProperty = propertyFilter === 'All' || req.unit?.property?.uuid === propertyFilter
     if (!matchesProperty) return false
 
-    // 3. Search Filter
     const unitName = req.unit?.unitName || ''
     const tenantName = `${req.tenant?.firstName || ''} ${req.tenant?.lastName || ''}`
     const propertyName = req.unit?.property?.name || ''
@@ -326,7 +332,6 @@ export function PaymentsView({ initialPaymentRequests }: { initialPaymentRequest
     
     if (!matchesSearch) return false
 
-    // 4. Date Filter
     if (dateFilter === 'All Time') return true
     
     const reqDate = new Date(req.createdAt)
@@ -346,10 +351,11 @@ export function PaymentsView({ initialPaymentRequests }: { initialPaymentRequest
   })
 
   return (
-    <div className="payments-page animate-fade-in">
+    <div className="payments-view animate-fade-in">
       <PageHeader 
         title="Payments & Transactions" 
         subtitle="Track all incoming payments and manage billing flows."
+        className="payments-view__header"
         actions={
           <button className="btn btn--secondary" onClick={handleExport}>
             <Download size={18} />

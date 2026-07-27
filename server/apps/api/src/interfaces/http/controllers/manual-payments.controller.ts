@@ -3,6 +3,7 @@ import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPayme
 import { GetPendingManualPaymentsUseCase } from '../../../application/use-cases/payments/get-pending-manual-payments.use-case'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Controller('payments/manual')
 @UseGuards(JwtAuthGuard)
@@ -112,20 +113,11 @@ export class ManualPaymentsController {
   }
 
   @Get('proof/:id')
-  async getProof(@Param('id') id: string, @Res() res: any) {
+  async getProof(@Param('id') id: string, @Res({ passthrough: true }) res: any) {
     const { buffer, fileName, fileType } = await this.getProofUseCase.execute(Number(id))
-    
-    if (typeof res.header === 'function') {
-      res.header('Content-Type', fileType)
-      res.header('Content-Disposition', `inline; filename="${fileName}"`)
-    } else if (typeof res.set === 'function') {
-      res.set({
-        'Content-Type': fileType,
-        'Content-Disposition': `inline; filename="${fileName}"`,
-      })
-    }
-    
-    res.send(buffer)
+    return S3Service.streamBuffer(buffer, fileName || 'proof.pdf', res, {
+      contentType: fileType,
+    })
   }
 
   @Delete('proof/:id')

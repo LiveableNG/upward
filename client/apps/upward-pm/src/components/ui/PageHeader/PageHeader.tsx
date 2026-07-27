@@ -9,13 +9,15 @@ interface PageHeaderProps {
   subtitle?: string
   showBack?: boolean
   actions?: React.ReactNode
+  /** Optional extra CSS class(es) for the root header element */
+  className?: string
 }
 
-export function PageHeader({ title, subtitle, showBack, actions }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, showBack, actions, className }: PageHeaderProps) {
   const router = useRouter()
   
   return (
-    <header className="upward-page-header">
+    <header className={`upward-page-header ${className ?? ''}`.trim()}>
       <div className="upward-page-header__content">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {showBack && (

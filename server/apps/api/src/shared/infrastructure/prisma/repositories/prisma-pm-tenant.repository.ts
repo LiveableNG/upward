@@ -33,6 +33,8 @@ export class PrismaPmTenantRepository implements ITenantRepository {
       emergencyContactPhone: t.emergencyContactPhone,
       inviteStatus: t.inviteStatus,
       inviteSentAt: t.inviteSentAt,
+      channel: t.channel,
+      hasReceivedWelcomeTemplate: t.hasReceivedWelcomeTemplate ?? false,
       units: t.units ? t.units.map((u: any) => ({
         id: u.id,
         uuid: u.uuid,
@@ -212,7 +214,8 @@ export class PrismaPmTenantRepository implements ITenantRepository {
         emergencyContactEmail: data.emergencyContactEmail,
         emergencyContactPhone: data.emergencyContactPhone,
         inviteStatus: data.inviteStatus,
-        inviteSentAt: data.inviteSentAt
+        inviteSentAt: data.inviteSentAt,
+        channel: data.channel
       },
       include: { units: { include: { property: true } } }
     });
@@ -252,6 +255,9 @@ export class PrismaPmTenantRepository implements ITenantRepository {
       updateData.commercialNameEncrypted = data.commercialName ? this.encryption.encrypt(data.commercialName) : null;
       updateData.commercialNameSearch = data.commercialName?.toLowerCase();
       delete updateData.commercialName;
+    }
+    if (data.channel !== undefined) {
+      updateData.channel = data.channel;
     }
 
     const tenant = await this.prisma.upward_pm_tenant.update({

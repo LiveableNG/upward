@@ -183,6 +183,8 @@ model upward_pm_tenant {
   inviteStatus       String                      @default("PENDING")
   inviteSentAt       DateTime?
   isInternal         Boolean                     @default(false)
+  channel            String?
+  hasReceivedWelcomeTemplate Boolean                     @default(false)
   createdAt          DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
   paymentRequests    upward_pm_payment_request[]

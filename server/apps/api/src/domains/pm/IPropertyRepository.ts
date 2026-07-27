@@ -69,6 +69,7 @@ export interface TenantEntity {
   otherPhoneHash?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
+  channel?: string | null;
   formerAddress?: string | null;
   nextOfKinName?: string | null;
   nextOfKinEmail?: string | null;
@@ -79,6 +80,7 @@ export interface TenantEntity {
   emergencyContactName?: string | null;
   emergencyContactEmail?: string | null;
   emergencyContactPhone?: string | null;
+  hasReceivedWelcomeTemplate?: boolean;
   units?: UnitEntity[];
 }
 

@@ -20,6 +20,8 @@ import { HttpModule } from './interfaces/http/http.module'
 import { ActivityTrackingModule } from './shared/infrastructure/activity-tracking/activity-tracking.module'
 import { SchedulingModule } from './scheduling/scheduling.module'
 
+import { CommunicationModule } from './shared/infrastructure/communication/communication.module'
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +37,7 @@ import { SchedulingModule } from './scheduling/scheduling.module'
     PrismaModule,
     AdminLogModule,
     EmailModule,
+    CommunicationModule,
     LocationModule,
     BugsnagModule,
     ActivityTrackingModule,

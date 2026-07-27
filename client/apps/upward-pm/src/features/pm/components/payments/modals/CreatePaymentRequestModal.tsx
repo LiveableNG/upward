@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Plus, Trash2, CreditCard, AlertCircle } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
 import { useCreatePaymentRequest, useUpdatePaymentRequest } from '../../../hooks/usePayments'
@@ -43,6 +44,7 @@ export function CreatePaymentRequestModal({
   existingRequest,
   onProceedToEditor
 }: CreatePaymentRequestModalProps) {
+  const router = useRouter()
   const isEditing = !!existingRequest
   const [hasInitialized, setHasInitialized] = useState(false)
   const [amount, setAmount] = useState<string>('')
@@ -208,6 +210,51 @@ export function CreatePaymentRequestModal({
   }, [rentType, rentStartDate, isEditing])
 
   if (!isOpen || !unit) return null
+
+  const hasSentWelcome = !unit.tenant || unit.tenant.hasReceivedWelcomeTemplate
+
+  if (!hasSentWelcome) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Welcome Template Required"
+        subtitle={`Unit ${unit.unitName} • ${unit.tenant ? formatTenantName(unit.tenant) : 'No Tenant'}`}
+        icon={AlertCircle}
+        maxWidth={500}
+        footer={
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="btn btn--primary"
+              style={{ flex: 1 }}
+              onClick={() => {
+                onClose()
+                router.push(`/documents?tenantUuid=${unit.tenant!.uuid}&unitUuid=${unit.uuid}&templateUuid=system-onboarding-1&disableRecipientEdit=true`)
+              }}
+            >
+              Send Welcome Template
+            </button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 0', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: '50%', background: 'var(--error-faint, #fef2f2)', color: 'var(--error, #ef4444)', marginBottom: 8 }}>
+            <AlertCircle size={32} />
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>Onboarding Document Required</h3>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+            You cannot request payments from this tenant yet. You must first send them the <strong>Welcome system template ("Getting Started")</strong> to complete their onboarding.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+            This ensures they receive the welcome email detailing how to register and access their rent payment passport on Upward.
+          </p>
+        </div>
+      </Modal>
+    )
+  }
 
   const handleAddLineItem = () => {
     setLineItems([...lineItems, { name: '', amount: '' }])

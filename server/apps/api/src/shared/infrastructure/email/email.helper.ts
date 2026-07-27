@@ -38,820 +38,192 @@ export function getThemeColors(theme: 'CLAY' | 'FOREST' | 'LANDLORD' | 'PM'): Th
   }
 }
 
-export interface OtpBranding {
-  primaryColor?: string;
-  bgColor?: string;
-  borderStyle?: string;
-  shadowStyle?: string;
-  outerBorder?: string;
-}
-
-export interface OtpEmailParams {
-  theme: 'CLAY' | 'FOREST' | 'PM';
-  brandName: string;
-  brandSub: string;
-  title: string;
-  greeting?: string;
-  message: string;
-  otp: string;
-  expiryText: string;
-  isPm?: boolean;
-  branding?: OtpBranding;
-}
-
-export function buildOtpEmailHtml(params: OtpEmailParams): string {
-  const { theme, brandName, brandSub, title, greeting, message, otp, expiryText, isPm, branding } = params;
-  const config = getThemeColors(theme);
-
-  const primaryColor = branding?.primaryColor || config.primaryColor;
-  const bgColor = branding?.bgColor || config.bgColor;
-  const borderStyle = branding?.borderStyle || config.borderStyle;
-  const shadowStyle = branding?.shadowStyle || config.shadowStyle;
-  const outerBorder = branding?.outerBorder || config.outerBorder;
-
-  if (isPm) {
-    return `
-      <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #0a0a0f; background-color: ${bgColor}; padding: 48px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.06);">
-        <div style="margin-bottom: 40px;">
-          <span style="color: ${primaryColor}; font-size: 14px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;">${brandName}</span>
-          <div style="color: #8a8a8a; font-size: 12px; margin-top: 4px;">${brandSub}</div>
-        </div>
-        <h2 style="color: ${primaryColor}; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 16px;">${title}</h2>
-        <p style="font-size: 16px; color: #4a4642; line-height: 1.6; margin-bottom: 32px;">${message}</p>
-        
-        <div style="background: #ffffff; border: ${borderStyle}; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04);">
-          <div style="font-size: 11px; color: ${primaryColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.25em; margin-bottom: 16px;">Verification Code</div>
-          <div style="font-size: 56px; font-weight: 800; color: ${primaryColor}; letter-spacing: 0.15em; line-height: 1; font-variant-numeric: tabular-nums;">${otp}</div>
-        </div>
-
-        <p style="font-size: 14px; color: #8a8a8a; line-height: 1.6; margin-top: 40px; text-align: center;">
-          ${expiryText}
-        </p>
-        
-        <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid rgba(0,0,0,0.06); text-align: center;">
-          <p style="font-size: 12px; color: #8a8a8a;">
-            &copy; 2026 Upward by GoodTenants. Professional Property Management Simplified.
-          </p>
-        </div>
-      </div>
-    `;
-  }
-
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px; ${outerBorder}">
-      <div style="margin-bottom:32px;">
-        <span style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">${brandName}</span>
-        <div style="color:#6B7280;font-size:12px;margin-top:4px;">${brandSub}</div>
-      </div>
-      <h2 style="color: ${primaryColor}; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">${title}</h2>
-      <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">${greeting || 'Hello'},</p>
-      <p style="font-size: 16px; color: #4b5563;">${message}</p>
-      
-      <div style="background: #ffffff; border: ${borderStyle}; padding: 32px; border-radius: 12px; margin: 32px 0; text-align: center; ${shadowStyle}">
-        <div style="font-size: 11px; color: ${primaryColor}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">Verification Code</div>
-        <div style="font-size: 48px; font-weight: 800; color: ${primaryColor}; letter-spacing: 0.1em; line-height: 1;">${otp}</div>
-      </div>
-
-      <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; text-align: center;">
-        ${expiryText}
-      </p>
-      <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 24px; text-align: center;">
-        If you didn't request this, you can safely ignore this email.
-      </p>
-    </div>
-  `;
-}
-
-export interface DocLayoutBranding {
-  primaryColor?: string;
-  bgColor?: string;
-  containerBg?: string;
-  borderColor?: string;
-  shadowStyle?: string;
-  logoTextColor?: string;
-  logoSubColor?: string;
-  btnColor?: string;
-  btnTextColor?: string;
-  footerBg?: string;
-  footerTextColor?: string;
-}
-
-export interface FullLayoutParams {
-  theme: 'FOREST' | 'LANDLORD';
-  logoText?: string;
-  logoSub?: string;
-  title: string;
-  contentHtml: string;
-  footerText: string;
-  customStyle?: string;
-  branding?: DocLayoutBranding;
-}
-
-export function buildFullLayoutHtml(params: FullLayoutParams): string {
-  const { theme, logoText = 'Upward', logoSub, title, contentHtml, footerText, customStyle = '', branding } = params;
-  const config = getThemeColors(theme);
-  
-  const primaryColor = branding?.primaryColor || config.primaryColor;
-  const bgColor = branding?.bgColor || config.bgColor;
-  const containerBg = branding?.containerBg || '#ffffff';
-  const borderColor = branding?.borderColor || config.borderStyle;
-  const shadowStyle = branding?.shadowStyle || config.shadowStyle;
-
-  const logoTextColor = branding?.logoTextColor || (theme === 'LANDLORD' ? '#fdfcfb' : '#faf9f5');
-  const logoSubColor = branding?.logoSubColor || (theme === 'LANDLORD' ? 'rgba(253, 252, 251, 0.7)' : 'rgba(250, 249, 245, 0.7)');
-  const borderTopColor = theme === 'LANDLORD' ? '#f0eee9' : '#f0eee9';
-  const footerBgColor = branding?.footerBg || (theme === 'LANDLORD' ? '#faf9f6' : '#faf9f5');
-  const footerTextColor = branding?.footerTextColor || '#8c8c8c';
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    body { font-family: 'Inter', -apple-system, sans-serif; background-color: ${bgColor}; color: #1a1a1a; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 40px auto; background-color: ${containerBg}; border-radius: 24px; overflow: hidden; border: ${borderColor}; ${shadowStyle} }
-    .header { background-color: ${primaryColor}; padding: 40px; text-align: left; }
-    .content { padding: 48px; }
-    .logo-text { color: ${logoTextColor}; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; display: block; }
-    .logo-sub { color: ${logoSubColor}; font-size: 12px; }
-    h1 { font-size: 24px; font-weight: 700; color: ${primaryColor}; margin-bottom: 24px; line-height: 1.3; }
-    p { font-size: 16px; line-height: 1.7; color: #4a4a4a; margin-bottom: 20px; }
-    .btn { background-color: ${primaryColor}; color: ${logoTextColor} !important; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s; text-align: center; width: 100%; box-sizing: border-box; }
-    .footer { padding: 32px 48px; border-top: 1px solid ${borderTopColor}; background-color: ${footerBgColor}; }
-    .footer-text { font-size: 13px; color: ${footerTextColor}; line-height: 1.6; }
-    ${customStyle}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <span class="logo-text">${logoText}</span>
-      ${logoSub ? `<span class="logo-sub">${logoSub}</span>` : ''}
-    </div>
-    <div class="content">
-      ${title ? `<h1>${title}</h1>` : ''}
-      ${contentHtml}
-    </div>
-    <div class="footer">
-      <p class="footer-text">
-        ${footerText}
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
-export interface TenantLayoutParams {
+export interface TenantLayoutProps {
   logoText?: string;
   logoSub?: string;
   title?: string;
   contentHtml: string;
-  footerText: string;
+  footerText?: string;
 }
 
-export function buildTenantLayoutHtml(params: TenantLayoutParams): string {
-  const primaryColor = '#d97757';
-  const bgColor = '#F9FAFB';
-  const cardBg = '#ffffff';
-  const borderColor = '#E5E7EB';
-
-  const { logoText = 'Upward', logoSub = 'by GoodTenants', title, contentHtml, footerText } = params;
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-@media (prefers-color-scheme: dark) {
-body, .container-table, .outer-table { background-color: ${bgColor} !important; }
-.main-card { background-color: ${cardBg} !important; border-color: ${borderColor} !important; }
-.title, .greeting, .body-text, .footer-text { color: #111827 !important; }
-.brand-name { color: ${primaryColor} !important; }
-.brand-sub { color: #6b7280 !important; }
-}
-</style>
-</head>
-<body style="margin:0;padding:0;background-color:${bgColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111827;">
-<table class="outer-table" width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:${bgColor};">
-<tr>
-<td align="center">
-<table class="main-card" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:${cardBg};border-radius:16px;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);overflow:hidden;border:1px solid ${borderColor};">
-<tr>
-<td style="height:4px;background-color:${primaryColor};"></td>
-</tr>
-<tr>
-<td style="padding:40px;">
-<div style="margin-bottom:32px;">
-<span class="brand-name" style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">${logoText}</span>
-${logoSub ? `<div class="brand-sub" style="color:#6B7280;font-size:12px;margin-top:4px;">${logoSub}</div>` : ''}
-</div>
-${title ? `<h1 class="greeting" style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;line-height:1.2;">${title}</h1>` : ''}
-<div class="body-text" style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">
-${contentHtml}
-</div>
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid ${borderColor};padding-top:24px;margin-top:32px;">
-  <tr>
-    <td align="left" style="color:#6B7280;font-size:13px;line-height:1.6;">
-      ${footerText}
-    </td>
-  </tr>
-</table>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</body>
-</html>`;
-}
-
-export interface WaitlistConfirmationBranding {
-  primaryColor?: string;
-  bgColor?: string;
-  cardBg?: string;
-  borderColor?: string;
-}
-
-export function buildWaitlistConfirmationHtml(params: {
-  displayName: string;
-  firstName?: string;
-  email: string;
-  frontendUrl: string;
-  branding?: WaitlistConfirmationBranding;
-}): string {
-  const primaryColor = params.branding?.primaryColor || '#d97757';
-  const bgColor = params.branding?.bgColor || '#F9FAFB';
-  const cardBg = params.branding?.cardBg || '#ffffff';
-  const borderColor = params.branding?.borderColor || '#E5E7EB';
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Upward Waitlist</title>
-<style>
-@media (prefers-color-scheme: dark) {
-body, .container-table, .outer-table { background-color: ${bgColor} !important; }
-.main-card { background-color: ${cardBg} !important; border-color: ${borderColor} !important; }
-.title, .greeting, .body-text, .footer-text { color: #111827 !important; }
-.sub-text { color: #4b5563 !important; }
-.info-box { background-color: #fff7ed !important; border-color: #ffedd5 !important; }
-.info-box-title { color: #9a3412 !important; }
-.info-box-text { color: #431407 !important; }
-.brand-name { color: ${primaryColor} !important; }
-.brand-sub { color: #6b7280 !important; }
-.supporting-text { color: #9ca3af !important; }
-.support-link { color: #6b7280 !important; }
-}
-</style>
-</head>
-<body style="margin:0;padding:0;background-color:${bgColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#111827;">
-<table class="outer-table" width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;background-color:${bgColor};">
-<tr>
-<td align="center">
-<table class="main-card" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background-color:${cardBg};border-radius:16px;box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);overflow:hidden;border:1px solid ${borderColor};">
-<tr>
-<td style="height:4px;background-color:${primaryColor};"></td>
-</tr>
-<tr>
-<td style="padding:40px;">
-<div style="margin-bottom:32px;">
-<span class="brand-name" style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
-<div class="brand-sub" style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
-</div>
-<h1 class="greeting" style="color:#111827;font-size:24px;font-weight:700;margin:0 0 20px 0;line-height:1.2;">Hello{{firstName}},</h1>
-<p class="body-text" style="color:#374151;font-size:16px;line-height:1.6;margin:0 0 16px 0;">You are now officially on the waitlist for <strong>Upward by GoodTenants</strong>.</p>
-<p class="sub-text" style="color:#4B5563;font-size:16px;line-height:1.6;margin:0 0 24px 0;">We're building upward for you to help create a pathway to better rental terms, discounts, financial services, and eventually to owning a home — with a community of people who are building the same future.</p>
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-<tr>
-<td class="info-box" style="background-color:#FFF7ED;border:1px solid #FFEDD5;border-radius:12px;padding:24px;">
-<div class="info-box-title" style="color:#9A3412;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">What happens next</div>
-<p class="info-box-text" style="color:#431407;font-size:15px;margin:0;line-height:1.5;">We will notify you as soon as early access becomes available. You may also receive occasional updates as we prepare for launch.</p>
-</td>
-</tr>
-</table>
-<p class="footer-text" style="color:#6B7280;font-size:15px;margin:0 0 24px 0;">Thank you for joining early.</p>
-
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-top:1px solid ${borderColor};padding-top:24px;">
-  <tr>
-    <td align="left">
-      <a href="${params.frontendUrl}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Our Website</a>
-      <span style="color: #D1D5DB; padding: 0 12px;">&bull;</span>
-      <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
-      <span style="color: #D1D5DB; padding: 0 12px;">&bull;</span>
-      <a href="${params.frontendUrl}/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
-    </td>
-  </tr>
-</table>
-
-</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</body>
-</html>`;
-}
-
-export interface AnalyticsBranding {
-  primaryColor?: string;
-  bgColor?: string;
-  cardBg?: string;
-  borderColor?: string;
-}
-
-export function buildDailyAnalyticsHtml(
-  stats: { completed: number; incomplete: number; total: number },
-  date: string,
-  branding?: AnalyticsBranding,
-): string {
-  const primaryColor = branding?.primaryColor || '#d97757';
-  const bgColor = branding?.bgColor || '#f9fafb';
-  const cardBg = branding?.cardBg || '#ffffff';
-  const borderColor = branding?.borderColor || '#e5e7eb';
+export function buildTenantLayoutHtml(params: TenantLayoutProps): string {
+  const logoText = params.logoText || 'Upward';
+  const logoSub = params.logoSub || 'by GoodTenants';
+  const footerText = params.footerText || 'The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.';
 
   return `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px;">
-        <h2 style="color: ${primaryColor}; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Daily Signup Analytics</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Here is the summary for <strong>${date}</strong>:</p>
-        
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 32px; border-collapse: separate; border-spacing: 16px 0;">
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${params.title || logoText}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fafafa; padding: 20px 10px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border: 1px solid #eaeaea; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);">
+          
+          <!-- Decorative Color Bar -->
           <tr>
-            <td width="50%" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 24px; border-radius: 12px; text-align: center;">
-              <div style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Completed</div>
-              <div style="font-size: 36px; font-weight: 800; color: #14532d; line-height: 1;">${stats.completed}</div>
+            <td height="6" style="background-color: #d97757;"></td>
+          </tr>
+
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 32px 20px 32px; border-bottom: 1px solid #fafafa;">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td>
+                    <span style="font-size: 24px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">${logoText}</span>
+                    <span style="display: block; font-size: 11px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">${logoSub}</span>
+                  </td>
+                </tr>
+              </table>
             </td>
-            <td width="50%" style="background: #fff7ed; border: 1px solid #ffedd5; padding: 24px; border-radius: 12px; text-align: center;">
-              <div style="font-size: 11px; color: #9a3412; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Incomplete</div>
-              <div style="font-size: 36px; font-weight: 800; color: #7c2d12; line-height: 1;">${stats.incomplete}</div>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 24px 32px 40px 32px;">
+              ${params.title ? `<h2 style="font-size: 20px; font-weight: 700; color: #111827; margin-top: 0; margin-bottom: 20px; letter-spacing: -0.3px;">${params.title}</h2>` : ''}
+              <div style="font-size: 15px; line-height: 1.6; color: #4b5563;">
+                ${params.contentHtml}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 32px; background-color: #fafafa; border-top: 1px solid #f3f4f6; text-align: center;">
+              <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #9ca3af;">
+                ${footerText}
+              </p>
             </td>
           </tr>
         </table>
-
-        <div style="background: ${cardBg}; border: 1px solid ${borderColor}; padding: 24px; border-radius: 12px; margin: 24px 16px 0; text-align: center;">
-          <div style="font-size: 11px; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Total New Signups</div>
-          <div style="font-size: 28px; font-weight: 800; color: #111827; line-height: 1;">${stats.total}</div>
-        </div>
-
-        <p style="font-size: 13px; color: #9ca3af; margin-top: 40px; text-align: center; font-style: italic; line-height: 1.5;">
-          This is an automated report generated by the Upward Cron Service.<br>
-          Sent to superadmin users of Upward by GoodTenants.
-        </p>
-      </div>
-    `;
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-export function getPmTypeLabel(pmType?: string | null): string {
-  if (!pmType) return 'Property Manager';
-
-  const types: Record<string, string> = {
-    INDIVIDUAL_LANDLORD: 'Landlord',
-    Caretaker: 'Caretaker',
-    Lawyer: 'Lawyer',
-    'Estate Agent': 'Estate Agent',
-    'Property Manager': 'Property Manager',
-    Company: 'Property Management Company',
-  };
-
-  return types[pmType] || 'Property Manager';
+export interface LayoutProps {
+  theme?: 'FOREST' | 'LANDLORD';
+  logoText?: string;
+  logoSub?: string;
+  title: string;
+  contentHtml: string;
+  footerText?: string;
+  branding?: any;
 }
 
-export function buildTenantInviteHtml(params: {
-  tenantName: string;
-  pmName: string;
-  inviteLink: string;
-  pmRole: string;
-  branding?: DocLayoutBranding;
-}): string {
-  const primary = params.branding?.primaryColor || '#166534';
-  const customStyle = `
-    h1 { font-size: 22px; }
-    .bullet-list { margin-bottom: 24px; padding-left: 0; list-style: none; }
-    .bullet-item { font-size: 16px; color: #4a4a4a; margin-bottom: 12px; position: relative; padding-left: 24px; line-height: 1.6; }
-    .bullet-item::before { content: "•"; color: ${primary}; font-weight: bold; position: absolute; left: 0; }
-  `;
+export function buildFullLayoutHtml(params: LayoutProps): string {
+  const theme = params.theme || 'FOREST';
+  const logoText = params.logoText || 'Upward';
+  const logoSub = params.logoSub || (theme === 'LANDLORD' ? 'Landlord Portal' : 'Property Management');
+  const footerText = params.footerText || `© 2026 Upward. All rights reserved.`;
 
-  const contentHtml = `
-    <p>We're excited to let you know that <strong>${params.pmName}</strong> will now be using Upward to manage your rent payments and tenancy records.</p>
-    
-    <p>Upward is a simple platform designed to make your renting experience easier and more rewarding. With the platform, you can securely make rent payments, build a credibility score you can use anywhere, and get exclusive benefits from paying rent.</p>
-    
-    <p>Upward helps you:</p>
-    <div class="bullet-list">
-      <div class="bullet-item">Earn rewards for paying rent early and consistently</div>
-      <div class="bullet-item">Get access to quality houses when moving homes</div>
-      <div class="bullet-item">Get apartments based on your rental credibility, without discriminatory biases</div>
-      <div class="bullet-item">Build a credibility profile that can be used anywhere.</div>
-    </div>
-
-    <p style="margin-bottom: 32px;">Getting started only takes a few minutes.</p>
-    
-    <a href="${params.inviteLink}" class="btn">Accept Upward Invite</a>
-    
-    <p style="margin-top: 32px; margin-bottom: 24px;">We look forward to giving you a smoother housing experience through Upward.</p>
-    
-    <p style="margin: 0; line-height: 1.6;">
-      Your Cheerleader,<br>
-      <strong>Liveable</strong>
-    </p>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
-    logoText: 'Upward',
-    logoSub: params.pmRole,
-    title: `Dear ${params.tenantName},`,
-    contentHtml,
-    footerText: `If you have any questions, please contact your ${params.pmRole.toLowerCase()} or reply to this email.<br>
-      © 2026 Upward by GoodTenants. All rights reserved.`,
-    customStyle,
-    branding: params.branding,
-  });
-}
-
-export function buildRentReceiptEmailHtml(params: {
-  tenantName: string;
-  amount: string;
-  propertyAddress: string;
-  receiptNumber: string;
-  receiptUrl: string;
-  companyName?: string;
-  logoUrl?: string;
-}): string {
-  const brandName = params.logoUrl ? (params.companyName || 'Upward') : 'Upward';
-  const logoBlock = params.logoUrl
-    ? `<div style="margin-bottom: 24px;"><img src="${params.logoUrl}" alt="${brandName}" style="max-height: 56px; object-fit: contain;" /></div>`
-    : '';
-
-  const contentHtml = `
-    ${logoBlock}
-    <p>Hi <strong>${params.tenantName}</strong>,</p>
-    <p>Your rent payment of <strong>${params.amount}</strong> for <strong>${params.propertyAddress}</strong> was successful.</p>
-    <p style="margin: 24px 0; padding: 20px; background: #faf9f5; border: 1px solid #e2ddd7; border-radius: 12px;">
-      <span style="display:block; font-size: 12px; color: #928e89; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Receipt No.</span>
-      <strong style="font-size: 16px; color: #0a0a0f;">${params.receiptNumber}</strong>
-    </p>
-    <p>Your receipt is attached to this email. You can also view it anytime in your Upward dashboard.</p>
-    <p style="margin-top: 28px; text-align: center;">
-      <a href="${params.receiptUrl}" style="display: inline-block; background-color: #d97757; color: #ffffff; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: 700;">View Digital Receipt</a>
-    </p>
-  `;
-
-  return buildTenantLayoutHtml({
-    logoText: brandName,
-    logoSub: params.logoUrl ? 'Rent Payment Receipt' : 'by GoodTenants',
-    title: 'Payment Successful',
-    contentHtml,
-    footerText: `This is an electronically generated receipt from Upward.<br>© ${new Date().getFullYear()} Upward by GoodTenants.`,
-  });
-}
-
-export function buildPaymentRequestHtml(params: {
-  tenantName: string;
-  pmName: string;
-  amount: number;
-  currency: string;
-  dueDate: string | Date;
-  description?: string;
-  paymentLink: string;
-  pmRole: string;
-  branding?: DocLayoutBranding;
-}): string {
-  const primary = params.branding?.primaryColor || '#166534';
-  const customStyle = `
-    .payment-badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 24px; border-radius: 16px; margin-bottom: 32px; }
-    .payment-label { font-size: 11px; font-weight: 700; color: ${primary}; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
-    .payment-amount { font-size: 32px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; display: block; }
-    .payment-meta { font-size: 14px; color: #666; display: block; margin-top: 4px; }
-  `;
-
-  const contentHtml = `
-    <p>Hello ${params.tenantName}, you have a new payment request for your property.</p>
-    
-    <div class="payment-badge">
-      <span class="payment-label">Amount Due</span>
-      <span class="payment-amount">${params.currency} ${params.amount.toLocaleString()}</span>
-      <span class="payment-meta"><strong>Due Date:</strong> ${new Date(params.dueDate).toLocaleDateString()}</span>
-      ${params.description ? `<span class="payment-meta"><strong>Description:</strong> ${params.description}</span>` : ''}
-    </div>
-
-    <p>Please use the button below to view the breakdown and make your payment securely.</p>
-    
-    <a href="${params.paymentLink}" class="btn">View & Pay Now</a>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
-    logoText: 'Upward',
-    logoSub: 'Payment Request',
-    title: `Payment Request from ${params.pmName}`,
-    contentHtml,
-    footerText: `If you have any questions about this request, please contact your ${params.pmRole.toLowerCase()} directly.<br>
-      © 2026 Upward by GoodTenants. All rights reserved.`,
-    customStyle,
-    branding: params.branding,
-  });
-}
-
-export function buildCredibilityRequestHtml(params: {
-  tenantName: string;
-  propertyAddress: string;
-  requestLink: string;
-  isRegisteredPm?: boolean;
-  branding?: DocLayoutBranding;
-}): string {
-  const ctaText = params.isRegisteredPm ? 'Open Dashboard' : 'Review & Fulfill Request';
-  const mainText = params.isRegisteredPm
-    ? `A past tenant, <strong>${params.tenantName}</strong>, is requesting their rental history for <strong>${params.propertyAddress}</strong> to build their credit score on Upward.`
-    : `<strong>${params.tenantName}</strong> has requested that you verify their past tenancy and payment records for <strong>${params.propertyAddress}</strong>.`;
-
-  const subText = params.isRegisteredPm
-    ? 'Since you are already on Upward, you can fulfill this request directly from your dashboard Activity Center.'
-    : 'Providing these records helps your former tenant build their credibility profile on Upward.';
-
-  const contentHtml = `
-    <p>Hello,</p>
-    <p>${mainText}</p>
-    <p>${subText}</p>
-    <a href="${params.requestLink}" class="btn">${ctaText}</a>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
-    logoText: 'Upward',
-    title: 'Past Tenancy Record Request',
-    contentHtml,
-    footerText: '© 2026 Upward by GoodTenants. All rights reserved.',
-    branding: params.branding,
-  });
-}
-
-export function buildNewUserRecordsHtml(params: {
-  pmName: string;
-  propertyAddress: string;
-  completeProfileLink: string;
-  branding?: DocLayoutBranding;
-}): string {
-  const contentHtml = `
-    <p>Hello,</p>
-    <p><strong>${params.pmName}</strong> has just added your past rent payment records for <strong>${params.propertyAddress}</strong> to Upward.</p>
-    <p>You can proceed to complete your profile to see how this affects your tenancy score and unlocks better rental opportunities.</p>
-    <a href="${params.completeProfileLink}" class="btn">Complete Your Profile</a>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
-    logoText: 'Upward',
-    title: 'Your Past Records Have Been Added',
-    contentHtml,
-    footerText: '© 2026 Upward by GoodTenants. All rights reserved.',
-    branding: params.branding,
-  });
-}
-
-export function buildLandlordWelcomeHtml(params: {
-  landlordName: string;
-  tempPassword: string;
-  portalLink: string;
-  branding?: DocLayoutBranding;
-}): string {
-  const customStyle = `
-    .badge { background-color: #f0f7f2; border: 1px solid #d1e7d8; padding: 24px; border-radius: 16px; margin-bottom: 32px; }
-    .label { font-size: 11px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; display: block; }
-    .password { font-size: 24px; font-weight: 800; color: #1a1a1a; margin-bottom: 8px; display: block; font-family: monospace; }
-  `;
-
-  const contentHtml = `
-    <p>Your property manager has invited you to the Upward Landlord Portal. Here you can view real-time summary analysis of your properties, units, and rental revenue.</p>
-    
-    <div class="badge">
-      <span class="label">Temporary Password</span>
-      <span class="password">${params.tempPassword}</span>
-      <p style="font-size: 12px; color: #666; margin: 8px 0 0 0;">You will be required to change this password upon your first login.</p>
-    </div>
-
-    <p>Access your dashboard using the button below:</p>
-    
-    <a href="${params.portalLink}" class="btn">Login to Landlord Portal</a>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'FOREST',
-    logoText: 'Upward',
-    logoSub: 'Landlord Portal',
-    title: `Welcome to Upward, ${params.landlordName}`,
-    contentHtml,
-    footerText: `If you didn't expect this invitation, please contact your property manager.<br>
-      © 2026 Upward by GoodTenants. All rights reserved.`,
-    customStyle,
-    branding: params.branding,
-  });
-}
-
-export function buildLandlordNewPropertyAssignmentHtml(params: {
-  landlordName: string;
-  portalLink: string;
-  branding?: DocLayoutBranding;
-}): string {
-  const contentHtml = `
-    <p>A property manager has just added a new property to your portfolio on Upward.</p>
-    <p>You can now view real-time analysis and reports for this property by logging into your portal.</p>
-    
-    <a href="${params.portalLink}" class="btn">View Your Portfolio</a>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'LANDLORD',
-    logoText: 'Upward',
-    logoSub: 'Landlord Portal',
-    title: `New Property Assigned, ${params.landlordName}`,
-    contentHtml,
-    footerText: '© 2026 Upward by GoodTenants. All rights reserved.',
-    branding: params.branding,
-  });
-}
-
-export function buildRecordAddedHtml(params: {
-  pmName: string;
-  propertyAddress: string;
-  frontendUrl: string;
-  branding?: DocLayoutBranding;
-}): string {
-  const contentHtml = `
-    <p>Hello,</p>
-    <p><strong>${params.pmName}</strong> has just updated your rental payment history for <strong>${params.propertyAddress}</strong> on Upward.</p>
-    <p>These records help build your rental credibility score and showcase your consistency as a tenant.</p>
-    <a href="${params.frontendUrl}/dashboard" class="btn">View Your Rent Passport</a>
-  `;
-
-  return buildFullLayoutHtml({
-    theme: 'LANDLORD',
-    logoText: 'Upward',
-    title: 'New Rental Records Added',
-    contentHtml,
-    footerText: '© 2026 Upward by GoodTenants. All rights reserved.',
-    branding: params.branding,
-  });
-}
-
-export function buildDataDeletionRequestConfirmationHtml(params?: {
-  branding?: AnalyticsBranding;
-}): string {
-  const primaryColor = params?.branding?.primaryColor || '#d97757';
-  const bgColor = params?.branding?.bgColor || '#f9fafb';
-  const cardBg = params?.branding?.cardBg || '#ffffff';
-  const borderColor = params?.branding?.borderColor || '#e5e7eb';
+  const config = getThemeColors(theme);
+  const bodyBg = theme === 'LANDLORD' ? '#fdfcfb' : '#FFFFF0';
 
   return `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px;">
-        <div style="margin-bottom:32px;">
-          <span style="color:${primaryColor};font-size:14px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Upward</span>
-          <div style="color:#6B7280;font-size:12px;margin-top:4px;">by GoodTenants</div>
-        </div>
-        <h2 style="color: #111827; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Data Deletion Request</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello,</p>
-        <p style="font-size: 16px; color: #4b5563;">We have received a request to delete all data associated with this email address from our systems.</p>
-        
-        <div style="background: ${cardBg}; border: 1px solid ${borderColor}; padding: 24px; border-radius: 12px; margin: 32px 0;">
-          <p style="font-size: 14px; color: #4b5563; margin: 0; line-height: 1.5;">
-            <strong>Important:</strong> This process is irreversible. Once we proceed, your Rent Passport, payment history, and all account details will be permanently removed.
-          </p>
-        </div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${params.title || logoText}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: ${config.bgColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: ${config.bgColor}; padding: 40px 10px;">
+    <tr>
+      <td align="center">
+        <!-- Card Container -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: ${bodyBg}; ${config.borderStyle}; border-radius: 12px; overflow: hidden; ${config.shadowStyle}">
+          
+          <!-- Banner / Header -->
+          <tr>
+            <td style="background-color: ${config.primaryColor}; padding: 32px 24px; text-align: center;">
+              <h1 style="color: #FFFFF0; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">${logoText}</h1>
+              <p style="color: rgba(255,255,255,0.7); margin: 6px 0 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">${logoSub}</p>
+            </td>
+          </tr>
 
-        <p style="font-size: 16px; color: #4b5563;">
-          To ensure the security of your data, we require you to confirm this request by replying to this email or clicking the button below (if available). 
-          If you did not initiate this request, please ignore this email and your data will remain safe.
-        </p>
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 40px 32px; background-color: ${bodyBg};">
+              ${params.title ? `<h2 style="font-size: 20px; color: ${config.primaryColor}; margin-top: 0; margin-bottom: 24px; font-weight: 700;">${params.title}</h2>` : ''}
+              <div style="font-size: 15px; line-height: 1.6; color: #2f3e35;">
+                ${params.contentHtml}
+              </div>
+            </td>
+          </tr>
 
-        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
-          Best regards,<br>
-          The Upward Privacy Team
-        </p>
-      </div>
-    `;
+          <!-- Footer Area -->
+          <tr>
+            <td style="padding: 24px 32px; background-color: rgba(0,0,0,0.02); border-top: 1px solid rgba(0,0,0,0.05); text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #7B8F82; line-height: 1.5;">
+                ${footerText}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
-export function buildTeamInvitationHtml(params: {
-  name: string;
-  inviterName: string;
-  isNewAccount: boolean;
-  claimLink: string;
-  branding?: OtpBranding;
+export function buildGlobalLayoutHtml(params: {
+  role: 'TENANT' | 'PM' | 'LANDLORD' | 'ADMIN' | string;
+  title?: string;
+  contentHtml: string;
+  footerText?: string;
+  logoText?: string;
+  logoSub?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  branding?: any;
 }): string {
-  const config = getThemeColors('PM');
-  const primaryColor = params.branding?.primaryColor || config.primaryColor;
-  const bgColor = params.branding?.bgColor || config.bgColor;
-  const borderStyle = params.branding?.borderStyle || config.borderStyle;
-  const shadowStyle = params.branding?.shadowStyle || config.shadowStyle;
+  const role = params.role;
+  const logoText = params.logoText || 'Upward';
+  const logoSub = params.logoSub || (role === 'PM' ? 'Property Management' : role === 'LANDLORD' ? 'Landlord Portal' : 'by GoodTenants');
+  const footerText = params.footerText || `© 2026 Upward by GoodTenants. All rights reserved.`;
 
-  return `
-      <div style="font-family: 'Inter', -apple-system, sans-serif; max-width: 600px; margin: 0 auto; color: #0a0a0f; background-color: ${bgColor}; padding: 48px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.06);">
-        <div style="margin-bottom: 40px;">
-          <span style="color: ${primaryColor}; font-size: 14px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;">Upward PM</span>
-          <div style="color: #8a8a8a; font-size: 12px; margin-top: 4px;">Property Management Collaboration</div>
-        </div>
-        <h2 style="color: ${primaryColor}; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 16px;">Team Invitation</h2>
-        <p style="font-size: 16px; color: #4a4642; line-height: 1.6; margin-bottom: 24px;">Hello ${params.name},</p>
-        <p style="font-size: 16px; color: #4a4642; line-height: 1.6; margin-bottom: 32px;">
-          <strong>${params.inviterName}</strong> has invited you to collaborate on their properties on the Upward PM platform.
-        </p>
-        
-        <div style="background: #ffffff; border: ${borderStyle}; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 24px rgba(22, 101, 52, 0.04); ${shadowStyle}">
-          <p style="font-size: 15px; color: #8a8a8a; margin-bottom: 24px; line-height: 1.5;">
-            ${
-              params.isNewAccount
-                ? 'An account has been prepared for you. Click the button below to claim your access and set your password.'
-                : 'You have been granted access to new properties. You can now manage them from your existing dashboard.'
-            }
-          </p>
-          <a href="${params.claimLink}" style="background-color: ${primaryColor}; color: #ffffff; padding: 18px 36px; border-radius: 12px; text-decoration: none; font-weight: 700; display: inline-block; transition: background-color 0.2s;">
-            ${params.isNewAccount ? 'Claim Your Access' : 'Go to Dashboard'}
-          </a>
-        </div>
-
-        <p style="font-size: 14px; color: #8a8a8a; line-height: 1.6; margin-top: 40px; text-align: center;">
-          If you weren't expecting this invitation, you can safely ignore this email.
-        </p>
-        
-        <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid rgba(0,0,0,0.06); text-align: center;">
-          <p style="font-size: 12px; color: #8a8a8a;">
-            &copy; 2026 Upward by GoodTenants. Built for professional property managers.
-          </p>
-        </div>
+  let bodyHtml = params.contentHtml;
+  if (params.buttonText && params.buttonUrl) {
+    const primaryColor = role === 'TENANT' ? '#d97757' : role === 'LANDLORD' ? '#0d4d2b' : '#166534';
+    bodyHtml += `
+      <div style="margin: 32px 0 24px 0; text-align: center;">
+        <a href="${params.buttonUrl}" style="background-color: ${primaryColor}; color: #ffffff !important; padding: 16px 32px; border-radius: 10px; text-decoration: none; font-weight: 700; display: inline-block; text-align: center;">${params.buttonText}</a>
       </div>
     `;
-}
+  }
 
-export function buildJoinRequestRejectionHtml(params: {
-  tenantName: string;
-  pmName: string;
-  propertyAddress: string;
-  reason?: string;
-  branding?: AnalyticsBranding;
-}): string {
-  const primaryColor = params.branding?.primaryColor || '#d97757';
-  const bgColor = params.branding?.bgColor || '#f9fafb';
-
-  return `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px;">
-        <h2 style="color: #ef4444; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Connection Request Declined</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${params.tenantName},</p>
-        <p style="font-size: 16px; color: #4b5563;">Your request to connect with <strong>${params.pmName}</strong> for the property at <strong>${params.propertyAddress}</strong> has been declined.</p>
-        
-        ${
-          params.reason
-            ? `
-        <div style="background: #FEF2F2; border: 1px solid #FEE2E2; padding: 24px; border-radius: 12px; margin: 24px 0;">
-          <div style="font-size: 11px; color: #991B1B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Reason from Manager</div>
-          <p style="font-size: 15px; color: #7F1D1D; margin: 0; line-height: 1.5;">${params.reason}</p>
-        </div>
-        `
-            : ''
-        }
-
-        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
-          You can try reconnecting with a different email address or contact the manager directly if you believe this was an error.
-        </p>
-      </div>
-    `;
-}
-
-export function buildCredibilityRequestRejectionHtml(params: {
-  tenantName: string;
-  propertyAddress: string;
-  reason?: string;
-  branding?: AnalyticsBranding;
-}): string {
-  const bgColor = params.branding?.bgColor || '#f9fafb';
-
-  return `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111827; background-color: ${bgColor}; padding: 40px; border-radius: 16px;">
-        <h2 style="color: #ef4444; border-bottom: 2px solid #f3f4f6; padding-bottom: 12px; margin-top: 0;">Record Request Declined</h2>
-        <p style="font-size: 16px; color: #4b5563; margin-top: 24px;">Hello ${params.tenantName},</p>
-        <p style="font-size: 16px; color: #4b5563;">Your request for past tenancy records for <strong>${params.propertyAddress}</strong> has been declined by the manager.</p>
-        
-        ${
-          params.reason
-            ? `
-        <div style="background: #FEF2F2; border: 1px solid #FEE2E2; padding: 24px; border-radius: 12px; margin: 24px 0;">
-          <div style="font-size: 11px; color: #991B1B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Reason from Manager</div>
-          <p style="font-size: 15px; color: #7F1D1D; margin: 0; line-height: 1.5;">${params.reason}</p>
-        </div>
-        `
-            : ''
-        }
-
-        <p style="font-size: 14px; color: #9ca3af; line-height: 1.5; margin-top: 32px;">
-          This request will no longer appear as pending on your dashboard.
-        </p>
-      </div>
-    `;
+  if (role === 'TENANT') {
+    return buildTenantLayoutHtml({
+      logoText,
+      logoSub,
+      title: params.title,
+      contentHtml: bodyHtml,
+      footerText,
+    });
+  } else {
+    return buildFullLayoutHtml({
+      theme: role === 'LANDLORD' ? 'LANDLORD' : 'FOREST',
+      logoText,
+      logoSub,
+      title: params.title || '',
+      contentHtml: bodyHtml,
+      footerText,
+      branding: params.branding,
+    });
+  }
 }
 
 export function applyPmBranding(html: string, emailSetting: any): string {
@@ -887,29 +259,362 @@ export function applyPmBranding(html: string, emailSetting: any): string {
   return brandedHtml;
 }
 
+export function buildTenantInviteHtml(params: {
+  tenantName: string;
+  pmName: string;
+  pmType: string;
+  inviteLink: string;
+  pmUuid?: string;
+}): string {
+  const content = `
+    <p>Hi ${params.tenantName},</p>
+    <p><strong>${params.pmName}</strong> (${params.pmType || 'Property Manager'}) has invited you to connect on Upward.</p>
+    <p>Upward allows you to track and verify your rent payments, build a verified rental profile, and keep your credit record whenever you move.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Invitation to Join Upward',
+    contentHtml: content,
+    buttonText: 'Accept Invitation',
+    buttonUrl: params.inviteLink,
+  });
+}
+
+export function buildPaymentRequestHtml(params: {
+  tenantName: string;
+  pmName: string;
+  propertyName: string;
+  unitName: string;
+  amount: number;
+  dueDate: string;
+  paymentLink: string;
+  allowPartial: boolean;
+  minAmount?: number;
+  currency?: string;
+}): string {
+  const formattedAmount = `${params.currency || 'NGN'} ${params.amount.toLocaleString()}`;
+  const content = `
+    <p>Hi ${params.tenantName},</p>
+    <p>You have a new rent payment request from <strong>${params.pmName}</strong> for <strong>Unit ${params.unitName}</strong> at <strong>${params.propertyName}</strong>.</p>
+    
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
+      <table width="100%" cellpadding="4" cellspacing="0" style="font-size: 14px; color: #4b5563;">
+        <tr>
+          <td><strong>Amount:</strong></td>
+          <td align="right" style="font-size: 18px; color: #111827; font-weight: 700;">${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td><strong>Due Date:</strong></td>
+          <td align="right">${params.dueDate}</td>
+        </tr>
+        ${params.allowPartial && params.minAmount ? `
+        <tr>
+          <td><strong>Minimum Partial:</strong></td>
+          <td align="right">${params.currency || 'NGN'} ${params.minAmount.toLocaleString()}</td>
+        </tr>` : ''}
+      </table>
+    </div>
+  `;
+
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'New Payment Request',
+    contentHtml: content,
+    buttonText: 'Pay Rent Now',
+    buttonUrl: params.paymentLink,
+  });
+}
+
+export function buildCredibilityRequestHtml(params: {
+  pmName: string;
+  tenantName: string;
+  propertyAddress: string;
+  requestLink: string;
+  isRegisteredPm?: boolean;
+}): string {
+  const content = `
+    <p>Hi ${params.pmName},</p>
+    <p>Your former tenant, <strong>${params.tenantName}</strong>, has requested verification of their past tenancy records at <strong>${params.propertyAddress}</strong>.</p>
+    <p>Verifying their request helps them build their Rent Passport score and rental reputation on Upward.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'PM',
+    title: 'Tenancy Verification Request',
+    contentHtml: content,
+    buttonText: 'Verify Tenancy',
+    buttonUrl: params.requestLink,
+  });
+}
+
+export function buildNewUserRecordsHtml(params: {
+  tenantName: string;
+  pmName: string;
+  propertyAddress: string;
+  loginLink: string;
+}): string {
+  const content = `
+    <p>Hi ${params.tenantName},</p>
+    <p><strong>${params.pmName}</strong> has uploaded your tenancy history for <strong>${params.propertyAddress}</strong> to Upward.</p>
+    <p>Claim your profile to see how this verified record strengthens your Rent Passport score.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Rental Record Added',
+    contentHtml: content,
+    buttonText: 'View Rental Record',
+    buttonUrl: params.loginLink,
+  });
+}
+
+export function buildLandlordWelcomeHtml(params: {
+  landlordName: string;
+  loginLink: string;
+  password?: string;
+}): string {
+  const content = `
+    <p>Hi ${params.landlordName},</p>
+    <p>You have been invited to the Upward Landlord Portal.</p>
+    ${params.password ? `<p>Your temporary password is: <strong>${params.password}</strong></p>` : ''}
+    <p>Log in to set up your password and start viewing real-time rental analytics for your properties.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'LANDLORD',
+    title: 'Welcome to the Landlord Portal',
+    contentHtml: content,
+    buttonText: 'Log In to Portal',
+    buttonUrl: params.loginLink,
+  });
+}
+
+export function buildLandlordNewPropertyAssignmentHtml(params: {
+  landlordName: string;
+  propertyName: string;
+  dashboardLink: string;
+}): string {
+  const content = `
+    <p>Hi ${params.landlordName},</p>
+    <p>A new property, <strong>${params.propertyName}</strong>, has been assigned to your portfolio on Upward.</p>
+    <p>You can now monitor payouts, occupancy rates, and real-time rent collection reports for this property.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'LANDLORD',
+    title: 'New Property Assigned',
+    contentHtml: content,
+    buttonText: 'View Property Portfolio',
+    buttonUrl: params.dashboardLink,
+  });
+}
+
+export function buildRecordAddedHtml(params: {
+  tenantName: string;
+  pmName: string;
+  propertyAddress: string;
+  loginLink: string;
+}): string {
+  return buildNewUserRecordsHtml(params);
+}
+
+export function buildDataDeletionRequestConfirmationHtml(params: {
+  userName: string;
+  deletionLink: string;
+}): string {
+  const content = `
+    <p>Hello ${params.userName},</p>
+    <p>We received a request to permanently delete your Upward account and all associated data.</p>
+    <p style="color: #ef4444; font-weight: 600;">Warning: This process is completely irreversible. Your Rent Passport, payment receipts, and profile history will be permanently lost.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Confirm Data Deletion Request',
+    contentHtml: content,
+    buttonText: 'Confirm Irreversible Deletion',
+    buttonUrl: params.deletionLink,
+  });
+}
+
+export function buildTeamInvitationHtml(params: {
+  employeeName: string;
+  pmName: string;
+  inviteLink: string;
+}): string {
+  const content = `
+    <p>Hi ${params.employeeName},</p>
+    <p><strong>${params.pmName}</strong> has invited you to join their property management team on Upward PM.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'PM',
+    title: 'Collaborator Invitation',
+    contentHtml: content,
+    buttonText: 'Accept Invitation',
+    buttonUrl: params.inviteLink,
+  });
+}
+
+export function buildJoinRequestRejectionHtml(params: {
+  tenantName: string;
+  pmName: string;
+  propertyAddress: string;
+  reason?: string;
+}): string {
+  const content = `
+    <p>Hello ${params.tenantName},</p>
+    <p>Your request to connect with <strong>${params.pmName}</strong> for the property at <strong>${params.propertyAddress}</strong> has been declined.</p>
+    ${params.reason ? `<div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 16px; border-radius: 8px; color: #991b1b; margin: 16px 0;"><strong>Reason:</strong> ${params.reason}</div>` : ''}
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Connection Request Declined',
+    contentHtml: content,
+  });
+}
+
+export function buildCredibilityRequestRejectionHtml(params: {
+  tenantName: string;
+  propertyAddress: string;
+  reason?: string;
+}): string {
+  const content = `
+    <p>Hello ${params.tenantName},</p>
+    <p>Your request for past tenancy records for <strong>${params.propertyAddress}</strong> has been declined by the property manager.</p>
+    ${params.reason ? `<div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 16px; border-radius: 8px; color: #991b1b; margin: 16px 0;"><strong>Reason:</strong> ${params.reason}</div>` : ''}
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Record Request Declined',
+    contentHtml: content,
+  });
+}
+
+export function buildWaitlistConfirmationHtml(params: {
+  displayName: string;
+  firstName?: string;
+  email: string;
+  frontendUrl?: string;
+}): string {
+  const name = params.firstName || params.displayName || 'there';
+  const content = `
+    <p>Hi ${name},</p>
+    <p>You're officially on the waitlist for Upward by GoodTenants!</p>
+    <p>We are building Upward to make renting simpler, more transparent, and more rewarding. We will notify you as soon as early access becomes available.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'You’re on the Waitlist!',
+    contentHtml: content,
+  });
+}
+
+export function buildRentReceiptEmailHtml(params: {
+  tenantName: string;
+  propertyAddress: string;
+  unitName: string;
+  amountPaid: number;
+  balance: number;
+  receiptNumber: string;
+  paymentDate: string;
+  receiptUrl: string;
+}): string {
+  const content = `
+    <p>Hi ${params.tenantName},</p>
+    <p>Your rent payment was successful. Thank you!</p>
+    
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
+      <table width="100%" cellpadding="4" cellspacing="0" style="font-size: 14px; color: #4b5563;">
+        <tr>
+          <td><strong>Receipt Number:</strong></td>
+          <td align="right">${params.receiptNumber}</td>
+        </tr>
+        <tr>
+          <td><strong>Amount Paid:</strong></td>
+          <td align="right" style="color: #166534; font-weight: 700;">NGN ${params.amountPaid.toLocaleString()}</td>
+        </tr>
+        <tr>
+          <td><strong>Property:</strong></td>
+          <td align="right">${params.propertyAddress} (${params.unitName})</td>
+        </tr>
+        <tr>
+          <td><strong>Payment Date:</strong></td>
+          <td align="right">${params.paymentDate}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Rent Payment Successful 🎉',
+    contentHtml: content,
+    buttonText: 'View Full Receipt',
+    buttonUrl: params.receiptUrl,
+  });
+}
+
+export function buildOtpEmailHtml(params: {
+  otp: string;
+  firstName?: string;
+}): string {
+  const name = params.firstName || 'there';
+  const content = `
+    <p>Hi ${name},</p>
+    <p>Use the verification code below to securely access your Upward account:</p>
+    <div style="text-align: center; margin: 32px 0;">
+      <span style="font-size: 32px; font-weight: 800; color: #d97757; letter-spacing: 4px; background: #faf5f2; border: 1px dashed #d97757; padding: 12px 24px; border-radius: 8px; display: inline-block;">${params.otp}</span>
+    </div>
+    <p>This verification code is valid for 10 minutes. Please do not share it with anyone.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Verify Your Identity',
+    contentHtml: content,
+  });
+}
+
+export function buildPmPaymentReceivedHtml(params: {
+  pmName: string;
+  tenantName: string;
+  unitName: string;
+  propertyName: string;
+  amount: number;
+  baseUrl: string;
+}): string {
+  const content = `
+    <p>Dear <strong>${params.pmName}</strong>,</p>
+    <p>We are pleased to inform you that your tenant <strong>${params.tenantName}</strong> has successfully completed a rent payment for <strong>Unit ${params.unitName}</strong> at <strong>${params.propertyName}</strong>.</p>
+    
+    <div style="background-color: #fafae6; padding: 24px; border-radius: 12px; border: 1px solid #e3e2cf; margin: 24px 0; text-align: center;">
+      <p style="margin: 0; font-size: 13px; color: #607366; text-transform: uppercase; letter-spacing: 0.5px;">Amount Received</p>
+      <p style="margin: 8px 0 0 0; font-size: 28px; font-weight: 800; color: #1b4332;">NGN ${params.amount.toLocaleString()}</p>
+    </div>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'PM',
+    title: 'Payment Received 🎉',
+    contentHtml: content,
+    buttonText: 'Go to Payments',
+    buttonUrl: `${params.baseUrl}/portal/payments`,
+  });
+}
+
 export function buildSequenceWelcomeHtml(params: {
   firstName: string;
   loginLink: string;
 }): string {
-  const contentHtml = `
+  const content = `
     <p>Welcome to Upward! Your account has been successfully created, and you're all set to enjoy a better rental experience.</p>
     <p>With your account, you can:</p>
     <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
       <li style="margin-bottom: 8px;">View your rent payment history and receipts anytime.</li>
       <li style="margin-bottom: 8px;">Build a verified rental profile that grows every time you pay your rent on time.</li>
       <li style="margin-bottom: 8px;">Take your rental reputation with you wherever you move.</li>
-      <li style="margin-bottom: 8px;">Receive and manage rent payment requests from your property manager—all in one place.</li>
+      <li style="margin-bottom: 8px;">Receive and manage rent payment requests from your property manager.</li>
     </ul>
-    <p><a href="${params.loginLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Log in</a> now to complete your profile by clicking the prompt after login and adding missing personal details to get full access to available services.</p>
-    <p>Already have a history of paying rent on time? Request your previous rent payment history from your property manager to add it to your Upward profile and get credit for the good payment habits you've already built.</p>
     <p>Thank you for joining Upward. We're excited to help make renting simpler, more transparent, and more rewarding.</p>
   `;
-
-  return buildTenantLayoutHtml({
-    logoText: 'Upward',
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
     title: `Hello ${params.firstName},`,
-    contentHtml,
-    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+    contentHtml: content,
+    buttonText: 'Log In to Profile',
+    buttonUrl: params.loginLink,
   });
 }
 
@@ -917,7 +622,7 @@ export function buildSequenceDay2Html(params: {
   firstName: string;
   scoreLink: string;
 }): string {
-  const contentHtml = `
+  const content = `
     <p>You joined Upward because your rent payments can do more than simply pay for your home — they can help build your rental reputation. Now it's time to see how.</p>
     <p>Your Upward Score reflects your rent payment behaviour and helps build a verified rental profile that stays with you, even when you move.</p>
     <p>By viewing your score, you'll be able to:</p>
@@ -926,17 +631,13 @@ export function buildSequenceDay2Html(params: {
       <li style="margin-bottom: 8px;">Understand what influences your score.</li>
       <li style="margin-bottom: 8px;">Discover simple ways to strengthen it.</li>
     </ul>
-    <p>View your Upward Score and its full breakdown: <a href="${params.scoreLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
-    <p>Already have a history of paying rent on time? You should also request your previous rent payment history from your current or past property manager to receive credit for the responsible payment habits you've already built.</p>
-    <p>As more of your rent payments are recorded, your profile continues to grow—creating a trusted rental history that can work in your favour any moment from now.</p>
-    <p>We're excited to help you build a rental reputation that's recognised.</p>
   `;
-
-  return buildTenantLayoutHtml({
-    logoText: 'Upward',
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
     title: `Hi ${params.firstName},`,
-    contentHtml,
-    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+    contentHtml: content,
+    buttonText: 'View Upward Score',
+    buttonUrl: params.scoreLink,
   });
 }
 
@@ -944,33 +645,16 @@ export function buildSequenceDay5Html(params: {
   firstName: string;
   guideLink: string;
 }): string {
-  const contentHtml = `
-    <p>Here's something many renters don't realize:</p>
-    <p>Two tenants can pay the exact same rent for years—but when it's time to move, both often have to start from scratch.</p>
-    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
-      <li style="margin-bottom: 8px;">Their history isn't visible.</li>
-      <li style="margin-bottom: 8px;">Their reliability isn't recognised.</li>
-      <li style="margin-bottom: 8px;">Their years of responsible payments don't follow them.</li>
-    </ul>
-    <p>We think that should change.</p>
-    <p>That's why we've put together a short guide on one of the most valuable things you can build as a tenant: your rental reputation.</p>
-    <p>In just a few minutes, you'll learn:</p>
-    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
-      <li style="margin-bottom: 8px;">Why your rental reputation matters.</li>
-      <li style="margin-bottom: 8px;">What strengthens it (and what weakens it).</li>
-      <li style="margin-bottom: 8px;">How small habits today can make renting easier in the future.</li>
-      <li style="margin-bottom: 8px;">How Upward helps you keep building that reputation instead of losing it every time you move.</li>
-    </ul>
-    <p>Read: <a href="${params.guideLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">5 Ways to Build a Stronger Rental Reputation</a></p>
-    <p>The guide only takes a few minutes to read, but the habits can benefit you for years.</p>
-    <p>See you inside,</p>
+  const content = `
+    <p>Here's something many renters don't realize: Two tenants can pay the exact same rent for years—but when it's time to move, both often have to start from scratch because their years of responsible payments don't follow them.</p>
+    <p>We think that should change. That's why we've put together a short guide on one of the most valuable things you can build as a tenant: your rental reputation.</p>
   `;
-
-  return buildTenantLayoutHtml({
-    logoText: 'Upward',
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
     title: `Hi ${params.firstName},`,
-    contentHtml,
-    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+    contentHtml: content,
+    buttonText: 'Read 5 Ways to Build Reputation',
+    buttonUrl: params.guideLink,
   });
 }
 
@@ -978,25 +662,19 @@ export function buildSequenceDay9Html(params: {
   firstName: string;
   appLink: string;
 }): string {
-  const contentHtml = `
+  const content = `
     <p>A resident in Yaba recently renewed her annual rent of over ₦1,000,000 through Upward. Like many tenants, she initially thought she was simply making another rent payment.</p>
-    <p>But something happened immediately afterwards.</p>
-    <p>Her payment was confirmed, her receipt was available instantly, and she watched her Upward Score increase.</p>
-    <p><strong>For the first time, paying rent felt like she was building something that would benefit her in the future.</strong></p>
-    <p>Here's how she described the experience:</p>
+    <p>But her payment was confirmed, her receipt was available instantly, and she watched her Upward Score increase.</p>
     <blockquote style="border-left: 4px solid #d97757; padding-left: 16px; margin: 24px 0; color: #555; font-style: italic;">
-      "The whole process was so simple and clear. I paid my rent, got my receipt immediately, and then saw my Upward Score go up. It honestly felt good knowing that my payment wasn't just gone—it was helping me build my rental reputation. It gave me a sense of control over my future as a tenant."
+      "The whole process was so simple and clear. I paid my rent, got my receipt immediately, and then saw my Upward Score go up. It honestly felt good knowing that my payment wasn't just gone—it was helping me build my rental reputation."
     </blockquote>
-    <p>She was so excited by the experience that she started exploring other Upward benefits...and because she'll be requesting her previous rent payment history from her property manager, her profile will become even stronger as those responsible payment records are added.</p>
-    <p>That's the power of Upward.</p>
-    <p>Open Upward and see your rental profile: <a href="${params.appLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
   `;
-
-  return buildTenantLayoutHtml({
-    logoText: 'Upward',
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
     title: `Hi ${params.firstName},`,
-    contentHtml,
-    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+    contentHtml: content,
+    buttonText: 'See Your Rental Profile',
+    buttonUrl: params.appLink,
   });
 }
 
@@ -1004,32 +682,85 @@ export function buildSequenceDay14Html(params: {
   firstName: string;
   appLink: string;
 }): string {
-  const contentHtml = `
+  const content = `
     <p>Welcome once again to Upward!</p>
     <p>Your account is ready, and every time you use Upward, you build a stronger rental reputation that can open up more opportunities over time.</p>
-    <p>With your Upward account today, you can:</p>
-    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
-      <li style="margin-bottom: 8px;">Build a verified rental profile with every on-time rent payment.</li>
-      <li style="margin-bottom: 8px;">View your rent payment history and receipts anytime.</li>
-      <li style="margin-bottom: 8px;">Request your previous rent payment history so your past good payment habits count too.</li>
-      <li style="margin-bottom: 8px;">Keep your rental reputation with you wherever you move.</li>
-    </ul>
-    <p>As you continue using Upward, you'll also be able to:</p>
-    <ul style="margin-bottom: 24px; padding-left: 20px; color: #4a4a4a; line-height: 1.6;">
-      <li style="margin-bottom: 8px;">Discover available apartments that match your rental credibility.</li>
-      <li style="margin-bottom: 8px;">Save toward paying your rent and qualify for rent discounts and rewards.</li>
-      <li style="margin-bottom: 8px;">Enjoy new resident benefits and features as they're introduced.</li>
-    </ul>
     <p>The more you use Upward, the more valuable your rental profile becomes.</p>
-    <p>We'll occasionally share helpful tips, product updates, and new opportunities to help you get the most from your rental journey.</p>
-    <p>👉 Open Upward and continue building your rental reputation: <a href="${params.appLink}" style="color: #d97757; font-weight: 600; text-decoration: underline;">Here</a></p>
-    <p>Thank you for choosing Upward. We're excited to be part of your journey toward a smarter, more rewarding rental experience.</p>
+  `;
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: `Hi ${params.firstName},`,
+    contentHtml: content,
+    buttonText: 'Open Upward Account',
+    buttonUrl: params.appLink,
+  });
+}
+
+export function buildDailyAnalyticsHtml(params: {
+  totalEmails: number;
+  totalSent: number;
+  totalFailed: number;
+  totalRetries: number;
+  failedList: Array<{ id: string; email: string; type: string; error: string }>;
+}): string {
+  const failedRows = params.failedList
+    .map(
+      (f) => `
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">${f.id}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">${f.email}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px;">${f.type}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #d32f2f;">${f.error}</td>
+    </tr>
+  `
+    )
+    .join('');
+
+  const content = `
+    <p>Here is the automated daily analytics report for email operations:</p>
+    <div style="background: #faf9f5; border: 1px solid rgba(22, 101, 52, 0.1); padding: 20px; border-radius: 12px; margin: 24px 0;">
+      <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 14px; color: #2f3e35;">
+        <tr>
+          <td><strong>Total Emailed:</strong></td>
+          <td align="right">${params.totalEmails}</td>
+        </tr>
+        <tr>
+          <td><strong>Total Delivered:</strong></td>
+          <td align="right" style="color: #166534; font-weight: 700;">${params.totalSent}</td>
+        </tr>
+        <tr>
+          <td><strong>Total Failed:</strong></td>
+          <td align="right" style="color: #d32f2f; font-weight: 700;">${params.totalFailed}</td>
+        </tr>
+        <tr>
+          <td><strong>Total Retries Performed:</strong></td>
+          <td align="right">${params.totalRetries}</td>
+        </tr>
+      </table>
+    </div>
+
+    ${params.failedList.length > 0 ? `
+    <h3>Failed Dispatches Detail</h3>
+    <div style="overflow-x: auto;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eee; border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #f5f5f5;">
+            <th style="padding: 8px; text-align: left; font-size: 13px;">ID</th>
+            <th style="padding: 8px; text-align: left; font-size: 13px;">Recipient</th>
+            <th style="padding: 8px; text-align: left; font-size: 13px;">Type</th>
+            <th style="padding: 8px; text-align: left; font-size: 13px;">Error Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${failedRows}
+        </tbody>
+      </table>
+    </div>` : ''}
   `;
 
-  return buildTenantLayoutHtml({
-    logoText: 'Upward',
-    title: `Hi ${params.firstName},`,
-    contentHtml,
-    footerText: `The Upward Team<br>© 2026 Upward by GoodTenants. All rights reserved.`
+  return buildGlobalLayoutHtml({
+    role: 'ADMIN',
+    title: 'Daily Outbound Email Report',
+    contentHtml: content,
   });
 }

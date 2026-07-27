@@ -4,7 +4,7 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 import { InviteTeamMemberDto, TeamAccessLevel } from '../../dtos/team.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../../domains/pm/property-manager.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
-import { EmailService } from '../../../../shared/infrastructure/email/email.service';
+import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class InviteTeamMemberUseCase {
     @Inject(PROPERTY_MANAGER_REPOSITORY)
     private readonly pmRepo: PropertyManagerRepository,
     private readonly encryption: EncryptionService,
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(ownerPmId: number, dto: InviteTeamMemberDto) {
@@ -105,12 +105,17 @@ export class InviteTeamMemberUseCase {
     const owner = await this.pmRepo.findById(ownerPmId);
     const ownerName = owner?.businessName || `${owner?.firstName} ${owner?.lastName}`;
 
-    await this.emailService.sendTeamInvitation({
-      email: dto.email,
-      name: dto.name,
-      inviterName: ownerName,
-      isNewAccount,
-      claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/pm-invite/${collaborator!.uuid}`
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: dto.email,
+      recipientName: dto.name,
+      recipientRole: 'PM',
+      type: 'TEAM_INVITATION',
+      context: {
+        name: dto.name,
+        inviterName: ownerName,
+        isNewAccount,
+        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/pm-invite/${collaborator!.uuid}`,
+      },
     });
 
     return collaboration;

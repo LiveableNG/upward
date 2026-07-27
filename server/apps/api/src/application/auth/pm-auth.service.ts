@@ -11,6 +11,8 @@ import { BaseAuthService } from './base-auth.service'
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service'
 import * as crypto from 'crypto'
 
+import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
+
 @Injectable()
 export class PmAuthService extends BaseAuthService {
   constructor(
@@ -20,6 +22,7 @@ export class PmAuthService extends BaseAuthService {
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -182,7 +185,17 @@ export class PmAuthService extends BaseAuthService {
       expiresAt,
     })
 
-    await this.emailService.sendPmAuthOTP(email, otp, effectiveContext)
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: email,
+      recipientName: 'Property Manager',
+      recipientRole: 'PM',
+      type: 'PM_AUTH_OTP',
+      context: {
+        otp,
+        context: effectiveContext,
+        title: effectiveContext === 'SIGNUP' ? 'Create Your PM Account' : 'Secure PM Portal Login',
+      },
+    });
     return { context: effectiveContext }
   }
 
@@ -363,7 +376,19 @@ export class PmAuthService extends BaseAuthService {
     })
 
     const fullName = `${pm.firstName} ${pm.lastName}`
-    await this.emailService.sendPmPasswordResetOTP(pm.email, fullName, otp)
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: pm.email,
+      recipientName: fullName,
+      recipientRole: 'PM',
+      type: 'PM_PASSWORD_RESET_OTP',
+      context: {
+        otp,
+        title: 'PM Password Reset Request',
+        greeting: fullName,
+        message: 'We received a request to reset your password for your Upward PM account.',
+        expiryText: 'This code expires in 15 minutes.',
+      },
+    });
   }
 
   async resetPassword(email: string, otp: string, newPlain: string): Promise<void> {

@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { IWhatsappSequenceLogRepository, WHATSAPP_SEQUENCE_REPOSITORY } from '../../../domains/whatsapp-sequence/whatsapp-sequence.repository.interface';
-import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 
@@ -11,7 +11,7 @@ export class ProcessPendingSequencesUseCase {
   constructor(
     @Inject(WHATSAPP_SEQUENCE_REPOSITORY)
     private readonly sequenceRepository: IWhatsappSequenceLogRepository,
-    private readonly whatsappService: WhatsappService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly encryptionService: EncryptionService,
     private readonly prisma: PrismaService,
   ) {}
@@ -32,7 +32,7 @@ export class ProcessPendingSequencesUseCase {
       // Look up user to ensure we have the latest phone
       const user = await this.prisma.upward_user.findUnique({
         where: { id: log.userId },
-        select: { phone: true },
+        select: { phone: true, firstName: true },
       });
 
       if (!user || !user.phone) {
@@ -41,72 +41,39 @@ export class ProcessPendingSequencesUseCase {
       }
 
       const plainPhone = this.encryptionService.decrypt(user.phone);
-
-      const bodyTextArgs = log.templateData?.body_text?.[0] || [];
-      const parameters = bodyTextArgs.map((text: string) => {
-        let decoded = text || '';
-        if (text && text.includes(':')) {
-          decoded = this.encryptionService.decrypt(text);
-        }
-        return {
-          type: 'text',
-          text: decoded,
-        };
-      });
+      
+      let decryptedFirstName = 'there';
+      if (user.firstName) {
+        decryptedFirstName = user.firstName.includes(':')
+          ? this.encryptionService.decrypt(user.firstName)
+          : user.firstName;
+      }
 
       try {
-        const result = await this.whatsappService.sendMessage({
-          to: plainPhone,
-          template: {
-            name: log.templateName,
-            components: [
-              {
-                type: 'body',
-                parameters,
-              }
-            ],
+        const success = await this.unifiedCommService.processCommunication({
+          recipientPhone: plainPhone,
+          recipientName: decryptedFirstName,
+          recipientRole: 'TENANT',
+          registeredUserId: log.userId,
+          type: `ONBOARDING_SEQUENCE_${log.stage}` as any,
+          forceChannel: 'WHATSAPP',
+          context: {
+            firstName: decryptedFirstName,
+            displayName: decryptedFirstName,
+            stage: log.stage,
           },
         });
 
-        let status = 'FAILED';
-        let error: string | null = 'Unknown error';
-
-        if (result.success) {
-          status = 'SENT';
-          error = null;
+        if (success) {
           await this.sequenceRepository.updateStatus(log.id, 'SENT');
+          this.logger.log(`[WhatsappSequence] Successfully sent sequence ${log.stage} to user ID ${log.userId}`);
         } else {
-          error = result.error || 'Unknown Meta API error';
-          await this.sequenceRepository.updateStatus(log.id, 'FAILED', error);
+          await this.sequenceRepository.updateStatus(log.id, 'FAILED', 'WhatsApp dispatch failed');
+          this.logger.warn(`[WhatsappSequence] Failed to send sequence ${log.stage} to user ID ${log.userId}`);
         }
-
-        await this.prisma.upward_communication_log.create({
-          data: {
-            registeredUserId: log.userId,
-            subject: `WhatsApp Sequence: ${log.stage}`,
-            status,
-            channel: 'WHATSAPP',
-            type: `ONBOARDING_SEQUENCE_${log.stage}`,
-            recipient: plainPhone,
-            body: `Template: ${log.templateName}\n\nParameters Injected:\n${JSON.stringify(parameters, null, 2)}`,
-            lastError: error,
-            sentAt: status === 'SENT' ? new Date() : null,
-          }
-        });
       } catch (error: any) {
         await this.sequenceRepository.updateStatus(log.id, 'FAILED', error.message || 'Unknown internal error');
-        await this.prisma.upward_communication_log.create({
-          data: {
-            registeredUserId: log.userId,
-            subject: `WhatsApp Sequence: ${log.stage}`,
-            status: 'FAILED',
-            channel: 'WHATSAPP',
-            type: `ONBOARDING_SEQUENCE_${log.stage}`,
-            recipient: plainPhone,
-            body: `Template: ${log.templateName}\n\nParameters Injected:\n${JSON.stringify(parameters, null, 2)}`,
-            lastError: error.message || 'Unknown internal error',
-          }
-        });
+        this.logger.error(`[WhatsappSequence] Error sending sequence ${log.stage} to user ID ${log.userId}:`, error.message);
       }
     }
   }

@@ -170,7 +170,7 @@ export function BasicCheckoutView({
       })
       .filter((row) => row.amount > 0 || row.editable)
 
-    if (transactionFeeAmount > 0 || rentSubtotal > 0) {
+    if (transactionFeeAmount > 0) {
       rows.push({
         id: -2,
         name: 'Transaction fee',

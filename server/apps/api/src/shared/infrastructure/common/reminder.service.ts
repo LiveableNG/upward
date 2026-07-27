@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from './notification.service';
-import { EmailService } from '../email/email.service';
 import { EncryptionService } from './encryption.service';
 import { ProcessScheduledPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/process-scheduled-payment-requests.use-case';
 import { ProcessScheduledExternalPaymentRequestsUseCase } from '../../../application/use-cases/external/process-scheduled-payments.use-case';
 import { ProcessPendingSequencesUseCase } from '../../../application/use-cases/whatsapp-sequence/process-pending-sequences.use-case'
 import { ProcessPendingEmailSequencesUseCase } from '../../../application/use-cases/email-sequence/process-pending-email-sequences.use-case';
+import { UnifiedCommunicationService } from '../communication/unified-communication.service';
 
 @Injectable()
 export class UnifiedReminderService {
@@ -15,12 +15,12 @@ export class UnifiedReminderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
-    private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
     private readonly processScheduledRequestsUseCase: ProcessScheduledPmPaymentRequestsUseCase,
     private readonly processScheduledExternalRequestsUseCase: ProcessScheduledExternalPaymentRequestsUseCase,
     private readonly processPendingSequencesUseCase: ProcessPendingSequencesUseCase,
     private readonly processPendingEmailSequencesUseCase: ProcessPendingEmailSequencesUseCase,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   /**
@@ -46,7 +46,7 @@ export class UnifiedReminderService {
     
     this.logger.log('Processing Email onboarding sequences...')
     await this.processPendingEmailSequencesUseCase.execute()
-
+ 
     this.logger.log('[ReminderService] Processing scheduled payment requests...');
     await this.processScheduledRequestsUseCase.execute();
     await this.processScheduledExternalRequestsUseCase.execute();
@@ -95,7 +95,9 @@ export class UnifiedReminderService {
     const decryptedPmLastName = pr.pm?.lastName ? this.encryption.decrypt(pr.pm.lastName) : '';
     const pmName = decryptedBusinessName || `${decryptedPmFirstName} ${decryptedPmLastName}`.trim() || 'Property Manager';
     
-    if (!tenantEmail) return;
+    const tenantPhone = pr.tenant?.phoneEncrypted ? this.encryption.decrypt(pr.tenant.phoneEncrypted) : null;
+
+    if (!tenantEmail && !tenantPhone) return;
 
     const amount = `${pr.currency} ${pr.amount.toLocaleString()}`;
     const unitName = pr.unit.unitName;
@@ -103,32 +105,29 @@ export class UnifiedReminderService {
     const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
     const paymentUrl = `${baseUrl}/pay/${pr.paymentRequest?.uuid || pr.uuid}`;
 
-    // 1. Send Email
-    await this.emailService.sendEmailWithRetry({
+    // 1. Send via Unified Communication Service
+    await this.unifiedCommService.processCommunication({
       userId: pr.tenant.uuid,
-      email: tenantEmail,
-      subject: `Reminder: Rent Payment for ${unitName} (${propertyName})`,
-      html: `
-        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 12px; padding: 24px;">
-          <h2 style="color: #166534;">Payment Reminder</h2>
-          <p>Dear ${tenantName},</p>
-          <p>This is a friendly reminder from <strong>${pmName}</strong> regarding your outstanding payment for <strong>${unitName}</strong> at ${propertyName}.</p>
-          
-          <div style="background: #fdfcf6; padding: 20px; border-radius: 8px; border: 1px solid #f1f0e0; margin: 20px 0;">
-            <p style="margin: 0; font-size: 14px; color: #666;">Amount Due</p>
-            <p style="margin: 4px 0 0 0; font-size: 24px; font-weight: 700; color: #166534;">${amount}</p>
-          </div>
-
-          <p>Kindly settle this at your earliest convenience to keep your records up to date.</p>
-          
-          <a href="${paymentUrl}" style="display: inline-block; background: #166534; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 10px;">Pay Now</a>
-          
-          <p style="font-size: 12px; color: #999; margin-top: 32px; border-top: 1px solid #eee; padding-top: 16px;">
-            If you have already made this payment, please ignore this message.
-          </p>
-        </div>
-      `,
-      type: 'PAYMENT_REMINDER'
+      recipientEmail: tenantEmail || undefined,
+      recipientPhone: tenantPhone || undefined,
+      recipientName: tenantName,
+      recipientRole: 'TENANT',
+      pmUuid: pr.pm.uuid,
+      type: 'PAYMENT_REQUEST',
+      context: {
+        displayName: tenantName,
+        pmName,
+        propertyName,
+        unitName,
+        amount: pr.amount,
+        formattedAmount: amount,
+        dueDate: pr.dueDate ? new Date(pr.dueDate).toLocaleDateString() : '',
+        paymentLink: paymentUrl,
+        allowPartial: pr.allowPartial,
+        minAmount: pr.minAmount,
+        currency: pr.currency,
+        title: `Reminder: Rent Payment for ${unitName} (${propertyName})`,
+      }
     });
 
     // 2. In-App Notification (if tenant is registered)
@@ -147,7 +146,7 @@ export class UnifiedReminderService {
         }
     }
     
-    this.logger.log(`[ReminderService] Sent ${pr.reminderFrequency} reminder to ${tenantEmail} for PR ${pr.uuid}`);
+    this.logger.log(`[ReminderService] Processed ${pr.reminderFrequency} reminder routing to ${tenantEmail || tenantPhone} for PR ${pr.uuid}`);
   }
 
   private async updateNextReminder(pr: any) {
@@ -405,12 +404,16 @@ export class UnifiedReminderService {
             </div>
           `;
 
-          await this.emailService.sendEmailWithRetry({
-            userId: pm.uuid,
-            email: pmEmail,
-            subject: `[Upward] Daily Rent Digest: ${upcomingDigestItems.length + overdueDigestItems.length} alerts`,
-            html: emailHtml,
-            type: 'PM_RENT_DIGEST'
+          await this.unifiedCommService.processCommunication({
+            recipientEmail: pmEmail,
+            recipientName: pmName,
+            recipientRole: 'PM',
+            pmUuid: pm.uuid,
+            type: 'PM_RENT_DIGEST',
+            context: {
+              htmlOverride: emailHtml,
+              title: `[Upward] Daily Rent Digest: ${upcomingDigestItems.length + overdueDigestItems.length} alerts`,
+            }
           }).catch((err) => {
             this.logger.error(`Failed to send daily digest email to PM ${pmEmail}:`, err);
           });

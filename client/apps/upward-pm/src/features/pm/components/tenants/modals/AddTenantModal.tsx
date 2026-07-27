@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -32,7 +33,8 @@ const tenantSchema = z.object({
   // Assignment fields
   unitUuid: z.string().optional(),
   rentAmount: z.string().optional(),
-  rentType: z.enum(['Monthly', 'Annually']).optional(),
+  rentType: z.enum(['Monthly', 'Annually', 'Lease']).optional(),
+  leaseYears: z.string().optional(),
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
   isFullyPaid: z.boolean().optional(),
@@ -63,7 +65,7 @@ const tenantSchema = z.object({
     }
   }
 
-  if (data.unitUuid && data.unitUuid.trim() !== '') {
+  if ((data.unitUuid && data.unitUuid.trim() !== '') || (data.rentAmount && parseFloat(data.rentAmount) > 0)) {
     if (!data.rentAmount || parseFloat(data.rentAmount) <= 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -84,6 +86,15 @@ const tenantSchema = z.object({
         path: ['rentEndDate'],
         message: 'Rent end date is required'
       })
+    }
+    if (data.rentType === 'Lease') {
+      if (!data.leaseYears || parseInt(data.leaseYears, 10) < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['leaseYears'],
+          message: 'Lease duration must be 1 year or more'
+        })
+      }
     }
   }
 })
@@ -115,11 +126,13 @@ interface AddTenantModalProps {
 }
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose, mode = 'add-tenant', initialData }) => {
+  const router = useRouter()
   const { createTenant, assignTenant } = useTenantActions()
   const { data: units = [] } = useUnits()
   const { data: properties = [] } = useProperties()
   const createPropertyMutation = useCreateProperty()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
+  const [successData, setSuccessData] = useState<{ tenantUuid: string; unitUuid?: string } | null>(null)
 
   const isJoinRequest = mode === 'join-request'
 
@@ -150,13 +163,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       firstName: initialData?.firstName || '',
       lastName: initialData?.lastName || '',
       commercialName: initialData?.commercialName || '',
-      email: initialData?.email || '',
+      email: (initialData?.email && !initialData.email.endsWith('@upward.com')) ? initialData.email : '',
       phone: initialData?.phone || '',
       otherPhone: '',
       deliveryChannel: undefined,
       unitUuid: '',
       rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
       rentType: 'Annually',
+      leaseYears: '1',
       rentStartDate: initialData?.unitDetails?.rentStartDate
         ? new Date(initialData.unitDetails.rentStartDate).toISOString().split('T')[0]
         : '',
@@ -206,18 +220,26 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     }
   }, [vacantUnits.length])
 
-  // Auto-calculate End Date if Start Date or Type changes
+  const leaseYears = watch('leaseYears')
+
+  // Auto-calculate End Date if Start Date, Cycle or Lease Years changes
   useEffect(() => {
     if (rentStartDate && rentType) {
       const start = new Date(rentStartDate)
       if (isNaN(start.getTime())) return
       const end = new Date(start)
-      if (rentType === 'Monthly') end.setMonth(end.getMonth() + 1)
-      else end.setFullYear(end.getFullYear() + 1)
+      if (rentType === 'Monthly') {
+        end.setMonth(end.getMonth() + 1)
+      } else if (rentType === 'Lease') {
+        const years = Math.max(1, parseInt(String(leaseYears || '1'), 10) || 1)
+        end.setFullYear(end.getFullYear() + years)
+      } else {
+        end.setFullYear(end.getFullYear() + 1)
+      }
       end.setDate(end.getDate() - 1)
       setValue('rentEndDate', end.toISOString().split('T')[0])
     }
-  }, [rentStartDate, rentType, setValue])
+  }, [rentStartDate, rentType, leaseYears, setValue])
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -228,16 +250,20 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
 
   const onSubmit = async (data: TenantFormData) => {
-    const { tenantType, unitUuid, rentAmount, rentType, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, ...tenantData } = data
+    const { tenantType, unitUuid, rentAmount, rentType, leaseYears, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, ...tenantData } = data
 
     let email = tenantData.email || ''
     if (!email || email.trim() === '') {
-      const cleanFirst = (tenantData.firstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const cleanLast = (tenantData.lastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const cleanComm = (tenantData.commercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const namePart = tenantType === 'individual' && cleanFirst && cleanLast ? `${cleanFirst}-${cleanLast}` : cleanComm || 'tenant'
-      const randomStr = Math.random().toString(36).substring(2, 8)
-      email = `guest-${namePart}-${randomStr}@upward.com`
+      if (isJoinRequest && initialData?.email) {
+        email = initialData.email
+      } else {
+        const cleanFirst = (tenantData.firstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+        const cleanLast = (tenantData.lastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+        const cleanComm = (tenantData.commercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+        const namePart = tenantType === 'individual' && cleanFirst && cleanLast ? `${cleanFirst}-${cleanLast}` : cleanComm || 'tenant'
+        const randomStr = Math.random().toString(36).substring(2, 8)
+        email = `guest-${namePart}-${randomStr}@upward.com`
+      }
     }
 
     const tenantPayload = {
@@ -298,7 +324,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             unitName: newUnitName.trim(),
             rentAmount: parseFloat(rentAmount),
             rentType: rentType || 'Annually',
-            leaseYears: 1,
+            leaseYears: rentType === 'Lease' ? Math.max(1, parseInt(String(leaseYears || '1'), 10) || 1) : undefined,
             rentStartDate,
             rentDueDate: rentEndDate,
             status: 'VACANT',
@@ -324,7 +350,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             }, {
               onSuccess: () => {
                 reset()
-                onClose()
+                setSuccessData({ tenantUuid: tenant.uuid, unitUuid: createdUnit.uuid })
               }
             })
           }
@@ -350,12 +376,12 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             }, {
               onSuccess: () => {
                 reset()
-                onClose()
+                setSuccessData({ tenantUuid: tenant.uuid, unitUuid })
               }
             })
           } else {
             reset()
-            onClose()
+            setSuccessData({ tenantUuid: tenant.uuid })
           }
         }
       })
@@ -765,7 +791,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
                 {(assignMode === 'create' || (assignMode === 'existing' && vacantUnits.length > 0)) && (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: rentType === 'Lease' ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16, marginTop: 16 }}>
                       <div className="form-group">
                         <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <CreditCard size={14} /> Rent Amount (₦)
@@ -789,13 +815,27 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                               onChange={field.onChange}
                               options={[
                                 { label: 'Annually', value: 'Annually' },
-                                { label: 'Monthly', value: 'Monthly' }
+                                { label: 'Monthly', value: 'Monthly' },
+                                { label: 'Lease', value: 'Lease' }
                               ]}
                               placeholder="Select Rent Cycle"
                             />
                           )}
                         />
                       </div>
+                      {rentType === 'Lease' && (
+                        <div className="form-group animate-fade-in">
+                          <label className="form-label">Lease Duration (Years)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            className={cn("form-input", errors.leaseYears && "form-input--error")}
+                            placeholder="e.g. 1"
+                            {...register('leaseYears')}
+                          />
+                          {errors.leaseYears && <span className="form-error-text">{errors.leaseYears.message}</span>}
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
@@ -910,23 +950,23 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
           /* Join Request Card */
           .join-request-card {
-            border: 1.5px solid var(--forest);
+            border: 1px solid var(--border);
             border-radius: 16px;
             overflow: hidden;
-            background: rgba(22, 101, 52, 0.03);
+            background: var(--ivory-dim);
           }
           .join-request-card__header {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 16px;
-            background: rgba(22, 101, 52, 0.07);
-            border-bottom: 1px solid rgba(22, 101, 52, 0.12);
+            padding: 12px 16px;
+            background: var(--surface-hover);
+            border-bottom: 1px solid var(--border);
             font-size: 11px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: var(--forest);
+            color: var(--text-secondary);
           }
           .join-request-card__body {
             padding: 12px 16px;
@@ -953,7 +993,8 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             text-align: right;
           }
           .join-request-card__val--highlight {
-            color: var(--forest);
+            color: var(--dark);
+            font-weight: 700;
             font-size: 14px;
           }
 
@@ -1003,6 +1044,74 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         `}</style>
     </Modal>
   )
-
-  return modalContent
-}
+  
+    if (successData) {
+      return (
+        <Modal
+          isOpen={isOpen}
+          onClose={() => {
+            setSuccessData(null)
+            onClose()
+          }}
+          title="Tenant Onboarding Info"
+          subtitle="Step 2 of Onboarding (Optional)"
+          icon={CheckCircle2}
+          maxWidth={500}
+          footer={
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button
+                type="button"
+                className="btn btn--secondary"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  setSuccessData(null)
+                  onClose()
+                }}
+              >
+                Done (Skip for Now)
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  const tenantUuid = successData.tenantUuid
+                  const unitUuid = successData.unitUuid
+                  setSuccessData(null)
+                  onClose()
+                  router.push(`/documents?tenantUuid=${tenantUuid}${unitUuid ? `&unitUuid=${unitUuid}` : ''}&templateUuid=system-onboarding-1&disableRecipientEdit=true`)
+                }}
+              >
+                Send Welcome Template
+              </button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 0', textAlign: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: '50%', background: 'var(--forest-faint)', color: 'var(--forest)', marginBottom: 8 }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>Tenant Added Successfully!</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              To begin making payment requests to this tenant, you must first send them the <strong>Welcome system template ("Getting Started")</strong>. This introduces Upward and ensures they can set up their portal.
+            </p>
+            <div style={{
+              background: 'var(--ivory-dim)',
+              padding: '12px 16px',
+              borderRadius: 12,
+              fontSize: 12,
+              color: 'var(--clay)',
+              borderLeft: '3px solid var(--clay)',
+              textAlign: 'left',
+              width: '100%',
+              fontWeight: 600
+            }}>
+              ⚠️ Failure to send the Welcome template will block any future payment requests to this tenant.
+            </div>
+          </div>
+        </Modal>
+      )
+    }
+  
+    return modalContent
+  }
