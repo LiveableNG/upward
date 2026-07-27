@@ -9,6 +9,7 @@ import { LOCATION_REPOSITORY, LocationRepository } from '../../../../domains/com
 import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../../domains/companies/company.repository';
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../../domains/payments/payment.repository';
 import { ResolveDedicatedAccountUseCase } from '../../../use-cases/payments/payment.use-cases';
+import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 
 @Injectable()
 export class SyncUnitToUpwardUseCase {
@@ -34,6 +35,7 @@ export class SyncUnitToUpwardUseCase {
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) { }
 
   async execute(unitUuid: string, pmId: number): Promise<void> {
@@ -281,6 +283,24 @@ export class SyncUnitToUpwardUseCase {
         this.logger.warn(`Failed to pre-provision DVA during sync background task: ${e.message}`);
       });
     }
+
+    // 5. Send Property Verification Notification to Tenant
+    this.unifiedCommService.processCommunication({
+      recipientEmail: upwardUser.email,
+      recipientPhone: upwardUser.phone ?? undefined,
+      recipientName: `${upwardUser.firstName} ${upwardUser.lastName}`.trim(),
+      recipientRole: 'TENANT',
+      registeredUserId: upwardUser.id!,
+      type: 'TENANT_PROPERTY_VERIFIED',
+      context: {
+        tenantName: `${upwardUser.firstName} ${upwardUser.lastName}`.trim(),
+        propertyName: unit.property?.name || `Unit ${unit.unitName}`,
+        pmName: pmBusinessName,
+        portalUrl: 'https://upward.goodtenants.io/login',
+      }
+    }).catch((e: any) => {
+      this.logger.error(`Failed to send property verification notification to tenant: ${e.message}`);
+    });
 
     this.logger.log(`Unit ${unitUuid} synced to Upward Pay for user ${upwardUser.email}`);
   }

@@ -150,7 +150,7 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
   const [propertyFilter, setPropertyFilter] = useState<string>('all')
   const searchParams = useSearchParams()
   const initialStatusFilter = searchParams.get('statusFilter') || 'all'
-  const [statusFilter, setStatusFilter] = useState<'all' | 'on_upward' | 'pending'>(initialStatusFilter as any)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'on_upward' | 'pending' | 'no_welcome'>(initialStatusFilter as any)
   const [selectedTenants, setSelectedTenants] = useState<Set<string>>(new Set())
   const [bulkDeliveryChannel, setBulkDeliveryChannel] = useState<'EMAIL' | 'SMS' | 'WHATSAPP'>('EMAIL')
   const [showBulkInviteModal, setShowBulkInviteModal] = useState(false)
@@ -169,7 +169,8 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
 
       const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'on_upward' && (t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED')) ||
-        (statusFilter === 'pending' && t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED')
+        (statusFilter === 'pending' && t.inviteStatus !== 'ON_UPWARD' && t.inviteStatus !== 'ACCEPTED') ||
+        (statusFilter === 'no_welcome' && !t.hasReceivedWelcomeTemplate)
 
       return matchesSearch && matchesProperty && matchesStatus
     })
@@ -208,13 +209,14 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
   const handleBulkDocument = () => {
     // Collect the full tenant objects
     const selected = Array.from(selectedTenants).map(uuid => tenants.find((t: any) => t.uuid === uuid)).filter(Boolean);
+    const templateQuery = statusFilter === 'no_welcome' ? '&templateUuid=system-onboarding-1&disableRecipientEdit=true' : '';
     if (selected.length === 1) {
       // If only one, navigate to normal document management pre-filling recipient
-      router.push(`/documents?new=true&recipientUuid=${selected[0].uuid}&recipientType=existing`);
+      router.push(`/documents?new=true&tenantUuid=${selected[0].uuid}&recipientType=existing${templateQuery}`);
     } else {
       // If multiple, navigate to bulk document management
       const uuids = selected.map(t => t.uuid).join(',');
-      router.push(`/documents/bulk?tenants=${uuids}`);
+      router.push(`/documents/bulk?tenants=${uuids}${templateQuery}`);
     }
   };
 
@@ -283,6 +285,11 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
               </div>
             ) : (
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tenant.email}</div>
+            )}
+            {!tenant.hasReceivedWelcomeTemplate && (
+              <div style={{ fontSize: 11, color: 'var(--clay)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }} title="To make payment requests to this tenant, you must first send them the welcome template.">
+                <AlertCircle size={12} /> Welcome template not sent
+              </div>
             )}
           </div>
         </div>
@@ -446,6 +453,11 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
             ) : (
               <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tenant.email}</div>
             )}
+            {!tenant.hasReceivedWelcomeTemplate && (
+              <div style={{ fontSize: 11, color: 'var(--clay)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                <AlertCircle size={12} /> Welcome template not sent
+              </div>
+            )}
           </div>
         </div>
 
@@ -552,7 +564,8 @@ export const TenantList = ({ initialTenants, onAddTenant }: { initialTenants?: a
             options={[
               { label: 'All Statuses', value: 'all' },
               { label: 'On Upward', value: 'on_upward' },
-              { label: 'Pending Invite', value: 'pending' }
+              { label: 'Pending Invite', value: 'pending' },
+              { label: 'No Welcome Template', value: 'no_welcome' }
             ]}
             onChange={(val) => setStatusFilter(val as any)}
           />

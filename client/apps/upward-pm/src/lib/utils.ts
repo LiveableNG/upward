@@ -17,8 +17,19 @@ export function formatCurrency(amount: number, currency: string = 'NGN') {
 
 export function formatTenantName(tenant?: { commercialName?: string; firstName?: string; lastName?: string }): string {
   if (!tenant) return '';
-  const fullName = `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim();
-  const cName = (tenant.commercialName || '').trim();
+  
+  const sanitize = (name?: string | null) => {
+    if (!name) return '';
+    const trimmed = name.trim();
+    if (trimmed.toLowerCase() === 'null') return '';
+    return trimmed;
+  };
+
+  const fName = sanitize(tenant.firstName);
+  const lName = sanitize(tenant.lastName);
+  const cName = sanitize(tenant.commercialName);
+
+  const fullName = `${fName} ${lName}`.trim();
   if (!cName && !fullName) return '';
   return cName || fullName;
 }

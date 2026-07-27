@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import { EVENT_BUS, EventBus } from '../../events/domain-event';
 import { CredibilityRequestCreatedEvent } from '../../events/definition/credibility-request-created.event';
 
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
+
 interface RequestRecordsInput {
   propertyUuid: string;
   requestContactDetails: {
@@ -25,6 +27,7 @@ export class RequestCredibilityRecordsUseCase {
     private readonly encryption: EncryptionService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus
   ) {}
 
@@ -49,17 +52,19 @@ export class RequestCredibilityRecordsUseCase {
     });
 
     const requestEmail = input.requestContactDetails.email;
-    if (requestEmail) {
+    const requestPhone = input.requestContactDetails.phone;
+
+    if (requestEmail || requestPhone) {
       const payUrl = this.configService.get<string>('PAY_APP_URL') || 
                      this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
                      'https://upward.goodtenants.io';
       
       const pmUrl = this.configService.get<string>('PM_APP_URL') || 'https://upward-pm.vercel.app';
-      const emailHash = this.encryption.hash(requestEmail.toLowerCase().trim());
+      const emailHash = requestEmail ? this.encryption.hash(requestEmail.toLowerCase().trim()) : '';
       
-      const pm = await this.prisma.upward_property_manager.findUnique({
+      const pm = requestEmail ? await this.prisma.upward_property_manager.findUnique({
         where: { emailHash }
-      });
+      }) : null;
 
       const isRegisteredPm = !!pm;
       const requestLink = isRegisteredPm 
@@ -77,14 +82,21 @@ export class RequestCredibilityRecordsUseCase {
       });
       const propertyAddress = property?.location?.address || property?.location?.area || 'a property';
 
-      const tenantName = `${this.encryption.decrypt(user.firstName)} ${this.encryption.decrypt(user.lastName)}`;
+      const tenantName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant';
 
-      await this.emailService.sendCredibilityRequestEmail({
-        email: requestEmail,
-        tenantName,
-        propertyAddress,
-        requestLink,
-        isRegisteredPm
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: requestEmail,
+        recipientPhone: requestPhone,
+        recipientName: input.requestContactDetails.companyName || 'Property Manager',
+        recipientRole: 'PM',
+        type: 'CREDIBILITY_REQUEST',
+        context: {
+          managerName: input.requestContactDetails.companyName || 'Property Manager',
+          tenantName,
+          propertyAddress,
+          requestLink,
+          isRegisteredPm,
+        },
       });
 
       if (property?.isVerified && property.company?.platformId) {

@@ -16,7 +16,8 @@ import {
   MessageSquare,
   SlidersHorizontal,
   Activity,
-  Send
+  Send,
+  MapPin,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -36,7 +37,8 @@ interface NavSection {
   items: NavItem[]
 }
 
-const isProd = import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
+const isProd =
+  import.meta.env.VITE_APP_ENV === 'production' || import.meta.env.MODE === 'production'
 const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
 
 const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }) => {
@@ -47,9 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   const sections: NavSection[] = []
 
   // 1. Overview
-  const overviewItems: NavItem[] = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  ]
+  const overviewItems: NavItem[] = [{ name: 'Dashboard', path: '/', icon: LayoutDashboard }]
   if (showSandboxTools) {
     overviewItems.push({ name: 'Campaigns', path: '/campaigns', icon: CalendarClock })
     overviewItems.push({ name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal })
@@ -64,6 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
     { name: 'Bulk Import Queue', path: '/bulk-imports', icon: FileText },
+    { name: 'Area Price Guide', path: '/area-price-guide', icon: MapPin },
   ]
 
   if (showSandboxTools) {

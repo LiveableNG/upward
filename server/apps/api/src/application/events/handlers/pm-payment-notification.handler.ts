@@ -2,12 +2,11 @@ import { Injectable, Inject, OnModuleInit, OnModuleDestroy } from '@nestjs/commo
 import { Subscription } from 'rxjs'
 import { EVENT_BUS, EventBus } from '../domain-event'
 import { PmPaymentNotificationEvent } from '../definition/pm-payment-notification.event'
-import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
-import { SmsService } from '../../../shared/infrastructure/sms/sms.service'
-import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service'
+
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
 @Injectable()
 export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestroy {
@@ -15,12 +14,10 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
 
   constructor(
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
-    private readonly emailService: EmailService,
     private readonly notificationService: NotificationService,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
-    private readonly smsService: SmsService,
-    private readonly whatsappService: WhatsappService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   onModuleInit() {
@@ -29,44 +26,63 @@ export class PmPaymentNotificationHandler implements OnModuleInit, OnModuleDestr
       async (event) => {
         try {
           let pmUuid: string | undefined = undefined;
+          let propertyName = 'Property';
+          let unitName = 'Unit';
+
           if (event.corePrUuid) {
             const pr = await this.prisma.upward_pm_payment_request.findFirst({
               where: {
                 paymentRequest: { uuid: event.corePrUuid }
               },
               include: {
-                pm: true
+                pm: true,
+                unit: {
+                  include: {
+                    property: true
+                  }
+                }
               }
             });
             pmUuid = pr?.pm?.uuid;
+            if (pr?.unit) {
+              unitName = pr.unit.unitName;
+              if (pr.unit.property) {
+                propertyName = pr.unit.property.name;
+              }
+            }
           }
 
-          // 1. Send Email
-          if (event.channels.includes('EMAIL')) {
-            await this.emailService.sendPaymentRequestEmail({
-              email: event.email,
-              tenantName: event.tenantName,
+          // Unified Multi-Channel Dispatch (EMAIL, WHATSAPP, SMS)
+          const requestedChannel = event.channels.includes('WHATSAPP')
+            ? 'WHATSAPP'
+            : event.channels.includes('SMS')
+            ? 'SMS'
+            : event.channels.includes('EMAIL')
+            ? 'EMAIL'
+            : undefined;
+
+          await this.unifiedCommService.processCommunication({
+            recipientEmail: event.email,
+            recipientPhone: event.tenantPhoneNumber,
+            recipientName: event.tenantName,
+            recipientRole: 'TENANT',
+            pmUuid,
+            type: 'PAYMENT_REQUEST',
+            forceChannel: requestedChannel,
+            context: {
+              displayName: event.tenantName,
               pmName: event.pmName,
               amount: event.amount,
+              formattedAmount: `${event.currency} ${event.amount.toLocaleString()}`,
               currency: event.currency,
               dueDate: event.dueDate,
               description: event.description,
               paymentLink: event.paymentLink,
-              pmType: event.pmType,
-              pmUuid,
-            });
-          }
-
-          // 2. Send SMS
-          if (event.channels.includes('SMS') && event.tenantPhoneNumber) {
-            const smsMessage = event.isReminder 
-              ? `Reminder: You have an unpaid invoice of ${event.currency} ${event.amount.toLocaleString()} from ${event.pmName}. View and pay here: ${event.paymentLink}`
-              : `New invoice of ${event.currency} ${event.amount.toLocaleString()} from ${event.pmName}. View and pay here: ${event.paymentLink}`;
-            await this.smsService.sendSms({
-              to: event.tenantPhoneNumber,
-              message: smsMessage,
-            });
-          }
+              pmRole: event.pmType,
+              propertyName,
+              unitName,
+            },
+          });
 
           const emailHash = this.encryption.hash(event.email);
           const coreUser = await this.prisma.upward_user.findUnique({

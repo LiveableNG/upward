@@ -27,6 +27,7 @@ export interface CreatePmPaymentRequestDto {
   scheduledAt?: string; // Future scheduled delivery time
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
+  silent?: boolean;
 }
 
 @Injectable()
@@ -94,6 +95,13 @@ export class CreatePmPaymentRequestUseCase {
 
     if (!pm.bankCode || !pm.accountNumber) {
       throw new BadRequestException('Please set up your bank information in settings to receive payments');
+    }
+
+    if (unit.tenantId) {
+      const tenant = await this.pmTenantRepo.findById(unit.tenantId);
+      if (tenant && !tenant.hasReceivedWelcomeTemplate) {
+        throw new BadRequestException('You must send the Welcome system template to this tenant before requesting payment.');
+      }
     }
 
     const isScheduled = data.scheduledAt && new Date(data.scheduledAt) > new Date();
@@ -200,7 +208,7 @@ export class CreatePmPaymentRequestUseCase {
           url: '/dashboard',
         }
       });
-    } else if (unit.tenantId) {
+    } else if (unit.tenantId && !data.silent) {
       // Trigger Notification Event asynchronously
       this.pmTenantRepo.findById(unit.tenantId).then(tenant => {
         if (tenant && tenant.email) {

@@ -23,25 +23,6 @@ export class PublicBlogController {
 
   @Get('images/:filename')
   async getBlogImage(@Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
-    const buffer = await this.s3Service.getFileBuffer(`blog/images/${filename}`);
-    
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const mimeTypes: Record<string, string> = {
-      png: 'image/png',
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      webp: 'image/webp',
-      gif: 'image/gif'
-    };
-    const contentType = mimeTypes[ext || ''] || 'application/octet-stream';
-
-    // Support both Express and Fastify response objects
-    if (typeof res.set === 'function') {
-      res.set('Content-Type', contentType);
-    } else {
-      res.header('Content-Type', contentType);
-    }
-
-    return new StreamableFile(buffer);
+    return this.s3Service.streamFile(`blog/images/${filename}`, res);
   }
 }

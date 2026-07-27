@@ -233,57 +233,76 @@
   margin: 0 auto;
 }
 
-.requests-footer-info {
-  margin-top: 6rem;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  padding: 36px;
-  box-shadow: var(--shadow-sm);
+.requests-knowledge-center {
+  margin-top: 5rem;
+  padding: 24px 0;
+  border-top: 1px solid var(--border);
 }
 
-.requests-footer-info__header {
+.requests-knowledge-center__header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 28px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
-.requests-footer-info__header h4 {
-  font-size: 18px;
+
+.requests-knowledge-center__icon {
+  color: var(--text-muted);
+}
+
+.requests-knowledge-center__title {
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
   margin: 0;
 }
 
-.requests-footer-info__grid {
+.requests-knowledge-center__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 40px;
 }
 
-.info-item {
+.requests-knowledge-center__item {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-.info-item__tag {
-  font-size: 11px;
+.requests-knowledge-center__badge {
+  font-size: 10px;
   font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 4px 10px;
+  border-radius: 6px;
   width: fit-content;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
-.info-item__tag--forest { background: var(--forest-bg, #f0fdf4); color: var(--forest, #166534); }
-.info-item__tag--orange { background: #fff7ed; color: #ea580c; }
 
-.info-item p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
+.requests-knowledge-center__badge--forest {
+  background: var(--forest-bg, #f0fdf4);
+  color: var(--forest, #166534);
+}
+
+.requests-knowledge-center__badge--orange {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.requests-knowledge-center__text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
   margin: 0;
   font-weight: 500;
+}
+
+.request-mobile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
 }
 
 .animate-slide-up {

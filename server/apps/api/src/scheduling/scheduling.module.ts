@@ -1,13 +1,10 @@
 import { Module } from '@nestjs/common'
 import { ApplicationModule } from '../application/application.module'
 import { ScheduleService } from './schedule.service'
+import { S3Module } from '../shared/infrastructure/common/s3/s3.module'
 
-/**
- * Central cron kernel (Laravel-style).
- * Depends on ApplicationModule for the job handlers.
- */
 @Module({
-  imports: [ApplicationModule],
+  imports: [ApplicationModule, S3Module],
   providers: [ScheduleService],
   exports: [ScheduleService],
 })

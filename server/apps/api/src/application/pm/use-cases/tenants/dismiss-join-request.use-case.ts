@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 
 @Injectable()
 export class DismissJoinRequestUseCase {
@@ -9,6 +10,7 @@ export class DismissJoinRequestUseCase {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(pmId: number, logUuid: string) {
@@ -34,8 +36,8 @@ export class DismissJoinRequestUseCase {
       data: { metadata },
     });
     try {
-      const tenantEmail = this.encryption.decrypt(metadata.userEmail);
-      const tenantName = this.encryption.decrypt(metadata.userFirstName);
+      const tenantEmail = metadata.userEmail;
+      const tenantName = metadata.userFirstName;
       const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId } });
       
       const decryptedBusinessName = pm?.businessName ? this.encryption.decrypt(pm.businessName) : '';
@@ -43,12 +45,18 @@ export class DismissJoinRequestUseCase {
       const decryptedLastName = pm?.lastName ? this.encryption.decrypt(pm.lastName) : '';
       const pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Your Property Manager';
 
-      await this.emailService.sendJoinRequestRejection({
-        email: tenantEmail,
-        tenantName,
-        pmName,
-        propertyAddress: metadata.unitDetails?.address || 'Unknown Address',
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: tenantEmail,
+        recipientName: tenantName,
+        recipientRole: 'TENANT',
         pmUuid: pm?.uuid,
+        type: 'JOIN_REQUEST_REJECTION',
+        context: {
+          tenantName,
+          pmName,
+          propertyAddress: metadata.unitDetails?.address || 'Unknown Address',
+          reason: metadata.dismissalReason || 'Declined by Manager',
+        },
       });
 
       const user = await this.prisma.upward_user.findUnique({ where: { uuid: metadata.userUuid } });

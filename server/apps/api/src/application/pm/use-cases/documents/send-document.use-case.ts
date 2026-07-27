@@ -13,6 +13,7 @@ import { EmailService } from '../../../../shared/infrastructure/email/email.serv
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
 import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
+import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 import * as crypto from 'crypto';
 
 
@@ -31,6 +32,8 @@ export interface SendDocumentDto {
   paymentRequestUuid?: string;
   includeLetterhead?: boolean;
   deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
+  cc?: string;
+  bcc?: string;
 }
 
 @Injectable()
@@ -55,6 +58,7 @@ export class SendDocumentUseCase {
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
     private readonly smsService: SmsService,
     private readonly whatsappService: WhatsappService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(actorPmId: number, data: SendDocumentDto) {
@@ -375,66 +379,53 @@ export class SendDocumentUseCase {
       );
       s3UploadSuccess = true;
 
-      if (data.documentType === 'PDF') {
         let pdfBuffer;
-        pdfBuffer = await this.generatePdfUseCase.execute({
-          content: content,
-          pmId,
-          tenantUuid: data.tenantUuid,
-          unitUuid: data.unitUuid,
-          recipientName: data.recipientName,
-          includeLetterhead: data.includeLetterhead,
-        });
-        
-        const pdfS3Key = s3Key.replace('.html', '.pdf');
-        await this.s3Service.uploadBuffer(pdfBuffer, pdfS3Key, 'application/pdf');
-        
-        const baseUrl = this.configService.get<string>('API_URL') || 
-                        this.configService.get<string>('BACKEND_URL') || 
-                        'http://localhost:4000';
-        pdfS3Url = `${baseUrl}/api/v1/public/documents/${sentUuid}/pdf`;
-        
-        if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
-          await this.emailService.sendEmailWithRetry({
-            userId: tenant?.uuid || '',
-            pmUuid: pm?.uuid,
-            email: data.recipientEmail,
-            subject: data.subject,
-            html: `<p>Hello ${data.recipientName},</p><p>Please find the attached document: <strong>${data.subject}</strong> from your property manager.</p>`,
-            type: 'DOCUMENT',
-            fromOverride: data.fromEmail,
-            attachments: [
-              {
-                filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
-                content: pdfBuffer,
-              }
-            ]
-          } as any);
+        if (data.documentType === 'PDF') {
+          pdfBuffer = await this.generatePdfUseCase.execute({
+            content: content,
+            pmId,
+            tenantUuid: data.tenantUuid,
+            unitUuid: data.unitUuid,
+            recipientName: data.recipientName,
+            includeLetterhead: data.includeLetterhead,
+          });
+          
+          const pdfS3Key = s3Key.replace('.html', '.pdf');
+          await this.s3Service.uploadBuffer(pdfBuffer, pdfS3Key, 'application/pdf');
+          
+          const baseUrl = this.configService.get<string>('API_URL') || 
+                          this.configService.get<string>('BACKEND_URL') || 
+                          'http://localhost:4000';
+          pdfS3Url = `${baseUrl}/api/v1/public/documents/${sentUuid}/pdf`;
         }
-      } else {
-        if (!data.deliveryChannel || data.deliveryChannel === 'EMAIL') {
-          await this.emailService.sendGenericEmail(
-            data.recipientEmail,
-            data.subject,
-            content,
-            tenant?.uuid,
-            pm?.uuid,
-            data.fromEmail
-          );
-        }
-      }
 
-      if (data.deliveryChannel === 'SMS' || data.deliveryChannel === 'WHATSAPP') {
-        const plainText = content.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
-        const message = `${data.subject}\n\n${plainText}`;
-        if (tenant?.phone) {
-          if (data.deliveryChannel === 'WHATSAPP') {
-            await this.whatsappService.sendMessage({ to: tenant.phone, message });
-          } else {
-            await this.smsService.sendSms({ to: tenant.phone, message });
+        const attachments = data.documentType === 'PDF' && pdfBuffer ? [
+          {
+            filename: `${data.subject.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
+            content: pdfBuffer,
           }
-        }
-      }
+        ] : undefined;
+
+        await this.unifiedCommService.processCommunication({
+          recipientEmail: data.recipientEmail,
+          recipientPhone: tenant?.phone || undefined,
+          recipientName: data.recipientName,
+          recipientRole: 'TENANT',
+          userId: tenant?.uuid || undefined,
+          pmUuid: pm?.uuid,
+          type: 'DOCUMENT',
+          title: data.subject,
+          forceChannel: data.deliveryChannel,
+          fromOverride: data.fromEmail,
+          attachments,
+          cc: data.cc,
+          bcc: data.bcc,
+          context: {
+            displayName: data.recipientName,
+            subject: data.subject,
+            htmlOverride: content,
+          },
+        });
     } catch (err) {
       console.error('Document dispatch failed:', err);
       finalStatus = 'FAILED';
@@ -460,6 +451,13 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
+      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+        await this.prisma.upward_pm_tenant.update({
+          where: { id: tenantId },
+          data: { hasReceivedWelcomeTemplate: true }
+        });
+      }
+
       const updatedDoc = await this.documentRepo.findSentDocumentByUuid(sentUuid);
       return { ...(updatedDoc as any), pdfUrl: pdfS3Url };
     } else {
@@ -478,6 +476,13 @@ export class SendDocumentUseCase {
       });
 
       if (finalStatus === 'FAILED') throw finalError;
+
+      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+        await this.prisma.upward_pm_tenant.update({
+          where: { id: tenantId },
+          data: { hasReceivedWelcomeTemplate: true }
+        });
+      }
 
       return { ...(result as any), pdfUrl: pdfS3Url };
     }

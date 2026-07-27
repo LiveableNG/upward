@@ -1,7 +1,23 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common'
+import { Injectable, InternalServerErrorException, NotFoundException, StreamableFile } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+
+export function getMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  const mimeTypes: Record<string, string> = {
+    pdf: 'application/pdf',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    csv: 'text/csv',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  }
+  return mimeTypes[ext] || 'application/octet-stream'
+}
 
 @Injectable()
 export class S3Service {
@@ -126,6 +142,80 @@ export class S3Service {
     } catch (error) {
       console.error('Error reading file from S3:', error)
       throw new InternalServerErrorException('Could not read document from storage')
+    }
+  }
+
+  async streamFile(
+    keyOrUrl: string,
+    res: any,
+    options?: { filename?: string; isAttachment?: boolean; contentType?: string; cacheControl?: string }
+  ): Promise<StreamableFile> {
+    const buffer = await this.getFileBuffer(keyOrUrl)
+    return S3Service.streamBuffer(buffer, options?.filename || keyOrUrl, res, options)
+  }
+
+  static streamBuffer(
+    buffer: Buffer,
+    filename: string,
+    res: any,
+    options?: { isAttachment?: boolean; contentType?: string; cacheControl?: string }
+  ): StreamableFile {
+    const contentType = options?.contentType || getMimeType(filename)
+    const headers: Record<string, string | number> = {
+      'Content-Type': contentType,
+    }
+
+    if (options?.cacheControl) {
+      headers['Cache-Control'] = options.cacheControl
+    }
+
+    const disposition = options?.isAttachment ? 'attachment' : 'inline'
+    const sanitized = encodeURIComponent(filename.split('/').pop() || 'file')
+    headers['Content-Disposition'] = `${disposition}; filename="${sanitized}"`
+
+    if (typeof res.set === 'function') {
+      res.set(headers)
+    } else if (typeof res.header === 'function') {
+      for (const [key, value] of Object.entries(headers)) {
+        res.header(key, value)
+      }
+    }
+
+    return new StreamableFile(buffer)
+  }
+
+  async deleteObjectsWithPrefix(prefix: string): Promise<void> {
+    try {
+      const { ListObjectsV2Command, DeleteObjectsCommand } = await import('@aws-sdk/client-s3')
+      
+      let continuationToken: string | undefined
+      do {
+        const listCommand = new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        })
+        const listResponse = await this.s3Client.send(listCommand)
+        
+        if (listResponse.Contents && listResponse.Contents.length > 0) {
+          const deleteKeys = listResponse.Contents
+            .map((item) => item.Key)
+            .filter((key): key is string => !!key)
+
+          const deleteCommand = new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: {
+              Objects: deleteKeys.map((key) => ({ Key: key })),
+              Quiet: true,
+            },
+          })
+          await this.s3Client.send(deleteCommand)
+        }
+        
+        continuationToken = listResponse.NextContinuationToken
+      } while (continuationToken)
+    } catch (error) {
+      console.error(`Error deleting objects with prefix ${prefix}:`, error)
     }
   }
 }

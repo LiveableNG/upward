@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { AdminRole } from '@upward/shared-types'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
 @Injectable()
 export class SendDailyReportUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute() {
@@ -44,7 +46,15 @@ export class SendDailyReportUseCase {
     }
 
     for (const email of emails) {
-      await this.emailService.sendDailyAnalyticsEmail(email, stats)
+      await this.unifiedCommService.processCommunication({
+        recipientEmail: email,
+        recipientRole: 'PM',
+        type: 'SYSTEM_ALERT',
+        context: {
+          title: 'Daily Report Analytics',
+          message: `Daily Report: ${stats.total} total signups today (${stats.completed} completed, ${stats.incomplete} incomplete).`,
+        },
+      });
     }
 
     return { success: true, stats, notified: emails }

@@ -629,6 +629,7 @@ export function BulkDocumentEditorView({
                     style={{ borderRadius: 12 }}
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
+                    disabled={isSystemTemplate}
                   />
                 </div>
 
@@ -826,6 +827,7 @@ export function BulkDocumentEditorView({
         isOpen={isRecipientModalOpen}
         onClose={() => setIsRecipientModalOpen(false)}
         initialSelected={recipients as any}
+        templateUuid={currentTemplate?.uuid}
         onConfirm={(selectedRecipients) => {
           setRecipients(selectedRecipients as any)
           setIsRecipientModalOpen(false)

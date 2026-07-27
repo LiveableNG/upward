@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EmailService } from '../../../shared/infrastructure/email/email.service';
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository';
 import * as crypto from 'crypto';
 
@@ -8,7 +8,7 @@ export class InvitePmUseCase {
   private readonly logger = new Logger(InvitePmUseCase.name);
 
   constructor(
-    private readonly emailService: EmailService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
     @Inject(PROPERTY_MANAGER_REPOSITORY)
     private readonly pmRepository: PropertyManagerRepository,
   ) {}
@@ -97,12 +97,19 @@ export class InvitePmUseCase {
       </div>
     `;
 
-    await this.emailService.sendEmailWithRetry({
+    this.unifiedCommService.dispatch({
       userId: user.uuid,
-      email: pmEmail,
-      subject: `${user.firstName} ${user.lastName} wants to connect on Upward`,
-      html: html,
+      recipientEmail: pmEmail,
+      recipientName: pmName,
+      recipientRole: 'PM',
       type: 'PM_INVITE',
+      context: {
+        userName: `${user.firstName} ${user.lastName}`.trim(),
+        pmName,
+        roleName,
+        inviteLink,
+        htmlOverride: html,
+      }
     });
 
     return { success: true, message: 'Invitation sent to Property Manager.' };

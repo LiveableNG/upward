@@ -170,7 +170,16 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   }
 
   const renderPaymentItem = (req: any, type: 'arrears' | 'upcoming' | 'completed') => {
-    const initials = req.tenant ? `${req.tenant.firstName?.[0] || ''}${req.tenant.lastName?.[0] || ''}` : 'U'
+    const initials = (() => {
+      if (!req.tenant) return 'U'
+      const name = formatTenantName(req.tenant)
+      if (!name || name.toLowerCase() === 'no tenant') return 'U'
+      const parts = name.split(/\s+/).filter(Boolean)
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+      }
+      return name[0]?.toUpperCase() || 'U'
+    })()
     const propertyName = req.unit?.property?.name || 'N/A'
     const unitName = req.unit?.unitName || 'N/A'
     const isUnbilled = req.isUnbilled

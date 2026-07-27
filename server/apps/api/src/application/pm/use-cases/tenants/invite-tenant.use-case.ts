@@ -13,6 +13,7 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 
 import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
 import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
+import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 
 @Injectable()
 export class InviteTenantUseCase {
@@ -30,6 +31,7 @@ export class InviteTenantUseCase {
     private readonly prisma: PrismaService,
     private readonly smsService: SmsService,
     private readonly whatsappService: WhatsappService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) { }
 
   async execute(pmId: number, tenantUuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP'): Promise<void> {
@@ -151,140 +153,54 @@ export class InviteTenantUseCase {
 
     const inviteResult = await this.singleInviteUseCase.execute(invitePayload);
 
-    let success = true;
     const pmName = pm.businessName || `${pm.firstName} ${pm.lastName}`;
     const displayName = tenant.commercialName ||
         `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() ||
         'Tenant';
 
-    // Decide channel based on preference and fallback
-    let actualChannel = deliveryChannel;
-    if (!actualChannel) {
-      if (tenant.email && !tenant.email.endsWith('@upward.com')) actualChannel = 'EMAIL';
-      else if (tenant.phone) actualChannel = 'SMS';
+    const communicationType = isActuallyOnUpward ? 'RECORD_ADDED' : 'TENANT_INVITE';
+
+    if (deliveryChannel) {
+      await this.tenantRepo.update(tenantUuid, { channel: deliveryChannel });
     }
 
-    if (!isActuallyOnUpward) {
-      if (actualChannel === 'EMAIL' && tenant.email && !tenant.email.endsWith('@upward.com')) {
-        success = await this.emailService.sendTenantInvite({
-          email: tenant.email,
-          tenantName: displayName,
-          pmName: pmName,
-          pmType: pm.pmType,
-          inviteLink: inviteResult.inviteLink,
-          pmUuid: pm.uuid,
-        });
-      } else if (actualChannel === 'WHATSAPP' && tenant.phone) {
-        const companyName = pm.businessName || 'Upward';
-        const managerName = `${pm.firstName} ${pm.lastName}`.trim();
-        const waResult = await this.whatsappService.sendMessage({
-          to: tenant.phone,
-          template: {
-            name: 'upward_tenant_invite_v3',
-            components: [
-              {
-                type: 'body',
-                parameters: [
-                  { type: 'text', text: displayName },
-                  { type: 'text', text: managerName },
-                  { type: 'text', text: companyName }
-                ]
-              },
-              {
-                type: 'button',
-                sub_type: 'url',
-                index: '0',
-                parameters: [
-                  { type: 'text', text: new URL(inviteResult.inviteLink).pathname.slice(1) }
-                ]
-              }
-            ]
-          }
-        });
-        success = waResult.success;
-      } else if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
-        const message = `Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
-        success = await this.smsService.sendSms({
-          to: tenant.phone,
-          message: message,
-        });
-      } else {
-        success = true;
-      }
-    } else {
-      const loginUrl = 'https://upward.goodtenants.io/login';
-      if ((actualChannel === 'SMS' || actualChannel === 'WHATSAPP') && tenant.phone && tenant.phone.startsWith('+234')) {
-        const message = `Hi ${displayName}, ${pmName} has added a new property unit for you on Upward. Log in to your Upward account at ${loginUrl} to view your property details and manage your rent payments.`;
-        success = await this.smsService.sendSms({
-          to: tenant.phone,
-          message: message,
-        });
-      } else if (actualChannel === 'EMAIL' && tenant.email && !tenant.email.endsWith('@upward.com')) {
-        const subject = `New Property Unit Added by ${pmName}`;
-        const content = `<p>Hi ${displayName},</p><p>${pmName} has just added a new property unit for you on Upward.</p><p>You can now manage your tenancy and track your rent payments for this unit directly from your Upward dashboard.</p><p><a href="${loginUrl}">Log in to your Upward account</a> to view your new property details.</p>`;
-        await this.emailService.sendGenericEmail(tenant.email, subject, content);
-        success = true;
-      } else {
-        success = true;
+    await this.tenantRepo.update(tenantUuid, {
+      inviteStatus: initialStatus,
+      inviteSentAt: !isActuallyOnUpward ? new Date() : tenant.inviteSentAt,
+    });
+
+    if (tenant.units && inviteResult.properties) {
+      for (let i = 0; i < tenant.units.length; i++) {
+        const unit = tenant.units[i];
+        const syncedProp = inviteResult.properties[i];
+        if (unit && syncedProp) {
+          await this.unitRepo.update(unit.uuid, {
+            isSynced: true,
+            userPropertyUuid: syncedProp.uuid
+          });
+        }
       }
     }
 
-    if (success) {
-      await this.tenantRepo.update(tenantUuid, {
-        inviteStatus: initialStatus,
-        inviteSentAt: !isActuallyOnUpward ? new Date() : tenant.inviteSentAt,
-      });
-
-      if (actualChannel !== 'EMAIL') {
-        let registeredUserId = existingUser?.id;
-        if (!registeredUserId) {
-          const createdUser = tenant.email
-            ? await this.userRepo.findByEmail(tenant.email)
-            : await this.userRepo.findByPhone(tenant.phone!);
-          registeredUserId = createdUser?.id;
-        }
-
-        let logBody = '';
-        if (actualChannel === 'WHATSAPP') {
-          logBody = isActuallyOnUpward 
-            ? `WhatsApp notification sent: New property unit added by PM ${pmName}`
-            : `WhatsApp Template (upward_tenant_invite_v3) sent. Includes link: ${inviteResult.inviteLink}`;
-        } else {
-          logBody = isActuallyOnUpward
-            ? `SMS Sent: Hi ${displayName}, ${pmName} has added a new property unit for you on Upward. Log in to your Upward account at https://upward.goodtenants.io/login to view your property details and manage your rent payments.`
-            : `SMS Sent: Hi ${displayName}, ${pmName} has invited you to join Upward. Build your credit score, earn rewards for on-time payments, and verify your tenancy history effortlessly with Upward. Claim your account here: ${inviteResult.inviteLink}`;
-        }
-
-        await this.prisma.upward_communication_log.create({
-          data: {
-            registeredUserId: registeredUserId ?? null,
-            email: tenant.email ?? null,
-            subject: isActuallyOnUpward ? `New Property Unit Added by ${pmName}` : `Invitation to join Upward from ${pmName}`,
-            type: 'TENANT_INVITE',
-            status: 'SENT',
-            channel: actualChannel || 'SMS',
-            recipient: tenant.phone ?? '',
-            body: logBody,
-            sentAt: new Date(),
-          },
-        });
-      }
-
-
-      if (tenant.units && inviteResult.properties) {
-        for (let i = 0; i < tenant.units.length; i++) {
-          const unit = tenant.units[i];
-          const syncedProp = inviteResult.properties[i];
-          if (unit && syncedProp) {
-            await this.unitRepo.update(unit.uuid, {
-              isSynced: true,
-              userPropertyUuid: syncedProp.uuid
-            });
-          }
-        }
-      }
-    } else {
-      throw new Error('Failed to send invitation email');
-    }
+    this.unifiedCommService.dispatch({
+      recipientEmail: tenant.email || undefined,
+      recipientPhone: tenant.phone || undefined,
+      recipientName: displayName,
+      recipientRole: 'TENANT',
+      pmUuid: pm.uuid,
+      type: communicationType,
+      forceChannel: (deliveryChannel || tenant.channel || undefined) as 'EMAIL' | 'SMS' | 'WHATSAPP' | undefined,
+      context: {
+        displayName,
+        pmName,
+        managerName: `${pm.firstName} ${pm.lastName}`.trim(),
+        companyName: pm.businessName || 'Upward',
+        pmRole: pm.pmType,
+        inviteLink: inviteResult.inviteLink,
+        invitePath: new URL(inviteResult.inviteLink).pathname.slice(1),
+        propertyAddress: tenant.units?.[0]?.property?.address || 'Property',
+        frontendUrl: 'https://upward.goodtenants.io',
+      },
+    });
   }
 }

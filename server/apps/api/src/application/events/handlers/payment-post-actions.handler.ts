@@ -5,8 +5,8 @@ import { PaymentSucceededEvent } from '../definition/payment-succeeded.event'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { PaymentUpdatedEvent } from '../definition/payment-updated.event'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
-import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { SendRentReceiptEmailUseCase } from '../../use-cases/payments/send-rent-receipt-email.use-case'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
 @Injectable()
 export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy {
@@ -17,8 +17,8 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
-    private readonly emailService: EmailService,
     private readonly sendRentReceiptEmail: SendRentReceiptEmailUseCase,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   onModuleInit() {
@@ -104,51 +104,28 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                      }
                    });
 
-                   // 2. Send email to PM
+                    // 2. Send email to PM
                     const pmEmail = pm.email ? this.encryption.decrypt(pm.email) : null;
                     if (pmEmail) {
                       const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
-                      await this.emailService.sendEmailWithRetry({
-                        userId: pm.uuid,
-                        email: pmEmail,
-                        subject: `[Upward] Payment Received: Unit ${unitName} - ${propertyName}`,
-                        html: `
-                          <div style="background-color: #fafae6; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                            <div style="max-width: 600px; margin: 0 auto; background-color: #fffffb; border: 1px solid #e3e2cf; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(27, 67, 50, 0.05);">
-                              <!-- Header Banner -->
-                              <div style="background-color: #1b4332; padding: 32px 24px; text-align: center;">
-                                <h1 style="color: #fffff0; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">Payment Received 🎉</h1>
-                                <p style="color: #a3b899; font-size: 14px; margin: 8px 0 0 0;">Upward Property Management</p>
-                              </div>
-                              
-                              <!-- Content Area -->
-                              <div style="padding: 32px 24px;">
-                                <p style="font-size: 16px; color: #2f3e35; margin-top: 0; line-height: 1.5;">Dear <strong>${pmName}</strong>,</p>
-                                <p style="font-size: 14px; color: #506256; line-height: 1.5; margin-bottom: 24px;">
-                                  We are pleased to inform you that your tenant <strong>${tenantName}</strong> has successfully completed a rent payment for <strong>Unit ${unitName}</strong> at <strong>${propertyName}</strong>.
-                                </p>
-                                
-                                <div style="background-color: #fafae6; padding: 24px; border-radius: 12px; border: 1px solid #e3e2cf; margin: 24px 0; text-align: center;">
-                                  <p style="margin: 0; font-size: 13px; color: #607366; text-transform: uppercase; letter-spacing: 0.5px;">Amount Received</p>
-                                  <p style="margin: 8px 0 0 0; font-size: 28px; font-weight: 800; color: #1b4332;">NGN ${amount.toLocaleString()}</p>
-                                </div>
-
-                                <p style="font-size: 14px; color: #506256; line-height: 1.5;">You can view all your payment transactions, tenant ledgers, and payout details on your dashboard.</p>
-                                
-                                <div style="margin-top: 32px; text-align: center;">
-                                  <a href="${baseUrl}/portal/payments" style="display: inline-block; background-color: #1b4332; color: #fffff0; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px;">Go to Payments</a>
-                                </div>
-
-                                <p style="margin-top: 32px; font-size: 11px; color: #88998e; text-align: center; border-top: 1px solid #e3e2cf; padding-top: 16px;">
-                                  This is an automated notification sent by Upward. Please do not reply directly to this email.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        `,
-                        type: 'PM_PAYMENT_NOTIFICATION'
+                      
+                      await this.unifiedCommService.processCommunication({
+                        recipientEmail: pmEmail,
+                        recipientName: pmName,
+                        recipientRole: 'PM',
+                        pmUuid: pm.uuid,
+                        type: 'PM_PAYMENT_RECEIVED',
+                        context: {
+                          pmName,
+                          tenantName,
+                          unitName,
+                          propertyName,
+                          amount,
+                          formattedAmount: amount.toLocaleString(),
+                          baseUrl,
+                        },
                       }).catch((err) => {
-                        this.logger.error(`Failed to send email to PM ${pmEmail}:`, err);
+                        this.logger.error(`Failed to send communication to PM ${pmEmail}:`, err);
                       });
                     }
                  }

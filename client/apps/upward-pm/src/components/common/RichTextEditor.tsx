@@ -28,7 +28,7 @@ export function RichTextEditor({
   const defaultToolbar = 'undo redo | blocks fontfamily fontsize | ' +
     'bold italic forecolor | alignleft aligncenter ' +
     'alignright alignjustify | bullist numlist outdent indent | ' +
-    'removeformat | signatures placeholders | help'
+    'lineSpacing | removeformat | signatures placeholders | help'
 
   return (
     <div className="rich-text-editor-container" style={{ height, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
@@ -46,8 +46,78 @@ export function RichTextEditor({
             'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
           ],
           toolbar: toolbar || defaultToolbar,
-          content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:16px; line-height:1.6; color:#1e293b; padding: 20px; }',
+          // Matches exactly how emails are rendered: same font, size and base line-height
+          content_style: [
+            "@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');",
+            "body {",
+            "  font-family: 'Inter', Helvetica, Arial, sans-serif;",
+            "  font-size: 15px;",
+            "  line-height: 1.6;",
+            "  color: #1e293b;",
+            "  padding: 20px;",
+            "  max-width: 800px;",
+            "  margin: 0 auto;",
+            "}",
+            "p { margin: 0 0 0.75em 0; }",
+          ].join(' '),
           setup: (editor: any) => {
+            // ─── Line Spacing Button ────────────────────────────────────────
+            editor.ui.registry.addMenuButton('lineSpacing', {
+              text: 'Line Spacing',
+              icon: 'line-height',
+              fetch: (callback: any) => {
+                const options = [
+                  { label: '1.0 — Tight',    value: '1.0' },
+                  { label: '1.2 — Compact',  value: '1.2' },
+                  { label: '1.4 — Snug',     value: '1.4' },
+                  { label: '1.6 — Normal',   value: '1.6' },
+                  { label: '1.8 — Relaxed',  value: '1.8' },
+                  { label: '2.0 — Double',   value: '2.0' },
+                  { label: '2.5 — Airy',     value: '2.5' },
+                  { label: '3.0 — Spacious', value: '3.0' },
+                ]
+                callback(
+                  options.map((opt) => ({
+                    type: 'menuitem',
+                    text: opt.label,
+                    onAction: () => {
+                      // Apply line-height to every selected block
+                      editor.execCommand('mceToggleFormat', false, 'p')
+                      const selectedNode = editor.selection.getNode()
+                      const blocks: HTMLElement[] = []
+
+                      // Walk up to a block-level element
+                      const getBlock = (node: any): HTMLElement | null => {
+                        while (node && node !== editor.getBody()) {
+                          if (['P','DIV','H1','H2','H3','H4','H5','H6','LI'].includes(node.nodeName)) return node
+                          node = node.parentNode
+                        }
+                        return null
+                      }
+
+                      // Collect all blocks within the selection
+                      const range = editor.selection.getRng()
+                      const walker = editor.dom.createRng()
+                      walker.setStart(range.startContainer, range.startOffset)
+                      walker.setEnd(range.endContainer, range.endOffset)
+
+                      // Fallback: apply to current node and its parent block
+                      const block = getBlock(selectedNode)
+                      if (block) blocks.push(block)
+                      if (!blocks.length) blocks.push(selectedNode as HTMLElement)
+
+                      blocks.forEach((el) => {
+                        el.style.lineHeight = opt.value
+                      })
+
+                      editor.nodeChanged()
+                    }
+                  }))
+                )
+              }
+            })
+
+            // ─── Signatures Button ──────────────────────────────────────────
             editor.ui.registry.addButton('signatures', {
               text: 'Signatures',
               icon: 'signature',

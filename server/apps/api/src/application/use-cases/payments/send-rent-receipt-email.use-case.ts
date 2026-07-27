@@ -3,8 +3,9 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { GenerateReceiptPdfUseCase } from './payment.use-cases'
-import { buildRentReceiptEmailHtml } from '../../../shared/infrastructure/email/email.helper'
+
 import { ReceiptPdfData } from '../../../shared/infrastructure/common/receipt/receipt.service'
 
 export function isDeliverableTenantEmail(email?: string | null): boolean {
@@ -29,6 +30,7 @@ export class SendRentReceiptEmailUseCase {
     private readonly emailService: EmailService,
     private readonly whatsappService: WhatsappService,
     private readonly generateReceiptPdf: GenerateReceiptPdfUseCase,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(params: {
@@ -123,61 +125,32 @@ export class SendRentReceiptEmailUseCase {
     const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
     const receiptUrl = `${baseUrl}/dashboard/receipts?id=${tx.uuid}`
 
-    let emailSent = false
-    let whatsappSent = false
-
-    if (hasEmail) {
-      const html = buildRentReceiptEmailHtml({
+    const success = await this.unifiedCommService.processCommunication({
+      recipientEmail: hasEmail ? tenantEmail : undefined,
+      recipientPhone: hasPhone ? tenantPhone || undefined : undefined,
+      recipientName: tenantName,
+      recipientRole: 'TENANT',
+      registeredUserId: user.id,
+      type: 'RENT_RECEIPT',
+      attachments: [
+        {
+          filename: pdfFilename,
+          content: pdfBuffer,
+        },
+      ],
+      context: {
         tenantName,
+        firstName: tenantFirstName,
         amount: formattedAmount,
         propertyAddress,
         receiptNumber,
         receiptUrl,
         companyName: branding.companyName,
         logoUrl: branding.logoUrl,
-      })
+      },
+    })
 
-      const emailResult = await this.emailService.sendEmailWithRetry({
-        userId: String(user.id),
-        email: tenantEmail,
-        subject: `Rent Payment Receipt — ${formattedAmount}`,
-        html,
-        type: 'RENT_RECEIPT',
-        attachments: [
-          {
-            filename: pdfFilename,
-            content: pdfBuffer,
-          },
-        ],
-      })
-
-      emailSent = !!emailResult.success
-      if (emailSent) {
-        this.logger.log(`Rent receipt email sent to ${tenantEmail} for transaction ${tx.id}`)
-      } else {
-        this.logger.error(`Failed to send rent receipt email to ${tenantEmail} for transaction ${tx.id}`)
-      }
-    }
-
-    if (hasPhone && tenantPhone) {
-      const waResult = await this.whatsappService.sendDocument({
-        to: tenantPhone,
-        filename: pdfFilename,
-        content: pdfBuffer,
-        caption: `Hi ${tenantFirstName || 'there'},\n\nYour rent payment of ${formattedAmount} for ${propertyAddress} was successful.\n\nReceipt No: ${receiptNumber}\n\nView online: ${receiptUrl}`,
-      })
-
-      whatsappSent = waResult.success
-      if (whatsappSent) {
-        this.logger.log(`Rent receipt WhatsApp sent to ${tenantPhone} for transaction ${tx.id}`)
-      } else {
-        this.logger.error(
-          `Failed to send rent receipt WhatsApp to ${tenantPhone} for transaction ${tx.id}: ${waResult.error || 'unknown error'}`,
-        )
-      }
-    }
-
-    return { emailSent, whatsappSent }
+    return { emailSent: success, whatsappSent: success }
   }
 
   private async resolveBranding(propertyId?: number) {

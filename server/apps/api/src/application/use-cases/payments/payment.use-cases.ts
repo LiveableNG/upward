@@ -724,7 +724,8 @@ export class InitializePaymentUseCase {
     let user: any = null
     if (data.userId) {
       user = await this.userRepository.findByUuid(data.userId)
-    } else if (pr) {
+    }
+    if (!user && pr) {
       user = await this.userRepository.findById(pr.userId)
     }
 
