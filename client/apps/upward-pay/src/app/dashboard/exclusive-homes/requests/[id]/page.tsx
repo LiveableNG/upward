@@ -1,13 +1,19 @@
-'use client'
+import { Suspense } from 'react'
+import FallbackSuspense from '@/components/FallbackSuspense'
+import HomeRequestDetailPageClient from './HomeRequestDetailPageClient'
 
-import { use } from 'react'
-import { HomeRequestDetailScreen } from '@/features/dashboard/components/exclusive-homes/requests/HomeRequestDetailScreen'
+export function generateStaticParams() {
+  return [{ id: 'placeholder' }]
+}
 
-export default function HomeRequestDetailPage({
-  params,
-}: {
+interface HomeRequestDetailPageProps {
   params: Promise<{ id: string }>
-}) {
-  const { id } = use(params)
-  return <HomeRequestDetailScreen requestId={id} />
+}
+
+export default function HomeRequestDetailPage({ params }: HomeRequestDetailPageProps) {
+  return (
+    <Suspense fallback={<FallbackSuspense message="Loading request details…" />}>
+      <HomeRequestDetailPageClient params={params} />
+    </Suspense>
+  )
 }
