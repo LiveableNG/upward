@@ -49,6 +49,7 @@ interface DocumentEditorViewProps {
   unitUuid?: string
   documentUuid?: string
   isVaultMode?: boolean
+  disableRecipientEdit?: boolean
 }
 
 export function DocumentEditorView({ 
@@ -60,7 +61,8 @@ export function DocumentEditorView({
   onBack,
   unitUuid,
   documentUuid,
-  isVaultMode = false
+  isVaultMode = false,
+  disableRecipientEdit = false
 }: DocumentEditorViewProps) {
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
@@ -101,6 +103,7 @@ export function DocumentEditorView({
   const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false)
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
   const [tempEmail, setTempEmail] = useState('')
+  const [tempPhone, setTempPhone] = useState('')
   const { sendDocument, generatePdf } = useDocuments()
   const { sendTemplateToVault } = useVaultActions()
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
@@ -406,10 +409,10 @@ export function DocumentEditorView({
       recipientName = selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant'
       recipientEmail = selectedTenant.email || ''
 
-      // If the selected tenant has a guest email, they must provide a real email
-      if (selectedTenant.email?.endsWith('@upward.com')) {
+      // If the selected tenant has no email or temporary system email, they must provide a real email
+      if ((deliveryMode === 'email' || deliveryMode === 'pdf') && (!selectedTenant.email || selectedTenant.email.endsWith('@upward.com'))) {
         if (!tempEmail) {
-          return error('This tenant has a temporary system email. Please enter a valid email address first so they can receive this document.')
+          return error('This tenant has no email. Please enter a valid email address first so they can receive this document.')
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tempEmail)) {
           return error('Please enter a valid email address.')
@@ -422,6 +425,20 @@ export function DocumentEditorView({
         } catch (err: any) {
           setIsSending(false)
           return error(err.message || 'Failed to update tenant email address')
+        }
+      }
+
+      // If the selected tenant has no phone number and we are sending via WhatsApp, they must provide one
+      if (deliveryMode === 'whatsapp' && !selectedTenant.phone) {
+        if (!tempPhone) {
+          return error('This tenant has no phone number. Please enter a valid phone number first to proceed.')
+        }
+        setIsSending(true)
+        try {
+          await updateTenant.mutateAsync({ uuid: selectedTenant.uuid, data: { phone: tempPhone } })
+        } catch (err: any) {
+          setIsSending(false)
+          return error(err.message || 'Failed to update tenant phone number')
         }
       }
     }
@@ -594,7 +611,6 @@ export function DocumentEditorView({
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button 
                       onClick={() => setDeliveryMode('email')}
-                      disabled={selectedTenant && !selectedTenant.email}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
@@ -602,8 +618,7 @@ export function DocumentEditorView({
                         border: `1px solid ${deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
                         background: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
                         color: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
-                        opacity: (selectedTenant && !selectedTenant.email) ? 0.5 : 1,
-                        cursor: (selectedTenant && !selectedTenant.email) ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         fontSize: 13,
                         fontWeight: 600,
                         display: 'flex',
@@ -632,7 +647,6 @@ export function DocumentEditorView({
 
                     <button 
                       onClick={() => setDeliveryMode('whatsapp')}
-                      disabled={selectedTenant && !selectedTenant.phone}
                       style={{ 
                         flex: 1, 
                         padding: '12px', 
@@ -640,8 +654,7 @@ export function DocumentEditorView({
                         border: `1px solid ${deliveryMode === 'whatsapp' ? '#25D366' : 'var(--border)'}`,
                         background: deliveryMode === 'whatsapp' ? '#dcf8c6' : 'white',
                         color: deliveryMode === 'whatsapp' ? '#075E54' : 'var(--text-muted)',
-                        opacity: (selectedTenant && !selectedTenant.phone) ? 0.5 : 1,
-                        cursor: (selectedTenant && !selectedTenant.phone) ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         fontSize: 13,
                         fontWeight: 600,
                         display: 'flex',
@@ -748,30 +761,32 @@ export function DocumentEditorView({
 
              <div style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>To Recipient</label>
-                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                  <button 
-                    onClick={() => setRecipientType('existing')}
-                    style={{ fontSize: 12, color: recipientType === 'existing' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    Existing Recipient
-                  </button>
-                  <button 
-                    onClick={() => setRecipientType('new')}
-                    style={{ fontSize: 12, color: recipientType === 'new' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-                  >
-                    New Recipient
-                  </button>
-                </div>
+                {!disableRecipientEdit && (
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    <button 
+                      onClick={() => setRecipientType('existing')}
+                      style={{ fontSize: 12, color: recipientType === 'existing' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Existing Recipient
+                    </button>
+                    <button 
+                      onClick={() => setRecipientType('new')}
+                      style={{ fontSize: 12, color: recipientType === 'new' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      New Recipient
+                    </button>
+                  </div>
+                )}
 
                 {recipientType === 'existing' ? (
                   <div 
-                    onClick={() => setIsRecipientModalOpen(true)}
+                    onClick={() => !disableRecipientEdit && setIsRecipientModalOpen(true)}
                     style={{ 
                       width: '100%', 
                       padding: '12px 16px', 
                       borderRadius: 14, 
                       border: '1px solid var(--border)', 
-                      cursor: 'pointer',
+                      cursor: disableRecipientEdit ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -781,7 +796,7 @@ export function DocumentEditorView({
                     <span style={{ fontSize: 14, color: selectedTenant ? 'var(--dark)' : 'var(--text-muted)', fontWeight: selectedTenant ? 600 : 400 }}>
                       {selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : 'Select a recipient...'}
                     </span>
-                    <Users size={18} style={{ color: 'var(--text-muted)' }} />
+                    {!disableRecipientEdit && <Users size={18} style={{ color: 'var(--text-muted)' }} />}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -804,7 +819,7 @@ export function DocumentEditorView({
                   </div>
                 )}
 
-                {recipientType === 'existing' && selectedTenant && selectedTenant.email?.endsWith('@upward.com') && (
+                {recipientType === 'existing' && selectedTenant && (!selectedTenant.email || selectedTenant.email.endsWith('@upward.com')) && (deliveryMode === 'email' || deliveryMode === 'pdf') && (
                   <div style={{
                     marginTop: 12,
                     padding: 16,
@@ -819,10 +834,10 @@ export function DocumentEditorView({
                   }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
                       <AlertCircle size={16} />
-                      <span>Temporary Email Detected</span>
+                      <span>This tenant has no email</span>
                     </div>
                     <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
-                      This tenant has a temporary system email. Please provide a real email to update their profile and deliver this document successfully.
+                      Please enter a valid email address to update their profile and deliver this document successfully.
                     </p>
                     <input 
                       type="email"
@@ -842,6 +857,45 @@ export function DocumentEditorView({
                     />
                   </div>
                 )}
+
+                {recipientType === 'existing' && selectedTenant && !selectedTenant.phone && deliveryMode === 'whatsapp' && (
+                  <div style={{
+                    marginTop: 12,
+                    padding: 16,
+                    background: 'var(--error-faint, #fef2f2)',
+                    borderRadius: 12,
+                    border: '1.5px dashed var(--error, #ef4444)',
+                    fontSize: 13,
+                    color: 'var(--error, #ef4444)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8
+                  }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
+                      <AlertCircle size={16} />
+                      <span>This tenant has no phone number</span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+                      Please provide the tenant's phone number to update their profile and deliver this document successfully via WhatsApp.
+                    </p>
+                    <input 
+                      type="tel"
+                      placeholder="Real Phone Number (e.g. +234...)"
+                      className="form-input"
+                      style={{ 
+                        borderRadius: 8, 
+                        height: 38, 
+                        fontSize: 12, 
+                        borderColor: 'var(--error, #ef4444)',
+                        background: 'white',
+                        padding: '0 10px',
+                        outline: 'none'
+                      }}
+                      value={tempPhone}
+                      onChange={(e) => setTempPhone(e.target.value)}
+                    />
+                  </div>
+                )}
              </div>
 
              <div>
@@ -853,6 +907,7 @@ export function DocumentEditorView({
                   style={{ borderRadius: 12 }}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
+                  disabled={isSystemTemplate}
                 />
              </div>
 

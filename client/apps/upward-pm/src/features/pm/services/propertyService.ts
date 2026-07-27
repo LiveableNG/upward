@@ -28,6 +28,7 @@ export interface Tenant {
   otherPhone?: string | null;
   inviteStatus?: string;
   inviteSentAt?: string;
+  hasReceivedWelcomeTemplate?: boolean;
 }
 
 export interface Unit {

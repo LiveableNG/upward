@@ -6,6 +6,7 @@ import { DocumentManagementView } from '@/features/pm/components/documents/Docum
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
 import { useTenants } from '@/features/pm/hooks/useTenants'
+import { useDocuments } from '@/features/pm/hooks/useDocuments'
 import { ListSkeleton } from '@/components/skeletons'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -18,6 +19,9 @@ function DocumentManagementContent() {
   const tenantUuid = searchParams.get('tenantUuid')
   
   const { data: tenants = [] } = useTenants()
+  const { templates = [] } = useDocuments()
+  const templateUuid = searchParams.get('templateUuid')
+  const disableRecipientEdit = searchParams.get('disableRecipientEdit') === 'true'
 
   // Fetch unit details if unitUuid is provided to display context
   const { data: unit } = useQuery({
@@ -33,7 +37,7 @@ function DocumentManagementContent() {
 
   // Resolve recipient from query parameters
   useEffect(() => {
-    if (unitUuid && tenantUuid && tenants.length > 0 && !initialRecipient) {
+    if (tenantUuid && tenants.length > 0 && !initialRecipient) {
       const tenant = tenants.find((t: any) => t.uuid === tenantUuid)
       setInitialRecipient({
         type: 'existing',
@@ -44,6 +48,17 @@ function DocumentManagementContent() {
       })
     }
   }, [unitUuid, tenantUuid, tenants, initialRecipient])
+
+  // Resolve template from query parameters
+  useEffect(() => {
+    if (templateUuid && templates.length > 0 && tenants.length > 0 && view === 'list') {
+      const template = templates.find((t: any) => t.uuid === templateUuid)
+      if (template) {
+        setEditingTemplate(template)
+        setView('editor')
+      }
+    }
+  }, [templateUuid, templates, tenants, view])
 
   const handleNewDocument = () => {
     setEditingTemplate(null)
@@ -164,6 +179,7 @@ function DocumentManagementContent() {
               initialRecipient={initialRecipient}
               unitUuid={unitUuid || undefined}
               onBack={handleEditorBack}
+              disableRecipientEdit={disableRecipientEdit}
             />
           )}
         </div>

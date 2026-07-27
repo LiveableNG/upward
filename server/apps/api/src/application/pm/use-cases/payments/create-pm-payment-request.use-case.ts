@@ -97,6 +97,13 @@ export class CreatePmPaymentRequestUseCase {
       throw new BadRequestException('Please set up your bank information in settings to receive payments');
     }
 
+    if (unit.tenantId) {
+      const tenant = await this.pmTenantRepo.findById(unit.tenantId);
+      if (tenant && !tenant.hasReceivedWelcomeTemplate) {
+        throw new BadRequestException('You must send the Welcome system template to this tenant before requesting payment.');
+      }
+    }
+
     const isScheduled = data.scheduledAt && new Date(data.scheduledAt) > new Date();
     
     let corePRId: number | null = null;

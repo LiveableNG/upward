@@ -34,6 +34,7 @@ export class PrismaPmTenantRepository implements ITenantRepository {
       inviteStatus: t.inviteStatus,
       inviteSentAt: t.inviteSentAt,
       channel: t.channel,
+      hasReceivedWelcomeTemplate: t.hasReceivedWelcomeTemplate ?? false,
       units: t.units ? t.units.map((u: any) => ({
         id: u.id,
         uuid: u.uuid,

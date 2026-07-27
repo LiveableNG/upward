@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -125,11 +126,13 @@ interface AddTenantModalProps {
 }
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose, mode = 'add-tenant', initialData }) => {
+  const router = useRouter()
   const { createTenant, assignTenant } = useTenantActions()
   const { data: units = [] } = useUnits()
   const { data: properties = [] } = useProperties()
   const createPropertyMutation = useCreateProperty()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
+  const [successData, setSuccessData] = useState<{ tenantUuid: string; unitUuid?: string } | null>(null)
 
   const isJoinRequest = mode === 'join-request'
 
@@ -347,7 +350,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             }, {
               onSuccess: () => {
                 reset()
-                onClose()
+                setSuccessData({ tenantUuid: tenant.uuid, unitUuid: createdUnit.uuid })
               }
             })
           }
@@ -373,12 +376,12 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             }, {
               onSuccess: () => {
                 reset()
-                onClose()
+                setSuccessData({ tenantUuid: tenant.uuid, unitUuid })
               }
             })
           } else {
             reset()
-            onClose()
+            setSuccessData({ tenantUuid: tenant.uuid })
           }
         }
       })
@@ -1041,6 +1044,74 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         `}</style>
     </Modal>
   )
-
-  return modalContent
-}
+  
+    if (successData) {
+      return (
+        <Modal
+          isOpen={isOpen}
+          onClose={() => {
+            setSuccessData(null)
+            onClose()
+          }}
+          title="Tenant Onboarding Info"
+          subtitle="Step 2 of Onboarding (Optional)"
+          icon={CheckCircle2}
+          maxWidth={500}
+          footer={
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button
+                type="button"
+                className="btn btn--secondary"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  setSuccessData(null)
+                  onClose()
+                }}
+              >
+                Done (Skip for Now)
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  const tenantUuid = successData.tenantUuid
+                  const unitUuid = successData.unitUuid
+                  setSuccessData(null)
+                  onClose()
+                  router.push(`/documents?tenantUuid=${tenantUuid}${unitUuid ? `&unitUuid=${unitUuid}` : ''}&templateUuid=system-onboarding-1&disableRecipientEdit=true`)
+                }}
+              >
+                Send Welcome Template
+              </button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 0', textAlign: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: '50%', background: 'var(--forest-faint)', color: 'var(--forest)', marginBottom: 8 }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>Tenant Added Successfully!</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              To begin making payment requests to this tenant, you must first send them the <strong>Welcome system template ("Getting Started")</strong>. This introduces Upward and ensures they can set up their portal.
+            </p>
+            <div style={{
+              background: 'var(--ivory-dim)',
+              padding: '12px 16px',
+              borderRadius: 12,
+              fontSize: 12,
+              color: 'var(--clay)',
+              borderLeft: '3px solid var(--clay)',
+              textAlign: 'left',
+              width: '100%',
+              fontWeight: 600
+            }}>
+              ⚠️ Failure to send the Welcome template will block any future payment requests to this tenant.
+            </div>
+          </div>
+        </Modal>
+      )
+    }
+  
+    return modalContent
+  }

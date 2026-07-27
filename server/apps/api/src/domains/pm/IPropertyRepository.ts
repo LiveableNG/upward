@@ -80,6 +80,7 @@ export interface TenantEntity {
   emergencyContactName?: string | null;
   emergencyContactEmail?: string | null;
   emergencyContactPhone?: string | null;
+  hasReceivedWelcomeTemplate?: boolean;
   units?: UnitEntity[];
 }
 

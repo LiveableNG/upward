@@ -20,6 +20,7 @@ export interface Tenant {
   otherPhone?: string | null;
   inviteStatus: string;
   inviteSentAt: string | null;
+  hasReceivedWelcomeTemplate?: boolean;
   formerAddress?: string;
   nextOfKinName?: string;
   nextOfKinEmail?: string;

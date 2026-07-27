@@ -447,6 +447,13 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
+      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+        await this.prisma.upward_pm_tenant.update({
+          where: { id: tenantId },
+          data: { hasReceivedWelcomeTemplate: true }
+        });
+      }
+
       const updatedDoc = await this.documentRepo.findSentDocumentByUuid(sentUuid);
       return { ...(updatedDoc as any), pdfUrl: pdfS3Url };
     } else {
@@ -465,6 +472,13 @@ export class SendDocumentUseCase {
       });
 
       if (finalStatus === 'FAILED') throw finalError;
+
+      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+        await this.prisma.upward_pm_tenant.update({
+          where: { id: tenantId },
+          data: { hasReceivedWelcomeTemplate: true }
+        });
+      }
 
       return { ...(result as any), pdfUrl: pdfS3Url };
     }
