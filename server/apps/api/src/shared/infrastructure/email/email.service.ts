@@ -134,8 +134,10 @@ export class EmailService {
     sessionId?: string
     fromOverride?: string
     attachments?: Array<{ filename: string; content: Buffer }>
+    cc?: string
+    bcc?: string
   }) {
-    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, attachments } = params
+    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, attachments, cc, bcc } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
     if (!domain) {
       this.logger.error('MAILGUN_DOMAIN not configured')
@@ -176,6 +178,13 @@ export class EmailService {
           html: brandedHtml,
           'h:List-Unsubscribe': `<${this.frontendUrl}/unsubscribe?email=${email}>`,
           'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        }
+
+        if (cc) {
+          mailData.cc = cc
+        }
+        if (bcc) {
+          mailData.bcc = bcc
         }
 
         if (attachments && attachments.length > 0) {

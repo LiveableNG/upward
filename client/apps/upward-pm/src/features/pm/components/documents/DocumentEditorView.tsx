@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { 
   ChevronLeft, 
   Download,
@@ -13,7 +13,8 @@ import {
   Loader2,
   MessageCircle,
   Check,
-  PanelLeft
+  PanelLeft,
+  Info
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -68,6 +69,8 @@ export function DocumentEditorView({
   const { data: tenants = [] } = useTenants()
   const { user } = useAuth()
   const [fromEmail, setFromEmail] = useState(user?.email || 'noreply@goodtenants.io')
+  const [ccEmails, setCcEmails] = useState('')
+  const [bccEmails, setBccEmails] = useState('')
   
   const [content, setContent] = useState(() => {
     const baseContent = initialTemplate?.content || initialContent;
@@ -480,7 +483,9 @@ export function DocumentEditorView({
             recipientEmail,
             paymentRequestUuid, // New field
             includeLetterhead: hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') ? includeLetterhead : false,
-            deliveryChannel: deliveryMode === 'whatsapp' ? 'MANUAL' : (deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase())
+            deliveryChannel: deliveryMode === 'whatsapp' ? 'MANUAL' : (deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase()),
+            cc: ccEmails.trim() || undefined,
+            bcc: bccEmails.trim() || undefined,
           })
           
           if (deliveryMode === 'whatsapp') {
@@ -758,6 +763,50 @@ export function DocumentEditorView({
                   style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
                 />
              </div>
+
+             {(deliveryMode === 'email' || deliveryMode === 'pdf') && (
+               <>
+                 <div style={{ marginBottom: 16 }}>
+                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                     CC
+                     <span
+                       style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'default' }}
+                       title="Comma-separated email addresses who will receive a copy of this email."
+                     >
+                       <Info size={13} color="var(--text-muted)" />
+                     </span>
+                   </label>
+                   <input
+                     type="text"
+                     className="form-input"
+                     placeholder="cc@example.com, another@example.com"
+                     value={ccEmails}
+                     onChange={(e) => setCcEmails(e.target.value)}
+                     style={{ borderRadius: 12 }}
+                   />
+                 </div>
+
+                 <div style={{ marginBottom: 24 }}>
+                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                     BCC
+                     <span
+                       style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'default' }}
+                       title="Blind carbon copy — comma-separated addresses who receive the email invisibly."
+                     >
+                       <Info size={13} color="var(--text-muted)" />
+                     </span>
+                   </label>
+                   <input
+                     type="text"
+                     className="form-input"
+                     placeholder="bcc@example.com, hidden@example.com"
+                     value={bccEmails}
+                     onChange={(e) => setBccEmails(e.target.value)}
+                     style={{ borderRadius: 12 }}
+                   />
+                 </div>
+               </>
+             )}
 
              <div style={{ marginBottom: 24 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>To Recipient</label>
@@ -1071,11 +1120,41 @@ export function DocumentEditorView({
                     </div>
                   )}
                   
-                  {/* Document Body */}
-                  <div 
-                    className="preview-body-content"
-                    style={{ flex: 1, color: '#1e293b' }}
-                    dangerouslySetInnerHTML={{ __html: getRenderedContent() }} 
+                  {/* Document Body — rendered in an iframe matching editor styles for true WYSIWYG fidelity */}
+                  <iframe
+                    title="Document Live Preview"
+                    style={{
+                      flex: 1,
+                      width: '100%',
+                      border: 'none',
+                      minHeight: '400px',
+                      display: 'block',
+                    }}
+                    srcDoc={`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Inter', Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #1e293b;
+      background: white;
+    }
+    body { padding: 20px; max-width: 800px; margin: 0 auto; }
+    p { margin: 0 0 0.75em 0; }
+    img { max-width: 100%; height: auto; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { padding: 8px 12px; border: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>${getRenderedContent()}</body>
+</html>`}
                   />
                   
                   {/* Footer Letterhead */}

@@ -32,6 +32,8 @@ export interface SendDocumentDto {
   paymentRequestUuid?: string;
   includeLetterhead?: boolean;
   deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
+  cc?: string;
+  bcc?: string;
 }
 
 @Injectable()
@@ -416,6 +418,8 @@ export class SendDocumentUseCase {
           forceChannel: data.deliveryChannel,
           fromOverride: data.fromEmail,
           attachments,
+          cc: data.cc,
+          bcc: data.bcc,
           context: {
             displayName: data.recipientName,
             subject: data.subject,

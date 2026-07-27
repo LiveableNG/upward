@@ -247,6 +247,8 @@ export class UnifiedCommunicationService {
             type: payload.type,
             fromOverride: payload.fromOverride,
             attachments: payload.attachments,
+            cc: payload.cc,
+            bcc: payload.bcc,
           });
           channelSuccess = !!res.success;
           lastError = res.error || '';

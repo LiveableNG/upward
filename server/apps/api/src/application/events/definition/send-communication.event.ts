@@ -15,6 +15,8 @@ export interface SendCommunicationPayload {
   forceChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
   fromOverride?: string;
   attachments?: Array<{ filename: string; content: Buffer }>;
+  cc?: string;
+  bcc?: string;
 }
 
 export class SendCommunicationEvent extends DomainEvent {
