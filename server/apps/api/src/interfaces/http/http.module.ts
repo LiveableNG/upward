@@ -13,6 +13,7 @@ import { FairnessStoryController } from './public/fairness-story.controller'
 import { WaitlistController } from './public/waitlist.controller'
 import { LocationsController } from './public/locations.controller'
 import { UserController } from './user/user.controller'
+import { WalletController } from './user/wallet.controller'
 import { PaymentsController } from './public/payments.controller'
 import { AdminAnnouncementsController } from './admin/announcements.controller'
 import { UserNotificationsController } from './user/notifications.controller'
@@ -82,6 +83,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     WaitlistController,
     LocationsController,
     UserController,
+    WalletController,
     PaymentsController,
     AdminAnnouncementsController,
     UserNotificationsController,
