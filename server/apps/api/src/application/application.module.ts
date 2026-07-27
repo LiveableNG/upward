@@ -34,6 +34,14 @@ import {
   DeleteFeeOverrideUseCase,
   SearchFeeTargetsUseCase,
 } from './use-cases/admin/fee-overrides.use-cases'
+import {
+  GetAreaPriceGuideUseCase,
+  GetAreaPriceGuideStatesUseCase,
+  CreateAreaPriceGuideUseCase,
+  UpdateAreaPriceGuideUseCase,
+  DeleteAreaPriceGuideUseCase,
+  BulkUpsertAreaPriceGuideUseCase,
+} from './use-cases/admin/area-price-guide.use-cases'
 import { GetAppActivityLogsUseCase } from './use-cases/admin/get-app-activity-logs.use-case'
 import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accounts.use-case'
 import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
@@ -369,6 +377,12 @@ const UseCases = [
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
   SearchFeeTargetsUseCase,
+  GetAreaPriceGuideUseCase,
+  GetAreaPriceGuideStatesUseCase,
+  CreateAreaPriceGuideUseCase,
+  UpdateAreaPriceGuideUseCase,
+  DeleteAreaPriceGuideUseCase,
+  BulkUpsertAreaPriceGuideUseCase,
   JoinWaitlistUseCase,
   GetWaitlistUseCase,
   UpdateWaitlistUserUseCase,

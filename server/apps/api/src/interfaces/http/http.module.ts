@@ -59,15 +59,18 @@ import { FeedbackAdminController } from './admin/feedback-admin.controller'
 import { DevEmailAdminController } from './admin/dev-email-admin.controller'
 import { AdminLoginSessionsController } from './admin/admin-login-sessions.controller'
 import { AdminBlogPostsController } from './admin/blog-posts.controller'
+import { AdminAreaPriceGuideController } from './admin/area-price-guide.controller'
 import { PublicBlogController } from './public/blog.controller'
 import { ManualPaymentsController } from './controllers/manual-payments.controller'
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 import { PublicDocumentController } from './public/public-document.controller'
-import { PmBulkImportController, AdminBulkImportController } from './controllers/bulk-import.controller'
+import {
+  PmBulkImportController,
+  AdminBulkImportController,
+} from './controllers/bulk-import.controller'
 
 import { NotificationsGateway } from '../websockets/notifications.gateway'
-
 
 @Module({
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule],
@@ -129,6 +132,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     DevEmailAdminController,
     AdminLoginSessionsController,
     AdminBlogPostsController,
+    AdminAreaPriceGuideController,
     PublicBlogController,
     AdminWhatsappSequenceController,
     AdminEmailSequenceController,

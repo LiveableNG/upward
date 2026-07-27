@@ -24,6 +24,7 @@ import UserDetail from './pages/UserDetail'
 import PmDetail from './pages/PmDetail'
 import Layout from './components/Layout'
 import OverridesPage from './pages/Overrides'
+import AreaPriceGuide from './pages/AreaPriceGuide'
 import BlogPosts from './pages/BlogPosts'
 import InternalAccounts from './pages/InternalAccounts'
 import InvitationTracker from './pages/InvitationTracker'
@@ -100,6 +101,7 @@ function AppRoutes() {
           <Route path="/bulk-imports" element={<BulkImportQueue token={auth.token} />} />
           <Route path="/bulk-imports/:uuid" element={<BulkImportDetail token={auth.token} />} />
 
+          <Route path="/area-price-guide" element={<AreaPriceGuide token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           {showSandboxTools && (
