@@ -187,23 +187,32 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
       ? 'Rent Protection Insurance'
       : name
   const visibleLineItems = useMemo(
-    () =>
-      (isBasicCheckout ? lineItems.filter((item) => item.name !== 'Upward Benefits') : lineItems).map((item) => ({
+    () => {
+      let items = isBasicCheckout ? lineItems.filter((item) => item.name !== 'Upward Benefits') : lineItems
+      if (rates.transactionFee === 0) {
+        items = items.filter((item) => item.id !== -2 && item.name !== 'Transaction Fee')
+      }
+      return items.map((item) => ({
         ...item,
         name: renameBenefitsLabel(item.name),
-      })),
-    [isBasicCheckout, isPremiumCheckout, lineItems],
+      }))
+    },
+    [isBasicCheckout, isPremiumCheckout, lineItems, rates.transactionFee],
   )
   const visibleAllocs = useMemo(
-    () =>
-      (isBasicCheckout
+    () => {
+      let allocs = isBasicCheckout
         ? effectiveAllocs.filter((alloc) => alloc.name !== 'Upward Benefits')
         : effectiveAllocs
-      ).map((alloc) => ({
+      if (rates.transactionFee === 0) {
+        allocs = allocs.filter((alloc) => alloc.id !== -2 && alloc.name !== 'Transaction Fee')
+      }
+      return allocs.map((alloc) => ({
         ...alloc,
         name: renameBenefitsLabel(alloc.name),
-      })),
-    [isBasicCheckout, isPremiumCheckout, effectiveAllocs],
+      }))
+    },
+    [isBasicCheckout, isPremiumCheckout, effectiveAllocs, rates.transactionFee],
   )
 
   if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />

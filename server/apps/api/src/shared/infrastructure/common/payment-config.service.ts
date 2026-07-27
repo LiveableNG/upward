@@ -31,6 +31,10 @@ export class PaymentConfigurationService implements OnModuleInit {
   }
 
   getProcessingFee(): number {
+    const removeTxFee = this.configService.get<string>('REMOVE_TRANSACTION_FEE') === 'true' || process.env.REMOVE_TRANSACTION_FEE === 'true';
+    if (removeTxFee) {
+      return 0;
+    }
     if (this.cachedGlobalFee !== null) {
       return this.cachedGlobalFee;
     }
@@ -126,6 +130,19 @@ export class PaymentConfigurationService implements OnModuleInit {
   }
 
   async getDynamicProcessingRates(
+    userId: number,
+    propertyId?: number | null,
+    paymentRequestId?: number | null
+  ): Promise<{ transactionFee: number; benefitsFee: number; rentValue: number; benefitsPaid?: boolean; benefitsPaidForRequest?: boolean }> {
+    const result = await this.getRawDynamicProcessingRates(userId, propertyId, paymentRequestId);
+    const removeTxFee = this.configService.get<string>('REMOVE_TRANSACTION_FEE') === 'true' || process.env.REMOVE_TRANSACTION_FEE === 'true';
+    if (removeTxFee) {
+      result.transactionFee = 0;
+    }
+    return result;
+  }
+
+  private async getRawDynamicProcessingRates(
     userId: number,
     propertyId?: number | null,
     paymentRequestId?: number | null
