@@ -65,7 +65,7 @@ export class ProcessPendingEmailSequencesUseCase {
             firstName: decryptedFirstName,
             stage: log.stage,
           },
-          trackingPixelUrl: log.uuid ? `${apiUrl}/email-tracking/open?t=${log.uuid}` : undefined,
+          trackingPixelUrl: log.uuid ? `${apiUrl}/api/v1/email-tracking/open?t=${log.uuid}` : undefined,
           emailSequenceLogId: log.id,
         });
 

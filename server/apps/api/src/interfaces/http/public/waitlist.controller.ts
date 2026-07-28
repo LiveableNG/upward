@@ -73,9 +73,14 @@ export class WaitlistController {
   @HttpCode(HttpStatus.OK)
   async unsubscribe(
     @Body('email') bodyEmail: string,
+    @Body('token') bodyToken: string,
     @Query('email') queryEmail: string,
+    @Query('token') queryToken: string,
   ): Promise<ApiSuccess<{ success: boolean }>> {
-    const email = bodyEmail || queryEmail
+    const rawToken = bodyToken || queryToken
+    const email = rawToken
+      ? Buffer.from(rawToken, 'base64url').toString('utf8')
+      : (bodyEmail || queryEmail)
     const success = await this.unsubscribeWaitlistUseCase.execute(email)
     return { data: { success }, message: success ? 'Unsubscribed' : 'User not found' }
   }

@@ -22,6 +22,7 @@ export class EmailService {
   private mg: any
   private readonly MAX_RETRIES = 3
   private readonly frontendUrl: string
+  private readonly replyToEmail: string
 
   constructor(
     private configService: ConfigService,
@@ -37,6 +38,8 @@ export class EmailService {
       (this.configService.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io')
         .split(',')[0]!
         .trim()
+    this.replyToEmail =
+      this.configService.get<string>('REPLY_TO_EMAIL') || 'hello@goodtenants.africa'
     const mailgun = new Mailgun(FormData)
     const apiKey = this.configService.get<string>('MAILGUN_API_KEY')
     const domain = this.configService.get<string>('MAILGUN_DOMAIN')
@@ -135,12 +138,13 @@ export class EmailService {
     type: string
     sessionId?: string
     fromOverride?: string
+    replyToOverride?: string
     attachments?: Array<{ filename: string; content: Buffer }>
     cc?: string
     bcc?: string
     emailSequenceLogId?: number
   }) {
-    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, attachments, cc, bcc } = params
+    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, replyToOverride, attachments, cc, bcc } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
     if (!domain) {
       this.logger.error('MAILGUN_DOMAIN not configured')
@@ -149,6 +153,7 @@ export class EmailService {
 
     let from =
       fromOverride || this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
+    let replyTo = replyToOverride || this.replyToEmail
     let brandedHtml = html
 
     const targetPmUuid = pmUuid || userId
@@ -161,6 +166,8 @@ export class EmailService {
         if (pm.emailSetting.isVerified && pm.emailSetting.domain) {
           domain = pm.emailSetting.domain
           from = `"${pm.emailSetting.senderName}" <${pm.emailSetting.senderEmail}>`
+          // For PM-branded emails, reply-to the PM's own sender so tenants reach them directly
+          replyTo = pm.emailSetting.senderEmail
         }
         brandedHtml = applyPmBranding(html, pm.emailSetting)
       }
@@ -173,12 +180,23 @@ export class EmailService {
 
     const emailTrackingToken = randomUUID()
     const apiUrl = (this.configService.get<string>('API_URL') || '').replace(/\/$/, '')
-    const trackingPixelUrl = `${apiUrl}/email-tracking/open?t=${emailTrackingToken}`
-    const trackingPixelRegex = /\/(?:api\/v1\/)?email-tracking\/open\?t=[^"'>\s]+/
+    const trackingPixelUrl = `${apiUrl}/api/v1/email-tracking/open?t=${emailTrackingToken}`
+    const trackingPixelRegex = /\/api\/v1\/email-tracking\/open\?t=[^"'>\s]+/
 
     if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {
       brandedHtml += `\n<img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display:none!important;visibility:hidden!important;max-height:1px;max-width:1px;border:0;outline:none;text-decoration:none;" />`
     }
+
+    const plainText = text || brandedHtml
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+
+    const unsubscribeToken = Buffer.from(email).toString('base64url')
 
     while (retries < this.MAX_RETRIES && !success) {
       try {
@@ -186,10 +204,13 @@ export class EmailService {
           from,
           to: [email],
           subject,
-          text,
+          text: plainText,
           html: brandedHtml,
-          'h:List-Unsubscribe': `<${this.frontendUrl}/unsubscribe?email=${email}>`,
+          'h:Reply-To': replyTo,
+          'h:List-Unsubscribe': `<${this.frontendUrl}/unsubscribe?token=${unsubscribeToken}>`,
           'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          'h:X-Entity-Ref-ID': emailTrackingToken,
+          'o:tag': [type],
         }
 
         if (cc) {
@@ -307,37 +328,52 @@ export class EmailService {
   }
 
   async sendCustomerSupportNotification(role: 'USER' | 'PM', id?: string) {
-    const email = this.configService.get<string>('SUPPORT_EMAIL') || 'support@goodtenants.io'
+    const alertAdmins = await this.prisma.upward_admin.findMany({
+      where: { receivesSystemAlerts: true },
+      select: { email: true },
+    })
+
+    if (alertAdmins.length === 0) {
+      this.logger.warn(`No admins with receivesSystemAlerts=true — skipping ${role} signup alert`)
+      return
+    }
+
     const subject = `New ${role} Signup Alert`
     const html = `<div style="font-family: sans-serif; padding: 20px;">
       <h2>New ${role} Signup</h2>
       <p>A new ${role} has successfully registered on the platform.</p>
       <p><strong>System ID:</strong> ${id || 'Unknown'}</p>
     </div>`
-    
-    await this.sendEmailWithRetry({
-      email,
-      subject,
-      html,
-      text: `New ${role} Signup. ID: ${id || 'Unknown'}`,
-      type: 'CUSTOMER_SUPPORT',
-    })
+    const text = `New ${role} Signup. ID: ${id || 'Unknown'}`
+
+    await Promise.allSettled(
+      alertAdmins.map(({ email }) =>
+        this.sendEmailWithRetry({ email, subject, html, text, type: 'CUSTOMER_SUPPORT' })
+      )
+    )
   }
 
   async sendSystemAlertToAdmins(subject: string, message: string) {
-    const adminEmail = this.configService.get<string>('ADMIN_EMAIL') || 'admin@goodtenants.io'
+    const alertAdmins = await this.prisma.upward_admin.findMany({
+      where: { receivesSystemAlerts: true },
+      select: { email: true },
+    })
+
+    if (alertAdmins.length === 0) {
+      this.logger.warn(`No admins with receivesSystemAlerts=true — skipping system alert: ${subject}`)
+      return
+    }
+
     const html = `<div style="font-family: sans-serif; padding: 20px;">
       <h2>System Alert</h2>
       <p>${message}</p>
     </div>`
-    
-    await this.sendEmailWithRetry({
-      email: adminEmail,
-      subject,
-      html,
-      text: message,
-      type: 'SYSTEM_ALERT',
-    })
+
+    await Promise.allSettled(
+      alertAdmins.map(({ email }) =>
+        this.sendEmailWithRetry({ email, subject, html, text: message, type: 'SYSTEM_ALERT' })
+      )
+    )
   }
 
 }

@@ -6,16 +6,22 @@ import { Footer } from '@/components/layout/footer'
 
 function UnsubscribeContent() {
   const searchParams = useSearchParams()
-  const email = searchParams.get('email')
+  const token = searchParams.get('token')
+  const legacyEmail = searchParams.get('email')
+
+  const email = token
+    ? (() => { try { return atob(token.replace(/-/g, '+').replace(/_/g, '/')) } catch { return null } })()
+    : legacyEmail
+
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error' | 'notfound'>(
     'idle',
   )
 
   useEffect(() => {
-    if (email) {
+    if (token || legacyEmail) {
       handleUnsubscribe()
     }
-  }, [email])
+  }, [token, legacyEmail])
 
   const handleUnsubscribe = async () => {
     if (status === 'processing' || status === 'success') return
@@ -27,7 +33,8 @@ function UnsubscribeContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        // Send token if available; server decodes it. Fall back to raw email for legacy links.
+        body: JSON.stringify(token ? { token } : { email }),
       })
 
       const result = await response.json()
@@ -72,7 +79,7 @@ function UnsubscribeContent() {
           Preferences
         </div>
 
-        {status === 'idle' && !email && (
+        {status === 'idle' && !token && !legacyEmail && (
           <>
             <h1
               style={{
