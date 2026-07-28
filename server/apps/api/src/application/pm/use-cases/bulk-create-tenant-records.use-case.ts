@@ -110,6 +110,7 @@ export class BulkCreateTenantRecordsUseCase {
           data: {
             unitId,
             amount: record.amount,
+            rentAmountAtPayment: record.amount,
             paymentDate: paidDate,
             periodStart: dueDate, // Storing due date as period start for reference
             status: 'SUCCESS',
