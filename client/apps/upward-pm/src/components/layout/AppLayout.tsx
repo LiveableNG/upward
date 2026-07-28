@@ -9,6 +9,9 @@ import { DesktopHeader } from "@/components/layout/DesktopHeader"
 import { NotificationPopup } from "@/components/common/NotificationPopup"
 import { PullToRefresh } from "@/components/common/PullToRefresh"
 import { cn } from '@/lib/utils'
+import { PricingModal } from '@/features/pm/components/subscription/PricingModal'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -21,6 +24,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const { isLoggedIn, loading } = useAuth()
   const router = useRouter()
+  const { isOpen, closePricing } = usePricingModal()
+  const { subscription } = useSubscription()
 
   useEffect(() => {
     const saved = localStorage.getItem('upward_sidebar_collapsed')
@@ -46,7 +51,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isPortalPage = pathname?.startsWith('/portal')
 
   useEffect(() => {
-    // Only protect routes after auth has finished loading
     if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
       router.replace('/login')
     }
@@ -56,7 +60,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <main>{children}</main>
   }
 
-  // Prevent rendering protected content while redirecting
   if (loading || (!isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage)) {
     return null
   }
@@ -70,6 +73,23 @@ export function AppLayout({ children }: AppLayoutProps) {
         onToggleCollapse={handleToggleCollapse}
       />
       <div className="layout__content">
+        {subscription?.status === 'GRACE' && (
+          <div className="grace-warning-banner" style={{
+            background: 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)',
+            color: 'white',
+            padding: 'var(--space-3) var(--space-4)',
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 'var(--space-2)',
+            zIndex: 100
+          }}>
+            <span>⚠️ Your subscription renewal failed. Please top up your wallet balance to avoid losing access to premium features.</span>
+          </div>
+        )}
         <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
         <DesktopHeader />
         <NotificationPopup />
@@ -78,6 +98,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             {children}
           </PullToRefresh>
         </main>
+        <PricingModal isOpen={isOpen} onClose={closePricing} />
       </div>
     </div>
   )

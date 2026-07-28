@@ -37,6 +37,8 @@ import { ManagedAddPropertyModal } from '../properties/modals/ManagedAddProperty
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { formatTenantName } from '@/lib/utils'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
@@ -44,9 +46,18 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   
   const resendMutation = useResendPaymentRequest()
   const { data: dashboardData, isLoading } = useDashboardSummary(initialData)
+  const { subscription } = useSubscription()
+  const { openPricing } = usePricingModal()
   
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
   const [hasSetInitialTab, setHasSetInitialTab] = useState(false)
+
+  useEffect(() => {
+    // Automatically pop up the pricing plans selector for new signup/unsubscribed users
+    if (subscription && subscription.tier === 'FREE' && !subscription.isInitialDepositPaid) {
+      openPricing()
+    }
+  }, [subscription])
 
   useEffect(() => {
     if (dashboardData && !hasSetInitialTab) {

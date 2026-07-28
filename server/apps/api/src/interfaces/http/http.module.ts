@@ -67,6 +67,7 @@ import { ManualPaymentsController } from './controllers/manual-payments.controll
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 import { PublicDocumentController } from './public/public-document.controller'
+import { SubscriptionController } from './controllers/subscription.controller'
 import {
   PmBulkImportController,
   AdminBulkImportController,
@@ -78,6 +79,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule],
   providers: [NotificationsGateway],
   controllers: [
+    SubscriptionController,
     ManualPaymentsController,
     AdminAuthController,
     AdminFeesController,
