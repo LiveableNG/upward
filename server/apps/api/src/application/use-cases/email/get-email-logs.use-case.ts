@@ -45,8 +45,29 @@ export class GetEmailLogsUseCase {
       ...(channel && channel !== 'All' ? { channel } : {}),
       ...(opened && opened !== 'All'
         ? opened === 'Opened'
-          ? { emailSequenceLog: { isOpened: true } }
-          : { emailSequenceLog: { isOpened: false } }
+          ? {
+              OR: [
+                { isOpened: true },
+                { emailSequenceLog: { isOpened: true } },
+              ],
+            }
+          : {
+              OR: [
+                {
+                  AND: [
+                    { emailSequenceLog: { is: null } },
+                    { isOpened: false },
+                  ],
+                },
+                {
+                  AND: [
+                    { emailSequenceLog: { isNot: null } },
+                    { emailSequenceLog: { isOpened: false } },
+                    { isOpened: false },
+                  ],
+                },
+              ],
+            }
         : {}),
       ...(acquisition && acquisition !== 'All'
         ? acquisition === 'waitlist_converted'
@@ -83,9 +104,9 @@ export class GetEmailLogsUseCase {
     const decryptedData = data.map((log) => {
       const decryptedLog = {
         ...log,
-        isOpened: log.emailSequenceLog?.isOpened ?? false,
-        openedAt: log.emailSequenceLog?.openedAt ?? null,
-        openCount: log.emailSequenceLog?.openCount ?? 0,
+        isOpened: log.isOpened || log.emailSequenceLog?.isOpened || false,
+        openedAt: log.openedAt || log.emailSequenceLog?.openedAt || null,
+        openCount: log.openCount || log.emailSequenceLog?.openCount || 0,
       }
       if (decryptedLog.registeredUser) {
         decryptedLog.registeredUser = {
