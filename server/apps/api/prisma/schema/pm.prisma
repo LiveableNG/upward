@@ -47,6 +47,11 @@ model upward_property_manager {
   activityLogsOwned     upward_pm_activity_log[] @relation("ActivityOwner")
   bulkImportJobs        upward_pm_bulk_import_job[]
 
+  subscription          upward_subscription?
+  wallet                upward_pm_wallet?
+  walletTransactions    upward_pm_wallet_transaction[]
+  subscriptionInvoices  upward_subscription_invoice[]
+
   @@index([email])
 }
 
