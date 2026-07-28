@@ -19,6 +19,8 @@ interface DevEmail {
   id: number
   uuid: string
   to: string
+  cc?: string | null
+  bcc?: string | null
   subject: string
   html: string
   text: string | null
@@ -370,6 +372,18 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                     <span style={{ fontSize: '14px', fontWeight: 600 }}>Subject:</span>
                     <span style={{ fontSize: '14px', fontWeight: 700 }}>{selectedEmail.subject}</span>
                   </div>
+                  {selectedEmail.cc ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600 }}>CC:</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700 }}>{selectedEmail.cc}</span>
+                    </div>
+                  ) : null}
+                  {selectedEmail.bcc ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600 }}>BCC:</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700 }}>{selectedEmail.bcc}</span>
+                    </div>
+                  ) : null}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Clock size={16} color="var(--text-muted)" />
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>

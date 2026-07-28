@@ -407,6 +407,8 @@ model upward_dev_email_preview {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
   to          String
+  cc          String?
+  bcc         String?
   subject     String
   html        String
   text        String?

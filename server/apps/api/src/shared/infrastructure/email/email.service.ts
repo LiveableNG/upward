@@ -83,6 +83,8 @@ export class EmailService {
                 data: {
                   uuid,
                   to: toStr,
+                  cc: data.cc || null,
+                  bcc: data.bcc || null,
                   subject: data.subject || '',
                   html: htmlKey,
                   text: data.text || '',
@@ -170,11 +172,8 @@ export class EmailService {
     let mailgunId = ''
 
     const emailTrackingToken = randomUUID()
-    const rawApiBase = this.configService.get<string>('API_BASE_URL') || this.configService.get<string>('API_URL') || ''
-    const apiBase = rawApiBase.replace(/\/$/, '')
-    const apiBaseWithoutPrefix = apiBase.replace(/\/api\/v1\/?$/, '')
-    const apiBaseWithPrefix = apiBase.endsWith('/api/v1') ? apiBase : `${apiBaseWithoutPrefix}/api/v1`
-    const trackingPixelUrl = `${apiBaseWithPrefix}/email-tracking/open?t=${emailTrackingToken}`
+    const apiUrl = (this.configService.get<string>('API_URL') || '').replace(/\/$/, '')
+    const trackingPixelUrl = `${apiUrl}/email-tracking/open?t=${emailTrackingToken}`
     const trackingPixelRegex = /\/(?:api\/v1\/)?email-tracking\/open\?t=[^"'>\s]+/
 
     if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {

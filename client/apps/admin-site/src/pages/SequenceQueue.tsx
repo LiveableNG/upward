@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, Mail, MessageCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Clock, Mail, MessageCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { apiService } from '../services/api.service';
 
 interface SequenceLogEntry {

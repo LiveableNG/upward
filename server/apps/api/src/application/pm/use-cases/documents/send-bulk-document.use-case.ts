@@ -10,6 +10,8 @@ export interface BulkSendDocumentDto {
   includeLetterhead?: boolean;
   deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
   fromEmail?: string;
+  cc?: string;
+  bcc?: string;
   templateId?: number;
   templateName?: string;
   recipients: Array<{
@@ -83,6 +85,8 @@ export class SendBulkDocumentUseCase {
             includeLetterhead: data.includeLetterhead,
             deliveryChannel: data.deliveryChannel,
             fromEmail: data.fromEmail,
+            cc: data.cc,
+            bcc: data.bcc,
             recipientName: recipient.name,
             recipientEmail: recipient.email,
           };

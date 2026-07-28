@@ -54,10 +54,7 @@ export class ProcessPendingEmailSequencesUseCase {
           decryptedFirstName = this.encryptionService.decrypt(log.user.firstName);
         }
 
-        const rawApiBase = this.configService.get<string>('API_BASE_URL') || this.configService.get<string>('API_URL') || ''
-        const apiBase = rawApiBase.replace(/\/$/, '')
-        const apiBaseWithoutPrefix = apiBase.replace(/\/api\/v1\/?$/, '')
-        const apiBaseWithPrefix = apiBase.endsWith('/api/v1') ? apiBase : `${apiBaseWithoutPrefix}/api/v1`
+        const apiUrl = (this.configService.get<string>('API_URL') || '').replace(/\/$/, '')
         const res = await this.unifiedCommService.processCommunication({
           recipientEmail: log.email,
           recipientName: decryptedFirstName,
@@ -68,7 +65,7 @@ export class ProcessPendingEmailSequencesUseCase {
             firstName: decryptedFirstName,
             stage: log.stage,
           },
-          trackingPixelUrl: log.uuid ? `${apiBaseWithPrefix}/email-tracking/open?t=${log.uuid}` : undefined,
+          trackingPixelUrl: log.uuid ? `${apiUrl}/email-tracking/open?t=${log.uuid}` : undefined,
           emailSequenceLogId: log.id,
         });
 
