@@ -25,6 +25,12 @@
                             700: '#8f5640',
                             900: '#2d0f05',
                         },
+                        forest: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            600: '#166534',
+                            700: '#14532d',
+                        },
                         cream: '#FDFCFB',
                     },
                     fontFamily: {
@@ -139,7 +145,7 @@
             </div>
             <div class="flex items-center gap-3 lg:gap-6">
                 <a href="/pm-login" class="hidden lg:inline text-sm font-bold text-slate-800 hover:text-terracotta-600 transition-colors">Sign In</a>
-                <a href="/pm-signup" class="hidden lg:inline-flex bg-terracotta-600 text-white px-7 py-3 rounded-full font-bold text-sm shadow-xl shadow-terracotta-600/20 hover:bg-terracotta-700 transition-all active:scale-95 no-underline">GET STARTED</a>
+                <a href="/pm-signup" class="hidden lg:inline-flex bg-forest-600 text-white px-7 py-3 rounded-full font-bold text-sm shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET STARTED</a>
                 <button type="button" id="mobile-menu-toggle" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-terracotta-50 transition-colors" aria-label="Open menu" aria-expanded="false">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
@@ -168,7 +174,7 @@
             <a href="/pm-login" class="hover:text-terracotta-600 transition-colors">Sign In</a>
         </nav>
         <div class="mt-auto pb-8 pt-8">
-            <a href="/pm-signup" class="block w-full text-center bg-terracotta-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-terracotta-500/20 hover:bg-terracotta-700 transition-all active:scale-95 no-underline">GET STARTED — FREE</a>
+            <a href="/pm-signup" class="block w-full text-center bg-forest-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET STARTED — FREE</a>
         </div>
     </div>
 
@@ -189,15 +195,14 @@
                     <p class="hero-animate-delay-2 text-xl text-slate-600 max-w-xl leading-relaxed">
                         Digital property management built for how Nigerian PMs actually work.
                     </p>
-                    <div class="hero-animate-delay-3 flex flex-col items-stretch sm:items-start gap-4 pt-2">
-                        <a href="/pm-signup" class="block sm:inline-block text-center bg-terracotta-600 text-white px-8 sm:px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-terracotta-600/30 hover:scale-[1.03] hover:bg-terracotta-700 transition-all active:scale-95 no-underline whitespace-nowrap">
+                    <div class="hero-animate-delay-3 flex lg:hidden flex-col items-stretch sm:items-start gap-4 pt-2">
+                        <a href="/pm-signup" class="block sm:inline-block text-center bg-forest-600 text-white px-8 sm:px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-forest-600/30 hover:scale-[1.03] hover:bg-forest-700 transition-all active:scale-95 no-underline whitespace-nowrap">
                             Start Managing Smartly
                         </a>
                         <a href="/pm-login" class="flex items-center justify-center sm:justify-start gap-2 text-slate-600 font-bold text-sm hover:text-terracotta-600 transition-colors no-underline">
                             Already have an account? <span class="text-terracotta-600 underline">Sign in →</span>
                         </a>
                     </div>
-                    
                 </div>
 
                 <!-- Right: Real dashboard screenshot -->
@@ -367,8 +372,9 @@
     </main>
 
     <!-- Universal Footer -->
-    <footer class="bg-[#1a0e08] py-16 px-6 sm:px-12">
-        <div class="max-w-[1440px] mx-auto space-y-8 text-center">
+    <footer class="bg-terracotta-900 py-16 px-6 sm:px-12 relative overflow-hidden">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-terracotta-600 rounded-full opacity-[0.08] blur-[100px] pointer-events-none"></div>
+        <div class="max-w-[1440px] mx-auto space-y-8 text-center relative z-10">
             <a href="/" class="inline-flex items-center gap-2 no-underline">
                 <div class="w-9 h-9 bg-terracotta-50 rounded-lg flex items-center justify-center border border-terracotta-100">
                     <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain"/>
@@ -376,18 +382,18 @@
                 <span class="text-xl font-black tracking-tight text-white">UPWARD</span>
             </a>
             <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm">
-                <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer" class="text-terracotta-400 hover:text-terracotta-300 transition-colors no-underline flex items-center gap-2"><i class="fa-brands fa-x-twitter"></i> Twitter</a>
-                <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer" class="text-terracotta-400 hover:text-terracotta-300 transition-colors no-underline flex items-center gap-2"><i class="fa-brands fa-linkedin-in"></i> LinkedIn</a>
+                <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer" class="text-terracotta-300 hover:text-white transition-colors no-underline flex items-center gap-2"><i class="fa-brands fa-x-twitter"></i> Twitter</a>
+                <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer" class="text-terracotta-300 hover:text-white transition-colors no-underline flex items-center gap-2"><i class="fa-brands fa-linkedin-in"></i> LinkedIn</a>
             </div>
             <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-                <a href="/" class="text-terracotta-200/60 hover:text-terracotta-300 transition-colors no-underline">For Renters</a>
-                <a href="/for-landlord" class="text-terracotta-200/60 hover:text-terracotta-300 transition-colors no-underline">For Landlords</a>
-                <a href="/blog" class="text-terracotta-200/60 hover:text-terracotta-300 transition-colors no-underline">Blog</a>
-                <a href="/legal/privacy" class="text-terracotta-200/60 hover:text-terracotta-300 transition-colors no-underline">Privacy Policy</a>
-                <a href="/legal/terms" class="text-terracotta-200/60 hover:text-terracotta-300 transition-colors no-underline">Terms of Use</a>
-                <a href="/legal/cookies" class="text-terracotta-200/60 hover:text-terracotta-300 transition-colors no-underline">Cookie Policy</a>
+                <a href="/" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">For Renters</a>
+                <a href="/for-landlord" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">For Landlords</a>
+                <a href="/blog" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Blog</a>
+                <a href="/legal/privacy" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Privacy Policy</a>
+                <a href="/legal/terms" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Terms of Use</a>
+                <a href="/legal/cookies" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Cookie Policy</a>
             </nav>
-            <div class="pt-6 border-t border-terracotta-900/40 text-xs text-terracotta-200/40">
+            <div class="pt-6 border-t border-terracotta-700/40 text-xs text-terracotta-100/50">
                 <p>© 2026 Upward by GoodTenants. All rights reserved. Registered in Nigeria.</p>
             </div>
         </div>
