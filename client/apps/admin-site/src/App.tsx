@@ -30,7 +30,6 @@ import InternalAccounts from './pages/InternalAccounts'
 import InvitationTracker from './pages/InvitationTracker'
 import WhatsappSequences from './pages/WhatsappSequences'
 import EmailSequences from './pages/EmailSequences'
-import { SequenceQueue } from './pages/SequenceQueue'
 import { BulkImportQueue } from './pages/BulkImportQueue'
 import { BulkImportDetail } from './pages/BulkImportDetail'
 
@@ -97,7 +96,6 @@ function AppRoutes() {
           <Route path="/blog" element={<BlogPosts token={auth.token} />} />
           <Route path="/whatsapp-sequences" element={<WhatsappSequences token={auth.token} />} />
           <Route path="/email-sequences" element={<EmailSequences token={auth.token} />} />
-          <Route path="/sequence-queue" element={<SequenceQueue token={auth.token} />} />
           <Route path="/bulk-imports" element={<BulkImportQueue token={auth.token} />} />
           <Route path="/bulk-imports/:uuid" element={<BulkImportDetail token={auth.token} />} />
 

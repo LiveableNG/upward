@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import {
   IEmailSequenceRepository,
   EMAIL_SEQUENCE_REPOSITORY,
@@ -13,6 +14,7 @@ export class ProcessPendingEmailSequencesUseCase {
   constructor(
     @Inject(EMAIL_SEQUENCE_REPOSITORY)
     private readonly sequenceRepository: IEmailSequenceRepository,
+    private readonly configService: ConfigService,
     private readonly encryptionService: EncryptionService,
     private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
@@ -32,6 +34,17 @@ export class ProcessPendingEmailSequencesUseCase {
 
     for (const log of approvedLogs) {
       try {
+        if (log.user?.isInternal) {
+          await this.sequenceRepository.updateStatus(log.id!, 'FAILED', 'User is marked as internal')
+          this.logger.warn(`Skipping email sequence ${log.stage} for user ${log.userId} — marked internal`)
+          continue
+        }
+        if (!log.email || log.email.toLowerCase().endsWith('@upward.com')) {
+          await this.sequenceRepository.updateStatus(log.id!, 'FAILED', 'Phone-only account — email sequence not applicable')
+          this.logger.warn(`Skipping email sequence ${log.stage} for user ${log.userId} — @upward.com email`)
+          continue
+        }
+
         if (!log.user?.firstName || !log.email) {
           throw new Error('Missing user firstName or email')
         }
@@ -41,6 +54,10 @@ export class ProcessPendingEmailSequencesUseCase {
           decryptedFirstName = this.encryptionService.decrypt(log.user.firstName);
         }
 
+        const rawApiBase = this.configService.get<string>('API_BASE_URL') || this.configService.get<string>('API_URL') || ''
+        const apiBase = rawApiBase.replace(/\/$/, '')
+        const apiBaseWithoutPrefix = apiBase.replace(/\/api\/v1\/?$/, '')
+        const apiBaseWithPrefix = apiBase.endsWith('/api/v1') ? apiBase : `${apiBaseWithoutPrefix}/api/v1`
         const res = await this.unifiedCommService.processCommunication({
           recipientEmail: log.email,
           recipientName: decryptedFirstName,
@@ -51,6 +68,8 @@ export class ProcessPendingEmailSequencesUseCase {
             firstName: decryptedFirstName,
             stage: log.stage,
           },
+          trackingPixelUrl: log.uuid ? `${apiBaseWithPrefix}/email-tracking/open?t=${log.uuid}` : undefined,
+          emailSequenceLogId: log.id,
         });
 
         const success = res;

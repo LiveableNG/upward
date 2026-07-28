@@ -20,10 +20,19 @@ export class InitializeEmailSequenceUseCase {
   ) {}
 
   async execute(command: InitializeEmailSequenceCommand): Promise<void> {
+    // Guard: phone-only users have a synthetic @upward.com email — never enroll them in email sequences
+    if (command.email.toLowerCase().endsWith('@upward.com')) {
+      this.logger.warn(
+        `Skipping email sequence for user ${command.userId} — phone-only account (${command.email})`,
+      )
+      return
+    }
+
     try {
       const now = new Date()
 
       const schedule = [
+
         { stage: 'DAY_2', daysOffset: 2, templateName: 'DAY_2_EMAIL' },
         { stage: 'DAY_5', daysOffset: 5, templateName: 'DAY_5_EMAIL' },
         { stage: 'DAY_9', daysOffset: 9, templateName: 'DAY_9_EMAIL' },

@@ -66,6 +66,9 @@ export class RetrySequenceUseCase {
         status = 'SENT';
         error = null;
         await this.sequenceRepository.updateStatus(log.id, 'SENT');
+        if (result.messageId) {
+          await this.sequenceRepository.saveMetaMessageId(log.id, result.messageId);
+        }
       } else {
         error = result.error || 'Unknown Meta API error during retry';
         await this.sequenceRepository.updateStatus(log.id, 'FAILED', error);

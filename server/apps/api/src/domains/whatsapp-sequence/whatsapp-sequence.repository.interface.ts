@@ -15,6 +15,12 @@ export interface IWhatsappSequenceLogRepository {
     errorReason?: string | null
   ): Promise<WhatsappSequenceLogEntity>;
 
+  saveMetaMessageId(id: number, metaMessageId: string): Promise<void>;
+
+  markAsDelivered(metaMessageId: string, at?: Date): Promise<void>;
+
+  markAsRead(metaMessageId: string, at?: Date): Promise<void>;
+
   findById(id: number): Promise<WhatsappSequenceLogEntity | null>;
   
   findAll(options: {
@@ -22,6 +28,7 @@ export interface IWhatsappSequenceLogRepository {
     take?: number;
     status?: string;
     stage?: string;
+    search?: string;
   }): Promise<{ data: WhatsappSequenceLogEntity[]; total: number }>;
 
   getStats(stage: string): Promise<{ total: number; sent: number; failed: number; pending: number }>;

@@ -16,11 +16,12 @@ export class GetEmailLogsUseCase {
     status?: string
     acquisition?: string
     channel?: string
+    opened?: string
     date?: string
     page?: number
     limit?: number
   }) {
-    const { email, type, status, acquisition, channel, date, page = 1, limit = 10 } = query
+    const { email, type, status, acquisition, channel, opened, date, page = 1, limit = 10 } = query
     const skip = (page - 1) * limit
     const where: Prisma.upward_communication_logWhereInput = {
       ...(email ? { 
@@ -42,6 +43,11 @@ export class GetEmailLogsUseCase {
         : {}),
       ...(status && status !== 'All' ? { status } : {}),
       ...(channel && channel !== 'All' ? { channel } : {}),
+      ...(opened && opened !== 'All'
+        ? opened === 'Opened'
+          ? { emailSequenceLog: { isOpened: true } }
+          : { emailSequenceLog: { isOpened: false } }
+        : {}),
       ...(acquisition && acquisition !== 'All'
         ? acquisition === 'waitlist_converted'
           ? { registeredUser: { isFromWaitlist: true } }
@@ -66,13 +72,21 @@ export class GetEmailLogsUseCase {
           registeredUser: {
             select: { firstName: true, lastName: true, email: true },
           },
+          emailSequenceLog: {
+            select: { isOpened: true, openedAt: true, openCount: true },
+          },
         },
       }),
       this.prisma.upward_communication_log.count({ where }),
     ])
 
     const decryptedData = data.map((log) => {
-      const decryptedLog = { ...log }
+      const decryptedLog = {
+        ...log,
+        isOpened: log.emailSequenceLog?.isOpened ?? false,
+        openedAt: log.emailSequenceLog?.openedAt ?? null,
+        openCount: log.emailSequenceLog?.openCount ?? 0,
+      }
       if (decryptedLog.registeredUser) {
         decryptedLog.registeredUser = {
           ...decryptedLog.registeredUser,

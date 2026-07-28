@@ -136,6 +136,7 @@ export class EmailService {
     attachments?: Array<{ filename: string; content: Buffer }>
     cc?: string
     bcc?: string
+    emailSequenceLogId?: number
   }) {
     const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, attachments, cc, bcc } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
@@ -244,6 +245,7 @@ export class EmailService {
         retries - 1 >= 0 ? retries - 1 : 0,
         sessionId,
         brandedHtml,
+        params.emailSequenceLogId,
       ),
     )
 

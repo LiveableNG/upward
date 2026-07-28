@@ -183,20 +183,28 @@ export class UserAuthService extends BaseAuthService {
           }
         }
 
-        if (user.phone) {
+        // Channel eligibility:
+        //   WhatsApp → user has a real phone number
+        //   Email    → user has a real (non-@upward.com) email AND no phone
+        const hasPhone_conv = !!user.phone;
+        const isPhoneOnlyEmail_conv = user.email.toLowerCase().endsWith('@upward.com');
+
+        if (hasPhone_conv) {
           this.initializeUserSequenceUseCase.execute({
             userId: user.id!,
             firstName: dto.firstName,
             phoneEncrypted: user.phone,
             phoneHash: user.phoneHash,
             pmName: pmName,
-          }).catch(e => console.error('Failed to init sequence', e));
+          }).catch(e => console.error('Failed to init WA sequence', e));
         }
-        
-        this.initializeEmailSequenceUseCase.execute({
-          userId: user.id!,
-          email: user.email,
-        })
+
+        if (!isPhoneOnlyEmail_conv && !hasPhone_conv) {
+          this.initializeEmailSequenceUseCase.execute({
+            userId: user.id!,
+            email: user.email,
+          }).catch(e => console.error('Failed to init email sequence', e));
+        }
 
         // Send welcome messages instantly
         this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
@@ -261,10 +269,13 @@ export class UserAuthService extends BaseAuthService {
       }
     }
 
-    const isUpwardEmail = dto.email.toLowerCase().endsWith('@upward.com');
+    // Channel eligibility (mutually exclusive):
+    //   WhatsApp → user has a real phone number (regardless of email type)
+    //   Email    → user has a real (non-@upward.com) email AND no phone number
+    const isPhoneOnlyEmail = dto.email.toLowerCase().endsWith('@upward.com');
     const hasPhone = !!user.phone;
-    const sendWhatsapp = isUpwardEmail && hasPhone;
-    const sendEmail = !sendWhatsapp;
+    const sendWhatsapp = hasPhone;
+    const sendEmail = !isPhoneOnlyEmail && !hasPhone;
 
     if (sendWhatsapp && user.phone) {
       this.initializeUserSequenceUseCase.execute({
@@ -273,14 +284,14 @@ export class UserAuthService extends BaseAuthService {
         phoneEncrypted: user.phone,
         phoneHash: user.phoneHash,
         pmName: pmName,
-      }).catch(e => console.error('Failed to init sequence', e));
+      }).catch(e => console.error('Failed to init WA sequence', e));
     }
-    
+
     if (sendEmail) {
       this.initializeEmailSequenceUseCase.execute({
         userId: user.id!,
         email: user.email,
-      });
+      }).catch(e => console.error('Failed to init email sequence', e));
     }
 
     // Send welcome messages instantly
@@ -290,10 +301,10 @@ export class UserAuthService extends BaseAuthService {
   }
 
   async sendWelcomeMessages(user: User, firstName: string, pmName?: string) {
-    const isUpwardEmail = user.email.toLowerCase().endsWith('@upward.com');
+    const isPhoneOnlyEmail = user.email.toLowerCase().endsWith('@upward.com');
     const hasPhone = !!user.phone;
-    const sendWhatsapp = isUpwardEmail && hasPhone;
-    const sendEmail = !sendWhatsapp;
+    const sendWhatsapp = hasPhone;
+    const sendEmail = !isPhoneOnlyEmail && !hasPhone;
 
     if (sendEmail) {
       // 1. Send Welcome Email

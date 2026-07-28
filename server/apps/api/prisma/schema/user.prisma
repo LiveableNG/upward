@@ -149,10 +149,15 @@ model upward_email_sequence_log {
   errorReason    String?   @db.Text
   templateName   String
   templateData   Json?
+  isOpened       Boolean   @default(false)
+  openedAt       DateTime?
+  openCount      Int       @default(0)
+  userAgent      String?   @db.Text
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  user           upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  communicationLogs  upward_communication_log[]
 
   @@index([userId])
   @@index([status, scheduledFor])

@@ -76,9 +76,11 @@ model upward_communication_log {
   updatedAt        DateTime         @updatedAt
   retries          Int              @default(0)
   body             String?
+  emailSequenceLogId Int?
   session          upward_session?  @relation(fields: [sessionId], references: [id])
   user             upward_waitlist? @relation(fields: [userId], references: [id], onDelete: Cascade)
   registeredUser   upward_user?     @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
+  emailSequenceLog upward_email_sequence_log? @relation(fields: [emailSequenceLogId], references: [id], onDelete: SetNull)
 
   @@map("upward_communication_log")
   @@index([userId])
@@ -87,6 +89,7 @@ model upward_communication_log {
   @@index([status])
   @@index([type])
   @@index([channel])
+  @@index([emailSequenceLogId])
 }
 
 model upward_interaction {

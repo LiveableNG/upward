@@ -69,6 +69,7 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
             lastError: event.lastError ?? null,
             retries: event.retries,
             sentAt: event.status === 'SENT' ? event.occurredOn : null,
+            emailSequenceLogId: event.emailSequenceLogId ?? null,
           },
         })
       } catch (error) {

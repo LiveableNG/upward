@@ -20,6 +20,11 @@ export class WhatsappSequenceLogEntity {
       email: string;
       phone: string | null;
       isInternal?: boolean;
-    }
+    },
+    public readonly metaMessageId?: string | null,
+    public readonly isDelivered?: boolean,
+    public readonly deliveredAt?: Date | null,
+    public readonly isRead?: boolean,
+    public readonly readAt?: Date | null,
   ) {}
 }

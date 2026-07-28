@@ -12,6 +12,10 @@ export interface EmailSequenceLog {
   errorReason?: string | null
   templateName: string
   templateData?: any | null
+  isOpened?: boolean
+  openedAt?: Date | null
+  openCount?: number
+  userAgent?: string | null
   createdAt?: Date
   updatedAt?: Date
   user?: {
@@ -30,4 +34,5 @@ export interface IEmailSequenceRepository {
   findAll(filters: { skip?: number; take?: number; status?: string; stage?: string; email?: string }): Promise<{ data: EmailSequenceLog[]; total: number }>
   findById(id: number): Promise<EmailSequenceLog | null>
   getStats(stage: string): Promise<{ total: number; sent: number; failed: number; pending: number }>
+  markAsOpened(uuid: string, userAgent?: string): Promise<void>
 }

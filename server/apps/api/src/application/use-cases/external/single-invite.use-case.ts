@@ -165,6 +165,7 @@ export class SingleInviteUseCase {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
+      
     }
 
     const existingLink = await this.companyUserRepository.findByCompanyAndUser(company.id!, user.id!)

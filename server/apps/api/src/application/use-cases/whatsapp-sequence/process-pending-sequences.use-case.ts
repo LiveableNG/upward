@@ -29,24 +29,31 @@ export class ProcessPendingSequencesUseCase {
     this.logger.log(`[WhatsappSequence] Found ${approvedLogs.length} approved sequences to process.`);
 
     for (const log of approvedLogs) {
-      // Look up user to ensure we have the latest phone
-      const user = await this.prisma.upward_user.findUnique({
+      // Real-time eligibility re-check at dispatch time
+      const liveUser = await this.prisma.upward_user.findUnique({
         where: { id: log.userId },
-        select: { phone: true, firstName: true },
+        select: { phone: true, firstName: true, isInternal: true },
       });
 
-      if (!user || !user.phone) {
-        await this.sequenceRepository.updateStatus(log.id, 'FAILED', 'No phone number associated with user.');
+      if (!liveUser || liveUser.isInternal) {
+        await this.sequenceRepository.updateStatus(log.id, 'FAILED', liveUser?.isInternal ? 'User is marked as internal' : 'User not found');
+        this.logger.warn(`[WhatsappSequence] Skipping ${log.stage} for user ${log.userId} — ${liveUser?.isInternal ? 'internal' : 'not found'}`);
         continue;
       }
 
-      const plainPhone = this.encryptionService.decrypt(user.phone);
+      if (!liveUser.phone) {
+        await this.sequenceRepository.updateStatus(log.id, 'FAILED', 'User no longer has a phone number.');
+        this.logger.warn(`[WhatsappSequence] Skipping ${log.stage} for user ${log.userId} — no phone`);
+        continue;
+      }
+
+      const plainPhone = this.encryptionService.decrypt(liveUser.phone);
       
       let decryptedFirstName = 'there';
-      if (user.firstName) {
-        decryptedFirstName = user.firstName.includes(':')
-          ? this.encryptionService.decrypt(user.firstName)
-          : user.firstName;
+      if (liveUser.firstName) {
+        decryptedFirstName = liveUser.firstName.includes(':')
+          ? this.encryptionService.decrypt(liveUser.firstName)
+          : liveUser.firstName;
       }
 
       try {
@@ -57,6 +64,7 @@ export class ProcessPendingSequencesUseCase {
           registeredUserId: log.userId,
           type: `ONBOARDING_SEQUENCE_${log.stage}` as any,
           forceChannel: 'WHATSAPP',
+          whatsappSequenceLogId: log.id,
           context: {
             firstName: decryptedFirstName,
             displayName: decryptedFirstName,
