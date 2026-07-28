@@ -328,37 +328,52 @@ export class EmailService {
   }
 
   async sendCustomerSupportNotification(role: 'USER' | 'PM', id?: string) {
-    const email = this.configService.get<string>('SUPPORT_EMAIL') || 'support@goodtenants.io'
+    const alertAdmins = await this.prisma.upward_admin.findMany({
+      where: { receivesSystemAlerts: true },
+      select: { email: true },
+    })
+
+    if (alertAdmins.length === 0) {
+      this.logger.warn(`No admins with receivesSystemAlerts=true — skipping ${role} signup alert`)
+      return
+    }
+
     const subject = `New ${role} Signup Alert`
     const html = `<div style="font-family: sans-serif; padding: 20px;">
       <h2>New ${role} Signup</h2>
       <p>A new ${role} has successfully registered on the platform.</p>
       <p><strong>System ID:</strong> ${id || 'Unknown'}</p>
     </div>`
-    
-    await this.sendEmailWithRetry({
-      email,
-      subject,
-      html,
-      text: `New ${role} Signup. ID: ${id || 'Unknown'}`,
-      type: 'CUSTOMER_SUPPORT',
-    })
+    const text = `New ${role} Signup. ID: ${id || 'Unknown'}`
+
+    await Promise.allSettled(
+      alertAdmins.map(({ email }) =>
+        this.sendEmailWithRetry({ email, subject, html, text, type: 'CUSTOMER_SUPPORT' })
+      )
+    )
   }
 
   async sendSystemAlertToAdmins(subject: string, message: string) {
-    const adminEmail = this.configService.get<string>('ADMIN_EMAIL') || 'admin@goodtenants.io'
+    const alertAdmins = await this.prisma.upward_admin.findMany({
+      where: { receivesSystemAlerts: true },
+      select: { email: true },
+    })
+
+    if (alertAdmins.length === 0) {
+      this.logger.warn(`No admins with receivesSystemAlerts=true — skipping system alert: ${subject}`)
+      return
+    }
+
     const html = `<div style="font-family: sans-serif; padding: 20px;">
       <h2>System Alert</h2>
       <p>${message}</p>
     </div>`
-    
-    await this.sendEmailWithRetry({
-      email: adminEmail,
-      subject,
-      html,
-      text: message,
-      type: 'SYSTEM_ALERT',
-    })
+
+    await Promise.allSettled(
+      alertAdmins.map(({ email }) =>
+        this.sendEmailWithRetry({ email, subject, html, text: message, type: 'SYSTEM_ALERT' })
+      )
+    )
   }
 
 }
