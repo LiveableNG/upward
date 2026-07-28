@@ -12,6 +12,9 @@ export interface SendCommunicationPayload {
   type: string;
   title?: string;
   context?: Record<string, any>;
+  trackingPixelUrl?: string;
+  emailSequenceLogId?: number;
+  whatsappSequenceLogId?: number;
   forceChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
   fromOverride?: string;
   attachments?: Array<{ filename: string; content: Buffer }>;

@@ -2,6 +2,10 @@ import { Suspense } from 'react'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { ExclusiveHomeDetailPageClient } from './ExclusiveHomeDetailPageClient'
 
+export function generateStaticParams() {
+  return [{ id: 'placeholder' }]
+}
+
 interface ExclusiveHomeDetailPageProps {
   params: Promise<{ id: string }>
 }

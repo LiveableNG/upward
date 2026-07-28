@@ -69,6 +69,7 @@ export interface RentPayment {
   unitId: number;
   tenantId?: number;
   amount: number;
+  rentAmountAtPayment: number;
   paymentDate: string;
   periodStart: string | null;
   periodEnd: string | null;

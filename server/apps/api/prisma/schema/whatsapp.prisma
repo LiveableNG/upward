@@ -60,6 +60,11 @@ model upward_whatsapp_sequence_log {
   errorReason    String?   @db.Text
   templateName   String    @db.VarChar(255)
   templateData   Json?
+  metaMessageId  String?   @unique @db.VarChar(255)
+  isDelivered    Boolean   @default(false)
+  deliveredAt    DateTime? @db.Timestamp(0)
+  isRead         Boolean   @default(false)
+  readAt         DateTime? @db.Timestamp(0)
   createdAt      DateTime  @default(now()) @db.Timestamp(0)
   updatedAt      DateTime  @default(now()) @db.Timestamp(0) // wait, usually @updatedAt but PM models might have it without @db.Timestamp(0). I will use default(now()) and @db.Timestamp(0) to match others.
 

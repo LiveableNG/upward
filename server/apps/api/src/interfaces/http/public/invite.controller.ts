@@ -5,6 +5,8 @@ import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
+import { InitializeUserSequenceUseCase } from '../../../application/use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { InitializeEmailSequenceUseCase } from '../../../application/use-cases/email-sequence/initialize-email-sequence.use-case'
 import * as bcrypt from 'bcrypt'
 
 interface FastifyReply {
@@ -46,6 +48,8 @@ export class InviteController {
     private readonly webhookService: WebhookService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
+    private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
+    private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
   ) { }
 
   @Get(':token')
@@ -233,5 +237,48 @@ export class InviteController {
       accessToken,
       user: userNoPass
     })
+
+    // Initialize sequences now that the user has a real password (joined)
+    try {
+      const updated = updatedUser as any
+      const isPhoneOnly = (updated.email || '').toLowerCase().endsWith('@upward.com')
+      const hasPhone = !!updated.phone
+
+      // Determine pmName similar to signup flow
+      let pmName: string | undefined = undefined
+      const companyUser = updated.companyUsers && updated.companyUsers.length > 0 ? updated.companyUsers[0] : null
+      if (companyUser && companyUser.company && companyUser.company.name) {
+        try { pmName = this.encryption.decrypt(companyUser.company.name) } catch (e) { pmName = undefined }
+      }
+      if (!pmName && updated.properties && updated.properties.length > 0) {
+        const prop = updated.properties[0]
+        if (prop.manager) {
+          const fn = prop.manager.firstName ? this.encryption.decrypt(prop.manager.firstName) : ''
+          const ln = prop.manager.lastName ? this.encryption.decrypt(prop.manager.lastName) : ''
+          pmName = `${fn} ${ln}`.trim() || undefined
+        } else if (prop.company && prop.company.name) {
+          try { pmName = this.encryption.decrypt(prop.company.name) } catch (e) { pmName = undefined }
+        }
+      }
+
+      if (hasPhone) {
+        this.initializeUserSequenceUseCase.execute({
+          userId: updated.id,
+          firstName: updated.firstName,
+          phoneEncrypted: updated.phone,
+          phoneHash: updated.phoneHash || null,
+          pmName,
+        }).catch(e => console.error('Failed to init WA sequence on invite accept', e))
+      }
+
+      if (!isPhoneOnly && !hasPhone) {
+        this.initializeEmailSequenceUseCase.execute({
+          userId: updated.id,
+          email: updated.email,
+        }).catch(e => console.error('Failed to init Email sequence on invite accept', e))
+      }
+    } catch (e) {
+      console.error('Error initializing sequences on invite accept', e)
+    }
   }
 }

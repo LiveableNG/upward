@@ -25,6 +25,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const [statusFilter, setStatusFilter] = useState('All')
   const [acquisitionFilter, setAcquisitionFilter] = useState('All')
   const [channelFilter, setChannelFilter] = useState('All')
+  const [openFilter, setOpenFilter] = useState('All')
   const [dateFilter, setDateFilter] = useState('')
   const [viewLog, setViewLog] = useState<EmailLog | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
@@ -106,7 +107,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     setLoading(true)
     try {
       const response = await apiService.get(
-        `/admin/email/logs?email=${debouncedSearch}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&channel=${channelFilter}&date=${dateFilter}&page=${pageNum}&limit=10`,
+        `/admin/email/logs?email=${debouncedSearch}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&channel=${channelFilter}&opened=${openFilter}&date=${dateFilter}&page=${pageNum}&limit=10`,
         token,
       )
       if (response) {
@@ -170,8 +171,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, typeFilter, statusFilter, acquisitionFilter, channelFilter, dateFilter])
-
+  }, [debouncedSearch, typeFilter, statusFilter, acquisitionFilter, channelFilter, openFilter, dateFilter])
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SENT':
@@ -384,6 +384,26 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                 <Mail size={15} style={{ color: 'var(--accent)' }} /> Email
               </>
             )}
+          </div>
+        ),
+      },
+      {
+        key: 'opened',
+        label: 'Opened',
+        render: (log) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px' }}>
+            {log.isOpened ? (
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                {log.openCount && log.openCount > 1 ? `${log.openCount} opens` : 'Opened'}
+              </span>
+            ) : (
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Not opened</span>
+            )}
+            {log.openedAt ? (
+              <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                {new Date(log.openedAt).toLocaleString()}
+              </span>
+            ) : null}
           </div>
         ),
       },
@@ -620,6 +640,24 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
               <option value="EMAIL">Email</option>
               <option value="SMS">SMS</option>
               <option value="WHATSAPP">WhatsApp</option>
+            </select>
+
+            <select
+              value={openFilter}
+              onChange={(e) => setOpenFilter(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '150px',
+                padding: '11px 12px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                fontSize: '14px',
+              }}
+            >
+              <option value="All">All Opens</option>
+              <option value="Opened">Opened</option>
+              <option value="NotOpened">Not opened</option>
             </select>
 
             <select

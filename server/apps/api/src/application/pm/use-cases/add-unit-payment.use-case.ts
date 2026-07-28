@@ -26,6 +26,7 @@ export class AddUnitPaymentUseCase {
 
     let effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null;
     let effectivePeriodEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : null;
+    let effectiveRentAmountAtPayment = data.rentAmount !== undefined ? data.rentAmount : unit.rentAmount;
 
     let shouldIncrementUnitDates = false;
     let newUnitStart: Date | null = null;
@@ -40,10 +41,14 @@ export class AddUnitPaymentUseCase {
         new Date(p.periodStart).getTime() === new Date(unit.rentStartDate as Date).getTime()
       );
 
+      // The open period's due amount is locked to whatever rent was in effect when it
+      // started (its own payments' snapshot) — a later rent review must not change what's
+      // owed on an already-open tenure, only what the NEXT period will charge.
+      const currentPeriodDueAmount = samePeriodPayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
       const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
 
       // If the current period is ALREADY fully paid off, this payment belongs to the UPCOMING cycle
-      if (totalPaidForPeriod >= unit.rentAmount) {
+      if (totalPaidForPeriod >= currentPeriodDueAmount) {
         newUnitStart = new Date(unit.rentDueDate);
         newUnitStart.setDate(newUnitStart.getDate() + 1);
 
@@ -80,13 +85,22 @@ export class AddUnitPaymentUseCase {
           p.periodStart &&
           new Date(p.periodStart).getTime() === newUnitStart!.getTime()
         );
+        // Anchor to the upcoming period's own rate if it already has payments,
+        // otherwise this payment establishes it at the unit's current live rent.
+        const upcomingPeriodDueAmount = upcomingPeriodPayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
         const upcomingPaidSoFar = upcomingPeriodPayments.reduce((sum, p) => sum + p.amount, 0);
 
-        if (upcomingPaidSoFar + data.amount >= unit.rentAmount) {
+        effectiveRentAmountAtPayment = upcomingPeriodDueAmount;
+
+        if (upcomingPaidSoFar + data.amount >= upcomingPeriodDueAmount) {
           shouldIncrementUnitDates = true;
         }
+      } else {
+        effectiveRentAmountAtPayment = currentPeriodDueAmount;
       }
     }
+
+    paymentData.rentAmountAtPayment = effectiveRentAmountAtPayment;
 
     if (data.paymentType === 'PAST') {
       paymentData.periodStart = data.periodStart ? new Date(data.periodStart) : null;
@@ -109,14 +123,15 @@ export class AddUnitPaymentUseCase {
     const allPaymentsAfter = await this.unitRepository.getRentPayments(unitUuid);
     const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
 
-    const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
+    const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number; amountDue: number }>();
     for (const p of tenantPayments) {
       const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
       if (!periodMap.has(key)) {
         periodMap.set(key, {
           periodStart: new Date(p.periodStart!),
           periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
-          total: 0
+          total: 0,
+          amountDue: p.rentAmountAtPayment
         });
       }
       periodMap.get(key)!.total += p.amount;
@@ -126,7 +141,7 @@ export class AddUnitPaymentUseCase {
       (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
     );
 
-    const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0));
+    const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= p.amountDue);
 
     if (fullyPaidPeriods.length > 0) {
       const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;

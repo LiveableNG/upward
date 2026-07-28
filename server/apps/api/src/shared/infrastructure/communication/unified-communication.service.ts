@@ -199,6 +199,10 @@ export class UnifiedCommunicationService {
         }
       }
 
+      if (payload.trackingPixelUrl && email) {
+        htmlContent += `\n<img src="${payload.trackingPixelUrl}" width="1" height="1" alt="" style="display:none!important;visibility:hidden!important;max-height:1px;max-width:1px;border:0;outline:none;text-decoration:none;" />`;
+      }
+
       const hasEmail = isDeliverableEmail(email);
       const hasPhone = isDeliverablePhone(phone);
 
@@ -249,10 +253,12 @@ export class UnifiedCommunicationService {
             attachments: payload.attachments,
             cc: payload.cc,
             bcc: payload.bcc,
+            emailSequenceLogId: payload.emailSequenceLogId,
           });
           channelSuccess = !!res.success;
           lastError = res.error || '';
         } else if (channel === 'WHATSAPP' && hasPhone && phone) {
+          let waMessageId: string | undefined;
           if (templateDef?.whatsappTemplateName) {
             const waParams = (templateDef.whatsappParams || []).map((pKey) => ({
               type: 'text',
@@ -284,6 +290,7 @@ export class UnifiedCommunicationService {
             });
             channelSuccess = waRes.success;
             lastError = waRes.error || '';
+            waMessageId = waRes.messageId;
           } else {
             const waRes = await this.whatsappService.sendMessage({
               to: phone,
@@ -291,6 +298,20 @@ export class UnifiedCommunicationService {
             });
             channelSuccess = waRes.success;
             lastError = waRes.error || '';
+            waMessageId = waRes.messageId;
+          }
+
+          if (channelSuccess && payload.whatsappSequenceLogId && waMessageId) {
+            try {
+              await this.prisma.upward_whatsapp_sequence_log.update({
+                where: { id: payload.whatsappSequenceLogId },
+                data: { metaMessageId: waMessageId },
+              });
+            } catch (err: any) {
+              this.logger.warn(
+                `Failed to persist WhatsApp metaMessageId for sequence log ${payload.whatsappSequenceLogId}: ${err?.message || err}`,
+              );
+            }
           }
         } else if (channel === 'SMS' && hasPhone && phone && phone.startsWith('+234')) {
           const smsRes = await this.smsService.sendSms({

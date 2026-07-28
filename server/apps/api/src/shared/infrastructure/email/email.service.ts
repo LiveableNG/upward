@@ -83,6 +83,8 @@ export class EmailService {
                 data: {
                   uuid,
                   to: toStr,
+                  cc: data.cc || null,
+                  bcc: data.bcc || null,
                   subject: data.subject || '',
                   html: htmlKey,
                   text: data.text || '',
@@ -136,6 +138,7 @@ export class EmailService {
     attachments?: Array<{ filename: string; content: Buffer }>
     cc?: string
     bcc?: string
+    emailSequenceLogId?: number
   }) {
     const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, attachments, cc, bcc } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
@@ -167,6 +170,15 @@ export class EmailService {
     let success = false
     let lastError = ''
     let mailgunId = ''
+
+    const emailTrackingToken = randomUUID()
+    const apiUrl = (this.configService.get<string>('API_URL') || '').replace(/\/$/, '')
+    const trackingPixelUrl = `${apiUrl}/email-tracking/open?t=${emailTrackingToken}`
+    const trackingPixelRegex = /\/(?:api\/v1\/)?email-tracking\/open\?t=[^"'>\s]+/
+
+    if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {
+      brandedHtml += `\n<img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display:none!important;visibility:hidden!important;max-height:1px;max-width:1px;border:0;outline:none;text-decoration:none;" />`
+    }
 
     while (retries < this.MAX_RETRIES && !success) {
       try {
@@ -244,6 +256,8 @@ export class EmailService {
         retries - 1 >= 0 ? retries - 1 : 0,
         sessionId,
         brandedHtml,
+        params.emailSequenceLogId,
+        emailTrackingToken,
       ),
     )
 

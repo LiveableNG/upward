@@ -13,6 +13,9 @@ export interface EmailLog {
   body: string | null
   sentAt: string | null
   createdAt: string
+  isOpened?: boolean
+  openedAt?: string | null
+  openCount?: number
   user: {
     firstName: string | null
     lastName: string | null

@@ -20,37 +20,7 @@ export class UpdateUnitUseCase {
 
     const updatedUnit = await this.unitRepository.update(uuid, data);
 
-    // If unit has a tenant assigned and rent dates or amount were updated, update active rent payment record
-    if (updatedUnit.tenantId && (data.rentStartDate || data.rentDueDate)) {
-      try {
-        const activePayments = await this.prisma.upward_pm_rent_payment.findMany({
-          where: {
-            unitId: updatedUnit.id,
-            tenantId: updatedUnit.tenantId,
-            status: 'SUCCESS',
-          },
-          orderBy: { paymentDate: 'desc' },
-          take: 1,
-        });
-
-        if (activePayments.length > 0 && activePayments[0]) {
-          const updateData: any = {};
-          if (data.rentStartDate) updateData.periodStart = updatedUnit.rentStartDate;
-          if (data.rentDueDate) updateData.periodEnd = updatedUnit.rentDueDate;
-
-          if (Object.keys(updateData).length > 0) {
-            await this.prisma.upward_pm_rent_payment.update({
-              where: { id: activePayments[0].id },
-              data: updateData,
-            });
-          }
-        }
-      } catch (error) {
-        console.error(`Failed to update rent payments for unit ${uuid}:`, error);
-      }
-    }
-
-    // If unit is synced, update the upward_user_property and upward_rent_cycle records too
+    // If unit is synced, update the upward_user_property record too
     if (updatedUnit.isSynced && updatedUnit.userPropertyUuid) {
       try {
         const userProps = await this.prisma.upward_user_property.findMany({
@@ -58,8 +28,18 @@ export class UpdateUnitUseCase {
         });
 
         for (const userProp of userProps) {
-          const newAmountPaid = userProp.amountPaid || 0;
-          const newAmountRemaining = Math.max(0, updatedUnit.rentAmount - newAmountPaid);
+          const amountPaid = userProp.amountPaid || 0;
+          const previousAmountRemaining = userProp.amountRemaining || 0;
+
+          // A rent review must not change what's owed on an already-open cycle —
+          // once at least one payment has landed against it, its due amount is
+          // locked until it's fully settled. Only an untouched cycle (nothing
+          // paid yet) picks up the new rent immediately.
+          const lockedAmountOwed = amountPaid > 0
+            ? amountPaid + previousAmountRemaining
+            : updatedUnit.rentAmount;
+          const newAmountRemaining = Math.max(0, lockedAmountOwed - amountPaid);
+
           await this.prisma.upward_user_property.update({
             where: { id: userProp.id },
             data: {
@@ -73,21 +53,6 @@ export class UpdateUnitUseCase {
               rentReminderDaysBefore: updatedUnit.rentReminderDaysBefore,
             },
           });
-
-          const latestCycle = await this.prisma.upward_rent_cycle.findFirst({
-            where: { userPropertyId: userProp.id },
-            orderBy: { createdAt: 'desc' }
-          });
-          if (latestCycle) {
-            await this.prisma.upward_rent_cycle.update({
-              where: { id: latestCycle.id },
-              data: {
-                dueDate: updatedUnit.rentDueDate || undefined,
-                amountOwed: updatedUnit.rentAmount,
-                currency: updatedUnit.currency,
-              }
-            });
-          }
         }
 
       } catch (error) {

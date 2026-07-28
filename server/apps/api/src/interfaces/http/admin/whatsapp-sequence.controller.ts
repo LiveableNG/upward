@@ -33,9 +33,10 @@ export class AdminWhatsappSequenceController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
     @Query('status') status?: string,
     @Query('stage') stage?: string,
+    @Query('search') search?: string,
   ) {
-    const defaultStage = stage || 'WELCOME';
-    return this.getSequenceLogsUseCase.execute({ page, limit, status, stage: defaultStage });
+    const defaultStage = stage || 'DAY_2';
+    return this.getSequenceLogsUseCase.execute({ page, limit, status, stage: defaultStage, search });
   }
 
   @Post(':id/retry')

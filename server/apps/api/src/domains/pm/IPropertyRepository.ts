@@ -100,6 +100,7 @@ export interface RentPaymentEntity {
   uuid: string;
   unitId: number;
   amount: number;
+  rentAmountAtPayment: number;
   paymentDate: Date;
   periodStart: Date | null;
   periodEnd: Date | null;

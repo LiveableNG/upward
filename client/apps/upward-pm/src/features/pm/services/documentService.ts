@@ -54,6 +54,8 @@ export const documentService = {
     content: string;
     documentType: string;
     fromEmail?: string;
+    cc?: string;
+    bcc?: string;
     includeLetterhead?: boolean;
     deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
     templateId?: number;

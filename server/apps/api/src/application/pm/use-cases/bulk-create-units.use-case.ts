@@ -217,6 +217,7 @@ export class BulkCreateUnitsUseCase {
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: actualRentAmountPaid,
+          rentAmountAtPayment: newUnit.rentAmount,
           paymentDate: new Date(),
           periodStart: newUnit.rentStartDate,
           status: 'SUCCESS',

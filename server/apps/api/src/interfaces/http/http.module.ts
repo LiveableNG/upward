@@ -54,6 +54,8 @@ import { LandlordManagementController } from './landlord/landlord-management.con
 import { CronController } from './public/cron.controller'
 import { TenantPmConnectionController } from './user/tenant-pm-connection.controller'
 import { PublicTrackingController } from './public/public-tracking.controller'
+import { EmailTrackingController } from './public/email-tracking.controller'
+import { WhatsappWebhookController } from './public/whatsapp-webhook.controller'
 import { AppActivityLogController } from './admin/app-activity-log.controller'
 import { FeedbackAdminController } from './admin/feedback-admin.controller'
 import { DevEmailAdminController } from './admin/dev-email-admin.controller'
@@ -127,6 +129,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     CronController,
     TenantPmConnectionController,
     PublicTrackingController,
+    EmailTrackingController,
+    WhatsappWebhookController,
     AppActivityLogController,
     FeedbackAdminController,
     DevEmailAdminController,

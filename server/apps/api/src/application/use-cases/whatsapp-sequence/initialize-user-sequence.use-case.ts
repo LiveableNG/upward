@@ -19,7 +19,16 @@ export class InitializeUserSequenceUseCase {
   ) { }
 
   async execute(command: InitializeUserSequenceCommand): Promise<void> {
+    // Guard: only enroll users who have a verified phone number
+    if (!command.phoneEncrypted || !command.phoneHash) {
+      this.logger.warn(
+        `[WhatsappSequence] Skipping sequence for usxer ${command.userId} — no phone number provided`,
+      );
+      return;
+    }
+
     this.logger.log(`[WhatsappSequence] Initializing sequence for user ${command.userId}`);
+
 
     const now = new Date();
 

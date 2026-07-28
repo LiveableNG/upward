@@ -76,9 +76,16 @@ model upward_communication_log {
   updatedAt        DateTime         @updatedAt
   retries          Int              @default(0)
   body             String?
+  emailSequenceLogId Int?
   session          upward_session?  @relation(fields: [sessionId], references: [id])
   user             upward_waitlist? @relation(fields: [userId], references: [id], onDelete: Cascade)
   registeredUser   upward_user?     @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
+  emailSequenceLog upward_email_sequence_log? @relation(fields: [emailSequenceLogId], references: [id], onDelete: SetNull)
+  emailTrackingToken String? @unique
+  isOpened Boolean @default(false)
+  openedAt DateTime?
+  openCount Int @default(0)
+  userAgent String? @db.Text
 
   @@map("upward_communication_log")
   @@index([userId])
@@ -87,6 +94,7 @@ model upward_communication_log {
   @@index([status])
   @@index([type])
   @@index([channel])
+  @@index([emailSequenceLogId])
 }
 
 model upward_interaction {
@@ -399,6 +407,8 @@ model upward_dev_email_preview {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
   to          String
+  cc          String?
+  bcc         String?
   subject     String
   html        String
   text        String?
