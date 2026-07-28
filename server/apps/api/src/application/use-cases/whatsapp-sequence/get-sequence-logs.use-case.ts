@@ -8,6 +8,7 @@ export interface GetSequenceLogsQuery {
   limit: number;
   status?: string;
   stage: string;
+  search?: string;
 }
 
 @Injectable()
@@ -27,6 +28,7 @@ export class GetSequenceLogsUseCase {
         take: query.limit,
         status: query.status,
         stage: query.stage,
+        search: query.search,
       }),
       this.sequenceRepository.getStats(query.stage),
     ]);

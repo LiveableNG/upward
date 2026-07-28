@@ -8,9 +8,8 @@ const config: CapacitorConfig = {
     androidScheme: 'http',
     hostname: 'localhost',
     allowNavigation: [
-      'upward-pay.vercel.app',
-      'upward-pay-vercel.app',
-      'upward-dev.vercel.app',
+      'upward-pay.goodtenants.io',
+      'upward-api.goodtenants.io/api/v1',
       'upward.goodtenants.io'
     ]
   },

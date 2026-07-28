@@ -24,6 +24,11 @@ export class WhatsappSequenceLogRepository implements IWhatsappSequenceLogReposi
       record.createdAt,
       record.updatedAt,
       record.user,
+      record.metaMessageId ?? null,
+      record.isDelivered ?? false,
+      record.deliveredAt ?? null,
+      record.isRead ?? false,
+      record.readAt ?? null,
     );
   }
 
@@ -73,6 +78,45 @@ export class WhatsappSequenceLogRepository implements IWhatsappSequenceLogReposi
     });
 
     return this.mapToEntity(record);
+  }
+
+  async saveMetaMessageId(id: number, metaMessageId: string): Promise<void> {
+    await this.prisma.upward_whatsapp_sequence_log.update({
+      where: { id },
+      data: { metaMessageId },
+    });
+  }
+
+  async markAsDelivered(metaMessageId: string, at?: Date): Promise<void> {
+    const deliveredAt = at ?? new Date();
+    await this.prisma.upward_whatsapp_sequence_log.updateMany({
+      where: {
+        metaMessageId,
+        isDelivered: false,
+      },
+      data: {
+        isDelivered: true,
+        deliveredAt,
+      },
+    });
+  }
+
+  async markAsRead(metaMessageId: string, at?: Date): Promise<void> {
+    const readAt = at ?? new Date();
+    const existing = await this.prisma.upward_whatsapp_sequence_log.findUnique({
+      where: { metaMessageId },
+    });
+    if (!existing || existing.isRead) return;
+
+    await this.prisma.upward_whatsapp_sequence_log.update({
+      where: { id: existing.id },
+      data: {
+        isRead: true,
+        readAt,
+        isDelivered: true,
+        deliveredAt: existing.deliveredAt ?? readAt,
+      },
+    });
   }
 
   async findById(id: number): Promise<WhatsappSequenceLogEntity | null> {

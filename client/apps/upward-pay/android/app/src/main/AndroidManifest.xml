@@ -32,9 +32,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="upward-pay.vercel.app" />
-                <data android:scheme="https" android:host="upward-pay-vercel.app" />
-                <data android:scheme="https" android:host="upward-dev.vercel.app" />
+                <data android:scheme="https" android:host="upward-pay.goodtenants.io" />
+                <data android:scheme="https" android:host="upward-api.goodtenants.io/api/v1" />
                 <data android:scheme="https" android:host="upward.goodtenants.io" />
             </intent-filter>
         </activity>

@@ -23,25 +23,29 @@ interface SequenceLog {
   sentAt: string | null
   errorReason: string | null
   templateName: string
+  isOpened?: boolean
+  openedAt?: string | null
+  openCount?: number
   user?: SequenceUser
 }
 
-const STAGES = ['WELCOME', 'DAY_2', 'DAY_5', 'DAY_9', 'DAY_14']
+const STAGES = ['DAY_2', 'DAY_5', 'DAY_9', 'DAY_14']
 
 export default function EmailSequences({ token }: EmailSequencesProps) {
   const [logs, setLogs] = useState<SequenceLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  const [activeStage, setActiveStage] = useState('WELCOME')
+  const [activeStage, setActiveStage] = useState('DAY_2')
   const [statusFilter, setStatusFilter] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   
   const [previewName, setPreviewName] = useState('John')
   const [previewHtml, setPreviewHtml] = useState('')
   const [previewLoading, setPreviewLoading] = useState(false)
-  const [showPreview, setShowPreview] = useState(true)
+  const [showPreview, setShowPreview] = useState(false)
 
   const [stats, setStats] = useState({ total: 0, sent: 0, failed: 0, pending: 0 })
 
@@ -54,6 +58,7 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
         page: page.toString(),
         stage: activeStage,
         ...(statusFilter && { status: statusFilter }),
+        ...(searchQuery && { email: searchQuery }),
       })
       const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/email-sequences?${query}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -89,12 +94,12 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
 
   useEffect(() => {
     setPage(1)
-  }, [activeStage, statusFilter])
+  }, [activeStage, statusFilter, searchQuery])
 
   useEffect(() => {
     fetchLogs()
     fetchPreview()
-  }, [activeStage, statusFilter, page])
+  }, [activeStage, statusFilter, searchQuery, page])
 
   useEffect(() => {
     if (!showPreview) return;
@@ -195,8 +200,8 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
         {/* Data Area */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Top Controls: Tabs & Toggle Preview */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', overflowX: 'auto', paddingBottom: '4px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {STAGES.map(stage => (
                 <button
                   key={stage}
@@ -247,39 +252,51 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
 
           {/* Table */}
           <div className="table-wrapper">
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-hover)' }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {['', 'PENDING', 'SENT', 'FAILED'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      borderColor: statusFilter === status ? 'var(--text-secondary)' : 'transparent',
-                      background: statusFilter === status ? 'var(--white)' : 'transparent',
-                      color: statusFilter === status ? 'var(--text)' : 'var(--text-muted)',
-                      transition: 'var(--transition)'
-                    }}
-                  >
-                    {status === '' ? 'All' : status}
-                  </button>
-                ))}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--surface-hover)' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {['', 'PENDING', 'APPROVED', 'ON_HOLD', 'SENT', 'FAILED'].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        border: '1px solid',
+                        borderColor: statusFilter === status ? 'var(--text-secondary)' : 'transparent',
+                        background: statusFilter === status ? 'var(--white)' : 'transparent',
+                        color: statusFilter === status ? 'var(--text)' : 'var(--text-muted)',
+                        transition: 'var(--transition)'
+                      }}
+                    >
+                      {status === '' ? 'All' : status.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search recipient or email"
+                    style={{ minWidth: '220px', width: '320px' }}
+                  />
+                  {failed > 0 && statusFilter === 'FAILED' && (
+                    <button
+                      onClick={handleBatchRetry}
+                      className="btn"
+                      style={{ background: 'var(--danger-faint)', color: 'var(--danger)' }}
+                    >
+                      <Play size={14} /> Batch Retry ({failed})
+                    </button>
+                  )}
+                </div>
               </div>
-              
-              {failed > 0 && statusFilter === 'FAILED' && (
-                <button
-                  onClick={handleBatchRetry}
-                  className="btn"
-                  style={{ background: 'var(--danger-faint)', color: 'var(--danger)' }}
-                >
-                  <Play size={14} /> Batch Retry ({failed})
-                </button>
-              )}
             </div>
 
             {error && <div style={{ padding: '16px', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}><AlertCircle size={16} /> {error}</div>}
@@ -290,6 +307,7 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
                   <tr style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
                     <th className="section-label" style={{ padding: '16px 20px' }}>Recipient</th>
                     <th className="section-label" style={{ padding: '16px 20px' }}>Status</th>
+                    <th className="section-label" style={{ padding: '16px 20px' }}>Opened</th>
                     <th className="section-label" style={{ padding: '16px 20px' }}>Scheduled</th>
                     <th className="section-label" style={{ padding: '16px 20px' }}>Details</th>
                     <th className="section-label" style={{ padding: '16px 20px', textAlign: 'right' }}>Action</th>
@@ -297,9 +315,9 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} style={{ padding: '32px', textAlign: 'center' }}><div className="loader" style={{margin: '0 auto'}}></div></td></tr>
+                    <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center' }}><div className="loader" style={{margin: '0 auto'}}></div></td></tr>
                   ) : logs.length === 0 ? (
-                    <tr><td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>No sequences found for this view.</td></tr>
+                    <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>No sequences found for this view.</td></tr>
                   ) : (
                     logs.map(log => {
                       const name = log.user ? `${log.user.firstName || ''} ${log.user.lastName || ''}`.trim() : 'Unknown User'
@@ -315,6 +333,21 @@ export default function EmailSequences({ token }: EmailSequencesProps) {
                           </td>
                           <td style={{ padding: '16px 20px' }}>
                             {getStatusBadge(log.status)}
+                          </td>
+                          <td style={{ padding: '16px 20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                            {log.isOpened ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--success)' }}>
+                                <CheckCircle size={14} />
+                                {log.openCount && log.openCount > 1 ? `${log.openCount} opens` : 'Opened'}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>Not opened</span>
+                            )}
+                            {log.openedAt ? (
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                {new Date(log.openedAt).toLocaleString()}
+                              </div>
+                            ) : null}
                           </td>
                           <td style={{ padding: '16px 20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                             {new Date(log.scheduledFor).toLocaleString()}

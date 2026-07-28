@@ -2,6 +2,10 @@ import { Suspense } from 'react'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { ApplicationKycPageClient } from './ApplicationKycPageClient'
 
+export function generateStaticParams() {
+  return [{ id: 'placeholder' }]
+}
+
 interface ApplicationKycPageProps {
   params: Promise<{ id: string }>
 }

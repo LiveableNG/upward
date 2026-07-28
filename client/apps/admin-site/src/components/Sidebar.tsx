@@ -16,7 +16,6 @@ import {
   MessageSquare,
   SlidersHorizontal,
   Activity,
-  Send,
   MapPin,
 } from 'lucide-react'
 
@@ -82,7 +81,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       { name: 'Emailing', path: '/emails', icon: Mail },
       { name: 'WhatsApp Sequences', path: '/whatsapp-sequences', icon: Megaphone },
       { name: 'Email Sequences', path: '/email-sequences', icon: Mail },
-      { name: 'Sequence Queue', path: '/sequence-queue', icon: Send },
       { name: 'Announcements', path: '/announcements', icon: Megaphone },
       { name: 'Blog', path: '/blog', icon: FileText },
       { name: 'Communication Logs', path: '/email-logs', icon: History },

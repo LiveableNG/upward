@@ -81,6 +81,8 @@ export function BulkDocumentEditorView({
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
+  const [cc, setCc] = useState('')
+  const [bcc, setBcc] = useState('')
 
   const [currentTemplate, setCurrentTemplate] = useState<any>(initialTemplate)
   const isSystemTemplate = currentTemplate?.type === 'SYSTEM' || currentTemplate?.isSystem
@@ -351,6 +353,8 @@ export function BulkDocumentEditorView({
     try {
       await sendBulkDocument.mutateAsync({
         fromEmail: isSystemTemplate ? fromEmail : undefined,
+        cc: cc.trim() || undefined,
+        bcc: bcc.trim() || undefined,
         subject,
         content,
         documentType: deliveryMode === 'whatsapp' ? 'PDF' : (deliveryMode === 'email' ? (emailFormat === 'pdf' ? 'PDF' : 'EMAIL') : 'SMS'),
@@ -617,6 +621,30 @@ export function BulkDocumentEditorView({
                     onChange={(e) => setFromEmail(e.target.value)}
                     disabled={!isSystemTemplate}
                     style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>CC</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="comma-separated emails"
+                    value={cc}
+                    onChange={(e) => setCc(e.target.value)}
+                    style={{ borderRadius: 12 }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>BCC</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="comma-separated emails"
+                    value={bcc}
+                    onChange={(e) => setBcc(e.target.value)}
+                    style={{ borderRadius: 12 }}
                   />
                 </div>
 

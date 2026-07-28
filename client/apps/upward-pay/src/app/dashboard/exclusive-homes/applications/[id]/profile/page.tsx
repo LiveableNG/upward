@@ -2,6 +2,10 @@ import { Suspense } from 'react'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { ApplicationProfilePageClient } from './ApplicationProfilePageClient'
 
+export function generateStaticParams() {
+  return [{ id: 'placeholder' }]
+}
+
 interface ApplicationProfilePageProps {
   params: Promise<{ id: string }>
 }
