@@ -74,6 +74,7 @@ export class BulkAddRentHistoryUseCase {
 
         const payment = await this.unitRepository.addRentPayment(dto.unitUuid, {
           amount: row.amount,
+          rentAmountAtPayment: unit.rentAmount,
           paymentDate: new Date(row.paymentDate),
           periodStart: new Date(row.periodStart),
           periodEnd,
@@ -186,14 +187,15 @@ export class BulkAddRentHistoryUseCase {
         const allPaymentsAfter = await this.unitRepository.getRentPayments(dto.unitUuid);
         const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
 
-        const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
+        const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number; amountDue: number }>();
         for (const p of tenantPayments) {
           const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
           if (!periodMap.has(key)) {
             periodMap.set(key, {
               periodStart: new Date(p.periodStart!),
               periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
-              total: 0
+              total: 0,
+              amountDue: p.rentAmountAtPayment
             });
           }
           periodMap.get(key)!.total += p.amount;
@@ -203,7 +205,7 @@ export class BulkAddRentHistoryUseCase {
           (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
         );
 
-        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0));
+        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= p.amountDue);
 
         if (fullyPaidPeriods.length > 0) {
           const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
