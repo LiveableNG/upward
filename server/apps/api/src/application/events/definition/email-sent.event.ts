@@ -15,6 +15,7 @@ export class EmailSentEvent extends DomainEvent {
     public readonly sessionId?: string,
     public readonly body?: string,
     public readonly emailSequenceLogId?: number,
+    public readonly emailTrackingToken?: string,
   ) {
     super()
   }

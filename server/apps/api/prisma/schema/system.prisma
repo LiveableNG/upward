@@ -81,6 +81,11 @@ model upward_communication_log {
   user             upward_waitlist? @relation(fields: [userId], references: [id], onDelete: Cascade)
   registeredUser   upward_user?     @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
   emailSequenceLog upward_email_sequence_log? @relation(fields: [emailSequenceLogId], references: [id], onDelete: SetNull)
+  emailTrackingToken String? @unique
+  isOpened Boolean @default(false)
+  openedAt DateTime?
+  openCount Int @default(0)
+  userAgent String? @db.Text
 
   @@map("upward_communication_log")
   @@index([userId])

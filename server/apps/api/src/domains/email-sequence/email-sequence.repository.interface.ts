@@ -34,5 +34,5 @@ export interface IEmailSequenceRepository {
   findAll(filters: { skip?: number; take?: number; status?: string; stage?: string; email?: string }): Promise<{ data: EmailSequenceLog[]; total: number }>
   findById(id: number): Promise<EmailSequenceLog | null>
   getStats(stage: string): Promise<{ total: number; sent: number; failed: number; pending: number }>
-  markAsOpened(uuid: string, userAgent?: string): Promise<void>
+  markAsOpened(uuid: string, userAgent?: string): Promise<number>
 }

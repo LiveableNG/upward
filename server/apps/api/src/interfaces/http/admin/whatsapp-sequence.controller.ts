@@ -35,7 +35,7 @@ export class AdminWhatsappSequenceController {
     @Query('stage') stage?: string,
     @Query('search') search?: string,
   ) {
-    const defaultStage = stage || 'WELCOME';
+    const defaultStage = stage || 'DAY_2';
     return this.getSequenceLogsUseCase.execute({ page, limit, status, stage: defaultStage, search });
   }
 

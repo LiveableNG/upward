@@ -53,8 +53,8 @@ export class PrismaEmailSequenceRepository implements IEmailSequenceRepository {
     })
   }
 
-  async markAsOpened(uuid: string, userAgent?: string): Promise<void> {
-    await this.prisma.upward_email_sequence_log.updateMany({
+  async markAsOpened(uuid: string, userAgent?: string): Promise<number> {
+    const result = await this.prisma.upward_email_sequence_log.updateMany({
       where: { uuid },
       data: {
         isOpened: true,
@@ -63,6 +63,7 @@ export class PrismaEmailSequenceRepository implements IEmailSequenceRepository {
         userAgent: userAgent ?? null,
       },
     })
+    return result.count
   }
 
   async findAll(filters: { skip?: number; take?: number; status?: string; stage?: string; email?: string }): Promise<{ data: EmailSequenceLog[]; total: number }> {

@@ -169,6 +169,18 @@ export class EmailService {
     let lastError = ''
     let mailgunId = ''
 
+    const emailTrackingToken = randomUUID()
+    const rawApiBase = this.configService.get<string>('API_BASE_URL') || this.configService.get<string>('API_URL') || ''
+    const apiBase = rawApiBase.replace(/\/$/, '')
+    const apiBaseWithoutPrefix = apiBase.replace(/\/api\/v1\/?$/, '')
+    const apiBaseWithPrefix = apiBase.endsWith('/api/v1') ? apiBase : `${apiBaseWithoutPrefix}/api/v1`
+    const trackingPixelUrl = `${apiBaseWithPrefix}/email-tracking/open?t=${emailTrackingToken}`
+    const trackingPixelRegex = /\/(?:api\/v1\/)?email-tracking\/open\?t=[^"'>\s]+/
+
+    if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {
+      brandedHtml += `\n<img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display:none!important;visibility:hidden!important;max-height:1px;max-width:1px;border:0;outline:none;text-decoration:none;" />`
+    }
+
     while (retries < this.MAX_RETRIES && !success) {
       try {
         const mailData: any = {
@@ -246,6 +258,7 @@ export class EmailService {
         sessionId,
         brandedHtml,
         params.emailSequenceLogId,
+        emailTrackingToken,
       ),
     )
 

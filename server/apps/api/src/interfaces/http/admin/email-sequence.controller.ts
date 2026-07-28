@@ -35,7 +35,7 @@ export class AdminEmailSequenceController {
     @Query('stage') stage?: string,
     @Query('email') email?: string,
   ) {
-    const defaultStage = stage || 'WELCOME';
+    const defaultStage = stage || 'DAY_2';
     return this.getLogsUseCase.execute({ page, limit, status, stage: defaultStage, email });
   }
 

@@ -30,14 +30,14 @@ interface SequenceLog {
   user?: SequenceUser
 }
 
-const STAGES = ['WELCOME', 'DAY_2', 'DAY_5', 'DAY_9', 'DAY_14']
+const STAGES = ['DAY_2', 'DAY_5', 'DAY_9', 'DAY_14']
 
 export default function WhatsappSequences({ token }: WhatsappSequencesProps) {
   const [logs, setLogs] = useState<SequenceLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  const [activeStage, setActiveStage] = useState('WELCOME')
+  const [activeStage, setActiveStage] = useState('DAY_2')
   const [statusFilter, setStatusFilter] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
