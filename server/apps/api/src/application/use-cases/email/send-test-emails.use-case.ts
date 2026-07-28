@@ -32,7 +32,7 @@ export class SendTestEmailsUseCase {
           customizedContent.toLowerCase().includes('<!doctype')
         const finalHtml = isFullHtml
           ? customizedContent
-          : wrapInBaseTemplate(customizedContent, payload.subject)
+          : wrapInBaseTemplate(customizedContent, payload.subject, email)
 
         await this.emailService.sendGenericEmail(email, payload.subject, finalHtml)
         results.push({ email, status: 'SENT' })
