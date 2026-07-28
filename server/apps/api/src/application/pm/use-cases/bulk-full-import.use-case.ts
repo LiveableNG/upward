@@ -225,6 +225,7 @@ export class BulkFullImportUseCase {
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: row.unitRentAmountPaid,
+          rentAmountAtPayment: newUnit.rentAmount,
           paymentDate: new Date(),
           periodStart: newUnit.rentStartDate,
           status: 'SUCCESS',

@@ -155,7 +155,7 @@ function UnitDetailContent() {
           sp.tenantId === p.tenantId
         );
         const totalPaidForPeriod = samePeriodPayments.reduce((sum, sp) => sum + sp.amount, 0);
-        const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+        const isFullyPaid = totalPaidForPeriod >= (p.rentAmountAtPayment || 0);
         const isLatestForPeriod = p.uuid === samePeriodPayments[0]?.uuid;
         const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
 
@@ -165,19 +165,22 @@ function UnitDetailContent() {
 
       return true;
     });
-  }, [payments, rentFilters, unit?.rentAmount]);
+  }, [payments, rentFilters]);
 
   const maxCurrentAmount = React.useMemo(() => {
     if (!unit?.rentAmount) return 0;
     if (!unit?.rentStartDate) return unit.rentAmount;
 
     const rentStartStr = new Date(unit.rentStartDate).toISOString().split('T')[0];
-    const currentCyclePaid = payments
-      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === rentStartStr)
-      .reduce((sum, p) => sum + p.amount, 0);
+    const currentCyclePayments = payments.filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === rentStartStr);
+    // A rent review must not change what's owed on an already-open tenure — use the
+    // rate locked in by that period's own payments, falling back to live rent only
+    // if the period has no payments yet.
+    const currentCycleDueAmount = currentCyclePayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
+    const currentCyclePaid = currentCyclePayments.reduce((sum, p) => sum + p.amount, 0);
 
-    if (currentCyclePaid < unit.rentAmount) {
-      return Math.max(0, unit.rentAmount - currentCyclePaid);
+    if (currentCyclePaid < currentCycleDueAmount) {
+      return Math.max(0, currentCycleDueAmount - currentCyclePaid);
     }
 
     const currentEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date(unit.rentStartDate);
@@ -185,11 +188,11 @@ function UnitDetailContent() {
     nextCycleStart.setDate(nextCycleStart.getDate() + 1);
     const nextCycleStartStr = nextCycleStart.toISOString().split('T')[0];
 
-    const nextCyclePaid = payments
-      .filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === nextCycleStartStr)
-      .reduce((sum, p) => sum + p.amount, 0);
+    const nextCyclePayments = payments.filter(p => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === nextCycleStartStr);
+    const nextCycleDueAmount = nextCyclePayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
+    const nextCyclePaid = nextCyclePayments.reduce((sum, p) => sum + p.amount, 0);
 
-    return Math.max(0, unit.rentAmount - nextCyclePaid);
+    return Math.max(0, nextCycleDueAmount - nextCyclePaid);
   }, [payments, unit?.rentStartDate, unit?.rentDueDate, unit?.rentAmount]);
 
   // Auto-calculate Rent Due Date (End Date)
@@ -405,9 +408,9 @@ function UnitDetailContent() {
           p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
         );
         const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-        const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+        const isFullyPaid = totalPaidForPeriod >= (row.rentAmountAtPayment || 0);
         const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
-        const balance = (unit?.rentAmount || 0) - totalPaidForPeriod;
+        const balance = (row.rentAmountAtPayment || 0) - totalPaidForPeriod;
         
         return (
           <div>
@@ -430,7 +433,7 @@ function UnitDetailContent() {
           p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
         );
         const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-        const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0);
+        const isFullyPaid = totalPaidForPeriod >= (row.rentAmountAtPayment || 0);
         const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
         const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
 

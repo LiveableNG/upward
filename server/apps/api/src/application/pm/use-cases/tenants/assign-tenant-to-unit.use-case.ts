@@ -53,16 +53,18 @@ export class AssignTenantToUnitUseCase {
       if (!tenant || (tenant.pmId !== pmId && tenant.pmId !== property.pmId)) {
         throw new NotFoundException('Tenant not found');
       }
-      await this.unitRepo.update(unitUuid, { 
+      const effectiveRentAmount = rentAmount !== undefined ? rentAmount : unit.rentAmount;
+
+      await this.unitRepo.update(unitUuid, {
         tenantId: tenant.id,
         status: 'OCCUPIED',
-        rentAmount: rentAmount !== undefined ? rentAmount : unit.rentAmount,
+        rentAmount: effectiveRentAmount,
         rentType: rentType || unit.rentType,
         rentStartDate: rentStartDate || unit.rentStartDate,
         rentDueDate: rentDueDate || unit.rentDueDate,
       });
 
-      const actualRentAmountPaid = isFullyPaid ? (rentAmount !== undefined ? rentAmount : unit.rentAmount) : rentAmountPaid;
+      const actualRentAmountPaid = isFullyPaid ? effectiveRentAmount : rentAmountPaid;
 
       if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0) {
         const activeRentStartDate = rentStartDate || unit.rentStartDate;
@@ -81,6 +83,7 @@ export class AssignTenantToUnitUseCase {
 
         await this.unitRepo.addRentPayment(unitUuid, {
           amount: actualRentAmountPaid,
+          rentAmountAtPayment: effectiveRentAmount,
           paymentDate: new Date(),
           periodStart: activeRentStartDate,
           status: 'SUCCESS',
