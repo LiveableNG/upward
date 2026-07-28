@@ -103,7 +103,7 @@ export const wrapInBaseTemplate = (content: string, subject: string, email: stri
                     <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
                     <a href="mailto:hello@goodtenants.africa" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Contact Support</a>
                     <span style="color: #D1D5DB; padding: 0 12px;">&nbsp;&bull;&nbsp;</span>
-                    <a href="${frontendUrl}/unsubscribe?email={{email}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
+                    <a href="${frontendUrl}/unsubscribe?token={{emailToken}}" style="color: #6B7280; font-size: 12px; text-decoration: underline; font-weight: 500;">Unsubscribe</a>
                   </td>
                 </tr>
               </table>
@@ -119,7 +119,7 @@ export const wrapInBaseTemplate = (content: string, subject: string, email: stri
 </body>
 </html>`
 
-  return result.replace(/{{email}}/g, email)
+  return result.replace(/{{email}}/g, email).replace(/{{emailToken}}/g, Buffer.from(email).toString('base64url'))
 }
 
 export const processCampaignHtml = (html: string, user: WaitlistUser) => {
