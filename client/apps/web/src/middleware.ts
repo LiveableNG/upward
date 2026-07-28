@@ -450,12 +450,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/landing.html', request.url))
   }
 
+  // Static marketing pages for PM and Landlord audiences
+  if (pathname === '/for-pm') {
+    return NextResponse.rewrite(new URL('/for-pm.html', request.url))
+  }
+  if (pathname === '/for-landlord') {
+    return NextResponse.rewrite(new URL('/for-landlord.html', request.url))
+  }
+
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
     '/',
+    '/for-pm',
+    '/for-landlord',
     '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',
