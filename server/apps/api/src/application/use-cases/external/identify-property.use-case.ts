@@ -18,6 +18,26 @@ export class IdentifyExternalPropertyUseCase {
       throw new BadRequestException('Property is already associated with a different platform')
     }
 
+    if (property.platformId === platformId && property.externalUnitId === payload.externalUnitId) {
+      return {
+        uuid: property.uuid,
+        platformId: property.platformId,
+        externalUnitId: property.externalUnitId,
+        externalPropertyId: property.externalPropertyId,
+      }
+    }
+
+    if (payload.externalUnitId !== undefined) {
+      const existingMapping = await this.propertyRepository.findByPlatformUnit(platformId, payload.externalUnitId)
+      if (existingMapping && existingMapping.id !== property.id) {
+        await this.propertyRepository.update(existingMapping.id!, {
+          platformId: null as any,
+          externalUnitId: null as any,
+          externalPropertyId: null as any,
+        })
+      }
+    }
+
     const updated = await this.propertyRepository.update(property.id!, {
       platformId,
       externalUnitId: payload.externalUnitId,

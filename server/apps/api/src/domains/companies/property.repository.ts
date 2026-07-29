@@ -49,6 +49,7 @@ export interface PropertyRepository {
   findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Property[]>
   save(property: Property, tx?: Prisma.TransactionClient): Promise<Property>
   update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property>
+  findByPlatformUnit(platformId: number, externalUnitId: number, tx?: Prisma.TransactionClient): Promise<Property | null>
 }
 
 export interface LocationRepository {
