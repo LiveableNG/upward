@@ -27,8 +27,8 @@ export interface Property {
   pmUnit?: { unitName: string; property?: { name: string } }
   subaccountId?: number
   platformId?: number
-  externalUnitId?: number
-  externalPropertyId?: number
+  externalUnitId?: string
+  externalPropertyId?: string
 }
 
 export interface Location {
@@ -49,7 +49,7 @@ export interface PropertyRepository {
   findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Property[]>
   save(property: Property, tx?: Prisma.TransactionClient): Promise<Property>
   update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property>
-  findByPlatformUnit(platformId: number, externalUnitId: number, tx?: Prisma.TransactionClient): Promise<Property | null>
+  findByPlatformUnit(platformId: number, externalUnitId: string, tx?: Prisma.TransactionClient): Promise<Property | null>
 }
 
 export interface LocationRepository {

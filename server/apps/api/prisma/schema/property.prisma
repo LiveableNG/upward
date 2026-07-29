@@ -24,8 +24,8 @@ model upward_user_property {
   verificationStatus     String?                      @default("PENDING") // PENDING, VERIFIED, REJECTED
   rejectionReason        String?                      @db.Text
   platformId             Int?
-  externalUnitId         Int?
-  externalPropertyId     Int?
+  externalUnitId         String?
+  externalPropertyId     String?
   paymentRequests        upward_payment_request[]
   paymentProofs          upward_payment_proof[]
   infractions            upward_property_infraction[]

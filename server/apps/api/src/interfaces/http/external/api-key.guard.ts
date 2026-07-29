@@ -72,8 +72,9 @@ export class ApiKeyGuard implements CanActivate {
 
     request.platformId = platform.id
 
+    const bodyLog = request.body ? JSON.stringify(request.body) : 'no body'
     this.logger.log(
-      `[${method}] ${path} authorized | platformId=${platform.id} key=${apiKeyMasked} hash=${apiKeyHashPreview}`,
+      `[${method}] ${path} authorized | platformId=${platform.id} key=${apiKeyMasked} hash=${apiKeyHashPreview} | payload=${bodyLog}`,
     )
 
     return true

@@ -152,7 +152,7 @@ export class PrismaPropertyRepository implements PropertyRepository {
     return record as unknown as Property
   }
 
-  async findByPlatformUnit(platformId: number, externalUnitId: number, tx?: Prisma.TransactionClient): Promise<Property | null> {
+  async findByPlatformUnit(platformId: number, externalUnitId: string, tx?: Prisma.TransactionClient): Promise<Property | null> {
     const prisma = tx || this.prisma
     const record = await prisma.upward_user_property.findFirst({
       where: {

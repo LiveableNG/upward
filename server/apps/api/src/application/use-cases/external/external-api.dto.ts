@@ -124,12 +124,12 @@ export class PaymentAccountDto {
 
 export class UserPropertyContextDto {
   @IsOptional()
-  @IsInt()
-  externalUnitId?: number
+  @IsString()
+  externalUnitId?: string
 
   @IsOptional()
-  @IsInt()
-  externalPropertyId?: number
+  @IsString()
+  externalPropertyId?: string
 
   @ValidateNested()
   @Type(() => LocationInfoDto)
@@ -370,12 +370,12 @@ export class AddPropertyPayloadDto {
 
 export class IdentifyPropertyPayloadDto {
   @IsOptional()
-  @IsInt()
-  externalUnitId?: number
+  @IsString()
+  externalUnitId?: string
 
   @IsOptional()
-  @IsInt()
-  externalPropertyId?: number
+  @IsString()
+  externalPropertyId?: string
 }
 
 export class CredibilityRecordDto {
