@@ -128,8 +128,9 @@ export function DocumentEditorView({
   })
 
   const isSystemTemplate = initialTemplate?.type === 'SYSTEM' || initialTemplate?.isSystem
+  const isWelcomeTemplate = initialTemplate?.uuid === 'system-onboarding-1' || initialTemplate?.name === 'Getting Started' || initialTemplate?.name === 'Welcome System Template';
   const [showSettings, setShowSettings] = useState(true)
-  const [previewMode, setPreviewMode] = useState(false)
+    const [previewMode, setPreviewMode] = useState(false)
 
   const getRenderedContent = () => {
     let rendered = content
@@ -486,6 +487,7 @@ export function DocumentEditorView({
             deliveryChannel: deliveryMode === 'whatsapp' ? 'MANUAL' : (deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase()),
             cc: ccEmails.trim() || undefined,
             bcc: bccEmails.trim() || undefined,
+            isWelcomeTemplate,
           })
           
           if (deliveryMode === 'whatsapp') {
@@ -556,7 +558,7 @@ export function DocumentEditorView({
               >
                 Cancel
               </button>
-            {!paymentContext && (
+            {!paymentContext && !isWelcomeTemplate && (
               <button 
                 onClick={handleSaveAsPdf}
                 disabled={isDownloading}

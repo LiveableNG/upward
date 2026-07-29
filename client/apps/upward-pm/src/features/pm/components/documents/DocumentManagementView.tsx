@@ -23,6 +23,9 @@ import { useRouter } from 'next/navigation'
 import { useSocket } from '@/hooks/useSocket'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
+import { useSubscription } from '../../hooks/useSubscription'
+import { usePricingModal } from '../../hooks/usePricingModal'
+import { FeatureKey } from '../../types/subscription'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -38,6 +41,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   const { success } = useToast()
   const queryClient = useQueryClient()
   const socket = useSocket()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
   
   React.useEffect(() => {
     if (!socket) return;
@@ -287,8 +292,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                     title={t.name}
                     type={t.type}
                     isSystem={t.uuid?.startsWith('system-') || t.isSystem}
-                    onClick={() => onSelectTemplate(t)}
-                    onEdit={() => onEditTemplate?.(t)}
+                    onClick={() => {
+                      const isSystem = t.uuid?.startsWith('system-') || t.isSystem;
+                      if (!isSystem && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                        openPricing()
+                      } else {
+                        onSelectTemplate(t)
+                      }
+                    }}
+                    onEdit={() => {
+                      if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                        openPricing()
+                      } else {
+                        onEditTemplate?.(t)
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -315,7 +333,13 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             <Users size={20} /> Send Bulk Document
           </button>
           <button
-            onClick={onCreateTemplate}
+            onClick={() => {
+              if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                openPricing()
+              } else {
+                onCreateTemplate()
+              }
+            }}
             className="btn btn--primary"
             style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
@@ -343,8 +367,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               title={t.name}
               type={t.type}
               isSystem={t.uuid?.startsWith('system-') || t.isSystem}
-              onClick={() => onSelectTemplate(t)}
-              onEdit={() => onEditTemplate?.(t)}
+              onClick={() => {
+                const isSystem = t.uuid?.startsWith('system-') || t.isSystem;
+                if (!isSystem && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                  openPricing()
+                } else {
+                  onSelectTemplate(t)
+                }
+              }}
+              onEdit={() => {
+                if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                  openPricing()
+                } else {
+                  onEditTemplate?.(t)
+                }
+              }}
             />
           ))}
         </div>

@@ -7,6 +7,8 @@ import { DocumentManagementView } from '@/features/pm/components/documents/Docum
 import { DocumentEditorView } from '@/features/pm/components/documents/DocumentEditorView'
 import { CreateTemplateView } from '@/features/pm/components/documents/CreateTemplateView'
 import { ListSkeleton } from '@/components/skeletons'
+import { FeatureGate } from '@/features/pm/components/subscription/FeatureGate'
+import { FeatureKey } from '@/features/pm/types/subscription'
 
 export default function LandlordDocumentManagementPage() {
   const router = useRouter()
@@ -62,46 +64,48 @@ export default function LandlordDocumentManagementPage() {
   return (
     <Suspense fallback={<ListSkeleton />}>
       <div className="container" style={{ padding: '24px 40px' }}>
-        {view === 'list' && (
-          <button 
-            onClick={() => router.push('/portal')} 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              background: 'none', 
-              border: 'none', 
-              color: 'var(--text-muted)', 
-              cursor: 'pointer', 
-              fontWeight: 600, 
-              fontSize: '14px', 
-              marginBottom: '24px', 
-              padding: 0 
-            }}
-          >
-            <ArrowLeft size={18} /> Back to Dashboard
-          </button>
-        )}
-        {view === 'list' ? (
-          <DocumentManagementView 
-            onNewDocument={handleNewDocument}
-            onSelectTemplate={handleSelectTemplate}
-            onResendDocument={handleResendDocument}
-            onCreateTemplate={handleCreateTemplate}
-            onEditTemplate={handleEditTemplate}
-          />
-        ) : view === 'create-template' ? (
-          <CreateTemplateView
-            template={templateToEdit}
-            onBack={handleBack}
-          />
-        ) : (
-          <DocumentEditorView 
-            initialTemplate={editingTemplate}
-            initialRecipient={initialRecipient}
-            onBack={handleBack}
-          />
-        )}
+        <FeatureGate feature={FeatureKey.DOCUMENT_MANAGEMENT}>
+          {view === 'list' && (
+            <button 
+              onClick={() => router.push('/portal')} 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                background: 'none', 
+                border: 'none', 
+                color: 'var(--text-muted)', 
+                cursor: 'pointer', 
+                fontWeight: 600, 
+                fontSize: '14px', 
+                marginBottom: '24px', 
+                padding: 0 
+              }}
+            >
+              <ArrowLeft size={18} /> Back to Dashboard
+            </button>
+          )}
+          {view === 'list' ? (
+            <DocumentManagementView 
+              onNewDocument={handleNewDocument}
+              onSelectTemplate={handleSelectTemplate}
+              onResendDocument={handleResendDocument}
+              onCreateTemplate={handleCreateTemplate}
+              onEditTemplate={handleEditTemplate}
+            />
+          ) : view === 'create-template' ? (
+            <CreateTemplateView
+              template={templateToEdit}
+              onBack={handleBack}
+            />
+          ) : (
+            <DocumentEditorView 
+              initialTemplate={editingTemplate}
+              initialRecipient={initialRecipient}
+              onBack={handleBack}
+            />
+          )}
+        </FeatureGate>
       </div>
     </Suspense>
   )
