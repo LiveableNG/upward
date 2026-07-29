@@ -12,6 +12,9 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { formatTenantName } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { useSubscription } from '../../../hooks/useSubscription'
+import { usePricingModal } from '../../../hooks/usePricingModal'
+import { FeatureKey } from '../../../types/subscription'
 
 interface CreatePaymentRequestModalProps {
   isOpen: boolean;
@@ -71,6 +74,8 @@ export function CreatePaymentRequestModal({
   const { user } = useAuth()
   const createMutation = useCreatePaymentRequest()
   const updateMutation = useUpdatePaymentRequest()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
 
   const hasBankDetails = !!(user?.bankCode && user?.accountNumber)
 
@@ -257,10 +262,18 @@ export function CreatePaymentRequestModal({
   }
 
   const handleAddLineItem = () => {
+    if (!checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess) {
+      openPricing()
+      return
+    }
     setLineItems([...lineItems, { name: '', amount: '' }])
   }
 
   const handleRemoveLineItem = (index: number) => {
+    if (!checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess) {
+      openPricing()
+      return
+    }
     const newItems = lineItems.filter((_, i) => i !== index)
     setLineItems(newItems)
     updateTotalFromItems(newItems)
@@ -282,6 +295,10 @@ export function CreatePaymentRequestModal({
   }
 
   const handleToggleManagementFee = (checked: boolean) => {
+    if (!checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess) {
+      openPricing()
+      return
+    }
     setIncludeManagementFee(checked)
     if (checked) {
       if (unit?.managementFee && !lineItems.some(item => item.name === 'Management Fee')) {

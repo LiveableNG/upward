@@ -18,6 +18,9 @@ import {
   listHomeRequests,
   type PmHomeRequest,
 } from '@/features/pm/services/homeRequestService'
+import { useSubscription } from '../../hooks/useSubscription'
+import { usePricingModal } from '../../hooks/usePricingModal'
+import { FeatureKey } from '../../types/subscription'
 import {
   formatPropertyTypes,
   formatTenantHomeRequestBudget,
@@ -122,6 +125,9 @@ export function TenantHomeRequestsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [reloadToken, setReloadToken] = useState(0)
 
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -179,6 +185,21 @@ export function TenantHomeRequestsPage() {
     [requests, searchQuery, statusFilter],
   )
 
+  const access = checkAccess(FeatureKey.LISTING_BROKERAGE)
+  const allowedCount = Math.floor(filteredRequests.length * (access.limit || 0))
+
+  const processedRequests = useMemo(() => {
+    if (access.hasAccess && access.limit === 1.0) {
+      return filteredRequests
+    }
+    return filteredRequests.map((req, index) => {
+      if (index >= allowedCount) {
+        return { ...req, isLocked: true }
+      }
+      return req
+    })
+  }, [filteredRequests, access, allowedCount])
+
   const hasActiveFilters = searchQuery.trim().length > 0 || statusFilter !== 'all'
 
   const emptyStateNode = (
@@ -209,48 +230,68 @@ export function TenantHomeRequestsPage() {
       {
         header: 'Brief',
         width: '42%',
-        render: (request) => <HomeRequestDetailsCell request={request} />,
+        render: (request) => {
+          const isLocked = (request as any).isLocked
+          return (
+            <div style={isLocked ? { filter: 'blur(5px)', opacity: 0.6, userSelect: 'none' } : {}}>
+              <HomeRequestDetailsCell request={request} />
+            </div>
+          )
+        },
       },
       {
         header: 'Move-in',
         width: '13%',
-        render: (request) => (
-          <span className="home-requests-table__nowrap">
-            {request.moveInDate ? format(new Date(request.moveInDate), 'MMM d, yyyy') : 'Flexible'}
-          </span>
-        ),
+        render: (request) => {
+          const isLocked = (request as any).isLocked
+          return (
+            <div style={isLocked ? { filter: 'blur(5px)', opacity: 0.6, userSelect: 'none' } : {}}>
+              <span className="home-requests-table__nowrap">
+                {request.moveInDate ? format(new Date(request.moveInDate), 'MMM d, yyyy') : 'Flexible'}
+              </span>
+            </div>
+          )
+        },
       },
       {
         header: 'Interest',
         width: '12%',
         align: 'center',
-        render: (request) => (
-          <span
-            className={`home-requests-reveal-pill${
-              request.contactRevealedByMe ? ' home-requests-reveal-pill--mine' : ''
-            }`}
-            title={
-              request.contactRevealedByMe
-                ? 'You revealed contact'
-                : `${request.contactRevealCount} PM reveals`
-            }
-          >
-            {request.contactRevealedByMe ? <Eye size={13} /> : <Users size={13} />}
-            {request.contactRevealCount}
-          </span>
-        ),
+        render: (request) => {
+          const isLocked = (request as any).isLocked
+          return (
+            <div style={isLocked ? { filter: 'blur(5px)', opacity: 0.6, userSelect: 'none' } : {}}>
+              <span
+                className={`home-requests-reveal-pill${
+                  request.contactRevealedByMe ? ' home-requests-reveal-pill--mine' : ''
+                }`}
+                title={
+                  request.contactRevealedByMe
+                    ? 'You revealed contact'
+                    : `${request.contactRevealCount} PM reveals`
+                }
+              >
+                {request.contactRevealedByMe ? <Eye size={13} /> : <Users size={13} />}
+                {request.contactRevealCount}
+              </span>
+            </div>
+          )
+        },
       },
       {
         header: 'Status',
         width: '14%',
         render: (request) => {
+          const isLocked = (request as any).isLocked
           const status = statusLabelKey(request.status)
           return (
-            <span
-              className={`home-request-status home-request-status--${status} home-requests-table__nowrap`}
-            >
-              {TENANT_HOME_REQUEST_STATUS_LABELS[status]}
-            </span>
+            <div style={isLocked ? { filter: 'blur(5px)', opacity: 0.6, userSelect: 'none' } : {}}>
+              <span
+                className={`home-request-status home-request-status--${status} home-requests-table__nowrap`}
+              >
+                {TENANT_HOME_REQUEST_STATUS_LABELS[status]}
+              </span>
+            </div>
           )
         },
       },
@@ -269,9 +310,10 @@ export function TenantHomeRequestsPage() {
   )
 
   const renderMobileCard = (request: PmHomeRequest) => {
+    const isLocked = (request as any).isLocked
     const status = statusLabelKey(request.status)
     return (
-      <div className="home-requests-mobile-card">
+      <div className="home-requests-mobile-card" style={isLocked ? { filter: 'blur(5px)', opacity: 0.6, userSelect: 'none' } : {}}>
         <div className="home-requests-mobile-card__top">
           <HomeRequestDetailsCell request={request} />
           <span className={`home-request-status home-request-status--${status}`}>
@@ -336,9 +378,15 @@ export function TenantHomeRequestsPage() {
       ) : (
         <DataTable
           columns={columns}
-          data={filteredRequests}
+          data={processedRequests}
           emptyMessage={emptyStateNode}
-          onRowClick={(request) => router.push(`/home-requests/${request.uuid}`)}
+          onRowClick={(request) => {
+            if ((request as any).isLocked) {
+              openPricing()
+            } else {
+              router.push(`/home-requests/${request.uuid}`)
+            }
+          }}
           keyExtractor={(request) => request.uuid}
           pageSize={10}
           renderMobileCard={renderMobileCard}

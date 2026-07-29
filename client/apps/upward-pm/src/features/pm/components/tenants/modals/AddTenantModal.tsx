@@ -14,6 +14,7 @@ import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/common/Toast'
 
 const tenantSchema = z.object({
   tenantType: z.enum(['individual', 'commercial']),
@@ -127,6 +128,7 @@ interface AddTenantModalProps {
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose, mode = 'add-tenant', initialData }) => {
   const router = useRouter()
+  const toast = useToast()
   const { createTenant, assignTenant } = useTenantActions()
   const { data: units = [] } = useUnits()
   const { data: properties = [] } = useProperties()
@@ -412,15 +414,15 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             form="add-tenant-form"
             className="btn btn--primary"
             style={{ flex: 1 }}
-            disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit || (!isValid && assignMode === 'existing')}
+            disabled={createTenant.isPending || assignTenant.isPending || isCreatingUnit}
           >
             {createTenant.isPending || assignTenant.isPending || isCreatingUnit ? (
               <Loader2 size={18} className="animate-spin" />
             ) : (
               <>
                 {isJoinRequest
-                  ? (selectedUnitUuid || assignMode === 'create' ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
-                  : (selectedUnitUuid || assignMode === 'create' ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
+                  ? (showLeaseFields && (selectedUnitUuid || assignMode === 'create') ? <><CheckCircle2 size={18} style={{ marginRight: 8 }} />Approve & Assign Unit</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Approve Request</>)
+                  : (showLeaseFields && (selectedUnitUuid || assignMode === 'create') ? <><UserPlus size={18} style={{ marginRight: 8 }} />Add & Assign</> : <><UserPlus size={18} style={{ marginRight: 8 }} />Add Tenant</>)
                 }
               </>
             )}
@@ -428,7 +430,11 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         </div>
       }
     >
-      <form id="add-tenant-form" onSubmit={handleSubmit(onSubmit)} className="animate-fade-in">
+      <form id="add-tenant-form" onSubmit={handleSubmit(onSubmit, (errors) => {
+        const firstErrorKey = Object.keys(errors)[0];
+        const firstErrorMessage = (errors as any)[firstErrorKey]?.message || "Please fill in all required fields.";
+        toast.error(firstErrorMessage);
+      })} className="animate-fade-in">
         {isJoinRequest && ud && requestedLocation && (
           <div className="join-request-card" style={{ marginTop: 24 }}>
             <div className="join-request-card__header">
@@ -1068,7 +1074,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                   onClose()
                 }}
               >
-                Done (Skip for Now)
+                Skip
               </button>
               <button
                 type="button"

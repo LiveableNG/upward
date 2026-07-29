@@ -24,6 +24,7 @@ export class GetPmDashboardSummaryUseCase {
       phone: tenant.phoneEncrypted ? this.encryption.decrypt(tenant.phoneEncrypted) : null,
       inviteStatus: tenant.inviteStatus,
       inviteSentAt: tenant.inviteSentAt,
+      hasReceivedWelcomeTemplate: tenant.hasReceivedWelcomeTemplate ?? false,
     };
   }
 
@@ -136,6 +137,7 @@ export class GetPmDashboardSummaryUseCase {
         id: r.unit.id,
         uuid: r.unit.uuid,
         unitName: r.unit.unitName,
+        isSynced: r.unit.isSynced,
         property: {
           id: r.unit.property.id,
           uuid: r.unit.property.uuid,
@@ -170,6 +172,7 @@ export class GetPmDashboardSummaryUseCase {
           id: u.id,
           uuid: u.uuid,
           unitName: u.unitName,
+          isSynced: u.isSynced,
           property: property ? {
             id: property.id,
             uuid: property.uuid,
