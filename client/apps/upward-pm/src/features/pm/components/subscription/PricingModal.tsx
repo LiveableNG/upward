@@ -1,6 +1,7 @@
-'use client';
+ 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, X, Sparkles } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
@@ -13,8 +14,13 @@ interface PricingModalProps {
 
 export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   const { subscription, wallet, selectTier, isSelectingTier, topUp, isToppingUp } = useSubscription();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
   const calculateMinDeposit = (rate: number) => {
     return 50000;
   };
@@ -31,7 +37,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
     selectTier({ tier, billingMode: 'active' });
   };
 
-  return (
+  const modalContent = (
     <div className="modal-overlay">
       <div className="pricing-modal">
         <button className="pricing-modal__close" onClick={onClose}>
@@ -117,4 +123,6 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
