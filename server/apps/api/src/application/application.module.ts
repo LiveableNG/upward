@@ -662,9 +662,10 @@ const UseCases = [
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
+import { SubscriptionModule } from '../domains/subscription/subscription.module'
 
 @Module({
-  imports: [S3Module, ReceiptModule, KYCModule, AuthModule, SmsModule, WhatsappModule],
+  imports: [S3Module, ReceiptModule, KYCModule, AuthModule, SmsModule, WhatsappModule, SubscriptionModule],
   providers: [
     AdminAuditEventHandler,
     EmailLogEventHandler,
