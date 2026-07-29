@@ -26,6 +26,7 @@ import { InviteController } from './public/invite.controller'
 import { PlatformAdminController } from './external/platform-invite.controller'
 import { ExternalPaymentController } from './external/external-payment.controller'
 import { PlatformPaymentProofController } from './external/platform-payment-proof.controller'
+import { PlatformPropertyController } from './external/platform-property.controller'
 import { PublicCredibilityController } from './public/credibility.controller'
 import { ExternalCredibilityController } from './external/external-credibility.controller'
 import { WellKnownController } from './public/well-known.controller'
@@ -101,6 +102,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PlatformAdminController,
     ExternalPaymentController,
     PlatformPaymentProofController,
+    PlatformPropertyController,
     UserSupportController,
     AdminSupportController,
     PublicCredibilityController,
