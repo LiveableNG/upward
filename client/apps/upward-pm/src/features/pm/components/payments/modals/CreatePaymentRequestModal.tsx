@@ -123,7 +123,7 @@ export function CreatePaymentRequestModal({
     } else if (unit) {
       const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
       setRentType(type)
-      setReminderFrequency('WEEKLY') // Default to weekly for new requests
+      setReminderFrequency('NONE') // Default to no reminders for new requests
 
       let calculatedStartDate = unit.rentStartDate ? new Date(unit.rentStartDate) : new Date()
       let calculatedEndDate = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date()
@@ -613,7 +613,13 @@ export function CreatePaymentRequestModal({
           )}
         </div>
 
-        <div className="form-group">
+        <div className="form-group" onClickCapture={(e) => {
+          if (!checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess) {
+            e.stopPropagation()
+            e.preventDefault()
+            openPricing()
+          }
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input
               type="checkbox"
