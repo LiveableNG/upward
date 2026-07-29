@@ -28,6 +28,7 @@ import { GetAdminPmDetailUseCase } from './use-cases/admin/get-admin-pm-detail.u
 import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
 import { SendAdminNotificationUseCase } from './use-cases/admin/send-admin-notification.use-case'
+import { ManagePmSubscriptionUseCase } from './use-cases/admin/manage-pm-subscription.use-case'
 import {
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -374,6 +375,7 @@ const UseCases = [
   UpdateAdminPmUseCase,
   UpdateAdminDetailsUseCase,
   SendAdminNotificationUseCase,
+  ManagePmSubscriptionUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,

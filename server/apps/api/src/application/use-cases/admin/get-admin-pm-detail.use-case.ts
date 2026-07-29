@@ -56,8 +56,23 @@ export class GetAdminPmDetailUseCase {
         },
         tenants: true,
         verification: true,
+        subscription: true,
       },
     })
+
+    const subscriptionLogs = pm
+      ? await this.prisma.upward_subscription_log.findMany({
+          where: { pmId: pm.id },
+          include: {
+            admin: {
+              select: {
+                email: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      : []
 
     if (!pm) {
       // Try finding platform company in upward_company
@@ -285,6 +300,8 @@ export class GetAdminPmDetailUseCase {
       rentPayments,
       activityLogs,
       verification: pm.verification,
+      subscription: pm.subscription,
+      subscriptionLogs,
     }
   }
 }

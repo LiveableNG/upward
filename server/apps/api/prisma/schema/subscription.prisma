@@ -90,3 +90,20 @@ model upward_subscription_invoice {
   updatedAt       DateTime            @updatedAt
   pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 }
+
+model upward_subscription_log {
+  id              Int                    @id @default(autoincrement())
+  uuid            String                 @unique @default(uuid())
+  pmId            Int
+  adminId         String?
+  previousTier    UpwardSubscriptionTier
+  newTier         UpwardSubscriptionTier
+  previousStatus  String
+  newStatus       String
+  action          String                 // "UPGRADE", "DOWNGRADE", "REVOKE", "REACTIVATE"
+  reason          String?
+  createdAt       DateTime               @default(now())
+
+  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  admin           upward_admin?           @relation(fields: [adminId], references: [id], onDelete: SetNull)
+}

@@ -51,6 +51,7 @@ model upward_property_manager {
   wallet                upward_pm_wallet?
   walletTransactions    upward_pm_wallet_transaction[]
   subscriptionInvoices  upward_subscription_invoice[]
+  subscriptionLogs      upward_subscription_log[]
 
   @@index([email])
 }
