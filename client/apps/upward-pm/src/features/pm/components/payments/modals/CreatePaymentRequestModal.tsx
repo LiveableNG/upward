@@ -317,7 +317,8 @@ export function CreatePaymentRequestModal({
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
     if (!hasBankDetails) return error('Please set up your bank information in settings to receive payments')
-    if (!isEditing && !selectedTemplateUuid) return error('Please select a document template')
+    const access = checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS)
+    if (!isEditing && !selectedTemplateUuid && access.hasAccess) return error('Please select a document template')
     
     if (isScheduled) {
       if (!scheduledAt) return error('Please select a scheduled delivery date and time')
@@ -681,7 +682,13 @@ export function CreatePaymentRequestModal({
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <div className="form-group">
+          <div className="form-group" onClickCapture={(e) => {
+            if (!checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess) {
+              e.stopPropagation()
+              e.preventDefault()
+              openPricing()
+            }
+          }}>
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <AlertCircle size={14} color="var(--clay)" /> Automated Reminders
             </label>
@@ -699,8 +706,14 @@ export function CreatePaymentRequestModal({
           </div>
 
           {!isEditing && (
-            <div className="form-group">
-              <label className="form-label">Follow-up Document <span style={{ color: 'var(--error)' }}>*</span></label>
+            <div className="form-group" onClickCapture={(e) => {
+              if (!checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess) {
+                e.stopPropagation()
+                e.preventDefault()
+                openPricing()
+              }
+            }}>
+              <label className="form-label">Follow-up Document {checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS).hasAccess && <span style={{ color: 'var(--error)' }}>*</span>}</label>
               {templates.filter((t: any) => t.type !== 'SYSTEM').length === 0 ? (
                 <div style={{ padding: '12px 16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No custom templates available.</span>
