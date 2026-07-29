@@ -151,6 +151,28 @@ export class PrismaPropertyRepository implements PropertyRepository {
     })
     return record as unknown as Property
   }
+
+  async findByPlatformUnit(platformId: number, externalUnitId: number, tx?: Prisma.TransactionClient): Promise<Property | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user_property.findFirst({
+      where: {
+        platformId,
+        externalUnitId,
+      },
+      include: {
+        company: true,
+        manager: true,
+        location: true,
+        pm: true,
+        pmUnit: {
+          include: { property: { include: { manualAccount: true } } }
+        },
+        manualAccount: true,
+      },
+    })
+    if (!record) return null
+    return record as unknown as Property
+  }
 }
 
 @Injectable()
