@@ -23,6 +23,9 @@ model upward_user_property {
   subaccountId           Int?
   verificationStatus     String?                      @default("PENDING") // PENDING, VERIFIED, REJECTED
   rejectionReason        String?                      @db.Text
+  platformId             Int?
+  externalUnitId         Int?
+  externalPropertyId     Int?
   paymentRequests        upward_payment_request[]
   paymentProofs          upward_payment_proof[]
   infractions            upward_property_infraction[]
@@ -39,6 +42,9 @@ model upward_user_property {
   dedicatedAccount       upward_dedicated_virtual_account?
   manualAccount          upward_manual_account?
   benefitsSubscriptions  upward_benefits_subscription[]
+
+  @@unique([platformId, externalUnitId])
+  @@index([platformId, externalPropertyId])
 }
 
 model upward_manual_account {

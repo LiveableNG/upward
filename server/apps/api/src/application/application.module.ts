@@ -129,6 +129,7 @@ import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-
 import { ConfirmExternalPaymentUseCase } from './use-cases/external/confirm-payment.use-case'
 import { ResolveExternalPendingRefundUseCase } from './use-cases/external/resolve-external-refund.use-case'
 import { AddPropertyUseCase } from './use-cases/external/add-property.use-case'
+import { IdentifyExternalPropertyUseCase } from './use-cases/external/identify-property.use-case'
 import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
 import { CancelExternalPaymentRequestUseCase } from './use-cases/external/cancel-payment-request.use-case'
 import { UpdateExternalPaymentRequestUseCase } from './use-cases/external/update-payment-request.use-case'
@@ -472,6 +473,7 @@ const UseCases = [
   ConfirmExternalPaymentUseCase,
   ResolveExternalPendingRefundUseCase,
   AddPropertyUseCase,
+  IdentifyExternalPropertyUseCase,
   RenewPropertyUseCase,
   CancelExternalPaymentRequestUseCase,
   UpdateExternalPaymentRequestUseCase,

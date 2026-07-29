@@ -14,7 +14,7 @@ export class AddPropertyUseCase {
     @Inject(COMPANY_REPOSITORY) private readonly companyRepository: CompanyRepository,
   ) { }
 
-  async execute(payload: AddPropertyPayloadDto): Promise<any> {
+  async execute(payload: AddPropertyPayloadDto, platformId?: number): Promise<any> {
     const user = await this.userRepository.findByUuid(payload.userUuid)
     if (!user) {
       throw new NotFoundException(`User with UUID ${payload.userUuid} not found`)
@@ -26,7 +26,7 @@ export class AddPropertyUseCase {
     }
 
 
-    const result = await this.singleInviteUseCase.processProperties(user, company, payload.properties as any)
+    const result = await this.singleInviteUseCase.processProperties(user, company, payload.properties as any, platformId)
 
     return {
       userId: user.uuid,

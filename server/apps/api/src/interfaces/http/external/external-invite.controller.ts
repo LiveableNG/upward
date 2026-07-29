@@ -27,11 +27,13 @@ export class ExternalInviteController {
 
   @Post(':userUuid/properties')
   @UseGuards(ApiKeyGuard)
-  async addProperties(@Param('userUuid') userUuid: string, @Body() data: any) {
+  async addProperties(@Param('userUuid') userUuid: string, @Body() data: any, @Req() req: any) {
+    const platformId = req.platformId
+
     const result = await this.addPropertyUseCase.execute({
       ...data,
       userUuid
-    })
+    }, platformId)
 
     return {
       success: true,

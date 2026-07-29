@@ -181,11 +181,11 @@ export class SingleInviteUseCase {
     }
 
     const propertiesToProcess = invite.properties || (invite.property ? [invite.property] : [])
-    const createdProperties = await this.processProperties(user, company, propertiesToProcess)
+    const createdProperties = await this.processProperties(user, company, propertiesToProcess, platformId)
     return { user, company, properties: createdProperties }
   }
 
-  async processProperties(user: any, company: any, properties: InvitePropertyInfo[]): Promise<any[]> {
+  async processProperties(user: any, company: any, properties: InvitePropertyInfo[], platformId?: number): Promise<any[]> {
     const createdProperties = []
 
     // 3. Process each property
@@ -273,7 +273,10 @@ export class SingleInviteUseCase {
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate,
           subaccountId: property.subaccountId,
           amountRemaining: rentData.rentAmount,
-          isVerified: true
+          isVerified: true,
+          platformId: platformId ?? property.platformId,
+          externalUnitId: propData.externalUnitId ?? property.externalUnitId,
+          externalPropertyId: propData.externalPropertyId ?? property.externalPropertyId,
         })
       } else {
         property = await this.propertyRepository.save({
@@ -286,6 +289,9 @@ export class SingleInviteUseCase {
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
           currency: (rentData as any).currency || 'NGN',
+          platformId: platformId,
+          externalUnitId: propData.externalUnitId,
+          externalPropertyId: propData.externalPropertyId,
           subaccountId: undefined,
           amountRemaining: rentData.rentAmount,
           isVerified: true,
