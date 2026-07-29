@@ -1,11 +1,12 @@
-import { 
-  IsString, 
-  IsNumber, 
-  IsOptional, 
-  IsArray, 
-  ValidateNested, 
-  IsBoolean, 
-  IsDateString, 
+import {
+  IsString,
+  IsNumber,
+  IsInt,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  IsBoolean,
+  IsDateString,
   IsNotEmpty,
   IsEmail,
   IsUUID
@@ -122,6 +123,14 @@ export class PaymentAccountDto {
 }
 
 export class UserPropertyContextDto {
+  @IsOptional()
+  @IsInt()
+  externalUnitId?: number
+
+  @IsOptional()
+  @IsInt()
+  externalPropertyId?: number
+
   @ValidateNested()
   @Type(() => LocationInfoDto)
   location!: LocationInfoDto
@@ -357,6 +366,16 @@ export class AddPropertyPayloadDto {
   @ValidateNested({ each: true })
   @Type(() => UserPropertyContextDto)
   properties!: UserPropertyContextDto[]
+}
+
+export class IdentifyPropertyPayloadDto {
+  @IsOptional()
+  @IsInt()
+  externalUnitId?: number
+
+  @IsOptional()
+  @IsInt()
+  externalPropertyId?: number
 }
 
 export class CredibilityRecordDto {
