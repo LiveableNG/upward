@@ -11,8 +11,8 @@ out/
 build/
 do-not-check/
 *.tsbuildinfo
-
-
+*.pem
+*.md
 credentials-json.json
 # Turbo cache
 .turbo/
