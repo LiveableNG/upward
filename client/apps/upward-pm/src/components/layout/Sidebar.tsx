@@ -1,14 +1,14 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Building2, 
-  CreditCard, 
-  Settings, 
-  Users, 
+import {
+  LayoutDashboard,
+  Building2,
+  CreditCard,
+  Settings,
+  Users,
   LogOut,
   X,
   ChevronLeft,
@@ -16,7 +16,9 @@ import {
   Contact,
   FileText,
   Inbox,
-  Search
+  Search,
+  Sparkles,
+  MoreVertical
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -25,6 +27,8 @@ import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityReques
 import { listHomeRequests } from '@/features/pm/services/homeRequestService'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -38,15 +42,30 @@ const navItems = [
   { icon: Settings, label: 'Settings', href: '/settings' },
 ]
 
-export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: { 
-  isOpen?: boolean, 
+export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
+  isOpen?: boolean,
   onClose?: () => void,
   isCollapsed?: boolean,
   onToggleCollapse?: () => void
 }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  
+  const { subscription } = useSubscription()
+  const { openPricing } = usePricingModal()
+
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsSettingsMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   const { data: credibilityRequests = [] } = useCredibilityRequests()
   const { data: joinRequests = [] } = useQuery({
     queryKey: ['tenant-join-requests'],
@@ -65,9 +84,9 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
 
   return (
     <>
-      <div 
-        className={cn('sidebar-backdrop', isOpen && 'sidebar-backdrop--open')} 
-        onClick={onClose} 
+      <div
+        className={cn('sidebar-backdrop', isOpen && 'sidebar-backdrop--open')}
+        onClick={onClose}
       />
       <aside className={cn('sidebar', isOpen && 'sidebar--open', isCollapsed && 'sidebar--collapsed')}>
         <button className="sidebar__collapse-toggle" onClick={onToggleCollapse}>
@@ -100,8 +119,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                   item.label === 'Home Requests' ? newHomeRequests : totalRequests
 
                 return (
-                  <li key={item.href} className="sidebar__item">
-                    <Link 
+                  <li key={item.href} className="sidebar__item" style={item.label === 'Settings' ? { position: 'relative' } : undefined}>
+                    <Link
                       href={item.href}
                       prefetch={item.href === '/dashboard' ? undefined : false}
                       className={cn(
@@ -126,18 +145,98 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                       )}
                       <div className="sidebar__tooltip">{item.label}</div>
                     </Link>
+                    {item.label === 'Settings' && (!isCollapsed || isOpen) && (
+                      <div ref={menuRef}>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setIsSettingsMenuOpen(!isSettingsMenuOpen)
+                          }}
+                          style={{
+                            position: 'absolute',
+                            right: 8,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 4,
+                            color: 'inherit',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 4
+                          }}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {isSettingsMenuOpen && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '100%',
+                              left: 0,
+                              background: 'var(--surface, #fff)',
+                              border: '1px solid var(--border)',
+                              borderRadius: 8,
+                              padding: 12,
+                              width: 220,
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              marginBottom: 8,
+                              zIndex: 50,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 12
+                            }}
+                          >
+                            {subscription?.tier === 'FREE' ? (
+                              <div style={{ background: 'var(--ivory-dim)', padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <Sparkles size={12} fill="var(--text-muted)" stroke="var(--text-muted)" /> Free Plan
+                                </div>
+                                <button
+                                  onClick={() => { openPricing(); onClose?.(); setIsSettingsMenuOpen(false); }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '6px',
+                                    background: 'var(--forest)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 6,
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Upgrade Plan &rarr;
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ background: 'var(--forest-faint)', padding: 12, borderRadius: 8, border: '1px solid var(--forest-glow)', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
+                                <Sparkles size={14} fill="var(--forest)" stroke="var(--forest)" />
+                                <span style={{ fontSize: 12, fontWeight: 700 }}>Premium Plan</span>
+                              </div>
+                            )}
+                            <button 
+                              className="sidebar__logout-btn" 
+                              onClick={() => { logout(); onClose?.(); setIsSettingsMenuOpen(false); }}
+                              style={{ width: '100%', justifyContent: 'flex-start' }}
+                            >
+                              <LogOut size={18} />
+                              <span>Logout</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </li>
                 )
               })}
             </ul>
           </div>
 
-          <div className="sidebar__section sidebar__section--bottom">
-            <button className="sidebar__logout-btn" onClick={() => { logout(); onClose?.(); }}>
-              <LogOut size={18} />
-              {(!isCollapsed || isOpen) && <span>Logout</span>}
-            </button>
-          </div>
+
         </nav>
       </aside>
     </>

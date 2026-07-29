@@ -21,6 +21,8 @@ export const useDocuments = () => {
     mutationFn: documentService.sendDocument,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-tenants'] });
     },
   });
 
@@ -33,6 +35,7 @@ export const useDocuments = () => {
     mutationFn: documentService.sendBulkDocument,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-tenants'] });
     },
   });
 

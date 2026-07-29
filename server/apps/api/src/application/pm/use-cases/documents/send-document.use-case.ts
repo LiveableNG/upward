@@ -31,9 +31,10 @@ export interface SendDocumentDto {
   recipientEmail: string;
   paymentRequestUuid?: string;
   includeLetterhead?: boolean;
-  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
+  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'MANUAL';
   cc?: string;
   bcc?: string;
+  isWelcomeTemplate?: boolean;
 }
 
 @Injectable()
@@ -406,26 +407,28 @@ export class SendDocumentUseCase {
           }
         ] : undefined;
 
-        await this.unifiedCommService.processCommunication({
-          recipientEmail: data.recipientEmail,
-          recipientPhone: tenant?.phone || undefined,
-          recipientName: data.recipientName,
-          recipientRole: 'TENANT',
-          userId: tenant?.uuid || undefined,
-          pmUuid: pm?.uuid,
-          type: 'DOCUMENT',
-          title: data.subject,
-          forceChannel: data.deliveryChannel,
-          fromOverride: data.fromEmail,
-          attachments,
-          cc: data.cc,
-          bcc: data.bcc,
-          context: {
-            displayName: data.recipientName,
-            subject: data.subject,
-            htmlOverride: content,
-          },
-        });
+        if (data.deliveryChannel !== 'MANUAL') {
+          await this.unifiedCommService.processCommunication({
+            recipientEmail: data.recipientEmail,
+            recipientPhone: tenant?.phone || undefined,
+            recipientName: data.recipientName,
+            recipientRole: 'TENANT',
+            userId: tenant?.uuid || undefined,
+            pmUuid: pm?.uuid,
+            type: 'DOCUMENT',
+            title: data.subject,
+            forceChannel: data.deliveryChannel as any,
+            fromOverride: data.fromEmail,
+            attachments,
+            cc: data.cc,
+            bcc: data.bcc,
+            context: {
+              displayName: data.recipientName,
+              subject: data.subject,
+              htmlOverride: content,
+            },
+          });
+        }
     } catch (err) {
       console.error('Document dispatch failed:', err);
       finalStatus = 'FAILED';
@@ -451,7 +454,7 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
-      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+      if (finalStatus === 'SENT' && tenantId && (data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here')) {
         await this.prisma.upward_pm_tenant.update({
           where: { id: tenantId },
           data: { hasReceivedWelcomeTemplate: true }
@@ -477,7 +480,7 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
-      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+      if (finalStatus === 'SENT' && tenantId && (data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here')) {
         await this.prisma.upward_pm_tenant.update({
           where: { id: tenantId },
           data: { hasReceivedWelcomeTemplate: true }

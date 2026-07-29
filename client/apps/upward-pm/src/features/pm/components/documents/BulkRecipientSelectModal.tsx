@@ -53,7 +53,7 @@ export function BulkRecipientSelectModal({ isOpen, onClose, onConfirm, initialSe
     
     if (activeTab === 'TENANT') {
       let tenantList = tenants.filter(t => !(!t.phone && (!t.email || t.email.endsWith('@upward.com'))))
-      if (filterNoWelcome && (templateUuid === 'system-onboarding-1' || templateUuid === 'system-onboarding-2')) {
+      if (filterNoWelcome && templateUuid === 'system-onboarding-1') {
         tenantList = tenantList.filter(t => !t.hasReceivedWelcomeTemplate)
       }
       list = tenantList.map(t => ({
@@ -199,7 +199,7 @@ export function BulkRecipientSelectModal({ isOpen, onClose, onConfirm, initialSe
             </div>
           </div>
           
-          {(templateUuid === 'system-onboarding-1' || templateUuid === 'system-onboarding-2') && activeTab === 'TENANT' && (
+          {templateUuid === 'system-onboarding-1' && activeTab === 'TENANT' && (
             <div style={{ marginTop: 4 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--clay)', cursor: 'pointer' }}>
                 <input
