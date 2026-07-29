@@ -11,7 +11,7 @@ import {
   IsEmail,
   IsUUID
 } from 'class-validator'
-import { Type } from 'class-transformer'
+import { Type, Transform } from 'class-transformer'
 
 export class CompanyInfoDto {
   @IsOptional()
@@ -124,10 +124,12 @@ export class PaymentAccountDto {
 
 export class UserPropertyContextDto {
   @IsOptional()
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
   @IsString()
   externalUnitId?: string
 
   @IsOptional()
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
   @IsString()
   externalPropertyId?: string
 
@@ -370,10 +372,12 @@ export class AddPropertyPayloadDto {
 
 export class IdentifyPropertyPayloadDto {
   @IsOptional()
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
   @IsString()
   externalUnitId?: string
 
   @IsOptional()
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
   @IsString()
   externalPropertyId?: string
 }
