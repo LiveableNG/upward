@@ -22,7 +22,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useDashboardSummary, useResendPaymentRequest } from '@/features/pm/hooks/usePayments'
 import { ActivityCarousel } from './ActivityCarousel'
 import { cn } from '@/lib/utils'
@@ -39,10 +39,14 @@ import { formatTenantName } from '@/lib/utils'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { SuccessNotificationModal } from '../subscription/SuccessNotificationModal'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
+  
+  const [showSubSuccessModal, setShowSubSuccessModal] = useState(false)
 
   const resendMutation = useResendPaymentRequest()
   const { data: dashboardData, isLoading } = useDashboardSummary(initialData)
@@ -58,6 +62,15 @@ export function DashboardView({ initialData }: { initialData?: any }) {
       openPricing()
     }
   }, [subscription])
+
+  useEffect(() => {
+    const subStatus = searchParams?.get('subscription')
+    if (subStatus === 'activated') {
+      setShowSubSuccessModal(true)
+      const cleanUrl = window.location.pathname
+      window.history.replaceState({}, '', cleanUrl)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (dashboardData && !hasSetInitialTab) {
@@ -508,6 +521,17 @@ export function DashboardView({ initialData }: { initialData?: any }) {
       <ManagedAddPropertyModal
         isOpen={showAddPropertyModal}
         onClose={() => setShowAddPropertyModal(false)}
+      />
+      <SuccessNotificationModal
+        isOpen={showSubSuccessModal}
+        onClose={() => setShowSubSuccessModal(false)}
+        title="Subscription Activated! 🎉"
+        message={
+          <>
+            Your professional plan subscription has been activated successfully.<br />
+            Welcome to Upward!
+          </>
+        }
       />
     </div>
   )

@@ -41,7 +41,7 @@ export function useSubscription() {
   });
 
   const topUpMutation = useMutation({
-    mutationFn: (data: { amount: number }) =>
+    mutationFn: (data: { amount: number; reference: string }) =>
       api.post('/pm/wallet/top-up', data),
     onSuccess: () => {
       success('Wallet topped up successfully');

@@ -159,7 +159,7 @@ export default function WalletPage() {
       setPaying(true);
       info('Launching secure checkout...');
 
-      await new Promise<void>((resolve, reject) => {
+      const response = await new Promise<any>((resolve, reject) => {
         const scriptId = 'paystack-inline-js';
         let script = document.getElementById(scriptId) as HTMLScriptElement | null;
 
@@ -171,7 +171,7 @@ export default function WalletPage() {
               email: user?.email,
               amount: Math.round(amt * 100),
               currency: 'NGN',
-              onSuccess: () => resolve(),
+              onSuccess: (res: any) => resolve(res),
               onCancel: () => reject(new Error('Payment cancelled')),
             });
           } catch (err) {
@@ -195,7 +195,7 @@ export default function WalletPage() {
       });
 
       topUp(
-        { amount: amt },
+        { amount: amt, reference: response.reference },
         {
           onSuccess: () => {
             setIsTopUpOpen(false);

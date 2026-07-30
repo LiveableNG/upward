@@ -65,12 +65,12 @@ export class SubscriptionController {
   }
 
   @Post('wallet/top-up')
-  async topUpWallet(@Req() req: any, @Body() body: { amount: number }) {
+  async topUpWallet(@Req() req: any, @Body() body: { amount: number; reference: string }) {
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     
-    const { amount } = body;
-    return this.topUpWalletUseCase.execute(pmUuid, amount);
+    const { amount, reference } = body;
+    return this.topUpWalletUseCase.execute(pmUuid, amount, reference);
   }
 
   @Get('wallet/transactions')

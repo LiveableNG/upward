@@ -142,7 +142,7 @@ function CheckoutContent() {
       setPaying(true);
       info('Launching secure checkout...');
 
-      await new Promise<void>((resolve, reject) => {
+      const response = await new Promise<any>((resolve, reject) => {
         const scriptId = 'paystack-inline-js';
         let script = document.getElementById(scriptId) as HTMLScriptElement | null;
 
@@ -154,7 +154,7 @@ function CheckoutContent() {
               email: user?.email,
               amount: Math.round(amountToTopUp * 100),
               currency: 'NGN',
-              onSuccess: () => resolve(),
+              onSuccess: (res: any) => resolve(res),
               onCancel: () => reject(new Error('Payment cancelled')),
             });
           } catch (err) {
@@ -178,7 +178,7 @@ function CheckoutContent() {
       });
 
       topUp(
-        { amount: amountToTopUp },
+        { amount: amountToTopUp, reference: response.reference },
         {
           onSuccess: () => {
             setCustomTopUpAmount('');
