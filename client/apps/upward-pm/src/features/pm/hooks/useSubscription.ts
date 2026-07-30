@@ -86,7 +86,7 @@ export function useSubscription() {
         return {
           hasAccess: currentTier === 'TIER_2' || currentTier === 'TIER_3',
           requiredTier: 'TIER_2',
-          limit: currentTier === 'TIER_2' ? 0.3 : 1.0,
+          limit: currentTier === 'TIER_3' ? 1.0 : currentTier === 'TIER_2' ? 0.3 : 0.0,
         };
       default:
         return { hasAccess: true, requiredTier: 'FREE' };
