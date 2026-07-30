@@ -1,7 +1,6 @@
- 'use client';
-
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { Check, X, Sparkles } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
@@ -13,7 +12,8 @@ interface PricingModalProps {
 }
 
 export function PricingModal({ isOpen, onClose }: PricingModalProps) {
-  const { subscription, wallet, selectTier, isSelectingTier, topUp, isToppingUp } = useSubscription();
+  const router = useRouter();
+  const { subscription, wallet, selectTier, isSelectingTier } = useSubscription();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -21,20 +21,15 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   }, []);
   
   if (!isOpen || !mounted) return null;
-  const calculateMinDeposit = (rate: number) => {
-    return 50000;
-  };
 
-  const handleSelectTier = (tier: SubscriptionTier, rate: number) => {
-    const minDeposit = calculateMinDeposit(rate);
-    const balance = wallet?.balance ?? 0;
-
-    if (tier !== 'FREE' && balance < minDeposit) {
-      alert(`Your wallet balance (₦${balance.toLocaleString()}) is below the required minimum deposit (₦${minDeposit.toLocaleString()}). Please top up your wallet first.`);
-      return;
+  const handleSelectTier = (tier: SubscriptionTier) => {
+    if (tier === 'FREE') {
+      selectTier({ tier: 'FREE', billingMode: 'active' });
+      onClose();
+    } else {
+      onClose();
+      router.push(`/subscription/checkout?tier=${tier}&billingMode=active`);
     }
-
-    selectTier({ tier, billingMode: 'active' });
   };
 
   const modalContent = (
@@ -66,7 +61,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <button 
               className={`pricing-card__btn ${subscription?.tier === 'FREE' ? 'disabled' : ''}`}
               disabled={subscription?.tier === 'FREE' || isSelectingTier}
-              onClick={() => handleSelectTier('FREE', 0)}
+              onClick={() => handleSelectTier('FREE')}
             >
               {subscription?.tier === 'FREE' ? 'Current Plan' : 'Downgrade to Free'}
             </button>
@@ -78,7 +73,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <h3>Tier 2 - Professional</h3>
             <div className="price">₦1,500<span>/unit/year</span></div>
             <div className="deposit-info">
-              Required Min Deposit: <strong>₦{calculateMinDeposit(1500).toLocaleString()}</strong>
+              Flexible wallet top-up · Initial deposit applies once
             </div>
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
@@ -90,7 +85,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <button 
               className={`pricing-card__btn primary ${subscription?.tier === 'TIER_2' ? 'disabled' : ''}`}
               disabled={subscription?.tier === 'TIER_2' || isSelectingTier}
-              onClick={() => handleSelectTier('TIER_2', 1500)}
+              onClick={() => handleSelectTier('TIER_2')}
             >
               {subscription?.tier === 'TIER_2' ? 'Current Plan' : 'Activate Professional'}
             </button>
@@ -102,7 +97,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <h3>Tier 3 - Enterprise</h3>
             <div className="price">₦2,250<span>/unit/year</span></div>
             <div className="deposit-info">
-              Required Min Deposit: <strong>₦{calculateMinDeposit(2250).toLocaleString()}</strong>
+              Flexible wallet top-up · Initial deposit applies once
             </div>
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
@@ -114,7 +109,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <button 
               className={`pricing-card__btn ${subscription?.tier === 'TIER_3' ? 'disabled' : ''}`}
               disabled={subscription?.tier === 'TIER_3' || isSelectingTier}
-              onClick={() => handleSelectTier('TIER_3', 2250)}
+              onClick={() => handleSelectTier('TIER_3')}
             >
               {subscription?.tier === 'TIER_3' ? 'Current Plan' : 'Activate Enterprise'}
             </button>

@@ -105,42 +105,10 @@ export class SubscriptionController {
         });
       }
 
-      // Deduct the initial deposit once
-      await this.prisma.$transaction(async (tx) => {
-        await tx.upward_pm_wallet.update({
-          where: { id: wallet.id },
-          data: { balance: wallet.balance - minDeposit },
-        });
+      // Initial deposit validates that wallet balance is positive & >= minDeposit.
+      // Funds stay in the company's wallet balance (simple top-up, not a locked contract fee).
+      const day = sub.anniversaryDate ?? Math.min(new Date().getDate(), 28);
 
-        await tx.upward_pm_wallet_transaction.create({
-          data: {
-            walletId: wallet.id,
-            pmId: pm.id,
-            type: 'DEDUCTION',
-            amount: -minDeposit,
-            reference: `INIT-DEP-${pm.id}-${Date.now()}`,
-            narration: `Initial subscription deposit for ${tier}`,
-          },
-        });
-
-        // Set permanent anniversary (capped at 28)
-        const day = Math.min(new Date().getDate(), 28);
-
-        sub = await tx.upward_subscription.update({
-          where: { pmId: pm.id },
-          data: {
-            tier,
-            unitBillingMode: billingMode,
-            priceYearly: rate,
-            priceMonthly: rate / 12,
-            isInitialDepositPaid: true,
-            anniversaryDate: day,
-            status: 'ACTIVE',
-          },
-        });
-      });
-    } else {
-      // Just update tier directly (or if downgrading)
       sub = await this.prisma.upward_subscription.update({
         where: { pmId: pm.id },
         data: {
@@ -148,6 +116,24 @@ export class SubscriptionController {
           unitBillingMode: billingMode,
           priceYearly: rate,
           priceMonthly: rate / 12,
+          isInitialDepositPaid: true,
+          anniversaryDate: day,
+          status: 'ACTIVE',
+          graceStartedAt: null,
+        },
+      });
+    } else {
+      // Direct update for tier changes or downgrades
+      const day = sub.anniversaryDate ?? Math.min(new Date().getDate(), 28);
+      sub = await this.prisma.upward_subscription.update({
+        where: { pmId: pm.id },
+        data: {
+          tier,
+          unitBillingMode: billingMode,
+          priceYearly: rate,
+          priceMonthly: rate / 12,
+          anniversaryDate: day,
+          status: tier === UpwardSubscriptionTier.FREE ? 'ACTIVE' : sub.status,
         },
       });
     }

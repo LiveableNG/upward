@@ -75,19 +75,34 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="layout__content">
         {subscription?.status === 'GRACE' && (
           <div className="grace-warning-banner" style={{
-            background: 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)',
+            background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
             color: 'white',
-            padding: 'var(--space-3) var(--space-4)',
+            padding: '10px 16px',
             textAlign: 'center',
             fontSize: '0.85rem',
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 'var(--space-2)',
+            gap: '12px',
             zIndex: 100
           }}>
-            <span>⚠️ Your subscription renewal failed. Please top up your wallet balance to avoid losing access to premium features.</span>
+            <span>⚠️ Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.</span>
+            <button
+              onClick={() => router.push('/subscription/checkout')}
+              style={{
+                background: 'white',
+                color: '#b45309',
+                border: 'none',
+                padding: '4px 12px',
+                borderRadius: '100px',
+                fontWeight: 700,
+                fontSize: '0.78rem',
+                cursor: 'pointer'
+              }}
+            >
+              Top Up Wallet →
+            </button>
           </div>
         )}
         <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
