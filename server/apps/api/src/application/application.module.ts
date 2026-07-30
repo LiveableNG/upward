@@ -164,12 +164,18 @@ import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-
 import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-case'
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
+import { GeneratePmDvaUseCase } from './pm/use-cases/payments/generate-pm-dva.use-case'
 import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
 import { GetPmPaymentRequestUseCase } from './pm/use-cases/payments/get-pm-payment-request.use-case'
 import { ResendPmPaymentRequestUseCase } from './pm/use-cases/payments/resend-pm-payment-request.use-case'
 import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm-payment-request.use-case'
 import { CancelPmPaymentRequestUseCase } from './pm/use-cases/payments/cancel-pm-payment-request.use-case'
 import { ProcessScheduledPmPaymentRequestsUseCase } from './pm/use-cases/payments/process-scheduled-payment-requests.use-case'
+import { GetOrCreateSubscriptionUseCase } from './pm/use-cases/subscription/get-or-create-subscription.use-case'
+import { GetOrCreateWalletUseCase } from './pm/use-cases/subscription/get-or-create-wallet.use-case'
+import { GetPmDvaUseCase } from './pm/use-cases/subscription/get-pm-dva.use-case'
+import { SelectSubscriptionTierUseCase } from './pm/use-cases/subscription/select-subscription-tier.use-case'
+import { TopUpWalletUseCase } from './pm/use-cases/subscription/top-up-wallet.use-case'
 import { ResolvePendingRefundUseCase } from './pm/use-cases/payments/resolve-refund.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
 import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
@@ -545,12 +551,18 @@ const UseCases = [
   UpdateTenantUseCase,
   SyncUnitToUpwardUseCase,
   CreatePmPaymentRequestUseCase,
+  GeneratePmDvaUseCase,
   GetPmPaymentRequestsUseCase,
   GetPmPaymentRequestUseCase,
   ResendPmPaymentRequestUseCase,
   UpdatePmPaymentRequestUseCase,
   CancelPmPaymentRequestUseCase,
   ProcessScheduledPmPaymentRequestsUseCase,
+  GetOrCreateSubscriptionUseCase,
+  GetOrCreateWalletUseCase,
+  GetPmDvaUseCase,
+  SelectSubscriptionTierUseCase,
+  TopUpWalletUseCase,
   GetPmDocumentsUseCase,
   GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,

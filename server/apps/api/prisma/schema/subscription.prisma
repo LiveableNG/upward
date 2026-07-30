@@ -107,3 +107,18 @@ model upward_subscription_log {
   pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   admin           upward_admin?           @relation(fields: [adminId], references: [id], onDelete: SetNull)
 }
+
+model upward_pm_dedicated_virtual_account {
+  id                 Int            @id @default(autoincrement())
+  uuid               String         @unique @default(uuid())
+  pmId               Int            @unique
+  accountNumber      String         @unique
+  accountName        String
+  bankName           String
+  bankCode           String
+  paystackCustomerId String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+}

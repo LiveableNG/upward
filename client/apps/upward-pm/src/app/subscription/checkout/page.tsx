@@ -31,7 +31,7 @@ function CheckoutContent() {
   const [customTopUpAmount, setCustomTopUpAmount] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  const { subscription, wallet, selectTier, isSelectingTier, topUp } = useSubscription();
+  const { subscription, wallet, selectTier, isSelectingTier, topUp, dva, isDvaLoading, generateDva, isGeneratingDva } = useSubscription();
   const { data: tenants = [] } = useTenants();
   const { user } = useAuth();
 
@@ -261,32 +261,45 @@ function CheckoutContent() {
               </div>
             ) : (
               <div>
-                <div className="bank-transfer-box">
-                  <div className="bank-detail-row">
-                    <span>Bank Name</span>
-                    <strong>Wema Bank / Upward DVA</strong>
+                {!dva ? (
+                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: 16, fontSize: 14 }}>
+                      Generate a Dedicated Virtual Account to receive direct bank transfers into your company wallet.
+                    </p>
+                    <button
+                      className="btn-checkout-primary"
+                      style={{ background: '#0f172a' }}
+                      onClick={() => generateDva()}
+                      disabled={isGeneratingDva || isDvaLoading}
+                    >
+                      {isGeneratingDva ? 'Generating...' : 'Generate Virtual Account'}
+                    </button>
                   </div>
-                  <div className="bank-detail-row">
-                    <span>Account Number</span>
-                    <strong>9928374102</strong>
-                  </div>
-                  <div className="bank-detail-row">
-                    <span>Account Name</span>
-                    <strong>Upward PM - {user?.businessName || user?.firstName || 'Company Wallet'}</strong>
-                  </div>
-                  <div className="bank-detail-row">
-                    <span>Payment Ref</span>
-                    <strong>PM-{user?.id || 'REF'}-DEP</strong>
-                  </div>
-                </div>
-                <button
-                  className="btn-checkout-primary"
-                  style={{ background: '#0f172a' }}
-                  onClick={handlePaystackTopUp}
-                  disabled={isProcessingPayment}
-                >
-                  Confirm Transfer Received
-                </button>
+                ) : (
+                  <>
+                    <div className="bank-transfer-box">
+                      <div className="bank-detail-row">
+                        <span>Bank Name</span>
+                        <strong>{dva.bankName}</strong>
+                      </div>
+                      <div className="bank-detail-row">
+                        <span>Account Number</span>
+                        <strong style={{ fontSize: 18, color: 'var(--clay)' }}>{dva.accountNumber}</strong>
+                      </div>
+                      <div className="bank-detail-row">
+                        <span>Account Name</span>
+                        <strong>{dva.accountName}</strong>
+                      </div>
+                      <div className="bank-detail-row">
+                        <span>Payment Ref</span>
+                        <strong>PM-{user?.id || 'REF'}-DEP</strong>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, textAlign: 'center' }}>
+                      Transfers to this account will automatically reflect in your wallet balance.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>
