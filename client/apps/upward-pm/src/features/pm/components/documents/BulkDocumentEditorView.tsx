@@ -34,6 +34,9 @@ import { CreditCard } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { downloadBlob } from '@/lib/download-helper'
+import { useSubscription } from '../../hooks/useSubscription'
+import { usePricingModal } from '../../hooks/usePricingModal'
+import { FeatureKey } from '../../types/subscription'
 
 interface BulkDocumentEditorViewProps {
   initialContent?: string
@@ -55,6 +58,8 @@ export function BulkDocumentEditorView({
   const { sendBulkDocument, generatePdf, templates = [] } = useDocuments()
   const { sendTemplateToVault } = useVaultActions()
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
 
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
   const { user } = useAuth()
@@ -910,7 +915,11 @@ export function BulkDocumentEditorView({
         <div style={{ padding: '0 24px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <button
             onClick={() => {
-              setIsTemplateModalOpen(false)
+              if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                openPricing()
+              } else {
+                setIsTemplateModalOpen(false)
+              }
             }}
             style={{ width: '100%', padding: '16px', borderRadius: 12, background: 'var(--bg)', border: '1px dashed var(--border)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
           >
@@ -922,10 +931,15 @@ export function BulkDocumentEditorView({
               <div
                 key={t.uuid}
                 onClick={() => {
-                  setCurrentTemplate(t)
-                  setContent(t.content)
-                  setSubject(t.subject || t.name)
-                  setIsTemplateModalOpen(false)
+                  const isFreeTemplate = t.name === 'Getting Started' || t.name === 'Benefits';
+                  if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                    openPricing()
+                  } else {
+                    setCurrentTemplate(t)
+                    setContent(t.content)
+                    setSubject(t.subject || t.name)
+                    setIsTemplateModalOpen(false)
+                  }
                 }}
                 style={{
                   padding: '16px',

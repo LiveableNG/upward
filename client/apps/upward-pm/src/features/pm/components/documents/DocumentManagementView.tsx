@@ -318,8 +318,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                     type={t.type}
                     isSystem={t.uuid?.startsWith('system-') || t.isSystem}
                     onClick={() => {
-                      const isSystem = t.uuid?.startsWith('system-') || t.isSystem;
-                      if (!isSystem && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                      const isFreeTemplate = t.name === 'Getting Started' || t.name === 'Benefits' || t.uuid === 'system-onboarding-1' || t.uuid === 'system-onboarding-2';
+                      if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
                         openPricing()
                       } else {
                         onSelectTemplate(t)
@@ -393,8 +393,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               type={t.type}
               isSystem={t.uuid?.startsWith('system-') || t.isSystem}
               onClick={() => {
-                const isSystem = t.uuid?.startsWith('system-') || t.isSystem;
-                if (!isSystem && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                const isFreeTemplate = t.name === 'Getting Started' || t.name === 'Benefits' || t.uuid === 'system-onboarding-1' || t.uuid === 'system-onboarding-2';
+                if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
                   openPricing()
                 } else {
                   onSelectTemplate(t)

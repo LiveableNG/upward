@@ -105,9 +105,73 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
           )}
         </div>
 
+        {/* Dedicated Subscription Status Pill / Indicator */}
+        {isCollapsed && !isOpen ? (
+          <div className="sidebar__plan-collapsed-wrap">
+            <button
+              onClick={() => {
+                openPricing();
+                onClose?.();
+              }}
+              className={cn(
+                'sidebar__plan-dot-btn',
+                `sidebar__plan-dot-btn--${(subscription?.tier || 'FREE').toLowerCase()}`
+              )}
+              title={
+                subscription?.tier === 'TIER_3'
+                  ? 'Enterprise Plan (Active)'
+                  : subscription?.tier === 'TIER_2'
+                  ? 'Professional Plan (Active)'
+                  : 'Free Plan (Click to Upgrade)'
+              }
+            >
+              <div className="sidebar__plan-dot" />
+              <div className="sidebar__plan-tooltip">
+                <div style={{ fontWeight: 700 }}>
+                  {subscription?.tier === 'TIER_3'
+                    ? 'Enterprise Plan'
+                    : subscription?.tier === 'TIER_2'
+                    ? 'Professional Plan'
+                    : 'Free Plan'}
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>
+                  {subscription?.tier === 'FREE' ? 'Upgrade →' : 'Active subscription'}
+                </div>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div className="sidebar__plan-card-wrap">
+            <button
+              onClick={() => {
+                openPricing();
+                onClose?.();
+              }}
+              className={cn(
+                'sidebar__plan-card',
+                `sidebar__plan-card--${(subscription?.tier || 'FREE').toLowerCase()}`
+              )}
+              title="Manage Subscription"
+            >
+              <div className="sidebar__plan-dot" />
+              <div className="sidebar__plan-info">
+                <span className="sidebar__plan-name">
+                  {subscription?.tier === 'TIER_3'
+                    ? 'Enterprise'
+                    : subscription?.tier === 'TIER_2'
+                    ? 'Professional'
+                    : 'Free Plan'}
+                </span>
+                <span className="sidebar__plan-action">
+                  {subscription?.tier === 'FREE' ? 'Upgrade →' : 'Active'}
+                </span>
+              </div>
+            </button>
+          </div>
+        )}
+
         <nav className="sidebar__nav" style={{ padding: 0 }}>
-          <div className="sidebar__section" style={{ marginTop: 24 }}>
-            {(!isCollapsed || isOpen) && <p className="sidebar__section-title">Main Menu</p>}
+          <div className="sidebar__section" style={{ marginTop: 8 }}>
             <ul className="sidebar__list">
               {navItems.map((item) => {
                 const Icon = item.icon
@@ -190,34 +254,26 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                               gap: 12
                             }}
                           >
-                            {subscription?.tier === 'FREE' ? (
-                              <div style={{ background: 'var(--ivory-dim)', padding: 12, borderRadius: 8, border: '1px solid var(--border)' }}>
-                                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <Sparkles size={12} fill="var(--text-muted)" stroke="var(--text-muted)" /> Free Plan
-                                </div>
+                            <div className={cn('sidebar__dropdown-plan', `sidebar__dropdown-plan--${(subscription?.tier || 'FREE').toLowerCase()}`)}>
+                              <div className="sidebar__dropdown-plan-header">
+                                <div className="sidebar__dropdown-plan-dot" />
+                                <span className="sidebar__dropdown-plan-name">
+                                  {subscription?.tier === 'TIER_3'
+                                    ? 'Enterprise Plan'
+                                    : subscription?.tier === 'TIER_2'
+                                    ? 'Professional Plan'
+                                    : 'Free Plan'}
+                                </span>
+                              </div>
+                              {subscription?.tier === 'FREE' && (
                                 <button
                                   onClick={() => { openPricing(); onClose?.(); setIsSettingsMenuOpen(false); }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '6px',
-                                    background: 'var(--forest)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: 6,
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                  }}
+                                  className="sidebar__dropdown-upgrade-btn"
                                 >
                                   Upgrade Plan &rarr;
                                 </button>
-                              </div>
-                            ) : (
-                              <div style={{ background: 'var(--forest-faint)', padding: 12, borderRadius: 8, border: '1px solid var(--forest-glow)', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
-                                <Sparkles size={14} fill="var(--forest)" stroke="var(--forest)" />
-                                <span style={{ fontSize: 12, fontWeight: 700 }}>Premium Plan</span>
-                              </div>
-                            )}
+                              )}
+                            </div>
                             <button 
                               className="sidebar__logout-btn" 
                               onClick={() => { logout(); onClose?.(); setIsSettingsMenuOpen(false); }}

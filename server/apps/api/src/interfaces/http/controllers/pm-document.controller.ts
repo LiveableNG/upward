@@ -82,11 +82,32 @@ export class PmDocumentController {
   }
 
   @Post('send-bulk')
-  @UseGuards(SubscriptionGateGuard)
-  @RequireFeature(FeatureKey.DOCUMENT_MANAGEMENT)
   async sendBulkDocument(@Request() req: any, @Body() data: BulkSendDocumentDto) {
     const pmId = await this.getPmId(req);
     const pmUuid = req.user?.sub;
+
+    const isFreeTemplate = 
+      data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' ||
+      data.subject === 'Your Good Rental History Should Work for You' ||
+      data.subject === 'Getting Started' ||
+      data.subject === 'Benefits' ||
+      data.templateName === 'Getting Started' ||
+      data.templateName === 'Benefits';
+
+    if (!isFreeTemplate) {
+      const check = await this.subscriptionService.checkAccess(pmId, FeatureKey.DOCUMENT_MANAGEMENT);
+      if (!check.hasAccess) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'This feature is locked under your current plan.',
+          code: 'FEATURE_LOCKED',
+          requiredTier: check.requiredTier,
+          reason: check.reason,
+        });
+      }
+    }
+
     return this.sendBulkDocumentUseCase.execute(pmId, pmUuid, data);
   }
 

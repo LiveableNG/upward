@@ -57,6 +57,7 @@ export class PmHomeRequestController {
   @RequireFeature(FeatureKey.LISTING_BROKERAGE)
   async revealContact(@Req() req: any, @Param('uuid') uuid: string) {
     const pmId = await this.getPmId(req)
-    return this.revealPmHomeRequestContactUseCase.execute(pmId, uuid)
+    const limit = (req as any).featureLimit
+    return this.revealPmHomeRequestContactUseCase.execute(pmId, uuid, limit)
   }
 }
