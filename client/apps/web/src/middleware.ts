@@ -38,6 +38,7 @@ const PM_ROUTE_PREFIXES = [
   '/rent-requests',
   '/rent-request',
   '/home-requests',
+  '/subscription',
 ]
 
 const PAY_ROUTE_PREFIXES = [
@@ -231,6 +232,7 @@ export async function middleware(request: NextRequest) {
     redirectParam.startsWith('/rent-requests') ||
     redirectParam.startsWith('/rent-request') ||
     redirectParam.startsWith('/home-requests') ||
+    redirectParam.startsWith('/subscription') ||
     redirectParam.startsWith('/pm')
 
   const isPmPath =
@@ -244,6 +246,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/rent-requests') ||
     pathname.startsWith('/rent-request') ||
     pathname.startsWith('/home-requests') ||
+    pathname.startsWith('/subscription') ||
     pathname.startsWith('/_upward_pm') ||
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
@@ -366,6 +369,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/rent-requests') ||
     pathname.startsWith('/rent-request') ||
     pathname.startsWith('/home-requests') ||
+    pathname.startsWith('/subscription') ||
     pathname.startsWith('/api/v1')
 
   const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
@@ -488,6 +492,7 @@ export const config = {
     '/rent-requests/:path*',
     '/rent-request/:path*',
     '/home-requests/:path*',
+    '/subscription/:path*',
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',
