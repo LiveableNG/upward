@@ -1171,6 +1171,41 @@ export class ProcessPaymentWebhookUseCase {
 
     this.logger.log(`Processing DVA Payment for account: ${accountNumber}`)
 
+
+    const pmDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
+      where: { accountNumber }
+    });
+
+    if (pmDva) {
+      this.logger.log(`Routing DVA Payment for PM Wallet: PM ID ${pmDva.pmId}`);
+      
+      const amountPaid = data.amount / 100;
+      
+      let wallet = await this.prisma.upward_pm_wallet.findUnique({ where: { pmId: pmDva.pmId } });
+      if (!wallet) {
+        wallet = await this.prisma.upward_pm_wallet.create({ data: { pmId: pmDva.pmId, balance: 0 } });
+      }
+
+      await this.prisma.upward_pm_wallet_transaction.create({
+        data: {
+          walletId: wallet.id,
+          pmId: pmDva.pmId,
+          amount: amountPaid,
+          type: 'DEPOSIT',
+          reference: data.reference || `PM_DVA_${Date.now()}`,
+          status: 'SUCCESS',
+          narration: 'Wallet Funding via Dedicated Virtual Account',
+        }
+      });
+      
+      await this.prisma.upward_pm_wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: amountPaid } }
+      });
+      
+      return { success: true, message: 'PM Wallet Funded' };
+    }
+
     const dva = await this.dvaRepo.findByAccountNumber(accountNumber)
     if (!dva || !dva.userPropertyId) {
       this.logger.warn(`DVA payment received for unknown or unlinked account: ${accountNumber}`)

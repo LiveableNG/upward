@@ -12,6 +12,7 @@ import { EncryptionService } from '../../shared/infrastructure/common/encryption
 import * as crypto from 'crypto'
 
 import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 
 @Injectable()
 export class PmAuthService extends BaseAuthService {
@@ -23,6 +24,7 @@ export class PmAuthService extends BaseAuthService {
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly eventEmitter: EventEmitter2,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -134,6 +136,8 @@ export class PmAuthService extends BaseAuthService {
     })
 
     this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
+
+    this.eventEmitter.emit('pm.registered', { pmUuid: savedPm.uuid });
 
     return this.generateFullAuthResponse(savedPm)
   }

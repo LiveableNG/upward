@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useAuth } from '@/features/auth/AuthContext'
-import { LogOut, Bell } from 'lucide-react'
+import { LogOut, Bell, Wallet as WalletIcon } from 'lucide-react'
 import Link from 'next/link'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useVerificationStatus } from '@/features/pm/hooks/useVerification'
@@ -12,11 +12,13 @@ import { useRouter, usePathname } from 'next/navigation'
 import { AlertCircle, Calendar, Sparkles, Check, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NotificationsMenu } from '@/components/common/NotificationsMenu'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
 
 export function DesktopHeader() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const { data: verification } = useVerificationStatus()
+  const { wallet } = useSubscription()
   const pathname = usePathname()
 
   if (!user) return null
@@ -129,10 +131,6 @@ export function DesktopHeader() {
               initials={`${user.firstName[0] || 'P'}${user.lastName[0] || 'M'}`}
             />
           </Link>
-
-          <button onClick={logout} className="desktop-header__logout" title="Log out">
-            <LogOut size={18} />
-          </button>
         </div>
       </div>
 

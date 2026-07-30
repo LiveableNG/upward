@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { 
   PM_PAYMENT_REQUEST_REPOSITORY, IPmPaymentRequestRepository,
   PM_UNIT_REPOSITORY, IUnitRepository 
@@ -11,6 +11,7 @@ import { PM_TENANT_REPOSITORY, ITenantRepository } from '../../../../domains/pm/
 import { EVENT_BUS, EventBus } from '../../../events/domain-event';
 import { PmPaymentNotificationEvent } from '../../../events/definition/pm-payment-notification.event';
 import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
+import { SubscriptionService, FeatureKey } from '../../../../domains/subscription/subscription.service';
 
 export interface CreatePmPaymentRequestDto {
   unitUuid: string;
@@ -47,6 +48,7 @@ export class CreatePmPaymentRequestUseCase {
     private readonly eventBus: EventBus,
     private readonly activityLog: ActivityLogService,
     private readonly createExternalPaymentRequestUseCase: CreateExternalPaymentRequestUseCase,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async execute(pmId: number, data: CreatePmPaymentRequestDto): Promise<any> {
@@ -97,14 +99,37 @@ export class CreatePmPaymentRequestUseCase {
       throw new BadRequestException('Please set up your bank information in settings to receive payments');
     }
 
+    // Programmatically gate premium features under SERVICE_CHARGE_PAYMENTS
+    const isScheduled = data.scheduledAt && new Date(data.scheduledAt) > new Date();
+    const isRecurring = data.isRecurring;
+    const hasReminders = data.reminderFrequency && data.reminderFrequency !== 'NONE';
+    const hasMultipleLineItems = data.lineItems && (
+      data.lineItems.length > 1 || 
+      (data.lineItems.length === 1 && data.lineItems[0]?.name !== 'Rent')
+    );
+
+    const isPremiumFeatureUsed = isScheduled || isRecurring || hasReminders || hasMultipleLineItems;
+
+    if (isPremiumFeatureUsed) {
+      const check = await this.subscriptionService.checkAccess(ownerPmId, FeatureKey.SERVICE_CHARGE_PAYMENTS);
+      if (!check.hasAccess) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'Premium payment features (scheduling, recurring, reminders, and custom line items) are locked under your current plan.',
+          code: 'FEATURE_LOCKED',
+          requiredTier: check.requiredTier,
+          reason: check.reason,
+        });
+      }
+    }
+
     if (unit.tenantId) {
       const tenant = await this.pmTenantRepo.findById(unit.tenantId);
       if (tenant && !tenant.hasReceivedWelcomeTemplate) {
         throw new BadRequestException('You must send the Welcome system template to this tenant before requesting payment.');
       }
     }
-
-    const isScheduled = data.scheduledAt && new Date(data.scheduledAt) > new Date();
     
     let corePRId: number | null = null;
     let status = 'PENDING';

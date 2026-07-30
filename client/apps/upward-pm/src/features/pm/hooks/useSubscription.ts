@@ -17,6 +17,16 @@ export function useSubscription() {
     queryFn: () => api.get('/pm/wallet'),
   });
 
+  const { data: dva, isLoading: isDvaLoading } = useQuery({
+    queryKey: ['pm_dva'],
+    queryFn: () => api.get('/pm/subscription/wallet/dva').then(res => res.data),
+  });
+
+  const { data: transactions, isLoading: isTransactionsLoading } = useQuery({
+    queryKey: ['wallet_transactions'],
+    queryFn: () => api.get('/pm/wallet/transactions'),
+  });
+
   const selectTierMutation = useMutation({
     mutationFn: (data: { tier: SubscriptionTier; billingMode?: 'active' | 'all' }) =>
       api.post('/pm/subscription/select-tier', data),
@@ -39,6 +49,17 @@ export function useSubscription() {
     },
     onError: (err: any) => {
       error(err.message || 'Failed to top up wallet');
+    },
+  });
+
+  const generateDvaMutation = useMutation({
+    mutationFn: () => api.post('/pm/subscription/wallet/dva/generate'),
+    onSuccess: () => {
+      success('Dedicated virtual account generated');
+      queryClient.invalidateQueries({ queryKey: ['pm_dva'] });
+    },
+    onError: (err: any) => {
+      error(err.message || 'Failed to generate virtual account');
     },
   });
 
@@ -81,5 +102,11 @@ export function useSubscription() {
     isSelectingTier: selectTierMutation.isPending,
     topUp: topUpMutation.mutate,
     isToppingUp: topUpMutation.isPending,
+    dva,
+    isDvaLoading,
+    generateDva: generateDvaMutation.mutate,
+    isGeneratingDva: generateDvaMutation.isPending,
+    transactions,
+    isTransactionsLoading,
   };
 }

@@ -49,8 +49,10 @@ model upward_property_manager {
 
   subscription          upward_subscription?
   wallet                upward_pm_wallet?
+  dedicatedVirtualAccount upward_pm_dedicated_virtual_account?
   walletTransactions    upward_pm_wallet_transaction[]
   subscriptionInvoices  upward_subscription_invoice[]
+  subscriptionLogs      upward_subscription_log[]
 
   @@index([email])
 }

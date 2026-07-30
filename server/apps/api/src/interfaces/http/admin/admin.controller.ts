@@ -73,6 +73,7 @@ import { GetInternalAccountsUseCase } from '../../../application/use-cases/admin
 import { ToggleInternalAccountUseCase } from '../../../application/use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from '../../../application/use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from '../../../application/use-cases/admin/get-invitation-tracker.use-case'
+import { ManagePmSubscriptionUseCase, ManagePmSubscriptionDto } from '../../../application/use-cases/admin/manage-pm-subscription.use-case'
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -125,6 +126,7 @@ export class AdminController {
     private readonly toggleInternalAccountUseCase: ToggleInternalAccountUseCase,
     private readonly syncTenantUseCase: SyncTenantUseCase,
     private readonly getInvitationTrackerUseCase: GetInvitationTrackerUseCase,
+    private readonly managePmSubscriptionUseCase: ManagePmSubscriptionUseCase,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -182,6 +184,16 @@ export class AdminController {
   @Roles(AdminRole.DEVELOPER)
   async updatePmDetail(@Param('uuid') uuid: string, @Body() data: any) {
     return { data: await this.updateAdminPmUseCase.execute(uuid, data) }
+  }
+
+  @Post('pms/:uuid/subscription/manage')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async managePmSubscription(
+    @Param('uuid') pmUuid: string,
+    @Body() body: ManagePmSubscriptionDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.managePmSubscriptionUseCase.execute(pmUuid, req.user.id, body)
   }
 
   @Post('users/:uuid/notify')
