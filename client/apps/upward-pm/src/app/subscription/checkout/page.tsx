@@ -75,8 +75,8 @@ function CheckoutContent() {
   const yearlyRate = tier === 'TIER_3' ? 2250 : 1500;
   const monthlyRatePerUnit = yearlyRate / 12;
 
-  // Minimum required deposit: 0 units -> flat ₦50,000, >0 units -> unitCount * rate * 6
-  const minRequiredDeposit = unitCount === 0 ? 50000 : unitCount * yearlyRate * 6;
+  // Minimum required deposit: Math.max(₦50,000, unitCount * yearlyRate)
+  const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
   const currentBalance = wallet?.balance ?? 0;
   const deficit = Math.max(0, minRequiredDeposit - currentBalance);
   const isBalanceSufficient = currentBalance >= minRequiredDeposit;

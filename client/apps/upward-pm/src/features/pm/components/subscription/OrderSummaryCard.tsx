@@ -71,8 +71,8 @@ export function OrderSummaryCard({
       </div>
 
       <div className="order-summary-total-row">
-        <span className="order-summary-total-row__label">Pay Today</span>
-        <span className="order-summary-total-row__value">₦{minRequiredDeposit.toLocaleString()}</span>
+        <span className="order-summary-total-row__label">Deposit Needed</span>
+        <span className="order-summary-total-row__value">₦{deficit.toLocaleString()}</span>
       </div>
 
       {/* Payment Method Selector */}

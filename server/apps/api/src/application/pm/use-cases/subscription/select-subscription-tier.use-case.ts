@@ -25,7 +25,7 @@ export class SelectSubscriptionTierUseCase {
       },
     });
 
-    const minDeposit = unitCount === 0 ? 50000 : unitCount * rate * 6;
+    const minDeposit = Math.max(50000, unitCount * rate);
 
     let sub = pm.subscription;
     if (!sub) {
