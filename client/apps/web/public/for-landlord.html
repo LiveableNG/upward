@@ -15,14 +15,14 @@
                 extend: {
                     colors: {
                         terracotta: {
-                            50: '#fdf8f6',
-                            100: '#fbece8',
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
                             200: '#f0c8b8',
                             300: '#e0a08a',
-                            400: '#e5a58e',
-                            500: '#D48166',
-                            600: '#B26B50',
-                            700: '#8f5640',
+                            400: '#86efac',
+                            500: '#15803d',
+                            600: '#166534',
+                            700: '#14532d',
                             900: '#2d0f05',
                         },
                         forest: {
@@ -86,14 +86,14 @@
         .benefit-card {
             background: #fff;
             border-radius: 2rem;
-            border: 1px solid #fbece8;
+            border: 1px solid #dcfce7;
             padding: 2rem;
             transition: all .3s ease;
         }
 
         .benefit-card:hover {
-            border-color: #e5a58e;
-            box-shadow: 0 20px 40px rgba(178, 107, 80, .1);
+            border-color: #86efac;
+            box-shadow: 0 20px 40px rgba(22, 101, 52, .1);
             transform: translateY(-4px);
         }
 
@@ -102,11 +102,11 @@
             border-radius: 1.5rem;
             overflow: hidden;
             box-shadow: 0 32px 80px rgba(0, 0, 0, .12);
-            border: 1px solid #fbece8;
+            border: 1px solid #dcfce7;
         }
 
         .property-img-placeholder {
-            background: linear-gradient(135deg, #fbece8 0%, #e5a58e 100%);
+            background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%);
             height: 200px;
             display: flex;
             align-items: center;
@@ -129,7 +129,7 @@
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            background: conic-gradient(#B26B50 0% 78%, #fbece8 78% 100%);
+            background: conic-gradient(#166534 0% 78%, #dcfce7 78% 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -140,7 +140,7 @@
             content: '';
             position: absolute;
             inset: 14px;
-            background: #fdf8f6;
+            background: #f0fdf4;
             border-radius: 50%;
         }
 
@@ -153,7 +153,7 @@
         /* Trust stat card — on-brand light */
         .trust-stat-card {
             background: #fff;
-            border: 1px solid #fbece8;
+            border: 1px solid #dcfce7;
             border-radius: 2rem;
             padding: 2.5rem;
         }
@@ -190,21 +190,21 @@
             padding: 0.875rem 1.25rem;
             border: none;
             border-radius: 9999px;
-            background: #B26B50 !important;
+            background: #166534 !important;
             color: #fff;
             font-family: inherit;
             font-size: 0.875rem;
             font-weight: 700;
             letter-spacing: 0.01em;
             cursor: pointer;
-            box-shadow: 0 12px 28px rgb(178 107 80 / 35%);
+            box-shadow: 0 12px 28px rgb(22 101 52 / 35%);
             transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
 
         .contact-us-float:hover {
             transform: translateY(-2px);
-            background: #8f5640 !important;
-            box-shadow: 0 16px 32px rgb(178 107 80 / 40%);
+            background: #14532d !important;
+            box-shadow: 0 16px 32px rgb(22 101 52 / 40%);
             color: #fff;
         }
 
@@ -240,8 +240,8 @@
             background: #fff;
             border-radius: 1.5rem 1.5rem 0 0;
             padding: 0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
-            box-shadow: 0 -12px 40px rgb(178 107 80/18%);
-            border-top: 1px solid #fbece8;
+            box-shadow: 0 -12px 40px rgb(22 101 52/18%);
+            border-top: 1px solid #dcfce7;
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
         }
@@ -280,15 +280,15 @@
             justify-content: center;
             border: none;
             border-radius: 9999px;
-            background: #fdf8f6;
+            background: #f0fdf4;
             color: #64748b;
             cursor: pointer;
             transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         .contact-drawer-close:hover {
-            background: #fbece8;
-            color: #B26B50;
+            background: #dcfce7;
+            color: #166534;
         }
 
         .contact-drawer-subtitle {
@@ -309,17 +309,17 @@
             gap: 1rem;
             padding: 1rem 1.125rem;
             border-radius: 1.25rem;
-            border: 1px solid #fbece8;
-            background: #fdf8f6;
+            border: 1px solid #dcfce7;
+            background: #f0fdf4;
             color: #0f172a;
             text-decoration: none;
             transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .contact-drawer-option:hover {
-            border-color: #D48166;
+            border-color: #15803d;
             background: #fff;
-            box-shadow: 0 8px 24px rgb(178 107 80/12%);
+            box-shadow: 0 8px 24px rgb(22 101 52/12%);
             color: #0f172a;
         }
 
@@ -332,8 +332,8 @@
             justify-content: center;
             border-radius: 0.875rem;
             background: #fff;
-            color: #B26B50;
-            border: 1px solid #fbece8;
+            color: #166534;
+            border: 1px solid #dcfce7;
             font-size: 1.125rem;
         }
 
@@ -374,8 +374,8 @@
                 max-width: calc(100vw - 3rem);
                 border-radius: 1.5rem;
                 padding: 1rem 1.5rem 1.5rem;
-                border: 1px solid #fbece8;
-                box-shadow: 0 12px 40px rgb(178 107 80/22%);
+                border: 1px solid #dcfce7;
+                box-shadow: 0 12px 40px rgb(22 101 52/22%);
                 transform: translateY(8px);
                 opacity: 0;
                 visibility: hidden;
@@ -405,32 +405,32 @@
 
     <!-- Navigation -->
     <header id="header"
-        class="fixed top-0 left-0 right-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-terracotta-100">
+        class="fixed top-0 left-0 right-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-forest-100">
         <nav class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 h-16 lg:h-20 flex items-center justify-between">
             <div class="flex items-center gap-12">
                 <a href="/" class="flex items-center gap-2 no-underline">
                     <div
-                        class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center border border-terracotta-100 shadow-sm">
+                        class="w-10 h-10 bg-forest-50 rounded-xl flex items-center justify-center border border-forest-100 shadow-sm">
                         <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain" />
                     </div>
                     <span class="text-xl lg:text-2xl font-black tracking-tight text-slate-900">UPWARD</span>
                 </a>
                 <div class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                    <a href="/request-a-home" class="hover:text-terracotta-600 transition-colors">Request a Home</a>
-                    <a href="/for-landlord" class="text-terracotta-600 font-bold">Landlords</a>
-                    <a href="/for-pm" class="hover:text-terracotta-600 transition-colors">Property Managers</a>
-                    <a href="/blog" class="hover:text-terracotta-600 transition-colors">Blog</a>
+                    <a href="/request-a-home" class="hover:text-forest-600 transition-colors">Request a Home</a>
+                    <a href="/for-landlord" class="text-forest-600 font-bold">Landlords</a>
+                    <a href="/for-pm" class="hover:text-forest-600 transition-colors">Property Managers</a>
+                    <a href="/blog" class="hover:text-forest-600 transition-colors">Blog</a>
                 </div>
             </div>
             <div class="flex items-center gap-3 lg:gap-6">
                 <a href="/pm-login"
-                    class="hidden lg:inline text-sm font-bold text-slate-800 hover:text-terracotta-600 transition-colors">Sign
+                    class="hidden lg:inline text-sm font-bold text-slate-800 hover:text-forest-600 transition-colors">Sign
                     In</a>
-                <a href="/pm-signup"
+                <a href="/pm-login"
                     class="hidden lg:inline-flex bg-forest-600 text-white px-7 py-3 rounded-full font-bold text-sm shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET
                     STARTED</a>
                 <button type="button" id="mobile-menu-toggle"
-                    class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-terracotta-50"
+                    class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-forest-50"
                     aria-label="Open menu" aria-expanded="false">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
@@ -443,26 +443,26 @@
         <div class="flex justify-between items-center mb-10">
             <a href="/" class="flex items-center gap-2 no-underline">
                 <div
-                    class="w-9 h-9 bg-terracotta-50 rounded-lg flex items-center justify-center border border-terracotta-100 shadow-sm">
+                    class="w-9 h-9 bg-forest-50 rounded-lg flex items-center justify-center border border-forest-100 shadow-sm">
                     <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain" />
                 </div>
                 <span class="text-xl font-black tracking-tight text-slate-900">UPWARD</span>
             </a>
             <button type="button" id="mobile-menu-close"
-                class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-terracotta-50"
+                class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-forest-50"
                 aria-label="Close menu">
                 <i class="fa-solid fa-xmark text-2xl"></i>
             </button>
         </div>
         <nav class="flex flex-col gap-6 text-lg font-semibold text-slate-800">
-            <a href="/request-a-home" class="hover:text-terracotta-600 transition-colors">Request a Home</a>
-            <a href="/for-landlord" class="text-terracotta-600 font-bold">Landlords</a>
-            <a href="/for-pm" class="hover:text-terracotta-600 transition-colors">Property Managers</a>
-            <a href="/blog" class="hover:text-terracotta-600 transition-colors">Blog</a>
-            <a href="/pm-login" class="hover:text-terracotta-600 transition-colors">Sign In</a>
+            <a href="/request-a-home" class="hover:text-forest-600 transition-colors">Request a Home</a>
+            <a href="/for-landlord" class="text-forest-600 font-bold">Landlords</a>
+            <a href="/for-pm" class="hover:text-forest-600 transition-colors">Property Managers</a>
+            <a href="/blog" class="hover:text-forest-600 transition-colors">Blog</a>
+            <a href="/pm-login" class="hover:text-forest-600 transition-colors">Sign In</a>
         </nav>
         <div class="mt-auto pb-8 pt-8">
-            <a href="/pm-signup"
+            <a href="/pm-login"
                 class="block w-full text-center bg-forest-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET
                 STARTED — FREE</a>
         </div>
@@ -472,31 +472,27 @@
         <!-- Hero -->
         <section id="hero" class="pt-32 pb-20 px-6 sm:px-12 relative overflow-hidden bg-white">
             <div
-                class="absolute top-0 right-0 w-[700px] h-[700px] bg-terracotta-50 rounded-full opacity-30 blur-[120px] pointer-events-none -translate-y-1/3 translate-x-1/4">
+                class="absolute top-0 right-0 w-[700px] h-[700px] bg-forest-50 rounded-full opacity-30 blur-[120px] pointer-events-none -translate-y-1/3 translate-x-1/4">
             </div>
             <div class="max-w-[1440px] mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
                 <!-- Left copy -->
                 <div class="w-full lg:w-1/2 space-y-8 relative z-10">
                     <div
-                        class="hero-animate inline-flex items-center gap-3 px-4 py-2 bg-terracotta-50 text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100">
+                        class="hero-animate inline-flex items-center gap-3 px-4 py-2 bg-forest-50 text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100">
                         <i class="fa-solid fa-building"></i> For Landlords
                     </div>
                     <h1
                         class="hero-animate-delay-1 text-5xl xl:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight">
                         Maximize ROI.<br>Protect your property.<br>
-                        <span class="text-terracotta-600 italic">Never chase rent again.</span>
+                        <span class="text-forest-600 italic">Never chase rent again.</span>
                     </h1>
                     <p class="hero-animate-delay-2 text-xl text-slate-600 max-w-xl leading-relaxed">
                         Everything you need to run your rental like a business — without the stories.
                     </p>
-                    <div class="hero-animate-delay-3 flex lg:hidden flex-col items-stretch sm:items-start gap-4 pt-2">
-                        <a href="/pm-signup"
-                            class="block sm:inline-block text-center bg-terracotta-600 text-white px-8 sm:px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-terracotta-600/30 hover:scale-[1.03] hover:bg-terracotta-700 transition-all active:scale-95 no-underline whitespace-nowrap">
-                            Get Started
-                        </a>
+                    <div class="hero-animate-delay-3 flex flex-col items-stretch sm:items-start gap-4 pt-2">
                         <a href="/pm-login"
-                            class="flex items-center justify-center sm:justify-start gap-2 text-slate-600 font-bold text-sm hover:text-terracotta-600 transition-colors no-underline">
-                            Already have an account? <span class="text-terracotta-600 underline">Sign in →</span>
+                            class="block sm:inline-block text-center bg-forest-600 text-white px-8 sm:px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-forest-600/30 hover:scale-[1.03] hover:bg-forest-700 transition-all active:scale-95 no-underline whitespace-nowrap">
+                            Get Started
                         </a>
                     </div>
                 </div>
@@ -505,7 +501,7 @@
                 <div class="w-full lg:w-1/2 relative">
                     <div class="property-mockup">
                         <div class="property-img-placeholder">
-                            <i class="fa-solid fa-building text-terracotta-600 text-6xl opacity-40"></i>
+                            <i class="fa-solid fa-building text-forest-600 text-6xl opacity-40"></i>
                         </div>
                         <div class="p-6 space-y-4">
                             <div class="flex items-start justify-between">
@@ -518,7 +514,7 @@
                             </div>
                             <div class="grid grid-cols-3 gap-3 pt-2">
                                 <div class="text-center p-3 bg-slate-50 rounded-xl">
-                                    <p class="text-terracotta-600 font-black text-lg">₦3.2M</p>
+                                    <p class="text-forest-600 font-black text-lg">₦3.2M</p>
                                     <p class="text-slate-400 text-xs">Annual Rent</p>
                                 </div>
                                 <div class="text-center p-3 bg-slate-50 rounded-xl">
@@ -531,8 +527,8 @@
                                 </div>
                             </div>
                             <div
-                                class="flex items-center gap-3 pt-2 p-3 bg-terracotta-50 rounded-xl border border-terracotta-100">
-                                <i class="fa-solid fa-shield-halved text-terracotta-600 text-lg"></i>
+                                class="flex items-center gap-3 pt-2 p-3 bg-forest-50 rounded-xl border border-forest-100">
+                                <i class="fa-solid fa-shield-halved text-forest-600 text-lg"></i>
                                 <div>
                                     <p class="text-xs font-black text-slate-900">Rent Insurance Active</p>
                                     <p class="text-xs text-slate-400">Covered for up to 3 months of missed rent</p>
@@ -543,8 +539,8 @@
                     <!-- Floating stat -->
                     <div class="stat-card absolute -bottom-4 -right-4 sm:-right-8">
                         <div
-                            class="w-9 h-9 bg-terracotta-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <i class="fa-solid fa-arrow-trend-up text-terracotta-600 text-sm"></i>
+                            class="w-9 h-9 bg-forest-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-arrow-trend-up text-forest-600 text-sm"></i>
                         </div>
                         <div>
                             <p class="text-xs font-black text-slate-900">+18% ROI</p>
@@ -556,14 +552,14 @@
         </section>
 
         <!-- Benefits Grid -->
-        <section id="benefits" class="py-24 px-6 sm:px-12 bg-terracotta-50">
+        <section id="benefits" class="py-24 px-6 sm:px-12 bg-forest-50">
             <div class="max-w-[1280px] mx-auto">
                 <div class="text-center mb-16">
                     <div
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-white text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100 mb-6">
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-white text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100 mb-6">
                         What You Get</div>
                     <h2 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-4">
-                        Your property works harder.<br><span class="text-terracotta-600">You work less.</span>
+                        Your property works harder.<br><span class="text-forest-600">You work less.</span>
                     </h2>
                     <p class="text-lg text-slate-500 max-w-xl mx-auto leading-relaxed">From collection to compliance —
                         Upward handles the operational side of landlording so you don't have to.</p>
@@ -571,7 +567,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="benefit-card flex gap-5">
                         <div
-                            class="w-14 h-14 bg-terracotta-50 rounded-2xl flex items-center justify-center text-2xl text-terracotta-600 flex-shrink-0">
+                            class="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center text-2xl text-forest-600 flex-shrink-0">
                             <i class="fa-solid fa-shield-halved"></i></div>
                         <div>
                             <h3 class="text-xl font-black text-slate-900 mb-2">Rent Insurance, No Stories</h3>
@@ -635,21 +631,21 @@
                                     of 78% more of their expected annual rent compared to self-managed properties.</p>
                             </div>
                         </div>
-                        <div class="space-y-3 pt-2 border-t border-terracotta-100">
+                        <div class="space-y-3 pt-2 border-t border-forest-100">
                             <div class="flex items-center gap-3">
-                                <i class="fa-solid fa-check-circle text-terracotta-500 text-sm"></i>
+                                <i class="fa-solid fa-check-circle text-forest-500 text-sm"></i>
                                 <span class="text-slate-600 text-sm">Zero manual rent chasing</span>
                             </div>
                             <div class="flex items-center gap-3">
-                                <i class="fa-solid fa-check-circle text-terracotta-500 text-sm"></i>
+                                <i class="fa-solid fa-check-circle text-forest-500 text-sm"></i>
                                 <span class="text-slate-600 text-sm">Real-time payment visibility</span>
                             </div>
                             <div class="flex items-center gap-3">
-                                <i class="fa-solid fa-check-circle text-terracotta-500 text-sm"></i>
+                                <i class="fa-solid fa-check-circle text-forest-500 text-sm"></i>
                                 <span class="text-slate-600 text-sm">Verified tenant history before move-in</span>
                             </div>
                             <div class="flex items-center gap-3">
-                                <i class="fa-solid fa-check-circle text-terracotta-500 text-sm"></i>
+                                <i class="fa-solid fa-check-circle text-forest-500 text-sm"></i>
                                 <span class="text-slate-600 text-sm">Insurance backup if they don't pay</span>
                             </div>
                         </div>
@@ -658,17 +654,17 @@
                     <!-- Right copy -->
                     <div class="space-y-6">
                         <div
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-terracotta-50 text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100">
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-forest-50 text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100">
                             Built for landlords</div>
                         <h2 class="text-4xl font-black text-slate-900 leading-tight">
                             Your tenant has an Upward Score.<br>
-                            <span class="text-terracotta-600">You have peace of mind.</span>
+                            <span class="text-forest-600">You have peace of mind.</span>
                         </h2>
                         <p class="text-slate-500 text-lg leading-relaxed">Every tenant on Upward carries a verified
                             housing reputation. You see their payment history, KYC status, and score — before you hand
                             over the keys. No more references from cousins.</p>
-                        <a href="/pm-signup"
-                            class="inline-block bg-terracotta-600 text-white px-8 py-4 rounded-2xl font-black text-base shadow-xl shadow-terracotta-600/25 hover:scale-[1.03] hover:bg-terracotta-700 transition-all active:scale-95 no-underline">
+                        <a href="/pm-login"
+                            class="inline-block bg-forest-600 text-white px-8 py-4 rounded-2xl font-black text-base shadow-xl shadow-forest-600/25 hover:scale-[1.03] hover:bg-forest-700 transition-all active:scale-95 no-underline">
                             Get Started — Free
                         </a>
                     </div>
@@ -677,27 +673,27 @@
         </section>
 
         <!-- Closing CTA — on-brand terracotta theme -->
-        <section class="py-24 px-6 sm:px-12 bg-terracotta-50 border-t border-terracotta-100">
+        <section class="py-24 px-6 sm:px-12 bg-forest-50 border-t border-forest-100">
             <div class="max-w-3xl mx-auto text-center">
                 <div
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-white text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100 mb-8">
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-white text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100 mb-8">
                     <i class="fa-solid fa-building"></i> Upward for Landlords
                 </div>
                 <h2 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-6">
                     Your property.<br>
                     Less hassle.<br>
-                    <span class="text-terracotta-600">More returns.</span>
+                    <span class="text-forest-600">More returns.</span>
                 </h2>
                 <p class="text-xl text-slate-500 mb-10 leading-relaxed">
                     Join landlords already protecting their income and growing their portfolio on Upward.
                 </p>
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <a href="/pm-signup"
-                        class="inline-block bg-terracotta-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-terracotta-600/30 hover:scale-[1.03] hover:bg-terracotta-700 transition-all active:scale-95 no-underline">
+                        class="inline-block bg-forest-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-forest-600/30 hover:scale-[1.03] hover:bg-forest-700 transition-all active:scale-95 no-underline">
                         Get Started — Free
                     </a>
                     <a href="/pm-login"
-                        class="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-terracotta-600 transition-colors no-underline">
+                        class="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-forest-600 transition-colors no-underline">
                         Already have an account →
                     </a>
                 </div>
@@ -709,7 +705,7 @@
     <footer id="footer" class="bg-slate-950 text-slate-400 py-16 px-4">
         <div class="max-w-3xl mx-auto text-center space-y-6">
             <div class="flex items-center justify-center gap-2 text-white">
-                <div class="w-8 h-8 bg-terracotta-50 rounded-lg flex items-center justify-center">
+                <div class="w-8 h-8 bg-forest-50 rounded-lg flex items-center justify-center">
                     <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain" />
                 </div>
                 <span class="text-xl font-bold tracking-tight">UPWARD</span>
@@ -718,31 +714,31 @@
                 affordable and accessible for the next generation of homeowners.</p>
             <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                 <a href="mailto:hello@goodtenants.africa"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">hello@goodtenants.africa</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">hello@goodtenants.africa</a>
                 <a href="tel:09040969943"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">09040969943</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">09040969943</a>
             </div>
             <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                 <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline flex items-center gap-2">
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
                     <i class="fa-brands fa-x-twitter"></i> Twitter
                 </a>
                 <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline flex items-center gap-2">
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
                     <i class="fa-brands fa-linkedin-in"></i> LinkedIn
                 </a>
             </div>
             <nav aria-label="Legal" class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
                 <a href="/blog"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">Blog</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Blog</a>
                 <a href="/legal/privacy"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">Privacy Policy</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Privacy Policy</a>
                 <a href="/legal/terms"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">Terms of Use</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Terms of Use</a>
                 <a href="/legal/cookies"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">Cookie Policy</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Cookie Policy</a>
                 <a href="/legal/notice"
-                    class="text-slate-400 hover:text-terracotta-400 transition-colors no-underline">Legal Notice</a>
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Legal Notice</a>
             </nav>
             <div class="pt-6 border-t border-slate-900 text-xs">
                 <p>© 2026 Upward by GoodTenants. All rights reserved. Registered in Nigeria.</p>

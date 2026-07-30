@@ -32,7 +32,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
       <div className="auth-layout__visual">
         <div className="auth-layout__visual-content">
           <header className="auth-layout__visual-header">
-            <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"} className="auth-shell__brand">
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/for-pm`} className="auth-shell__brand">
               <UpwardLogo color="white" size={42} />
             </a>
           </header>
@@ -129,7 +129,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
               </Link>
             ) : (
               <a
-                href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}
+                href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/for-pm`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

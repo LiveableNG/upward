@@ -336,7 +336,7 @@ export const SignupFormMobile = () => {
             {isNative ? (
               <UpwardLogo size={32} color="var(--forest)" />
             ) : (
-              <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}>
+              <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/for-pm`}>
                 <UpwardLogo size={32} color="var(--forest)" />
               </a>
             )}
