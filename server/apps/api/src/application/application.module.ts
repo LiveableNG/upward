@@ -198,6 +198,7 @@ import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
+import { SendHomeRequestDigestUseCase } from './use-cases/home-request/send-home-request-digest.use-case'
 import {
   GetPmHomeRequestUseCase,
   ListPmHomeRequestsUseCase,
@@ -575,6 +576,7 @@ const UseCases = [
   SubmitFeedbackUseCase,
   SubmitHomeRequestUseCase,
   BudgetGuidanceUseCase,
+  SendHomeRequestDigestUseCase,
   ListPmHomeRequestsUseCase,
   GetPmHomeRequestUseCase,
   RevealPmHomeRequestContactUseCase,

@@ -6,6 +6,7 @@ import { WebhookService } from '../shared/infrastructure/common/webhook/webhook.
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 import { RentReminderWorkflowUseCase } from '../application/use-cases/notifications/rent-reminder-workflow.use-case'
 import { ProcessHourlySettlementsUseCase } from '../application/use-cases/payments/settlement-cron.use-case'
+import { SendHomeRequestDigestUseCase } from '../application/use-cases/home-request/send-home-request-digest.use-case'
 import { QueueDailySequencesUseCase } from '../application/use-cases/sequence/queue-daily-sequences.use-case'
 import { ApplyDailySavingsInterestUseCase } from '../application/use-cases/payments/wallet.use-cases'
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
@@ -27,6 +28,7 @@ export class ScheduleService implements OnModuleInit {
     private readonly unifiedReminderService: UnifiedReminderService,
     private readonly rentReminderUseCase: RentReminderWorkflowUseCase,
     private readonly processHourlySettlementsUseCase: ProcessHourlySettlementsUseCase,
+    private readonly sendHomeRequestDigestUseCase: SendHomeRequestDigestUseCase,
     private readonly queueDailySequencesUseCase: QueueDailySequencesUseCase,
     private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
     private readonly prisma: PrismaService,
@@ -82,6 +84,11 @@ export class ScheduleService implements OnModuleInit {
       .dailyAt('09:00')
       .withoutOverlapping()
       .description('PM daily rent digests')
+
+    s.call('homeRequestDigest', () => this.sendHomeRequestDigestUseCase.execute())
+      .dailyAt('08:00')
+      .withoutOverlapping()
+      .description('Daily email digest of prior day\'s home requests, sent to all PMs')
 
     s.call('savingsInterest', async () => {
       await this.applyDailySavingsInterestUseCase.execute()
