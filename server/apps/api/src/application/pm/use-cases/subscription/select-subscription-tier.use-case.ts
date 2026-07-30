@@ -7,6 +7,9 @@ export class SelectSubscriptionTierUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(pmUuid: string, tier: UpwardSubscriptionTier, billingMode: UpwardUnitBillingMode = UpwardUnitBillingMode.ACTIVE) {
+    const normalizedTier = (tier as string).toUpperCase() as UpwardSubscriptionTier;
+    const normalizedBillingMode = (billingMode as string).toUpperCase() as UpwardUnitBillingMode;
+
     const pm = await this.prisma.upward_property_manager.findUnique({
       where: { uuid: pmUuid },
       include: { subscription: true, wallet: true },
@@ -16,12 +19,12 @@ export class SelectSubscriptionTierUseCase {
       throw new BadRequestException('Property manager not found');
     }
 
-    const rate = tier === UpwardSubscriptionTier.TIER_2 ? 1500 : tier === UpwardSubscriptionTier.TIER_3 ? 2250 : 0;
+    const rate = normalizedTier === UpwardSubscriptionTier.TIER_2 ? 1500 : normalizedTier === UpwardSubscriptionTier.TIER_3 ? 2250 : 0;
     
     const unitCount = await this.prisma.upward_pm_unit.count({
       where: {
         property: { pmId: pm.id },
-        status: billingMode === UpwardUnitBillingMode.ALL ? undefined : 'OCCUPIED',
+        status: normalizedBillingMode === UpwardUnitBillingMode.ALL ? undefined : 'OCCUPIED',
       },
     });
 
@@ -44,7 +47,7 @@ export class SelectSubscriptionTierUseCase {
       });
     }
 
-    if (tier !== UpwardSubscriptionTier.FREE && !sub.isInitialDepositPaid) {
+    if (normalizedTier !== UpwardSubscriptionTier.FREE && !sub.isInitialDepositPaid) {
       if (wallet.balance < minDeposit) {
         throw new BadRequestException({
           message: 'Insufficient wallet balance for initial deposit.',
@@ -58,8 +61,8 @@ export class SelectSubscriptionTierUseCase {
       sub = await this.prisma.upward_subscription.update({
         where: { pmId: pm.id },
         data: {
-          tier,
-          unitBillingMode: billingMode,
+          tier: normalizedTier,
+          unitBillingMode: normalizedBillingMode,
           priceYearly: rate,
           priceMonthly: rate / 12,
           isInitialDepositPaid: true,
@@ -73,12 +76,12 @@ export class SelectSubscriptionTierUseCase {
       sub = await this.prisma.upward_subscription.update({
         where: { pmId: pm.id },
         data: {
-          tier,
-          unitBillingMode: billingMode,
+          tier: normalizedTier,
+          unitBillingMode: normalizedBillingMode,
           priceYearly: rate,
           priceMonthly: rate / 12,
           anniversaryDate: day,
-          status: tier === UpwardSubscriptionTier.FREE ? 'ACTIVE' : sub.status,
+          status: normalizedTier === UpwardSubscriptionTier.FREE ? 'ACTIVE' : sub.status,
         },
       });
     }

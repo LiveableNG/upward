@@ -378,6 +378,9 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             flexDirection: 'column',
             justifyContent: 'space-between',
             border: '1px solid #E7E3DB',
+            borderRadius: '24px',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 4px 12px rgba(26, 26, 23, 0.02)',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = 'var(--forest, #166534)';
@@ -421,42 +424,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
 
       <ActivityCarousel />
 
-      {/* KPI Stats Grid - Always Visible */}
-      <div style={{ marginBottom: 'var(--space-6)', marginTop: 16 }}>
-        <StatGrid>
-          <StatCard
-            label="Properties"
-            value={propertiesCount}
-            icon={Building2}
-            tooltip="Total number of properties in your portfolio."
-            onClick={() => router.push('/properties')}
-          />
-          <StatCard
-            label="Tenants"
-            value={activeTenants}
-            icon={Users}
-            tooltip="Total number of active onboarded tenants."
-            onClick={() => router.push('/tenants?statusFilter=on_upward')}
-          />
-          <StatCard
-            label="Occupancy"
-            value={`${(() => {
-              const total = occupiedUnits + vacantUnits;
-              return total > 0 ? Math.round((occupiedUnits / total) * 100) : 0;
-            })()}%`}
-            icon={DoorClosed}
-            tooltip="Percentage of occupied units relative to your total units count."
-            onClick={() => router.push('/properties?tab=units')}
-          />
-          <StatCard
-            label="Arrears"
-            value={`₦${pendingAmount.toLocaleString()}`}
-            icon={CreditCard}
-            variant={pendingAmount > 0 ? 'warning' : 'accent'}
-            tooltip="Total outstanding balance due from tenants."
-          />
-        </StatGrid>
-      </div>
+
 
       <div className="dashboard__content">
         {/* Left Column: Rent Payments Tracker (2fr) */}
