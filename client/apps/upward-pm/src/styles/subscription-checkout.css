@@ -1269,3 +1269,232 @@
   background-color: #8A857F;
 }
 
+/* ==========================================================================
+   INTERACTIVE SIMULATION STYLES (PAYSTACK & DVA LEDGER SCANNER)
+   ========================================================================== */
+
+/* Mock Paystack Modal Styling */
+.mock-paystack-container {
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  margin-top: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.mock-paystack-header {
+  background: #09A5DB; /* Paystack Blue */
+  padding: 18px 24px;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mock-paystack-logo {
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mock-paystack-badge {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.mock-paystack-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mock-paystack-merchant {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 14px;
+}
+
+.merchant-name {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.payment-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.mock-paystack-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mock-paystack-field label {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mock-paystack-input-group {
+  display: flex;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 44px;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+}
+
+.mock-paystack-input-group:focus-within {
+  border-color: #09A5DB;
+  box-shadow: 0 0 0 2px rgba(9, 165, 219, 0.15);
+}
+
+.mock-paystack-input-group input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0F172A;
+}
+
+.mock-paystack-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.mock-paystack-btn {
+  background: #38A27B; /* Paystack Green */
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  height: 48px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.mock-paystack-btn:hover {
+  opacity: 0.95;
+}
+
+.mock-paystack-autofill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F1F5F9;
+  border: 1px dashed #CBD5E1;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.mock-paystack-autofill:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* Ledger Scanner Simulation */
+.ledger-scanner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.ledger-scanner-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: #F2F8F3;
+  border: 2px solid var(--forest, #166534);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.scanner-laser-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #34D399; /* Emerald scanner line */
+  box-shadow: 0 0 8px #34D399;
+  animation: scan-move 2s infinite ease-in-out;
+}
+
+@keyframes scan-move {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+.scanner-status-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A1A17;
+  margin-bottom: 6px;
+}
+
+.scanner-sub-text {
+  font-size: 12px;
+  color: #5D5954;
+  margin: 0;
+}
+
+.scanner-progress-bar {
+  width: 140px;
+  height: 4px;
+  background: #E7E3DB;
+  border-radius: 10px;
+  margin-top: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scanner-progress-fill {
+  height: 100%;
+  background: var(--forest, #166534);
+  border-radius: 10px;
+  animation: fill-scan 4s forwards linear;
+}
+
+@keyframes fill-scan {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+

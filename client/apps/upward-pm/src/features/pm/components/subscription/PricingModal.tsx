@@ -95,7 +95,10 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
           <div className="pricing-card promo">
             <span className="card-badge">25% OFF (2 Yrs)</span>
             <h3>Tier 3 - Enterprise</h3>
-            <div className="price">₦2,250<span>/unit/year</span></div>
+            <div className="price">
+              <span style={{ textDecoration: 'line-through', color: '#EF4444', fontSize: '18px', fontWeight: 600, marginRight: 8 }}>₦3,000</span>
+              ₦2,250<span>/unit/year</span>
+            </div>
             <div className="deposit-info">
               Flexible wallet top-up · Initial deposit applies once
             </div>

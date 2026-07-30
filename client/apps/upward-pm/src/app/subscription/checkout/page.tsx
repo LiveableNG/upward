@@ -17,9 +17,19 @@ import {
 } from 'lucide-react';
 import { UpwardLogo } from '@/components/common/UpwardLogo';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
+import { api } from '@/lib/api';
 import { useUnits } from '@/features/pm/hooks/useProperties';
 import { useAuth } from '@/features/auth/AuthContext';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
+import { Modal } from '@/components/ui/Modal/Modal';
+import { useToast } from '@/components/common/Toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { PlanSelectionCard } from '@/features/pm/components/subscription/PlanSelectionCard';
+import { SubscriptionSummaryCard } from '@/features/pm/components/subscription/SubscriptionSummaryCard';
+import { BillingConfigurationCard } from '@/features/pm/components/subscription/BillingConfigurationCard';
+import { PricingBreakdownCard } from '@/features/pm/components/subscription/PricingBreakdownCard';
+import { OrderSummaryCard } from '@/features/pm/components/subscription/OrderSummaryCard';
+import { SubscriptionSuccessModal } from '@/features/pm/components/subscription/SubscriptionSuccessModal';
 import '@/styles/subscription-checkout.css';
 
 function CheckoutContent() {
@@ -33,6 +43,24 @@ function CheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
   const [customTopUpAmount, setCustomTopUpAmount] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paying, setPaying] = useState(false);
+
+  // Polling states
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollInitialBalance, setPollInitialBalance] = useState<number | null>(null);
+
+  // Success modal state
+  const [successModalData, setSuccessModalData] = useState<{
+    isOpen: boolean;
+    amount: number;
+    balance: number;
+    isSufficient: boolean;
+  } | null>(null);
+
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  const { success, error, info } = useToast();
+  const queryClient = useQueryClient();
 
   const { subscription, wallet, selectTier, isSelectingTier, topUp, dva, isDvaLoading, generateDva, isGeneratingDva } = useSubscription();
   const { data: units = [] } = useUnits();
@@ -52,6 +80,34 @@ function CheckoutContent() {
   const currentBalance = wallet?.balance ?? 0;
   const deficit = Math.max(0, minRequiredDeposit - currentBalance);
   const isBalanceSufficient = currentBalance >= minRequiredDeposit;
+
+  useEffect(() => {
+    if (!isPolling) return;
+
+    const interval = setInterval(async () => {
+      const data = await queryClient.fetchQuery<any>({
+        queryKey: ['wallet'],
+        queryFn: () => api.get('/pm/wallet'),
+      });
+
+      const newBalance = data?.balance ?? 0;
+      if (pollInitialBalance !== null && newBalance > pollInitialBalance) {
+        setIsPolling(false);
+        setPollInitialBalance(null);
+        clearInterval(interval);
+
+        // Show success modal
+        setSuccessModalData({
+          isOpen: true,
+          amount: newBalance - pollInitialBalance,
+          balance: newBalance,
+          isSufficient: newBalance >= minRequiredDeposit,
+        });
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isPolling, pollInitialBalance, queryClient, minRequiredDeposit]);
 
   // Auto-fill top-up amount with deficit when it changes
   useEffect(() => {
@@ -80,22 +136,70 @@ function CheckoutContent() {
 
   const handlePaystackTopUp = async () => {
     const amountToTopUp = customTopUpAmount ? parseFloat(customTopUpAmount) : deficit;
-    if (!amountToTopUp || amountToTopUp <= 0) return;
+    if (!amountToTopUp || amountToTopUp <= 0 || paying) return;
 
-    setIsProcessingPayment(true);
+    try {
+      setPaying(true);
+      info('Launching secure checkout...');
 
-    topUp(
-      { amount: amountToTopUp },
-      {
-        onSuccess: () => {
-          setIsProcessingPayment(false);
-          setCustomTopUpAmount('');
-        },
-        onError: () => {
-          setIsProcessingPayment(false);
-        },
+      await new Promise<void>((resolve, reject) => {
+        const scriptId = 'paystack-inline-js';
+        let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+
+        const launch = () => {
+          try {
+            const popup = new (window as any).PaystackPop();
+            popup.newTransaction({
+              key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+              email: user?.email,
+              amount: Math.round(amountToTopUp * 100),
+              currency: 'NGN',
+              onSuccess: () => resolve(),
+              onCancel: () => reject(new Error('Payment cancelled')),
+            });
+          } catch (err) {
+            reject(err);
+          }
+        };
+
+        if (!script) {
+          script = document.createElement('script');
+          script.id = scriptId;
+          script.src = 'https://js.paystack.co/v2/inline.js';
+          script.async = true;
+          script.onload = launch;
+          script.onerror = () => reject(new Error('Failed to load Paystack'));
+          document.body.appendChild(script);
+          return;
+        }
+
+        if ((window as any).PaystackPop) launch();
+        else script.addEventListener('load', launch);
+      });
+
+      topUp(
+        { amount: amountToTopUp },
+        {
+          onSuccess: () => {
+            setCustomTopUpAmount('');
+            setSuccessModalData({
+              isOpen: true,
+              amount: amountToTopUp,
+              balance: currentBalance + amountToTopUp,
+              isSufficient: currentBalance + amountToTopUp >= minRequiredDeposit,
+            });
+          }
+        }
+      );
+    } catch (err: any) {
+      if (err?.message === 'Payment cancelled') {
+        info('Payment was cancelled');
+      } else {
+        error(err?.message || 'Failed to complete transaction');
       }
-    );
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -123,307 +227,95 @@ function CheckoutContent() {
           {/* LEFT COLUMN (65%) */}
           <div className="checkout-main">
             {/* Card 1 — Subscription Summary */}
-            <div className="checkout-card">
-              <div className="sub-summary-container">
-                <div className="sub-summary-info">
-                  <h3>
-                    {tier === 'TIER_3' ? 'Enterprise Tier' : 'Professional Tier'}
-                    <span className={`checkout-tier-badge ${tier === 'TIER_3' ? 'checkout-tier-badge--tier3' : ''}`}>
-                      <Sparkles size={12} /> {tier === 'TIER_3' ? 'Tier 3' : 'Tier 2'}
-                    </span>
-                  </h3>
-                  <p>
-                    {tier === 'TIER_3' 
-                      ? 'Designed for large-scale portfolios with complete feature capabilities.' 
-                      : 'Best for professional property managers scaling their business operations.'}
-                  </p>
-                </div>
-                <div className="sub-summary-price">
-                  <span className="amount">₦{(unitCount * yearlyRate).toLocaleString()}</span>
-                  <span className="term">per year ({unitCount} {unitCount === 1 ? 'Unit' : 'Units'})</span>
-                </div>
-              </div>
-            </div>
+            <SubscriptionSummaryCard
+              tier={tier}
+              unitCount={unitCount}
+              yearlyRate={yearlyRate}
+              billingMode={billingMode}
+              onEditClick={() => setIsConfigOpen(true)}
+            />
 
             {/* Card 2 — Billing Configuration */}
-            <div className="checkout-card">
-              <div className="checkout-card__title">
-                <span>Billing Configuration</span>
-              </div>
-
-              <div className="billing-mode-cards">
-                <div 
-                  className={`billing-mode-card ${billingMode === 'active' ? 'billing-mode-card--active' : ''}`}
-                  onClick={() => setBillingMode('active')}
-                >
-                  <div className="billing-mode-radio-circle">
-                    <div className="billing-mode-radio-inner" />
-                  </div>
-                  <div className="billing-mode-details">
-                    <span className="billing-mode-name">Active Units ({occupiedUnits})</span>
-                    <span className="billing-mode-desc">Bill only for units with active tenants</span>
-                  </div>
-                </div>
-
-                <div 
-                  className={`billing-mode-card ${billingMode === 'all' ? 'billing-mode-card--active' : ''}`}
-                  onClick={() => setBillingMode('all')}
-                >
-                  <div className="billing-mode-radio-circle">
-                    <div className="billing-mode-radio-inner" />
-                  </div>
-                  <div className="billing-mode-details">
-                    <span className="billing-mode-name">All Units ({totalUnits})</span>
-                    <span className="billing-mode-desc">Bill for every unit regardless of tenant occupancy</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="checkout-breakdown">
-                <div className="checkout-breakdown__row">
-                  <span className="checkout-breakdown__label">Price Per Unit</span>
-                  <span className="checkout-breakdown__value">₦{yearlyRate.toLocaleString()} / year</span>
-                </div>
-                <div className="checkout-breakdown__row">
-                  <span className="checkout-breakdown__label">Billing Frequency</span>
-                  <span className="checkout-breakdown__value">Yearly (Billed Monthly)</span>
-                </div>
-                <div className="checkout-breakdown__row">
-                  <span className="checkout-breakdown__label">Units Included</span>
-                  <span className="checkout-breakdown__value">{unitCount} units</span>
-                </div>
-              </div>
-            </div>
+            <BillingConfigurationCard
+              billingMode={billingMode}
+              occupiedUnits={occupiedUnits}
+              totalUnits={totalUnits}
+              yearlyRate={yearlyRate}
+              unitCount={unitCount}
+              onBillingModeChange={setBillingMode}
+            />
 
             {/* Card 3 — Pricing Breakdown */}
-            <div className="checkout-card">
-              <div className="checkout-card__title">
-                <span>Pricing Breakdown</span>
-              </div>
-
-              <div className="checkout-breakdown">
-                <div className="checkout-breakdown__row">
-                  <span className="checkout-breakdown__label">Subtotal</span>
-                  <span className="checkout-breakdown__value">₦{(unitCount * yearlyRate).toLocaleString()} / year</span>
-                </div>
-                <div className="checkout-breakdown__row">
-                  <span className="checkout-breakdown__label">VAT (0%)</span>
-                  <span className="checkout-breakdown__value">₦0</span>
-                </div>
-                <div className="checkout-breakdown__row">
-                  <span className="checkout-breakdown__label">Total Contract Value</span>
-                  <span className="checkout-breakdown__value" style={{ fontWeight: 700 }}>
-                    ₦{(unitCount * yearlyRate).toLocaleString()} / year
-                  </span>
-                </div>
-              </div>
-
-              <div className="pricing-formula-row">
-                <span>Calculation Basis</span>
-                <span>{unitCount} Units × ₦{yearlyRate.toLocaleString()} = ₦{(unitCount * yearlyRate).toLocaleString()} / year</span>
-              </div>
-            </div>
-
-            {/* Card 4 — Deposit Notice */}
-            <div className="deposit-notice-box">
-              <div className="deposit-notice-header">
-                <ShieldCheck size={18} />
-                <span>Minimum Wallet Deposit Required</span>
-              </div>
-              <p className="deposit-notice-body">
-                This plan requires a minimum deposit equivalent to 6 months of subscription fees in your company wallet.
-                These funds are not a locked contract — they remain in your wallet and are deducted incrementally on your monthly billing anniversary.
-              </p>
-              <div className="checkout-breakdown" style={{ marginTop: 8 }}>
-                <div className="checkout-breakdown__row" style={{ borderColor: 'rgba(22, 101, 52, 0.1)' }}>
-                  <span className="checkout-breakdown__label" style={{ color: '#2F3E32' }}>Deposit Requirement Basis</span>
-                  <span className="checkout-breakdown__value" style={{ color: 'var(--forest)' }}>
-                    {unitCount === 0 ? 'No units (Flat Minimum)' : `${unitCount} units × ₦${yearlyRate.toLocaleString()} × 6 months`}
-                  </span>
-                </div>
-                <div className="checkout-breakdown__row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-                  <span className="checkout-breakdown__label" style={{ color: '#2F3E32', fontWeight: 700 }}>Minimum Deposit Amount</span>
-                  <span className="checkout-breakdown__value" style={{ color: 'var(--forest)', fontWeight: 800, fontSize: 16 }}>
-                    ₦{minRequiredDeposit.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <PricingBreakdownCard
+              unitCount={unitCount}
+              yearlyRate={yearlyRate}
+              tier={tier}
+            />
           </div>
 
-          {/* RIGHT COLUMN (35% - Sticky) */}
-          <div className="checkout-side">
-            <div className="checkout-card" style={{ padding: '24px' }}>
-              <div className="order-summary-title">Order Summary</div>
-              
-              <div className="order-summary-row">
-                <span className="order-summary-row__label">Annual Subscription</span>
-                <span className="order-summary-row__value">₦{(unitCount * yearlyRate).toLocaleString()}</span>
-              </div>
-              <div className="order-summary-row">
-                <span className="order-summary-row__label">Required Wallet Balance</span>
-                <span className="order-summary-row__value">₦{minRequiredDeposit.toLocaleString()}</span>
-              </div>
-              <div className="order-summary-row">
-                <span className="order-summary-row__label">Current Wallet Balance</span>
-                <span className="order-summary-row__value">₦{currentBalance.toLocaleString()}</span>
-              </div>
-
-              <div className="order-summary-total-row">
-                <span className="order-summary-total-row__label">Pay Today</span>
-                <span className="order-summary-total-row__value">₦{minRequiredDeposit.toLocaleString()}</span>
-              </div>
-
-              {/* Payment Method Selector */}
-              <div style={{ marginTop: 24 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#1A1A17' }}>Payment Method</span>
-                <div className="payment-methods-tabs">
-                  <div
-                    className={`payment-tab ${paymentMethod === 'card' ? 'payment-tab--active' : ''}`}
-                    onClick={() => setPaymentMethod('card')}
-                  >
-                    <div className="payment-tab-left">
-                      <CreditCard size={16} style={{ color: paymentMethod === 'card' ? 'var(--forest)' : '#8A857F' }} />
-                      <span>Paystack</span>
-                    </div>
-                    <div className="payment-tab-indicator">
-                      <div className="payment-tab-indicator-inner" />
-                    </div>
-                  </div>
-
-                  <div
-                    className={`payment-tab ${paymentMethod === 'bank' ? 'payment-tab--active' : ''}`}
-                    onClick={() => setPaymentMethod('bank')}
-                  >
-                    <div className="payment-tab-left">
-                      <Building2 size={16} style={{ color: paymentMethod === 'bank' ? 'var(--forest)' : '#8A857F' }} />
-                      <span>Bank Transfer</span>
-                    </div>
-                    <div className="payment-tab-indicator">
-                      <div className="payment-tab-indicator-inner" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Fields (Input / DVA details / CTA Button) */}
-              <div style={{ marginTop: 24 }}>
-                {paymentMethod === 'card' ? (
-                  <div className="topup-form">
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#5D5954' }}>
-                      Top-up Amount
-                    </label>
-                    <div className="topup-input-wrapper">
-                      <span className="topup-input-prefix">₦</span>
-                      <input
-                        type="number"
-                        className="topup-input"
-                        placeholder={deficit > 0 ? `${deficit}` : '50000'}
-                        value={customTopUpAmount}
-                        onChange={(e) => setCustomTopUpAmount(e.target.value)}
-                      />
-                    </div>
-
-                    {isBalanceSufficient ? (
-                      <div className="wallet-status-banner wallet-status-banner--ok">
-                        <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>Sufficient wallet balance. You are ready to activate this tier.</span>
-                      </div>
-                    ) : (
-                      <div className="wallet-status-banner wallet-status-banner--warn">
-                        <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>Additional deposit of ₦{deficit.toLocaleString()} is required.</span>
-                      </div>
-                    )}
-
-                    {!isBalanceSufficient ? (
-                      <button
-                        className="btn-checkout-primary"
-                        onClick={handlePaystackTopUp}
-                        disabled={isProcessingPayment || !customTopUpAmount || parseFloat(customTopUpAmount) <= 0}
-                      >
-                        <Zap size={16} />
-                        {isProcessingPayment ? 'Processing payment...' : `Pay ₦${parseFloat(customTopUpAmount || '0').toLocaleString()}`}
-                      </button>
-                    ) : (
-                      <button
-                        className="btn-checkout-primary"
-                        onClick={handleActivatePlan}
-                        disabled={isSelectingTier}
-                      >
-                        <Zap size={16} />
-                        {isSelectingTier ? 'Activating plan...' : 'Activate Plan Now'}
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    {!dva ? (
-                      <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                        <p style={{ color: '#5D5954', marginBottom: 16, fontSize: 13, lineHeight: 1.5 }}>
-                          Generate a dedicated virtual bank account to instantly fund your wallet via bank transfer.
-                        </p>
-                        <button
-                          className="btn-checkout-secondary"
-                          onClick={() => generateDva()}
-                          disabled={isGeneratingDva || isDvaLoading}
-                        >
-                          {isGeneratingDva ? 'Generating account...' : 'Generate Bank Account'}
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="bank-transfer-box">
-                          <div className="bank-detail-row">
-                            <span>Bank Name</span>
-                            <strong>{dva.bankName}</strong>
-                          </div>
-                          <div className="bank-detail-row bank-detail-row--number">
-                            <span>Account Number</span>
-                            <strong>{dva.accountNumber}</strong>
-                          </div>
-                          <div className="bank-detail-row">
-                            <span>Account Name</span>
-                            <strong>{dva.accountName}</strong>
-                          </div>
-                          <div className="bank-detail-row">
-                            <span>Payment Reference</span>
-                            <strong>PM-{user?.id || 'REF'}-DEP</strong>
-                          </div>
-                        </div>
-                        <p style={{ fontSize: 11, color: '#8A857F', lineHeight: 1.5, textAlign: 'center', marginTop: 12 }}>
-                          All transfers sent to this account number will instantly credit your wallet balance.
-                        </p>
-                      </>
-                    )}
-
-                    <div style={{ marginTop: 16 }}>
-                      {isBalanceSufficient ? (
-                        <button
-                          className="btn-checkout-primary"
-                          onClick={handleActivatePlan}
-                          disabled={isSelectingTier}
-                        >
-                          <Zap size={16} />
-                          {isSelectingTier ? 'Activating plan...' : 'Activate Plan Now'}
-                        </button>
-                      ) : (
-                        <button
-                          className="btn-checkout-primary"
-                          disabled={true}
-                        >
-                          <Zap size={16} />
-                          Awaiting Deposit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* RIGHT COLUMN (35%) */}
+          <div className="checkout-sidebar">
+            <OrderSummaryCard
+              unitCount={unitCount}
+              yearlyRate={yearlyRate}
+              minRequiredDeposit={minRequiredDeposit}
+              currentBalance={currentBalance}
+              deficit={deficit}
+              isBalanceSufficient={isBalanceSufficient}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
+              customTopUpAmount={customTopUpAmount}
+              onCustomTopUpAmountChange={setCustomTopUpAmount}
+              paying={paying}
+              onPaystackTopUp={handlePaystackTopUp}
+              onActivatePlan={handleActivatePlan}
+              isSelectingTier={isSelectingTier}
+              dva={dva}
+              isGeneratingDva={isGeneratingDva}
+              isDvaLoading={isDvaLoading}
+              onGenerateDva={() => generateDva()}
+              isPolling={isPolling}
+              onStartPolling={() => {
+                setPollInitialBalance(currentBalance);
+                setIsPolling(true);
+                info('Started polling virtual account deposits...');
+              }}
+            />
           </div>
         </div>
       </div>
+
+      {/* Configure Options Modal */}
+      <Modal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        title="Configure Subscription Plan"
+        maxWidth={520}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+          <PlanSelectionCard
+            currentTier={tier}
+            onSelectPlan={(newTier) => {
+              setIsConfigOpen(false);
+              router.replace(`/subscription/checkout?tier=${newTier}&billingMode=${billingMode}`);
+            }}
+          />
+        </div>
+      </Modal>
+
+      {/* Success Modal */}
+      <SubscriptionSuccessModal
+        isOpen={!!successModalData?.isOpen}
+        onClose={() => setSuccessModalData(null)}
+        amount={successModalData?.amount ?? 0}
+        balance={successModalData?.balance ?? 0}
+        isCheckout={true}
+        isSufficient={successModalData?.isSufficient}
+        tierName={tier === 'TIER_3' ? 'Enterprise (Tier 3)' : 'Professional (Tier 2)'}
+        minRequiredDeposit={minRequiredDeposit}
+        onActivatePlan={handleActivatePlan}
+        isSelectingTier={isSelectingTier}
+      />
     </div>
   );
 }

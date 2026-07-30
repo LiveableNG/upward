@@ -131,11 +131,6 @@ export function DesktopHeader() {
               initials={`${user.firstName[0] || 'P'}${user.lastName[0] || 'M'}`}
             />
           </Link>
-
-          <Link href="/subscription/wallet" className="desktop-header__wallet-pill" title="Company Wallet">
-            <WalletIcon size={16} />
-            <span>₦{(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-          </Link>
         </div>
       </div>
 

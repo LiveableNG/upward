@@ -1,4 +1,5 @@
 import { Injectable, Inject, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../../domains/payments/payment.repository';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
@@ -14,6 +15,16 @@ export class GeneratePmDvaUseCase {
     private readonly paymentGateway: IPaymentGateway,
     private readonly prisma: PrismaService,
   ) {}
+
+  @OnEvent('pm.registered', { async: true })
+  async handlePmRegisteredEvent(payload: { pmUuid: string }) {
+    this.logger.log(`Asynchronously generating PM DVA for registered PM UUID: ${payload.pmUuid}`);
+    try {
+      await this.execute(payload.pmUuid);
+    } catch (error: any) {
+      this.logger.error(`Asynchronous DVA creation during signup failed for PM UUID ${payload.pmUuid}: ${error.message}`);
+    }
+  }
 
   async execute(pmUuid: string): Promise<any> {
     const pm = await this.prisma.upward_property_manager.findUnique({
