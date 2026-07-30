@@ -7,6 +7,7 @@ import { GetOrCreateWalletUseCase } from '../../../application/pm/use-cases/subs
 import { GetPmDvaUseCase } from '../../../application/pm/use-cases/subscription/get-pm-dva.use-case';
 import { SelectSubscriptionTierUseCase } from '../../../application/pm/use-cases/subscription/select-subscription-tier.use-case';
 import { TopUpWalletUseCase } from '../../../application/pm/use-cases/subscription/top-up-wallet.use-case';
+import { GetWalletTransactionsUseCase } from '../../../application/pm/use-cases/subscription/get-wallet-transactions.use-case';
 
 @Controller('pm')
 @UseGuards(JwtAuthGuard)
@@ -18,6 +19,7 @@ export class SubscriptionController {
     private readonly getPmDvaUseCase: GetPmDvaUseCase,
     private readonly selectSubscriptionTierUseCase: SelectSubscriptionTierUseCase,
     private readonly topUpWalletUseCase: TopUpWalletUseCase,
+    private readonly getWalletTransactionsUseCase: GetWalletTransactionsUseCase,
   ) {}
 
   @Get('subscription')
@@ -69,5 +71,12 @@ export class SubscriptionController {
     
     const { amount } = body;
     return this.topUpWalletUseCase.execute(pmUuid, amount);
+  }
+
+  @Get('wallet/transactions')
+  async getWalletTransactions(@Req() req: any) {
+    const pmUuid = req.user?.sub;
+    if (!pmUuid) throw new BadRequestException('Property manager not found');
+    return this.getWalletTransactionsUseCase.execute(pmUuid);
   }
 }

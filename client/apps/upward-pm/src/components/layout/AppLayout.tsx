@@ -49,14 +49,15 @@ export function AppLayout({ children }: AppLayoutProps) {
     pathname?.startsWith('/invited') ||
     pathname?.startsWith('/reset-password')
   const isPortalPage = pathname?.startsWith('/portal')
-
+  const isCheckoutPage = pathname === '/subscription/checkout'
+  
   useEffect(() => {
     if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
       router.replace('/login')
     }
   }, [loading, isLoggedIn, isAuthPage, isPublicPage, isPortalPage, router])
 
-  if (isAuthPage || isPublicPage || isPortalPage) {
+  if (isAuthPage || isPublicPage || isPortalPage || isCheckoutPage) {
     return <main>{children}</main>
   }
 

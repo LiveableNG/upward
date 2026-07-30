@@ -22,6 +22,11 @@ export function useSubscription() {
     queryFn: () => api.get('/pm/subscription/wallet/dva').then(res => res.data),
   });
 
+  const { data: transactions, isLoading: isTransactionsLoading } = useQuery({
+    queryKey: ['wallet_transactions'],
+    queryFn: () => api.get('/pm/wallet/transactions'),
+  });
+
   const selectTierMutation = useMutation({
     mutationFn: (data: { tier: SubscriptionTier; billingMode?: 'active' | 'all' }) =>
       api.post('/pm/subscription/select-tier', data),
@@ -101,5 +106,7 @@ export function useSubscription() {
     isDvaLoading,
     generateDva: generateDvaMutation.mutate,
     isGeneratingDva: generateDvaMutation.isPending,
+    transactions,
+    isTransactionsLoading,
   };
 }

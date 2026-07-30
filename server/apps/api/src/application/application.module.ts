@@ -176,6 +176,7 @@ import { GetOrCreateWalletUseCase } from './pm/use-cases/subscription/get-or-cre
 import { GetPmDvaUseCase } from './pm/use-cases/subscription/get-pm-dva.use-case'
 import { SelectSubscriptionTierUseCase } from './pm/use-cases/subscription/select-subscription-tier.use-case'
 import { TopUpWalletUseCase } from './pm/use-cases/subscription/top-up-wallet.use-case'
+import { GetWalletTransactionsUseCase } from './pm/use-cases/subscription/get-wallet-transactions.use-case'
 import { ResolvePendingRefundUseCase } from './pm/use-cases/payments/resolve-refund.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
 import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
@@ -563,6 +564,7 @@ const UseCases = [
   GetPmDvaUseCase,
   SelectSubscriptionTierUseCase,
   TopUpWalletUseCase,
+  GetWalletTransactionsUseCase,
   GetPmDocumentsUseCase,
   GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,
