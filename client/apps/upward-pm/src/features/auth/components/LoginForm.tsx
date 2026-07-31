@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Capacitor } from '@capacitor/core'
 import { 
@@ -25,12 +25,20 @@ export const LoginForm = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [signupHref, setSignupHref] = useState(Capacitor.isNativePlatform() ? '/signup' : '/pm-signup')
 
   const loginMutation = useLogin()
   const requestOtpMutation = useRequestOTP()
   const otpLoginMutation = useOtpLogin()
 
   const loading = loginMutation.isPending || requestOtpMutation.isPending || otpLoginMutation.isPending
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform() || typeof window === 'undefined') return
+    const pmType = new URLSearchParams(window.location.search).get('pmType')
+    if (!pmType) return
+    setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)
+  }, [])
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -298,7 +306,7 @@ export const LoginForm = () => {
       )}
 
       <div className="auth-footer" style={{ marginTop: '28px', textAlign: 'center' }}>
-        Don&apos;t have an account? <Link href={Capacitor.isNativePlatform() ? '/signup' : '/pm-signup'}>Create one for free</Link>
+        Don&apos;t have an account? <Link href={signupHref}>Create one for free</Link>
       </div>
     </div>
   )

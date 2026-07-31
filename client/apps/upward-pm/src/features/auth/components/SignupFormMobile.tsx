@@ -49,6 +49,24 @@ type RequestOtpResult = { context: 'SIGNUP' | 'LOGIN' }
 type OtpLoginResult = { user?: { pmType?: string } }
 type VerifyOtpResult = { success: boolean }
 
+const PM_TYPE_OPTIONS = [
+  { label: 'Landlord', value: 'INDIVIDUAL_LANDLORD' },
+  { label: 'Independent Property Manager', value: 'Property Manager' },
+  { label: 'Property Management Company', value: 'Company' },
+  { label: 'Estate Agent', value: 'Estate Agent' },
+  { label: 'Caretaker', value: 'Caretaker' },
+  { label: 'Lawyer', value: 'Lawyer' },
+]
+
+function resolvePmTypePrefill(raw: string | null): string {
+  if (!raw) return ''
+  const value = raw.trim().toLowerCase()
+  if (value === 'landlord' || value === 'individual_landlord' || value === 'individual-landlord') {
+    return 'INDIVIDUAL_LANDLORD'
+  }
+  return ''
+}
+
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
 }
@@ -117,6 +135,20 @@ export const SignupFormMobile = () => {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
     }
   }, [formData.email, router])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const prefillPmType = resolvePmTypePrefill(new URLSearchParams(window.location.search).get('pmType'))
+    if (!prefillPmType) return
+
+    setFormData((current) => {
+      if (current.pmType) return current
+      return {
+        ...current,
+        pmType: prefillPmType,
+      }
+    })
+  }, [])
 
   const loading =
     signupMutation.isPending ||
@@ -462,7 +494,7 @@ export const SignupFormMobile = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Account Type</label>
+                  <label className="form-label">Business or role type</label>
                   <div className="input-wrapper">
                     <Briefcase size={18} className="input-icon" />
                     <FormSelect
@@ -473,14 +505,8 @@ export const SignupFormMobile = () => {
                         clearFieldError('pmType')
                         setFormData({ ...formData, pmType: val })
                       }}
-                      options={[
-                        { label: 'Caretaker', value: 'Caretaker' },
-                        { label: 'Lawyer', value: 'Lawyer' },
-                        { label: 'Estate Agent', value: 'Estate Agent' },
-                        { label: 'Property Manager', value: 'Property Manager' },
-                        { label: 'Property Management Company', value: 'Company' }
-                      ]}
-                      placeholder="Select account type"
+                      options={PM_TYPE_OPTIONS}
+                      placeholder="Select the option that best fits"
                     />
                   </div>
                   {fieldErrors.pmType && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.pmType}</p>}
