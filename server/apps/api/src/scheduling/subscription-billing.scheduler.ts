@@ -15,7 +15,52 @@ export class SubscriptionBillingScheduler {
     const today = new Date();
     const todayDay = today.getDate();
 
-    // 1. Process 5-day-pre-anniversary Invoice Generation
+    // 1. Apply pending downgrades for subscriptions whose anniversary date is today
+    const subsDueToday = await this.prisma.upward_subscription.findMany({
+      where: {
+        anniversaryDate: todayDay,
+        status: { in: ['ACTIVE', 'GRACE'] },
+      },
+    });
+
+    for (const sub of subsDueToday) {
+      if (sub.pendingTier) {
+        const oldTier = sub.tier;
+        const newTier = sub.pendingTier;
+        const billingMode = sub.pendingUnitBillingMode || sub.unitBillingMode;
+        const rate = newTier === UpwardSubscriptionTier.TIER_2 ? 1500 : newTier === UpwardSubscriptionTier.TIER_3 ? 2250 : 0;
+
+        await this.prisma.$transaction(async (tx) => {
+          await tx.upward_subscription.update({
+            where: { id: sub.id },
+            data: {
+              tier: newTier,
+              unitBillingMode: billingMode,
+              priceYearly: rate,
+              priceMonthly: rate / 12,
+              pendingTier: null,
+              pendingUnitBillingMode: null,
+            },
+          });
+
+          await tx.upward_subscription_log.create({
+            data: {
+              pmId: sub.pmId,
+              previousTier: oldTier,
+              newTier: newTier,
+              previousStatus: sub.status,
+              newStatus: sub.status,
+              action: 'DOWNGRADE',
+              reason: 'Scheduled downgrade applied',
+            },
+          });
+        });
+
+        this.logger.log(`Applied scheduled downgrade to ${newTier} for PM ${sub.pmId}`);
+      }
+    }
+
+    // 2. Process 5-day-pre-anniversary Invoice Generation
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + 5);
     const targetDay = targetDate.getDate();
@@ -23,7 +68,15 @@ export class SubscriptionBillingScheduler {
     const subsForInvoice = await this.prisma.upward_subscription.findMany({
       where: {
         anniversaryDate: targetDay,
-        tier: { not: UpwardSubscriptionTier.FREE },
+        OR: [
+          {
+            pendingTier: { not: UpwardSubscriptionTier.FREE },
+          },
+          {
+            pendingTier: null,
+            tier: { not: UpwardSubscriptionTier.FREE },
+          },
+        ],
       },
     });
 
@@ -31,7 +84,7 @@ export class SubscriptionBillingScheduler {
       await this.generatePreInvoice(sub, today);
     }
 
-    // 2. Process Anniversary Deductions
+    // 3. Process Anniversary Deductions
     const activeSubsDue = await this.prisma.upward_subscription.findMany({
       where: {
         anniversaryDate: todayDay,
@@ -44,7 +97,7 @@ export class SubscriptionBillingScheduler {
       await this.deductInvoiceFromWallet(sub, today);
     }
 
-    // 3. Process Grace Period Expirations
+    // 4. Process Grace Period Expirations
     const graceSubs = await this.prisma.upward_subscription.findMany({
       where: { status: 'GRACE' },
     });
@@ -62,9 +115,13 @@ export class SubscriptionBillingScheduler {
 
   private async generatePreInvoice(sub: any, today: Date) {
     const isFirstCycle = await this.isFirstCycle(sub.pmId);
-    const unitCount = await this.countManagedUnits(sub.pmId, sub.unitBillingMode);
     
-    const yearlyRate = sub.priceYearly;
+    const billingTier = sub.pendingTier || sub.tier;
+    const billingMode = sub.pendingUnitBillingMode || sub.unitBillingMode;
+    
+    const unitCount = await this.countManagedUnits(sub.pmId, billingMode);
+    
+    const yearlyRate = billingTier === UpwardSubscriptionTier.TIER_2 ? 1500 : billingTier === UpwardSubscriptionTier.TIER_3 ? 2250 : 0;
     const monthlyRate = yearlyRate / 12;
 
     let discountPercent = 0;

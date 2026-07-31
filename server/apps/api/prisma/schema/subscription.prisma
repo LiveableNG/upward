@@ -29,6 +29,9 @@ model upward_subscription {
   priceMonthly        Float                  @default(0) // Rate per unit per month (calculated)
   unitBillingMode     UpwardUnitBillingMode @default(ACTIVE)
   
+  pendingTier         UpwardSubscriptionTier?
+  pendingUnitBillingMode UpwardUnitBillingMode?
+  
   discountType        UpwardDiscountType?
   discountValue       Float?
   discountStart       DateTime?

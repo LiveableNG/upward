@@ -47,44 +47,63 @@ export class SelectSubscriptionTierUseCase {
       });
     }
 
-    if (normalizedTier !== UpwardSubscriptionTier.FREE && !sub.isInitialDepositPaid) {
-      if (wallet.balance < minDeposit) {
-        throw new BadRequestException({
-          message: 'Insufficient wallet balance for initial deposit.',
-          requiredDeposit: minDeposit,
-          currentBalance: wallet.balance,
-        });
+    const TIER_ORDER = {
+      [UpwardSubscriptionTier.FREE]: 1,
+      [UpwardSubscriptionTier.TIER_2]: 2,
+      [UpwardSubscriptionTier.TIER_3]: 3,
+    };
+
+    const currentTierOrder = TIER_ORDER[sub.tier];
+    const newTierOrder = TIER_ORDER[normalizedTier];
+
+    let updateData: any = {};
+    const day = sub.anniversaryDate ?? Math.min(new Date().getDate(), 28);
+
+    if (newTierOrder > currentTierOrder) {
+      // UPGRADE (Immediate)
+      if (normalizedTier !== UpwardSubscriptionTier.FREE && !sub.isInitialDepositPaid) {
+        if (wallet.balance < minDeposit) {
+          throw new BadRequestException({
+            message: 'Insufficient wallet balance for initial deposit.',
+            requiredDeposit: minDeposit,
+            currentBalance: wallet.balance,
+          });
+        }
+        updateData.isInitialDepositPaid = true;
       }
 
-      const day = sub.anniversaryDate ?? Math.min(new Date().getDate(), 28);
-
-      sub = await this.prisma.upward_subscription.update({
-        where: { pmId: pm.id },
-        data: {
-          tier: normalizedTier,
-          unitBillingMode: normalizedBillingMode,
-          priceYearly: rate,
-          priceMonthly: rate / 12,
-          isInitialDepositPaid: true,
-          anniversaryDate: day,
-          status: 'ACTIVE',
-          graceStartedAt: null,
-        },
-      });
+      updateData = {
+        ...updateData,
+        tier: normalizedTier,
+        unitBillingMode: normalizedBillingMode,
+        priceYearly: rate,
+        priceMonthly: rate / 12,
+        anniversaryDate: day,
+        status: 'ACTIVE',
+        graceStartedAt: null,
+        pendingTier: null,
+        pendingUnitBillingMode: null,
+      };
+    } else if (newTierOrder === currentTierOrder) {
+      // SAME TIER (Cancel downgrade or update billing mode)
+      updateData = {
+        unitBillingMode: normalizedBillingMode,
+        anniversaryDate: day,
+        pendingTier: null,
+        pendingUnitBillingMode: null,
+      };
     } else {
-      const day = sub.anniversaryDate ?? Math.min(new Date().getDate(), 28);
-      sub = await this.prisma.upward_subscription.update({
-        where: { pmId: pm.id },
-        data: {
-          tier: normalizedTier,
-          unitBillingMode: normalizedBillingMode,
-          priceYearly: rate,
-          priceMonthly: rate / 12,
-          anniversaryDate: day,
-          status: normalizedTier === UpwardSubscriptionTier.FREE ? 'ACTIVE' : sub.status,
-        },
-      });
+      // DOWNGRADE (Delayed till billing cycle ends)
+      updateData = {
+        pendingTier: normalizedTier,
+        pendingUnitBillingMode: normalizedBillingMode,
+      };
     }
+
+    sub = await this.prisma.upward_subscription.update({
+      where: { pmId: pm.id },
+      data: updateData,
+    });
 
     return sub;
   }

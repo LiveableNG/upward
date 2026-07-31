@@ -21,6 +21,8 @@ export interface Subscription {
   status: 'ACTIVE' | 'GRACE' | 'LOCKED';
   graceStartedAt: string | null;
   isInitialDepositPaid: boolean;
+  pendingTier?: SubscriptionTier | null;
+  pendingUnitBillingMode?: 'active' | 'all' | null;
 }
 
 export interface Wallet {

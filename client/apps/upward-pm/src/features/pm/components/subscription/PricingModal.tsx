@@ -32,6 +32,49 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
     }
   };
 
+  const getButtonProps = (tier: SubscriptionTier) => {
+    const isCurrent = subscription?.tier === tier;
+    const isPendingThis = subscription?.pendingTier === tier;
+    const hasAnyPending = !!subscription?.pendingTier;
+
+    if (isCurrent) {
+      if (hasAnyPending) {
+        return {
+          label: 'Keep Current Plan',
+          className: 'pricing-card__btn primary',
+          disabled: isSelectingTier,
+          onClick: () => selectTier({ tier: subscription.tier, billingMode: subscription.unitBillingMode }),
+        };
+      }
+      return {
+        label: 'Current Plan',
+        className: 'pricing-card__btn disabled',
+        disabled: true,
+        onClick: () => {},
+      };
+    }
+
+    if (isPendingThis) {
+      return {
+        label: 'Downgrade Scheduled',
+        className: 'pricing-card__btn disabled',
+        disabled: true,
+        onClick: () => {},
+      };
+    }
+
+    const isDowngrade = (tier === 'FREE') || (tier === 'TIER_2' && subscription?.tier === 'TIER_3');
+    const label = isDowngrade ? 'Downgrade to ' + (tier === 'FREE' ? 'Free' : 'Professional') : 'Activate ' + (tier === 'TIER_2' ? 'Professional' : 'Enterprise');
+    const className = tier === 'TIER_2' ? 'pricing-card__btn primary' : 'pricing-card__btn';
+
+    return {
+      label,
+      className,
+      disabled: isSelectingTier,
+      onClick: () => handleSelectTier(tier),
+    };
+  };
+
   const modalContent = (
     <div className="modal-overlay">
       <div className="pricing-modal">
@@ -44,6 +87,26 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
           <h2>Subscription Plans</h2>
           <p>Select your subscription tier to access premium features.</p>
         </div>
+
+        {subscription?.pendingTier && (
+          <div className="pricing-modal__pending-banner" style={{
+            background: 'rgba(245, 158, 11, 0.15)',
+            border: '1px solid #F59E0B',
+            color: '#F59E0B',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Sparkles size={16} />
+            <span>
+              Your plan is scheduled to downgrade to <strong>{subscription.pendingTier === 'FREE' ? 'Free' : subscription.pendingTier === 'TIER_2' ? 'Professional' : 'Enterprise'}</strong> on your next billing date. You can cancel this by clicking <strong>Keep Current Plan</strong>.
+            </span>
+          </div>
+        )}
 
         {/* 3-Tier Grid */}
         <div className="pricing-grid">
@@ -58,13 +121,18 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               <li className="locked"><X size={14} /> Service Charge Payments</li>
               <li className="locked"><X size={14} /> Listing & Brokerage</li>
             </ul>
-            <button 
-              className={`pricing-card__btn ${subscription?.tier === 'FREE' ? 'disabled' : ''}`}
-              disabled={subscription?.tier === 'FREE' || isSelectingTier}
-              onClick={() => handleSelectTier('FREE')}
-            >
-              {subscription?.tier === 'FREE' ? 'Current Plan' : 'Downgrade to Free'}
-            </button>
+            {(() => {
+              const btn = getButtonProps('FREE');
+              return (
+                <button 
+                  className={btn.className}
+                  disabled={btn.disabled}
+                  onClick={btn.onClick}
+                >
+                  {btn.label}
+                </button>
+              );
+            })()}
           </div>
 
           {/* Professional Tier */}
@@ -82,13 +150,18 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 30% Listing Announcements</li>
             </ul>
-            <button 
-              className={`pricing-card__btn primary ${subscription?.tier === 'TIER_2' ? 'disabled' : ''}`}
-              disabled={subscription?.tier === 'TIER_2' || isSelectingTier}
-              onClick={() => handleSelectTier('TIER_2')}
-            >
-              {subscription?.tier === 'TIER_2' ? 'Current Plan' : 'Activate Professional'}
-            </button>
+            {(() => {
+              const btn = getButtonProps('TIER_2');
+              return (
+                <button 
+                  className={btn.className}
+                  disabled={btn.disabled}
+                  onClick={btn.onClick}
+                >
+                  {btn.label}
+                </button>
+              );
+            })()}
           </div>
 
           {/* Enterprise Tier */}
@@ -109,13 +182,18 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 100% Listing Announcements</li>
             </ul>
-            <button 
-              className={`pricing-card__btn ${subscription?.tier === 'TIER_3' ? 'disabled' : ''}`}
-              disabled={subscription?.tier === 'TIER_3' || isSelectingTier}
-              onClick={() => handleSelectTier('TIER_3')}
-            >
-              {subscription?.tier === 'TIER_3' ? 'Current Plan' : 'Activate Enterprise'}
-            </button>
+            {(() => {
+              const btn = getButtonProps('TIER_3');
+              return (
+                <button 
+                  className={btn.className}
+                  disabled={btn.disabled}
+                  onClick={btn.onClick}
+                >
+                  {btn.label}
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>
