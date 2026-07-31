@@ -43,6 +43,7 @@ import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
 @Injectable()
 export class GetBankDetailsUseCase {
@@ -935,6 +936,7 @@ export class ProcessPaymentWebhookUseCase {
     private readonly paymentConfig: PaymentConfigurationService,
     private readonly encryption: EncryptionService,
     private readonly creditWalletUseCase: CreditWalletUseCase,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) { }
 
   async execute(payload: any, signature?: string) {
@@ -1180,6 +1182,17 @@ export class ProcessPaymentWebhookUseCase {
       this.logger.log(`Routing DVA Payment for PM Wallet: PM ID ${pmDva.pmId}`);
       
       const amountPaid = data.amount / 100;
+
+      const existingTx = data.reference
+        ? await this.prisma.upward_pm_wallet_transaction.findUnique({
+            where: { reference: data.reference },
+          })
+        : null;
+
+      if (existingTx) {
+        this.logger.log(`Skipping duplicate PM wallet DVA payment for reference ${data.reference}`)
+        return { success: true, message: 'PM Wallet Funding already processed' }
+      }
       
       let wallet = await this.prisma.upward_pm_wallet.findUnique({ where: { pmId: pmDva.pmId } });
       if (!wallet) {
@@ -1202,6 +1215,49 @@ export class ProcessPaymentWebhookUseCase {
         where: { id: wallet.id },
         data: { balance: { increment: amountPaid } }
       });
+
+      const updatedBalance = (wallet.balance || 0) + amountPaid
+      const pm = await this.prisma.upward_property_manager.findUnique({
+        where: { id: pmDva.pmId },
+      })
+      const pmEmail = pm?.email ? this.encryption.decrypt(pm.email) : null
+      const pmFirstName = pm?.firstName ? this.encryption.decrypt(pm.firstName) : ''
+      const pmLastName = pm?.lastName ? this.encryption.decrypt(pm.lastName) : ''
+      const pmBusinessName = pm?.businessName ? this.encryption.decrypt(pm.businessName) : ''
+      const pmName = pmBusinessName || `${pmFirstName} ${pmLastName}`.trim() || 'Property Manager'
+
+      await this.prisma.upward_pm_notification.create({
+        data: {
+          pmId: pmDva.pmId,
+          title: 'Wallet credited',
+          message: `Your wallet has been credited with NGN ${amountPaid.toLocaleString()} via Dedicated Virtual Account. New balance: NGN ${updatedBalance.toLocaleString()}.`,
+          type: 'PAYMENT_COMPLETED',
+          isPopup: true,
+          url: '/subscription/wallet',
+        },
+      })
+
+      if (pmEmail) {
+        const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
+        await this.unifiedCommService.processCommunication({
+          recipientEmail: pmEmail,
+          recipientName: pmName,
+          recipientRole: 'PM',
+          pmUuid: pm?.uuid,
+          type: 'PM_WALLET_FUNDING_RECEIVED',
+          context: {
+            pmName,
+            amount: amountPaid,
+            formattedAmount: amountPaid.toLocaleString(),
+            walletBalance: updatedBalance,
+            formattedWalletBalance: updatedBalance.toLocaleString(),
+            accountNumber,
+            baseUrl,
+          },
+        }).catch((err) => {
+          this.logger.error(`Failed to send DVA funding email to PM ${pmEmail}:`, err)
+        })
+      }
       
       return { success: true, message: 'PM Wallet Funded' };
     }

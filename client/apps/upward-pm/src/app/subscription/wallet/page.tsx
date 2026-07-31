@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Wallet, 
@@ -57,6 +57,7 @@ export default function WalletPage() {
   const [copied, setCopied] = useState(false);
   const [showSentOverlay, setShowSentOverlay] = useState(false);
   const [paying, setPaying] = useState(false);
+  const lastObservedBalanceRef = useRef<number | null>(null);
 
   // Polling states
   const [isPolling, setIsPolling] = useState(false);
@@ -68,6 +69,28 @@ export default function WalletPage() {
     amount: number;
     balance: number;
   } | null>(null);
+
+  useEffect(() => {
+    const nextBalance = wallet?.balance ?? 0;
+
+    if (lastObservedBalanceRef.current === null) {
+      lastObservedBalanceRef.current = nextBalance;
+      return;
+    }
+
+    const previousBalance = lastObservedBalanceRef.current;
+    lastObservedBalanceRef.current = nextBalance;
+
+    if (isPolling || nextBalance <= previousBalance) {
+      return;
+    }
+
+    setSuccessModalData({
+      isOpen: true,
+      amount: nextBalance - previousBalance,
+      balance: nextBalance,
+    });
+  }, [isPolling, wallet?.balance]);
 
   useEffect(() => {
     if (!isPolling) return;

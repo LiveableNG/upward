@@ -15,6 +15,8 @@ export function useSubscription() {
   const { data: wallet, isLoading: isWalletLoading } = useQuery<Wallet>({
     queryKey: ['wallet'],
     queryFn: () => api.get('/pm/wallet'),
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: dva, isLoading: isDvaLoading } = useQuery({

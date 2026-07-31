@@ -186,7 +186,12 @@ export function TenantHomeRequestsPage() {
   )
 
   const access = checkAccess(FeatureKey.LISTING_BROKERAGE)
-  const allowedCount = Math.floor(filteredRequests.length * (access.limit || 0))
+  const allowedCount = access.hasAccess && access.limit === 1.0
+    ? filteredRequests.length
+    : Math.min(
+        filteredRequests.length,
+        Math.ceil(filteredRequests.length * (access.limit || 0)),
+      )
 
   const processedRequests = useMemo(() => {
     if (access.hasAccess && access.limit === 1.0) {
