@@ -1,9 +1,10 @@
- import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Check, X, Sparkles } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
+import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import '@/styles/features/pricing-modal.css';
 
 interface PricingModalProps {
@@ -15,6 +16,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   const router = useRouter();
   const { subscription, wallet, selectTier, isSelectingTier } = useSubscription();
   const [mounted, setMounted] = useState(false);
+  const [isDowngradeConfirmOpen, setIsDowngradeConfirmOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -24,8 +26,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
 
   const handleSelectTier = (tier: SubscriptionTier) => {
     if (tier === 'FREE') {
-      selectTier({ tier: 'FREE', billingMode: 'active' });
-      onClose();
+      setIsDowngradeConfirmOpen(true);
     } else {
       onClose();
       router.push(`/subscription/checkout?tier=${tier}&billingMode=active`);
@@ -200,5 +201,24 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
     </div>
   );
 
-  return createPortal(modalContent, document.body);
+  return createPortal(
+    <>
+      {modalContent}
+      <ConfirmationModal
+        isOpen={isDowngradeConfirmOpen}
+        onClose={() => setIsDowngradeConfirmOpen(false)}
+        onConfirm={() => {
+          selectTier({ tier: 'FREE', billingMode: 'active' });
+          setIsDowngradeConfirmOpen(false);
+        }}
+        title="Confirm Scheduled Downgrade"
+        message="Are you sure you want to schedule a downgrade to the Free tier? Your premium benefits will remain active until your next billing date."
+        confirmText="Schedule Downgrade"
+        cancelText="Keep Current Plan"
+        type="primary"
+        isPending={isSelectingTier}
+      />
+    </>,
+    document.body
+  );
 }

@@ -32,8 +32,14 @@ export function useSubscription() {
   const selectTierMutation = useMutation({
     mutationFn: (data: { tier: SubscriptionTier; billingMode?: 'active' | 'all' }) =>
       api.post('/pm/subscription/select-tier', data),
-    onSuccess: () => {
-      success('Subscription tier updated successfully');
+    onSuccess: (data, variables) => {
+      if (variables.tier === 'FREE') {
+        success('Subscription downgrade scheduled successfully');
+      } else if (subscription && variables.tier === subscription.tier) {
+        success('Scheduled downgrade cancelled successfully');
+      } else {
+        success('Subscription tier updated successfully');
+      }
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
