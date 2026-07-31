@@ -236,6 +236,8 @@ export class GetPerformanceMetricsUseCase {
               currency: true,
               subaccountId: true,
               createdAt: true,
+              externalPropertyId: true,
+              externalUnitId: true,
               subaccount: { select: { uuid: true } },
             },
           },
