@@ -18,7 +18,7 @@ export class PaymentWebhookHandler implements OnModuleInit, OnModuleDestroy {
       'PaymentUpdatedEvent',
       async (event) => {
         try {
-          await this.webhookService.sendWebhook(event.platformId, event.eventType, event.payload);
+          await this.webhookService.sendWebhook(event.platformId, event.eventType, {...event.payload, externalUnitId: event.externalUnitId as any});
         } catch (error) {
           // Log failure but don't crash since it's fire-and-forget
           console.error(`[PaymentWebhookHandler] Failed to send webhook for platform ${event.platformId}`, error);
