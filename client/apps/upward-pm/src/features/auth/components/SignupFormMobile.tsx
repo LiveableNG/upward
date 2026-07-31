@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  User,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
@@ -53,7 +54,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export const SignupFormMobile = () => {
   const router = useRouter()
-  const [step, setStep] = useState(1) // Steps 1 to 4, Step 5 is OTP, Step 6 is Success
+  const [step, setStep] = useState(1) // Steps 1 to 3, Step 4 is OTP, Step 5 is Success
   const [stage, setStage] = useState<'info' | 'otp' | 'success'>('info')
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
 
@@ -66,6 +67,8 @@ export const SignupFormMobile = () => {
     pmType: '',
     password: '',
     confirmPassword: '',
+    firstName: '',
+    lastName: '',
   })
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -130,8 +133,24 @@ export const SignupFormMobile = () => {
         setStepError('Please select country')
         return
       }
+      if (!formData.pmType) {
+        setStepError('Please select account type')
+        return
+      }
+      if (!formData.tenantsNumber) {
+        setStepError('Please select number of tenants')
+        return
+      }
       setStep(2)
     } else if (step === 2) {
+      if (!formData.firstName.trim()) {
+        setStepError('Please enter your first name')
+        return
+      }
+      if (!formData.lastName.trim()) {
+        setStepError('Please enter your last name')
+        return
+      }
       if (!formData.email.trim() || !formData.email.includes('@')) {
         setStepError('Please enter a valid company email')
         return
@@ -146,16 +165,6 @@ export const SignupFormMobile = () => {
       }
       setStep(3)
     } else if (step === 3) {
-      if (!formData.pmType) {
-        setStepError('Please select account type')
-        return
-      }
-      if (!formData.tenantsNumber) {
-        setStepError('Please select number of tenants')
-        return
-      }
-      setStep(4)
-    } else if (step === 4) {
       if (formData.password.length < 8) {
         setStepError('Password must be at least 8 characters')
         return
@@ -174,7 +183,7 @@ export const SignupFormMobile = () => {
           onSuccess: (data: RequestOtpResult) => {
             setEffectiveContext(data.context)
             setStage('otp')
-            setStep(5)
+            setStep(4)
           },
           onError: (err) => {
             setStepError(getErrorMessage(err, 'Failed to request verification code.'))
@@ -188,9 +197,9 @@ export const SignupFormMobile = () => {
     setStepError('')
     if (step > 1) {
       setStep(step - 1)
-      if (step === 5) {
+      if (step === 4) {
         setStage('info')
-        setStep(4)
+        setStep(3)
       }
     } else {
       router.push('/welcome')
@@ -224,10 +233,6 @@ export const SignupFormMobile = () => {
         {
           onSuccess: (res: VerifyOtpResult) => {
             if (res.success) {
-              const nameParts = formData.companyName.trim().split(/\s+/)
-              const firstName = nameParts[0] || 'Company'
-              const lastName = nameParts.slice(1).join(' ') || 'Manager'
-
               let formattedPhone = formData.phone.replace(/[^\d+]/g, '').trim()
               const dialCodeOption = ALL_COUNTRIES.find(c => c.value === phoneCountryCode)
               const dialCode = dialCodeOption ? `+${getCountryCallingCode(dialCodeOption.code)}` : '+234'
@@ -241,8 +246,8 @@ export const SignupFormMobile = () => {
               const signupPayload = {
                 email: formData.email,
                 password: formData.password,
-                firstName,
-                lastName,
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
                 businessName: formData.companyName,
                 pmType: formData.pmType,
                 phone: formattedPhone,
@@ -252,7 +257,7 @@ export const SignupFormMobile = () => {
               signupMutation.mutate(signupPayload, {
                 onSuccess: () => {
                   setStage('success')
-                  setStep(6)
+                  setStep(5)
                 },
               })
             }
@@ -286,7 +291,7 @@ export const SignupFormMobile = () => {
     }
   }
 
-  if (step === 6 || stage === 'success') {
+  if (step === 5 || stage === 'success') {
     return (
       <div className="mobile-auth">
         <div className="mobile-auth__container" style={{ justifyContent: 'center', textAlign: 'center' }}>
@@ -311,8 +316,8 @@ export const SignupFormMobile = () => {
   }
 
   const getStepProgress = () => {
-    if (step <= 4) return (step / 4) * 100
-    if (step === 5) return 100
+    if (step <= 3) return (step / 3) * 100
+    if (step === 4) return 100
     return 0
   }
 
@@ -342,7 +347,7 @@ export const SignupFormMobile = () => {
             )}
           </div>
 
-          {step <= 5 && (
+          {step <= 4 && (
             <div className="mobile-auth__progress-container">
               <div className="mobile-auth__progress-track">
                 <div 
@@ -351,7 +356,7 @@ export const SignupFormMobile = () => {
                 />
               </div>
               <span className="mobile-auth__progress-text">
-                {step <= 4 ? `Step ${step} of 4` : 'Verification'}
+                {step <= 3 ? `Step ${step} of 3` : 'Verification'}
               </span>
             </div>
           )}
@@ -364,23 +369,17 @@ export const SignupFormMobile = () => {
           )}
           {step === 2 && (
             <>
-              <h1 className="mobile-auth__title">Contact Details</h1>
-              <p className="mobile-auth__subtitle">How can we reach you and verify your identity?</p>
+              <h1 className="mobile-auth__title">Individual Profile</h1>
+              <p className="mobile-auth__subtitle">Specify contact details of the user registering the company.</p>
             </>
           )}
           {step === 3 && (
-            <>
-              <h1 className="mobile-auth__title">Management Info</h1>
-              <p className="mobile-auth__subtitle">Specify your management style and portfolio size.</p>
-            </>
-          )}
-          {step === 4 && (
             <>
               <h1 className="mobile-auth__title">Security Setup</h1>
               <p className="mobile-auth__subtitle">Create a password to keep your dashboard secure.</p>
             </>
           )}
-          {step === 5 && (
+          {step === 4 && (
             <>
               <h1 className="mobile-auth__title">Verify your email</h1>
               <p className="mobile-auth__subtitle">
@@ -411,7 +410,7 @@ export const SignupFormMobile = () => {
         </div>
 
         {/* Form Body */}
-        {step <= 4 ? (
+        {step <= 3 ? (
           <div className="mobile-auth__form">
             {step === 1 && (
               <div className="mobile-auth__form-step">
@@ -450,69 +449,7 @@ export const SignupFormMobile = () => {
                     />
                   </div>
                 </div>
-              </div>
-            )}
 
-            {step === 2 && (
-              <div className="mobile-auth__form-step">
-                <div className="form-group">
-                  <label className="form-label">Company Email</label>
-                  <div className="input-wrapper">
-                    <Mail size={18} className="input-icon" />
-                    <input
-                      type="email"
-                      className={`form-input form-input--with-icon ${emailExists ? 'form-input--error' : ''}`}
-                      placeholder="example@company.com"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      required
-                    />
-                    {isCheckingEmail && (
-                      <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                        <Loader2 size={16} className="animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  {emailExists && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '13px' }}>
-                      <AlertCircle size={14} />
-                      <span>Email already registered. <Link href={isNative ? "/login" : "/pm-login"} style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Company Phone Number</label>
-                  <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
-                    <FormSelect
-                      width="95px"
-                      searchable={true}
-                      triggerStyle={{ height: '48px', padding: '0 8px', background: 'var(--bg)', fontSize: '13.5px' }}
-                      value={phoneCountryCode}
-                      onChange={setPhoneCountryCode}
-                      options={ALL_COUNTRIES}
-                      placeholder="+234"
-                    />
-                    <input
-                      type="tel"
-                      className="form-input"
-                      style={{ flex: 1, height: '48px', paddingLeft: '14px' }}
-                      placeholder={phoneCountryCode === 'Kenya' ? '712 345 678' : '908 155 2162'}
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="mobile-auth__form-step">
                 <div className="form-group">
                   <label className="form-label">Account Type</label>
                   <div className="input-wrapper">
@@ -559,7 +496,99 @@ export const SignupFormMobile = () => {
               </div>
             )}
 
-            {step === 4 && (
+            {step === 2 && (
+              <div className="mobile-auth__form-step">
+                <div className="form-group">
+                  <label className="form-label">First Name</label>
+                  <div className="input-wrapper">
+                    <User size={18} className="input-icon" />
+                    <input
+                      type="text"
+                      className="form-input form-input--with-icon"
+                      placeholder="First Name"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, firstName: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Last Name</label>
+                  <div className="input-wrapper">
+                    <User size={18} className="input-icon" />
+                    <input
+                      type="text"
+                      className="form-input form-input--with-icon"
+                      placeholder="Last Name"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, lastName: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Work Email</label>
+                  <div className="input-wrapper">
+                    <Mail size={18} className="input-icon" />
+                    <input
+                      type="email"
+                      className={`form-input form-input--with-icon ${emailExists ? 'form-input--error' : ''}`}
+                      placeholder="example@company.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      required
+                    />
+                    {isCheckingEmail && (
+                      <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+                        <Loader2 size={16} className="animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  {emailExists && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '13px' }}>
+                      <AlertCircle size={14} />
+                      <span>Email already registered. <Link href={isNative ? "/login" : "/pm-login"} style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Phone Number</label>
+                  <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
+                    <FormSelect
+                      width="95px"
+                      searchable={true}
+                      triggerStyle={{ height: '48px', padding: '0 8px', background: 'var(--bg)', fontSize: '13.5px' }}
+                      value={phoneCountryCode}
+                      onChange={setPhoneCountryCode}
+                      options={ALL_COUNTRIES}
+                      placeholder="+234"
+                    />
+                    <input
+                      type="tel"
+                      className="form-input"
+                      style={{ flex: 1, height: '48px', paddingLeft: '14px' }}
+                      placeholder={phoneCountryCode === 'Kenya' ? '712 345 678' : '908 155 2162'}
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
               <div className="mobile-auth__form-step">
                 <div className="form-group">
                   <label className="form-label">Create Password</label>

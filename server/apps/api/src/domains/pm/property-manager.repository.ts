@@ -15,6 +15,8 @@ export interface PropertyManager {
   profilePic?: string | null
   country?: string | null
   cacNumber?: string | null
+  personalEmail?: string | null
+  personalPhone?: string | null
   bankName?: string | null
   bankCode?: string | null
   accountNumber?: string | null

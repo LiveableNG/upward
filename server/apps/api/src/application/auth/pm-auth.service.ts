@@ -95,6 +95,8 @@ export class PmAuthService extends BaseAuthService {
     phone?: string
     country?: string
     cacNumber?: string
+    personalEmail?: string
+    personalPhone?: string
   }): Promise<any> {
     const existing = await this.pmRepository.findByEmail(dto.email)
     if (existing) {
@@ -118,6 +120,8 @@ export class PmAuthService extends BaseAuthService {
       phoneHash: dto.phone ? this.encryption.hash(dto.phone) : null,
       country: dto.country || null,
       cacNumber: dto.cacNumber || null,
+      personalEmail: dto.personalEmail || null,
+      personalPhone: dto.personalPhone || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
