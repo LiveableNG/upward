@@ -139,7 +139,7 @@ export class PmAuthService extends BaseAuthService {
       }
     })
 
-    this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
+    this.emailService.sendCustomerSupportNotification('PM', savedPm.uuid).catch(e => console.error('Failed to send CS notification', e));
 
     this.eventEmitter.emit('pm.registered', { pmUuid: savedPm.uuid });
 
@@ -362,7 +362,7 @@ export class PmAuthService extends BaseAuthService {
         data: { status: 'ACCEPTED' }
     })
 
-    this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
+    this.emailService.sendCustomerSupportNotification('PM', pm.uuid).catch(e => console.error('Failed to send CS notification', e));
 
     return { success: true }
   }

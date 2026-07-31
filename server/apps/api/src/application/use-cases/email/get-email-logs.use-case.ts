@@ -108,6 +108,9 @@ export class GetEmailLogsUseCase {
         openedAt: log.openedAt || log.emailSequenceLog?.openedAt || null,
         openCount: log.openCount || log.emailSequenceLog?.openCount || 0,
       }
+      if (decryptedLog.body) {
+        decryptedLog.body = decryptedLog.body.replace(/<img[^>]*email-tracking\/open[^>]*>/gi, '')
+      }
       if (decryptedLog.registeredUser) {
         decryptedLog.registeredUser = {
           ...decryptedLog.registeredUser,

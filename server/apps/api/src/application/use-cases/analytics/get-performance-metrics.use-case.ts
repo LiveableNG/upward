@@ -214,6 +214,7 @@ export class GetPerformanceMetricsUseCase {
       }),
       this.prisma.upward_company.findMany({
         where: {
+          isInternal: false,
           ...(startDate || endDate
             ? {
                 createdAt: {

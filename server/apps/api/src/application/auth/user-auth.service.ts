@@ -269,9 +269,6 @@ export class UserAuthService extends BaseAuthService {
       }
     }
 
-    // Channel eligibility (mutually exclusive):
-    //   WhatsApp → user has a real phone number (regardless of email type)
-    //   Email    → user has a real (non-@upward.com) email AND no phone number
     const isPhoneOnlyEmail = dto.email.toLowerCase().endsWith('@upward.com');
     const hasPhone = !!user.phone;
     const sendWhatsapp = hasPhone;
