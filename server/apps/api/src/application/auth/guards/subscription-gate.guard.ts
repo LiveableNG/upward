@@ -13,6 +13,10 @@ export class SubscriptionGateGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (process.env.DISABLE_SUBSCRIPTIONS === 'true') {
+      return true;
+    }
+
     const requiredFeature = this.reflector.getAllAndOverride<FeatureKey>(FEATURE_KEY, [
       context.getHandler(),
       context.getClass(),

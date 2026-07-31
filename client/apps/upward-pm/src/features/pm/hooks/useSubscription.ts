@@ -75,7 +75,13 @@ export function useSubscription() {
     },
   });
 
+  const isSubsDisabled = process.env.NEXT_PUBLIC_DISABLE_SUBSCRIPTIONS === 'true';
+
   const checkAccess = (feature: FeatureKey) => {
+    if (isSubsDisabled) {
+      return { hasAccess: true, requiredTier: 'FREE', limit: 1.0 };
+    }
+
     const currentTier = subscription?.tier ?? 'FREE';
     const status = subscription?.status ?? 'ACTIVE';
     
@@ -105,20 +111,35 @@ export function useSubscription() {
     }
   };
 
+  const activeSubscription = isSubsDisabled ? {
+    id: 1,
+    uuid: 'mock-sub-uuid',
+    pmId: 1,
+    tier: 'TIER_3' as SubscriptionTier,
+    priceYearly: 0,
+    priceMonthly: 0,
+    unitBillingMode: 'active' as const,
+    anniversaryDate: null,
+    gracePeriodDays: 7,
+    status: 'ACTIVE' as const,
+    graceStartedAt: null,
+    isInitialDepositPaid: true,
+  } : subscription;
+
   return {
-    subscription,
+    subscription: activeSubscription,
     wallet,
-    isLoading: isSubLoading || isWalletLoading,
+    isLoading: isSubsDisabled ? false : (isSubLoading || isWalletLoading),
     checkAccess,
     selectTier: selectTierMutation.mutate,
     isSelectingTier: selectTierMutation.isPending,
     topUp: topUpMutation.mutate,
     isToppingUp: topUpMutation.isPending,
     dva,
-    isDvaLoading,
+    isDvaLoading: isSubsDisabled ? false : isDvaLoading,
     generateDva: generateDvaMutation.mutate,
     isGeneratingDva: generateDvaMutation.isPending,
     transactions,
-    isTransactionsLoading,
+    isTransactionsLoading: isSubsDisabled ? false : isTransactionsLoading,
   };
 }

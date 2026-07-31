@@ -55,7 +55,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
       router.replace('/login')
     }
-  }, [loading, isLoggedIn, isAuthPage, isPublicPage, isPortalPage, router])
+    if (process.env.NEXT_PUBLIC_DISABLE_SUBSCRIPTIONS === 'true' && pathname?.startsWith('/subscription')) {
+      router.replace('/dashboard')
+    }
+  }, [loading, isLoggedIn, isAuthPage, isPublicPage, isPortalPage, pathname, router])
 
   if (isAuthPage || isPublicPage || isPortalPage || isCheckoutPage) {
     return <main>{children}</main>
@@ -74,7 +77,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         onToggleCollapse={handleToggleCollapse}
       />
       <div className="layout__content">
-        {subscription?.status === 'GRACE' && (
+        {process.env.NEXT_PUBLIC_DISABLE_SUBSCRIPTIONS !== 'true' && subscription?.status === 'GRACE' && (
           <div className="grace-warning-banner" style={{
             background: 'linear-gradient(135deg, #b45309 0%, #d97706 100%)',
             color: 'white',

@@ -37,6 +37,10 @@ export class SubscriptionService {
   }
 
   async checkAccess(pmId: number, feature: FeatureKey): Promise<FeatureGateResult> {
+    if (process.env.DISABLE_SUBSCRIPTIONS === 'true') {
+      return { hasAccess: true, requiredTier: UpwardSubscriptionTier.FREE };
+    }
+
     const sub = await this.prisma.upward_subscription.findUnique({
       where: { pmId },
     });
