@@ -166,6 +166,20 @@ export interface FlatMetrics {
   inactiveCount: number
   activeRate: number
   totalUsersWithPassword: number
+  emailLogsSummary?: {
+    totalSent: number
+    totalOpened: number
+    totalNotOpened: number
+    openRate: number
+    bySubject: Array<{
+      subject: string
+      sent: number
+      opened: number
+      notOpened: number
+      openRate: number
+    }>
+  }
+  activitySessionsCount?: number
 }
 
 export function flattenMetrics(m: MetricsSummary): FlatMetrics {
@@ -186,5 +200,7 @@ export function flattenMetrics(m: MetricsSummary): FlatMetrics {
     inactiveCount: m.activeUsers?.inactiveCount ?? 0,
     activeRate: m.activeUsers?.activeRate ?? 0,
     totalUsersWithPassword: m.activeUsers?.totalUsersWithPassword ?? 0,
+    emailLogsSummary: (m as any).emailLogsSummary,
+    activitySessionsCount: (m as any).activitySessionsCount,
   }
 }
