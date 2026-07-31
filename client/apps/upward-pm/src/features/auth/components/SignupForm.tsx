@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { UpwardLogo } from '../../../components/common/UpwardLogo'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { Switch } from '@/components/ui/Switch/Switch'
+import { useToast } from '@/components/common/Toast'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
@@ -47,6 +49,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export const SignupForm = () => {
   const router = useRouter()
+  const { error: toastError } = useToast()
   const [stage, setStage] = useState<'info' | 'otp' | 'success'>('info')
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
   const [showAdditionalContact, setShowAdditionalContact] = useState(false)
@@ -68,7 +71,7 @@ export const SignupForm = () => {
 
   const [phoneCountryCode, setPhoneCountryCode] = useState('Nigeria')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
-  const [passwordError, setPasswordError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -117,54 +120,55 @@ export const SignupForm = () => {
     verifyOtpMutation.isPending ||
     otpLoginMutation.isPending
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
+
   const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setPasswordError('')
+    const nextErrors: Record<string, string> = {}
 
-    if (!formData.companyName.trim()) {
-      setPasswordError('Please enter company name')
+    if (!formData.companyName.trim()) nextErrors.companyName = 'This field is required'
+    if (!formData.country) nextErrors.country = 'This field is required'
+    if (!formData.pmType) nextErrors.pmType = 'This field is required'
+    if (!formData.tenantsNumber) nextErrors.tenantsNumber = 'This field is required'
+    if (!formData.firstName.trim()) nextErrors.firstName = 'This field is required'
+    if (!formData.lastName.trim()) nextErrors.lastName = 'This field is required'
+
+    if (!formData.email.trim()) {
+      nextErrors.email = 'This field is required'
+    } else if (!formData.email.includes('@')) {
+      nextErrors.email = 'Please enter a valid work email'
+    } else if (emailExists) {
+      nextErrors.email = 'This email is already registered'
+    }
+
+    if (!formData.phone.trim()) nextErrors.phone = 'This field is required'
+
+    if (!formData.password.trim()) {
+      nextErrors.password = 'This field is required'
+    } else if (formData.password.length < 8) {
+      nextErrors.password = 'Password must be at least 8 characters'
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      nextErrors.confirmPassword = 'This field is required'
+    } else if (formData.password !== formData.confirmPassword) {
+      nextErrors.confirmPassword = 'Passwords do not match'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      toastError('Please fill in the highlighted fields before continuing.', 'Missing required fields')
       return
     }
-    if (!formData.country) {
-      setPasswordError('Please select country')
-      return
-    }
-    if (!formData.pmType) {
-      setPasswordError('Please select account type')
-      return
-    }
-    if (!formData.tenantsNumber) {
-      setPasswordError('Please select number of tenants')
-      return
-    }
-    if (!formData.firstName.trim()) {
-      setPasswordError('Please enter your first name')
-      return
-    }
-    if (!formData.lastName.trim()) {
-      setPasswordError('Please enter your last name')
-      return
-    }
-    if (!formData.email.trim() || !formData.email.includes('@')) {
-      setPasswordError('Please enter a valid work email')
-      return
-    }
-    if (emailExists) {
-      setPasswordError('This email is already registered')
-      return
-    }
-    if (!formData.phone.trim()) {
-      setPasswordError('Please enter phone number')
-      return
-    }
-    if (formData.password.length < 8) {
-      setPasswordError('Password must be at least 8 characters')
-      return
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setPasswordError('Passwords do not match')
-      return
-    }
+
+    setFieldErrors({})
 
     requestOtpMutation.mutate(
       {
@@ -389,7 +393,11 @@ export const SignupForm = () => {
                 <FormSelect
                   width="100%"
                   icon={<MapPin size={16} style={{ color: 'var(--forest)' }} />}
-                  triggerStyle={{ height: '48px' }}
+                  triggerStyle={{
+                    height: '48px',
+                    borderColor: fieldErrors.country ? 'var(--error)' : undefined,
+                    boxShadow: fieldErrors.country ? '0 0 0 4px rgba(239, 68, 68, 0.08)' : undefined,
+                  }}
                   value={formData.country}
                   onChange={(val) =>
                     setFormData({
@@ -404,6 +412,7 @@ export const SignupForm = () => {
                   placeholder="Select country"
                 />
               </div>
+              {fieldErrors.country && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.country}</p>}
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -412,20 +421,25 @@ export const SignupForm = () => {
                 <Building size={18} className="input-icon" />
                 <input
                   type="text"
-                  className="form-input form-input--with-icon"
+                  className={`form-input form-input--with-icon ${fieldErrors.companyName ? 'form-input--error' : ''}`}
                   placeholder="Enter business name"
                   value={formData.companyName}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      companyName: e.target.value,
-                    })
+                    {
+                      clearFieldError('companyName')
+                      setFormData({
+                        ...formData,
+                        companyName: e.target.value,
+                      })
+                    }
                   }
                   required
                 />
               </div>
+              {fieldErrors.companyName && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.companyName}</p>}
             </div>
           </div>
+
 
           <div className="grid-2">
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -609,64 +623,71 @@ export const SignupForm = () => {
             </div>
           </div>
 
-          <div style={{ margin: '8px 0' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <input
-                type="checkbox"
-                checked={showAdditionalContact}
-                onChange={(e) => setShowAdditionalContact(e.target.checked)}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  accentColor: 'var(--forest)',
-                  cursor: 'pointer',
-                }}
-              />
-              <span>Add personal contact details for communications</span>
-            </label>
+          <div className="signup-contact-section">
+            <Switch
+              checked={showAdditionalContact}
+              onCheckedChange={setShowAdditionalContact}
+              label="Add personal contact details"
+              description="Optional. Add a separate email and phone number for communication if needed."
+              className="signup-contact-section__switch"
+            />
+
+            {showAdditionalContact && (
+              <div className="signup-contact-section__panel animate-fade-in">
+                <div className="signup-contact-section__panel-header">
+                  <div className="signup-contact-section__panel-icon">
+                    <Users size={16} />
+                  </div>
+                  <div>
+                    <h3 className="signup-contact-section__panel-title">Personal contact details</h3>
+                    <p className="signup-contact-section__panel-copy">
+                      These details are only used for account communication and can be left blank.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid-2">
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Personal Email (Optional)</label>
+                    <div className="input-wrapper">
+                      <Mail size={18} className="input-icon" />
+                      <input
+                        type="email"
+                        className="form-input form-input--with-icon"
+                        placeholder="personal@email.com"
+                        value={formData.personalEmail}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            personalEmail: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Personal Phone (Optional)</label>
+                    <div className="input-wrapper">
+                      <User size={18} className="input-icon" />
+                      <input
+                        type="tel"
+                        className="form-input form-input--with-icon"
+                        placeholder="e.g. +234 801 234 5678"
+                        value={formData.personalPhone}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            personalPhone: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-
-          {showAdditionalContact && (
-            <div className="grid-2 animate-fade-in" style={{ background: '#F3F8F3', padding: '16px', borderRadius: '12px', border: '1px solid #E7E3DA', marginBottom: '8px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Personal Email (Optional)</label>
-                <div className="input-wrapper">
-                  <Mail size={18} className="input-icon" />
-                  <input
-                    type="email"
-                    className="form-input form-input--with-icon"
-                    placeholder="personal@email.com"
-                    value={formData.personalEmail}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        personalEmail: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Personal Phone (Optional)</label>
-                <div className="input-wrapper">
-                  <User size={18} className="input-icon" />
-                  <input
-                    type="tel"
-                    className="form-input form-input--with-icon"
-                    placeholder="e.g. +234 801 234 5678"
-                    value={formData.personalPhone}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        personalPhone: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="grid-2">
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -675,16 +696,17 @@ export const SignupForm = () => {
                 <Lock size={18} className="input-icon" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="form-input form-input--with-icon"
+                  className={`form-input form-input--with-icon ${fieldErrors.password ? 'form-input--error' : ''}`}
                   style={{ paddingRight: '50px' }}
                   placeholder="•••••••••••••"
                   value={formData.password}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    clearFieldError('password')
                     setFormData({
                       ...formData,
                       password: e.target.value,
                     })
-                  }
+                  }}
                   required
                 />
                 <button
@@ -706,6 +728,7 @@ export const SignupForm = () => {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {fieldErrors.password && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.password}</p>}
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -714,16 +737,17 @@ export const SignupForm = () => {
                 <Lock size={18} className="input-icon" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
-                  className="form-input form-input--with-icon"
+                  className={`form-input form-input--with-icon ${fieldErrors.confirmPassword ? 'form-input--error' : ''}`}
                   style={{ paddingRight: '50px' }}
                   placeholder="•••••••••••••"
                   value={formData.confirmPassword}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    clearFieldError('confirmPassword')
                     setFormData({
                       ...formData,
                       confirmPassword: e.target.value,
                     })
-                  }
+                  }}
                   required
                 />
                 <button
@@ -745,14 +769,9 @@ export const SignupForm = () => {
                   {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {fieldErrors.confirmPassword && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.confirmPassword}</p>}
             </div>
           </div>
-
-          {passwordError && (
-            <p style={{ color: 'red', fontSize: '13px', margin: 0, fontWeight: 500 }}>
-              {passwordError}
-            </p>
-          )}
 
           <button
             type="submit"
@@ -769,6 +788,65 @@ export const SignupForm = () => {
           </div>
         </form>
       )}
+
+      <style jsx>{`
+        .signup-contact-section {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .signup-contact-section__panel {
+          padding: 16px;
+          border-radius: 16px;
+          border: 1px solid rgba(22, 101, 52, 0.14);
+          background: linear-gradient(180deg, rgba(243, 248, 243, 0.95), rgba(250, 252, 249, 0.98));
+          box-shadow: 0 10px 24px rgba(22, 101, 52, 0.04);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .signup-contact-section__panel-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .signup-contact-section__panel-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(22, 101, 52, 0.12);
+          color: var(--forest);
+          flex-shrink: 0;
+        }
+
+        .signup-contact-section__panel-title {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--dark);
+          letter-spacing: -0.01em;
+        }
+
+        .signup-contact-section__panel-copy {
+          margin: 4px 0 0;
+          font-size: 12.5px;
+          line-height: 1.5;
+          color: var(--text-secondary);
+        }
+
+        @media (max-width: 640px) {
+          .signup-contact-section__panel {
+            padding: 14px;
+          }
+        }
+      `}</style>
     </div>
   )
 }
+

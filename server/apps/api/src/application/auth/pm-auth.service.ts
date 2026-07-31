@@ -120,8 +120,8 @@ export class PmAuthService extends BaseAuthService {
       phoneHash: dto.phone ? this.encryption.hash(dto.phone) : null,
       country: dto.country || null,
       cacNumber: dto.cacNumber || null,
-      personalEmail: dto.personalEmail || null,
-      personalPhone: dto.personalPhone || null,
+      personalEmail: dto.personalEmail ? this.encryption.encrypt(dto.personalEmail) : null,
+      personalPhone: dto.personalPhone ? this.encryption.encrypt(dto.personalPhone) : null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

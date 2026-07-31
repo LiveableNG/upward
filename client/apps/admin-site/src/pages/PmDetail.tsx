@@ -28,6 +28,8 @@ interface PmDetailData {
   id: string
   uuid: string
   email: string
+  personalEmail?: string | null
+  personalPhone?: string | null
   firstName: string
   lastName: string
   businessName: string
@@ -73,6 +75,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const [editLastName, setEditLastName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [editPersonalEmail, setEditPersonalEmail] = useState('')
+  const [editPersonalPhone, setEditPersonalPhone] = useState('')
   const [editBusinessName, setEditBusinessName] = useState('')
   const [updatingProfile, setUpdatingProfile] = useState(false)
 
@@ -93,6 +97,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       setEditLastName(res.data.lastName || '')
       setEditEmail(res.data.email || '')
       setEditPhone(res.data.phone || '')
+      setEditPersonalEmail(res.data.personalEmail || '')
+      setEditPersonalPhone(res.data.personalPhone || '')
       setEditBusinessName(res.data.businessName || '')
       setSubTier(res.data.subscription?.tier || 'FREE')
       setSubStatus(res.data.subscription?.status || 'ACTIVE')
@@ -147,6 +153,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
           lastName: editLastName,
           email: editEmail,
           phone: editPhone,
+          personalEmail: editPersonalEmail,
+          personalPhone: editPersonalPhone,
           businessName: editBusinessName,
         },
         token,
@@ -408,6 +416,28 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               >
                 <Phone size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>{pm.phone || 'No phone set'}</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <Mail size={14} style={{ color: 'var(--text-muted)' }} />
+                <span>{pm.personalEmail || 'No personal email set'}</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <Phone size={14} style={{ color: 'var(--text-muted)' }} />
+                <span>{pm.personalPhone || 'No personal phone set'}</span>
               </div>
               <div
                 style={{
@@ -742,6 +772,30 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                     className="input"
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Personal Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editPersonalEmail}
+                    onChange={(e) => setEditPersonalEmail(e.target.value)}
+                    className="input"
+                    placeholder="Optional"
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Personal Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={editPersonalPhone}
+                    onChange={(e) => setEditPersonalPhone(e.target.value)}
+                    className="input"
+                    placeholder="Optional"
                   />
                 </div>
                 <div

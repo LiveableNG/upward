@@ -23,6 +23,7 @@ import {
   User,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
+import { useToast } from '@/components/common/Toast'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
@@ -54,6 +55,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export const SignupFormMobile = () => {
   const router = useRouter()
+  const { error: toastError } = useToast()
   const [step, setStep] = useState(1) // Steps 1 to 3, Step 4 is OTP, Step 5 is Success
   const [stage, setStage] = useState<'info' | 'otp' | 'success'>('info')
   const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN'>('SIGNUP')
@@ -73,6 +75,7 @@ export const SignupFormMobile = () => {
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [stepError, setStepError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [phoneCountryCode, setPhoneCountryCode] = useState('Nigeria')
@@ -121,59 +124,62 @@ export const SignupFormMobile = () => {
     verifyOtpMutation.isPending ||
     otpLoginMutation.isPending
 
+  const clearFieldError = (field: string) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
+
   const handleNextStep = async () => {
     setStepError('')
 
+    const nextErrors: Record<string, string> = {}
+
     if (step === 1) {
-      if (!formData.companyName.trim()) {
-        setStepError('Please enter company name')
-        return
+      if (!formData.companyName.trim()) nextErrors.companyName = 'This field is required'
+      if (!formData.country) nextErrors.country = 'This field is required'
+      if (!formData.pmType) nextErrors.pmType = 'This field is required'
+      if (!formData.tenantsNumber) nextErrors.tenantsNumber = 'This field is required'
+    } else if (step === 2) {
+      if (!formData.firstName.trim()) nextErrors.firstName = 'This field is required'
+      if (!formData.lastName.trim()) nextErrors.lastName = 'This field is required'
+      if (!formData.email.trim()) {
+        nextErrors.email = 'This field is required'
+      } else if (!formData.email.includes('@')) {
+        nextErrors.email = 'Please enter a valid company email'
+      } else if (emailExists) {
+        nextErrors.email = 'This email is already registered.'
       }
-      if (!formData.country) {
-        setStepError('Please select country')
-        return
+      if (!formData.phone.trim()) nextErrors.phone = 'This field is required'
+    } else if (step === 3) {
+      if (!formData.password.trim()) {
+        nextErrors.password = 'This field is required'
+      } else if (formData.password.length < 8) {
+        nextErrors.password = 'Password must be at least 8 characters'
       }
-      if (!formData.pmType) {
-        setStepError('Please select account type')
-        return
+      if (!formData.confirmPassword.trim()) {
+        nextErrors.confirmPassword = 'This field is required'
+      } else if (formData.password !== formData.confirmPassword) {
+        nextErrors.confirmPassword = 'Passwords do not match'
       }
-      if (!formData.tenantsNumber) {
-        setStepError('Please select number of tenants')
-        return
-      }
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
+      toastError('Please fill in the highlighted fields before continuing.', 'Missing required fields')
+      return
+    }
+
+    setFieldErrors({})
+
+    if (step === 1) {
       setStep(2)
     } else if (step === 2) {
-      if (!formData.firstName.trim()) {
-        setStepError('Please enter your first name')
-        return
-      }
-      if (!formData.lastName.trim()) {
-        setStepError('Please enter your last name')
-        return
-      }
-      if (!formData.email.trim() || !formData.email.includes('@')) {
-        setStepError('Please enter a valid company email')
-        return
-      }
-      if (emailExists) {
-        setStepError('This email is already registered.')
-        return
-      }
-      if (!formData.phone.trim()) {
-        setStepError('Please enter phone number')
-        return
-      }
       setStep(3)
     } else if (step === 3) {
-      if (formData.password.length < 8) {
-        setStepError('Password must be at least 8 characters')
-        return
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setStepError('Passwords do not match')
-        return
-      }
-
       requestOtpMutation.mutate(
         {
           email: formData.email,
@@ -420,15 +426,17 @@ export const SignupFormMobile = () => {
                     <Building size={18} className="input-icon" />
                     <input
                       type="text"
-                      className="form-input form-input--with-icon"
+                      className={`form-input form-input--with-icon ${fieldErrors.companyName ? 'form-input--error' : ''}`}
                       placeholder="Enter company name"
                       value={formData.companyName}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('companyName')
                         setFormData({ ...formData, companyName: e.target.value })
-                      }
+                      }}
                       required
                     />
                   </div>
+                  {fieldErrors.companyName && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.companyName}</p>}
                 </div>
 
                 <div className="form-group">
@@ -436,11 +444,13 @@ export const SignupFormMobile = () => {
                   <div className="input-wrapper">
                     <MapPin size={18} className="input-icon" />
                     <FormSelect
-                      triggerClassName="form-input--with-icon"
+                      triggerClassName={`form-input--with-icon ${fieldErrors.country ? 'form-input--error' : ''}`}
+                      triggerStyle={{ borderColor: fieldErrors.country ? 'var(--error)' : undefined, boxShadow: fieldErrors.country ? '0 0 0 4px rgba(239, 68, 68, 0.08)' : undefined }}
                       value={formData.country}
-                      onChange={(val) =>
+                      onChange={(val) => {
+                        clearFieldError('country')
                         setFormData({ ...formData, country: val })
-                      }
+                      }}
                       options={[
                         { label: 'Nigeria', value: 'Nigeria' },
                         { label: 'Kenya', value: 'Kenya' }
@@ -448,6 +458,7 @@ export const SignupFormMobile = () => {
                       placeholder="Select country"
                     />
                   </div>
+                  {fieldErrors.country && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.country}</p>}
                 </div>
 
                 <div className="form-group">
@@ -455,11 +466,13 @@ export const SignupFormMobile = () => {
                   <div className="input-wrapper">
                     <Briefcase size={18} className="input-icon" />
                     <FormSelect
-                      triggerClassName="form-input--with-icon"
+                      triggerClassName={`form-input--with-icon ${fieldErrors.pmType ? 'form-input--error' : ''}`}
+                      triggerStyle={{ borderColor: fieldErrors.pmType ? 'var(--error)' : undefined, boxShadow: fieldErrors.pmType ? '0 0 0 4px rgba(239, 68, 68, 0.08)' : undefined }}
                       value={formData.pmType}
-                      onChange={(val) =>
+                      onChange={(val) => {
+                        clearFieldError('pmType')
                         setFormData({ ...formData, pmType: val })
-                      }
+                      }}
                       options={[
                         { label: 'Caretaker', value: 'Caretaker' },
                         { label: 'Lawyer', value: 'Lawyer' },
@@ -470,6 +483,7 @@ export const SignupFormMobile = () => {
                       placeholder="Select account type"
                     />
                   </div>
+                  {fieldErrors.pmType && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.pmType}</p>}
                 </div>
 
                 <div className="form-group">
@@ -477,11 +491,13 @@ export const SignupFormMobile = () => {
                   <div className="input-wrapper">
                     <Users size={18} className="input-icon" />
                     <FormSelect
-                      triggerClassName="form-input--with-icon"
+                      triggerClassName={`form-input--with-icon ${fieldErrors.tenantsNumber ? 'form-input--error' : ''}`}
+                      triggerStyle={{ borderColor: fieldErrors.tenantsNumber ? 'var(--error)' : undefined, boxShadow: fieldErrors.tenantsNumber ? '0 0 0 4px rgba(239, 68, 68, 0.08)' : undefined }}
                       value={formData.tenantsNumber}
-                      onChange={(val) =>
+                      onChange={(val) => {
+                        clearFieldError('tenantsNumber')
                         setFormData({ ...formData, tenantsNumber: val })
-                      }
+                      }}
                       options={[
                         { label: 'Less than 50', value: 'Less than 50' },
                         { label: '51-100', value: '51-100' },
@@ -492,6 +508,7 @@ export const SignupFormMobile = () => {
                       placeholder="Select an option"
                     />
                   </div>
+                  {fieldErrors.tenantsNumber && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.tenantsNumber}</p>}
                 </div>
               </div>
             )}
@@ -504,15 +521,17 @@ export const SignupFormMobile = () => {
                     <User size={18} className="input-icon" />
                     <input
                       type="text"
-                      className="form-input form-input--with-icon"
+                      className={`form-input form-input--with-icon ${fieldErrors.firstName ? 'form-input--error' : ''}`}
                       placeholder="First Name"
                       value={formData.firstName}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('firstName')
                         setFormData({ ...formData, firstName: e.target.value })
-                      }
+                      }}
                       required
                     />
                   </div>
+                  {fieldErrors.firstName && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.firstName}</p>}
                 </div>
 
                 <div className="form-group">
@@ -521,15 +540,17 @@ export const SignupFormMobile = () => {
                     <User size={18} className="input-icon" />
                     <input
                       type="text"
-                      className="form-input form-input--with-icon"
+                      className={`form-input form-input--with-icon ${fieldErrors.lastName ? 'form-input--error' : ''}`}
                       placeholder="Last Name"
                       value={formData.lastName}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('lastName')
                         setFormData({ ...formData, lastName: e.target.value })
-                      }
+                      }}
                       required
                     />
                   </div>
+                  {fieldErrors.lastName && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.lastName}</p>}
                 </div>
 
                 <div className="form-group">
@@ -538,12 +559,13 @@ export const SignupFormMobile = () => {
                     <Mail size={18} className="input-icon" />
                     <input
                       type="email"
-                      className={`form-input form-input--with-icon ${emailExists ? 'form-input--error' : ''}`}
+                      className={`form-input form-input--with-icon ${fieldErrors.email || emailExists ? 'form-input--error' : ''}`}
                       placeholder="example@company.com"
                       value={formData.email}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('email')
                         setFormData({ ...formData, email: e.target.value })
-                      }
+                      }}
                       required
                     />
                     {isCheckingEmail && (
@@ -552,6 +574,7 @@ export const SignupFormMobile = () => {
                       </div>
                     )}
                   </div>
+                  {fieldErrors.email && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
                   {emailExists && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '13px' }}>
                       <AlertCircle size={14} />
@@ -566,7 +589,7 @@ export const SignupFormMobile = () => {
                     <FormSelect
                       width="95px"
                       searchable={true}
-                      triggerStyle={{ height: '48px', padding: '0 8px', background: 'var(--bg)', fontSize: '13.5px' }}
+                      triggerStyle={{ height: '48px', padding: '0 8px', background: 'var(--bg)', fontSize: '13.5px', borderColor: fieldErrors.phone ? 'var(--error)' : undefined, boxShadow: fieldErrors.phone ? '0 0 0 4px rgba(239, 68, 68, 0.08)' : undefined }}
                       value={phoneCountryCode}
                       onChange={setPhoneCountryCode}
                       options={ALL_COUNTRIES}
@@ -574,16 +597,18 @@ export const SignupFormMobile = () => {
                     />
                     <input
                       type="tel"
-                      className="form-input"
+                      className={`form-input ${fieldErrors.phone ? 'form-input--error' : ''}`}
                       style={{ flex: 1, height: '48px', paddingLeft: '14px' }}
                       placeholder={phoneCountryCode === 'Kenya' ? '712 345 678' : '908 155 2162'}
                       value={formData.phone}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('phone')
                         setFormData({ ...formData, phone: e.target.value })
-                      }
+                      }}
                       required
                     />
                   </div>
+                  {fieldErrors.phone && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.phone}</p>}
                 </div>
               </div>
             )}
@@ -596,12 +621,13 @@ export const SignupFormMobile = () => {
                     <Lock size={18} className="input-icon" />
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      className="form-input form-input--with-icon"
+                      className={`form-input form-input--with-icon ${fieldErrors.password ? 'form-input--error' : ''}`}
                       placeholder="•••••••••••••"
                       value={formData.password}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('password')
                         setFormData({ ...formData, password: e.target.value })
-                      }
+                      }}
                       required
                     />
                     <button
@@ -626,6 +652,7 @@ export const SignupFormMobile = () => {
                       Show {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {fieldErrors.password && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.password}</p>}
                 </div>
 
                 <div className="form-group">
@@ -634,12 +661,13 @@ export const SignupFormMobile = () => {
                     <Lock size={18} className="input-icon" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
-                      className="form-input form-input--with-icon"
+                      className={`form-input form-input--with-icon ${fieldErrors.confirmPassword ? 'form-input--error' : ''}`}
                       placeholder="•••••••••••••"
                       value={formData.confirmPassword}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        clearFieldError('confirmPassword')
                         setFormData({ ...formData, confirmPassword: e.target.value })
-                      }
+                      }}
                       required
                     />
                     <button
@@ -664,6 +692,7 @@ export const SignupFormMobile = () => {
                       Show {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {fieldErrors.confirmPassword && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.confirmPassword}</p>}
                 </div>
               </div>
             )}

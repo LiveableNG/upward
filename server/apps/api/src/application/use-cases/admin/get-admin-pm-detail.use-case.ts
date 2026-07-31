@@ -36,6 +36,16 @@ export class GetAdminPmDetailUseCase {
     }
   }
 
+  private decryptOptional(value?: string | null) {
+    if (!value) return ''
+
+    try {
+      return this.encryption.decrypt(value)
+    } catch (err) {
+      return value
+    }
+  }
+
   async execute(uuid: string) {
     const pm = await this.prisma.upward_property_manager.findUnique({
       where: { uuid },
@@ -287,11 +297,13 @@ export class GetAdminPmDetailUseCase {
       type: 'PM',
       id: pm.id.toString(),
       uuid: pm.uuid,
-      email: pm.email ? this.encryption.decrypt(pm.email) : '',
-      firstName: pm.firstName ? this.encryption.decrypt(pm.firstName) : '',
-      lastName: pm.lastName ? this.encryption.decrypt(pm.lastName) : '',
-      businessName: pm.businessName ? this.encryption.decrypt(pm.businessName) : '',
-      phone: pm.phone ? this.encryption.decrypt(pm.phone) : '',
+      email: this.decryptOptional(pm.email),
+      firstName: this.decryptOptional(pm.firstName),
+      lastName: this.decryptOptional(pm.lastName),
+      businessName: this.decryptOptional(pm.businessName),
+      phone: this.decryptOptional(pm.phone),
+      personalEmail: this.decryptOptional(pm.personalEmail),
+      personalPhone: this.decryptOptional(pm.personalPhone),
       isVerified: pm.isVerified,
       createdAt: pm.createdAt,
       updatedAt: pm.updatedAt,
