@@ -33,7 +33,11 @@ export function useSubscription() {
     mutationFn: (data: { tier: SubscriptionTier; billingMode?: 'active' | 'all' }) =>
       api.post('/pm/subscription/select-tier', data),
     onSuccess: (data, variables) => {
-      if (variables.tier === 'FREE') {
+      const TIER_ORDER = { FREE: 1, TIER_2: 2, TIER_3: 3 };
+      const currentOrder = subscription ? TIER_ORDER[subscription.tier] : 1;
+      const newOrder = TIER_ORDER[variables.tier];
+
+      if (newOrder < currentOrder) {
         success('Subscription downgrade scheduled successfully');
       } else if (subscription && variables.tier === subscription.tier) {
         success('Scheduled downgrade cancelled successfully');

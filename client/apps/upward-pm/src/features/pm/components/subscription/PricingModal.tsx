@@ -17,6 +17,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   const { subscription, wallet, selectTier, isSelectingTier } = useSubscription();
   const [mounted, setMounted] = useState(false);
   const [isDowngradeConfirmOpen, setIsDowngradeConfirmOpen] = useState(false);
+  const [downgradeTarget, setDowngradeTarget] = useState<SubscriptionTier | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -25,7 +26,12 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   if (!isOpen || !mounted) return null;
 
   const handleSelectTier = (tier: SubscriptionTier) => {
-    if (tier === 'FREE') {
+    const TIER_ORDER = { FREE: 1, TIER_2: 2, TIER_3: 3 };
+    const currentOrder = subscription ? TIER_ORDER[subscription.tier] : 1;
+    const newOrder = TIER_ORDER[tier];
+
+    if (newOrder < currentOrder) {
+      setDowngradeTarget(tier);
       setIsDowngradeConfirmOpen(true);
     } else {
       onClose();
@@ -74,6 +80,19 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
       disabled: isSelectingTier,
       onClick: () => handleSelectTier(tier),
     };
+  };
+
+  const getDowngradeTargetName = (tier: SubscriptionTier | null) => {
+    if (tier === 'FREE') return 'Free';
+    if (tier === 'TIER_2') return 'Professional';
+    if (tier === 'TIER_3') return 'Enterprise';
+    return '';
+  };
+
+  const getDowngradeCancelText = () => {
+    if (subscription?.tier === 'TIER_3') return 'Keep Enterprise';
+    if (subscription?.tier === 'TIER_2') return 'Keep Professional';
+    return 'Keep Current Plan';
   };
 
   const modalContent = (
@@ -206,15 +225,21 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
       {modalContent}
       <ConfirmationModal
         isOpen={isDowngradeConfirmOpen}
-        onClose={() => setIsDowngradeConfirmOpen(false)}
-        onConfirm={() => {
-          selectTier({ tier: 'FREE', billingMode: 'active' });
+        onClose={() => {
           setIsDowngradeConfirmOpen(false);
+          setDowngradeTarget(null);
+        }}
+        onConfirm={() => {
+          if (downgradeTarget) {
+            selectTier({ tier: downgradeTarget, billingMode: 'active' });
+          }
+          setIsDowngradeConfirmOpen(false);
+          setDowngradeTarget(null);
         }}
         title="Confirm Scheduled Downgrade"
-        message="Are you sure you want to schedule a downgrade to the Free tier? Your premium benefits will remain active until your next billing date."
+        message={`Are you sure you want to schedule a downgrade to the ${getDowngradeTargetName(downgradeTarget)} tier? Your premium benefits will remain active until your next billing date.`}
         confirmText="Schedule Downgrade"
-        cancelText="Keep Current Plan"
+        cancelText={getDowngradeCancelText()}
         type="primary"
         isPending={isSelectingTier}
       />
