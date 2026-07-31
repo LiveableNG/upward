@@ -194,7 +194,15 @@ export const DataImportTab: React.FC = () => {
     if (!file) return
 
     const ext = file.name.split('.').pop()?.toLowerCase()
-    if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
+    if (
+      ext === 'csv' ||
+      ext === 'xlsx' ||
+      ext === 'xls' ||
+      ext === 'xlsm' ||
+      ext === 'xlsb' ||
+      ext === 'xltx' ||
+      ext === 'xltm'
+    ) {
       importState.handleFileUpload(e, fileInputRef)
     } else {
       setPendingRelayFile(file)
@@ -443,13 +451,13 @@ export const DataImportTab: React.FC = () => {
         </h3>
         
         <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
-          Drag and drop your file here or click to browse. Supports Excel (.xlsx, .csv) for direct import, or PDF/Images for assisted support onboarding.
+          Drag and drop your file here or click to browse. Supports Excel (.xlsx, .xls, .xlsm, .xlsb, .xltx, .xltm, .csv) for direct import, or PDF/Images for assisted support onboarding.
         </p>
 
         <div className="import-tab__actions">
           <label className={cn('btn btn--primary import-tab__action-btn', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')}>
             <Upload size={18} style={{ marginRight: 8 }} /> Select File
-            <input type="file" accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
+            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
           </label>
           
           <button className="btn btn--secondary import-tab__action-btn" onClick={handleDownloadTemplate}>
