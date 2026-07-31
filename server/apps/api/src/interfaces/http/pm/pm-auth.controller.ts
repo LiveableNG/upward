@@ -83,6 +83,8 @@ export class PmAuthController {
       phone?: string;
       country?: string;
       cacNumber?: string;
+      personalEmail?: string;
+      personalPhone?: string;
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {

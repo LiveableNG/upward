@@ -172,7 +172,7 @@ export const SignupForm = () => {
     if (!formData.firstName.trim()) nextErrors.firstName = 'This field is required'
     if (!formData.lastName.trim()) nextErrors.lastName = 'This field is required'
 
-    if (!formData.email.trim()) {
+     if (!formData.email.trim()) {
       nextErrors.email = 'This field is required'
     } else if (!formData.email.includes('@')) {
       nextErrors.email = 'Please enter a valid work email'
@@ -181,6 +181,16 @@ export const SignupForm = () => {
     }
 
     if (!formData.phone.trim()) nextErrors.phone = 'This field is required'
+
+    if (!formData.personalEmail.trim()) {
+      nextErrors.personalEmail = 'This field is required'
+    } else if (!formData.personalEmail.includes('@')) {
+      nextErrors.personalEmail = 'Please enter a valid personal email'
+    }
+
+    if (!formData.personalPhone.trim()) {
+      nextErrors.personalPhone = 'This field is required'
+    }
 
     if (!formData.password.trim()) {
       nextErrors.password = 'This field is required'
@@ -407,7 +417,7 @@ export const SignupForm = () => {
           </form>
         </div>
       ) : (
-        <form onSubmit={handleInfoSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleInfoSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '16px' }}>
             <UpwardLogo color="var(--forest)" size={48} />
             <h2 className="auth-card__title" style={{ fontSize: '24px', fontWeight: 800, marginTop: '16px', marginBottom: '8px', color: 'var(--dark)' }}>
@@ -496,20 +506,26 @@ export const SignupForm = () => {
               {fieldErrors.pmType && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.pmType}</p>}
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
+             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Tenants under management</label>
               <div className="input-wrapper">
                 <Users size={18} className="input-icon" />
                 <FormSelect
                   width="100%"
-                  triggerStyle={{ height: '48px', paddingLeft: '42px' }}
+                  triggerStyle={{
+                    height: '48px',
+                    paddingLeft: '42px',
+                    borderColor: fieldErrors.tenantsNumber ? 'var(--error)' : undefined,
+                    boxShadow: fieldErrors.tenantsNumber ? '0 0 0 4px rgba(239, 68, 68, 0.08)' : undefined,
+                  }}
                   value={formData.tenantsNumber}
-                  onChange={(val) =>
+                  onChange={(val) => {
+                    clearFieldError('tenantsNumber')
                     setFormData({
                       ...formData,
                       tenantsNumber: val,
                     })
-                  }
+                  }}
                   options={[
                     { label: 'Less than 50', value: 'Less than 50' },
                     { label: '51-100', value: '51-100' },
@@ -520,6 +536,7 @@ export const SignupForm = () => {
                   placeholder="Select range"
                 />
               </div>
+              {fieldErrors.tenantsNumber && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.tenantsNumber}</p>}
             </div>
           </div>
 
@@ -530,18 +547,20 @@ export const SignupForm = () => {
                 <User size={18} className="input-icon" />
                 <input
                   type="text"
-                  className="form-input form-input--with-icon"
+                  className={`form-input form-input--with-icon ${fieldErrors.firstName ? 'form-input--error' : ''}`}
                   placeholder="First Name"
                   value={formData.firstName}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    clearFieldError('firstName')
                     setFormData({
                       ...formData,
                       firstName: e.target.value,
                     })
-                  }
+                  }}
                   required
                 />
               </div>
+              {fieldErrors.firstName && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.firstName}</p>}
             </div>
 
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -550,18 +569,20 @@ export const SignupForm = () => {
                 <User size={18} className="input-icon" />
                 <input
                   type="text"
-                  className="form-input form-input--with-icon"
+                  className={`form-input form-input--with-icon ${fieldErrors.lastName ? 'form-input--error' : ''}`}
                   placeholder="Last Name"
                   value={formData.lastName}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    clearFieldError('lastName')
                     setFormData({
                       ...formData,
                       lastName: e.target.value,
                     })
-                  }
+                  }}
                   required
                 />
               </div>
+              {fieldErrors.lastName && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.lastName}</p>}
             </div>
           </div>
 
@@ -618,8 +639,8 @@ export const SignupForm = () => {
               )}
             </div>
 
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Phone Number</label>
+             <div className="form-group" style={{ marginBottom: 0 }}>
+              <label class="form-label">Phone Number</label>
               <div className="input-wrapper" style={{ display: 'flex', gap: '8px' }}>
                 <FormSelect
                   width="95px"
@@ -634,87 +655,85 @@ export const SignupForm = () => {
                 <div style={{ flex: 1, display: 'flex' }}>
                   <input
                     type="tel"
-                    className="form-input"
+                    className={`form-input ${fieldErrors.phone ? 'form-input--error' : ''}`}
                     style={{ height: '48px', width: '100%', paddingLeft: '14px' }}
                     placeholder={phoneCountryCode === 'Kenya' ? '712 345 678' : '908 155 2162'}
                     value={formData.phone}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      clearFieldError('phone')
                       setFormData({
                         ...formData,
                         phone: e.target.value,
                       })
-                    }
+                    }}
                     required
                   />
                 </div>
               </div>
+              {fieldErrors.phone && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.phone}</p>}
             </div>
           </div>
 
           <div className="signup-contact-section">
-            <Switch
-              checked={showAdditionalContact}
-              onCheckedChange={setShowAdditionalContact}
-              label="Add personal contact details"
-              description="Optional. Add a separate email and phone number for communication if needed."
-              className="signup-contact-section__switch"
-            />
-
-            {showAdditionalContact && (
-              <div className="signup-contact-section__panel animate-fade-in">
-                <div className="signup-contact-section__panel-header">
-                  <div className="signup-contact-section__panel-icon">
-                    <Users size={16} />
-                  </div>
-                  <div>
-                    <h3 className="signup-contact-section__panel-title">Personal contact details</h3>
-                    <p className="signup-contact-section__panel-copy">
-                      These details are only used for account communication and can be left blank.
-                    </p>
-                  </div>
+            <div className="signup-contact-section__panel">
+              <div className="signup-contact-section__panel-header">
+                <div className="signup-contact-section__panel-icon">
+                  <Users size={16} />
                 </div>
-
-                <div className="grid-2">
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Personal Email (Optional)</label>
-                    <div className="input-wrapper">
-                      <Mail size={18} className="input-icon" />
-                      <input
-                        type="email"
-                        className="form-input form-input--with-icon"
-                        placeholder="personal@email.com"
-                        value={formData.personalEmail}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            personalEmail: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Personal Phone (Optional)</label>
-                    <div className="input-wrapper">
-                      <User size={18} className="input-icon" />
-                      <input
-                        type="tel"
-                        className="form-input form-input--with-icon"
-                        placeholder="e.g. +234 801 234 5678"
-                        value={formData.personalPhone}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            personalPhone: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="signup-contact-section__panel-title">Personal contact details</h3>
+                  <p className="signup-contact-section__panel-copy">
+                    These details are required for account verification and communication.
+                  </p>
                 </div>
               </div>
-            )}
+
+              <div className="grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Personal Email</label>
+                  <div className="input-wrapper">
+                    <Mail size={18} className="input-icon" />
+                    <input
+                      type="email"
+                      className={`form-input form-input--with-icon ${fieldErrors.personalEmail ? 'form-input--error' : ''}`}
+                      placeholder="personal@email.com"
+                      value={formData.personalEmail}
+                      onChange={(e) => {
+                        clearFieldError('personalEmail')
+                        setFormData({
+                          ...formData,
+                          personalEmail: e.target.value,
+                        })
+                      }}
+                      required
+                    />
+                  </div>
+                  {fieldErrors.personalEmail && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.personalEmail}</p>}
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Personal Phone</label>
+                  <div className="input-wrapper">
+                    <User size={18} className="input-icon" />
+                    <input
+                      type="tel"
+                      className={`form-input form-input--with-icon ${fieldErrors.personalPhone ? 'form-input--error' : ''}`}
+                      placeholder="e.g. +234 801 234 5678"
+                      value={formData.personalPhone}
+                      onChange={(e) => {
+                        clearFieldError('personalPhone')
+                        setFormData({
+                          ...formData,
+                          personalPhone: e.target.value,
+                        })
+                      }}
+                      required
+                    />
+                  </div>
+                  {fieldErrors.personalPhone && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.personalPhone}</p>}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid-2">

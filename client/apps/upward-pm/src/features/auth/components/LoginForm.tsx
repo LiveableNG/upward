@@ -26,12 +26,22 @@ export const LoginForm = () => {
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [signupHref, setSignupHref] = useState(Capacitor.isNativePlatform() ? '/signup' : '/pm-signup')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const loginMutation = useLogin()
   const requestOtpMutation = useRequestOTP()
   const otpLoginMutation = useOtpLogin()
 
   const loading = loginMutation.isPending || requestOtpMutation.isPending || otpLoginMutation.isPending
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
 
   useEffect(() => {
     if (Capacitor.isNativePlatform() || typeof window === 'undefined') return
@@ -42,23 +52,43 @@ export const LoginForm = () => {
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    const nextErrors: Record<string, string> = {}
+
     if (!email) {
-      toastError("Please enter your email address")
-      return
+      nextErrors.email = 'This field is required'
+    } else if (!email.includes('@')) {
+      nextErrors.email = 'Please enter a valid email address'
     }
+
     if (!password) {
-      toastError("Please enter your password")
+      nextErrors.password = 'This field is required'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
       return
     }
+
+    setFieldErrors({})
     loginMutation.mutate({ email, password })
   }
 
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault()
+    const nextErrors: Record<string, string> = {}
+
     if (!email) {
-      toastError("Please enter your email address")
+      nextErrors.email = 'This field is required'
+    } else if (!email.includes('@')) {
+      nextErrors.email = 'Please enter a valid email address'
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors)
       return
     }
+
+    setFieldErrors({})
     requestOtpMutation.mutate(
       { email, context: 'LOGIN' },
       {
@@ -151,20 +181,24 @@ export const LoginForm = () => {
       </div>
 
       {loginMethod === 'password' ? (
-        <form onSubmit={handlePasswordLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handlePasswordLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Email Address</label>
             <div className="input-wrapper">
               <Mail size={18} className="input-icon" />
               <input 
                 type="email" 
-                className="form-input form-input--with-icon" 
+                className={`form-input form-input--with-icon ${fieldErrors.email ? 'form-input--error' : ''}`}
                 placeholder="name@company.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  clearFieldError('email')
+                  setEmail(e.target.value)
+                }}
                 required
               />
             </div>
+            {fieldErrors.email && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -178,10 +212,13 @@ export const LoginForm = () => {
               <Lock size={18} className="input-icon" />
               <input 
                 type={showPassword ? 'text' : 'password'} 
-                className="form-input form-input--with-icon" 
+                className={`form-input form-input--with-icon ${fieldErrors.password ? 'form-input--error' : ''}`}
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  clearFieldError('password')
+                  setPassword(e.target.value)
+                }}
                 required
               />
               <button
@@ -203,6 +240,7 @@ export const LoginForm = () => {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            {fieldErrors.password && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.password}</p>}
           </div>
 
           <button 
@@ -216,20 +254,24 @@ export const LoginForm = () => {
           </button>
         </form>
       ) : otpStage === 'request' ? (
-        <form onSubmit={handleRequestOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleRequestOtp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Email Address</label>
             <div className="input-wrapper">
               <Mail size={18} className="input-icon" />
               <input 
                 type="email" 
-                className="form-input form-input--with-icon" 
+                className={`form-input form-input--with-icon ${fieldErrors.email ? 'form-input--error' : ''}`}
                 placeholder="name@company.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  clearFieldError('email')
+                  setEmail(e.target.value)
+                }}
                 required
               />
             </div>
+            {fieldErrors.email && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4, margin: '8px 0 0 0' }}>
               We&apos;ll send a 6-digit verification code to your email address — no password needed.
             </p>
