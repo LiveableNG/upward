@@ -6,6 +6,7 @@ export class PaymentSucceededEvent extends DomainEvent {
       transactionId: number
       userId: number
       propertyId?: number
+      externalUnitId?: any
       amount: number
       rentPortion: number
       paymentRequestId?: number

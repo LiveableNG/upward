@@ -47,12 +47,12 @@ import { UnifiedCommunicationService } from '../../../shared/infrastructure/comm
 
 @Injectable()
 export class GetBankDetailsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async execute(userId: string) {
     const user = await this.prisma.upward_user.findUnique({
       where: { uuid: userId }
     });
-    
+
     if (!user) return null;
 
     return this.prisma.upward_user_bank_details.findUnique({
@@ -63,12 +63,12 @@ export class GetBankDetailsUseCase {
 
 @Injectable()
 export class SaveBankDetailsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async execute(userId: string, data: any) {
     const user = await this.prisma.upward_user.findUnique({
       where: { uuid: userId }
     });
-    
+
     if (!user) throw new Error('User not found');
 
     return this.prisma.upward_user_bank_details.upsert({
@@ -377,7 +377,7 @@ export class RecordTransactionUseCase {
     const appliedCredit = Number((data as any).metadata?.appliedCredit || 0)
     const effectiveAmount = data.amount + appliedCredit
 
-    const { result, pr, rentPortion, excess, propertyId, paymentAmount } = await this.prisma.$transaction(async (txClient) => {
+    const { result, pr, rentPortion, excess, paymentAmount } = await this.prisma.$transaction(async (txClient) => {
       let pr: any = null
       let excess = 0
       let remaining = effectiveAmount
@@ -408,9 +408,9 @@ export class RecordTransactionUseCase {
           const hasLineItems = data.lineItemPayments && data.lineItemPayments.length > 0
           const hasBenefitsItem = data.lineItemPayments?.some(lp => lp.name === 'Upward Benefits')
           const matchesRentPlusTxFee = effectiveAmount === pr.amount + ratesForExpected.transactionFee
-          const excludeBenefits = (data as any).metadata?.excludeBenefits === true || 
-                                  (hasLineItems && !hasBenefitsItem) ||
-                                  matchesRentPlusTxFee
+          const excludeBenefits = (data as any).metadata?.excludeBenefits === true ||
+            (hasLineItems && !hasBenefitsItem) ||
+            matchesRentPlusTxFee
           const activeBenefitsFee = (ratesForExpected.benefitsPaid || excludeBenefits) ? 0 : ratesForExpected.benefitsFee
           const dynamicFee = data.isManual ? 0 : (ratesForExpected.transactionFee + activeBenefitsFee)
           const expectedTotal = pr.amount + dynamicFee
@@ -430,9 +430,9 @@ export class RecordTransactionUseCase {
 
       let upwardFeeAmount = 0
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
-        const fees = data.lineItemPayments.filter(lp => 
-          lp.name === 'Processing Fee' || 
-          lp.name === 'Transaction Fee' || 
+        const fees = data.lineItemPayments.filter(lp =>
+          lp.name === 'Processing Fee' ||
+          lp.name === 'Transaction Fee' ||
           lp.name === 'Upward Benefits'
         )
         if (fees.length > 0) {
@@ -488,9 +488,9 @@ export class RecordTransactionUseCase {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount)
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
-          const totalRentOwed = prItems.reduce((sum: number, i: any) => 
+          const totalRentOwed = prItems.reduce((sum: number, i: any) =>
             (i.name === 'Processing Fee' || i.name === 'Transaction Fee' || i.name === 'Upward Benefits') ? sum : sum + i.totalAmount
-          , 0)
+            , 0)
           const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL'
 
           pr = await this.paymentRequestRepo.update(pr.id!, {
@@ -597,21 +597,29 @@ export class RecordTransactionUseCase {
         }
       }
 
-      return { result, pr, rentPortion, excess, propertyId, paymentAmount }
+      return { result, pr, rentPortion, excess, paymentAmount }
     }, { timeout: 20000 })
 
     if (isVerified && result.status === 'SUCCESS') {
+      let userProperty: any = null
+      if (pr && pr.userPropertyId) {
+        userProperty = await this.prisma.upward_user_property.findUnique({ where: { id: pr.userPropertyId } })
+      } else if (data.userPropertyUuid) {
+        userProperty = await this.prisma.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
+      }
+
       this.eventBus.publish(new PaymentSucceededEvent({
         transactionId: result.id,
         userId: user!.id!,
-        propertyId: propertyId,
+        propertyId: userProperty?.id,
+        externalUnitId: userProperty?.externalUnitId,
+        platformId: userProperty?.platformId,
         amount: paymentAmount,
         rentPortion: rentPortion,
         paymentRequestId: pr?.id,
         paymentRequestUuid: pr?.uuid,
         reference: result.reference!,
         currency: result.currency || 'NGN',
-        platformId: pr?.platformId,
         email: user!.email!,
         narration: result.narration || 'Property Payment',
         excess: excess,
@@ -638,7 +646,7 @@ export class ResolveDedicatedAccountUseCase {
 
   async execute(data: { userPropertyId: number; tenantEmail?: string; tenantName?: string; tenantPhone?: string; subaccountCode?: string }) {
     this.logger.log(`Resolving dedicated account for User Property ID: ${data.userPropertyId}`)
-    
+
     const existing = await this.dvaRepo.findByUserPropertyId(data.userPropertyId)
     if (existing) {
       this.logger.log(`Using existing DVA for User Property ${data.userPropertyId}: ${existing.accountNumber}`)
@@ -647,7 +655,7 @@ export class ResolveDedicatedAccountUseCase {
     const baseEmail = data.tenantEmail || `prop-${data.userPropertyId}@upward.ng`
     const [local, domain] = baseEmail.split('@')
     const customerEmail = `${local}+p${data.userPropertyId}@${domain}`
-    
+
     const firstName = data.tenantName?.split(' ')[0] || 'Tenant'
     const lastName = data.tenantName?.split(' ')[1] || `Property-${data.userPropertyId}`
 
@@ -667,11 +675,11 @@ export class ResolveDedicatedAccountUseCase {
     const account = res.data
 
     this.logger.log(`DVA created successfully: ${account.account_number}. Saving to DB...`)
-    
+
     const existingByAccount = await this.dvaRepo.findByAccountNumber(account.account_number)
     if (existingByAccount) {
       if (existingByAccount.userPropertyId === data.userPropertyId) return existingByAccount
-      
+
       this.logger.warn(`Account ${account.account_number} already exists for another property (${existingByAccount.userPropertyId}). Re-associating to current property (${data.userPropertyId}).`)
       await this.prisma.upward_dedicated_virtual_account.update({
         where: { id: existingByAccount.id },
@@ -734,7 +742,7 @@ export class InitializePaymentUseCase {
 
     if (pr) {
       const remainingRent = pr.amount - (pr.amountPaid || 0)
-      
+
       if (!pr.allowPartial && data.amount < remainingRent && data.amount > 0) {
         throw new BadRequestException(`Partial payments are not enabled for this request. Please pay the full balance of ₦${remainingRent}.`)
       }
@@ -798,12 +806,12 @@ export class InitializePaymentUseCase {
 
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
-      
+
       const baseAmount = data.amount || pr.amount
-      
+
       let clientFee = 0
       if (data.metadata?.lineItems) {
-        const feeItems = data.metadata.lineItems.filter((i: any) => 
+        const feeItems = data.metadata.lineItems.filter((i: any) =>
           ['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(i.label || i.name || '')
         )
         if (feeItems.length > 0) {
@@ -815,7 +823,7 @@ export class InitializePaymentUseCase {
 
       const effectiveFee = clientFee || (data.amount ? 0 : flatFee)
       const requestedTotal = baseAmount + (data.amount ? 0 : (clientFee || flatFee))
-      
+
       const appliedCredit = Math.min(totalCredit, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
@@ -869,10 +877,10 @@ export class InitializePaymentUseCase {
     // Standard Payment or DVA Fallback
     const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
     const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
-    
+
     const baseAmount = data.amount || pr?.amount || 0
     const requestedTotal = baseAmount + flatFee
-    
+
     const appliedCredit = Math.min(totalCredit, requestedTotal)
     const finalAmountToPay = requestedTotal - appliedCredit
 
@@ -901,7 +909,7 @@ export class InitializePaymentUseCase {
 
     const initialization = await this.gateway.initializeTransaction({
       email: user.email!,
-      amount: finalAmountToPay, 
+      amount: finalAmountToPay,
       reference: `PAY-${randomUUID()}`,
       subaccount: pr?.subaccount?.subaccountCode,
       metadata,
@@ -941,7 +949,7 @@ export class ProcessPaymentWebhookUseCase {
 
   async execute(payload: any, signature?: string) {
     this.logger.log(`Incoming Webhook: ${payload?.event || 'unknown event'}`)
-    
+
     if (!signature) {
       this.logger.warn('Webhook received without signature')
       throw new UnauthorizedException('Missing webhook signature')
@@ -1015,7 +1023,7 @@ export class ProcessPaymentWebhookUseCase {
 
             const propertyMatch = parts[0].match(/\+p(\d+)/)
             if (propertyMatch && propertyMatch[1]) {
-              const propertyId = parseInt(propertyMatch[1])            
+              const propertyId = parseInt(propertyMatch[1])
               if (!metadata) metadata = {}
               const prop = await this.prisma.upward_user_property.findUnique({
                 where: { id: propertyId }
@@ -1028,11 +1036,11 @@ export class ProcessPaymentWebhookUseCase {
                 if (dva && dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
                   const intent = (dva.metadata as any).lastPaymentIntent
                   const amountPaid = amount / 100
-                  
+
                   if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
                     metadata.lineItems = intent.lineItems
                     this.logger.log(`Recovered lineItems from DVA intent for alias-based payment: ${JSON.stringify(metadata.lineItems)}`)
-                    
+
                     await this.prisma.upward_dedicated_virtual_account.update({
                       where: { id: dva.id },
                       data: { metadata: { ...((dva.metadata as any) || {}), lastPaymentIntent: null } }
@@ -1306,7 +1314,8 @@ export class ProcessPaymentWebhookUseCase {
         type: 'RENT',
         status: 'SUCCESS',
         narration: `Manual Bank Transfer to ${dva.accountNumber}`,
-        settlementStatus: 'VERIFIED'
+        settlementStatus: 'VERIFIED',
+        userPropertyUuid: userProp.uuid
       })
     }
 
@@ -1321,13 +1330,13 @@ export class ProcessPaymentWebhookUseCase {
         lineItemPayments = intent.lineItems
         excludeBenefits = intent.excludeBenefits === true || !!(lineItemPayments && !lineItemPayments.some(lp => lp.name === 'Upward Benefits'))
         this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations. ExcludeBenefits: ${excludeBenefits}`)
-       
+
         // Extract fee if specified
         const feeItem = lineItemPayments?.find(lp => lp.name === 'Processing Fee')
         if (feeItem) {
           upwardFeeAmount = Number(feeItem.amount || feeItem.amountPaid || 0)
         }
-        
+
         // Map amount to amountPaid for distribute-allocations compatibility
         lineItemPayments = lineItemPayments?.map(lp => ({
           ...lp,
@@ -1387,7 +1396,7 @@ export class ProcessPaymentWebhookUseCase {
         amountPaid,
         expectedTotal,
         data.reference,
-        true 
+        true
       ))
     }
 
@@ -1538,7 +1547,7 @@ export class GetPendingPaymentsUseCase {
 
     const pending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
     const partial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL')
-    
+
     // Fetch Refund Alerts
     const refundAlerts = await this.prisma.upward_transaction.findMany({
       where: { userId: user.id!, settlementStatus: 'PENDING_REFUND' } as any,
@@ -1549,17 +1558,17 @@ export class GetPendingPaymentsUseCase {
 
     const paymentsData = await Promise.all(payments.map(async (p: any) => {
       const lineItemRecords = await this.lineItemRepo.findByPaymentRequestId(p.id!)
-      
+
       const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
-          where: { paymentRequestId: p.id },
-          include: { pm: true }
+        where: { paymentRequestId: p.id },
+        include: { pm: true }
       })
 
       const proofs = await this.prisma.upward_payment_proof.findMany({
         where: { paymentRequestId: p.id },
         orderBy: { createdAt: 'desc' },
       })
-      
+
       const latestProof = proofs.length > 0 ? proofs[0] : null
 
       return {
@@ -1739,7 +1748,7 @@ export class GetPropertyBalanceUseCase {
 
 @Injectable()
 export class GetLandlordPayoutsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async execute(subaccountCode: string) {
     return this.prisma.upward_settlement_batch.findMany({
@@ -1756,7 +1765,7 @@ export class GetLandlordPayoutsUseCase {
 
 @Injectable()
 export class GetPayoutBreakdownUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async execute(batchUuid: string) {
     return this.prisma.upward_settlement_batch.findUnique({
@@ -1782,7 +1791,7 @@ export class GetPayoutBreakdownUseCase {
 
 @Injectable()
 export class GetPmPayoutsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async execute(pmId: number) {
     // 1. Find all subaccounts linked to this PM's properties
@@ -1823,7 +1832,7 @@ export class GetPmUnresolvedTransactionsUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService
-  ) {}
+  ) { }
 
   async execute(pmId: number) {
     const properties = await this.prisma.upward_user_property.findMany({
@@ -1853,7 +1862,7 @@ export class GetPmUnresolvedTransactionsUseCase {
         paymentRequest: {
           include: {
             userProperty: {
-              include: { 
+              include: {
                 location: true,
                 pmUnit: true
               }
@@ -1889,7 +1898,7 @@ export class SimulateTransferUseCase {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly processWebhook: ProcessPaymentWebhookUseCase,
-  ) {}
+  ) { }
 
   async execute(data: { beneficiaryBank: string; beneficiaryAccount: string; amount: number }) {
     const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY')
