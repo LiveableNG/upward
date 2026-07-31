@@ -19,7 +19,6 @@ export class SubscriptionBillingScheduler {
     const subsDueToday = await this.prisma.upward_subscription.findMany({
       where: {
         anniversaryDate: todayDay,
-        status: { in: ['ACTIVE', 'GRACE'] },
       },
     });
 
@@ -40,6 +39,7 @@ export class SubscriptionBillingScheduler {
               priceMonthly: rate / 12,
               pendingTier: null,
               pendingUnitBillingMode: null,
+              status: newTier === UpwardSubscriptionTier.FREE ? 'ACTIVE' : sub.status,
             },
           });
 
@@ -49,7 +49,7 @@ export class SubscriptionBillingScheduler {
               previousTier: oldTier,
               newTier: newTier,
               previousStatus: sub.status,
-              newStatus: sub.status,
+              newStatus: newTier === UpwardSubscriptionTier.FREE ? 'ACTIVE' : sub.status,
               action: 'DOWNGRADE',
               reason: 'Scheduled downgrade applied',
             },
