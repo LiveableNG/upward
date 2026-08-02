@@ -37,6 +37,16 @@ import { downloadBlob } from '@/lib/download-helper'
 import { useSubscription } from '../../hooks/useSubscription'
 import { usePricingModal } from '../../hooks/usePricingModal'
 import { FeatureKey } from '../../types/subscription'
+import {
+  EMPTY_PLACEHOLDER,
+  formatAmountInWords,
+  formatDisplayDate,
+  formatTimeframeUntilDate,
+  formatTimeframeUntilDateInWords,
+  getLeaseEndDate,
+  getNextRentEndDate,
+  getNextRentStartDate,
+} from '../../utils/documentPlaceholders'
 
 interface BulkDocumentEditorViewProps {
   initialContent?: string
@@ -110,24 +120,6 @@ export function BulkDocumentEditorView({
     let rendered = content
     if (!rendered) return ''
 
-    // Resolve Date formatting helper
-    const formatDate = (dateVal: any) => {
-      if (!dateVal) return '__________'
-      return new Date(dateVal).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      })
-    }
-
-    const calculateEndDate = (start: any) => {
-      if (!start) return '__________'
-      const end = new Date(start)
-      end.setFullYear(end.getFullYear() + 1)
-      end.setDate(end.getDate() - 1)
-      return formatDate(end)
-    }
-
     // Current date values
     const now = new Date()
     const currentYear = now.getFullYear().toString()
@@ -138,9 +130,9 @@ export function BulkDocumentEditorView({
     const previousMonth = previousMonthDate.toLocaleString('default', { month: 'long' })
 
     const dateValues: Record<string, string> = {
-      '[Date]': formatDate(now),
-      '[CurrentDate]': formatDate(now),
-      '[Current Date]': formatDate(now),
+      '[Date]': formatDisplayDate(now),
+      '[CurrentDate]': formatDisplayDate(now),
+      '[Current Date]': formatDisplayDate(now),
       '[CurrentMonth]': currentMonth,
       '[Current Month]': currentMonth,
       '[CurrentYear]': currentYear,
@@ -149,8 +141,8 @@ export function BulkDocumentEditorView({
       '[Next Month]': nextMonth,
       '[PreviousMonth]': previousMonth,
       '[Previous Month]': previousMonth,
-      '[DocumentDate]': formatDate(now),
-      '[Document Date]': formatDate(now),
+      '[DocumentDate]': formatDisplayDate(now),
+      '[Document Date]': formatDisplayDate(now),
       '[DocumentNumber]': 'DOC-PREVIEW',
       '[Document Number]': 'DOC-PREVIEW',
       '[DocumentType]': deliveryMode.toUpperCase(),
@@ -212,7 +204,18 @@ export function BulkDocumentEditorView({
     let rentTypeVal = resolvedUnit?.rentType || 'Monthly'
     let rentStartDateVal = resolvedUnit?.rentStartDate
     let rentDueDateVal = resolvedUnit?.rentDueDate
-    let rentDuration = rentTypeVal === 'YEARLY' ? '12 Months' : rentTypeVal === 'MONTHLY' ? '1 Month' : '__________'
+    const normRentType = (rentTypeVal || '').trim().toUpperCase()
+    let rentDuration = (normRentType === 'YEARLY' || normRentType === 'ANNUALLY') ? '12 Months' : normRentType === 'MONTHLY' ? '1 Month' : '__________'
+    const rentEndDate = getLeaseEndDate(rentStartDateVal)
+    const nextRentStartDate = getNextRentStartDate(rentStartDateVal)
+    const nextRentEndDate = getNextRentEndDate(rentStartDateVal)
+    const amountInWords = formatAmountInWords(rentAmountVal, resolvedUnit?.currency)
+    const timeFrame = formatTimeframeUntilDate(rentEndDate)
+    const timeFrameInWords = formatTimeframeUntilDateInWords(rentEndDate)
+    const lastPayment = resolvedUnit?.rentPayments?.[0]
+    const lastPaymentDateVal = lastPayment ? formatDisplayDate(lastPayment.paymentDate) : 'N/A'
+    const lastPaymentAmountVal = lastPayment ? `${resolvedUnit?.currency || '₦'}${lastPayment.amount.toLocaleString()}` : 'N/A'
+
 
     const unitValues: Record<string, string> = {
       '[UnitName]': unitName,
@@ -225,48 +228,54 @@ export function BulkDocumentEditorView({
       '[Property Address]': propertyAddress,
       '[PropertyType]': resolvedUnit?.unitType || 'Residential',
       '[Property Type]': resolvedUnit?.unitType || 'Residential',
-      '[Bedrooms]': 'N/A',
-      '[Bathrooms]': 'N/A',
       '[RentAmount]': rentAmountStr,
       '[Rent Amount]': rentAmountStr,
+      '[AmountInWords]': amountInWords,
+      '[Amount In Words]': amountInWords,
       '[RentType]': rentTypeVal,
       '[Rent Type]': rentTypeVal,
-      '[RentStartDate]': formatDate(rentStartDateVal),
-      '[Rent Start Date]': formatDate(rentStartDateVal),
-      '[RentEndDate]': calculateEndDate(rentStartDateVal),
-      '[Rent End Date]': calculateEndDate(rentStartDateVal),
-      '[LeaseStartDate]': formatDate(rentStartDateVal),
-      '[Lease Start Date]': formatDate(rentStartDateVal),
-      '[LeaseEndDate]': calculateEndDate(rentStartDateVal),
-      '[Lease End Date]': calculateEndDate(rentStartDateVal),
+      '[RentStartDate]': formatDisplayDate(rentStartDateVal),
+      '[Rent Start Date]': formatDisplayDate(rentStartDateVal),
+      '[RentEndDate]': formatDisplayDate(rentEndDate),
+      '[Rent End Date]': formatDisplayDate(rentEndDate),
+      '[LeaseStartDate]': formatDisplayDate(rentStartDateVal),
+      '[Lease Start Date]': formatDisplayDate(rentStartDateVal),
+      '[LeaseEndDate]': formatDisplayDate(rentEndDate),
+      '[Lease End Date]': formatDisplayDate(rentEndDate),
       '[LeaseDuration]': rentDuration,
       '[Lease Duration]': rentDuration,
       '[RentDuration]': rentDuration,
       '[Rent Duration]': rentDuration,
+      '[NextRentStartDate]': formatDisplayDate(nextRentStartDate),
+      '[Next Rent Start Date]': formatDisplayDate(nextRentStartDate),
+      '[Next rent start date]': formatDisplayDate(nextRentStartDate),
+      '[NextRentEndDate]': formatDisplayDate(nextRentEndDate),
+      '[Next Rent End Date]': formatDisplayDate(nextRentEndDate),
+      '[Next rent end date]': formatDisplayDate(nextRentEndDate),
+      '[TimeFrame]': timeFrame,
+      '[Time Frame]': timeFrame,
+      '[Timeframe]': timeFrame,
+      '[timeframe]': timeFrame,
+      '[Time frame (period between now/current_time and rent end date)]': timeFrame,
+      '[TimeframeinWords]': timeFrameInWords,
+      '[Timeframe in Words]': timeFrameInWords,
+      '[Timeframe in words]': timeFrameInWords,
       '[ServiceCharge]': 'N/A',
       '[Service Charge]': 'N/A',
       '[TotalAmount]': rentAmountStr,
       '[Total Amount]': rentAmountStr,
-      '[PaymentDueDate]': formatDate(rentDueDateVal),
-      '[Payment Due Date]': formatDate(rentDueDateVal),
-      '[OutstandingBalance]': 'N/A',
-      '[Outstanding Balance]': 'N/A',
-      '[LastPaymentDate]': 'N/A',
-      '[Last Payment Date]': 'N/A',
-      '[LastPaymentAmount]': 'N/A',
-      '[Last Payment Amount]': 'N/A',
+      '[PaymentDueDate]': formatDisplayDate(rentDueDateVal),
+      '[Payment Due Date]': formatDisplayDate(rentDueDateVal),
+      '[LastPaymentDate]': lastPaymentDateVal,
+      '[Last Payment Date]': lastPaymentDateVal,
+      '[LastPaymentAmount]': lastPaymentAmountVal,
+      '[Last Payment Amount]': lastPaymentAmountVal,
       '[LandlordName]': landlordName,
       '[LandlordEmail]': landlordEmail,
     }
 
     // Payment link/URL replacements
     const paymentValues: Record<string, string> = {
-      '[PaymentURL]': '__________',
-      '[Payment URL]': '__________',
-      '[PaymentLink]': '__________',
-      '[Payment Link]': '__________',
-      '[BankDetails]': '__________',
-      '[Bank Details]': '__________',
       '[PaymentInfo]': '__________',
       '[Payment Info]': '__________',
     }
@@ -280,7 +289,7 @@ export function BulkDocumentEditorView({
     }
 
     Object.entries(replacements).forEach(([placeholder, value]) => {
-      rendered = rendered.split(placeholder).join(value)
+      rendered = rendered.split(placeholder).join(value || EMPTY_PLACEHOLDER)
     })
 
     return rendered
