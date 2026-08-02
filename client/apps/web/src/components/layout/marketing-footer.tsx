@@ -4,6 +4,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Twitter, Linkedin } from 'lucide-react'
 
+function TikTokIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="currentColor"
+    >
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.82-3.53V3h-3.18v12.49a2.59 2.59 0 1 1-2.05-2.54V9.72a6.03 6.03 0 1 0 4.82 5.91V9.18a8.01 8.01 0 0 0 4.23 1.22V7.26a4.79 4.79 0 0 1 0-.57Z" />
+    </svg>
+  )
+}
+
 const LEGAL_LINKS = [
   { label: 'Privacy Policy', href: '/legal/privacy' },
   { label: 'Terms of Use', href: '/legal/terms' },
@@ -42,6 +56,14 @@ export function MarketingFooter() {
           >
             <Twitter size={16} />
             Twitter
+          </a>
+          <a
+            href="https://www.tiktok.com/@useupward"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <TikTokIcon />
+            TikTok
           </a>
           <a
             href="https://www.linkedin.com/company/useupward/"
