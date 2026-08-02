@@ -16,6 +16,7 @@ export interface PropertyManagerProfile {
   isVerified?: boolean;
   verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NOT_SUBMITTED';
   country?: string;
+  companyAddress?: string;
   cacNumber?: string;
 }
 

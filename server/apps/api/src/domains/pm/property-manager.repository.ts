@@ -14,6 +14,7 @@ export interface PropertyManager {
   phoneHash?: string | null
   profilePic?: string | null
   country?: string | null
+  companyAddress?: string | null
   cacNumber?: string | null
   personalEmail?: string | null
   personalPhone?: string | null

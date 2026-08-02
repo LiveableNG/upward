@@ -23,6 +23,7 @@ export function ActivityLogModal({ collaboratorUuid, onClose }: ActivityLogModal
       case 'SEND_INVOICE': return <FileText size={16} className="text-[var(--clay)]" />
       case 'UPDATE_RENT': return <CreditCard size={16} className="text-[var(--forest)]" />
       case 'INVITE_TENANT': return <User size={16} className="text-[var(--clay)]" />
+      case 'UPDATE_PROFILE': return <User size={16} className="text-[var(--forest)]" />
       default: return <Clock size={16} />
     }
   }
