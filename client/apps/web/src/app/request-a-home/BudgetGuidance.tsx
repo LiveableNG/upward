@@ -16,18 +16,19 @@ type LocationGuidance = {
 
 type BudgetGuidanceResult = {
   suggestedMinBudget: number | null
+  suggestedMaxBudget: number | null
   locations: LocationGuidance[]
 }
 
 type BudgetGuidanceProps = {
   locations: RequestHomeLocation[]
   bedrooms: number
-  onApplyMin: (value: number) => void
+  onApplyRange: (min: number, max: number) => void
 }
 
 const amountFormatter = new Intl.NumberFormat('en-NG', { maximumFractionDigits: 0 })
 
-export function BudgetGuidance({ locations, bedrooms, onApplyMin }: BudgetGuidanceProps) {
+export function BudgetGuidance({ locations, bedrooms, onApplyRange }: BudgetGuidanceProps) {
   const [result, setResult] = useState<BudgetGuidanceResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -102,7 +103,10 @@ export function BudgetGuidance({ locations, bedrooms, onApplyMin }: BudgetGuidan
   }
 
   const formatted = amountFormatter.format(result.suggestedMinBudget!)
+  const maxFormatted =
+    result.suggestedMaxBudget != null ? amountFormatter.format(result.suggestedMaxBudget) : null
   const drivingLocation = matched.find((loc) => loc.minPrice === result.suggestedMinBudget)
+  const rangeLabel = maxFormatted ? `₦${formatted}–₦${maxFormatted}` : `₦${formatted}`
 
   return (
     <div className="rah-guidance">
@@ -112,23 +116,24 @@ export function BudgetGuidance({ locations, bedrooms, onApplyMin }: BudgetGuidan
           {matched.length > 1 ? (
             <>
               Across your <strong>{matched.length} selected areas</strong>, typical {bedrooms}
-              -bedroom rents start around <strong>₦{formatted}/year</strong>
+              -bedroom rents run <strong>{rangeLabel}/year</strong>
               {drivingLocation && <> (set by {labelFor(drivingLocation)})</>}.
             </>
           ) : (
             <>
               Typical {bedrooms}-bedroom rents in{' '}
               <strong>{drivingLocation ? labelFor(drivingLocation) : 'your selected area'}</strong>{' '}
-              start around <strong>₦{formatted}/year</strong>.
+              run <strong>{rangeLabel}/year</strong>.
             </>
           )}{' '}
-          Budgets below this are often ignored by property managers.
+          Budgets below this range are often ignored by property managers.
         </p>
         {matched.length > 1 && (
           <ul className="rah-guidance__breakdown">
             {matched.map((loc) => (
               <li key={`${loc.state}-${loc.area}-${loc.subArea ?? ''}`}>
-                {labelFor(loc)}: from ₦{amountFormatter.format(loc.minPrice!)}/year
+                {labelFor(loc)}: ₦{amountFormatter.format(loc.minPrice!)}
+                {loc.maxPrice != null && `–₦${amountFormatter.format(loc.maxPrice)}`}/year
               </li>
             ))}
           </ul>
@@ -143,9 +148,11 @@ export function BudgetGuidance({ locations, bedrooms, onApplyMin }: BudgetGuidan
       <button
         type="button"
         className="rah-guidance__apply"
-        onClick={() => onApplyMin(result.suggestedMinBudget!)}
+        onClick={() =>
+          onApplyRange(result.suggestedMinBudget!, result.suggestedMaxBudget ?? result.suggestedMinBudget!)
+        }
       >
-        Use ₦{formatted}
+        Use {rangeLabel}
       </button>
     </div>
   )
