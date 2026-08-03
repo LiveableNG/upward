@@ -643,30 +643,26 @@ export const DataImportTab: React.FC = () => {
             <table className="preview-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Property Name *</th>
-                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Address *</th>
-                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Unit Name *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Property Address *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Unit Name </th>
                   <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Rent Amount *</th>
                   <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Tenant Email</th>
                 </tr>
               </thead>
               <tbody>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: 12, color: 'var(--dark)' }}>Palm Court</td>
                   <td style={{ padding: 12, color: 'var(--text-muted)' }}>12 Lekki Road, Lagos</td>
                   <td style={{ padding: 12, color: 'var(--dark)' }}>A101</td>
                   <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 600,000</td>
                   <td style={{ padding: 12, color: 'var(--text-muted)' }}>john@example.com</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: 12, color: 'var(--dark)' }}>Palm Court</td>
                   <td style={{ padding: 12, color: 'var(--text-muted)' }}>12 Lekki Road, Lagos</td>
                   <td style={{ padding: 12, color: 'var(--dark)' }}>A102</td>
                   <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 650,000</td>
                   <td style={{ padding: 12, color: 'var(--text-muted)' }}>jane@example.com</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: 12, color: 'var(--dark)' }}>Sunrise Estate</td>
                   <td style={{ padding: 12, color: 'var(--text-muted)' }}>8 Victoria Island, Lagos</td>
                   <td style={{ padding: 12, color: 'var(--dark)' }}>Suite 5</td>
                   <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 1,200,000</td>
