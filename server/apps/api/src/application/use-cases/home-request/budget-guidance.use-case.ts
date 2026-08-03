@@ -69,8 +69,12 @@ export class BudgetGuidanceUseCase {
     const suggestedMinBudget = matched.length
       ? Math.max(...matched.map((loc) => loc.minPrice!))
       : null
+    const matchedMax = locations.filter((loc) => loc.maxPrice != null)
+    const suggestedMaxBudget = matchedMax.length
+      ? Math.max(...matchedMax.map((loc) => loc.maxPrice!))
+      : null
 
-    return { suggestedMinBudget, locations }
+    return { suggestedMinBudget, suggestedMaxBudget, locations }
   }
 
   private async resolveLocation(
