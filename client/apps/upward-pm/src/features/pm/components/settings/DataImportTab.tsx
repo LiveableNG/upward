@@ -25,36 +25,18 @@ import { useQueryClient } from '@tanstack/react-query'
 export const DataImportTab: React.FC = () => {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialMode = (searchParams.get('mode') as ImportMode) || 'full'
   
-  const [mode, setMode] = useState<ImportMode>(initialMode)
-  
-  useEffect(() => {
-    const m = searchParams.get('mode')
-    if (m === 'full' || m === 'units') {
-      setMode(m as ImportMode)
-    }
-  }, [searchParams])
+  const mode = 'full' as const
   
   const { success, error } = useToast()
   const { data: properties = [] } = useProperties()
-  const bulkCreateUnitsMutation = useBulkCreateUnits()
   const bulkFullImportMutation = useBulkFullImport()
 
-  const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const columns = useMemo(() => mode === 'full' ? FULL_COLUMNS : UNIT_COLUMNS, [mode])
+  const columns = useMemo(() => FULL_COLUMNS, [])
 
-  const importState = useDataImport(columns, mode, properties, targetPropertyUuid)
-
-  const propertyOptions = useMemo(() => {
-    return properties.map((p: any) => ({
-      label: p.name,
-      value: p.uuid
-    }))
-  }, [properties])
+  const importState = useDataImport(columns, mode, properties, '')
 
   const handleDownloadTemplate = () => {
     const exportColumns = columns.filter(c => 
@@ -63,19 +45,15 @@ export const DataImportTab: React.FC = () => {
     );
     const headers = exportColumns.map(c => c.label)
     
-    const rows = mode === 'full' ?[
-        ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
-        ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
-        ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.ogunleye@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
-      ] : [
-      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2400000', '2400000', '2024-01-01', 'Annually', '', '240000', 'NGN', 'Annual tenant', 'Flat / Apartment'],
-      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348012345679', '200000', '200000', '2024-02-01', 'Monthly', '', '20000', 'NGN', 'Monthly tenant', 'Flat / Apartment'],
-      ['103', 'XYZ Biz', '', '', 'contact@xyz.com', '+2348012345680', '5000000', '5000000', '2024-03-01', 'Lease', '5', '500000', 'NGN', '5-year lease', 'Office Space']
+    const rows = [
+      ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
+      ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
+      ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.indigo@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
     ]
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    downloadBlob(blob, `upward_${mode}_import_template.csv`).then(() => {
+    downloadBlob(blob, `upward_full_import_template.csv`).then(() => {
       success('Template downloaded successfully!')
     }).catch((err: any) => console.error(err))
   }
@@ -130,27 +108,15 @@ export const DataImportTab: React.FC = () => {
       return clean
     }
 
-    if (mode === 'full') {
-      const rowsToSend = importState.previewRows.map(sanitizeRow)
-      bulkFullImportMutation.mutate({ rows: rowsToSend }, {
-        onSuccess: (res) => {
-          success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
-          importState.setIsOverlayOpen(false)
-          router.push('/properties')
-        },
-        onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
-      })
-    } else {
-      const unitsToSend = importState.previewRows.map(sanitizeRow)
-      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: unitsToSend } as any, {
-        onSuccess: () => {
-          success('Units imported successfully!')
-          importState.setIsOverlayOpen(false)
-          router.push('/properties')
-        },
-        onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import units'))
-      })
-    }
+    const rowsToSend = importState.previewRows.map(sanitizeRow)
+    bulkFullImportMutation.mutate({ rows: rowsToSend }, {
+      onSuccess: (res) => {
+        success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
+        importState.setIsOverlayOpen(false)
+        router.push('/properties')
+      },
+      onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
+    })
   }
   const [pendingRelayFile, setPendingRelayFile] = useState<File | null>(null)
   const [showRelayModal, setShowRelayModal] = useState(false)
@@ -228,7 +194,7 @@ export const DataImportTab: React.FC = () => {
         })
 
         const newJob = await api.post('/pm/bulk-imports/relay', {
-          targetPropertyUuid,
+          targetPropertyUuid: '',
           mode,
           originalFileName: pendingRelayFile.name,
           fileUrl: fileKey,
@@ -341,42 +307,22 @@ export const DataImportTab: React.FC = () => {
     }
     const sanitizedRows = stagedRows.map(sanitizeRow)
 
-    if (mode === 'full') {
-      bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
-        onSuccess: async (res) => {
-          if (reviewJob?.uuid) {
-            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
-            const jobUuid = reviewJob.uuid
-            setTimeout(() => {
-              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
-            }, 3000)
-          }
-          success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
-          importState.closeOverlay()
-          setReviewJob(null)
-          router.push('/properties')
-        },
-        onError: (err: any) => error(err?.message || 'Failed to complete import')
-      })
-    } else {
-      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: sanitizedRows } as any, {
-        onSuccess: async () => {
-          if (reviewJob?.uuid) {
-            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: sanitizedRows.length }).catch(console.error)
-            const jobUuid = reviewJob.uuid
-            setTimeout(() => {
-              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
-            }, 3000)
-          }
-          success('Successfully imported units!')
-          importState.closeOverlay()
-          setReviewJob(null)
-          queryClient.invalidateQueries({ queryKey: ['property', targetPropertyUuid] })
-          router.push('/properties')
-        },
-        onError: (err: any) => error(err?.message || 'Failed to complete import')
-      })
-    }
+    bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
+      onSuccess: async (res) => {
+        if (reviewJob?.uuid) {
+          await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
+          const jobUuid = reviewJob.uuid
+          setTimeout(() => {
+            setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
+          }, 3000)
+        }
+        success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
+        importState.closeOverlay()
+        setReviewJob(null)
+        router.push('/properties')
+      },
+      onError: (err: any) => error(err?.message || 'Failed to complete import')
+    })
   }
 
   return (
@@ -391,38 +337,7 @@ export const DataImportTab: React.FC = () => {
             Import your properties, landlords, or units via CSV, Excel, PDF, or image documents.
           </p>
         </div>
-
-        <div className="import-tab__mode-toggle">
-          <button
-            onClick={() => setMode('full')}
-            className={cn('import-tab__mode-btn', mode === 'full' && 'import-tab__mode-btn--active')}
-          >
-            Full Portfolio
-          </button>
-          <button
-            onClick={() => setMode('units')}
-            className={cn('import-tab__mode-btn', mode === 'units' && 'import-tab__mode-btn--active')}
-          >
-            Units & Leases
-          </button>
-        </div>
       </div>
-
-      {mode === 'units' && (
-        <div style={{ marginBottom: 20, background: 'white', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
-          <label className="form-label" style={{ fontWeight: 600, fontSize: 13, color: 'var(--dark)', display: 'block', marginBottom: 8 }}>
-            Select Target Property <span style={{ color: 'var(--error)' }}>*</span>
-          </label>
-          <FormSelect
-            value={targetPropertyUuid}
-            onChange={val => setTargetPropertyUuid(val)}
-            options={propertyOptions}
-            placeholder="-- Choose property to add units into --"
-            triggerStyle={{ height: 44, borderRadius: 10 }}
-            searchable
-          />
-        </div>
-      )}
 
       <ActiveImportJobsList
         jobs={activeJobs}
@@ -455,9 +370,9 @@ export const DataImportTab: React.FC = () => {
         </p>
 
         <div className="import-tab__actions">
-          <label className={cn('btn btn--primary import-tab__action-btn', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')}>
+          <label className="btn btn--primary import-tab__action-btn">
             <Upload size={18} style={{ marginRight: 8 }} /> Select File
-            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
+            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef}/>
           </label>
           
           <button className="btn btn--secondary import-tab__action-btn" onClick={handleDownloadTemplate}>
@@ -483,7 +398,7 @@ export const DataImportTab: React.FC = () => {
           {...importState}
           mode={mode}
           columns={columns}
-          isPending={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}
+          isPending={bulkFullImportMutation.isPending}
           handleConfirmImport={(rows) => handleApproveStagedImport(rows || importState.previewRows)}
           reviewJob={reviewJob}
           handleSaveDraft={handleSaveDraft}

@@ -1,11 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck, Edit3 } from 'lucide-react'
+import React, { useState, useRef, useMemo } from 'react'
+import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { useToast } from '@/components/common/Toast'
+import { useQueryClient } from '@tanstack/react-query'
+import { useBulkCreateUnits } from '@/features/pm/hooks/useProperties'
+import { useDataImport } from '@/features/pm/components/settings/data-import/useDataImport'
+import { ImportOverlay } from '@/features/pm/components/settings/data-import/ImportOverlay'
+import { UNIT_COLUMNS } from '@/features/pm/components/settings/data-import/types'
+import { downloadBlob } from '@/lib/download-helper'
+import { Modal } from '@/components/ui/Modal/Modal'
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -20,6 +28,107 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
   const [unitSearch, setUnitSearch] = useState('')
   const [unitFilter, setUnitFilter] = useState<'All' | 'Occupied' | 'Vacant'>('All')
   const [isManualModalOpen, setIsManualModalOpen] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+
+  const { success, error: toastError } = useToast()
+  const queryClient = useQueryClient()
+  const bulkCreateUnitsMutation = useBulkCreateUnits()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const importColumns = useMemo(() => UNIT_COLUMNS, [])
+  const importState = useDataImport(importColumns, 'units', [property], property.uuid)
+
+  const handleDownloadTemplate = () => {
+    const exportColumns = importColumns.filter(c => c.key !== 'rentDueDate')
+    const headers = exportColumns.map(c => c.label)
+    const rows = [
+      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2400000', '2400000', '2024-01-01', 'Annually', '', '240000', 'NGN', 'Annual tenant', 'Flat / Apartment'],
+      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348012345679', '200000', '200000', '2024-02-01', 'Monthly', '', '20000', 'NGN', 'Monthly tenant', 'Flat / Apartment'],
+      ['103', 'XYZ Biz', '', '', 'contact@xyz.com', '+2348012345680', '5000000', '5000000', '2024-03-01', 'Lease', '5', '500000', 'NGN', '5-year lease', 'Office Space']
+    ]
+    const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    downloadBlob(blob, `upward_units_import_template.csv`).then(() => {
+      success('Template downloaded successfully!')
+    }).catch((err: any) => console.error(err))
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (
+      ext === 'csv' ||
+      ext === 'xlsx' ||
+      ext === 'xls' ||
+      ext === 'xlsm' ||
+      ext === 'xlsb' ||
+      ext === 'xltx' ||
+      ext === 'xltm'
+    ) {
+      importState.handleFileUpload(e, fileInputRef)
+      setIsImportModalOpen(false)
+    } else {
+      toastError('Only CSV/Excel files are supported for unit imports.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const parseBackendError = (message: string): string => {
+    if (!message) return 'Failed to import units'
+    if (message.includes('rows.')) {
+      const parts = message.split(',').map(p => p.trim())
+      const formattedParts = parts.slice(0, 3).map(part => {
+        const match = part.match(/rows\.(\d+)\.([a-zA-Z0-9_]+)\s+(.+)/)
+        if (match) {
+          const rowNum = parseInt(match[1], 10) + 1
+          const fieldKey = match[2]
+          const restOfError = match[3]
+          const colLabel = importColumns.find(c => c.key === fieldKey)?.label || fieldKey
+          return `Row ${rowNum}: ${colLabel} ${restOfError}`
+        }
+        return part
+      })
+      const extraCount = parts.length > 3 ? parts.length - 3 : 0
+      return formattedParts.join('\n') + (extraCount > 0 ? `\n...and ${extraCount} more issue(s)` : '')
+    }
+    return message
+  }
+
+  const handleApproveStagedImport = (stagedRows: any[]) => {
+    if (!stagedRows || stagedRows.length === 0) return toastError('No rows to import')
+
+    const sanitizeRow = (row: any) => {
+      const clean: any = {}
+      importColumns.forEach(col => {
+        const val = row[col.key]
+        if (val !== undefined && val !== '') {
+          if (col.type === 'number') {
+            const parsed = parseFloat(val)
+            clean[col.key] = isNaN(parsed) ? val : parsed
+          } else {
+            clean[col.key] = val
+          }
+        }
+      })
+      return clean
+    }
+    const sanitizedRows = stagedRows.map(sanitizeRow)
+
+    bulkCreateUnitsMutation.mutate(
+      { propertyUuid: property.uuid, units: sanitizedRows },
+      {
+        onSuccess: () => {
+          success('Units imported successfully!')
+          importState.closeOverlay()
+          queryClient.invalidateQueries({ queryKey: ['pm-units', property.uuid] })
+          queryClient.invalidateQueries({ queryKey: ['pm-property', property.uuid] })
+        },
+        onError: (err: any) => toastError(parseBackendError(err?.message || 'Failed to import units'))
+      }
+    )
+  }
 
   const occupiedCount = units.filter(u => u.status === 'OCCUPIED').length
   const vacantCount = units.filter(u => u.status === 'VACANT').length
@@ -90,6 +199,14 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         </div>
         
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="btn btn--secondary btn--sm" 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
+          >
+            <Upload size={16} /> Bulk Import Units
+          </button>
+
           <button 
             onClick={() => setIsManualModalOpen(true)}
             className="btn btn--secondary btn--sm" 
@@ -263,6 +380,54 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         propertyId={property.id} 
         propertyName={property.name} 
       />
+
+      {/* Bulk Import Units Dialog Modal */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Bulk Import Units & Leases"
+        icon={FileSpreadsheet}
+        maxWidth={500}
+        footer={
+          <button className="btn btn--secondary" style={{ width: '100%', borderRadius: 10 }} onClick={() => setIsImportModalOpen(false)}>
+            Close
+          </button>
+        }
+      >
+        <div style={{ textAlign: 'center', padding: '12px 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>
+            Download our standard units and leases template, populate it, and select the file below to bulk upload.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <button className="btn btn--secondary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 10 }} onClick={handleDownloadTemplate}>
+              <Download size={18} /> Download Excel Template
+            </button>
+            <label className="btn btn--primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 10, cursor: 'pointer' }}>
+              <Upload size={18} /> Choose Excel / CSV File
+              <input 
+                type="file" 
+                accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm" 
+                style={{ display: 'none' }} 
+                onChange={handleFileSelect} 
+                ref={fileInputRef}
+              />
+            </label>
+          </div>
+        </div>
+      </Modal>
+
+      {importState.isOverlayOpen && (
+        <ImportOverlay 
+          {...importState}
+          mode="units"
+          columns={importColumns}
+          isPending={bulkCreateUnitsMutation.isPending}
+          handleConfirmImport={(rows) => handleApproveStagedImport(rows || importState.previewRows)}
+          closeOverlay={() => {
+            importState.closeOverlay()
+          }}
+        />
+      )}
     </div>
   )
 }
