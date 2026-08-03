@@ -177,7 +177,7 @@ function LandlordSignupForm() {
            <p className="auth-card__subtitle">
              {stage === 'info' 
                ? 'Create your landlord account to monitor your property portfolio.' 
-               : `We've sent a 6-digit code to ${formData.email}. Enter it below.`
+               : 'Check your email for the verification code.'
              }
            </p>
         </div>
@@ -369,8 +369,8 @@ function LandlordSignupForm() {
               ))}
             </div>
 
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '24px' }}>
-              Code sent to your email. Check your inbox <strong>(and spam folder)</strong>.
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '24px', lineHeight: 1.4 }}>
+              We&apos;ve sent a 6-digit verification code to <strong>{formData.email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
             </p>
 
             <button 

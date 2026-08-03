@@ -547,7 +547,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
                       ))}
                     </div>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                      Verification code sent. Check your inbox <strong>(and spam)</strong>.
+                      We&apos;ve sent a 6-digit verification code to <strong>{emailValue}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
                     </p>
                   </div>
                 )}

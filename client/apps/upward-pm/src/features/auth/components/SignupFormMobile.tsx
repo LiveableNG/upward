@@ -87,8 +87,7 @@ export const SignupFormMobile = () => {
     pmType: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
+    fullName: '',
   })
 
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -176,8 +175,9 @@ export const SignupFormMobile = () => {
       if (!formData.pmType) nextErrors.pmType = 'This field is required'
       if (!formData.tenantsNumber) nextErrors.tenantsNumber = 'This field is required'
     } else if (step === 2) {
-      if (!formData.firstName.trim()) nextErrors.firstName = 'This field is required'
-      if (!formData.lastName.trim()) nextErrors.lastName = 'This field is required'
+      if (!formData.fullName.trim()) {
+        nextErrors.fullName = 'This field is required'
+      }
       if (!formData.email.trim()) {
         nextErrors.email = 'This field is required'
       } else if (!formData.email.includes('@')) {
@@ -281,11 +281,15 @@ export const SignupFormMobile = () => {
                 formattedPhone = dialCode + formattedPhone
               }
 
+              const nameParts = formData.fullName.trim().split(/\s+/)
+              const firstName = nameParts[0]
+              const lastName = nameParts.slice(1).join(' ') || ' '
+
               const signupPayload = {
                 email: formData.email,
                 password: formData.password,
-                firstName: formData.firstName.trim(),
-                lastName: formData.lastName.trim(),
+                firstName,
+                lastName,
                 businessName: formData.companyName,
                 pmType: formData.pmType,
                 phone: formattedPhone,
@@ -421,7 +425,7 @@ export const SignupFormMobile = () => {
             <>
               <h1 className="mobile-auth__title">Verify your email</h1>
               <p className="mobile-auth__subtitle">
-                We sent a code to <strong>{formData.email}</strong>.{' '}
+                We&apos;ve sent a 6-digit verification code to <strong>{formData.email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.{' '}
                 <button
                   type="button"
                   onClick={() => {
@@ -542,41 +546,22 @@ export const SignupFormMobile = () => {
             {step === 2 && (
               <div className="mobile-auth__form-step">
                 <div className="form-group">
-                  <label className="form-label">First Name</label>
+                  <label className="form-label">Full Name</label>
                   <div className="input-wrapper">
                     <User size={18} className="input-icon" />
                     <input
                       type="text"
-                      className={`form-input form-input--with-icon ${fieldErrors.firstName ? 'form-input--error' : ''}`}
-                      placeholder="First Name"
-                      value={formData.firstName}
+                      className={`form-input form-input--with-icon ${fieldErrors.fullName ? 'form-input--error' : ''}`}
+                      placeholder="Full Name"
+                      value={formData.fullName}
                       onChange={(e) => {
-                        clearFieldError('firstName')
-                        setFormData({ ...formData, firstName: e.target.value })
+                        clearFieldError('fullName')
+                        setFormData({ ...formData, fullName: e.target.value })
                       }}
                       required
                     />
                   </div>
-                  {fieldErrors.firstName && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.firstName}</p>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Last Name</label>
-                  <div className="input-wrapper">
-                    <User size={18} className="input-icon" />
-                    <input
-                      type="text"
-                      className={`form-input form-input--with-icon ${fieldErrors.lastName ? 'form-input--error' : ''}`}
-                      placeholder="Last Name"
-                      value={formData.lastName}
-                      onChange={(e) => {
-                        clearFieldError('lastName')
-                        setFormData({ ...formData, lastName: e.target.value })
-                      }}
-                      required
-                    />
-                  </div>
-                  {fieldErrors.lastName && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.lastName}</p>}
+                  {fieldErrors.fullName && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.fullName}</p>}
                 </div>
 
                 <div className="form-group">

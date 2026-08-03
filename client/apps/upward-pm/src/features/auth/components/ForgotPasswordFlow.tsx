@@ -183,8 +183,7 @@ export default function ForgotPasswordFlow() {
           <div className="auth-header">
             <h2 className="auth-card__title">Verify your email</h2>
             <p className="auth-card__subtitle">
-              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. 
-              Be sure to check your <strong>spam folder</strong> if you don&apos;t see it.
+              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
             </p>
           </div>
 
