@@ -307,10 +307,10 @@ export const DataImportTab: React.FC = () => {
     try {
       await api.delete(`/pm/bulk-imports/${jobToDelete}`)
       setActiveJobs(prev => prev.filter(j => j.uuid !== jobToDelete))
-      success('Job deleted successfully')
+      success('Upload request cancelled. Our support team has been notified.')
       setJobToDelete(null)
     } catch (err) {
-      error('Failed to delete job')
+      error('We could not cancel this request right now. Please try again in a moment, or contact support if the issue continues.')
     } finally {
       setIsDeleting(false)
     }
@@ -408,84 +408,109 @@ export const DataImportTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Hero Upload Box */}
-      <div 
-        className="upload-hero-dropzone" 
-        style={{ 
-          border: '2px dashed var(--border)', 
-          borderRadius: 20, 
-          padding: '64px 32px', 
-          textAlign: 'center', 
+      {/* Two-panel import choice — both visible at a glance */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
+          gap: 0,
           background: 'white',
-          transition: 'all 0.2s',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 24
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+          overflow: 'hidden',
+          marginBottom: 24,
+          minHeight: 280,
         }}
       >
-        <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, border: '1px solid var(--border)' }}>
-          <FileSpreadsheet size={32} style={{ color: 'var(--clay)' }} />
-        </div>
-        
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-          Drag your spreadsheet here or browse your computer
-        </h3>
-        
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
-          Supports Excel (.xlsx, .xls) and CSV files.
-        </p>
+        {/* Left: Spreadsheet upload */}
+        <div
+          className="upload-hero-dropzone"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px 32px',
+            textAlign: 'center',
+            gap: 0,
+          }}
+        >
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
+            <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
-          <label className="btn btn--primary" style={{ padding: '12px 32px', height: 44, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Upload size={18} /> Select Spreadsheet
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 6, marginTop: 0 }}>
+            Upload a Spreadsheet
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.5 }}>
+            Drag and drop your file, or click below.
+            Supports Excel (.xlsx, .xls) and CSV.
+          </p>
+
+          <label className="btn btn--primary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} /> Select Spreadsheet
             <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef}/>
           </label>
-          
-          <div className="secondary-links" style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-muted)', alignItems: 'center' }}>
-            <button 
-              onClick={handleDownloadTemplate} 
+
+          <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-muted)', alignItems: 'center', marginTop: 14 }}>
+            <button
+              onClick={handleDownloadTemplate}
               style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
             >
               Download Template
             </button>
             <span style={{ color: 'var(--border)' }}>|</span>
-            <button 
-              onClick={() => setIsExampleModalOpen(true)} 
+            <button
+              onClick={() => setIsExampleModalOpen(true)}
               style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
             >
-              View Example Spreadsheet
+              View Example
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Document Assisted Onboarding */}
-      <div 
-        className="assisted-upload-card animate-fade-in"
-        style={{ 
-          background: 'white', 
-          border: '1px solid var(--border)', 
-          borderRadius: 16, 
-          padding: 16, 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: 24 
-        }}
-      >
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <FileText size={20} style={{ color: 'var(--clay)' }} />
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Have a PDF or photo of records instead?</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Assisted manual support transcription. Typical turnaround ~48h.</div>
-          </div>
+        {/* Divider */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+          <div style={{ flex: 1, width: 1, background: 'var(--border)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', padding: '10px 0', letterSpacing: '0.05em' }}>or</span>
+          <div style={{ flex: 1, width: 1, background: 'var(--border)' }} />
         </div>
-        <label className="btn btn--secondary btn--sm" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Upload size={14} /> Send to Support
-          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef}/>
-        </label>
+
+        {/* Right: PDF / photo assisted upload */}
+        <div
+          className="assisted-upload-card animate-fade-in"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px 32px',
+            textAlign: 'center',
+            background: 'var(--bg)',
+            gap: 0,
+          }}
+        >
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
+            <FileText size={28} style={{ color: 'var(--clay)' }} />
+          </div>
+
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 6, marginTop: 0 }}>
+            Send a PDF or Photo
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.5 }}>
+            Have physical records or scanned documents?
+            Our support team will transcribe them manually.
+          </p>
+
+          <label className="btn btn--secondary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} /> Send to Support
+            <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef}/>
+          </label>
+
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
+            Typical turnaround ~48 hours.
+          </p>
+        </div>
       </div>
 
       {/* Reassurance Card */}
