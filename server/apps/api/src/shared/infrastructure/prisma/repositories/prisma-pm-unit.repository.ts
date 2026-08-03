@@ -181,7 +181,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     const allowedFields = [
       'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 
       'rentType', 'managementFee', 'notes', 'currency', 'status', 'tenantId',
-      'isSynced', 'userPropertyUuid', 'unitType', 'rentReminderEnabled', 'rentReminderDaysBefore'
+      'isSynced', 'userPropertyUuid', 'unitType', 'rentReminderEnabled', 'rentReminderDaysBefore',
+      'pendingInitialPrAmount'
     ];
     
     const updateData: any = {};
