@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, FileText, Save, X, AlertTriangle, User, Mail, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FileText, Save, X, AlertTriangle, User, Mail, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { Modal } from '@/components/ui/Modal/Modal'
@@ -158,7 +158,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               style={{ borderRadius: 10, height: 40, cursor: 'pointer' }}
               onClick={handlePreviewClick}
             >
-              <FileText size={16} style={{ marginRight: 8 }}/> Preview Data Grid
+              Continue <ArrowRight size={16} style={{ marginLeft: 8 }}/>
             </button>
           )}
           {phase === 'preview' && !reviewJob && (
@@ -218,11 +218,11 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
       {!reviewJob && (
         <div className="import-overlay__steps">
           <div className={cn('import-step', phase === 'mapping' && 'import-step--active')}>
-            <span className="import-step__number">1</span> Column & Name Mapping
+            <span className="import-step__number">1</span> Review Detected Columns
           </div>
           <div className="import-step__separator">—</div>
           <div className={cn('import-step', phase === 'preview' && 'import-step--active')}>
-            <span className="import-step__number">2</span> Validation & Data Grid
+            <span className="import-step__number">2</span> Check Your Data
           </div>
         </div>
       )}
