@@ -1,31 +1,27 @@
 'use client'
 
 import React, { useEffect, useRef, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { FileSpreadsheet, Download, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, HelpCircle, FileText, AlertTriangle, ArrowRight, Eye, Building, Home, User, Lightbulb } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
-import { useProperties, useBulkCreateUnits, useBulkFullImport } from '@/features/pm/hooks/useProperties'
+import { useProperties, useBulkFullImport } from '@/features/pm/hooks/useProperties'
 import { downloadBlob } from '@/lib/download-helper'
-import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { api } from '@/lib/api'
 import { useSocket } from '@/hooks/useSocket'
 
-import { ImportMode, FULL_COLUMNS, UNIT_COLUMNS } from './data-import/types'
+import { FULL_COLUMNS } from './data-import/types'
 import { useDataImport } from './data-import/useDataImport'
 import { parseDateString } from './data-import/utils'
 import { ImportOverlay } from './data-import/ImportOverlay'
 import { RelayConfirmationModal } from './data-import/RelayConfirmationModal'
 import { ActiveImportJobsList } from './data-import/ActiveImportJobsList'
 import { Modal } from '@/components/ui/Modal/Modal'
-import { AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-
 
 export const DataImportTab: React.FC = () => {
   const queryClient = useQueryClient()
   const router = useRouter()
-  
   const mode = 'full' as const
   
   const { success, error } = useToast()
@@ -33,10 +29,42 @@ export const DataImportTab: React.FC = () => {
   const bulkFullImportMutation = useBulkFullImport()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-
+  const docInputRef = useRef<HTMLInputElement>(null)
   const columns = useMemo(() => FULL_COLUMNS, [])
-
   const importState = useDataImport(columns, mode, properties, '')
+
+  // UX Redesign state
+  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false)
+  const [isExampleModalOpen, setIsExampleModalOpen] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    property: true,
+    unit: true,
+    tenant: false,
+    landlord: false
+  })
+
+  // Dynamic schema summary grouping for Help Drawer
+  const schemaSummary = useMemo(() => {
+    const categories: Record<string, { label: string; icon: React.ReactNode; required: typeof FULL_COLUMNS; optional: typeof FULL_COLUMNS }> = {
+      property: { label: 'Property Information', icon: <Building size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
+      unit: { label: 'Units Details', icon: <Home size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
+      tenant: { label: 'Tenant Information', icon: <User size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
+      landlord: { label: 'Landlord Details', icon: <User size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] }
+    }
+
+    FULL_COLUMNS.forEach(col => {
+      const cat = col.category
+      if (categories[cat]) {
+        if (col.required) {
+          categories[cat].required.push(col)
+        } else {
+          categories[cat].optional.push(col)
+        }
+      }
+    })
+
+    return categories
+  }, [])
 
   const handleDownloadTemplate = () => {
     const exportColumns = columns.filter(c => 
@@ -61,7 +89,6 @@ export const DataImportTab: React.FC = () => {
   const parseBackendError = (message: string): string => {
     if (!message) return 'Failed to import data'
     
-    // Parse nested class-validator messages like "rows.0.unitRentAmountPaid must be a number"
     if (message.includes('rows.')) {
       const parts = message.split(',').map(p => p.trim())
       const formattedParts = parts.slice(0, 3).map(part => {
@@ -118,6 +145,7 @@ export const DataImportTab: React.FC = () => {
       onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
     })
   }
+
   const [pendingRelayFile, setPendingRelayFile] = useState<File | null>(null)
   const [showRelayModal, setShowRelayModal] = useState(false)
   const [isRelaying, setIsRelaying] = useState(false)
@@ -174,6 +202,7 @@ export const DataImportTab: React.FC = () => {
       setPendingRelayFile(file)
       setShowRelayModal(true)
       if (fileInputRef.current) fileInputRef.current.value = ''
+      if (docInputRef.current) docInputRef.current.value = ''
     }
   }
 
@@ -201,10 +230,10 @@ export const DataImportTab: React.FC = () => {
           fileType: ext,
         })
 
-      setActiveJobs(prev => [newJob, ...prev])
-      setShowRelayModal(false)
-      setPendingRelayFile(null)
-        success('Document sent to Customer Support team! We will notify you once processed (~48hrs).')
+        setActiveJobs(prev => [newJob, ...prev])
+        setShowRelayModal(false)
+        setPendingRelayFile(null)
+        success('Document sent to Customer Support team! We will notify you once processed manually (~48hrs).')
       } catch (err) {
         error('Failed to submit document relay request.')
       } finally {
@@ -325,18 +354,29 @@ export const DataImportTab: React.FC = () => {
     })
   }
 
+  const toggleCategory = (key: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
+
   return (
-    <div className="import-tab animate-fade-in" style={{ padding: '16px 0', maxWidth: 900, margin: '0 auto' }}>
+    <div className="import-page animate-fade-in" style={{ padding: '24px 0', maxWidth: 740, margin: '0 auto' }}>
       
-      <div className="import-tab__header">
-        <div className="import-tab__header-text">
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>
-            Bulk Data Import
-          </h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Import your properties, landlords, or units via CSV, Excel, PDF, or image documents.
-          </p>
+      {/* Header Block */}
+      <div className="import-page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 6 }}>Bulk Import</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>Import your existing spreadsheet in just a few minutes.</p>
         </div>
+        <button 
+          onClick={() => setIsHelpDrawerOpen(true)}
+          className="btn btn--secondary btn--sm"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, borderRadius: 10, fontSize: 13, fontWeight: 600 }}
+        >
+          <HelpCircle size={16} /> Need help importing?
+        </button>
       </div>
 
       <ActiveImportJobsList
@@ -344,42 +384,274 @@ export const DataImportTab: React.FC = () => {
         onOpenReviewModal={handleOpenReviewModal}
         onDeleteJob={handleDeleteJob}
       />
-      
-      <div style={{ marginBottom: 32 }} />
 
+      {/* Visual Timeline Stepper */}
+      <div className="workflow-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 24px', marginBottom: 32 }}>
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>1</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Upload File</div>
+        </div>
+        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>2</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Review Columns</div>
+        </div>
+        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>3</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Fix Issues</div>
+        </div>
+        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>4</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Import</div>
+        </div>
+      </div>
+
+      {/* Hero Upload Box */}
       <div 
+        className="upload-hero-dropzone" 
         style={{ 
           border: '2px dashed var(--border)', 
           borderRadius: 20, 
-          padding: '60px 32px', 
+          padding: '64px 32px', 
           textAlign: 'center', 
           background: 'white',
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 24
         }}
       >
-        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid var(--border)' }}>
-          <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
+        <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, border: '1px solid var(--border)' }}>
+          <FileSpreadsheet size={32} style={{ color: 'var(--clay)' }} />
         </div>
         
         <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-          Upload your document or spreadsheet
+          Drag your spreadsheet here or browse your computer
         </h3>
         
         <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
-          Drag and drop your file here or click to browse. Supports Excel (.xlsx, .xls, .xlsm, .xlsb, .xltx, .xltm, .csv) for direct import, or PDF/Images for assisted support onboarding.
+          Supports Excel (.xlsx, .xls) and CSV files.
         </p>
 
-        <div className="import-tab__actions">
-          <label className="btn btn--primary import-tab__action-btn">
-            <Upload size={18} style={{ marginRight: 8 }} /> Select File
-            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef}/>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
+          <label className="btn btn--primary" style={{ padding: '12px 32px', height: 44, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={18} /> Select Spreadsheet
+            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef}/>
           </label>
           
-          <button className="btn btn--secondary import-tab__action-btn" onClick={handleDownloadTemplate}>
-            <Download size={18} style={{ marginRight: 8 }} /> Download Template
-          </button>
+          <div className="secondary-links" style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-muted)', alignItems: 'center' }}>
+            <button 
+              onClick={handleDownloadTemplate} 
+              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+            >
+              Download Template
+            </button>
+            <span style={{ color: 'var(--border)' }}>|</span>
+            <button 
+              onClick={() => setIsExampleModalOpen(true)} 
+              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+            >
+              View Example Spreadsheet
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Document Assisted Onboarding */}
+      <div 
+        className="assisted-upload-card animate-fade-in"
+        style={{ 
+          background: 'white', 
+          border: '1px solid var(--border)', 
+          borderRadius: 16, 
+          padding: 16, 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 24 
+        }}
+      >
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <FileText size={20} style={{ color: 'var(--clay)' }} />
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Have a PDF or photo of records instead?</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Assisted manual support transcription. Typical turnaround ~48h.</div>
+          </div>
+        </div>
+        <label className="btn btn--secondary btn--sm" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Upload size={14} /> Send to Support
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef}/>
+        </label>
+      </div>
+
+      {/* Reassurance Card */}
+      <div 
+        className="reassurance-card" 
+        style={{ 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: 16, 
+          padding: 18, 
+          display: 'flex', 
+          gap: 12, 
+          alignItems: 'flex-start' 
+        }}
+      >
+        <Lightbulb size={20} style={{ color: '#16a34a', flexShrink: 0, marginTop: 2 }} />
+        <div style={{ textAlign: 'left' }}>
+          <h4 style={{ fontSize: 13, fontWeight: 700, color: '#14532d', margin: '0 0 4px 0' }}>Only 4 Fields are Required to Get Started</h4>
+          <p style={{ fontSize: 12, color: '#15803d', margin: 0, lineHeight: 1.5 }}>
+            You only need columns for <strong>Property Name, Address, Unit Name,</strong> and <strong>Rent Amount</strong>. 
+            All other information—including tenant details, landlord contacts, lease dates, and notes—can be added or edited later.
+          </p>
+        </div>
+      </div>
+
+      {/* Floating / On-Demand Help Drawer */}
+      <Modal
+        isOpen={isHelpDrawerOpen}
+        onClose={() => setIsHelpDrawerOpen(false)}
+        title="Import Help Guide"
+        maxWidth={520}
+        footer={
+          <button className="btn btn--secondary" style={{ width: '100%', borderRadius: 10 }} onClick={() => setIsHelpDrawerOpen(false)}>
+            Close Guide
+          </button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>What information should my spreadsheet contain?</h4>
+            <div className="schema-categories" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {Object.entries(schemaSummary).map(([key, cat]) => {
+                const isExpanded = expandedCategories[key]
+                const reqCount = cat.required.length
+                const optCount = cat.optional.length
+                return (
+                  <div key={key} style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                    <button 
+                      onClick={() => toggleCategory(key)}
+                      style={{ width: '100%', padding: '12px', background: 'var(--bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontSize: 13, color: 'var(--dark)' }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {cat.icon}
+                        <span style={{ fontWeight: 600 }}>{cat.label}</span>
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+                        <span>{reqCount} req, {optCount} opt</span>
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div style={{ padding: 12, background: 'white', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)' }}>
+                        {cat.required.map(col => (
+                          <div key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dark)' }}>
+                            <Check size={14} style={{ color: 'var(--forest)' }} />
+                            <span>{col.label} <span style={{ color: 'var(--error)' }}>*</span></span>
+                          </div>
+                        ))}
+                        {cat.optional.map(col => (
+                          <div key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                            <span style={{ display: 'inline-block', width: 14, textAlign: 'center' }}>•</span>
+                            <span>{col.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Import Guidelines</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Building size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Properties</strong>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Import names and locations. Multiple units can belong to the same property.</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Home size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Units</strong>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Import flats, commercial offices, or shops.</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <User size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Tenants & Landlords</strong>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Optional fields. They will receive automated setup emails only when you choose to activate them later.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Example Spreadsheet Modal */}
+      <Modal
+        isOpen={isExampleModalOpen}
+        onClose={() => setIsExampleModalOpen(false)}
+        title="Example Spreadsheet Structure"
+        maxWidth={700}
+        footer={
+          <button className="btn btn--secondary" style={{ width: '100%', borderRadius: 10 }} onClick={() => setIsExampleModalOpen(false)}>
+            Close Preview
+          </button>
+        }
+      >
+        <div style={{ padding: '8px 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+            Here is how a standard CSV/Excel spreadsheet should look. You only need the required columns (marked with *) to proceed.
+          </p>
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <table className="preview-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Property Name *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Address *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Unit Name *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Rent Amount *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Tenant Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>Palm Court</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>12 Lekki Road, Lagos</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>A101</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 600,000</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>john@example.com</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>Palm Court</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>12 Lekki Road, Lagos</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>A102</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 650,000</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>jane@example.com</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>Sunrise Estate</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>8 Victoria Island, Lagos</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>Suite 5</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 1,200,000</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>commercial@email.com</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Modal>
 
       {/* Relay Prompt Modal */}
       <RelayConfirmationModal
@@ -438,96 +710,6 @@ export const DataImportTab: React.FC = () => {
           Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
         </p>
       </Modal>
-
-      <style jsx>{`
-        .import-tab__header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 28px;
-          gap: 16px;
-        }
-
-        .import-tab__mode-toggle {
-          display: flex;
-          background: var(--bg);
-          padding: 4px;
-          border-radius: 12px;
-          border: 1px solid var(--border);
-          flex-shrink: 0;
-        }
-
-        .import-tab__mode-btn {
-          padding: 8px 16px;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: var(--text-muted);
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .import-tab__mode-btn--active {
-          background: white;
-          color: var(--dark);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .import-tab__actions {
-          display: flex;
-          gap: 12px;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .import-tab__action-btn {
-          border-radius: 12px;
-          padding: 12px 24px;
-          height: 44px;
-          font-size: 14px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        @media (max-width: 768px) {
-          .import-tab__header {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: left;
-          }
-
-          .import-tab__header-text h2 {
-            font-size: 18px !important;
-          }
-
-          .import-tab__header-text p {
-            margin-bottom: 16px;
-          }
-
-          .import-tab__mode-toggle {
-            width: 100%;
-          }
-
-          .import-tab__mode-btn {
-            flex: 1;
-            text-align: center;
-          }
-
-          .import-tab__actions {
-            flex-direction: column;
-            width: 100%;
-          }
-
-          .import-tab__action-btn {
-            width: 100%;
-          }
-        }
-      `}</style>
     </div>
   )
 }
-
