@@ -373,8 +373,8 @@ export function DashboardView({ initialData }: { initialData?: any }) {
       <div className="dashboard-header-grid">
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <PageHeader
-            title="Welcome back!"
-            subtitle="Here is what is happening with your property portfolio today."
+            title={!hasProperties ? "Welcome to Upward" : "Welcome back!"}
+            subtitle={!hasProperties ? "Let's help you get started" : "Here is what is happening with your property portfolio today."}
           />
         </div>
 
@@ -435,7 +435,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         </div>
       </div>
 
-      <ActivityCarousel />
+      <ActivityCarousel onAddProperty={() => setShowAddPropertyModal(true)} />
 
 
 

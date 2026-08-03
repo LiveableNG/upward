@@ -27,6 +27,19 @@ export interface CarouselItem {
 
 const defaultItems: CarouselItem[] = [
   {
+    id: 'add-property',
+    title: 'Add First Property',
+    description: 'List your first property',
+    descriptionExtended: ' and start managing your tenants.',
+    icon: Building2,
+    link: '/properties?action=add-property',
+    color: 'warning',
+    actionLabel: 'Add Property',
+    priority: 'HIGH PRIORITY',
+    secondaryActionLabel: 'Bulk Import',
+    secondaryActionLink: '/settings?tab=import'
+  },
+  {
     id: 'payment-info',
     title: 'Add Payment Info',
     description: 'Connect your bank account',
@@ -47,19 +60,6 @@ const defaultItems: CarouselItem[] = [
     color: 'clay',
     actionLabel: 'Update Profile',
     priority: 'MEDIUM PRIORITY'
-  },
-  {
-    id: 'add-property',
-    title: 'Add First Property',
-    description: 'List your first property',
-    descriptionExtended: ' and start managing your tenants.',
-    icon: Building2,
-    link: '/properties?action=add-property',
-    color: 'warning',
-    actionLabel: 'Add Property',
-    priority: 'HIGH PRIORITY',
-    secondaryActionLabel: 'Bulk Import',
-    secondaryActionLink: '/settings?tab=import'
   }
 ]
 
