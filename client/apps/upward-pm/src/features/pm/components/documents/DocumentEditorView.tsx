@@ -187,8 +187,8 @@ export function DocumentEditorView({
     const pmValues: Record<string, string> = {
       '[CompanyName]': user?.businessName || '__________',
       '[Company Name]': user?.businessName || '__________',
-      '[CompanyAddress]': user?.country || '__________',
-      '[Company Address]': user?.country || '__________',
+      '[CompanyAddress]': user?.companyAddress || user?.country || '__________',
+      '[Company Address]': user?.companyAddress || user?.country || '__________',
       '[CompanyPhone]': user?.phone || '__________',
       '[Company Phone]': user?.phone || '__________',
       '[CompanyEmail]': user?.email || '__________',

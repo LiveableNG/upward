@@ -17,6 +17,7 @@ const profileSchema = z.object({
     message: 'Invalid international phone number (e.g. +234...)'
   }),
   country: z.string().optional(),
+  companyAddress: z.string().optional(),
   cacNumber: z.string().optional(),
 })
 
@@ -48,6 +49,7 @@ export function ProfileForm() {
       pmType: user?.pmType || '',
       phone: formatProfilePhone(user?.phone, user?.country),
       country: user?.country || '',
+      companyAddress: user?.companyAddress || '',
       cacNumber: user?.cacNumber || '',
     }
   })
@@ -61,6 +63,7 @@ export function ProfileForm() {
         pmType: user.pmType || '',
         phone: formatProfilePhone(user.phone, user.country),
         country: user.country || '',
+        companyAddress: user.companyAddress || '',
         cacNumber: user.cacNumber || '',
       })
     }
@@ -105,12 +108,12 @@ export function ProfileForm() {
             />
           </div>
           <div className="settings__field">
+            <label className="settings__label">Account Type</label>
             <Controller
               name="pmType"
               control={control}
               render={({ field }) => (
                 <FormSelect
-                  label="Account Type"
                   value={field.value || ''}
                   onChange={field.onChange}
                   placeholder="Select account type"
@@ -131,13 +134,13 @@ export function ProfileForm() {
 
         <div className="settings__grid">
           <div className="settings__field">
+            <label className="settings__label">Phone Number</label>
             <Controller
               name="phone"
               control={control}
               render={({ field }) => (
                 <PhoneInput
                   {...field}
-                  label="Phone Number"
                   placeholder="e.g. +234 800 000 0000"
                   error={errors.phone?.message}
                   className="settings__input"
@@ -145,16 +148,24 @@ export function ProfileForm() {
               )}
             />
           </div>
+          <div className="settings__field">
+            <label className="settings__label">Company Address</label>
+            <input
+              {...register('companyAddress')}
+              className="settings__input"
+              placeholder="Enter company address"
+            />
+          </div>
         </div>
 
         <div className="settings__grid">
           <div className="settings__field">
+            <label className="settings__label">Country</label>
             <Controller
               name="country"
               control={control}
               render={({ field }) => (
                 <FormSelect
-                  label="Country"
                   value={field.value || ''}
                   onChange={field.onChange}
                   placeholder="Select country"

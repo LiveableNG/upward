@@ -54,7 +54,7 @@ const defaultItems: CarouselItem[] = [
     id: 'complete-profile',
     title: 'Complete Profile',
     description: 'Add your business details',
-    descriptionExtended: ' to build trust and professionalize your dashboard.',
+    descriptionExtended: ' including company address to build trust and professionalize your dashboard.',
     icon: UserCircle,
     link: '/settings?tab=profile',
     color: 'clay',
@@ -110,7 +110,7 @@ export function useActivityTasks() {
 
   const tasks = dynamicItems.filter(item => {
     if (item.id === 'payment-info') return !user?.bankCode
-    if (item.id === 'complete-profile') return !user?.businessName || !user?.country
+    if (item.id === 'complete-profile') return !user?.businessName || !user?.country || !user?.companyAddress
     if (item.id === 'add-property') return properties.length === 0
     return true
   })

@@ -231,7 +231,7 @@ export class SendDocumentUseCase {
     const rentDuration = (normRentType === 'YEARLY' || normRentType === 'ANNUALLY') ? '12 Months' : normRentType === 'MONTHLY' ? '1 Month' : '__________';
 
     const companyName = pm?.businessName || '__________';
-    const companyAddress = pm?.country || '__________';
+    const companyAddress = pm?.companyAddress || pm?.country || '__________';
     const companyPhone = pm?.phone || '__________';
     const companyEmail = pm?.email || '__________';
     const managerPhone = pm?.phone || '__________';

@@ -14,6 +14,7 @@ model upward_property_manager {
   phoneHash       String?
   profilePic      String?
   country         String?
+  companyAddress  String?
   cacNumber       String?
   personalEmail   String?
   personalPhone   String?
