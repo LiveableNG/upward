@@ -438,3 +438,19 @@ model upward_blog_post {
   @@index([publishedAt])
   @@index([createdAt])
 }
+
+model upward_demo_request {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  name      String
+  email     String
+  phone     String
+  tenants   String
+  demoDate  DateTime
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+}

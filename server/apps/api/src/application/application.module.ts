@@ -92,6 +92,7 @@ import { RetryBatchEmailsUseCase } from './use-cases/email/retry-batch-emails.us
 import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
+import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
 
 import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
 import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
@@ -432,6 +433,7 @@ const UseCases = [
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,
+  SubmitDemoRequestUseCase,
   CreateFairnessStoryUseCase,
   GetFairnessStoriesUseCase,
   DeleteFairnessStoryUseCase,

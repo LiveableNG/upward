@@ -73,6 +73,7 @@ import {
   PmBulkImportController,
   AdminBulkImportController,
 } from './controllers/bulk-import.controller'
+import { DemoRequestController } from './public/demo-request.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -148,6 +149,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PublicDocumentController,
     PmBulkImportController,
     AdminBulkImportController,
+    DemoRequestController,
   ],
 })
 export class HttpModule {}
