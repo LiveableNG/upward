@@ -144,8 +144,11 @@ model upward_pm_unit {
 
   
   // New fields for rich unit details
-  unitType         String?                     // e.g. Office Space, Apartment, Studio
-  
+  unitType              String?                     // e.g. Office Space, Apartment, Studio
+
+  // Stores remaining rent balance for deferred PR creation when tenant is not yet synced to Upward Pay
+  pendingInitialPrAmount Float?
+
   paymentRequests  upward_pm_payment_request[]
   rentPayments     upward_pm_rent_payment[]
   sentDocuments    upward_pm_sent_document[]

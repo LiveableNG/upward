@@ -28,7 +28,7 @@ export interface CarouselItem {
 const defaultItems: CarouselItem[] = [
   {
     id: 'add-property',
-    title: 'Add First Property',
+    title: 'Onboard Your Unit',
     description: 'List your first property',
     descriptionExtended: ' and start managing your tenants.',
     icon: Building2,

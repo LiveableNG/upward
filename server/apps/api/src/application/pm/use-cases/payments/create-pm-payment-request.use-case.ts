@@ -29,6 +29,8 @@ export interface CreatePmPaymentRequestDto {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   silent?: boolean;
+  /** When true, bypasses the hasReceivedWelcomeTemplate check (for system-generated PRs) */
+  bypassWelcomeCheck?: boolean;
 }
 
 @Injectable()
@@ -124,7 +126,7 @@ export class CreatePmPaymentRequestUseCase {
       }
     }
 
-    if (unit.tenantId) {
+    if (unit.tenantId && !data.bypassWelcomeCheck) {
       const tenant = await this.pmTenantRepo.findById(unit.tenantId);
       if (tenant && !tenant.hasReceivedWelcomeTemplate) {
         throw new BadRequestException('You must send the Welcome system template to this tenant before requesting payment.');

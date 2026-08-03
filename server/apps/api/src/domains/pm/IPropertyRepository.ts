@@ -42,6 +42,7 @@ export interface UnitEntity {
   unitType: string | null;
   rentReminderEnabled: boolean;
   rentReminderDaysBefore: number | null;
+  pendingInitialPrAmount?: number | null;
 }
 
 

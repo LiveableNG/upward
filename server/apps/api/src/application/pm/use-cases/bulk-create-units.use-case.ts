@@ -159,7 +159,7 @@ export class BulkCreateUnitsUseCase {
       }
 
       const existingUnits = await this.unitRepository.findByPropertyId(property.id);
-      const duplicateUnit = existingUnits.find(exUnit => exUnit.unitName.trim().toLowerCase() === u.unitName.trim().toLowerCase());
+      const duplicateUnit = existingUnits.find(exUnit => exUnit.unitName.trim().toLowerCase() === u.unitName!.trim().toLowerCase());
 
       if (duplicateUnit) {
         throw new BadRequestException(`Unit "${u.unitName}" already exists in this property.`);
@@ -177,7 +177,7 @@ export class BulkCreateUnitsUseCase {
 
       const newUnit = await this.unitRepository.create({
         propertyId: property.id,
-        unitName: u.unitName,
+        unitName: u.unitName!,
         rentAmount: u.rentAmount,
         managementFee: u.managementFee ?? 0,
         rentStartDate: u.rentStartDate ? new Date(u.rentStartDate) : null,
