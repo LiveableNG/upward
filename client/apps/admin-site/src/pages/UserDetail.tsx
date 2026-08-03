@@ -630,9 +630,18 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                           prop.location?.address ||
                           'Property Tenancy'}
                       </span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {prop.location?.area || prop.pmUnit?.property?.area},{' '}
-                        {prop.location?.state || prop.pmUnit?.property?.state} •{' '}
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                        {[
+                          prop.location?.subarea,
+                          prop.location?.area || prop.pmUnit?.property?.area,
+                          prop.location?.state || prop.pmUnit?.property?.state,
+                          prop.location?.country
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
+                        Managed by:{' '}
                         {prop.pm ? (
                           <Link
                             to={`/pms/${prop.pm.uuid}`}
@@ -649,6 +658,37 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                         )}
                         {prop.pmUnit && ` • Unit: ${prop.pmUnit.unitName}`}
                       </span>
+
+                      {(prop.externalPropertyId || prop.externalUnitId) && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                          {prop.externalPropertyId && (
+                            <span style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border)',
+                              fontFamily: 'monospace'
+                            }}>
+                              Ext Prop: {prop.externalPropertyId}
+                            </span>
+                          )}
+                          {prop.externalUnitId && (
+                            <span style={{
+                              fontSize: '10px',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border)',
+                              fontFamily: 'monospace'
+                            }}>
+                              Ext Unit: {prop.externalUnitId}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--accent)' }}>

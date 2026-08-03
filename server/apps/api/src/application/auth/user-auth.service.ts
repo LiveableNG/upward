@@ -101,6 +101,7 @@ export class UserAuthService extends BaseAuthService {
     if (userNoPass.profilePic) {
       userNoPass.profilePic = await this.s3Service.getDownloadUrl(userNoPass.profilePic)
     }
+    ;(userNoPass as any).verificationOn = process.env.VERIFICATION_ON !== 'false'
     return {
       accessToken,
       refreshToken,

@@ -11,7 +11,7 @@ export interface ColumnDef {
 }
 
 export const FULL_COLUMNS: ColumnDef[] = [
-  { key: 'propertyName', label: 'Property Name', category: 'property', required: true },
+  { key: 'propertyName', label: 'Property Name', category: 'property' },
   { key: 'propertyAddress', label: 'Address', category: 'property', required: true },
   { key: 'propertyType', label: 'Type', category: 'property', type: 'select', options: ['Residential', 'Commercial', 'Industrial'] },
   { key: 'propertyCountry', label: 'Country', category: 'property' },
@@ -28,10 +28,11 @@ export const FULL_COLUMNS: ColumnDef[] = [
   { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant' },
   { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', type: 'email' },
   { key: 'tenantPhone', label: 'Tenant Phone', category: 'tenant', type: 'tel' },
+  { key: 'tenantAdditionalPhone', label: 'Additional Phone', category: 'tenant', type: 'tel' },
 
-  { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
+  { key: 'unitName', label: 'Unit Name', category: 'unit' },
   { key: 'unitRentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
-  { key: 'unitRentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
+  { key: 'unitRentAmountPaid', label: 'Amount Paid', category: 'unit', required: true, type: 'number' },
   { key: 'unitRentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'] },
   { key: 'leaseYears', label: 'Lease Years', category: 'unit', type: 'number' },
   { key: 'unitCurrency', label: 'Currency', category: 'unit', type: 'select', options: ['NGN', 'USD', 'GBP', 'EUR'] },
@@ -43,14 +44,15 @@ export const FULL_COLUMNS: ColumnDef[] = [
 ]
 
 export const UNIT_COLUMNS: ColumnDef[] = [
-  { key: 'unitName', label: 'Unit Name', category: 'unit', required: true },
+  { key: 'unitName', label: 'Unit Name', category: 'unit' },
   { key: 'tenantCommercialName', label: 'Tenant Commercial Name', category: 'tenant' },
   { key: 'tenantFirstName', label: 'Tenant First', category: 'tenant' },
   { key: 'tenantLastName', label: 'Tenant Last', category: 'tenant' },
   { key: 'tenantEmail', label: 'Tenant Email', category: 'tenant', type: 'email' },
   { key: 'tenantPhone', label: 'Tenant Phone', category: 'tenant', type: 'tel' },
+  { key: 'tenantAdditionalPhone', label: 'Additional Phone', category: 'tenant', type: 'tel' },
   { key: 'rentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
-  { key: 'rentAmountPaid', label: 'Amount Paid', category: 'unit', type: 'number' },
+  { key: 'rentAmountPaid', label: 'Amount Paid', category: 'unit', required: true, type: 'number' },
   { key: 'rentStartDate', label: 'Start Date', category: 'unit', type: 'date' },
   { key: 'rentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'] },
   { key: 'leaseYears', label: 'Lease Years', category: 'unit', type: 'number' },

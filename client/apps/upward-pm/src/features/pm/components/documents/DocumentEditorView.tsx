@@ -2,8 +2,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   Download,
   Send,
   Mail,
@@ -33,6 +33,16 @@ import { CreditCard } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { downloadBlob } from '@/lib/download-helper'
+import {
+  EMPTY_PLACEHOLDER,
+  formatAmountInWords,
+  formatDisplayDate,
+  formatTimeframeUntilDate,
+  formatTimeframeUntilDateInWords,
+  getLeaseEndDate,
+  getNextRentEndDate,
+  getNextRentStartDate,
+} from '../../utils/documentPlaceholders'
 
 interface DocumentEditorViewProps {
   initialContent?: string
@@ -53,9 +63,9 @@ interface DocumentEditorViewProps {
   disableRecipientEdit?: boolean
 }
 
-export function DocumentEditorView({ 
-  initialContent = '', 
-  initialSubject = '', 
+export function DocumentEditorView({
+  initialContent = '',
+  initialSubject = '',
   initialTemplate,
   initialRecipient,
   paymentContext,
@@ -71,7 +81,7 @@ export function DocumentEditorView({
   const [fromEmail, setFromEmail] = useState(user?.email || 'noreply@goodtenants.io')
   const [ccEmails, setCcEmails] = useState('')
   const [bccEmails, setBccEmails] = useState('')
-  
+
   const [content, setContent] = useState(() => {
     const baseContent = initialTemplate?.content || initialContent;
     if (paymentContext && !baseContent.includes('[PaymentLink]') && !baseContent.includes('[Payment Link]')) {
@@ -95,9 +105,9 @@ export function DocumentEditorView({
   const [subject, setSubject] = useState(initialTemplate?.subject || initialTemplate?.name || initialSubject)
   const [recipientType, setRecipientType] = useState<'existing' | 'new'>(initialRecipient?.type || 'existing')
   const [selectedTenantUuid, setSelectedTenantUuid] = useState(initialRecipient?.uuid || '')
-  const [newRecipient, setNewRecipient] = useState({ 
-    name: initialRecipient?.name || '', 
-    email: initialRecipient?.email || '' 
+  const [newRecipient, setNewRecipient] = useState({
+    name: initialRecipient?.name || '',
+    email: initialRecipient?.email || ''
   })
   const [deliveryMode, setDeliveryMode] = useState<'pdf' | 'email' | 'sms' | 'whatsapp'>(initialRecipient?.deliveryMode || 'email')
   const [emailFormat, setEmailFormat] = useState<'pdf' | 'text'>('pdf')
@@ -127,32 +137,20 @@ export function DocumentEditorView({
     enabled: !!unitUuid
   })
 
+  const { data: payments = [] } = useQuery<any[]>({
+    queryKey: ['unit-payments', unitUuid],
+    queryFn: () => api.getUnitPayments(unitUuid as string),
+    enabled: !!unitUuid
+  })
+
   const isSystemTemplate = initialTemplate?.type === 'SYSTEM' || initialTemplate?.isSystem
   const isWelcomeTemplate = initialTemplate?.uuid === 'system-onboarding-1' || initialTemplate?.name === 'Getting Started' || initialTemplate?.name === 'Welcome System Template';
   const [showSettings, setShowSettings] = useState(true)
-    const [previewMode, setPreviewMode] = useState(false)
+  const [previewMode, setPreviewMode] = useState(false)
 
   const getRenderedContent = () => {
     let rendered = content
     if (!rendered) return ''
-
-    // Resolve Date formatting helper
-    const formatDate = (dateVal: any) => {
-      if (!dateVal) return '__________'
-      return new Date(dateVal).toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      })
-    }
-
-    const calculateEndDate = (start: any) => {
-      if (!start) return '__________'
-      const end = new Date(start)
-      end.setFullYear(end.getFullYear() + 1)
-      end.setDate(end.getDate() - 1)
-      return formatDate(end)
-    }
 
     // Current date values
     const now = new Date()
@@ -166,9 +164,9 @@ export function DocumentEditorView({
     const previousMonth = prevMonthDate.toLocaleDateString('en-GB', { month: 'long' })
 
     const dateValues: Record<string, string> = {
-      '[Date]': formatDate(now),
-      '[CurrentDate]': formatDate(now),
-      '[Current Date]': formatDate(now),
+      '[Date]': formatDisplayDate(now),
+      '[CurrentDate]': formatDisplayDate(now),
+      '[Current Date]': formatDisplayDate(now),
       '[CurrentMonth]': currentMonth,
       '[Current Month]': currentMonth,
       '[CurrentYear]': currentYear,
@@ -177,8 +175,8 @@ export function DocumentEditorView({
       '[Next Month]': nextMonth,
       '[PreviousMonth]': previousMonth,
       '[Previous Month]': previousMonth,
-      '[DocumentDate]': formatDate(now),
-      '[Document Date]': formatDate(now),
+      '[DocumentDate]': formatDisplayDate(now),
+      '[Document Date]': formatDisplayDate(now),
       '[DocumentNumber]': 'DOC-PREVIEW',
       '[Document Number]': 'DOC-PREVIEW',
       '[DocumentType]': deliveryMode.toUpperCase(),
@@ -203,6 +201,11 @@ export function DocumentEditorView({
       '[Manager Email]': user?.email || '__________',
     }
 
+    // Unit & Property Values
+    let resolvedUnit: any = unitDetails || (selectedTenant?.units && selectedTenant.units.find((u: any) => u.uuid === unitUuid)) || selectedTenant?.units?.[0]
+    let unitName = resolvedUnit?.unitName || '__________'
+    let propertyAddress = resolvedUnit?.property?.address || '__________'
+
     // Recipient & Tenant Values
     let recipientName = newRecipient.name
     let recipientEmail = newRecipient.email
@@ -215,7 +218,10 @@ export function DocumentEditorView({
       recipientName = selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant'
       recipientEmail = selectedTenant.email || ''
       tenantPhone = selectedTenant.phone || '__________'
-      tenantAddress = selectedTenant.formerAddress || '__________'
+
+      const fallbackAddr = (unitName !== '__________' && propertyAddress !== '__________') ? `Unit ${unitName}, ${propertyAddress}` : ''
+      tenantAddress = selectedTenant.formerAddress || fallbackAddr || '__________'
+
       tenantFirstName = selectedTenant.commercialName ? selectedTenant.commercialName : (selectedTenant.firstName || '__________')
       tenantLastName = selectedTenant.commercialName ? '' : (selectedTenant.lastName || '__________')
     } else if (newRecipient.name) {
@@ -239,12 +245,7 @@ export function DocumentEditorView({
       '[Tenant Address]': tenantAddress,
     }
 
-    // Unit & Property Values
-    let resolvedUnit: any = unitDetails || (selectedTenant?.units && selectedTenant.units.find((u: any) => u.uuid === unitUuid)) || selectedTenant?.units?.[0]
-    
-    let unitName = resolvedUnit?.unitName || '__________'
     let propertyName = resolvedUnit?.property?.name || '__________'
-    let propertyAddress = resolvedUnit?.property?.address || '__________'
     let landlordName = (resolvedUnit?.property as any)?.landlordName || '__________'
     let landlordEmail = (resolvedUnit?.property as any)?.landlordEmail || '__________'
     let rentAmountVal = resolvedUnit?.rentAmount
@@ -252,7 +253,18 @@ export function DocumentEditorView({
     let rentTypeVal = resolvedUnit?.rentType || 'Monthly'
     let rentStartDateVal = resolvedUnit?.rentStartDate
     let rentDueDateVal = resolvedUnit?.rentDueDate
-    let rentDuration = rentTypeVal === 'YEARLY' ? '12 Months' : rentTypeVal === 'MONTHLY' ? '1 Month' : '__________'
+    const normRentType = (rentTypeVal || '').trim().toUpperCase()
+    let rentDuration = (normRentType === 'YEARLY' || normRentType === 'ANNUALLY') ? '12 Months' : normRentType === 'MONTHLY' ? '1 Month' : '__________'
+    const rentEndDate = getLeaseEndDate(rentStartDateVal)
+    const nextRentStartDate = getNextRentStartDate(rentStartDateVal)
+    const nextRentEndDate = getNextRentEndDate(rentStartDateVal)
+    const amountInWords = formatAmountInWords(rentAmountVal, resolvedUnit?.currency)
+    const timeFrame = formatTimeframeUntilDate(rentEndDate)
+    const timeFrameInWords = formatTimeframeUntilDateInWords(rentEndDate)
+    const lastPayment = payments?.[0] || resolvedUnit?.rentPayments?.[0]
+    const lastPaymentDateVal = lastPayment ? formatDisplayDate(lastPayment.paymentDate) : 'N/A'
+    const lastPaymentAmountVal = lastPayment ? `${resolvedUnit?.currency || '₦'}${lastPayment.amount.toLocaleString()}` : 'N/A'
+
 
     const unitValues: Record<string, string> = {
       '[UnitName]': unitName,
@@ -265,48 +277,54 @@ export function DocumentEditorView({
       '[Property Address]': propertyAddress,
       '[PropertyType]': resolvedUnit?.unitType || 'Residential',
       '[Property Type]': resolvedUnit?.unitType || 'Residential',
-      '[Bedrooms]': 'N/A',
-      '[Bathrooms]': 'N/A',
       '[RentAmount]': rentAmountStr,
       '[Rent Amount]': rentAmountStr,
+      '[AmountInWords]': amountInWords,
+      '[Amount In Words]': amountInWords,
       '[RentType]': rentTypeVal,
       '[Rent Type]': rentTypeVal,
-      '[RentStartDate]': formatDate(rentStartDateVal),
-      '[Rent Start Date]': formatDate(rentStartDateVal),
-      '[RentEndDate]': calculateEndDate(rentStartDateVal),
-      '[Rent End Date]': calculateEndDate(rentStartDateVal),
-      '[LeaseStartDate]': formatDate(rentStartDateVal),
-      '[Lease Start Date]': formatDate(rentStartDateVal),
-      '[LeaseEndDate]': calculateEndDate(rentStartDateVal),
-      '[Lease End Date]': calculateEndDate(rentStartDateVal),
+      '[RentStartDate]': formatDisplayDate(rentStartDateVal),
+      '[Rent Start Date]': formatDisplayDate(rentStartDateVal),
+      '[RentEndDate]': formatDisplayDate(rentEndDate),
+      '[Rent End Date]': formatDisplayDate(rentEndDate),
+      '[LeaseStartDate]': formatDisplayDate(rentStartDateVal),
+      '[Lease Start Date]': formatDisplayDate(rentStartDateVal),
+      '[LeaseEndDate]': formatDisplayDate(rentEndDate),
+      '[Lease End Date]': formatDisplayDate(rentEndDate),
       '[LeaseDuration]': rentDuration,
       '[Lease Duration]': rentDuration,
       '[RentDuration]': rentDuration,
       '[Rent Duration]': rentDuration,
+      '[NextRentStartDate]': formatDisplayDate(nextRentStartDate),
+      '[Next Rent Start Date]': formatDisplayDate(nextRentStartDate),
+      '[Next rent start date]': formatDisplayDate(nextRentStartDate),
+      '[NextRentEndDate]': formatDisplayDate(nextRentEndDate),
+      '[Next Rent End Date]': formatDisplayDate(nextRentEndDate),
+      '[Next rent end date]': formatDisplayDate(nextRentEndDate),
+      '[TimeFrame]': timeFrame,
+      '[Time Frame]': timeFrame,
+      '[Timeframe]': timeFrame,
+      '[timeframe]': timeFrame,
+      '[Time frame (period between now/current_time and rent end date)]': timeFrame,
+      '[TimeframeinWords]': timeFrameInWords,
+      '[Timeframe in Words]': timeFrameInWords,
+      '[Timeframe in words]': timeFrameInWords,
       '[ServiceCharge]': 'N/A',
       '[Service Charge]': 'N/A',
       '[TotalAmount]': rentAmountStr,
       '[Total Amount]': rentAmountStr,
-      '[PaymentDueDate]': formatDate(rentDueDateVal),
-      '[Payment Due Date]': formatDate(rentDueDateVal),
-      '[OutstandingBalance]': 'N/A',
-      '[Outstanding Balance]': 'N/A',
-      '[LastPaymentDate]': 'N/A',
-      '[Last Payment Date]': 'N/A',
-      '[LastPaymentAmount]': 'N/A',
-      '[Last Payment Amount]': 'N/A',
+      '[PaymentDueDate]': formatDisplayDate(rentDueDateVal),
+      '[Payment Due Date]': formatDisplayDate(rentDueDateVal),
+      '[LastPaymentDate]': lastPaymentDateVal,
+      '[Last Payment Date]': lastPaymentDateVal,
+      '[LastPaymentAmount]': lastPaymentAmountVal,
+      '[Last Payment Amount]': lastPaymentAmountVal,
       '[LandlordName]': landlordName,
       '[LandlordEmail]': landlordEmail,
     }
 
     // Payment link/URL replacements
     const paymentValues: Record<string, string> = {
-      '[PaymentURL]': paymentContext ? 'https://upward-dev.vercel.app/pay/secure-link-preview' : '__________',
-      '[Payment URL]': paymentContext ? 'https://upward-dev.vercel.app/pay/secure-link-preview' : '__________',
-      '[PaymentLink]': paymentContext ? '<a href="#" style="color: var(--forest); font-weight: 700; text-decoration: underline;">Pay via Secure Link</a>' : '__________',
-      '[Payment Link]': paymentContext ? '<a href="#" style="color: var(--forest); font-weight: 700; text-decoration: underline;">Pay via Secure Link</a>' : '__________',
-      '[BankDetails]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank)' : '__________',
-      '[Bank Details]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank)' : '__________',
       '[PaymentInfo]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank) or secure link.' : '__________',
       '[Payment Info]': paymentContext ? 'Virtual Account: 9988776655 (Wema Bank) or secure link.' : '__________',
     }
@@ -320,7 +338,7 @@ export function DocumentEditorView({
     }
 
     Object.entries(replacements).forEach(([placeholder, value]) => {
-      rendered = rendered.split(placeholder).join(value)
+      rendered = rendered.split(placeholder).join(value || EMPTY_PLACEHOLDER)
     })
 
     return rendered
@@ -348,12 +366,12 @@ export function DocumentEditorView({
     if (!content) return error('No content to download')
     setIsDownloading(true)
     try {
-      const recipientName = recipientType === 'existing' 
+      const recipientName = recipientType === 'existing'
         ? (selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : undefined)
         : newRecipient.name;
 
-      const blob = await generatePdf.mutateAsync({ 
-        content, 
+      const blob = await generatePdf.mutateAsync({
+        content,
         tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
         recipientName: recipientName || undefined,
         includeLetterhead: hasLetterhead ? includeLetterhead : false
@@ -371,21 +389,21 @@ export function DocumentEditorView({
     if (!content) return error('No content to preview')
     setIsPreviewLoading(true)
     try {
-      const recipientName = recipientType === 'existing' 
+      const recipientName = recipientType === 'existing'
         ? (selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : undefined)
         : newRecipient.name;
 
-      const blob = await generatePdf.mutateAsync({ 
-        content, 
+      const blob = await generatePdf.mutateAsync({
+        content,
         tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
         recipientName: recipientName || undefined,
         includeLetterhead: hasLetterhead ? includeLetterhead : false
       })
-      
+
       if (previewPdfUrl) {
         window.URL.revokeObjectURL(previewPdfUrl)
       }
-      
+
       const url = window.URL.createObjectURL(blob)
       setPreviewPdfUrl(url)
       setIsPreviewingPdf(true)
@@ -409,7 +427,7 @@ export function DocumentEditorView({
 
     if (recipientType === 'existing') {
       if (!selectedTenant) return error('Please select a recipient')
-      
+
       recipientName = selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant'
       recipientEmail = selectedTenant.email || ''
 
@@ -421,7 +439,7 @@ export function DocumentEditorView({
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(tempEmail)) {
           return error('Please enter a valid email address.')
         }
-        
+
         setIsSending(true)
         try {
           await updateTenant.mutateAsync({ uuid: selectedTenant.uuid, data: { email: tempEmail } })
@@ -471,47 +489,47 @@ export function DocumentEditorView({
           paymentRequestUuid = resp.uuid;
         }
 
-          // 2. Send Document (linked to payment if context exists)
-          const docResp = await sendDocument.mutateAsync({
-            fromEmail: isSystemTemplate ? fromEmail : undefined,
-            uuid: documentUuid,
-            tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
-            unitUuid,
-            subject,
-            content,
-            documentType: deliveryMode === 'whatsapp' ? 'PDF' : deliveryMode.toUpperCase(),
-            recipientName,
-            recipientEmail,
-            paymentRequestUuid, // New field
-            includeLetterhead: hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') ? includeLetterhead : false,
-            deliveryChannel: deliveryMode === 'whatsapp' ? 'MANUAL' : (deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase()),
-            cc: ccEmails.trim() || undefined,
-            bcc: bccEmails.trim() || undefined,
-            isWelcomeTemplate,
-          })
-          
-          if (deliveryMode === 'whatsapp') {
-            try {
-              const blob = await generatePdf.mutateAsync({ 
-                content, 
-                tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
-                recipientName: recipientName || undefined,
-                includeLetterhead: hasLetterhead ? includeLetterhead : false
-              });
-              // @ts-ignore
-              await downloadBlob(blob, `${subject || 'document'}.pdf`);
-              
-              const phone = selectedTenant?.phone ? selectedTenant.phone.replace(/[^0-9+]/g, '') : '';
-              const message = encodeURIComponent(`Hello ${recipientName},\n\nPlease find your document (${subject}) attached.\n\nThank you.`);
-              
-              window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
-              success('Document downloaded. WhatsApp opened to attach it.');
-            } catch (err) {
-              error('Failed to generate PDF for WhatsApp');
-            }
-          } else {
-            success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
+        // 2. Send Document (linked to payment if context exists)
+        const docResp = await sendDocument.mutateAsync({
+          fromEmail: isSystemTemplate ? fromEmail : undefined,
+          uuid: documentUuid,
+          tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
+          unitUuid,
+          subject,
+          content,
+          documentType: deliveryMode === 'whatsapp' ? 'PDF' : deliveryMode.toUpperCase(),
+          recipientName,
+          recipientEmail,
+          paymentRequestUuid, // New field
+          includeLetterhead: hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') ? includeLetterhead : false,
+          deliveryChannel: deliveryMode === 'whatsapp' ? 'MANUAL' : (deliveryMode === 'pdf' || deliveryMode === 'email' ? 'EMAIL' : deliveryMode.toUpperCase()),
+          cc: ccEmails.trim() || undefined,
+          bcc: bccEmails.trim() || undefined,
+          isWelcomeTemplate,
+        })
+
+        if (deliveryMode === 'whatsapp') {
+          try {
+            const blob = await generatePdf.mutateAsync({
+              content,
+              tenantUuid: recipientType === 'existing' ? (selectedTenantUuid || undefined) : undefined,
+              recipientName: recipientName || undefined,
+              includeLetterhead: hasLetterhead ? includeLetterhead : false
+            });
+            // @ts-ignore
+            await downloadBlob(blob, `${subject || 'document'}.pdf`);
+
+            const phone = selectedTenant?.phone ? selectedTenant.phone.replace(/[^0-9+]/g, '') : '';
+            const message = encodeURIComponent(`Hello ${recipientName},\n\nPlease find your document (${subject}) attached.\n\nThank you.`);
+
+            window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+            success('Document downloaded. WhatsApp opened to attach it.');
+          } catch (err) {
+            error('Failed to generate PDF for WhatsApp');
           }
+        } else {
+          success(paymentContext ? 'Payment request and document sent successfully' : (documentUuid ? 'Document updated successfully' : 'Document sent and recorded successfully'))
+        }
       }
       onBack()
     } catch (err: any) {
@@ -524,492 +542,492 @@ export function DocumentEditorView({
   return (
     <>
       <div className="document-editor animate-fade-in">
-      <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}>
-            <ChevronLeft size={18} /> Back to Documents
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', margin: 0 }}>
-              {isVaultMode ? `Vault Document: ${initialTemplate?.name || 'New Document'}` : (initialTemplate ? `Edit Template: ${initialTemplate.name}` : 'Create New Document')}
-            </h1>
-            {isVaultMode && (
-              <span style={{
-                background: 'var(--forest-faint)',
-                color: 'var(--forest)',
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '4px 10px',
-                borderRadius: 100,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>
-                Vault Document
-              </span>
-            )}
+        <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}>
+              <ChevronLeft size={18} /> Back to Documents
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', margin: 0 }}>
+                {isVaultMode ? `Vault Document: ${initialTemplate?.name || 'New Document'}` : (initialTemplate ? `Edit Template: ${initialTemplate.name}` : 'Create New Document')}
+              </h1>
+              {isVaultMode && (
+                <span style={{
+                  background: 'var(--forest-faint)',
+                  color: 'var(--forest)',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: 100,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Vault Document
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="settings-panel animate-slide-left" style={{ display: 'flex', gap: 12 }}>
-              <button 
-                onClick={onBack}
-                className="btn btn--secondary"
-                disabled={isSending || isDownloading}
-                style={{ borderRadius: 100, padding: '10px 24px', flex: 1, justifyContent: 'center' }}
-              >
-                Cancel
-              </button>
+          <div className="settings-panel animate-slide-left" style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={onBack}
+              className="btn btn--secondary"
+              disabled={isSending || isDownloading}
+              style={{ borderRadius: 100, padding: '10px 24px', flex: 1, justifyContent: 'center' }}
+            >
+              Cancel
+            </button>
             {!paymentContext && !isWelcomeTemplate && (
-              <button 
+              <button
                 onClick={handleSaveAsPdf}
                 disabled={isDownloading}
-                className="btn btn--secondary" 
+                className="btn btn--secondary"
                 style={{ borderRadius: 12, height: 48, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8 }}
               >
                 <Download size={20} /> {isDownloading ? 'Downloading...' : 'Save as PDF'}
               </button>
             )}
-            <button 
+            <button
               onClick={handleSend}
               disabled={isSending || (selectedTenant && !selectedTenant.email && !selectedTenant.phone)}
-              className="btn btn--primary" 
-              style={{ 
-                borderRadius: 12, 
-                height: 48, 
-                padding: '0 24px', 
-                display: 'flex', 
-                alignItems: 'center', 
+              className="btn btn--primary"
+              style={{
+                borderRadius: 12,
+                height: 48,
+                padding: '0 24px',
+                display: 'flex',
+                alignItems: 'center',
                 gap: 8,
                 opacity: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 0.5 : 1,
                 cursor: (selectedTenant && !selectedTenant.email && !selectedTenant.phone) ? 'not-allowed' : 'pointer'
               }}
             >
-              {paymentContext ? <CreditCard size={20} /> : <Send size={20} />} 
+              {paymentContext ? <CreditCard size={20} /> : <Send size={20} />}
               {isSending ? 'Processing...' : isVaultMode ? 'Send to Vault' : (paymentContext ? 'Request Payment' : 'Send Document')}
             </button>
           </div>
-      </header>
+        </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: showSettings ? '400px 1fr' : '1fr', gap: 40, alignItems: 'start', transition: 'all 0.3s' }}>
-        
-        {/* Left Panel: Settings */}
-        {showSettings && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
-             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 24 }}>Document Settings</h3>
-             
-             <div style={{ marginBottom: 24 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Delivery Mode</label>
-                {isVaultMode ? (
-                  <div style={{ 
-                    padding: '12px 16px', 
-                    borderRadius: 12, 
-                    border: '1.5px solid var(--forest)', 
-                    background: 'var(--forest-faint)', 
-                    color: 'var(--forest)', 
-                    fontSize: 13, 
-                    fontWeight: 600, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 8 
-                  }}>
-                    <Download size={18} /> PDF Attachment (Auto-Saved to Vault)
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <button 
-                      onClick={() => setDeliveryMode('email')}
-                      style={{ 
-                        flex: 1, 
-                        padding: '12px', 
-                        borderRadius: 12, 
-                        border: `1px solid ${deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
-                        background: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
-                        color: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        position: 'relative'
-                      }}
-                    >
-                      <div style={{ 
-                          position: 'absolute', 
-                          top: 8, 
-                          left: 8, 
-                          width: 16, 
-                          height: 16, 
-                          borderRadius: '50%', 
+        <div style={{ display: 'grid', gridTemplateColumns: showSettings ? '400px 1fr' : '1fr', gap: 40, alignItems: 'start', transition: 'all 0.3s' }}>
+
+          {/* Left Panel: Settings */}
+          {showSettings && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 24 }}>Document Settings</h3>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Delivery Mode</label>
+                  {isVaultMode ? (
+                    <div style={{
+                      padding: '12px 16px',
+                      borderRadius: 12,
+                      border: '1.5px solid var(--forest)',
+                      background: 'var(--forest-faint)',
+                      color: 'var(--forest)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}>
+                      <Download size={18} /> PDF Attachment (Auto-Saved to Vault)
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button
+                        onClick={() => setDeliveryMode('email')}
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          borderRadius: 12,
+                          border: `1px solid ${deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--border)'}`,
+                          background: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay-faint)' : 'white',
+                          color: deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4,
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
                           border: `1.5px solid ${deliveryMode === 'email' || deliveryMode === 'pdf' ? 'var(--dark)' : 'var(--border)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
-                       }}>
+                        }}>
                           {(deliveryMode === 'email' || deliveryMode === 'pdf') && <Check size={10} color="var(--dark)" strokeWidth={3} />}
-                       </div>
-                      <Mail size={18} /> <span style={{ whiteSpace: 'nowrap' }}>Email</span>
-                    </button>
+                        </div>
+                        <Mail size={18} /> <span style={{ whiteSpace: 'nowrap' }}>Email</span>
+                      </button>
 
-                    <button 
-                      onClick={() => setDeliveryMode('whatsapp')}
-                      style={{ 
-                        flex: 1, 
-                        padding: '12px', 
-                        borderRadius: 12, 
-                        border: `1px solid ${deliveryMode === 'whatsapp' ? '#25D366' : 'var(--border)'}`,
-                        background: deliveryMode === 'whatsapp' ? '#dcf8c6' : 'white',
-                        color: deliveryMode === 'whatsapp' ? '#075E54' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 4,
-                        position: 'relative'
-                      }}
-                    >
-                      <div style={{ 
-                          position: 'absolute', 
-                          top: 8, 
-                          left: 8, 
-                          width: 16, 
-                          height: 16, 
-                          borderRadius: '50%', 
+                      <button
+                        onClick={() => setDeliveryMode('whatsapp')}
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          borderRadius: 12,
+                          border: `1px solid ${deliveryMode === 'whatsapp' ? '#25D366' : 'var(--border)'}`,
+                          background: deliveryMode === 'whatsapp' ? '#dcf8c6' : 'white',
+                          color: deliveryMode === 'whatsapp' ? '#075E54' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4,
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
                           border: `1.5px solid ${deliveryMode === 'whatsapp' ? '#25D366' : 'var(--border)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
-                       }}>
+                        }}>
                           {deliveryMode === 'whatsapp' && <Check size={10} color="#25D366" strokeWidth={3} />}
-                       </div>
-                      <MessageCircle size={18} /> <span style={{ whiteSpace: 'nowrap' }}>WhatsApp</span>
-                    </button>
-                  </div>
-                )}
-                {(deliveryMode === 'email' || deliveryMode === 'pdf') && !isVaultMode && (
-                  <div style={{ marginTop: 12, display: 'flex', background: 'var(--bg)', borderRadius: 12, padding: 4 }}>
-                    <button
-                      onClick={() => { setEmailFormat('pdf'); setDeliveryMode('pdf'); }}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        border: 'none',
-                        background: deliveryMode === 'pdf' ? 'white' : 'transparent',
-                        color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
-                        boxShadow: deliveryMode === 'pdf' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6
-                      }}
-                    >
-                      <Download size={14} /> PDF Attachment
-                    </button>
-                    <button
-                      onClick={() => { setEmailFormat('text'); setDeliveryMode('email'); }}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        border: 'none',
-                        background: deliveryMode === 'email' ? 'white' : 'transparent',
-                        color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
-                        boxShadow: deliveryMode === 'email' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6
-                      }}
-                    >
-                      <Mail size={14} /> Email Text
-                    </button>
-                  </div>
-                )}
-                {deliveryMode === 'whatsapp' && (
-                  <div style={{
-                    marginTop: 12,
-                    padding: '12px 16px',
-                    background: '#f0fdf4',
-                    borderRadius: 12,
-                    border: '1px solid #bbf7d0',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10
-                  }}>
-                    <MessageCircle size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
-                    <p style={{ margin: 0, fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
-                      <strong>How it works:</strong> Clicking "{paymentContext ? 'Request Payment' : 'Send Document'}" will download the PDF locally and open a WhatsApp chat with the tenant's number. You can then attach the downloaded PDF to the chat.
-                    </p>
-                  </div>
-                )}
-             </div>
-
-             <div style={{ marginBottom: 24 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>From</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={isSystemTemplate ? fromEmail : 'noreply@goodtenants.io'} 
-                  onChange={(e) => setFromEmail(e.target.value)}
-                  disabled={!isSystemTemplate}
-                  style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
-                />
-             </div>
-
-             {(deliveryMode === 'email' || deliveryMode === 'pdf') && (
-               <>
-                 <div style={{ marginBottom: 16 }}>
-                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                     CC
-                     <span
-                       style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'default' }}
-                       title="Comma-separated email addresses who will receive a copy of this email."
-                     >
-                       <Info size={13} color="var(--text-muted)" />
-                     </span>
-                   </label>
-                   <input
-                     type="text"
-                     className="form-input"
-                     placeholder="cc@example.com, another@example.com"
-                     value={ccEmails}
-                     onChange={(e) => setCcEmails(e.target.value)}
-                     style={{ borderRadius: 12 }}
-                   />
-                 </div>
-
-                 <div style={{ marginBottom: 24 }}>
-                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                     BCC
-                     <span
-                       style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'default' }}
-                       title="Blind carbon copy — comma-separated addresses who receive the email invisibly."
-                     >
-                       <Info size={13} color="var(--text-muted)" />
-                     </span>
-                   </label>
-                   <input
-                     type="text"
-                     className="form-input"
-                     placeholder="bcc@example.com, hidden@example.com"
-                     value={bccEmails}
-                     onChange={(e) => setBccEmails(e.target.value)}
-                     style={{ borderRadius: 12 }}
-                   />
-                 </div>
-               </>
-             )}
-
-             <div style={{ marginBottom: 24 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>To Recipient</label>
-                {!disableRecipientEdit && (
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                    <button 
-                      onClick={() => setRecipientType('existing')}
-                      style={{ fontSize: 12, color: recipientType === 'existing' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-                    >
-                      Existing Recipient
-                    </button>
-                    <button 
-                      onClick={() => setRecipientType('new')}
-                      style={{ fontSize: 12, color: recipientType === 'new' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
-                    >
-                      New Recipient
-                    </button>
-                  </div>
-                )}
-
-                {recipientType === 'existing' ? (
-                  <div 
-                    onClick={() => !disableRecipientEdit && setIsRecipientModalOpen(true)}
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px 16px', 
-                      borderRadius: 14, 
-                      border: '1px solid var(--border)', 
-                      cursor: disableRecipientEdit ? 'not-allowed' : 'pointer',
+                        </div>
+                        <MessageCircle size={18} /> <span style={{ whiteSpace: 'nowrap' }}>WhatsApp</span>
+                      </button>
+                    </div>
+                  )}
+                  {(deliveryMode === 'email' || deliveryMode === 'pdf') && !isVaultMode && (
+                    <div style={{ marginTop: 12, display: 'flex', background: 'var(--bg)', borderRadius: 12, padding: 4 }}>
+                      <button
+                        onClick={() => { setEmailFormat('pdf'); setDeliveryMode('pdf'); }}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          border: 'none',
+                          background: deliveryMode === 'pdf' ? 'white' : 'transparent',
+                          color: deliveryMode === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
+                          boxShadow: deliveryMode === 'pdf' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <Download size={14} /> PDF Attachment
+                      </button>
+                      <button
+                        onClick={() => { setEmailFormat('text'); setDeliveryMode('email'); }}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          border: 'none',
+                          background: deliveryMode === 'email' ? 'white' : 'transparent',
+                          color: deliveryMode === 'email' ? 'var(--clay)' : 'var(--text-muted)',
+                          boxShadow: deliveryMode === 'email' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <Mail size={14} /> Email Text
+                      </button>
+                    </div>
+                  )}
+                  {deliveryMode === 'whatsapp' && (
+                    <div style={{
+                      marginTop: 12,
+                      padding: '12px 16px',
+                      background: '#f0fdf4',
+                      borderRadius: 12,
+                      border: '1px solid #bbf7d0',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: selectedTenant ? 'var(--bg)' : 'white'
-                    }}
+                      alignItems: 'flex-start',
+                      gap: 10
+                    }}>
+                      <MessageCircle size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <p style={{ margin: 0, fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
+                        <strong>How it works:</strong> Clicking "{paymentContext ? 'Request Payment' : 'Send Document'}" will download the PDF locally and open a WhatsApp chat with the tenant's number. You can then attach the downloaded PDF to the chat.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>From</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={isSystemTemplate ? fromEmail : 'noreply@goodtenants.io'}
+                    onChange={(e) => setFromEmail(e.target.value)}
+                    disabled={!isSystemTemplate}
+                    style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
+                  />
+                </div>
+
+                {(deliveryMode === 'email' || deliveryMode === 'pdf') && (
+                  <>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        CC
+                        <span
+                          style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'default' }}
+                          title="Comma-separated email addresses who will receive a copy of this email."
+                        >
+                          <Info size={13} color="var(--text-muted)" />
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="cc@example.com, another@example.com"
+                        value={ccEmails}
+                        onChange={(e) => setCcEmails(e.target.value)}
+                        style={{ borderRadius: 12 }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: 24 }}>
+                      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        BCC
+                        <span
+                          style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'default' }}
+                          title="Blind carbon copy — comma-separated addresses who receive the email invisibly."
+                        >
+                          <Info size={13} color="var(--text-muted)" />
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="bcc@example.com, hidden@example.com"
+                        value={bccEmails}
+                        onChange={(e) => setBccEmails(e.target.value)}
+                        style={{ borderRadius: 12 }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>To Recipient</label>
+                  {!disableRecipientEdit && (
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                      <button
+                        onClick={() => setRecipientType('existing')}
+                        style={{ fontSize: 12, color: recipientType === 'existing' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        Existing Recipient
+                      </button>
+                      <button
+                        onClick={() => setRecipientType('new')}
+                        style={{ fontSize: 12, color: recipientType === 'new' ? 'var(--clay)' : 'var(--text-muted)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        New Recipient
+                      </button>
+                    </div>
+                  )}
+
+                  {recipientType === 'existing' ? (
+                    <div
+                      onClick={() => !disableRecipientEdit && setIsRecipientModalOpen(true)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: 14,
+                        border: '1px solid var(--border)',
+                        cursor: disableRecipientEdit ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: selectedTenant ? 'var(--bg)' : 'white'
+                      }}
+                    >
+                      <span style={{ fontSize: 14, color: selectedTenant ? 'var(--dark)' : 'var(--text-muted)', fontWeight: selectedTenant ? 600 : 400 }}>
+                        {selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : 'Select a recipient...'}
+                      </span>
+                      {!disableRecipientEdit && <Users size={18} style={{ color: 'var(--text-muted)' }} />}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <input
+                        type="text"
+                        placeholder="Recipient Name"
+                        className="form-input"
+                        style={{ borderRadius: 12 }}
+                        value={newRecipient.name}
+                        onChange={(e) => setNewRecipient({ ...newRecipient, name: e.target.value })}
+                      />
+                      <input
+                        type="email"
+                        placeholder="Recipient Email"
+                        className="form-input"
+                        style={{ borderRadius: 12 }}
+                        value={newRecipient.email}
+                        onChange={(e) => setNewRecipient({ ...newRecipient, email: e.target.value })}
+                      />
+                    </div>
+                  )}
+
+                  {recipientType === 'existing' && selectedTenant && (!selectedTenant.email || selectedTenant.email.endsWith('@upward.com')) && (deliveryMode === 'email' || deliveryMode === 'pdf') && (
+                    <div style={{
+                      marginTop: 12,
+                      padding: 16,
+                      background: 'var(--error-faint, #fef2f2)',
+                      borderRadius: 12,
+                      border: '1.5px dashed var(--error, #ef4444)',
+                      fontSize: 13,
+                      color: 'var(--error, #ef4444)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
+                        <AlertCircle size={16} />
+                        <span>This tenant has no email</span>
+                      </div>
+                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+                        Please enter a valid email address to update their profile and deliver this document successfully.
+                      </p>
+                      <input
+                        type="email"
+                        placeholder="Real Email Address (e.g. name@example.com)"
+                        className="form-input"
+                        style={{
+                          borderRadius: 8,
+                          height: 38,
+                          fontSize: 12,
+                          borderColor: 'var(--error, #ef4444)',
+                          background: 'white',
+                          padding: '0 10px',
+                          outline: 'none'
+                        }}
+                        value={tempEmail}
+                        onChange={(e) => setTempEmail(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {recipientType === 'existing' && selectedTenant && !selectedTenant.phone && deliveryMode === 'whatsapp' && (
+                    <div style={{
+                      marginTop: 12,
+                      padding: 16,
+                      background: 'var(--error-faint, #fef2f2)',
+                      borderRadius: 12,
+                      border: '1.5px dashed var(--error, #ef4444)',
+                      fontSize: 13,
+                      color: 'var(--error, #ef4444)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
+                        <AlertCircle size={16} />
+                        <span>This tenant has no phone number</span>
+                      </div>
+                      <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+                        Please provide the tenant's phone number to update their profile and deliver this document successfully via WhatsApp.
+                      </p>
+                      <input
+                        type="tel"
+                        placeholder="Real Phone Number (e.g. +234...)"
+                        className="form-input"
+                        style={{
+                          borderRadius: 8,
+                          height: 38,
+                          fontSize: 12,
+                          borderColor: 'var(--error, #ef4444)',
+                          background: 'white',
+                          padding: '0 10px',
+                          outline: 'none'
+                        }}
+                        value={tempPhone}
+                        onChange={(e) => setTempPhone(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Subject</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rent Review Notice"
+                    className="form-input"
+                    style={{ borderRadius: 12 }}
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    disabled={isSystemTemplate}
+                  />
+                </div>
+
+                {hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') && (
+                  <div
+                    onClick={() => setIncludeLetterhead(!includeLetterhead)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
                   >
-                    <span style={{ fontSize: 14, color: selectedTenant ? 'var(--dark)' : 'var(--text-muted)', fontWeight: selectedTenant ? 600 : 400 }}>
-                      {selectedTenant ? (selectedTenant.commercialName || `${selectedTenant.firstName || ''} ${selectedTenant.lastName || ''}`.trim() || 'Tenant') : 'Select a recipient...'}
-                    </span>
-                    {!disableRecipientEdit && <Users size={18} style={{ color: 'var(--text-muted)' }} />}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <input 
-                      type="text" 
-                      placeholder="Recipient Name" 
-                      className="form-input" 
-                      style={{ borderRadius: 12 }}
-                      value={newRecipient.name}
-                      onChange={(e) => setNewRecipient({ ...newRecipient, name: e.target.value })}
-                    />
-                    <input 
-                      type="email" 
-                      placeholder="Recipient Email" 
-                      className="form-input" 
-                      style={{ borderRadius: 12 }}
-                      value={newRecipient.email}
-                      onChange={(e) => setNewRecipient({ ...newRecipient, email: e.target.value })}
-                    />
-                  </div>
-                )}
-
-                {recipientType === 'existing' && selectedTenant && (!selectedTenant.email || selectedTenant.email.endsWith('@upward.com')) && (deliveryMode === 'email' || deliveryMode === 'pdf') && (
-                  <div style={{
-                    marginTop: 12,
-                    padding: 16,
-                    background: 'var(--error-faint, #fef2f2)',
-                    borderRadius: 12,
-                    border: '1.5px dashed var(--error, #ef4444)',
-                    fontSize: 13,
-                    color: 'var(--error, #ef4444)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8
-                  }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
-                      <AlertCircle size={16} />
-                      <span>This tenant has no email</span>
-                    </div>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
-                      Please enter a valid email address to update their profile and deliver this document successfully.
-                    </p>
-                    <input 
-                      type="email"
-                      placeholder="Real Email Address (e.g. name@example.com)"
-                      className="form-input"
-                      style={{ 
-                        borderRadius: 8, 
-                        height: 38, 
-                        fontSize: 12, 
-                        borderColor: 'var(--error, #ef4444)',
+                    <div style={{
+                      width: 36,
+                      height: 20,
+                      borderRadius: 10,
+                      background: includeLetterhead ? 'var(--forest)' : 'var(--border)',
+                      position: 'relative',
+                      transition: 'background 0.2s',
+                      flexShrink: 0
+                    }}>
+                      <div style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
                         background: 'white',
-                        padding: '0 10px',
-                        outline: 'none'
-                      }}
-                      value={tempEmail}
-                      onChange={(e) => setTempEmail(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                {recipientType === 'existing' && selectedTenant && !selectedTenant.phone && deliveryMode === 'whatsapp' && (
-                  <div style={{
-                    marginTop: 12,
-                    padding: 16,
-                    background: 'var(--error-faint, #fef2f2)',
-                    borderRadius: 12,
-                    border: '1.5px dashed var(--error, #ef4444)',
-                    fontSize: 13,
-                    color: 'var(--error, #ef4444)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8
-                  }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 600 }}>
-                      <AlertCircle size={16} />
-                      <span>This tenant has no phone number</span>
+                        position: 'absolute',
+                        top: 2,
+                        left: includeLetterhead ? 18 : 2,
+                        transition: 'left 0.2s',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                      }} />
                     </div>
-                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
-                      Please provide the tenant's phone number to update their profile and deliver this document successfully via WhatsApp.
-                    </p>
-                    <input 
-                      type="tel"
-                      placeholder="Real Phone Number (e.g. +234...)"
-                      className="form-input"
-                      style={{ 
-                        borderRadius: 8, 
-                        height: 38, 
-                        fontSize: 12, 
-                        borderColor: 'var(--error, #ef4444)',
-                        background: 'white',
-                        padding: '0 10px',
-                        outline: 'none'
-                      }}
-                      value={tempPhone}
-                      onChange={(e) => setTempPhone(e.target.value)}
-                    />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
                   </div>
                 )}
-             </div>
+              </div>
 
-             <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Subject</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Rent Review Notice" 
-                  className="form-input" 
-                  style={{ borderRadius: 12 }}
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  disabled={isSystemTemplate}
-                />
-             </div>
+              <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
+                <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+                  {isSystemTemplate
+                    ? "This is a read-only system template provided by Upward. You can send it directly or include your custom letterhead."
+                    : "Double check your document content and recipient details before sending. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
+                  }
+                </p>
+              </div>
+            </div>
+          )}
 
-             {hasLetterhead && (deliveryMode === 'pdf' || deliveryMode === 'whatsapp') && (
-               <div 
-                 onClick={() => setIncludeLetterhead(!includeLetterhead)}
-                 style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
-               >
-                 <div style={{ 
-                   width: 36, 
-                   height: 20, 
-                   borderRadius: 10, 
-                   background: includeLetterhead ? 'var(--forest)' : 'var(--border)',
-                   position: 'relative',
-                   transition: 'background 0.2s',
-                   flexShrink: 0
-                 }}>
-                   <div style={{
-                     width: 16,
-                     height: 16,
-                     borderRadius: '50%',
-                     background: 'white',
-                     position: 'absolute',
-                     top: 2,
-                     left: includeLetterhead ? 18 : 2,
-                     transition: 'left 0.2s',
-                     boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                   }} />
-                 </div>
-                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
-               </div>
-             )}
-          </div>
-
-          <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
-            <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-              {isSystemTemplate 
-                ? "This is a read-only system template provided by Upward. You can send it directly or include your custom letterhead."
-                : "Double check your document content and recipient details before sending. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
-              }
-            </p>
-          </div>
-        </div>
-        )}
-
-        {/* Right Panel: Rich Text Editor or Live Preview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <button
+          {/* Right Panel: Rich Text Editor or Live Preview */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <button
                   onClick={() => setShowSettings(!showSettings)}
                   style={{
                     padding: '8px 16px',
@@ -1029,110 +1047,110 @@ export function DocumentEditorView({
                   <PanelLeft size={16} />
                   {showSettings ? 'Hide Settings' : 'Show Settings'}
                 </button>
-              <div style={{ 
-                display: 'inline-flex', 
-                background: 'var(--ivory-dim)', 
-                padding: 4, 
-                borderRadius: 12,
-                border: '1px solid var(--border)' 
-              }}>
-              <button
-                onClick={() => setPreviewMode(false)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  border: 'none',
-                  background: !previewMode ? 'white' : 'transparent',
-                  color: !previewMode ? 'var(--dark)' : 'var(--text-muted)',
-                  boxShadow: !previewMode ? 'var(--shadow-sm)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Edit Template
-              </button>
-              <button
-                onClick={() => setPreviewMode(true)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  border: 'none',
-                  background: previewMode ? 'white' : 'transparent',
-                  color: previewMode ? 'var(--dark)' : 'var(--text-muted)',
-                  boxShadow: previewMode ? 'var(--shadow-sm)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                Live Preview
-              </button>
+                <div style={{
+                  display: 'inline-flex',
+                  background: 'var(--ivory-dim)',
+                  padding: 4,
+                  borderRadius: 12,
+                  border: '1px solid var(--border)'
+                }}>
+                  <button
+                    onClick={() => setPreviewMode(false)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: 'none',
+                      background: !previewMode ? 'white' : 'transparent',
+                      color: !previewMode ? 'var(--dark)' : 'var(--text-muted)',
+                      boxShadow: !previewMode ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Edit Template
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode(true)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: 'none',
+                      background: previewMode ? 'white' : 'transparent',
+                      color: previewMode ? 'var(--dark)' : 'var(--text-muted)',
+                      boxShadow: previewMode ? 'var(--shadow-sm)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Live Preview
+                  </button>
+                </div>
+              </div>
+              {previewMode && (
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }}></span>
+                  Showing rendered placeholders
+                </span>
+              )}
             </div>
-          </div>
-          {previewMode && (
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }}></span>
-                Showing rendered placeholders
-              </span>
-            )}
-          </div>
 
-          {previewMode ? (
-            <div style={{ 
-              flex: 1, 
-              boxShadow: 'var(--shadow-lg)', 
-              borderRadius: 24, 
-              background: 'white',
-              overflowY: 'auto',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
+            {previewMode ? (
               <div style={{
                 flex: 1,
-                padding: '40px',
-                background: 'var(--ivory)',
-                minHeight: '100%',
+                boxShadow: 'var(--shadow-lg)',
+                borderRadius: 24,
+                background: 'white',
+                overflowY: 'auto',
+                border: '1px solid var(--border)',
                 display: 'flex',
-                justifyContent: 'center'
+                flexDirection: 'column'
               }}>
                 <div style={{
-                  width: '100%',
-                  maxWidth: '800px',
-                  minHeight: '297mm',
-                  background: 'white',
-                  boxShadow: 'var(--shadow-md)',
-                  borderRadius: 8,
-                  padding: '20mm',
-                  boxSizing: 'border-box',
+                  flex: 1,
+                  padding: '40px',
+                  background: 'var(--ivory)',
+                  minHeight: '100%',
                   display: 'flex',
-                  flexDirection: 'column',
-                  fontFamily: 'var(--font-main)',
-                  color: 'var(--text)',
-                  fontSize: '15px',
-                  lineHeight: 1.6
+                  justifyContent: 'center'
                 }}>
-                  {/* Header Letterhead */}
-                  {includeLetterhead && user?.letterheadHeaderUrl && (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-                      <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
-                    </div>
-                  )}
-                  
-                  {/* Document Body — rendered in an iframe matching editor styles for true WYSIWYG fidelity */}
-                  <iframe
-                    title="Document Live Preview"
-                    style={{
-                      flex: 1,
-                      width: '100%',
-                      border: 'none',
-                      minHeight: '400px',
-                      display: 'block',
-                    }}
-                    srcDoc={`<!DOCTYPE html>
+                  <div style={{
+                    width: '100%',
+                    maxWidth: '800px',
+                    minHeight: '297mm',
+                    background: 'white',
+                    boxShadow: 'var(--shadow-md)',
+                    borderRadius: 8,
+                    padding: '20mm',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    fontFamily: 'var(--font-main)',
+                    color: 'var(--text)',
+                    fontSize: '15px',
+                    lineHeight: 1.6
+                  }}>
+                    {/* Header Letterhead */}
+                    {includeLetterhead && user?.letterheadHeaderUrl && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                        <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
+                      </div>
+                    )}
+
+                    {/* Document Body — rendered in an iframe matching editor styles for true WYSIWYG fidelity */}
+                    <iframe
+                      title="Document Live Preview"
+                      style={{
+                        flex: 1,
+                        width: '100%',
+                        border: 'none',
+                        minHeight: '400px',
+                        display: 'block',
+                      }}
+                      srcDoc={`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8"/>
@@ -1157,32 +1175,32 @@ export function DocumentEditorView({
 </head>
 <body>${getRenderedContent()}</body>
 </html>`}
-                  />
-                  
-                  {/* Footer Letterhead */}
-                  {includeLetterhead && user?.letterheadFooterUrl && (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                      <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
-                    </div>
-                  )}
+                    />
+
+                    {/* Footer Letterhead */}
+                    {includeLetterhead && user?.letterheadFooterUrl && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                        <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
-              <RichTextEditor
-                disabled={isSystemTemplate}
-                value={content}
-                onChange={(newContent) => setContent(newContent)}
-                height="100%"
-              />
-            </div>
-          )}
+            ) : (
+              <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
+                <RichTextEditor
+                  disabled={isSystemTemplate}
+                  value={content}
+                  onChange={(newContent) => setContent(newContent)}
+                  height="100%"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
-    <RecipientSelectModal 
+      <RecipientSelectModal
         isOpen={isRecipientModalOpen}
         onClose={() => setIsRecipientModalOpen(false)}
         onSelect={(r) => {
@@ -1198,24 +1216,24 @@ export function DocumentEditorView({
         subtitle="Review formatting and custom letterhead overlay."
         maxWidth={1000}
         footer={
-            <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
-              <button 
-                onClick={() => setIsPreviewingPdf(false)}
-                className="btn btn--primary" 
-                style={{ borderRadius: 12, height: 44, padding: '0 24px' }}
-              >
-                Close Preview
-              </button>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <button
+              onClick={() => setIsPreviewingPdf(false)}
+              className="btn btn--primary"
+              style={{ borderRadius: 12, height: 44, padding: '0 24px' }}
+            >
+              Close Preview
+            </button>
+          </div>
         }
       >
-            <div style={{ height: '70vh', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginTop: 16 }}>
-              <iframe 
-                src={previewPdfUrl || undefined} 
-                title="PDF Document Preview" 
-                style={{ width: '100%', height: '100%', border: 'none' }}
-              />
-            </div>
+        <div style={{ height: '70vh', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginTop: 16 }}>
+          <iframe
+            src={previewPdfUrl || undefined}
+            title="PDF Document Preview"
+            style={{ width: '100%', height: '100%', border: 'none' }}
+          />
+        </div>
       </Modal>
 
       <style jsx>{`

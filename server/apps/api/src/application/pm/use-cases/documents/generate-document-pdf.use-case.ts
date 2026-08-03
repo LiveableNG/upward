@@ -1,12 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { 
-  PM_TENANT_REPOSITORY, ITenantRepository, 
-  PM_UNIT_REPOSITORY, IUnitRepository 
+import {
+  PM_TENANT_REPOSITORY, ITenantRepository,
+  PM_UNIT_REPOSITORY, IUnitRepository
 } from '../../../../domains/pm/IPropertyRepository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../../domains/pm/property-manager.repository';
 import { PM_LETTERHEAD_REPOSITORY, IPmLetterheadRepository } from '../../../../domains/pm/pm-letterhead.repository';
 import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import {
+  EMPTY_PLACEHOLDER,
+  formatDisplayDate,
+  getLeaseEndDate,
+  getNextRentStartDate,
+  getNextRentEndDate,
+  formatAmountInWords,
+  formatTimeframeUntilDate,
+  formatTimeframeUntilDateInWords,
+} from '../../utils/documentPlaceholders';
+
 
 @Injectable()
 export class GenerateDocumentPdfUseCase {
@@ -17,12 +28,12 @@ export class GenerateDocumentPdfUseCase {
     @Inject(PM_LETTERHEAD_REPOSITORY) private readonly letterheadRepo: IPmLetterheadRepository,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
-  ) {}
+  ) { }
 
-  async execute(params: { 
-    content: string; 
+  async execute(params: {
+    content: string;
     pmId: number;
-    tenantUuid?: string; 
+    tenantUuid?: string;
     unitUuid?: string;
     recipientName?: string;
     includeLetterhead?: boolean;
@@ -76,23 +87,25 @@ export class GenerateDocumentPdfUseCase {
       }
     }
 
-    const formatDate = (date: Date | null | undefined) => {
-      if (!date) return '__________';
-      return new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    };
+    const rentEndDate = (unit as any)?.rentEndDate ? new Date((unit as any).rentEndDate) : getLeaseEndDate(unit?.rentStartDate);
 
-    const calculateEndDate = (unit: any) => {
-      if (unit?.rentEndDate) return formatDate(unit.rentEndDate);
-      if (!unit?.rentStartDate) return '__________';
-      
-      const end = new Date(unit.rentStartDate);
-      end.setFullYear(end.getFullYear() + 1);
-      end.setDate(end.getDate() - 1);
-      return formatDate(end);
-    };
+    const nextRentStartDate = getNextRentStartDate(unit?.rentStartDate);
+    const nextRentEndDate = getNextRentEndDate(unit?.rentStartDate);
+    const amountInWords = formatAmountInWords(unit?.rentAmount, unit?.currency);
+    const timeFrame = formatTimeframeUntilDate(rentEndDate);
+    const timeFrameInWords = formatTimeframeUntilDateInWords(rentEndDate);
+
+    const lastPayment = unit ? await this.prisma.upward_pm_rent_payment.findFirst({
+      where: { unitId: unit.id, status: 'SUCCESS' },
+      orderBy: { paymentDate: 'desc' }
+    }) : null;
+
+    const lastPaymentDateStr = lastPayment ? formatDisplayDate(lastPayment.paymentDate) : 'N/A';
+    const lastPaymentAmountStr = lastPayment ? `${unit?.currency || '₦'}${lastPayment.amount.toLocaleString()}` : 'N/A';
 
     const getTenantName = (t: any) => {
       if (!t) return '';
+
       return t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Tenant';
     };
 
@@ -106,14 +119,16 @@ export class GenerateDocumentPdfUseCase {
     prevMonthDate.setMonth(now.getMonth() - 1);
     const previousMonth = prevMonthDate.toLocaleDateString('en-GB', { month: 'long' });
 
-    const tenantAddress = tenant?.formerAddress || '__________';
+    const fallbackAddr = (unit?.unitName && unit?.property?.address) ? `Unit ${unit.unitName}, ${unit.property.address}` : '';
+    const tenantAddress = tenant?.formerAddress || fallbackAddr || '__________';
     const unitNumber = unit?.unitName || '__________';
     const propertyType = unit?.property?.propertyType || unit?.unitType || 'Residential';
     const rentType = unit?.rentType || 'Monthly';
     const rentAmountStr = unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : '__________';
     const serviceChargeStr = '__________';
     const totalAmountStr = rentAmountStr;
-    const rentDuration = unit?.rentType === 'YEARLY' ? '12 Months' : unit?.rentType === 'MONTHLY' ? '1 Month' : '__________';
+    const normRentType = (unit?.rentType || '').trim().toUpperCase();
+    const rentDuration = (normRentType === 'YEARLY' || normRentType === 'ANNUALLY') ? '12 Months' : normRentType === 'MONTHLY' ? '1 Month' : '__________';
 
     const companyName = pm?.businessName || '__________';
     const companyAddress = pm?.country || '__________';
@@ -148,31 +163,45 @@ export class GenerateDocumentPdfUseCase {
       '[Property Address]': unit?.property?.address || '__________',
       '[PropertyType]': propertyType,
       '[Property Type]': propertyType,
-      '[Bedrooms]': 'N/A',
-      '[Bathrooms]': 'N/A',
 
-      '[LeaseStartDate]': formatDate(unit?.rentStartDate),
-      '[Lease Start Date]': formatDate(unit?.rentStartDate),
-      '[LeaseEndDate]': calculateEndDate(unit),
-      '[Lease End Date]': calculateEndDate(unit),
+      '[LeaseStartDate]': formatDisplayDate(unit?.rentStartDate),
+      '[Lease Start Date]': formatDisplayDate(unit?.rentStartDate),
+      '[LeaseEndDate]': formatDisplayDate(rentEndDate),
+      '[Lease End Date]': formatDisplayDate(rentEndDate),
       '[LeaseDuration]': rentDuration,
       '[Lease Duration]': rentDuration,
-      '[RentStartDate]': formatDate(unit?.rentStartDate),
-      '[Rent Start Date]': formatDate(unit?.rentStartDate),
-      '[RentEndDate]': calculateEndDate(unit),
-      '[Rent End Date]': calculateEndDate(unit),
+      '[RentStartDate]': formatDisplayDate(unit?.rentStartDate),
+      '[Rent Start Date]': formatDisplayDate(unit?.rentStartDate),
+      '[RentEndDate]': formatDisplayDate(rentEndDate),
+      '[Rent End Date]': formatDisplayDate(rentEndDate),
       '[RentDuration]': rentDuration,
       '[Rent Duration]': rentDuration,
       '[RentAmount]': rentAmountStr,
       '[Rent Amount]': rentAmountStr,
+      '[AmountInWords]': amountInWords,
+      '[Amount In Words]': amountInWords,
       '[RentType]': rentType,
       '[Rent Type]': rentType,
+      '[NextRentStartDate]': formatDisplayDate(nextRentStartDate),
+      '[Next Rent Start Date]': formatDisplayDate(nextRentStartDate),
+      '[Next rent start date]': formatDisplayDate(nextRentStartDate),
+      '[NextRentEndDate]': formatDisplayDate(nextRentEndDate),
+      '[Next Rent End Date]': formatDisplayDate(nextRentEndDate),
+      '[Next rent end date]': formatDisplayDate(nextRentEndDate),
+      '[TimeFrame]': timeFrame,
+      '[Time Frame]': timeFrame,
+      '[Timeframe]': timeFrame,
+      '[timeframe]': timeFrame,
+      '[Time frame (period between now/current_time and rent end date)]': timeFrame,
+      '[TimeframeinWords]': timeFrameInWords,
+      '[Timeframe in Words]': timeFrameInWords,
+      '[Timeframe in words]': timeFrameInWords,
       '[ServiceCharge]': serviceChargeStr,
       '[Service Charge]': serviceChargeStr,
       '[TotalAmount]': totalAmountStr,
       '[Total Amount]': totalAmountStr,
-      '[PaymentDueDate]': formatDate(unit?.rentDueDate),
-      '[Payment Due Date]': formatDate(unit?.rentDueDate),
+      '[PaymentDueDate]': formatDisplayDate(unit?.rentDueDate),
+      '[Payment Due Date]': formatDisplayDate(unit?.rentDueDate),
 
       '[CompanyName]': companyName,
       '[Company Name]': companyName,
@@ -189,9 +218,9 @@ export class GenerateDocumentPdfUseCase {
       '[ManagerEmail]': managerEmail,
       '[Manager Email]': managerEmail,
 
-      '[Date]': formatDate(new Date()),
-      '[CurrentDate]': formatDate(new Date()),
-      '[Current Date]': formatDate(new Date()),
+      '[Date]': formatDisplayDate(new Date()),
+      '[CurrentDate]': formatDisplayDate(new Date()),
+      '[Current Date]': formatDisplayDate(new Date()),
       '[CurrentMonth]': currentMonth,
       '[Current Month]': currentMonth,
       '[CurrentYear]': currentYear,
@@ -201,15 +230,13 @@ export class GenerateDocumentPdfUseCase {
       '[PreviousMonth]': previousMonth,
       '[Previous Month]': previousMonth,
 
-      '[OutstandingBalance]': 'N/A',
-      '[Outstanding Balance]': 'N/A',
-      '[LastPaymentDate]': 'N/A',
-      '[Last Payment Date]': 'N/A',
-      '[LastPaymentAmount]': 'N/A',
-      '[Last Payment Amount]': 'N/A',
+      '[LastPaymentDate]': lastPaymentDateStr,
+      '[Last Payment Date]': lastPaymentDateStr,
+      '[LastPaymentAmount]': lastPaymentAmountStr,
+      '[Last Payment Amount]': lastPaymentAmountStr,
 
-      '[DocumentDate]': formatDate(new Date()),
-      '[Document Date]': formatDate(new Date()),
+      '[DocumentDate]': formatDisplayDate(new Date()),
+      '[Document Date]': formatDisplayDate(new Date()),
       '[DocumentNumber]': '__________',
       '[Document Number]': '__________',
       '[DocumentType]': 'PDF',
@@ -218,19 +245,14 @@ export class GenerateDocumentPdfUseCase {
       '[LandlordName]': unit?.property?.landlordName || '__________',
       '[LandlordEmail]': unit?.property?.landlordEmail || '__________',
 
-      '[PaymentURL]': paymentURL,
-      '[Payment URL]': paymentURL,
-      '[BankDetails]': bankDetails,
-      '[Bank Details]': bankDetails,
       '[PaymentInfo]': paymentInfo,
       '[Payment Info]': paymentInfo,
-      '[PaymentLink]': paymentInfo, 
-      '[Payment Link]': paymentInfo,
     };
 
     Object.entries(placeholders).forEach(([tag, value]) => {
-      content = content.split(tag).join(value);
+      content = content.split(tag).join(value || EMPTY_PLACEHOLDER);
     });
+
 
     // 1.5 Fetch Letterhead configuration
     const activeLetterhead = includeLetterhead && pm ? await this.letterheadRepo.findDefaultByPmId(pmId) : null;
@@ -240,7 +262,7 @@ export class GenerateDocumentPdfUseCase {
       const config = activeLetterhead.templateConfig;
       const fp = config.first_page || { top: 170, bottom: 110, left: 50, right: 50 };
       const cp = config.continuation_page || { top: 100, bottom: 80, left: 50, right: 50 };
-      
+
       marginStyle = `
         <style>
           @page :first {
@@ -286,7 +308,7 @@ export class GenerateDocumentPdfUseCase {
       ${marginStyle}
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6;">${content}</div>
     `;
-    
+
     let browser;
     try {
       if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
@@ -301,17 +323,17 @@ export class GenerateDocumentPdfUseCase {
         });
       } else {
         const puppeteer = require('puppeteer');
-        browser = await puppeteer.launch({ 
+        browser = await puppeteer.launch({
           headless: 'new',
           args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
       }
 
       const page = await browser.newPage();
-      
+
       // Set the content and wait for it to be ready
       await page.setContent(content, { waitUntil: 'networkidle0' });
-      
+
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
@@ -327,7 +349,7 @@ export class GenerateDocumentPdfUseCase {
           const { PDFDocument: PDFLibDocument } = require('pdf-lib');
           const contentPdfDoc = await PDFLibDocument.load(pdfBuffer);
           const templatePdfDoc = await PDFLibDocument.load(templateBuffer);
-          
+
           const resultPdfDoc = await PDFLibDocument.create();
           const contentPages = contentPdfDoc.getPages();
           const templatePages = templatePdfDoc.getPages();

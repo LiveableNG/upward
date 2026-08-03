@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, FileText, Save, X, AlertTriangle, User, Mail, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, FileText, Save, X, AlertTriangle, User, Mail, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { Modal } from '@/components/ui/Modal/Modal'
@@ -147,8 +147,13 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
 
         <div className="import-overlay__actions">
           {phase === 'preview' && !reviewJob && (
-            <button className="btn btn--secondary" style={{ borderRadius: 10, height: 40 }} onClick={() => setPhase('mapping')}>
-              <ArrowLeft size={16} style={{ marginRight: 8 }}/> Return to Mapping
+            <button 
+              type="button" 
+              className="link-btn" 
+              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginRight: 16 }}
+              onClick={() => setPhase('mapping')}
+            >
+              <ArrowLeft size={16} /> Review Column Matches
             </button>
           )}
           {phase === 'mapping' && !reviewJob && (
@@ -158,7 +163,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               style={{ borderRadius: 10, height: 40, cursor: 'pointer' }}
               onClick={handlePreviewClick}
             >
-              <FileText size={16} style={{ marginRight: 8 }}/> Preview Data Grid
+              Continue <ArrowRight size={16} style={{ marginLeft: 8 }}/>
             </button>
           )}
           {phase === 'preview' && !reviewJob && (
@@ -169,8 +174,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               onClick={() => handleConfirmImport()}
               disabled={Object.keys(validationErrors).length > 0 || isPending}
             >
-              <Save size={16} style={{ marginRight: 8 }}/> 
-              {isPending ? 'Saving Leases...' : 'Confirm & Complete Import'}
+              {isPending ? 'Saving...' : 'Complete Import'}
             </button>
           )}
           {phase === 'preview' && reviewJob && (
@@ -198,7 +202,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 onClick={() => setShowApproveConfirm(true)}
                 disabled={isPending || isSavingDraft || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
               >
-                {isPending ? 'Confirming Import...' : 'Approve & Finalize Import'}
+                Complete Import
               </button>
             </>
           )}
@@ -218,18 +222,19 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
       {!reviewJob && (
         <div className="import-overlay__steps">
           <div className={cn('import-step', phase === 'mapping' && 'import-step--active')}>
-            <span className="import-step__number">1</span> Column & Name Mapping
+            <span className="import-step__number">1</span> Review Detected Columns
           </div>
           <div className="import-step__separator">—</div>
           <div className={cn('import-step', phase === 'preview' && 'import-step--active')}>
-            <span className="import-step__number">2</span> Validation & Data Grid
+            <span className="import-step__number">2</span> Review Before Import
           </div>
         </div>
       )}
 
       <main className="import-overlay__content">
         {phase === 'mapping' && !reviewJob ? (
-          <MappingPhase
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+            <MappingPhase
             columns={columns}
             userColumns={userColumns}
             mappings={mappings}
@@ -247,9 +252,10 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             removeSplitPart={removeSplitPart}
             duplicateMappings={duplicateMappings}
             missingRequired={missingRequired}
-          />
+            />
+          </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0 }}>
             {reviewJob && (
               <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: 16, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <div>
@@ -277,7 +283,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 </div>
               </div>
             )}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', borderRadius: reviewJob ? 12 : 0, border: reviewJob ? '1px solid var(--border)' : 'none', overflow: 'hidden' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
               <PreviewGridPhase 
                 columns={columns}
                 previewRows={previewRows}

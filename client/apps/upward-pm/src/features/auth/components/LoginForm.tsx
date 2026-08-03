@@ -150,7 +150,7 @@ export const LoginForm = () => {
         <p className="auth-card__subtitle" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
           {loginMethod === 'code' && otpStage === 'verify' ? (
             <>
-              Code sent to <strong>{email}</strong>. Check your inbox & spam.
+              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
             </>
           ) : (
             'Sign in to access your properties, tenants, and collections.'
@@ -273,7 +273,7 @@ export const LoginForm = () => {
             </div>
             {fieldErrors.email && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4, margin: '8px 0 0 0' }}>
-              We&apos;ll send a 6-digit verification code to your email address — no password needed.
+              We&apos;ll send a 6-digit verification code to your email address.
             </p>
           </div>
 

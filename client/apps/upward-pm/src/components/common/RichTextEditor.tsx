@@ -14,10 +14,10 @@ interface RichTextEditorProps {
   disabled?: boolean
 }
 
-export function RichTextEditor({ 
-  value, 
-  onChange, 
-  height = 500, 
+export function RichTextEditor({
+  value,
+  onChange,
+  height = 500,
   placeholder = 'Start typing...',
   menubar = true,
   toolbar,
@@ -67,13 +67,13 @@ export function RichTextEditor({
               icon: 'line-height',
               fetch: (callback: any) => {
                 const options = [
-                  { label: '1.0 — Tight',    value: '1.0' },
-                  { label: '1.2 — Compact',  value: '1.2' },
-                  { label: '1.4 — Snug',     value: '1.4' },
-                  { label: '1.6 — Normal',   value: '1.6' },
-                  { label: '1.8 — Relaxed',  value: '1.8' },
-                  { label: '2.0 — Double',   value: '2.0' },
-                  { label: '2.5 — Airy',     value: '2.5' },
+                  { label: '1.0 — Tight', value: '1.0' },
+                  { label: '1.2 — Compact', value: '1.2' },
+                  { label: '1.4 — Snug', value: '1.4' },
+                  { label: '1.6 — Normal', value: '1.6' },
+                  { label: '1.8 — Relaxed', value: '1.8' },
+                  { label: '2.0 — Double', value: '2.0' },
+                  { label: '2.5 — Airy', value: '2.5' },
                   { label: '3.0 — Spacious', value: '3.0' },
                 ]
                 callback(
@@ -89,7 +89,7 @@ export function RichTextEditor({
                       // Walk up to a block-level element
                       const getBlock = (node: any): HTMLElement | null => {
                         while (node && node !== editor.getBody()) {
-                          if (['P','DIV','H1','H2','H3','H4','H5','H6','LI'].includes(node.nodeName)) return node
+                          if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI'].includes(node.nodeName)) return node
                           node = node.parentNode
                         }
                         return null
@@ -200,8 +200,6 @@ export function RichTextEditor({
                     'PropertyName': 'Name of the property',
                     'PropertyAddress': 'Full address of the property',
                     'PropertyType': 'Type of property (e.g., Apartment, House)',
-                    'Bedrooms': 'Number of bedrooms',
-                    'Bathrooms': 'Number of bathrooms',
                   },
                   'Rent Information': {
                     'RentStartDate': 'Start date of the rent',
@@ -209,6 +207,11 @@ export function RichTextEditor({
                     'RentType': 'Type of rent (e.g., Monthly, Quarterly, Yearly)',
                     'RentDuration': 'Duration of the rent',
                     'RentAmount': 'Monthly rent amount',
+                    'AmountInWords': 'Rent amount written in words',
+                    'Next rent start date': 'Start date of the next rent cycle',
+                    'Next rent end date': 'End date of the next rent cycle',
+                    'Time frame (period between now/current_time and rent end date)': 'Time remaining until the rent end date',
+                    'TimeframeinWords': 'Time remaining written in words',
                     'ServiceCharge': 'Monthly service charge',
                   },
                   'Company Information': {
@@ -228,13 +231,10 @@ export function RichTextEditor({
                     'PreviousMonth': 'Previous month name',
                   },
                   'Financial Information': {
-                    'OutstandingBalance': 'Outstanding balance owed by tenant',
                     'LastPaymentDate': 'Date of last payment',
                     'LastPaymentAmount': 'Amount of last payment',
                   },
                   'Payment Info': {
-                    'PaymentURL': 'Payment link URL',
-                    'BankDetails': 'Virtual bank account details',
                     'PaymentInfo': 'All payment instructions',
                   }
                 };
