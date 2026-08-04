@@ -1,0 +1,127 @@
+enum UpwardSubscriptionTier {
+  FREE
+  TIER_2
+  TIER_3
+}
+
+enum UpwardUnitBillingMode {
+  ACTIVE
+  ALL
+}
+
+enum UpwardDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum UpwardPaymentStatus {
+  PAID
+  UNPAID
+  PENDING
+}
+
+model upward_subscription {
+  id                  Int                    @id @default(autoincrement())
+  uuid                String                 @unique @default(uuid())
+  pmId                Int                    @unique
+  tier                UpwardSubscriptionTier @default(FREE)
+  priceYearly         Float                  @default(0) // Rate per unit per year
+  priceMonthly        Float                  @default(0) // Rate per unit per month (calculated)
+  unitBillingMode     UpwardUnitBillingMode @default(ACTIVE)
+  
+  pendingTier         UpwardSubscriptionTier?
+  pendingUnitBillingMode UpwardUnitBillingMode?
+  
+  discountType        UpwardDiscountType?
+  discountValue       Float?
+  discountStart       DateTime?
+  discountEnd         DateTime?
+  discountReason      String?
+
+  anniversaryDate     Int?                  // Permanent day of month (capped at 28)
+  gracePeriodDays     Int                   @default(7)
+  status              String                @default("ACTIVE") // ACTIVE, GRACE, LOCKED
+  graceStartedAt      DateTime?
+  
+  isInitialDepositPaid Boolean               @default(false)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  pm                  upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+}
+
+model upward_pm_wallet {
+  id              Int                     @id @default(autoincrement())
+  uuid            String                  @unique @default(uuid())
+  pmId            Int                     @unique
+  balance         Float                   @default(0)
+  currency        String                  @default("NGN")
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  transactions    upward_pm_wallet_transaction[]
+}
+
+model upward_pm_wallet_transaction {
+  id          Int              @id @default(autoincrement())
+  uuid        String           @unique @default(uuid())
+  walletId    Int
+  pmId        Int
+  type        String           // "DEPOSIT", "DEDUCTION", "REFUND"
+  status      String           @default("SUCCESS") // "SUCCESS", "PENDING", "FAILED"
+  amount      Float
+  reference   String?          @unique
+  narration   String?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  wallet      upward_pm_wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  pm          upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+}
+
+model upward_subscription_invoice {
+  id              Int                 @id @default(autoincrement())
+  uuid            String              @unique @default(uuid())
+  pmId            Int
+  unitCount       Int                 // Snapshot of unit count at invoice generation
+  amount          Float               // Computed invoice amount
+  invoiceDate     DateTime            // 5 days before anniversary
+  deductionDate   DateTime            // Anniversary date
+  paymentStatus   UpwardPaymentStatus @default(PENDING)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+}
+
+model upward_subscription_log {
+  id              Int                    @id @default(autoincrement())
+  uuid            String                 @unique @default(uuid())
+  pmId            Int
+  adminId         String?
+  previousTier    UpwardSubscriptionTier
+  newTier         UpwardSubscriptionTier
+  previousStatus  String
+  newStatus       String
+  action          String                 // "UPGRADE", "DOWNGRADE", "REVOKE", "REACTIVATE"
+  reason          String?
+  createdAt       DateTime               @default(now())
+
+  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  admin           upward_admin?           @relation(fields: [adminId], references: [id], onDelete: SetNull)
+}
+
+model upward_pm_dedicated_virtual_account {
+  id                 Int            @id @default(autoincrement())
+  uuid               String         @unique @default(uuid())
+  pmId               Int            @unique
+  accountNumber      String         @unique
+  accountName        String
+  bankName           String
+  bankCode           String
+  paystackCustomerId String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+}

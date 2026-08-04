@@ -135,7 +135,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
              }
           }
  
-          if (data.platformId && data.paymentRequestId) {
+          if (data.platformId && data.externalUnitId) {
              await this.publishWebhookEvent(data)
           }
  
@@ -148,13 +148,16 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
 
   private async publishWebhookEvent(data: any) {
     try {
-      const currentItems = await this.prisma.upward_payment_line_item.findMany({ 
-        where: { paymentRequestId: data.paymentRequestId } 
-      })
-      const rentItems = currentItems.filter((i: any) => i.name.toLowerCase().includes('rent'))
-      const totalRentPaid = rentItems.reduce((sum: number, i: any) => sum + i.amountPaid, 0)
-      const totalRentAmount = rentItems.reduce((sum: number, i: any) => sum + i.totalAmount, 0)
-      const statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL'
+      let statusForWebhook: 'PAID' | 'PARTIAL' = 'PAID'
+      if (data.paymentRequestId) {
+        const currentItems = await this.prisma.upward_payment_line_item.findMany({
+          where: { paymentRequestId: data.paymentRequestId }
+        })
+        const rentItems = currentItems.filter((i: any) => i.name.toLowerCase().includes('rent'))
+        const totalRentPaid = rentItems.reduce((sum: number, i: any) => sum + i.amountPaid, 0)
+        const totalRentAmount = rentItems.reduce((sum: number, i: any) => sum + i.totalAmount, 0)
+        statusForWebhook = totalRentPaid >= totalRentAmount ? 'PAID' : 'PARTIAL'
+      }
 
       const tx = await this.prisma.upward_transaction.findUnique({
         where: { id: data.transactionId }
@@ -175,7 +178,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
         lineItemsPaid[fallbackName] = data.rentPortion
       }
 
-      this.eventBus.publish(new PaymentUpdatedEvent(data.platformId, 'payment.updated', {
+      this.eventBus.publish(new PaymentUpdatedEvent(data.platformId, data.externalUnitId, 'payment.updated', {
         paymentUuid: data.paymentRequestUuid,
         transactionUuid: tx?.uuid,
         reference: data.reference,

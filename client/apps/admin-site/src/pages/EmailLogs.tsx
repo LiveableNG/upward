@@ -166,6 +166,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     statusFilter,
     acquisitionFilter,
     channelFilter,
+    openFilter,
     dateFilter,
   ])
 

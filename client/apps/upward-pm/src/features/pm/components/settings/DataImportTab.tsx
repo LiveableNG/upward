@@ -1,60 +1,70 @@
 'use client'
 
 import React, { useEffect, useRef, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { FileSpreadsheet, Download, Upload } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, HelpCircle, FileText, AlertTriangle, ArrowRight, Eye, Building, Home, User, Lightbulb } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
-import { useProperties, useBulkCreateUnits, useBulkFullImport } from '@/features/pm/hooks/useProperties'
+import { useProperties, useBulkFullImport } from '@/features/pm/hooks/useProperties'
 import { downloadBlob } from '@/lib/download-helper'
-import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { api } from '@/lib/api'
 import { useSocket } from '@/hooks/useSocket'
 
-import { ImportMode, FULL_COLUMNS, UNIT_COLUMNS } from './data-import/types'
+import { FULL_COLUMNS } from './data-import/types'
 import { useDataImport } from './data-import/useDataImport'
 import { parseDateString } from './data-import/utils'
 import { ImportOverlay } from './data-import/ImportOverlay'
 import { RelayConfirmationModal } from './data-import/RelayConfirmationModal'
 import { ActiveImportJobsList } from './data-import/ActiveImportJobsList'
 import { Modal } from '@/components/ui/Modal/Modal'
-import { AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
-
 
 export const DataImportTab: React.FC = () => {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialMode = (searchParams.get('mode') as ImportMode) || 'full'
-  
-  const [mode, setMode] = useState<ImportMode>(initialMode)
-  
-  useEffect(() => {
-    const m = searchParams.get('mode')
-    if (m === 'full' || m === 'units') {
-      setMode(m as ImportMode)
-    }
-  }, [searchParams])
+  const mode = 'full' as const
   
   const { success, error } = useToast()
   const { data: properties = [] } = useProperties()
-  const bulkCreateUnitsMutation = useBulkCreateUnits()
   const bulkFullImportMutation = useBulkFullImport()
 
-  const [targetPropertyUuid, setTargetPropertyUuid] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
+  const columns = useMemo(() => FULL_COLUMNS, [])
+  const importState = useDataImport(columns, mode, properties, '')
 
-  const columns = useMemo(() => mode === 'full' ? FULL_COLUMNS : UNIT_COLUMNS, [mode])
+  // UX Redesign state
+  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false)
+  const [isExampleModalOpen, setIsExampleModalOpen] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    property: true,
+    unit: true,
+    tenant: false,
+    landlord: false
+  })
 
-  const importState = useDataImport(columns, mode, properties, targetPropertyUuid)
+  // Dynamic schema summary grouping for Help Drawer
+  const schemaSummary = useMemo(() => {
+    const categories: Record<string, { label: string; icon: React.ReactNode; required: typeof FULL_COLUMNS; optional: typeof FULL_COLUMNS }> = {
+      property: { label: 'Property Information', icon: <Building size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
+      unit: { label: 'Units Details', icon: <Home size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
+      tenant: { label: 'Tenant Information', icon: <User size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
+      landlord: { label: 'Landlord Details', icon: <User size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] }
+    }
 
-  const propertyOptions = useMemo(() => {
-    return properties.map((p: any) => ({
-      label: p.name,
-      value: p.uuid
-    }))
-  }, [properties])
+    FULL_COLUMNS.forEach(col => {
+      const cat = col.category
+      if (categories[cat]) {
+        if (col.required) {
+          categories[cat].required.push(col)
+        } else {
+          categories[cat].optional.push(col)
+        }
+      }
+    })
+
+    return categories
+  }, [])
 
   const handleDownloadTemplate = () => {
     const exportColumns = columns.filter(c => 
@@ -63,19 +73,15 @@ export const DataImportTab: React.FC = () => {
     );
     const headers = exportColumns.map(c => c.label)
     
-    const rows = mode === 'full' ?[
-        ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
-        ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
-        ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.ogunleye@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
-      ] : [
-      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2400000', '2400000', '2024-01-01', 'Annually', '', '240000', 'NGN', 'Annual tenant', 'Flat / Apartment'],
-      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348012345679', '200000', '200000', '2024-02-01', 'Monthly', '', '20000', 'NGN', 'Monthly tenant', 'Flat / Apartment'],
-      ['103', 'XYZ Biz', '', '', 'contact@xyz.com', '+2348012345680', '5000000', '5000000', '2024-03-01', 'Lease', '5', '500000', 'NGN', '5-year lease', 'Office Space']
+    const rows = [
+      ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
+      ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
+      ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.indigo@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
     ]
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    downloadBlob(blob, `upward_${mode}_import_template.csv`).then(() => {
+    downloadBlob(blob, `upward_full_import_template.csv`).then(() => {
       success('Template downloaded successfully!')
     }).catch((err: any) => console.error(err))
   }
@@ -83,7 +89,6 @@ export const DataImportTab: React.FC = () => {
   const parseBackendError = (message: string): string => {
     if (!message) return 'Failed to import data'
     
-    // Parse nested class-validator messages like "rows.0.unitRentAmountPaid must be a number"
     if (message.includes('rows.')) {
       const parts = message.split(',').map(p => p.trim())
       const formattedParts = parts.slice(0, 3).map(part => {
@@ -130,28 +135,17 @@ export const DataImportTab: React.FC = () => {
       return clean
     }
 
-    if (mode === 'full') {
-      const rowsToSend = importState.previewRows.map(sanitizeRow)
-      bulkFullImportMutation.mutate({ rows: rowsToSend }, {
-        onSuccess: (res) => {
-          success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
-          importState.setIsOverlayOpen(false)
-          router.push('/properties')
-        },
-        onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
-      })
-    } else {
-      const unitsToSend = importState.previewRows.map(sanitizeRow)
-      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: unitsToSend } as any, {
-        onSuccess: () => {
-          success('Units imported successfully!')
-          importState.setIsOverlayOpen(false)
-          router.push('/properties')
-        },
-        onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import units'))
-      })
-    }
+    const rowsToSend = importState.previewRows.map(sanitizeRow)
+    bulkFullImportMutation.mutate({ rows: rowsToSend }, {
+      onSuccess: (res) => {
+        success(`Imported ${res.unitsCreated} units across ${res.propertiesCreated} properties!`)
+        importState.setIsOverlayOpen(false)
+        router.push('/properties')
+      },
+      onError: (err: any) => error(parseBackendError(err?.message || 'Failed to import data'))
+    })
   }
+
   const [pendingRelayFile, setPendingRelayFile] = useState<File | null>(null)
   const [showRelayModal, setShowRelayModal] = useState(false)
   const [isRelaying, setIsRelaying] = useState(false)
@@ -194,12 +188,21 @@ export const DataImportTab: React.FC = () => {
     if (!file) return
 
     const ext = file.name.split('.').pop()?.toLowerCase()
-    if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
+    if (
+      ext === 'csv' ||
+      ext === 'xlsx' ||
+      ext === 'xls' ||
+      ext === 'xlsm' ||
+      ext === 'xlsb' ||
+      ext === 'xltx' ||
+      ext === 'xltm'
+    ) {
       importState.handleFileUpload(e, fileInputRef)
     } else {
       setPendingRelayFile(file)
       setShowRelayModal(true)
       if (fileInputRef.current) fileInputRef.current.value = ''
+      if (docInputRef.current) docInputRef.current.value = ''
     }
   }
 
@@ -220,17 +223,17 @@ export const DataImportTab: React.FC = () => {
         })
 
         const newJob = await api.post('/pm/bulk-imports/relay', {
-          targetPropertyUuid,
+          targetPropertyUuid: '',
           mode,
           originalFileName: pendingRelayFile.name,
           fileUrl: fileKey,
           fileType: ext,
         })
 
-      setActiveJobs(prev => [newJob, ...prev])
-      setShowRelayModal(false)
-      setPendingRelayFile(null)
-        success('Document sent to Customer Support team! We will notify you once processed (~48hrs).')
+        setActiveJobs(prev => [newJob, ...prev])
+        setShowRelayModal(false)
+        setPendingRelayFile(null)
+        success('Document sent to Customer Support team! We will notify you once processed manually (~48hrs).')
       } catch (err) {
         error('Failed to submit document relay request.')
       } finally {
@@ -304,10 +307,10 @@ export const DataImportTab: React.FC = () => {
     try {
       await api.delete(`/pm/bulk-imports/${jobToDelete}`)
       setActiveJobs(prev => prev.filter(j => j.uuid !== jobToDelete))
-      success('Job deleted successfully')
+      success('Upload request cancelled. Our support team has been notified.')
       setJobToDelete(null)
     } catch (err) {
-      error('Failed to delete job')
+      error('We could not cancel this request right now. Please try again in a moment, or contact support if the issue continues.')
     } finally {
       setIsDeleting(false)
     }
@@ -333,130 +336,343 @@ export const DataImportTab: React.FC = () => {
     }
     const sanitizedRows = stagedRows.map(sanitizeRow)
 
-    if (mode === 'full') {
-      bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
-        onSuccess: async (res) => {
-          if (reviewJob?.uuid) {
-            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
-            const jobUuid = reviewJob.uuid
-            setTimeout(() => {
-              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
-            }, 3000)
-          }
-          success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
-          importState.closeOverlay()
-          setReviewJob(null)
-          router.push('/properties')
-        },
-        onError: (err: any) => error(err?.message || 'Failed to complete import')
-      })
-    } else {
-      bulkCreateUnitsMutation.mutate({ propertyUuid: targetPropertyUuid, units: sanitizedRows } as any, {
-        onSuccess: async () => {
-          if (reviewJob?.uuid) {
-            await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: sanitizedRows.length }).catch(console.error)
-            const jobUuid = reviewJob.uuid
-            setTimeout(() => {
-              setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
-            }, 3000)
-          }
-          success('Successfully imported units!')
-          importState.closeOverlay()
-          setReviewJob(null)
-          queryClient.invalidateQueries({ queryKey: ['property', targetPropertyUuid] })
-          router.push('/properties')
-        },
-        onError: (err: any) => error(err?.message || 'Failed to complete import')
-      })
-    }
+    bulkFullImportMutation.mutate({ rows: sanitizedRows }, {
+      onSuccess: async (res) => {
+        if (reviewJob?.uuid) {
+          await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/complete`, { unitsCreated: res.unitsCreated || sanitizedRows.length }).catch(console.error)
+          const jobUuid = reviewJob.uuid
+          setTimeout(() => {
+            setActiveJobs(prev => prev.filter(j => j.uuid !== jobUuid))
+          }, 3000)
+        }
+        success(`Imported ${res.unitsCreated || stagedRows.length} units across properties!`)
+        importState.closeOverlay()
+        setReviewJob(null)
+        router.push('/properties')
+      },
+      onError: (err: any) => error(err?.message || 'Failed to complete import')
+    })
+  }
+
+  const toggleCategory = (key: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
   }
 
   return (
-    <div className="import-tab animate-fade-in" style={{ padding: '16px 0', maxWidth: 900, margin: '0 auto' }}>
+    <div className="import-page animate-fade-in" style={{ padding: '24px 0', maxWidth: 740, margin: '0 auto' }}>
       
-      <div className="import-tab__header">
-        <div className="import-tab__header-text">
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dark)', marginBottom: 4 }}>
-            Bulk Data Import
-          </h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Import your properties, landlords, or units via CSV, Excel, PDF, or image documents.
-          </p>
+      {/* Header Block */}
+      <div className="import-page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+        <div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 6 }}>Bulk Import</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>Import your existing spreadsheet in just a few minutes.</p>
         </div>
-
-        <div className="import-tab__mode-toggle">
-          <button
-            onClick={() => setMode('full')}
-            className={cn('import-tab__mode-btn', mode === 'full' && 'import-tab__mode-btn--active')}
-          >
-            Full Portfolio
-          </button>
-          <button
-            onClick={() => setMode('units')}
-            className={cn('import-tab__mode-btn', mode === 'units' && 'import-tab__mode-btn--active')}
-          >
-            Units & Leases
-          </button>
-        </div>
+        <button 
+          onClick={() => setIsHelpDrawerOpen(true)}
+          className="btn btn--secondary btn--sm"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, borderRadius: 10, fontSize: 13, fontWeight: 600 }}
+        >
+          <HelpCircle size={16} /> Need help importing?
+        </button>
       </div>
-
-      {mode === 'units' && (
-        <div style={{ marginBottom: 20, background: 'white', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
-          <label className="form-label" style={{ fontWeight: 600, fontSize: 13, color: 'var(--dark)', display: 'block', marginBottom: 8 }}>
-            Select Target Property <span style={{ color: 'var(--error)' }}>*</span>
-          </label>
-          <FormSelect
-            value={targetPropertyUuid}
-            onChange={val => setTargetPropertyUuid(val)}
-            options={propertyOptions}
-            placeholder="-- Choose property to add units into --"
-            triggerStyle={{ height: 44, borderRadius: 10 }}
-            searchable
-          />
-        </div>
-      )}
 
       <ActiveImportJobsList
         jobs={activeJobs}
         onOpenReviewModal={handleOpenReviewModal}
         onDeleteJob={handleDeleteJob}
       />
-      
-      <div style={{ marginBottom: 32 }} />
 
-      <div 
-        style={{ 
-          border: '2px dashed var(--border)', 
-          borderRadius: 20, 
-          padding: '60px 32px', 
-          textAlign: 'center', 
-          background: 'white',
-          transition: 'all 0.2s'
-        }}
-      >
-        <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid var(--border)' }}>
-          <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
+      {/* Visual Timeline Stepper */}
+      <div className="workflow-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 24px', marginBottom: 32 }}>
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>1</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Upload File</div>
         </div>
-        
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', marginBottom: 6 }}>
-          Upload your document or spreadsheet
-        </h3>
-        
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 460, margin: '0 auto 24px', lineHeight: 1.5 }}>
-          Drag and drop your file here or click to browse. Supports Excel (.xlsx, .csv) for direct import, or PDF/Images for assisted support onboarding.
-        </p>
-
-        <div className="import-tab__actions">
-          <label className={cn('btn btn--primary import-tab__action-btn', (mode === 'units' && !targetPropertyUuid) && 'btn--disabled')}>
-            <Upload size={18} style={{ marginRight: 8 }} /> Select File
-            <input type="file" accept=".csv,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} disabled={mode === 'units' && !targetPropertyUuid} ref={fileInputRef}/>
-          </label>
-          
-          <button className="btn btn--secondary import-tab__action-btn" onClick={handleDownloadTemplate}>
-            <Download size={18} style={{ marginRight: 8 }} /> Download Template
-          </button>
+        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>2</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Review Columns</div>
+        </div>
+        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>3</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Fix Issues</div>
+        </div>
+        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
+        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>4</div>
+          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Import</div>
         </div>
       </div>
+
+      {/* Two-panel import choice — both visible at a glance */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
+          gap: 0,
+          background: 'white',
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+          overflow: 'hidden',
+          marginBottom: 24,
+          minHeight: 280,
+        }}
+      >
+        {/* Left: Spreadsheet upload */}
+        <div
+          className="upload-hero-dropzone"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px 32px',
+            textAlign: 'center',
+            gap: 0,
+          }}
+        >
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
+            <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
+          </div>
+
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 6, marginTop: 0 }}>
+            Upload a Spreadsheet
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.5 }}>
+            Drag and drop your file, or click below.
+            Supports Excel (.xlsx, .xls) and CSV.
+          </p>
+
+          <label className="btn btn--primary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} /> Select Spreadsheet
+            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef}/>
+          </label>
+
+          <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-muted)', alignItems: 'center', marginTop: 14 }}>
+            <button
+              onClick={handleDownloadTemplate}
+              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+            >
+              Download Template
+            </button>
+            <span style={{ color: 'var(--border)' }}>|</span>
+            <button
+              onClick={() => setIsExampleModalOpen(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+            >
+              View Example
+            </button>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+          <div style={{ flex: 1, width: 1, background: 'var(--border)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', padding: '10px 0', letterSpacing: '0.05em' }}>or</span>
+          <div style={{ flex: 1, width: 1, background: 'var(--border)' }} />
+        </div>
+
+        {/* Right: PDF / photo assisted upload */}
+        <div
+          className="assisted-upload-card animate-fade-in"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px 32px',
+            textAlign: 'center',
+            background: 'var(--bg)',
+            gap: 0,
+          }}
+        >
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
+            <FileText size={28} style={{ color: 'var(--clay)' }} />
+          </div>
+
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 6, marginTop: 0 }}>
+            Send a PDF or Photo
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.5 }}>
+            Have physical records or scanned documents?
+            Our support team will transcribe them manually.
+          </p>
+
+          <label className="btn btn--secondary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} /> Send to Support
+            <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef}/>
+          </label>
+
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
+            Typical turnaround ~48 hours.
+          </p>
+        </div>
+      </div>
+
+      {/* Reassurance Card */}
+      <div 
+        className="reassurance-card" 
+        style={{ 
+          background: '#f0fdf4', 
+          border: '1px solid #bbf7d0', 
+          borderRadius: 16, 
+          padding: 18, 
+          display: 'flex', 
+          gap: 12, 
+          alignItems: 'flex-start' 
+        }}
+      >
+        <Lightbulb size={20} style={{ color: '#16a34a', flexShrink: 0, marginTop: 2 }} />
+        <div style={{ textAlign: 'left' }}>
+          <h4 style={{ fontSize: 13, fontWeight: 700, color: '#14532d', margin: '0 0 4px 0' }}>Only 4 Fields are Required to Get Started</h4>
+          <p style={{ fontSize: 12, color: '#15803d', margin: 0, lineHeight: 1.5 }}>
+            You only need columns for <strong>Property Name, Address, Unit Name,</strong> and <strong>Rent Amount</strong>. 
+            All other information—including tenant details, landlord contacts, lease dates, and notes—can be added or edited later.
+          </p>
+        </div>
+      </div>
+
+      {/* Floating / On-Demand Help Drawer */}
+      <Modal
+        isOpen={isHelpDrawerOpen}
+        onClose={() => setIsHelpDrawerOpen(false)}
+        title="Import Help Guide"
+        maxWidth={520}
+        footer={
+          <button className="btn btn--secondary" style={{ width: '100%', borderRadius: 10 }} onClick={() => setIsHelpDrawerOpen(false)}>
+            Close Guide
+          </button>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>What information should my spreadsheet contain?</h4>
+            <div className="schema-categories" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {Object.entries(schemaSummary).map(([key, cat]) => {
+                const isExpanded = expandedCategories[key]
+                const reqCount = cat.required.length
+                const optCount = cat.optional.length
+                return (
+                  <div key={key} style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                    <button 
+                      onClick={() => toggleCategory(key)}
+                      style={{ width: '100%', padding: '12px', background: 'var(--bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontSize: 13, color: 'var(--dark)' }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {cat.icon}
+                        <span style={{ fontWeight: 600 }}>{cat.label}</span>
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)' }}>
+                        <span>{reqCount} req, {optCount} opt</span>
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div style={{ padding: 12, background: 'white', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)' }}>
+                        {cat.required.map(col => (
+                          <div key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dark)' }}>
+                            <Check size={14} style={{ color: 'var(--forest)' }} />
+                            <span>{col.label} <span style={{ color: 'var(--error)' }}>*</span></span>
+                          </div>
+                        ))}
+                        {cat.optional.map(col => (
+                          <div key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                            <span style={{ display: 'inline-block', width: 14, textAlign: 'center' }}>•</span>
+                            <span>{col.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Import Guidelines</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Building size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Properties</strong>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Import names and locations. Multiple units can belong to the same property.</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Home size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Units</strong>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Import flats, commercial offices, or shops.</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <User size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                <div>
+                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Tenants & Landlords</strong>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Optional fields. They will receive automated setup emails only when you choose to activate them later.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Example Spreadsheet Modal */}
+      <Modal
+        isOpen={isExampleModalOpen}
+        onClose={() => setIsExampleModalOpen(false)}
+        title="Example Spreadsheet Structure"
+        maxWidth={700}
+        footer={
+          <button className="btn btn--secondary" style={{ width: '100%', borderRadius: 10 }} onClick={() => setIsExampleModalOpen(false)}>
+            Close Preview
+          </button>
+        }
+      >
+        <div style={{ padding: '8px 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+            Here is how a standard CSV/Excel spreadsheet should look. You only need the required columns (marked with *) to proceed.
+          </p>
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12 }}>
+            <table className="preview-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Property Address *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Unit Name </th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Rent Amount *</th>
+                  <th style={{ padding: 12, fontWeight: 600, color: 'var(--dark)' }}>Tenant Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>12 Lekki Road, Lagos</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>A101</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 600,000</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>john@example.com</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>12 Lekki Road, Lagos</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>A102</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 650,000</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>jane@example.com</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>8 Victoria Island, Lagos</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>Suite 5</td>
+                  <td style={{ padding: 12, color: 'var(--dark)' }}>₦ 1,200,000</td>
+                  <td style={{ padding: 12, color: 'var(--text-muted)' }}>commercial@email.com</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Modal>
 
       {/* Relay Prompt Modal */}
       <RelayConfirmationModal
@@ -475,7 +691,7 @@ export const DataImportTab: React.FC = () => {
           {...importState}
           mode={mode}
           columns={columns}
-          isPending={bulkFullImportMutation.isPending || bulkCreateUnitsMutation.isPending}
+          isPending={bulkFullImportMutation.isPending}
           handleConfirmImport={(rows) => handleApproveStagedImport(rows || importState.previewRows)}
           reviewJob={reviewJob}
           handleSaveDraft={handleSaveDraft}
@@ -515,96 +731,6 @@ export const DataImportTab: React.FC = () => {
           Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
         </p>
       </Modal>
-
-      <style jsx>{`
-        .import-tab__header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 28px;
-          gap: 16px;
-        }
-
-        .import-tab__mode-toggle {
-          display: flex;
-          background: var(--bg);
-          padding: 4px;
-          border-radius: 12px;
-          border: 1px solid var(--border);
-          flex-shrink: 0;
-        }
-
-        .import-tab__mode-btn {
-          padding: 8px 16px;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: var(--text-muted);
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .import-tab__mode-btn--active {
-          background: white;
-          color: var(--dark);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .import-tab__actions {
-          display: flex;
-          gap: 12px;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .import-tab__action-btn {
-          border-radius: 12px;
-          padding: 12px 24px;
-          height: 44px;
-          font-size: 14px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        @media (max-width: 768px) {
-          .import-tab__header {
-            flex-direction: column;
-            align-items: stretch;
-            text-align: left;
-          }
-
-          .import-tab__header-text h2 {
-            font-size: 18px !important;
-          }
-
-          .import-tab__header-text p {
-            margin-bottom: 16px;
-          }
-
-          .import-tab__mode-toggle {
-            width: 100%;
-          }
-
-          .import-tab__mode-btn {
-            flex: 1;
-            text-align: center;
-          }
-
-          .import-tab__actions {
-            flex-direction: column;
-            width: 100%;
-          }
-
-          .import-tab__action-btn {
-            width: 100%;
-          }
-        }
-      `}</style>
     </div>
   )
 }
-

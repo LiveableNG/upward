@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
 
 type HomeRequestLocation = {
@@ -144,12 +144,52 @@ export class RevealPmHomeRequestContactUseCase {
     private readonly getPmHomeRequestUseCase: GetPmHomeRequestUseCase,
   ) {}
 
-  async execute(pmId: number, requestUuid: string): Promise<PmHomeRequestDetail> {
+  async execute(pmId: number, requestUuid: string, limit?: number): Promise<PmHomeRequestDetail> {
     const row = await this.prisma.upward_home_request.findUnique({
       where: { uuid: requestUuid },
     })
 
     if (!row) throw new NotFoundException('Home request not found')
+
+    // Check if already revealed
+    const existing = await this.prisma.upward_home_request_contact_reveal.findUnique({
+      where: {
+        homeRequestId_pmId: {
+          homeRequestId: row.id,
+          pmId,
+        },
+      },
+    })
+
+    if (!existing && limit !== undefined && limit < 1.0) {
+      const startOfMonth = new Date()
+      startOfMonth.setDate(1)
+      startOfMonth.setHours(0, 0, 0, 0)
+
+      const [totalRequestsThisMonth, myRevealsThisMonth] = await Promise.all([
+        this.prisma.upward_home_request.count({
+          where: {
+            createdAt: { gte: startOfMonth },
+          },
+        }),
+        this.prisma.upward_home_request_contact_reveal.count({
+          where: {
+            pmId,
+            createdAt: { gte: startOfMonth },
+          },
+        }),
+      ])
+
+      const allowedReveals = Math.ceil(totalRequestsThisMonth * limit)
+      if (myRevealsThisMonth >= allowedReveals) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: `Plan Limit Reached: Your tier only permits revealing up to ${limit * 100}% of listings this month (${allowedReveals} reveals allowed based on ${totalRequestsThisMonth} total announcements).`,
+          code: 'LIMIT_EXCEEDED',
+        })
+      }
+    }
 
     await this.prisma.upward_home_request_contact_reveal.upsert({
       where: {

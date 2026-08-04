@@ -9,6 +9,9 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard'
+import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator'
+import { FeatureKey } from '../../../domains/subscription/subscription.service'
 import {
   PROPERTY_MANAGER_REPOSITORY,
   PropertyManagerRepository,
@@ -50,8 +53,11 @@ export class PmHomeRequestController {
   }
 
   @Post(':uuid/reveal-contact')
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.LISTING_BROKERAGE)
   async revealContact(@Req() req: any, @Param('uuid') uuid: string) {
     const pmId = await this.getPmId(req)
-    return this.revealPmHomeRequestContactUseCase.execute(pmId, uuid)
+    const limit = (req as any).featureLimit
+    return this.revealPmHomeRequestContactUseCase.execute(pmId, uuid, limit)
   }
 }

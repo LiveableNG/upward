@@ -16,6 +16,8 @@ export class UpdateAdminPmUseCase {
       firstName?: string
       lastName?: string
       phone?: string
+      personalEmail?: string
+      personalPhone?: string
       businessName?: string
       isVerified?: boolean
     },
@@ -44,6 +46,12 @@ export class UpdateAdminPmUseCase {
     if (data.phone !== undefined) {
       updateData.phone = data.phone ? this.encryption.encrypt(data.phone) : null
       updateData.phoneHash = data.phone ? this.encryption.hash(data.phone) : null
+    }
+    if (data.personalEmail !== undefined) {
+      updateData.personalEmail = data.personalEmail ? this.encryption.encrypt(data.personalEmail) : null
+    }
+    if (data.personalPhone !== undefined) {
+      updateData.personalPhone = data.personalPhone ? this.encryption.encrypt(data.personalPhone) : null
     }
     if (data.businessName !== undefined) {
       updateData.businessName = data.businessName ? this.encryption.encrypt(data.businessName) : null

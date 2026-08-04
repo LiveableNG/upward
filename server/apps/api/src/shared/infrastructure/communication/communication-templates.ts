@@ -275,6 +275,29 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       }),
   },
 
+  PM_WALLET_FUNDING_RECEIVED: {
+    recipientRole: 'PM',
+    subjectTemplate: 'Wallet Credited: NGN {{formattedAmount}}',
+    plainTextTemplate:
+      'Dear {{pmName}}, your wallet has been credited with NGN {{formattedAmount}} via your Dedicated Virtual Account. New wallet balance: NGN {{formattedWalletBalance}}. Account: {{accountNumber}}.',
+    buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
+      buildGlobalLayoutHtml({
+        role: 'PM',
+        title: 'Wallet credited',
+        contentHtml: `
+          <p>Dear ${ctx.pmName || 'Property Manager'},</p>
+          <p>Your wallet has been credited with <strong>NGN ${Number(ctx.amount || 0).toLocaleString()}</strong> via your Dedicated Virtual Account.</p>
+          <div style="margin: 24px 0; padding: 18px 20px; border: 1px solid rgba(22, 101, 52, 0.14); border-radius: 16px; background: ${theme === 'FOREST' ? 'rgba(22, 101, 52, 0.04)' : 'rgba(234, 88, 12, 0.04)'};">
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>New balance:</strong> NGN ${Number(ctx.walletBalance || 0).toLocaleString()}</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Account:</strong> ${ctx.accountNumber || 'N/A'}</p>
+          </div>
+          <p>You can view the updated wallet and transaction history in your dashboard.</p>
+        `,
+        buttonText: 'Open Wallet',
+        buttonUrl: `${ctx.baseUrl || 'https://upward.goodtenants.io'}/subscription/wallet`,
+      }),
+  },
+
   AUTH_OTP: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Your Upward Verification Code: {{otp}}',

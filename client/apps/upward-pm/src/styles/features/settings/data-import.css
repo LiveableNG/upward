@@ -169,7 +169,7 @@
 /* Main Content Area - Expands fully */
 .import-overlay__content {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 32px 48px;
   background-color: var(--bg, #f8fafc);
   display: flex;

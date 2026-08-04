@@ -12,6 +12,7 @@ import { EncryptionService } from '../../shared/infrastructure/common/encryption
 import * as crypto from 'crypto'
 
 import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 
 @Injectable()
 export class PmAuthService extends BaseAuthService {
@@ -23,6 +24,7 @@ export class PmAuthService extends BaseAuthService {
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly eventEmitter: EventEmitter2,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -93,6 +95,8 @@ export class PmAuthService extends BaseAuthService {
     phone?: string
     country?: string
     cacNumber?: string
+    personalEmail?: string
+    personalPhone?: string
   }): Promise<any> {
     const existing = await this.pmRepository.findByEmail(dto.email)
     if (existing) {
@@ -116,6 +120,8 @@ export class PmAuthService extends BaseAuthService {
       phoneHash: dto.phone ? this.encryption.hash(dto.phone) : null,
       country: dto.country || null,
       cacNumber: dto.cacNumber || null,
+      personalEmail: dto.personalEmail ? this.encryption.encrypt(dto.personalEmail) : null,
+      personalPhone: dto.personalPhone ? this.encryption.encrypt(dto.personalPhone) : null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -133,7 +139,9 @@ export class PmAuthService extends BaseAuthService {
       }
     })
 
-    this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
+    this.emailService.sendCustomerSupportNotification('PM', savedPm.uuid).catch(e => console.error('Failed to send CS notification', e));
+
+    this.eventEmitter.emit('pm.registered', { pmUuid: savedPm.uuid });
 
     return this.generateFullAuthResponse(savedPm)
   }
@@ -354,7 +362,7 @@ export class PmAuthService extends BaseAuthService {
         data: { status: 'ACCEPTED' }
     })
 
-    this.emailService.sendCustomerSupportNotification('PM').catch(e => console.error('Failed to send CS notification', e));
+    this.emailService.sendCustomerSupportNotification('PM', pm.uuid).catch(e => console.error('Failed to send CS notification', e));
 
     return { success: true }
   }

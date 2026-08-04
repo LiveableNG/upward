@@ -3,7 +3,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 
 @Injectable()
 export class GetPmMetricsUseCase {
-  constructor(private readonly encryption: EncryptionService) {}
+  constructor(private readonly encryption: EncryptionService) { }
 
   execute(allPms: any[], allCompanies: any[], successTransactions: any[], allUsers: any[]) {
     const pmCompanyUuids = new Set<string>()
@@ -87,7 +87,7 @@ export class GetPmMetricsUseCase {
         if (firstManager) {
           resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
           resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
-          
+
           if (!resolvedEmail) {
             resolvedEmail = firstManager.email ? this.encryption.decrypt(firstManager.email).trim() : ''
           }
@@ -95,6 +95,17 @@ export class GetPmMetricsUseCase {
             resolvedPhone = firstManager.phone ? this.encryption.decrypt(firstManager.phone).trim() : 'N/A'
           }
         }
+
+        const uniquePropertyIds = new Set(
+          c.properties
+            .map((p: any) => p.externalPropertyId || p.id.toString())
+            .filter(Boolean)
+        )
+        const uniqueUnitIds = new Set(
+          c.properties
+            .map((p: any) => p.externalUnitId || p.id.toString())
+            .filter(Boolean)
+        )
 
         return {
           id: `co_${c.id}`,
@@ -105,8 +116,8 @@ export class GetPmMetricsUseCase {
           businessName: decryptedName,
           phone: resolvedPhone,
           isVerified: true,
-          propertiesCount: c.properties.length,
-          unitsCount: c.properties.length,
+          propertiesCount: uniquePropertyIds.size,
+          unitsCount: uniqueUnitIds.size,
           totalGenerated,
           createdAt: c.createdAt,
           pmType: 'Platform',

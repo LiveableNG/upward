@@ -1,7 +1,6 @@
 import {
   IsString,
   IsNumber,
-  IsInt,
   IsOptional,
   IsArray,
   ValidateNested,
@@ -11,7 +10,7 @@ import {
   IsEmail,
   IsUUID
 } from 'class-validator'
-import { Type } from 'class-transformer'
+import { Type, Transform } from 'class-transformer'
 
 export class CompanyInfoDto {
   @IsOptional()
@@ -124,12 +123,14 @@ export class PaymentAccountDto {
 
 export class UserPropertyContextDto {
   @IsOptional()
-  @IsInt()
-  externalUnitId?: number
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @IsString()
+  externalUnitId?: string
 
   @IsOptional()
-  @IsInt()
-  externalPropertyId?: number
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @IsString()
+  externalPropertyId?: string
 
   @ValidateNested()
   @Type(() => LocationInfoDto)
@@ -370,12 +371,14 @@ export class AddPropertyPayloadDto {
 
 export class IdentifyPropertyPayloadDto {
   @IsOptional()
-  @IsInt()
-  externalUnitId?: number
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @IsString()
+  externalUnitId?: string
 
   @IsOptional()
-  @IsInt()
-  externalPropertyId?: number
+  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @IsString()
+  externalPropertyId?: string
 }
 
 export class CredibilityRecordDto {

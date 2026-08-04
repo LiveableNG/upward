@@ -41,6 +41,13 @@ export class BulkFullImportUseCase {
     const { rows, inviteAfterImport } = dto;
 
     for (const row of rows) {
+      // Merge tenantAdditionalPhone into tenantPhone as comma-separated (existing split logic handles this)
+      if ((row as any).tenantAdditionalPhone && !(row.tenantPhone || '').includes(',')) {
+        row.tenantPhone = row.tenantPhone
+          ? `${row.tenantPhone},${(row as any).tenantAdditionalPhone}`
+          : (row as any).tenantAdditionalPhone;
+      }
+
       if (row.tenantPhone) {
         const identifier = row.tenantEmail || row.tenantFirstName || row.tenantCommercialName || 'unknown';
         try {
@@ -62,14 +69,18 @@ export class BulkFullImportUseCase {
     const createdTenantUuids: string[] = [];
 
     for (const row of rows) {
-      const propertyKey = `${row.propertyName.trim().toLowerCase()}::${row.propertyAddress.trim().toLowerCase()}`;
+      // Property Name is optional — fall back to truncated address
+      const resolvedPropertyName = (row.propertyName?.trim()) ||
+        row.propertyAddress.trim().substring(0, 40);
+
+      const propertyKey = `${resolvedPropertyName.toLowerCase()}::${row.propertyAddress.trim().toLowerCase()}`;
 
       let property = propertyCache.get(propertyKey);
       if (!property) {
         const existing = await this.propertyRepository.findByPmId(pmId);
         const match = existing.find(
           (p) =>
-            p.name.trim().toLowerCase() === row.propertyName.trim().toLowerCase() &&
+            p.name.trim().toLowerCase() === resolvedPropertyName.toLowerCase() &&
             (p.address || '').trim().toLowerCase() === row.propertyAddress.trim().toLowerCase(),
         );
 
@@ -82,7 +93,7 @@ export class BulkFullImportUseCase {
 
           const created = await this.propertyRepository.create({
             pmId,
-            name: row.propertyName.trim(),
+            name: resolvedPropertyName,
             address: row.propertyAddress.trim(),
             propertyType: row.propertyType || 'Residential',
             totalUnits: 0,
@@ -167,9 +178,12 @@ export class BulkFullImportUseCase {
         }
       }
 
-      // 3. Create Unit
+      // Unit Name is optional — auto-generate from truncated address + row index if absent
+      const resolvedUnitName = (row.unitName?.trim()) ||
+        `Unit at ${row.propertyAddress.trim().substring(0, 25)}${rows.indexOf(row) > 0 ? ` (${rows.indexOf(row) + 1})` : ''}`;
+
       const existingUnits = await this.unitRepository.findByPropertyId(property.id);
-      const duplicateUnit = existingUnits.find(u => u.unitName.trim().toLowerCase() === row.unitName.trim().toLowerCase());
+      const duplicateUnit = existingUnits.find(u => u.unitName.trim().toLowerCase() === resolvedUnitName.trim().toLowerCase());
 
       if (duplicateUnit) {
         // Skip duplicate unit creation
@@ -188,7 +202,7 @@ export class BulkFullImportUseCase {
 
       const newUnit = await this.unitRepository.create({
         propertyId: property.id,
-        unitName: row.unitName.trim(),
+        unitName: resolvedUnitName,
         rentAmount: row.unitRentAmount || 0,
         managementFee: row.unitManagementFee ?? 0,
         rentStartDate: row.unitRentStartDate ? new Date(row.unitRentStartDate) : null,

@@ -265,6 +265,20 @@ export class SingleInviteUseCase {
           ? `${propData.manager.firstName} ${propData.manager.lastName || ''}`
           : (company.name || 'Property Owner'))
 
+      const targetPlatformId = platformId ?? property?.platformId
+      const targetExternalUnitId = propData.externalUnitId ?? property?.externalUnitId
+
+      if (targetPlatformId !== undefined && targetPlatformId !== null && targetExternalUnitId !== undefined && targetExternalUnitId !== null) {
+        const existingMapping = await this.propertyRepository.findByPlatformUnit(targetPlatformId, targetExternalUnitId)
+        if (existingMapping && (!property || existingMapping.id !== property.id)) {
+          await this.propertyRepository.update(existingMapping.id!, {
+            platformId: null as any,
+            externalUnitId: null as any,
+            externalPropertyId: null as any,
+          })
+        }
+      }
+
       if (property) {
         property = await this.propertyRepository.update(property.id!, {
           rentAmount: rentData.rentAmount,

@@ -1,0 +1,96 @@
+.subscription-gate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: var(--space-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  overflow: hidden;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.subscription-gate__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(22, 101, 52, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.subscription-gate__content {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.subscription-gate__icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--forest-faint);
+  color: var(--forest);
+  border: 1px solid var(--forest-glow);
+  box-shadow: var(--shadow-sm);
+  animation: float 3s ease-in-out infinite;
+}
+
+.subscription-gate__title {
+  font-family: var(--font-main);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: var(--space-2);
+}
+
+.subscription-gate__text {
+  font-family: var(--font-main);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: var(--space-6);
+}
+
+.subscription-gate__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--forest) 0%, var(--forest-hover) 100%);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-forest);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.subscription-gate__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(22, 101, 52, 0.35);
+}
+
+.subscription-gate__btn:active {
+  transform: translateY(0);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}

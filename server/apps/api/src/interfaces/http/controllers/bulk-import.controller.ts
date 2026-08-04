@@ -116,13 +116,16 @@ export class PmBulkImportController {
       data: { status: 'CANCELLED' }
     })
     
-    await (this.prisma as any).upward_pm_bulk_import_job_log.create({
-      data: {
-        jobId: job.id,
-        action: 'PM_CANCELLED',
-        details: 'Property Manager cancelled the request'
-      }
-    })
+    // Log the cancellation — non-critical, don't let a log failure block the response
+    try {
+      await (this.prisma as any).upward_pm_bulk_import_log.create({
+        data: {
+          jobId: job.id,
+          action: 'PM_CANCELLED',
+          details: 'Property Manager cancelled the request'
+        }
+      })
+    } catch (_) {}
     
     return { success: true }
   }

@@ -28,6 +28,8 @@ interface PmDetailData {
   id: string
   uuid: string
   email: string
+  personalEmail?: string | null
+  personalPhone?: string | null
   firstName: string
   lastName: string
   businessName: string
@@ -46,6 +48,11 @@ interface PmDetailData {
     status: string
     rejectionReason?: string
   }
+  subscription?: {
+    tier: 'FREE' | 'TIER_2' | 'TIER_3'
+    status: string
+  }
+  subscriptionLogs?: any[]
 }
 
 const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
@@ -68,8 +75,16 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const [editLastName, setEditLastName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editPhone, setEditPhone] = useState('')
+  const [editPersonalEmail, setEditPersonalEmail] = useState('')
+  const [editPersonalPhone, setEditPersonalPhone] = useState('')
   const [editBusinessName, setEditBusinessName] = useState('')
   const [updatingProfile, setUpdatingProfile] = useState(false)
+
+  // Subscription management state
+  const [subTier, setSubTier] = useState<'FREE' | 'TIER_2' | 'TIER_3'>('FREE')
+  const [subStatus, setSubStatus] = useState<string>('ACTIVE')
+  const [subReason, setSubReason] = useState<string>('')
+  const [updatingSubscription, setUpdatingSubscription] = useState(false)
 
   const fetchPmDetails = async () => {
     if (!uuid) return
@@ -82,7 +97,11 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       setEditLastName(res.data.lastName || '')
       setEditEmail(res.data.email || '')
       setEditPhone(res.data.phone || '')
+      setEditPersonalEmail(res.data.personalEmail || '')
+      setEditPersonalPhone(res.data.personalPhone || '')
       setEditBusinessName(res.data.businessName || '')
+      setSubTier(res.data.subscription?.tier || 'FREE')
+      setSubStatus(res.data.subscription?.status || 'ACTIVE')
     } catch (err) {
       console.error(err)
       showToast('Failed to load property manager details', true)
@@ -134,6 +153,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
           lastName: editLastName,
           email: editEmail,
           phone: editPhone,
+          personalEmail: editPersonalEmail,
+          personalPhone: editPersonalPhone,
           businessName: editBusinessName,
         },
         token,
@@ -173,6 +194,33 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       showToast(err.message || 'Failed to update verification status', true)
     } finally {
       setUpdatingVerification(false)
+    }
+  }
+
+  const handleUpdateSubscription = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!uuid) return
+
+    setUpdatingSubscription(true)
+    try {
+      await apiService.post(
+        `/admin/pms/${uuid}/subscription/manage`,
+        {
+          tier: subTier,
+          status: subStatus,
+          reason: subReason,
+        },
+        token,
+      )
+
+      showToast('Property manager subscription updated successfully!')
+      setSubReason('')
+      fetchPmDetails()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update subscription', true)
+    } finally {
+      setUpdatingSubscription(false)
     }
   }
 
@@ -377,6 +425,28 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   color: 'var(--text-secondary)',
                 }}
               >
+                <Mail size={14} style={{ color: 'var(--text-muted)' }} />
+                <span>{pm.personalEmail || 'No personal email set'}</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <Phone size={14} style={{ color: 'var(--text-muted)' }} />
+                <span>{pm.personalPhone || 'No personal phone set'}</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--text-secondary)',
+                }}
+              >
                 <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>Manager since {new Date(pm.createdAt).toLocaleDateString()}</span>
               </div>
@@ -472,6 +542,88 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     : 'Verify Manager'}
               </button>
             </div>
+          </div>
+
+          {/* Subscription Management Card */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={16} /> Subscription Status
+            </h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Plan Tier</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: pm.subscription?.tier === 'TIER_3' ? '#c084fc' : pm.subscription?.tier === 'TIER_2' ? '#38bdf8' : 'var(--text)' }}>
+                  {pm.subscription?.tier || 'FREE'}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Status</div>
+                <span className="badge" style={{
+                  backgroundColor: pm.subscription?.status === 'ACTIVE' ? 'var(--success-faint)' : 'var(--danger-faint)',
+                  color: pm.subscription?.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'
+                }}>
+                  {pm.subscription?.status || 'ACTIVE'}
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleUpdateSubscription} style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Change Plan Tier</label>
+                <select 
+                  value={subTier} 
+                  onChange={(e) => setSubTier(e.target.value as any)} 
+                  className="input"
+                  style={{ width: '100%', height: '38px', padding: '0 8px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--background)' }}
+                >
+                  <option value="FREE">FREE</option>
+                  <option value="TIER_2">TIER 2 (Service Charges & Docs)</option>
+                  <option value="TIER_3">TIER 3 (Full Access)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Subscription Status</label>
+                <select 
+                  value={subStatus} 
+                  onChange={(e) => setSubStatus(e.target.value)} 
+                  className="input"
+                  style={{ width: '100%', height: '38px', padding: '0 8px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--background)' }}
+                >
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="LOCKED">LOCKED (Suspended/Revoked)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Reason for Change</label>
+                <input
+                  type="text"
+                  value={subReason}
+                  onChange={(e) => setSubReason(e.target.value)}
+                  placeholder="e.g. Upgrade request, non-payment revoke"
+                  className="input"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={updatingSubscription}
+                className="btn btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  height: '38px',
+                  backgroundColor: '#6366f1',
+                  borderColor: '#6366f1',
+                }}
+              >
+                {updatingSubscription ? 'Updating subscription...' : 'Update Subscription'}
+              </button>
+            </form>
           </div>
 
           {/* Contact & In-App Notification Tool */}
@@ -620,6 +772,30 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                     className="input"
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Personal Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editPersonalEmail}
+                    onChange={(e) => setEditPersonalEmail(e.target.value)}
+                    className="input"
+                    placeholder="Optional"
+                  />
+                </div>
+                <div>
+                  <label className="section-label" style={{ marginBottom: '4px' }}>
+                    Personal Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={editPersonalPhone}
+                    onChange={(e) => setEditPersonalPhone(e.target.value)}
+                    className="input"
+                    placeholder="Optional"
                   />
                 </div>
                 <div
@@ -881,6 +1057,85 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             ) : (
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
                 No tenants have been invited or registered by this manager yet.
+              </p>
+            )}
+          </div>
+
+          {/* Subscription Modification Logs */}
+          <div className="card" style={{ padding: '24px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Calendar size={16} /> Subscription Audit Log
+            </h4>
+            {pm.subscriptionLogs && pm.subscriptionLogs.length > 0 ? (
+              <div
+                className="table-container"
+                style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}
+              >
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        borderBottom: '1px solid var(--border)',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <th style={{ padding: '8px 12px' }}>Action</th>
+                      <th style={{ padding: '8px 12px' }}>Tier Change</th>
+                      <th style={{ padding: '8px 12px' }}>Status Change</th>
+                      <th style={{ padding: '8px 12px' }}>Reason</th>
+                      <th style={{ padding: '8px 12px' }}>Admin</th>
+                      <th style={{ padding: '8px 12px' }}>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pm.subscriptionLogs.map((log: any) => (
+                      <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '12px', fontWeight: 600 }}>
+                          <span className="badge" style={{
+                            backgroundColor: log.action === 'REVOKE' ? 'var(--danger-faint)' : log.action === 'UPGRADE' ? 'var(--success-faint)' : 'var(--warning-faint)',
+                            color: log.action === 'REVOKE' ? 'var(--danger)' : log.action === 'UPGRADE' ? 'var(--success)' : 'var(--warning)',
+                          }}>
+                            {log.action}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {log.previousTier} &rarr; {log.newTier}
+                        </td>
+                        <td style={{ padding: '12px' }}>
+                          {log.previousStatus} &rarr; {log.newStatus}
+                        </td>
+                        <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
+                          {log.reason || '—'}
+                        </td>
+                        <td style={{ padding: '12px', fontStyle: 'italic' }}>
+                          {log.admin?.email || 'System'}
+                        </td>
+                        <td style={{ padding: '12px', color: 'var(--text-muted)' }}>
+                          {new Date(log.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+                No subscription plan modification records found.
               </p>
             )}
           </div>

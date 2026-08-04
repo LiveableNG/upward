@@ -18,6 +18,16 @@ import * as crypto from 'crypto';
 
 
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
+import {
+  EMPTY_PLACEHOLDER,
+  formatDisplayDate,
+  getLeaseEndDate,
+  getNextRentStartDate,
+  getNextRentEndDate,
+  formatAmountInWords,
+  formatTimeframeUntilDate,
+  formatTimeframeUntilDateInWords,
+} from '../../utils/documentPlaceholders';
 
 export interface SendDocumentDto {
   uuid?: string;
@@ -31,9 +41,10 @@ export interface SendDocumentDto {
   recipientEmail: string;
   paymentRequestUuid?: string;
   includeLetterhead?: boolean;
-  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP';
+  deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' | 'MANUAL';
   cc?: string;
   bcc?: string;
+  isWelcomeTemplate?: boolean;
 }
 
 @Injectable()
@@ -129,24 +140,6 @@ export class SendDocumentUseCase {
       }
     }
 
-    const formatDate = (date: Date | null | undefined) => {
-      if (!date) return '__________';
-      return new Date(date).toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      });
-    };
-
-    const calculateEndDate = (unit: any) => {
-      if (unit?.rentEndDate) return formatDate(unit.rentEndDate);
-      if (!unit?.rentStartDate) return '__________';
-      const end = new Date(unit.rentStartDate);
-      end.setFullYear(end.getFullYear() + 1);
-      end.setDate(end.getDate() - 1);
-      return formatDate(end);
-    };
-
     let paymentURL = '__________';
     let bankDetails = '__________';
     let paymentInfo = '__________';
@@ -195,8 +188,24 @@ export class SendDocumentUseCase {
       }
     }
 
+    const rentEndDate = (unit as any)?.rentEndDate ? new Date((unit as any).rentEndDate) : getLeaseEndDate(unit?.rentStartDate);
+    const nextRentStartDate = getNextRentStartDate(unit?.rentStartDate);
+    const nextRentEndDate = getNextRentEndDate(unit?.rentStartDate);
+    const amountInWords = formatAmountInWords(unit?.rentAmount, unit?.currency);
+    const timeFrame = formatTimeframeUntilDate(rentEndDate);
+    const timeFrameInWords = formatTimeframeUntilDateInWords(rentEndDate);
+
+    const lastPayment = unit ? await this.prisma.upward_pm_rent_payment.findFirst({
+      where: { unitId: unit.id, status: 'SUCCESS' },
+      orderBy: { paymentDate: 'desc' }
+    }) : null;
+
+    const lastPaymentDateStr = lastPayment ? formatDisplayDate(lastPayment.paymentDate) : 'N/A';
+    const lastPaymentAmountStr = lastPayment ? `${unit?.currency || '₦'}${lastPayment.amount.toLocaleString()}` : 'N/A';
+
     const getTenantName = (t: any) => {
       if (!t) return '';
+
       return t.commercialName || `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Tenant';
     };
 
@@ -210,17 +219,19 @@ export class SendDocumentUseCase {
     prevMonthDate.setMonth(now.getMonth() - 1);
     const previousMonth = prevMonthDate.toLocaleDateString('en-GB', { month: 'long' });
 
-    const tenantAddress = tenant?.formerAddress || '__________';
+    const fallbackAddr = (unit?.unitName && unit?.property?.address) ? `Unit ${unit.unitName}, ${unit.property.address}` : '';
+    const tenantAddress = tenant?.formerAddress || fallbackAddr || '__________';
     const unitNumber = unit?.unitName || '__________';
     const propertyType = unit?.property?.propertyType || unit?.unitType || 'Residential';
     const rentType = unit?.rentType || 'Monthly';
     const rentAmountStr = unit ? `${unit.currency || '₦'}${unit.rentAmount.toLocaleString()}` : '__________';
     const serviceChargeStr = '__________';
     const totalAmountStr = rentAmountStr;
-    const rentDuration = unit?.rentType === 'YEARLY' ? '12 Months' : unit?.rentType === 'MONTHLY' ? '1 Month' : '__________';
+    const normRentType = (unit?.rentType || '').trim().toUpperCase();
+    const rentDuration = (normRentType === 'YEARLY' || normRentType === 'ANNUALLY') ? '12 Months' : normRentType === 'MONTHLY' ? '1 Month' : '__________';
 
     const companyName = pm?.businessName || '__________';
-    const companyAddress = pm?.country || '__________';
+    const companyAddress = pm?.companyAddress || pm?.country || '__________';
     const companyPhone = pm?.phone || '__________';
     const companyEmail = pm?.email || '__________';
     const managerPhone = pm?.phone || '__________';
@@ -254,31 +265,45 @@ export class SendDocumentUseCase {
       '[Property Address]': unit?.property?.address || '__________',
       '[PropertyType]': propertyType,
       '[Property Type]': propertyType,
-      '[Bedrooms]': 'N/A',
-      '[Bathrooms]': 'N/A',
 
-      '[LeaseStartDate]': formatDate(unit?.rentStartDate),
-      '[Lease Start Date]': formatDate(unit?.rentStartDate),
-      '[LeaseEndDate]': calculateEndDate(unit),
-      '[Lease End Date]': calculateEndDate(unit),
+      '[LeaseStartDate]': formatDisplayDate(unit?.rentStartDate),
+      '[Lease Start Date]': formatDisplayDate(unit?.rentStartDate),
+      '[LeaseEndDate]': formatDisplayDate(rentEndDate),
+      '[Lease End Date]': formatDisplayDate(rentEndDate),
       '[LeaseDuration]': rentDuration,
       '[Lease Duration]': rentDuration,
-      '[RentStartDate]': formatDate(unit?.rentStartDate),
-      '[Rent Start Date]': formatDate(unit?.rentStartDate),
-      '[RentEndDate]': calculateEndDate(unit),
-      '[Rent End Date]': calculateEndDate(unit),
+      '[RentStartDate]': formatDisplayDate(unit?.rentStartDate),
+      '[Rent Start Date]': formatDisplayDate(unit?.rentStartDate),
+      '[RentEndDate]': formatDisplayDate(rentEndDate),
+      '[Rent End Date]': formatDisplayDate(rentEndDate),
       '[RentDuration]': rentDuration,
       '[Rent Duration]': rentDuration,
       '[RentAmount]': rentAmountStr,
       '[Rent Amount]': rentAmountStr,
+      '[AmountInWords]': amountInWords,
+      '[Amount In Words]': amountInWords,
       '[RentType]': rentType,
       '[Rent Type]': rentType,
+      '[NextRentStartDate]': formatDisplayDate(nextRentStartDate),
+      '[Next Rent Start Date]': formatDisplayDate(nextRentStartDate),
+      '[Next rent start date]': formatDisplayDate(nextRentStartDate),
+      '[NextRentEndDate]': formatDisplayDate(nextRentEndDate),
+      '[Next Rent End Date]': formatDisplayDate(nextRentEndDate),
+      '[Next rent end date]': formatDisplayDate(nextRentEndDate),
+      '[TimeFrame]': timeFrame,
+      '[Time Frame]': timeFrame,
+      '[Timeframe]': timeFrame,
+      '[timeframe]': timeFrame,
+      '[Time frame (period between now/current_time and rent end date)]': timeFrame,
+      '[TimeframeinWords]': timeFrameInWords,
+      '[Timeframe in Words]': timeFrameInWords,
+      '[Timeframe in words]': timeFrameInWords,
       '[ServiceCharge]': serviceChargeStr,
       '[Service Charge]': serviceChargeStr,
       '[TotalAmount]': totalAmountStr,
       '[Total Amount]': totalAmountStr,
-      '[PaymentDueDate]': formatDate(unit?.rentDueDate),
-      '[Payment Due Date]': formatDate(unit?.rentDueDate),
+      '[PaymentDueDate]': formatDisplayDate(unit?.rentDueDate),
+      '[Payment Due Date]': formatDisplayDate(unit?.rentDueDate),
 
       '[CompanyName]': companyName,
       '[Company Name]': companyName,
@@ -295,9 +320,9 @@ export class SendDocumentUseCase {
       '[ManagerEmail]': managerEmail,
       '[Manager Email]': managerEmail,
 
-      '[Date]': formatDate(new Date()),
-      '[CurrentDate]': formatDate(new Date()),
-      '[Current Date]': formatDate(new Date()),
+      '[Date]': formatDisplayDate(new Date()),
+      '[CurrentDate]': formatDisplayDate(new Date()),
+      '[Current Date]': formatDisplayDate(new Date()),
       '[CurrentMonth]': currentMonth,
       '[Current Month]': currentMonth,
       '[CurrentYear]': currentYear,
@@ -307,15 +332,13 @@ export class SendDocumentUseCase {
       '[PreviousMonth]': previousMonth,
       '[Previous Month]': previousMonth,
 
-      '[OutstandingBalance]': 'N/A',
-      '[Outstanding Balance]': 'N/A',
-      '[LastPaymentDate]': 'N/A',
-      '[Last Payment Date]': 'N/A',
-      '[LastPaymentAmount]': 'N/A',
-      '[Last Payment Amount]': 'N/A',
+      '[LastPaymentDate]': lastPaymentDateStr,
+      '[Last Payment Date]': lastPaymentDateStr,
+      '[LastPaymentAmount]': lastPaymentAmountStr,
+      '[Last Payment Amount]': lastPaymentAmountStr,
 
-      '[DocumentDate]': formatDate(new Date()),
-      '[Document Date]': formatDate(new Date()),
+      '[DocumentDate]': formatDisplayDate(new Date()),
+      '[Document Date]': formatDisplayDate(new Date()),
       '[DocumentNumber]': docHash,
       '[Document Number]': docHash,
       '[DocumentType]': data.documentType || 'PDF',
@@ -324,19 +347,14 @@ export class SendDocumentUseCase {
       '[LandlordName]': unit?.property?.landlordName || '__________',
       '[LandlordEmail]': unit?.property?.landlordEmail || '__________',
 
-      '[PaymentURL]': paymentURL,
-      '[Payment URL]': paymentURL,
-      '[BankDetails]': bankDetails,
-      '[Bank Details]': bankDetails,
       '[PaymentInfo]': paymentInfo,
       '[Payment Info]': paymentInfo,
-      '[PaymentLink]': paymentInfo, 
-      '[Payment Link]': paymentInfo,
     };
 
     Object.entries(placeholders).forEach(([tag, value]) => {
-      content = content.split(tag).join(value);
+      content = content.split(tag).join(value || EMPTY_PLACEHOLDER);
     });
+
 
     // 2.5 Apply Letterhead if requested
     if (data.includeLetterhead && pm) {
@@ -406,26 +424,28 @@ export class SendDocumentUseCase {
           }
         ] : undefined;
 
-        await this.unifiedCommService.processCommunication({
-          recipientEmail: data.recipientEmail,
-          recipientPhone: tenant?.phone || undefined,
-          recipientName: data.recipientName,
-          recipientRole: 'TENANT',
-          userId: tenant?.uuid || undefined,
-          pmUuid: pm?.uuid,
-          type: 'DOCUMENT',
-          title: data.subject,
-          forceChannel: data.deliveryChannel,
-          fromOverride: data.fromEmail,
-          attachments,
-          cc: data.cc,
-          bcc: data.bcc,
-          context: {
-            displayName: data.recipientName,
-            subject: data.subject,
-            htmlOverride: content,
-          },
-        });
+        if (data.deliveryChannel !== 'MANUAL') {
+          await this.unifiedCommService.processCommunication({
+            recipientEmail: data.recipientEmail,
+            recipientPhone: tenant?.phone || undefined,
+            recipientName: data.recipientName,
+            recipientRole: 'TENANT',
+            userId: tenant?.uuid || undefined,
+            pmUuid: pm?.uuid,
+            type: 'DOCUMENT',
+            title: data.subject,
+            forceChannel: data.deliveryChannel as any,
+            fromOverride: data.fromEmail,
+            attachments,
+            cc: data.cc,
+            bcc: data.bcc,
+            context: {
+              displayName: data.recipientName,
+              subject: data.subject,
+              htmlOverride: content,
+            },
+          });
+        }
     } catch (err) {
       console.error('Document dispatch failed:', err);
       finalStatus = 'FAILED';
@@ -451,7 +471,7 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
-      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+      if (finalStatus === 'SENT' && tenantId && (data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here')) {
         await this.prisma.upward_pm_tenant.update({
           where: { id: tenantId },
           data: { hasReceivedWelcomeTemplate: true }
@@ -477,7 +497,7 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
-      if (finalStatus === 'SENT' && tenantId && data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here') {
+      if (finalStatus === 'SENT' && tenantId && (data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here')) {
         await this.prisma.upward_pm_tenant.update({
           where: { id: tenantId },
           data: { hasReceivedWelcomeTemplate: true }

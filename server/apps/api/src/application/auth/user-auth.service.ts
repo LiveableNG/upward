@@ -101,6 +101,7 @@ export class UserAuthService extends BaseAuthService {
     if (userNoPass.profilePic) {
       userNoPass.profilePic = await this.s3Service.getDownloadUrl(userNoPass.profilePic)
     }
+    ;(userNoPass as any).verificationOn = process.env.VERIFICATION_ON !== 'false'
     return {
       accessToken,
       refreshToken,
@@ -269,9 +270,6 @@ export class UserAuthService extends BaseAuthService {
       }
     }
 
-    // Channel eligibility (mutually exclusive):
-    //   WhatsApp → user has a real phone number (regardless of email type)
-    //   Email    → user has a real (non-@upward.com) email AND no phone number
     const isPhoneOnlyEmail = dto.email.toLowerCase().endsWith('@upward.com');
     const hasPhone = !!user.phone;
     const sendWhatsapp = hasPhone;

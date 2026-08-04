@@ -1,5 +1,8 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException, Res, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException, Res, Param, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
+import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard';
+import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator';
+import { FeatureKey, SubscriptionService } from '../../../domains/subscription/subscription.service';
 import { GetPmDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-pm-documents.use-case';
 import { GetTenantUploadedDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-tenant-uploaded-documents.use-case';
 import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
@@ -20,6 +23,7 @@ export class PmDocumentController {
     private readonly sendBulkDocumentUseCase: SendBulkDocumentUseCase,
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
     private readonly sendToVaultUseCase: SendToTenantVaultUseCase,
+    private readonly subscriptionService: SubscriptionService,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -44,6 +48,8 @@ export class PmDocumentController {
   }
 
   @Post('templates')
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.DOCUMENT_MANAGEMENT)
   async saveTemplate(@Request() req: any, @Body() data: SaveDocumentTemplateDto) {
     const pmId = await this.getPmId(req);
     return this.saveTemplateUseCase.execute(pmId, data);
@@ -52,6 +58,26 @@ export class PmDocumentController {
   @Post('send')
   async sendDocument(@Request() req: any, @Body() data: SendDocumentDto) {
     const pmId = await this.getPmId(req);
+    const isFreeTemplate = 
+      data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' ||
+      data.subject === 'Your Good Rental History Should Work for You' ||
+      data.subject === 'Getting Started' ||
+      data.subject === 'Benefits' ||
+      data.isWelcomeTemplate;
+
+    if (!isFreeTemplate) {
+      const check = await this.subscriptionService.checkAccess(pmId, FeatureKey.DOCUMENT_MANAGEMENT);
+      if (!check.hasAccess) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'This feature is locked under your current plan.',
+          code: 'FEATURE_LOCKED',
+          requiredTier: check.requiredTier,
+          reason: check.reason,
+        });
+      }
+    }
     return this.sendDocumentUseCase.execute(pmId, data);
   }
 
@@ -59,6 +85,29 @@ export class PmDocumentController {
   async sendBulkDocument(@Request() req: any, @Body() data: BulkSendDocumentDto) {
     const pmId = await this.getPmId(req);
     const pmUuid = req.user?.sub;
+
+    const isFreeTemplate = 
+      data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' ||
+      data.subject === 'Your Good Rental History Should Work for You' ||
+      data.subject === 'Getting Started' ||
+      data.subject === 'Benefits' ||
+      data.templateName === 'Getting Started' ||
+      data.templateName === 'Benefits';
+
+    if (!isFreeTemplate) {
+      const check = await this.subscriptionService.checkAccess(pmId, FeatureKey.DOCUMENT_MANAGEMENT);
+      if (!check.hasAccess) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          error: 'Forbidden',
+          message: 'This feature is locked under your current plan.',
+          code: 'FEATURE_LOCKED',
+          requiredTier: check.requiredTier,
+          reason: check.reason,
+        });
+      }
+    }
+
     return this.sendBulkDocumentUseCase.execute(pmId, pmUuid, data);
   }
 
@@ -85,6 +134,8 @@ export class PmDocumentController {
   }
 
   @Post('template-to-vault')
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.DOCUMENT_MANAGEMENT)
   async sendTemplateToVault(
     @Request() req: any,
     @Body() body: { content: string; subject: string; includeLetterhead?: boolean; tenantUuid?: string; unitUuid?: string },

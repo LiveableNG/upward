@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
-  Building2, 
-  Users, 
-  CreditCard, 
-  TrendingUp, 
-  Clock, 
+import {
+  Building2,
+  Users,
+  CreditCard,
+  TrendingUp,
+  Clock,
   ArrowUpRight,
   PlusCircle,
   ShieldCheck,
@@ -22,7 +22,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useDashboardSummary, useResendPaymentRequest } from '@/features/pm/hooks/usePayments'
 import { ActivityCarousel } from './ActivityCarousel'
 import { cn } from '@/lib/utils'
@@ -37,16 +37,40 @@ import { ManagedAddPropertyModal } from '../properties/modals/ManagedAddProperty
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { formatTenantName } from '@/lib/utils'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { SuccessNotificationModal } from '../subscription/SuccessNotificationModal'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   
+  const [showSubSuccessModal, setShowSubSuccessModal] = useState(false)
+
   const resendMutation = useResendPaymentRequest()
   const { data: dashboardData, isLoading } = useDashboardSummary(initialData)
-  
+  const { subscription, wallet } = useSubscription()
+  const { openPricing } = usePricingModal()
+
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
   const [hasSetInitialTab, setHasSetInitialTab] = useState(false)
+
+  useEffect(() => {
+    // Automatically pop up the pricing plans selector for new signup/unsubscribed users
+    if (subscription && subscription.tier === 'FREE' && !subscription.isInitialDepositPaid) {
+      openPricing()
+    }
+  }, [subscription])
+
+  useEffect(() => {
+    const subStatus = searchParams?.get('subscription')
+    if (subStatus === 'activated') {
+      setShowSubSuccessModal(true)
+      const cleanUrl = window.location.pathname
+      window.history.replaceState({}, '', cleanUrl)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (dashboardData && !hasSetInitialTab) {
@@ -88,7 +112,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
 
   const pendingAmount = pendingBalance
   const totalRevenueVal = totalRevenue // Keep variable reference clear if totalRevenue is reused
-  
+
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'N/A'
     return new Intl.DateTimeFormat('en-US', {
@@ -160,7 +184,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
     if (type === 'arrears') message = 'No tenants are behind on rent. Excellent!'
     else if (type === 'upcoming') message = 'No upcoming rent payments scheduled.'
     else message = 'No completed payments recorded yet.'
-    
+
     return (
       <div className="payments-tracker__empty">
         <ShieldCheck size={36} className="text-muted" style={{ strokeWidth: 1.5 }} />
@@ -183,10 +207,10 @@ export function DashboardView({ initialData }: { initialData?: any }) {
     const propertyName = req.unit?.property?.name || 'N/A'
     const unitName = req.unit?.unitName || 'N/A'
     const isUnbilled = req.isUnbilled
-    
+
     return (
-      <div 
-        key={req.uuid} 
+      <div
+        key={req.uuid}
         className={cn(
           "payments-tracker__item",
           `payments-tracker__item--${type}`
@@ -260,7 +284,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
           <div className="payments-tracker__actions">
             {type !== 'completed' && !isUnbilled && (
               <>
-                <button 
+                <button
                   className="payments-tracker__action-btn"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -271,7 +295,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 >
                   <Bell size={14} />
                 </button>
-                <button 
+                <button
                   className="payments-tracker__action-btn"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -285,7 +309,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             )}
             {isUnbilled ? (
               <>
-                <button 
+                <button
                   className="btn btn--primary btn--sm"
                   style={{ padding: '4px 10px', fontSize: 11, borderRadius: 8, height: 28, whiteSpace: 'nowrap' }}
                   onClick={(e) => {
@@ -296,7 +320,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 >
                   Request Payment
                 </button>
-                <button 
+                <button
                   className="payments-tracker__action-btn"
                   onClick={() => {
                     router.push(`/properties/units/${req.uuid}`)
@@ -307,7 +331,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 </button>
               </>
             ) : (
-              <button 
+              <button
                 className="payments-tracker__action-btn"
                 onClick={() => {
                   const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
@@ -328,7 +352,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
     const tenant = selectedUnitForPayment?.tenant;
     return (
       <div className="container" style={{ padding: '40px' }}>
-        <DocumentEditorView 
+        <DocumentEditorView
           initialTemplate={editingTemplate}
           initialRecipient={tenant ? {
             type: 'existing',
@@ -346,90 +370,74 @@ export function DashboardView({ initialData }: { initialData?: any }) {
 
   return (
     <div className="dashboard animate-fade-in">
-      <div className="dashboard-header-desktop-only">
-        <PageHeader 
-          title={`Welcome back!`}
-          subtitle="Here is what is happening with your properties today."
-        />
-      </div>
+      <div className="dashboard-header-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <PageHeader
+            title={!hasProperties ? "Welcome to Upward" : "Welcome back!"}
+            subtitle={!hasProperties ? "Let's help you get started" : "Here is what is happening with your property portfolio today."}
+          />
+        </div>
 
-      <ActivityCarousel />
-
-      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
-        <button 
-          className="btn btn--outline btn--sm" 
-          onClick={() => setShowMetrics(!showMetrics)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        <div
+          onClick={() => router.push('/subscription/wallet')}
+          className="checkout-card"
+          style={{
+            padding: '24px 32px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            border: '1px solid #E7E3DB',
+            borderRadius: '24px',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 4px 12px rgba(26, 26, 23, 0.02)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--forest, #166534)';
+            e.currentTarget.style.boxShadow = '0 6px 18px rgba(22, 101, 52, 0.05)';
+            const arrow = e.currentTarget.querySelector('.wallet-arrow') as HTMLSpanElement;
+            if (arrow) arrow.style.transform = 'translateX(4px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#E7E3DB';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 26, 23, 0.02)';
+            const arrow = e.currentTarget.querySelector('.wallet-arrow') as HTMLSpanElement;
+            if (arrow) arrow.style.transform = 'translateX(0)';
+          }}
         >
-          {showMetrics ? 'Hide Overview Metrics' : 'Show Overview Metrics'}
-          {showMetrics ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-      </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#8A857F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Company Wallet
+              </span>
+            </div>
 
-      {showMetrics && (
-        <div className="animate-fade-in">
-          <div style={{ marginBottom: 'var(--space-6)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Property & Tenant Overview</h3>
-            <StatGrid>
-              <StatCard 
-                label="Total Units" 
-                value={totalUnits} 
-                icon={Building2} 
-                variant="accent"
-                tooltip="Total number of units across all your properties."
-                onClick={() => router.push('/properties?tab=units')}
-              />
-              <StatCard 
-                label="Occupied Units" 
-                value={occupiedUnits} 
-                icon={DoorClosed} 
-                tooltip="Units currently occupied by active tenants."
-                onClick={() => router.push('/properties?tab=units&statusFilter=occupied')}
-              />
-              <StatCard 
-                label="Vacant Units" 
-                value={vacantUnits} 
-                icon={DoorOpen}
-                tooltip="Units without an assigned tenant."
-                onClick={() => router.push('/properties?tab=units&statusFilter=vacant')}
-              />
-            </StatGrid>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#1A1A17' }}>
+              ₦{(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+
+            <div style={{ fontSize: 11, color: '#5D5954', marginTop: 4, fontWeight: 500 }}>
+              Available Balance
+            </div>
           </div>
 
-          <div style={{ marginBottom: 'var(--space-6)' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 'var(--space-4)' }}>Tenant & Financial Overview</h3>
-            <StatGrid>
-              <StatCard 
-                label="Active Tenants" 
-                value={activeTenants} 
-                icon={Users} 
-                tooltip="Tenants who have successfully onboarded."
-                onClick={() => router.push('/tenants?statusFilter=on_upward')}
-              />
-              <StatCard 
-                label="Pending Invites" 
-                value={pendingInvites} 
-                icon={UserX}
-                variant="warning"
-                tooltip="Tenants invited who haven't accepted yet. Remind them!"
-                onClick={() => router.push('/tenants?statusFilter=pending')}
-              />
-              <StatCard 
-                label="Pending Balance" 
-                value={`₦${pendingAmount.toLocaleString()}`} 
-                icon={CreditCard} 
-                tooltip="Total outstanding rent balance from all unpaid and partially paid requests."
-              />
-              <StatCard 
-                label="Total Revenue" 
-                value={`₦${totalRevenue.toLocaleString()}`} 
-                icon={TrendingUp} 
-                tooltip="Total rent collected across all properties."
-              />
-            </StatGrid>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, borderTop: '1px solid #F2F1EB', paddingTop: 12 }}>
+            <span style={{ fontSize: 11, color: '#8A857F', fontWeight: 600 }}>
+              Available for subscriptions
+            </span>
+            <span className="wallet-arrow" style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest, #166534)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
+              View Wallet <span style={{ transition: 'transform 0.2s ease', display: 'inline-block' }}>→</span>
+            </span>
           </div>
         </div>
-      )}
+      </div>
+
+      <ActivityCarousel onAddProperty={() => setShowAddPropertyModal(true)} />
+
+
 
       <div className="dashboard__content">
         {/* Left Column: Rent Payments Tracker (2fr) */}
@@ -439,9 +447,9 @@ export function DashboardView({ initialData }: { initialData?: any }) {
               <h2 className="payments-tracker__title">Rent Payments Overview</h2>
               <p className="payments-tracker__subtitle">Monitor collections, outstanding balances, and arrears.</p>
             </div>
-            
+
             <div className="payments-tracker__filter">
-              <FormSelect 
+              <FormSelect
                 triggerClassName="payments-tracker__select"
                 inline={true}
                 value={activeTab}
@@ -461,7 +469,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 {overduePayments.slice(0, 5).map((req: any) => renderPaymentItem(req, 'arrears'))}
                 {overduePayments.length === 0 && renderEmptyState('arrears')}
                 {overduePayments.length > 5 && (
-                  <button 
+                  <button
                     className="btn btn--secondary btn--sm payments-tracker__view-all"
                     onClick={() => router.push('/properties?tab=units&dueFilter=passed')}
                   >
@@ -476,7 +484,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 {upcomingPayments.slice(0, 5).map((req: any) => renderPaymentItem(req, 'upcoming'))}
                 {upcomingPayments.length === 0 && renderEmptyState('upcoming')}
                 {upcomingPayments.length > 5 && (
-                  <button 
+                  <button
                     className="btn btn--secondary btn--sm payments-tracker__view-all"
                     onClick={() => router.push('/properties?tab=units&dueFilter=30days')}
                   >
@@ -491,7 +499,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 {completedPayments.slice(0, 5).map((req: any) => renderPaymentItem(req, 'completed'))}
                 {completedPayments.length === 0 && renderEmptyState('completed')}
                 {completedPayments.length > 5 && (
-                  <button 
+                  <button
                     className="btn btn--secondary btn--sm payments-tracker__view-all"
                     onClick={() => router.push('/properties?tab=units&paymentFilter=paid')}
                   >
@@ -504,15 +512,26 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         </section>
       </div>
 
-      <CreatePaymentRequestModal 
+      <CreatePaymentRequestModal
         isOpen={showPaymentRequestModal}
         onClose={() => setShowPaymentRequestModal(false)}
         unit={selectedUnitForPayment}
         onProceedToEditor={handleProceedToEditor}
       />
-      <ManagedAddPropertyModal 
-        isOpen={showAddPropertyModal} 
-        onClose={() => setShowAddPropertyModal(false)} 
+      <ManagedAddPropertyModal
+        isOpen={showAddPropertyModal}
+        onClose={() => setShowAddPropertyModal(false)}
+      />
+      <SuccessNotificationModal
+        isOpen={showSubSuccessModal}
+        onClose={() => setShowSubSuccessModal(false)}
+        title="Subscription Activated! 🎉"
+        message={
+          <>
+            Your professional plan subscription has been activated successfully.<br />
+            Welcome to Upward!
+          </>
+        }
       />
     </div>
   )

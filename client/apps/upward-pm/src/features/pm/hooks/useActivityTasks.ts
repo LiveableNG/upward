@@ -27,6 +27,19 @@ export interface CarouselItem {
 
 const defaultItems: CarouselItem[] = [
   {
+    id: 'add-property',
+    title: 'Onboard Your Unit',
+    description: 'List your first property',
+    descriptionExtended: ' and start managing your tenants.',
+    icon: Building2,
+    link: '/properties?action=add-property',
+    color: 'warning',
+    actionLabel: 'Add Property',
+    priority: 'HIGH PRIORITY',
+    secondaryActionLabel: 'Bulk Import',
+    secondaryActionLink: '/settings?tab=import'
+  },
+  {
     id: 'payment-info',
     title: 'Add Payment Info',
     description: 'Connect your bank account',
@@ -41,25 +54,12 @@ const defaultItems: CarouselItem[] = [
     id: 'complete-profile',
     title: 'Complete Profile',
     description: 'Add your business details',
-    descriptionExtended: ' to build trust and professionalize your dashboard.',
+    descriptionExtended: ' including company address to build trust and professionalize your dashboard.',
     icon: UserCircle,
     link: '/settings?tab=profile',
     color: 'clay',
     actionLabel: 'Update Profile',
     priority: 'MEDIUM PRIORITY'
-  },
-  {
-    id: 'add-property',
-    title: 'Add First Property',
-    description: 'List your first property',
-    descriptionExtended: ' and start managing your tenants.',
-    icon: Building2,
-    link: '/properties?action=add-property',
-    color: 'warning',
-    actionLabel: 'Add Property',
-    priority: 'HIGH PRIORITY',
-    secondaryActionLabel: 'Bulk Import',
-    secondaryActionLink: '/settings?tab=import'
   }
 ]
 
@@ -110,7 +110,7 @@ export function useActivityTasks() {
 
   const tasks = dynamicItems.filter(item => {
     if (item.id === 'payment-info') return !user?.bankCode
-    if (item.id === 'complete-profile') return !user?.businessName || !user?.country
+    if (item.id === 'complete-profile') return !user?.businessName || !user?.country || !user?.companyAddress
     if (item.id === 'add-property') return properties.length === 0
     return true
   })

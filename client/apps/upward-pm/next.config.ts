@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import path from 'path'
 
 const isStaticExport = process.env['NEXT_OUTPUT'] === 'export'
 
@@ -9,6 +10,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // turbopack: {
+  //   root: path.resolve(__dirname, '../../..'),
+  // },
   async rewrites() {
     if (isStaticExport) return []
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'

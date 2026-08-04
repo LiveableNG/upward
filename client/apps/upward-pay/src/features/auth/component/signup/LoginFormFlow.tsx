@@ -542,7 +542,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 </div>
               ) : loginMethod === 'code' ? (
                 <p className="auth-form-note">
-                  We&apos;ll email you a 6-digit code to sign in — no password needed.
+                  We&apos;ll email you a 6-digit code to sign in.
                 </p>
               ) : (
                 <p className="auth-form-note">

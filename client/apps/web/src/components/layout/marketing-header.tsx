@@ -28,10 +28,10 @@ export function MarketingHeader() {
             </Link>
 
             <nav className="marketing-header__nav" aria-label="Primary">
-              <Link href="/pm-login">Landlords</Link>
-              <Link href="/pm-login">Property Managers</Link>
-              <Link href="/blog">Blog</Link>
               <Link href="/request-a-home">Request a Home</Link>
+              <Link href="/for-landlord">Landlord</Link>
+              <Link href="/for-pm">Property Managers</Link>
+              <Link href="/blog">Blog</Link>
             </nav>
           </div>
 
@@ -97,17 +97,17 @@ export function MarketingHeader() {
           <Link href="/request-a-home" onClick={() => setMobileMenuOpen(false)}>
             Request a Home
           </Link>
-          <Link href="/pm-login" onClick={() => setMobileMenuOpen(false)}>
-            Landlords
+          <Link href="/for-landlord" onClick={() => setMobileMenuOpen(false)}>
+            Landlord
+          </Link>
+          <Link href="/for-pm" onClick={() => setMobileMenuOpen(false)}>
+            Property Managers
           </Link>
           {showBlog && (
             <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>
               Blog
             </Link>
           )}
-          <Link href="/pm-login" onClick={() => setMobileMenuOpen(false)}>
-            Property Managers
-          </Link>
           <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
             Sign In
           </Link>

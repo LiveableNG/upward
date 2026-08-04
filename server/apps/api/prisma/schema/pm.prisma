@@ -14,7 +14,10 @@ model upward_property_manager {
   phoneHash       String?
   profilePic      String?
   country         String?
+  companyAddress  String?
   cacNumber       String?
+  personalEmail   String?
+  personalPhone   String?
   resetPasswordOTP String?
   resetPasswordExpires DateTime?
   bankName        String?
@@ -46,6 +49,13 @@ model upward_property_manager {
   activityLogsPerformed upward_pm_activity_log[] @relation("ActivityPerformer")
   activityLogsOwned     upward_pm_activity_log[] @relation("ActivityOwner")
   bulkImportJobs        upward_pm_bulk_import_job[]
+
+  subscription          upward_subscription?
+  wallet                upward_pm_wallet?
+  dedicatedVirtualAccount upward_pm_dedicated_virtual_account?
+  walletTransactions    upward_pm_wallet_transaction[]
+  subscriptionInvoices  upward_subscription_invoice[]
+  subscriptionLogs      upward_subscription_log[]
 
   @@index([email])
 }
@@ -134,8 +144,11 @@ model upward_pm_unit {
 
   
   // New fields for rich unit details
-  unitType         String?                     // e.g. Office Space, Apartment, Studio
-  
+  unitType              String?                     // e.g. Office Space, Apartment, Studio
+
+  // Stores remaining rent balance for deferred PR creation when tenant is not yet synced to Upward Pay
+  pendingInitialPrAmount Float?
+
   paymentRequests  upward_pm_payment_request[]
   rentPayments     upward_pm_rent_payment[]
   sentDocuments    upward_pm_sent_document[]

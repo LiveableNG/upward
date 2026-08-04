@@ -28,6 +28,7 @@ import { GetAdminPmDetailUseCase } from './use-cases/admin/get-admin-pm-detail.u
 import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
 import { SendAdminNotificationUseCase } from './use-cases/admin/send-admin-notification.use-case'
+import { ManagePmSubscriptionUseCase } from './use-cases/admin/manage-pm-subscription.use-case'
 import {
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -91,6 +92,7 @@ import { RetryBatchEmailsUseCase } from './use-cases/email/retry-batch-emails.us
 import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
+import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
 
 import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
 import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
@@ -163,12 +165,19 @@ import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-
 import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-case'
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
+import { GeneratePmDvaUseCase } from './pm/use-cases/payments/generate-pm-dva.use-case'
 import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
 import { GetPmPaymentRequestUseCase } from './pm/use-cases/payments/get-pm-payment-request.use-case'
 import { ResendPmPaymentRequestUseCase } from './pm/use-cases/payments/resend-pm-payment-request.use-case'
 import { UpdatePmPaymentRequestUseCase } from './pm/use-cases/payments/update-pm-payment-request.use-case'
 import { CancelPmPaymentRequestUseCase } from './pm/use-cases/payments/cancel-pm-payment-request.use-case'
 import { ProcessScheduledPmPaymentRequestsUseCase } from './pm/use-cases/payments/process-scheduled-payment-requests.use-case'
+import { GetOrCreateSubscriptionUseCase } from './pm/use-cases/subscription/get-or-create-subscription.use-case'
+import { GetOrCreateWalletUseCase } from './pm/use-cases/subscription/get-or-create-wallet.use-case'
+import { GetPmDvaUseCase } from './pm/use-cases/subscription/get-pm-dva.use-case'
+import { SelectSubscriptionTierUseCase } from './pm/use-cases/subscription/select-subscription-tier.use-case'
+import { TopUpWalletUseCase } from './pm/use-cases/subscription/top-up-wallet.use-case'
+import { GetWalletTransactionsUseCase } from './pm/use-cases/subscription/get-wallet-transactions.use-case'
 import { ResolvePendingRefundUseCase } from './pm/use-cases/payments/resolve-refund.use-case'
 import { GetPmDocumentsUseCase } from './pm/use-cases/documents/get-pm-documents.use-case'
 import { GetTenantUploadedDocumentsUseCase } from './pm/use-cases/documents/get-tenant-uploaded-documents.use-case'
@@ -198,6 +207,7 @@ import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
+import { SendHomeRequestDigestUseCase } from './use-cases/home-request/send-home-request-digest.use-case'
 import {
   GetPmHomeRequestUseCase,
   ListPmHomeRequestsUseCase,
@@ -374,6 +384,7 @@ const UseCases = [
   UpdateAdminPmUseCase,
   UpdateAdminDetailsUseCase,
   SendAdminNotificationUseCase,
+  ManagePmSubscriptionUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
@@ -422,6 +433,7 @@ const UseCases = [
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,
+  SubmitDemoRequestUseCase,
   CreateFairnessStoryUseCase,
   GetFairnessStoriesUseCase,
   DeleteFairnessStoryUseCase,
@@ -543,12 +555,19 @@ const UseCases = [
   UpdateTenantUseCase,
   SyncUnitToUpwardUseCase,
   CreatePmPaymentRequestUseCase,
+  GeneratePmDvaUseCase,
   GetPmPaymentRequestsUseCase,
   GetPmPaymentRequestUseCase,
   ResendPmPaymentRequestUseCase,
   UpdatePmPaymentRequestUseCase,
   CancelPmPaymentRequestUseCase,
   ProcessScheduledPmPaymentRequestsUseCase,
+  GetOrCreateSubscriptionUseCase,
+  GetOrCreateWalletUseCase,
+  GetPmDvaUseCase,
+  SelectSubscriptionTierUseCase,
+  TopUpWalletUseCase,
+  GetWalletTransactionsUseCase,
   GetPmDocumentsUseCase,
   GetTenantUploadedDocumentsUseCase,
   SaveDocumentTemplateUseCase,
@@ -575,6 +594,7 @@ const UseCases = [
   SubmitFeedbackUseCase,
   SubmitHomeRequestUseCase,
   BudgetGuidanceUseCase,
+  SendHomeRequestDigestUseCase,
   ListPmHomeRequestsUseCase,
   GetPmHomeRequestUseCase,
   RevealPmHomeRequestContactUseCase,
@@ -662,9 +682,10 @@ const UseCases = [
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
+import { SubscriptionModule } from '../domains/subscription/subscription.module'
 
 @Module({
-  imports: [S3Module, ReceiptModule, KYCModule, AuthModule, SmsModule, WhatsappModule],
+  imports: [S3Module, ReceiptModule, KYCModule, AuthModule, SmsModule, WhatsappModule, SubscriptionModule],
   providers: [
     AdminAuditEventHandler,
     EmailLogEventHandler,

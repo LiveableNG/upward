@@ -10,6 +10,7 @@ import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepos
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../../domains/payments/payment.repository';
 import { ResolveDedicatedAccountUseCase } from '../../../use-cases/payments/payment.use-cases';
 import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
+import { CreatePmPaymentRequestUseCase } from '../payments/create-pm-payment-request.use-case';
 
 @Injectable()
 export class SyncUnitToUpwardUseCase {
@@ -36,6 +37,7 @@ export class SyncUnitToUpwardUseCase {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
   ) { }
 
   async execute(unitUuid: string, pmId: number): Promise<void> {
@@ -303,5 +305,28 @@ export class SyncUnitToUpwardUseCase {
     });
 
     this.logger.log(`Unit ${unitUuid} synced to Upward Pay for user ${upwardUser.email}`);
+
+    if (unit.pendingInitialPrAmount != null) {
+      const remainingAmount = unit.pendingInitialPrAmount;
+      try {
+        await this.createPmPaymentRequestUseCase.execute(pmId, {
+          unitUuid,
+          amount: remainingAmount,
+          dueDate: unit.rentDueDate?.toISOString() || new Date().toISOString(),
+          rentStartDate: unit.rentStartDate?.toISOString(),
+          rentEndDate: unit.rentDueDate?.toISOString(),
+          rentType: unit.rentType || undefined,
+          description: 'Outstanding rent balance — initial payment recorded',
+          silent: true,             // No notification until welcome template is sent
+          bypassWelcomeCheck: true, // System-generated PR; bypass welcome template gate
+        });
+        this.logger.log(`Deferred initial PR created for unit ${unitUuid}, amount=${remainingAmount}`);
+      } catch (err: any) {
+        this.logger.error(`Failed to create deferred initial PR for unit ${unitUuid}: ${err.message}`);
+      } finally {
+        await this.unitRepo.update(unitUuid, { pendingInitialPrAmount: null });
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
   }
 }

@@ -81,7 +81,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         email: u.tenant.emailEncrypted ? this.encryption.decrypt(u.tenant.emailEncrypted) : null,
         phone: u.tenant.phoneEncrypted ? this.encryption.decrypt(u.tenant.phoneEncrypted) : null,
         inviteStatus: u.tenant.inviteStatus,
-        inviteSentAt: u.tenant.inviteSentAt
+        inviteSentAt: u.tenant.inviteSentAt,
+        hasReceivedWelcomeTemplate: u.tenant.hasReceivedWelcomeTemplate
       } : null,
       isSynced: u.isSynced,
       userPropertyUuid: u.userPropertyUuid
@@ -180,7 +181,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     const allowedFields = [
       'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 
       'rentType', 'managementFee', 'notes', 'currency', 'status', 'tenantId',
-      'isSynced', 'userPropertyUuid', 'unitType', 'rentReminderEnabled', 'rentReminderDaysBefore'
+      'isSynced', 'userPropertyUuid', 'unitType', 'rentReminderEnabled', 'rentReminderDaysBefore',
+      'pendingInitialPrAmount'
     ];
     
     const updateData: any = {};

@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upward for Property Managers — Digital Property Management, for as low as ₦0</title>
+    <title>Upward for Property Managers — Better Tenant Decisions. Stronger Property Management.</title>
     <meta name="description"
-        content="Digital property management built for how Nigerian PMs actually work. Find deals, collect rent, and manage your units — for as low as ₦0.">
+        content="The Upward Rental Intelligence Network. Built on trusted rental history — the credit bureau model, built for renting. Protect landlords, reduce avoidable tenant risk and run a more productive business.">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -15,14 +15,14 @@
                 extend: {
                     colors: {
                         terracotta: {
-                            50:  '#fdf8f6',
-                            100: '#fbece8',
+                            50:  '#f0fdf4',
+                            100: '#dcfce7',
                             200: '#f0c8b8',
                             300: '#e0a08a',
-                            400: '#e5a58e',
-                            500: '#D48166',
-                            600: '#B26B50',
-                            700: '#8f5640',
+                            400: '#86efac',
+                            500: '#15803d',
+                            600: '#166534',
+                            700: '#14532d',
                             900: '#2d0f05',
                         },
                         forest: {
@@ -65,16 +65,16 @@
         @media(max-width:640px){ .trust-strip{gap:1.5rem;} .trust-logo{height:1.5rem;} }
 
         /* Benefit cards */
-        .benefit-card { background:#fff; border-radius:2rem; border:1px solid #fbece8; padding:2rem; transition:all .3s ease; }
-        .benefit-card:hover { border-color:#e5a58e; box-shadow:0 20px 40px rgba(178,107,80,.1); transform:translateY(-4px); }
+        .benefit-card { background:#fff; border-radius:2rem; border:1px solid #dcfce7; padding:2rem; transition:all .3s ease; }
+        .benefit-card:hover { border-color:#86efac; box-shadow:0 20px 40px rgba(22,101,52,.1); transform:translateY(-4px); }
 
         /* Stat float card */
         .stat-card { background:#fff; border-radius:1rem; padding:.875rem 1.25rem; box-shadow:0 12px 40px rgba(0,0,0,.1); border:1px solid rgba(251,236,232,.8); display:flex; align-items:center; gap:.75rem; }
 
         /* Pricing tier cards */
-        .tier-card { background:#fff; border:1px solid #fbece8; border-radius:1.5rem; padding:1.75rem; transition:all .3s ease; position:relative; }
-        .tier-card:hover { border-color:#B26B50; box-shadow:0 16px 40px rgba(178,107,80,.12); }
-        .tier-card--featured { border-color:#B26B50; box-shadow:0 16px 40px rgba(178,107,80,.12); }
+        .tier-card { background:#fff; border:1px solid #dcfce7; border-radius:1.5rem; padding:1.75rem; transition:all .3s ease; position:relative; }
+        .tier-card:hover { border-color:#166534; box-shadow:0 16px 40px rgba(22,101,52,.12); }
+        .tier-card--featured { border-color:#166534; box-shadow:0 16px 40px rgba(22,101,52,.12); }
 
         /* Mobile menu */
         #mobile-menu { display:none; }
@@ -84,26 +84,26 @@
         .contact-us-widget { position:fixed; right:1rem; bottom:1rem; z-index:56; }
         @media(min-width:768px){ .contact-us-widget{ right:1.5rem; bottom:1.5rem; } }
 
-        .contact-us-float { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.875rem 1.25rem; border:none; border-radius:9999px; background:#B26B50 !important; color:#fff; font-family:inherit; font-size:0.875rem; font-weight:700; letter-spacing:0.01em; cursor:pointer; box-shadow:0 12px 28px rgb(178 107 80 / 35%); transition:transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
-        .contact-us-float:hover { transform:translateY(-2px); background:#8f5640 !important; box-shadow:0 16px 32px rgb(178 107 80 / 40%); color:#fff; }
+        .contact-us-float { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; padding:0.875rem 1.25rem; border:none; border-radius:9999px; background:#166534 !important; color:#fff; font-family:inherit; font-size:0.875rem; font-weight:700; letter-spacing:0.01em; cursor:pointer; box-shadow:0 12px 28px rgb(22 101 52 / 35%); transition:transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease; }
+        .contact-us-float:hover { transform:translateY(-2px); background:#14532d !important; box-shadow:0 16px 32px rgb(22 101 52 / 40%); color:#fff; }
         @media(min-width:768px){ .contact-us-float{ padding:1rem 1.5rem; font-size:0.9375rem; } }
 
         .contact-drawer-overlay { position:fixed; inset:0; z-index:55; background:rgb(15 23 42/0.45); backdrop-filter:blur(4px); opacity:0; visibility:hidden; transition:opacity 0.25s ease, visibility 0.25s ease; }
         .contact-drawer-overlay.is-open { opacity:1; visibility:visible; }
 
-        .contact-drawer { position:fixed; left:0; right:0; bottom:0; z-index:56; background:#fff; border-radius:1.5rem 1.5rem 0 0; padding:0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px)); box-shadow:0 -12px 40px rgb(178 107 80/18%); border-top:1px solid #fbece8; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+        .contact-drawer { position:fixed; left:0; right:0; bottom:0; z-index:56; background:#fff; border-radius:1.5rem 1.5rem 0 0; padding:0.75rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px)); box-shadow:0 -12px 40px rgb(22 101 52/18%); border-top:1px solid #dcfce7; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.32,0.72,0,1); }
         .contact-drawer.is-open { transform:translateY(0); }
 
         .contact-drawer-handle { width:2.5rem; height:0.25rem; margin:0 auto 1rem; border-radius:9999px; background:#e2e8f0; }
         .contact-drawer-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.25rem; }
         .contact-drawer-title { font-size:1.25rem; font-weight:800; color:#0f172a; }
-        .contact-drawer-close { width:2.25rem; height:2.25rem; display:flex; align-items:center; justify-content:center; border:none; border-radius:9999px; background:#fdf8f6; color:#64748b; cursor:pointer; transition:background-color 0.2s ease, color 0.2s ease; }
-        .contact-drawer-close:hover { background:#fbece8; color:#B26B50; }
+        .contact-drawer-close { width:2.25rem; height:2.25rem; display:flex; align-items:center; justify-content:center; border:none; border-radius:9999px; background:#f0fdf4; color:#64748b; cursor:pointer; transition:background-color 0.2s ease, color 0.2s ease; }
+        .contact-drawer-close:hover { background:#dcfce7; color:#166534; }
         .contact-drawer-subtitle { margin-bottom:1.25rem; font-size:0.875rem; color:#64748b; }
         .contact-drawer-options { display:flex; flex-direction:column; gap:0.75rem; }
-        .contact-drawer-option { display:flex; align-items:center; gap:1rem; padding:1rem 1.125rem; border-radius:1.25rem; border:1px solid #fbece8; background:#fdf8f6; color:#0f172a; text-decoration:none; transition:border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
-        .contact-drawer-option:hover { border-color:#D48166; background:#fff; box-shadow:0 8px 24px rgb(178 107 80/12%); color:#0f172a; }
-        .contact-drawer-option-icon { flex-shrink:0; width:2.75rem; height:2.75rem; display:flex; align-items:center; justify-content:center; border-radius:0.875rem; background:#fff; color:#B26B50; border:1px solid #fbece8; font-size:1.125rem; }
+        .contact-drawer-option { display:flex; align-items:center; gap:1rem; padding:1rem 1.125rem; border-radius:1.25rem; border:1px solid #dcfce7; background:#f0fdf4; color:#0f172a; text-decoration:none; transition:border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
+        .contact-drawer-option:hover { border-color:#15803d; background:#fff; box-shadow:0 8px 24px rgb(22 101 52/12%); color:#0f172a; }
+        .contact-drawer-option-icon { flex-shrink:0; width:2.75rem; height:2.75rem; display:flex; align-items:center; justify-content:center; border-radius:0.875rem; background:#fff; color:#166534; border:1px solid #dcfce7; font-size:1.125rem; }
         .contact-drawer-option-icon--whatsapp { color:#25d366; }
         .contact-drawer-option-text { min-width:0; }
         .contact-drawer-option-label { display:block; font-size:0.9375rem; font-weight:700; color:#0f172a; }
@@ -111,7 +111,7 @@
 
         @media(min-width:768px){
             .contact-drawer-overlay { background:transparent; backdrop-filter:none; }
-            .contact-drawer { position:absolute; left:auto; right:0; bottom:calc(100% + 0.75rem); width:22rem; max-width:calc(100vw - 3rem); border-radius:1.5rem; padding:1rem 1.5rem 1.5rem; border:1px solid #fbece8; box-shadow:0 12px 40px rgb(178 107 80/22%); transform:translateY(8px); opacity:0; visibility:hidden; pointer-events:none; transition:transform 0.25s ease, opacity 0.25s ease, visibility 0.25s ease; }
+            .contact-drawer { position:absolute; left:auto; right:0; bottom:calc(100% + 0.75rem); width:22rem; max-width:calc(100vw - 3rem); border-radius:1.5rem; padding:1rem 1.5rem 1.5rem; border:1px solid #dcfce7; box-shadow:0 12px 40px rgb(22 101 52/22%); transform:translateY(8px); opacity:0; visibility:hidden; pointer-events:none; transition:transform 0.25s ease, opacity 0.25s ease, visibility 0.25s ease; }
             .contact-drawer.is-open { transform:translateY(0); opacity:1; visibility:visible; pointer-events:auto; }
             .contact-drawer-handle { display:none; }
         }
@@ -119,34 +119,43 @@
         .no-underline { text-decoration:none; }
 
         /* Dashboard image wrapper */
-        .dashboard-frame { border-radius:1.5rem; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,.14); border:1px solid #fbece8; }
+        .dashboard-frame { border-radius:1.5rem; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,.14); border:1px solid #dcfce7; }
         .dashboard-frame img { display:block; width:100%; height:auto; }
+        
+        /* Demo Modal */
+        .demo-modal-overlay { position:fixed; inset:0; z-index:90; background:rgb(15 23 42/0.45); backdrop-filter:blur(4px); opacity:0; visibility:hidden; transition:opacity 0.25s ease, visibility 0.25s ease; }
+        .demo-modal-overlay.is-open { opacity:1; visibility:visible; }
+        .demo-modal { position:fixed; left:50%; top:50%; transform:translate(-50%, -45%); z-index:91; background:#fff; border-radius:1.5rem; padding:2rem; width:90%; max-width:500px; box-shadow:0 24px 80px rgb(22 101 52/22%); border:1px solid #dcfce7; opacity:0; visibility:hidden; pointer-events:none; transition:transform 0.3s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease, visibility 0.3s ease; }
+        .demo-modal.is-open { transform:translate(-50%, -50%); opacity:1; visibility:visible; pointer-events:auto; }
+        .demo-input { width:100%; padding:0.875rem 1rem; border:1px solid #e2e8f0; border-radius:0.75rem; font-size:0.9375rem; font-family:inherit; transition:border-color 0.2s, box-shadow 0.2s; outline:none; }
+        .demo-input:focus { border-color:#166534; box-shadow:0 0 0 4px rgba(22,101,52,0.1); }
+        .demo-label { display:block; margin-bottom:0.375rem; font-size:0.875rem; font-weight:600; color:#334155; }
     </style>
 </head>
 
 <body class="text-slate-900 font-sans antialiased overflow-x-hidden">
 
     <!-- Navigation -->
-    <header id="header" class="fixed top-0 left-0 right-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-terracotta-100">
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 bg-cream/80 backdrop-blur-xl border-b border-forest-100">
         <nav class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 h-16 lg:h-20 flex items-center justify-between">
             <div class="flex items-center gap-12">
                 <a href="/" class="flex items-center gap-2 no-underline">
-                    <div class="w-10 h-10 bg-terracotta-50 rounded-xl flex items-center justify-center border border-terracotta-100 shadow-sm">
+                    <div class="w-10 h-10 bg-forest-50 rounded-xl flex items-center justify-center border border-forest-100 shadow-sm">
                         <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain"/>
                     </div>
                     <span class="text-xl lg:text-2xl font-black tracking-tight text-slate-900">UPWARD</span>
                 </a>
                 <div class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
-                    <a href="/request-a-home" class="hover:text-terracotta-600 transition-colors">Request a Home</a>
-                    <a href="/for-landlord" class="hover:text-terracotta-600 transition-colors">Landlords</a>
-                    <a href="/for-pm" class="text-terracotta-600 font-bold">Property Managers</a>
-                    <a href="/blog" class="hover:text-terracotta-600 transition-colors">Blog</a>
+                    <a href="/request-a-home" class="hover:text-forest-600 transition-colors">Request a Home</a>
+                    <a href="/for-landlord" class="hover:text-forest-600 transition-colors">Landlords</a>
+                    <a href="/for-pm" class="text-forest-600 font-bold">Property Managers</a>
+                    <a href="/blog" class="hover:text-forest-600 transition-colors">Blog</a>
                 </div>
             </div>
             <div class="flex items-center gap-3 lg:gap-6">
-                <a href="/pm-login" class="hidden lg:inline text-sm font-bold text-slate-800 hover:text-terracotta-600 transition-colors">Sign In</a>
-                <a href="/pm-signup" class="hidden lg:inline-flex bg-forest-600 text-white px-7 py-3 rounded-full font-bold text-sm shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET STARTED</a>
-                <button type="button" id="mobile-menu-toggle" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-terracotta-50 transition-colors" aria-label="Open menu" aria-expanded="false">
+                <a href="/pm-login" class="hidden lg:inline text-sm font-bold text-slate-800 hover:text-forest-600 transition-colors">Sign In</a>
+                <a href="/pm-login" class="hidden lg:inline-flex bg-forest-600 text-white px-7 py-3 rounded-full font-bold text-sm shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET STARTED</a>
+                <button type="button" id="mobile-menu-toggle" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-forest-50 transition-colors" aria-label="Open menu" aria-expanded="false">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
             </div>
@@ -157,51 +166,53 @@
     <div id="mobile-menu" class="fixed inset-0 bg-cream z-[60] flex-col p-6 pt-5" aria-hidden="true">
         <div class="flex justify-between items-center mb-10">
             <a href="/" class="flex items-center gap-2 no-underline">
-                <div class="w-9 h-9 bg-terracotta-50 rounded-lg flex items-center justify-center border border-terracotta-100 shadow-sm">
+                <div class="w-9 h-9 bg-forest-50 rounded-lg flex items-center justify-center border border-forest-100 shadow-sm">
                     <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain"/>
                 </div>
                 <span class="text-xl font-black tracking-tight text-slate-900">UPWARD</span>
             </a>
-            <button type="button" id="mobile-menu-close" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-terracotta-50" aria-label="Close menu">
+            <button type="button" id="mobile-menu-close" class="w-10 h-10 flex items-center justify-center rounded-xl text-slate-800 hover:bg-forest-50" aria-label="Close menu">
                 <i class="fa-solid fa-xmark text-2xl"></i>
             </button>
         </div>
         <nav class="flex flex-col gap-6 text-lg font-semibold text-slate-800">
-            <a href="/request-a-home" class="hover:text-terracotta-600 transition-colors">Request a Home</a>
-            <a href="/for-landlord" class="hover:text-terracotta-600 transition-colors">Landlords</a>
-            <a href="/for-pm" class="text-terracotta-600 font-bold">Property Managers</a>
-            <a href="/blog" class="hover:text-terracotta-600 transition-colors">Blog</a>
-            <a href="/pm-login" class="hover:text-terracotta-600 transition-colors">Sign In</a>
+            <a href="/request-a-home" class="hover:text-forest-600 transition-colors">Request a Home</a>
+            <a href="/for-landlord" class="hover:text-forest-600 transition-colors">Landlords</a>
+            <a href="/for-pm" class="text-forest-600 font-bold">Property Managers</a>
+            <a href="/blog" class="hover:text-forest-600 transition-colors">Blog</a>
+            <a href="/pm-login" class="hover:text-forest-600 transition-colors">Sign In</a>
         </nav>
         <div class="mt-auto pb-8 pt-8">
-            <a href="/pm-signup" class="block w-full text-center bg-forest-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET STARTED — FREE</a>
+            <a href="/pm-login" class="block w-full text-center bg-forest-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-forest-600/20 hover:bg-forest-700 transition-all active:scale-95 no-underline">GET STARTED — FREE</a>
         </div>
     </div>
 
     <main>
         <!-- Hero -->
         <section id="hero" class="pt-32 pb-20 px-6 sm:px-12 relative overflow-hidden bg-white">
-            <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-terracotta-50 rounded-full opacity-40 blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
+            <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-forest-50 rounded-full opacity-40 blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
             <div class="max-w-[1440px] mx-auto flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
                 <!-- Left copy -->
                 <div class="w-full lg:w-1/2 space-y-8 relative z-10">
-                    <div class="hero-animate inline-flex items-center gap-3 px-4 py-2 bg-terracotta-50 text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100">
-                        <i class="fa-solid fa-building-user"></i> For Property Managers
+                    <div class="hero-animate inline-flex items-center gap-3 px-4 py-2 bg-forest-50 text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100">
+                        <i class="fa-solid fa-building-user"></i> Upward for Property Managers
                     </div>
                     <h1 class="hero-animate-delay-1 text-5xl xl:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight">
-                        Find deals. Collect rent.<br>Manage your units —<br>
-                        <span class="text-terracotta-600 italic">for as low as ₦0.</span>
+                        Better Tenant Decisions.<br>Stronger Property Management.
                     </h1>
-                    <p class="hero-animate-delay-2 text-xl text-slate-600 max-w-xl leading-relaxed">
-                        Digital property management built for how Nigerian PMs actually work.
+                    <p class="hero-animate-delay-2 text-lg text-slate-600 max-w-xl leading-relaxed font-semibold">
+                        The Upward Rental Intelligence Network.
                     </p>
-                    <div class="hero-animate-delay-3 flex lg:hidden flex-col items-stretch sm:items-start gap-4 pt-2">
+                    <p class="hero-animate-delay-2 text-base text-slate-500 max-w-xl leading-relaxed">
+                        Built on trusted rental history. The credit bureau model, built for renting. Protect landlords, reduce avoidable tenant risk and run a more productive property management business.
+                    </p>
+                    <div class="hero-animate-delay-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
                         <a href="/pm-signup" class="block sm:inline-block text-center bg-forest-600 text-white px-8 sm:px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-forest-600/30 hover:scale-[1.03] hover:bg-forest-700 transition-all active:scale-95 no-underline whitespace-nowrap">
-                            Start Managing Smartly
+                            Join the Network
                         </a>
-                        <a href="/pm-login" class="flex items-center justify-center sm:justify-start gap-2 text-slate-600 font-bold text-sm hover:text-terracotta-600 transition-colors no-underline">
-                            Already have an account? <span class="text-terracotta-600 underline">Sign in →</span>
-                        </a>
+                        <button id="open-demo-modal" type="button" class="block sm:inline-block text-center border-2 border-forest-600 text-forest-600 px-8 sm:px-10 py-5 rounded-2xl font-black text-lg hover:bg-forest-50 transition-all whitespace-nowrap cursor-pointer bg-transparent">
+                            Book a Demo
+                        </button>
                     </div>
                 </div>
 
@@ -225,9 +236,9 @@
         </section>
 
         <!-- Trust / Social Proof -->
-        <section class="py-12 px-6 bg-terracotta-50 border-y border-terracotta-100">
+        <section class="py-12 px-6 bg-forest-50 border-y border-forest-100">
             <div class="max-w-4xl mx-auto text-center">
-                <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-8">Trusted by Leading Property Firms</p>
+                <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-8">Trusted by leading property managers across Nigeria</p>
                 <div class="trust-strip">
                     <div class="trust-logo"><img src="/assets/estate-links.png" alt="Estate Links" loading="lazy"></div>
                     <div class="trust-logo"><img src="/assets/diya.png" alt="Diya Fatimilehin & Co" loading="lazy"></div>
@@ -240,42 +251,70 @@
         </section>
 
         <!-- Benefits Grid -->
-        <section id="benefits" class="py-24 px-6 sm:px-12 bg-white">
+        <!-- Network Value Section -->
+        <section id="network" class="py-24 px-6 sm:px-12 bg-white">
             <div class="max-w-[1280px] mx-auto">
                 <div class="text-center mb-16">
-                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-terracotta-50 text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100 mb-6">What You Get</div>
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-forest-50 text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100 mb-6">The Network Advantage</div>
                     <h2 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-4">
-                        Everything you need.<br><span class="text-terracotta-600">None of the hassle.</span>
+                        Every Property You Manage Builds<br><span class="text-forest-600">Trusted Rental History.</span>
                     </h2>
-                    <p class="text-lg text-slate-500 max-w-xl mx-auto leading-relaxed">One platform to run your portfolio, collect rent, and grow your business.</p>
+                    <p class="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">Every tenancy, rent payment and inspection recorded on Upward builds trusted rental history. That trusted rental history strengthens the Upward Rental Intelligence Network, helping every property manager make more confident tenant decisions.</p>
                 </div>
+
+                <!-- 4-step flow -->
+                <div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-20">
+                    <div class="text-center flex-1">
+                        <div class="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center text-2xl text-forest-600 mx-auto mb-3"><i class="fa-solid fa-building"></i></div>
+                        <p class="text-sm font-black text-slate-900">Manage Properties</p>
+                    </div>
+                    <div class="text-forest-300 text-2xl font-black hidden md:block">→</div>
+                    <div class="text-center flex-1">
+                        <div class="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center text-2xl text-forest-600 mx-auto mb-3"><i class="fa-solid fa-file-lines"></i></div>
+                        <p class="text-sm font-black text-slate-900">Build Trusted Rental History</p>
+                    </div>
+                    <div class="text-forest-300 text-2xl font-black hidden md:block">→</div>
+                    <div class="text-center flex-1">
+                        <div class="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center text-2xl text-forest-600 mx-auto mb-3"><i class="fa-solid fa-network-wired"></i></div>
+                        <p class="text-sm font-black text-slate-900">Strengthen the Upward Rental Intelligence Network</p>
+                    </div>
+                    <div class="text-forest-300 text-2xl font-black hidden md:block">→</div>
+                    <div class="text-center flex-1">
+                        <div class="w-14 h-14 bg-forest-600 rounded-2xl flex items-center justify-center text-2xl text-white mx-auto mb-3"><i class="fa-solid fa-shield-halved"></i></div>
+                        <p class="text-sm font-black text-slate-900">Make Better Tenant Decisions</p>
+                    </div>
+                </div>
+
+                <p class="text-center text-slate-500 max-w-2xl mx-auto mb-16 leading-relaxed">Unlike traditional property management software, every property managed on Upward contributes to a shared network of trusted rental history — making the platform more valuable for every property manager who joins.</p>
+
+                <!-- 4 benefit cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="benefit-card flex gap-5">
-                        <div class="w-14 h-14 bg-terracotta-50 rounded-2xl flex items-center justify-center text-2xl text-terracotta-600 flex-shrink-0"><i class="fa-solid fa-table-columns"></i></div>
+                        <div class="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center text-2xl text-forest-600 flex-shrink-0"><i class="fa-solid fa-bolt"></i></div>
                         <div>
-                            <h3 class="text-xl font-black text-slate-900 mb-2">Digital Property Management</h3>
-                            <p class="text-slate-500 leading-relaxed">Run your portfolio from one dashboard — no more spreadsheets, no more chasing paper. Tenancy data, documents, receipts, and payments in one place.</p>
+                            <h3 class="text-xl font-black text-slate-900 mb-2">Run a More Productive Business</h3>
+                            <p class="text-slate-500 leading-relaxed">Automate rent collection, tenancy management, inspections, maintenance and team operations from one platform.</p>
                         </div>
                     </div>
                     <div class="benefit-card flex gap-5">
-                        <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl text-emerald-600 flex-shrink-0"><i class="fa-solid fa-bolt"></i></div>
+                        <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-2xl text-emerald-600 flex-shrink-0"><i class="fa-solid fa-shield-halved"></i></div>
                         <div>
-                            <h3 class="text-xl font-black text-slate-900 mb-2">Faster Rent Collection</h3>
-                            <p class="text-slate-500 leading-relaxed">Automated reminders and digital payments mean fewer late payments to chase. Get paid faster, with a full audit trail for every transaction.</p>
+                            <h3 class="text-xl font-black text-slate-900 mb-2">Protect More Landlords</h3>
+                            <p class="text-slate-500 leading-relaxed">Use the Upward Score and trusted rental intelligence to reduce avoidable defaults and make more confident tenant decisions.</p>
                         </div>
                     </div>
                     <div class="benefit-card flex gap-5">
-                        <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl text-blue-600 flex-shrink-0"><i class="fa-solid fa-handshake"></i></div>
+                        <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl text-blue-600 flex-shrink-0"><i class="fa-solid fa-chart-line"></i></div>
                         <div>
-                            <h3 class="text-xl font-black text-slate-900 mb-2">Direct Brokerage Deals</h3>
-                            <p class="text-slate-500 leading-relaxed">Get matched with verified tenants — pre-screened, KYC-checked, and ready to move. No random inquiries. No wasted site visits.</p>
+                            <h3 class="text-xl font-black text-slate-900 mb-2">Fill Vacancies Faster</h3>
+                            <p class="text-slate-500 leading-relaxed">Connect with verified tenants through the Upward Network, reduce reliance on agents and earn more landlord referrals.</p>
                         </div>
                     </div>
                     <div class="benefit-card flex gap-5">
-                        <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl text-purple-600 flex-shrink-0"><i class="fa-solid fa-star"></i></div>
+                        <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-2xl text-purple-600 flex-shrink-0"><i class="fa-solid fa-credit-card"></i></div>
                         <div>
-                            <h3 class="text-xl font-black text-slate-900 mb-2">Founding Member Benefits</h3>
-                            <p class="text-slate-500 leading-relaxed">Get special member benefits when you sign up for our paid version — including business credit, employee credit, and priority brokerage listings.</p>
+                            <h3 class="text-xl font-black text-slate-900 mb-2">Speed Up Rent Collections</h3>
+                            <p class="text-slate-500 leading-relaxed">Collect rent faster with digital payments, automated reminders and real-time payment tracking.</p>
                         </div>
                     </div>
                 </div>
@@ -283,117 +322,294 @@
         </section>
 
         <!-- Pricing Tiers -->
-        <section id="pricing" class="py-24 px-6 sm:px-12 bg-terracotta-50">
+        <section id="pricing" class="py-24 px-6 sm:px-12 bg-forest-50">
             <div class="max-w-[1280px] mx-auto">
                 <div class="text-center mb-16">
-                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-white text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100 mb-6">Simple Pricing</div>
-                    <h2 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-4">Start free. Scale as you grow.</h2>
-                    <p class="text-lg text-slate-500 max-w-xl mx-auto">Per unit, per year. Only pay for occupied units by default. Premium features free for your first 30 days.</p>
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-white text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100 mb-6">Simple Pricing</div>
+                    <h2 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-4">Start Free. Upgrade as Your Business Grows.</h2>
+                    <p class="text-lg text-slate-500 max-w-2xl mx-auto">Every plan includes access to the Upward Rental Intelligence Network and the core tools to build trusted rental history. Upgrade as your business grows with more automation, branding and business insights.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                    <!-- Tier 1 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-16">
+                    <!-- Starter -->
                     <div class="tier-card">
-                        <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">Tier 1</p>
-                        <p class="text-4xl font-black text-slate-900 mb-1">₦0</p>
-                        <p class="text-sm text-slate-400 mb-6">Free forever</p>
-                        <ul class="space-y-3 text-sm text-slate-600 mb-8">
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Tenancy Data Upload</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Rent Collection</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Complaints</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-xmark text-slate-300 text-xs"></i> <span class="text-slate-400">Document Management</span></li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-xmark text-slate-300 text-xs"></i> <span class="text-slate-400">Rent Insurance</span></li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-xmark text-slate-300 text-xs"></i> <span class="text-slate-400">KYC &amp; Tenant Screening</span></li>
-                        </ul>
-                        <a href="/pm-signup" class="block w-full text-center border-2 border-terracotta-200 text-terracotta-600 py-3 rounded-xl font-black text-sm hover:border-terracotta-600 hover:bg-terracotta-50 transition-all no-underline">Get Started Free</a>
-                    </div>
-                    <!-- Tier 2 -->
-                    <div class="tier-card tier-card--featured relative">
-                        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-terracotta-600 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap">Most Popular</div>
-                        <p class="text-xs font-black uppercase tracking-widest text-terracotta-500 mb-3">Tier 2</p>
-                        <p class="text-4xl font-black text-slate-900 mb-1">₦1,500</p>
-                        <p class="text-sm text-slate-400 mb-6">per unit / year</p>
-                        <ul class="space-y-3 text-sm text-slate-600 mb-8">
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Everything in Free</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Rent Insurance</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Document Management</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> KYC &amp; Tenant Screening</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Service Charge Payments</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> 30% of Brokerage Listings</li>
-                        </ul>
-                        <a href="/pm-signup" class="block w-full text-center bg-terracotta-600 text-white py-3 rounded-xl font-black text-sm hover:bg-terracotta-700 transition-all active:scale-95 no-underline shadow-lg shadow-terracotta-600/25">Start Free Trial</a>
-                    </div>
-                    <!-- Tier 3 -->
-                    <div class="tier-card">
-                        <div class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full mb-3 border border-amber-200">
-                            <i class="fa-solid fa-fire text-xs"></i> 25% off — 2 years
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
+                            Starter
+                        </p>
+
+                        <div class="mb-4">
+                            <h3 class="text-5xl font-black text-slate-900">
+                                Free
+                            </h3>
                         </div>
-                        <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Tier 3</p>
-                        <p class="text-4xl font-black text-slate-900 mb-1">₦2,250</p>
-                        <p class="text-sm text-slate-400 mb-6">per unit / year</p>
-                        <ul class="space-y-3 text-sm text-slate-600 mb-8">
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Everything in Tier 2</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Branded Receipts</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Salary Advance</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> 100% Brokerage Listings</li>
-                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500 text-xs"></i> Priority Support</li>
-                        </ul>
-                        <a href="/pm-signup" class="block w-full text-center border-2 border-terracotta-200 text-terracotta-600 py-3 rounded-xl font-black text-sm hover:border-terracotta-600 hover:bg-terracotta-50 transition-all no-underline">Get Best Value</a>
+
+                        <p class="text-sm text-slate-500 mb-2">
+                            Start building trusted rental history.
+                        </p>
+
+                        <p class="text-sm text-slate-400 mb-6">
+                            Perfect for property managers getting started.
+                        </p>
+
+                        <a href="/pm-signup"
+                            class="block w-full text-center border-2 border-forest-200 text-forest-600 py-3 rounded-xl font-black text-sm hover:border-forest-600 hover:bg-forest-50 transition-all no-underline">
+                            Get Started Free
+                        </a>
+                    </div>
+
+                    <!-- Professional -->
+                    <div class="tier-card tier-card--featured relative">
+
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-forest-600 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                            <i class="fa-solid fa-star text-xs mr-1"></i>
+                            Most Popular
+                        </div>
+
+                        <p class="text-xs font-black uppercase tracking-widest text-forest-500 mb-3">
+                            Professional
+                        </p>
+
+                        <div class="mb-4">
+                            <h3 class="text-5xl font-black text-slate-900">
+                                ₦1,500
+                            </h3>
+
+                            <p class="text-sm font-semibold text-slate-500 mt-1">
+                                per unit / year
+                            </p>
+                        </div>
+
+                        <p class="text-sm text-slate-500 mb-2">
+                            Grow a more productive business.
+                        </p>
+
+                        <p class="text-sm text-slate-400 mb-6">
+                            Everything you need to automate operations and deliver a better landlord experience.
+                        </p>
+
+                        <a href="/pm-signup"
+                            class="block w-full text-center bg-forest-600 text-white py-3 rounded-xl font-black text-sm hover:bg-forest-700 transition-all active:scale-95 no-underline shadow-lg shadow-forest-600/25">
+                            Get Started
+                        </a>
+
+                    </div>
+
+                    <!-- Enterprise -->
+                    <div class="tier-card">
+
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
+                            Enterprise
+                        </p>
+
+                        <div class="mb-4">
+
+                            <h3 class="text-5xl font-black text-slate-900">
+                                ₦2,250
+                            </h3>
+
+                            <p class="text-sm font-semibold text-slate-500 mt-1">
+                                per unit / year
+                            </p>
+
+                            <div class="flex items-center gap-2 mt-3">
+                                <span class="inline-flex items-center rounded-full bg-green-50 text-green-700 px-2.5 py-1 text-xs font-bold">
+                                    25% OFF
+                                </span>
+
+                                <span class="text-sm text-slate-400">
+                                    <span class="font-medium">Was</span>
+                                    <span class="line-through">₦3,000</span>
+                                </span>
+                            </div>
+
+                        </div>
+
+                        <p class="text-sm text-slate-500 mb-2">
+                            Built for leading property management businesses.
+                        </p>
+
+                        <p class="text-sm text-slate-400 mb-6">
+                            Advanced automation, branded experiences and business intelligence for high-performing teams.
+                        </p>
+
+                        <button
+                            type="button"
+                            id="open-demo-modal-pricing"
+                            class="block w-full text-center border-2 border-forest-200 text-forest-600 py-3 rounded-xl font-black text-sm hover:border-forest-600 hover:bg-forest-50 transition-all cursor-pointer bg-transparent">
+                            Book a Demo
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- Feature Comparison Table -->
+                <div class="bg-white rounded-2xl border border-forest-100 overflow-hidden">
+                    <div class="px-6 pt-8 pb-4 text-center">
+                        <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Feature Comparison</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-forest-100">
+                                    <th class="text-left px-6 py-4 font-black text-slate-900">Feature</th>
+                                    <th class="text-center px-4 py-4 font-black text-slate-900">Starter</th>
+                                    <th class="text-center px-4 py-4 font-black text-forest-600 bg-forest-50">Professional</th>
+                                    <th class="text-center px-4 py-4 font-black text-slate-900">Enterprise</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-forest-50">
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Access to Upward Rental Intelligence Network</td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Digital Tenancy Records</td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Digital Rent Collection</td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Rent Insurance</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Document Management</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Automated Rent Reminders</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Service Charge Payments</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Digital Receipts</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50 text-slate-500 font-semibold">Unbranded</td>
+                                    <td class="text-center px-4 py-3 text-forest-600 font-semibold">Branded</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Listings</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50 text-slate-500 font-semibold">30% of Listing Announcements</td>
+                                    <td class="text-center px-4 py-3 text-forest-600 font-semibold">All Listing Announcements</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-3 text-slate-600">Automated Routine Inspections</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                                <tr class="border-0">
+                                    <td class="px-6 py-3 text-slate-600">Managing Partner Performance Dashboard</td>
+                                    <td class="text-center px-4 py-3 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3 bg-forest-50 text-slate-300">—</td>
+                                    <td class="text-center px-4 py-3"><i class="fa-solid fa-check text-emerald-500"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <p class="text-center text-sm text-slate-400 mt-8">Billed yearly in monthly installments. Only active (occupied) units are counted by default.</p>
             </div>
         </section>
 
-        <!-- Closing CTA — on-brand terracotta theme -->
-        <section class="py-24 px-6 sm:px-12 bg-white border-t border-terracotta-100">
+        <!-- Network Growth Banner -->
+        <section class="py-20 px-6 sm:px-12 bg-white border-y border-forest-100">
             <div class="max-w-3xl mx-auto text-center">
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-terracotta-50 text-terracotta-600 rounded-full text-xs font-black uppercase tracking-widest border border-terracotta-100 mb-8">
-                    <i class="fa-solid fa-rocket"></i> Join Upward PM
+                <h2 class="text-3xl md:text-4xl font-black text-slate-900 leading-tight mb-6">The Network Gets Stronger With Every Property Manager.</h2>
+                <p class="text-lg text-slate-500 leading-relaxed mb-4">Banks transformed lending by sharing trusted credit information. Renting deserves the same advantage.</p>
+                <p class="text-base text-slate-500 leading-relaxed">Every property manager who joins the Upward Rental Intelligence Network helps build a smarter rental market — protecting more landlords, encouraging better tenant behaviour and enabling better tenant decisions across the industry.</p>
+            </div>
+        </section>
+
+        <!-- Closing CTA -->
+        <section class="py-24 px-6 sm:px-12 bg-forest-50 border-t border-forest-100">
+            <div class="max-w-3xl mx-auto text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-white text-forest-600 rounded-full text-xs font-black uppercase tracking-widest border border-forest-100 mb-8">
+                    <i class="fa-solid fa-network-wired"></i> Join the Network
                 </div>
                 <h2 class="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-6">
-                    Your portfolio, digitized.<br>
-                    Your deals, verified.<br>
-                    <span class="text-terracotta-600">Your network, growing.</span>
+                    Join the Network.<br>
+                    <span class="text-forest-600">Start Free Today.</span>
                 </h2>
                 <p class="text-xl text-slate-500 mb-10 leading-relaxed">
-                    Join property managers already running smarter portfolios on Upward.
+                    Join property managers already building trusted rental history and making better tenant decisions on Upward.
                 </p>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="/pm-signup" class="inline-block bg-terracotta-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-2xl shadow-terracotta-600/30 hover:scale-[1.03] hover:bg-terracotta-700 transition-all active:scale-95 no-underline">
-                        Get Started — Free
+                <div class="flex flex-col items-center justify-center gap-6">
+                    <a href="/pm-signup" class="inline-block text-center w-full sm:w-auto bg-forest-600 text-white px-8 py-4 sm:px-10 sm:py-5 rounded-2xl font-black text-base sm:text-lg shadow-2xl shadow-forest-600/30 hover:scale-[1.03] hover:bg-forest-700 transition-all active:scale-95 no-underline">
+                        Signup to Start Using Upward today for free
                     </a>
-                    <a href="/pm-login" class="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-terracotta-600 transition-colors no-underline">
+                    <a href="/pm-login" class="inline-flex items-center gap-2 text-slate-500 font-bold hover:text-forest-600 transition-colors no-underline">
                         Already have an account →
                     </a>
                 </div>
-                <p class="text-sm text-slate-400 mt-6">Premium features free for 30 days. No credit card required.</p>
+                <p class="text-sm text-slate-400 mt-6">No credit card required.</p>
             </div>
         </section>
     </main>
 
     <!-- Universal Footer -->
-    <footer class="bg-terracotta-900 py-16 px-6 sm:px-12 relative overflow-hidden">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-terracotta-600 rounded-full opacity-[0.08] blur-[100px] pointer-events-none"></div>
-        <div class="max-w-[1440px] mx-auto space-y-8 text-center relative z-10">
-            <a href="/" class="inline-flex items-center gap-2 no-underline">
-                <div class="w-9 h-9 bg-terracotta-50 rounded-lg flex items-center justify-center border border-terracotta-100">
-                    <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain"/>
+    <footer id="footer" class="bg-slate-950 text-slate-400 py-16 px-4">
+        <div class="max-w-3xl mx-auto text-center space-y-6">
+            <div class="flex items-center justify-center gap-2 text-white">
+                <div class="w-8 h-8 bg-forest-50 rounded-lg flex items-center justify-center">
+                    <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain" />
                 </div>
-                <span class="text-xl font-black tracking-tight text-white">UPWARD</span>
-            </a>
-            <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm">
-                <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer" class="text-terracotta-300 hover:text-white transition-colors no-underline flex items-center gap-2"><i class="fa-brands fa-x-twitter"></i> Twitter</a>
-                <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer" class="text-terracotta-300 hover:text-white transition-colors no-underline flex items-center gap-2"><i class="fa-brands fa-linkedin-in"></i> LinkedIn</a>
+                <span class="text-xl font-bold tracking-tight">UPWARD</span>
             </div>
-            <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-                <a href="/" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">For Renters</a>
-                <a href="/for-landlord" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">For Landlords</a>
-                <a href="/blog" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Blog</a>
-                <a href="/legal/privacy" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Privacy Policy</a>
-                <a href="/legal/terms" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Terms of Use</a>
-                <a href="/legal/cookies" class="text-terracotta-100/70 hover:text-white transition-colors no-underline">Cookie Policy</a>
+            <p class="text-sm leading-relaxed">Africa's first credit-building platform dedicated to making housing
+                affordable and accessible for the next generation of homeowners.</p>
+            <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+                <a href="mailto:hello@goodtenants.africa"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">hello@goodtenants.africa</a>
+                <a href="tel:09040969943"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">09040969943</a>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+                <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
+                    <i class="fa-brands fa-x-twitter"></i> Twitter
+                </a>
+                <a href="https://www.tiktok.com/@useupward" target="_blank" rel="noopener noreferrer"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
+                    <i class="fa-brands fa-tiktok"></i> TikTok
+                </a>
+                <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
+                    <i class="fa-brands fa-linkedin-in"></i> LinkedIn
+                </a>
+            </div>
+            <nav aria-label="Legal" class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+                <a href="/blog"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Blog</a>
+                <a href="/legal/privacy"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Privacy Policy</a>
+                <a href="/legal/terms"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Terms of Use</a>
+                <a href="/legal/cookies"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Cookie Policy</a>
+                <a href="/legal/notice"
+                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Legal Notice</a>
             </nav>
-            <div class="pt-6 border-t border-terracotta-700/40 text-xs text-terracotta-100/50">
+            <div class="pt-6 border-t border-slate-900 text-xs">
                 <p>© 2026 Upward by GoodTenants. All rights reserved. Registered in Nigeria.</p>
             </div>
         </div>
@@ -452,6 +668,60 @@
         </button>
     </div>
 
+    <!-- Demo Modal HTML -->
+    <div id="demo-modal-overlay" class="demo-modal-overlay" aria-hidden="true"></div>
+    <div id="demo-modal" class="demo-modal" role="dialog" aria-modal="true" aria-labelledby="demo-modal-title">
+        <div class="flex items-start justify-between mb-6">
+            <div>
+                <h3 id="demo-modal-title" class="text-2xl font-black text-slate-900 mb-1">Book a Demo</h3>
+                <p class="text-sm text-slate-500">See how Upward can transform your property management.</p>
+            </div>
+            <button type="button" id="demo-modal-close" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        
+        <form id="demo-form" class="space-y-4">
+            <div>
+                <label for="demo-name" class="demo-label">Full Name</label>
+                <input type="text" id="demo-name" name="name" required class="demo-input" placeholder="e.g. Jane Doe">
+            </div>
+            <div>
+                <label for="demo-email" class="demo-label">Work Email</label>
+                <input type="email" id="demo-email" name="email" required class="demo-input" placeholder="e.g. jane@company.com">
+            </div>
+            <div>
+                <label for="demo-phone" class="demo-label">Phone Number</label>
+                <input type="tel" id="demo-phone" name="phone" required class="demo-input" placeholder="e.g. 09012345678">
+            </div>
+            <div>
+                <label for="demo-tenants" class="demo-label">Number of Tenants / Units Managed</label>
+                <select id="demo-tenants" name="tenants" required class="demo-input">
+                    <option value="" disabled selected>Select an option</option>
+                    <option value="1-50">1 - 50</option>
+                    <option value="51-200">51 - 200</option>
+                    <option value="201-500">201 - 500</option>
+                    <option value="500+">500+</option>
+                </select>
+            </div>
+            <div>
+                <label for="demo-date" class="demo-label">Preferred Date for Demo</label>
+                <input type="date" id="demo-date" name="date" required class="demo-input">
+            </div>
+            <button type="submit" class="w-full bg-forest-600 text-white py-4 rounded-xl font-black text-base shadow-lg shadow-forest-600/25 hover:bg-forest-700 transition-colors mt-2">
+                Request Demo
+            </button>
+        </form>
+        
+        <div id="demo-success" class="hidden flex-col items-center justify-center py-10 text-center">
+            <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                <i class="fa-solid fa-check text-2xl text-emerald-600"></i>
+            </div>
+            <h4 class="text-xl font-black text-slate-900 mb-2">Request Received</h4>
+            <p class="text-slate-500 text-sm">Thanks for reaching out! We will contact you shortly to confirm your demo.</p>
+        </div>
+    </div>
+
     <script>
         const mobileMenu = document.getElementById('mobile-menu');
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -494,6 +764,66 @@
         contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && contactDrawer?.classList.contains('is-open')) setContactDrawerOpen(false);
+        });
+
+        // Demo Modal
+        const demoModal = document.getElementById('demo-modal');
+        const demoModalOverlay = document.getElementById('demo-modal-overlay');
+        const demoModalClose = document.getElementById('demo-modal-close');
+        const demoForm = document.getElementById('demo-form');
+        const demoSuccess = document.getElementById('demo-success');
+
+        function setDemoModalOpen(open) {
+            if (!demoModal || !demoModalOverlay) return;
+            demoModal.classList.toggle('is-open', open);
+            demoModalOverlay.classList.toggle('is-open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+            if (open) demoModalClose?.focus();
+        }
+
+        document.getElementById('open-demo-modal')?.addEventListener('click', () => setDemoModalOpen(true));
+        document.getElementById('open-demo-modal-pricing')?.addEventListener('click', () => setDemoModalOpen(true));
+        demoModalClose?.addEventListener('click', () => setDemoModalOpen(false));
+        demoModalOverlay?.addEventListener('click', () => setDemoModalOpen(false));
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && demoModal?.classList.contains('is-open')) setDemoModalOpen(false);
+        });
+
+        demoForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = demoForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+
+            const formData = new FormData(demoForm);
+            const payload = Object.fromEntries(formData.entries());
+        
+            if (payload.date) {
+                payload.demoDate = new Date(payload.date).toISOString();
+                delete payload.date;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/public/demo-requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    demoForm.style.display = 'none';
+                    demoSuccess.style.display = 'flex';
+                    demoForm.reset();
+                } else {
+                    alert('Something went wrong. Please try again.');
+                }
+            } catch (err) {
+                alert('Connection error. Please try again.');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         });
     </script>
     <script src="/landing-analytics.js" defer></script>

@@ -118,6 +118,7 @@ model upward_admin {
   updatedAt            DateTime           @updatedAt
   logs                 upward_admin_log[]
   bulkImportJobs       upward_pm_bulk_import_job[]
+  subscriptionLogs     upward_subscription_log[]
 
   @@index([email])
 }

@@ -23,6 +23,9 @@ import { useRouter } from 'next/navigation'
 import { useSocket } from '@/hooks/useSocket'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
+import { useSubscription } from '../../hooks/useSubscription'
+import { usePricingModal } from '../../hooks/usePricingModal'
+import { FeatureKey } from '../../types/subscription'
 
 interface DocumentManagementViewProps {
   onNewDocument: () => void
@@ -38,6 +41,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
   const { success } = useToast()
   const queryClient = useQueryClient()
   const socket = useSocket()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
   
   React.useEffect(() => {
     if (!socket) return;
@@ -226,7 +231,19 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 </button>
                 {doc.tenant?.phone && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleSendViaWhatsApp(doc); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const isFreeTemplate = 
+                        doc.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' || 
+                        doc.subject === 'Your Good Rental History Should Work for You' ||
+                        doc.subject === 'Getting Started' ||
+                        doc.subject === 'Benefits';
+                      if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                        openPricing()
+                      } else {
+                        handleSendViaWhatsApp(doc);
+                      }
+                    }}
                     className="dropdown-item"
                     disabled={isSendingWhatsApp === doc.uuid}
                     style={{ color: 'var(--forest)' }}
@@ -236,7 +253,20 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                 )}
                 <div style={{ height: 1, background: 'var(--border)' }} />
                 <button
-                  onClick={(e) => { e.stopPropagation(); onResendDocument(doc); setActiveMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const isFreeTemplate = 
+                      doc.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' || 
+                      doc.subject === 'Your Good Rental History Should Work for You' ||
+                      doc.subject === 'Getting Started' ||
+                      doc.subject === 'Benefits';
+                    if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                      openPricing()
+                    } else {
+                      onResendDocument(doc);
+                    }
+                    setActiveMenu(null);
+                  }}
                   className="dropdown-item"
                   style={{ color: 'var(--clay)' }}
                 >
@@ -287,8 +317,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
                     title={t.name}
                     type={t.type}
                     isSystem={t.uuid?.startsWith('system-') || t.isSystem}
-                    onClick={() => onSelectTemplate(t)}
-                    onEdit={() => onEditTemplate?.(t)}
+                    onClick={() => {
+                      const isFreeTemplate = t.name === 'Getting Started' || t.name === 'Benefits' || t.uuid === 'system-onboarding-1' || t.uuid === 'system-onboarding-2';
+                      if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                        openPricing()
+                      } else {
+                        onSelectTemplate(t)
+                      }
+                    }}
+                    onEdit={() => {
+                      if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                        openPricing()
+                      } else {
+                        onEditTemplate?.(t)
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -315,7 +358,13 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             <Users size={20} /> Send Bulk Document
           </button>
           <button
-            onClick={onCreateTemplate}
+            onClick={() => {
+              if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                openPricing()
+              } else {
+                onCreateTemplate()
+              }
+            }}
             className="btn btn--primary"
             style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
           >
@@ -343,8 +392,21 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               title={t.name}
               type={t.type}
               isSystem={t.uuid?.startsWith('system-') || t.isSystem}
-              onClick={() => onSelectTemplate(t)}
-              onEdit={() => onEditTemplate?.(t)}
+              onClick={() => {
+                const isFreeTemplate = t.name === 'Getting Started' || t.name === 'Benefits' || t.uuid === 'system-onboarding-1' || t.uuid === 'system-onboarding-2';
+                if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                  openPricing()
+                } else {
+                  onSelectTemplate(t)
+                }
+              }}
+              onEdit={() => {
+                if (!checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                  openPricing()
+                } else {
+                  onEditTemplate?.(t)
+                }
+              }}
             />
           ))}
         </div>
@@ -416,7 +478,22 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             <div className="preview-body" dangerouslySetInnerHTML={{ __html: previewDocument.content }} />
             <footer className="preview-footer">
               <button className="btn btn--secondary" onClick={() => setPreviewDocument(null)}>Close</button>
-              <button className="btn btn--primary" onClick={() => { onResendDocument(previewDocument); setPreviewDocument(null); }}>
+              <button 
+                className="btn btn--primary" 
+                onClick={() => { 
+                  const isFreeTemplate = 
+                    previewDocument.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' || 
+                    previewDocument.subject === 'Your Good Rental History Should Work for You' ||
+                    previewDocument.subject === 'Getting Started' ||
+                    previewDocument.subject === 'Benefits';
+                  if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                    openPricing()
+                  } else {
+                    onResendDocument(previewDocument);
+                  }
+                  setPreviewDocument(null); 
+                }}
+              >
                 Edit & Resend
               </button>
             </footer>

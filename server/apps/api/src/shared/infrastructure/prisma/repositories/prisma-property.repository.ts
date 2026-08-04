@@ -123,6 +123,9 @@ export class PrismaPropertyRepository implements PropertyRepository {
       pmUnitId: property.pmUnitId,
       amountPaid: property.amountPaid,
       amountRemaining: property.amountRemaining,
+      platformId: property.platformId,
+      externalUnitId: property.externalUnitId,
+      externalPropertyId: property.externalPropertyId,
     }
     if (property.subaccountId !== undefined) {
       data.subaccountId = property.subaccountId
@@ -149,6 +152,28 @@ export class PrismaPropertyRepository implements PropertyRepository {
       where: { id },
       data: prismaData,
     })
+    return record as unknown as Property
+  }
+
+  async findByPlatformUnit(platformId: number, externalUnitId: string, tx?: Prisma.TransactionClient): Promise<Property | null> {
+    const prisma = tx || this.prisma
+    const record = await prisma.upward_user_property.findFirst({
+      where: {
+        platformId,
+        externalUnitId,
+      },
+      include: {
+        company: true,
+        manager: true,
+        location: true,
+        pm: true,
+        pmUnit: {
+          include: { property: { include: { manualAccount: true } } }
+        },
+        manualAccount: true,
+      },
+    })
+    if (!record) return null
     return record as unknown as Property
   }
 }

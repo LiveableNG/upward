@@ -160,6 +160,19 @@ export function FormSelect({
             type="button"
             className={`upward-filter-item ${value === option.value ? 'upward-filter-item--active' : ''}`}
             onClick={() => handleSelect(option.value)}
+            style={{
+              color: value === option.value ? 'var(--forest)' : '#374151',
+              fontWeight: value === option.value ? 700 : 500,
+              padding: '10px 16px',
+              width: '100%',
+              textAlign: 'left',
+              background: value === option.value ? 'var(--forest-faint)' : 'transparent',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              display: 'block',
+              fontSize: '14px'
+            }}
           >
             {option.label}
           </button>

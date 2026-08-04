@@ -56,6 +56,8 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
   const [loading, setLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [otpVal, setOtpVal] = useState(['', '', '', '', '', ''])
+  const nativePlatform = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()
+  const [signupHref, setSignupHref] = useState(nativePlatform ? '/signup' : '/pm-signup')
   
   // Landlord existence check
   const [landlordExists, setLandlordExists] = useState<boolean | null>(null)
@@ -100,6 +102,13 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
     return () => clearTimeout(timer)
   }, [emailValue, selectedRole])
+
+  useEffect(() => {
+    if (nativePlatform || typeof window === 'undefined') return
+    const pmType = new URLSearchParams(window.location.search).get('pmType')
+    if (!pmType) return
+    setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)
+  }, [nativePlatform])
 
   const handleRoleSelect = (role: 'manager' | 'landlord') => {
     setSelectedRole(role)
@@ -290,7 +299,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
   const isLoadingGlobal = loading || pmLoginMutation.isPending || pmOtpLoginMutation.isPending || pmRequestOtpMutation.isPending;
 
-  const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
+  const isNative = nativePlatform
 
   return (
     <div className="mobile-auth">
@@ -314,7 +323,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
             {isNative ? (
               <UpwardLogo size={32} color="var(--forest)" />
             ) : (
-              <a href={process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}>
+              <a href={`${process.env.NEXT_PUBLIC_WEB_URL || "https://upward.goodtenants.io"}/for-pm`}>
                 <UpwardLogo size={32} color="var(--forest)" />
               </a>
             )}
@@ -374,7 +383,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
             <div className="mobile-auth__footer">
               <p className="auth-footer">
-                Don&apos;t have an account? <Link href={isNative ? "/signup" : "/pm-signup"}>Create one for free</Link>
+                Don&apos;t have an account? <Link href={signupHref}>Create one for free</Link>
               </p>
             </div>
           </div>
@@ -538,7 +547,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
                       ))}
                     </div>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                      Verification code sent. Check your inbox <strong>(and spam)</strong>.
+                      We&apos;ve sent a 6-digit verification code to <strong>{emailValue}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
                     </p>
                   </div>
                 )}
@@ -557,7 +566,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
             <div className="mobile-auth__footer" style={{ marginTop: '24px', textAlign: 'center' }}>
               <p className="auth-footer">
-                Don&apos;t have an account? <Link href={isNative ? "/signup" : "/pm-signup"}>Create one for free</Link>
+                Don&apos;t have an account? <Link href={signupHref}>Create one for free</Link>
               </p>
             </div>
           </form>

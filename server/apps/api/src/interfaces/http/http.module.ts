@@ -68,17 +68,21 @@ import { ManualPaymentsController } from './controllers/manual-payments.controll
 import { AdminWhatsappSequenceController } from './admin/whatsapp-sequence.controller'
 import { AdminEmailSequenceController } from './admin/email-sequence.controller'
 import { PublicDocumentController } from './public/public-document.controller'
+import { SubscriptionController } from './controllers/subscription.controller'
 import {
   PmBulkImportController,
   AdminBulkImportController,
 } from './controllers/bulk-import.controller'
+import { DemoRequestController } from './public/demo-request.controller'
 
+import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
 
 @Module({
-  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule],
+  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule, SubscriptionModule],
   providers: [NotificationsGateway],
   controllers: [
+    SubscriptionController,
     ManualPaymentsController,
     AdminAuthController,
     AdminFeesController,
@@ -145,6 +149,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PublicDocumentController,
     PmBulkImportController,
     AdminBulkImportController,
+    DemoRequestController,
   ],
 })
 export class HttpModule {}

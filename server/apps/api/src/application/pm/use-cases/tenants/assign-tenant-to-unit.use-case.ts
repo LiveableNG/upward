@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { 
   PM_UNIT_REPOSITORY, 
   IUnitRepository, 
@@ -11,9 +11,12 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 import { SyncUnitToUpwardUseCase } from '../units/sync-unit.use-case';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { CreatePmPaymentRequestUseCase } from '../payments/create-pm-payment-request.use-case';
 
 @Injectable()
 export class AssignTenantToUnitUseCase {
+  private readonly logger = new Logger(AssignTenantToUnitUseCase.name);
+
   constructor(
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepo: IUnitRepository,
@@ -26,6 +29,7 @@ export class AssignTenantToUnitUseCase {
     private readonly prisma: PrismaService,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly encryption: EncryptionService,
+    private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
   ) {}
 
   async execute(
@@ -95,15 +99,40 @@ export class AssignTenantToUnitUseCase {
         });
       }
 
+      // ── Resolve Upward user and attempt sync ──────────────────────────────
       const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
-      
+
+      let syncSucceeded = false;
       if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
         try {
           await this.syncUnitToUpwardUseCase.execute(unitUuid, pmId);
+          syncSucceeded = true;
         } catch (error) {
           console.error(`Auto-sync failed for unit ${unitUuid} during assignment:`, error);
         }
       }
+
+      if (isFullyPaid === false) {
+        const effectivePaid = rentAmountPaid ?? 0;
+        const remainingAmount = effectiveRentAmount - effectivePaid;
+
+        const freshUnit = await this.unitRepo.findByUuid(unitUuid);
+        const isUnitSynced = freshUnit?.isSynced && !!freshUnit?.userPropertyUuid;
+
+        if (syncSucceeded && isUnitSynced) {
+
+          await this.autoCreateInitialPR(
+            pmId, unitUuid, remainingAmount,
+            rentType || unit.rentType,
+            rentStartDate || unit.rentStartDate,
+            rentDueDate || unit.rentDueDate,
+          );
+        } else {
+          this.logger.log(`Unit ${unitUuid}: deferring initial PR (pendingInitialPrAmount=${remainingAmount})`);
+          await this.unitRepo.update(unitUuid, { pendingInitialPrAmount: remainingAmount });
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       try {
         const logs = await this.prisma.upward_pm_activity_log.findMany({
@@ -163,6 +192,33 @@ export class AssignTenantToUnitUseCase {
         isSynced: false,
         userPropertyUuid: null
       });
+    }
+  }
+
+  private async autoCreateInitialPR(
+    pmId: number,
+    unitUuid: string,
+    remainingAmount: number,
+    rentType: string | null | undefined,
+    rentStartDate: Date | null | undefined,
+    rentDueDate: Date | null | undefined,
+  ): Promise<void> {
+    try {
+      const dueDate = rentDueDate?.toISOString() || new Date().toISOString();
+      await this.createPmPaymentRequestUseCase.execute(pmId, {
+        unitUuid,
+        amount: remainingAmount,
+        dueDate,
+        rentStartDate: rentStartDate?.toISOString(),
+        rentEndDate: rentDueDate?.toISOString(),
+        rentType: rentType || undefined,
+        description: 'Outstanding rent balance — initial payment recorded',
+        silent: true,
+        bypassWelcomeCheck: true,
+      });
+      this.logger.log(`Auto-created initial balance PR for unit ${unitUuid}, amount=${remainingAmount}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to auto-create initial PR for unit ${unitUuid}: ${err.message}`);
     }
   }
 }

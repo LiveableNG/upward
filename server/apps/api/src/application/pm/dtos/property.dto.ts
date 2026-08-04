@@ -98,7 +98,8 @@ export class UpdatePropertyDto {
 // --- Mode B: Units-only import for an existing property ---
 export class UnitImportDto {
   @IsString()
-  unitName!: string;
+  @IsOptional()
+  unitName?: string;
 
   @IsString()
   @IsOptional()
@@ -124,8 +125,7 @@ export class UnitImportDto {
   rentAmount!: number;
 
   @IsNumber()
-  @IsOptional()
-  rentAmountPaid?: number;
+  rentAmountPaid!: number;
 
   @IsBoolean()
   @IsOptional()
@@ -199,9 +199,10 @@ export class BulkCreateUnitsDto {
 
 // --- Mode A: Full import (property + landlord + tenant + unit in one flat row) ---
 export class FullImportRowDto {
-  // Property (required)
+  // Property Name is optional — falls back to truncated address when absent
   @IsString()
-  propertyName!: string;
+  @IsOptional()
+  propertyName?: string;
 
   @IsString()
   propertyAddress!: string;
@@ -260,16 +261,20 @@ export class FullImportRowDto {
   @IsOptional()
   tenantPhone?: string;
 
-  // Unit (name + rentAmount required)
   @IsString()
-  unitName!: string;
+  @IsOptional()
+  tenantAdditionalPhone?: string;
+
+  // Unit name is optional — auto-generated from address when absent
+  @IsString()
+  @IsOptional()
+  unitName?: string;
 
   @IsNumber()
   unitRentAmount!: number;
 
   @IsNumber()
-  @IsOptional()
-  unitRentAmountPaid?: number;
+  unitRentAmountPaid!: number;
 
   @IsString()
   @IsOptional()

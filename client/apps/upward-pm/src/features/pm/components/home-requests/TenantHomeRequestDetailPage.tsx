@@ -35,6 +35,9 @@ import {
   statusLabelKey,
 } from '@/features/pm/utils/tenantHomeRequests'
 import '@/styles/home-requests.css'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { FeatureKey } from '@/features/pm/types/subscription'
 
 function whatsappHref(phone: string): string {
   const digits = phone.replace(/[^\d]/g, '')
@@ -44,6 +47,8 @@ function whatsappHref(phone: string): string {
 
 export function TenantHomeRequestDetailPage({ requestId }: { requestId: string }) {
   const router = useRouter()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
   const [request, setRequest] = useState<PmHomeRequest | null>(null)
   const [loading, setLoading] = useState(true)
   const [revealing, setRevealing] = useState(false)
@@ -79,13 +84,18 @@ export function TenantHomeRequestDetailPage({ requestId }: { requestId: string }
 
   const handleReveal = async () => {
     if (!request || revealing) return
+    const access = checkAccess(FeatureKey.LISTING_BROKERAGE)
+    if (!access.hasAccess) {
+      openPricing()
+      return
+    }
     setRevealing(true)
     setError('')
     try {
       const updated = await revealHomeRequestContact(request.uuid)
       setRequest(updated)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reveal contact')
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to reveal contact')
     } finally {
       setRevealing(false)
     }

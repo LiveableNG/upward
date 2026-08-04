@@ -107,6 +107,7 @@ export class GetPerformanceMetricsUseCase {
       }),
       this.prisma.upward_waitlist.findMany({
         where: {
+          isInternal: false,
           ...(startDate || endDate
             ? {
                 createdAt: {
@@ -177,6 +178,9 @@ export class GetPerformanceMetricsUseCase {
       this.prisma.upward_transaction.findMany({
         where: {
           status: 'SUCCESS',
+          user: {
+            isInternal: false,
+          },
           ...(startDate || endDate
             ? {
                 createdAt: {
@@ -214,6 +218,7 @@ export class GetPerformanceMetricsUseCase {
       }),
       this.prisma.upward_company.findMany({
         where: {
+          isInternal: false,
           ...(startDate || endDate
             ? {
                 createdAt: {
@@ -231,6 +236,8 @@ export class GetPerformanceMetricsUseCase {
               currency: true,
               subaccountId: true,
               createdAt: true,
+              externalPropertyId: true,
+              externalUnitId: true,
               subaccount: { select: { uuid: true } },
             },
           },
@@ -259,6 +266,79 @@ export class GetPerformanceMetricsUseCase {
           createdAt: 'asc',
         },
       }),
+      this.prisma.upward_communication_log.findMany({
+        where: {
+          channel: 'EMAIL',
+          OR: [
+            {
+              type: {
+                in: [
+                  'BULK',
+                  'TENANT_INVITE',
+                  'SEQUENCE',
+                  'ONBOARDING_SEQUENCE_WELCOME',
+                  'EMAIL_SEQUENCE'
+                ]
+              }
+            },
+            {
+              emailSequenceLogId: { not: null }
+            }
+          ],
+          NOT: [
+            { subject: { startsWith: '[CRITICAL ERROR]' } },
+            { subject: { contains: 'Assisted Upload' } },
+            { subject: { contains: 'document' } },
+            { subject: { contains: 'vault' } },
+            { subject: { contains: 'Property Unit' } },
+            { subject: { contains: 'admin access' } },
+            { subject: { contains: 'Admin Access' } },
+            { subject: { contains: 'Rent Request' } },
+            { subject: { contains: 'Login Code' } },
+            { subject: { contains: 'OTP' } },
+          ],
+          ...(startDate || endDate
+            ? {
+                createdAt: {
+                  ...(startDate && { gte: new Date(startDate) }),
+                  ...(endDate && { lte: new Date(endDate) }),
+                },
+              }
+            : {}),
+        },
+        select: {
+          subject: true,
+          isOpened: true,
+          emailSequenceLog: {
+            select: { isOpened: true }
+          }
+        }
+      }),
+      this.prisma.upward_auth_session.count({
+        where: {
+          ...(startDate || endDate
+            ? {
+                createdAt: {
+                  ...(startDate && { gte: new Date(startDate) }),
+                  ...(endDate && { lte: new Date(endDate) }),
+                },
+              }
+            : {}),
+        }
+      }).then(tenantCount =>
+        this.prisma.upward_pm_auth_session.count({
+          where: {
+            ...(startDate || endDate
+              ? {
+                  createdAt: {
+                    ...(startDate && { gte: new Date(startDate) }),
+                    ...(endDate && { lte: new Date(endDate) }),
+                  },
+                }
+              : {}),
+          }
+        }).then(pmCount => tenantCount + pmCount)
+      ),
     ])
 
     const allUsers = _results[0] as any[]
@@ -269,6 +349,8 @@ export class GetPerformanceMetricsUseCase {
     const activeUserGroups = _results[5] as any[]
     const allCompanies = _results[6] as any[]
     const inviteLogs = _results[7] as any[]
+    const emailLogsInTimeframe = _results[8] as any[]
+    const activityLogsCountInTimeframe = _results[9] as number
 
     const waitlistEmails = new Set(allWaitlistEntries.map((w) => w.email.toLowerCase()))
     const allUserEmailHashes = new Set(allUsers.map((u) => u.emailHash))
@@ -348,6 +430,35 @@ export class GetPerformanceMetricsUseCase {
           activeRate: allUsers.length > 0 ? Math.round((activeUserGroups.length / allUsers.length) * 100) : 0,
           totalUsersWithPassword: signedUpMetrics.totalUsersWithPassword,
         },
+        emailLogsSummary: {
+          totalSent: emailLogsInTimeframe.length,
+          totalOpened: emailLogsInTimeframe.filter(l => l.isOpened || l.emailSequenceLog?.isOpened).length,
+          totalNotOpened: emailLogsInTimeframe.filter(l => !(l.isOpened || l.emailSequenceLog?.isOpened)).length,
+          openRate: emailLogsInTimeframe.length > 0 ? Math.round((emailLogsInTimeframe.filter(l => l.isOpened || l.emailSequenceLog?.isOpened).length / emailLogsInTimeframe.length) * 100) : 0,
+          bySubject: (Object.entries(
+            emailLogsInTimeframe.reduce((acc, log) => {
+              let sub = log.subject || 'No Subject';
+              if (sub.startsWith('Invitation to join Upward')) {
+                sub = 'Invitation to join Upward';
+              }
+              if (!acc[sub]) {
+                acc[sub] = { sent: 0, opened: 0 }
+              }
+              acc[sub].sent += 1
+              if (log.isOpened || log.emailSequenceLog?.isOpened) {
+                acc[sub].opened += 1
+              }
+              return acc
+            }, {} as Record<string, { sent: number; opened: number }>)
+          ) as [string, { sent: number; opened: number }][]).map(([subject, counts]) => ({
+            subject,
+            sent: counts.sent,
+            opened: counts.opened,
+            notOpened: counts.sent - counts.opened,
+            openRate: counts.sent > 0 ? Math.round((counts.opened / counts.sent) * 100) : 0
+          }))
+        },
+        activitySessionsCount: activityLogsCountInTimeframe,
       },
       directories: {
         waitlist: filterList(waitlistMetrics.finalWaitlistDirectory),

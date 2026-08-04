@@ -7,6 +7,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
 import { InitializeUserSequenceUseCase } from '../../../application/use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
 import { InitializeEmailSequenceUseCase } from '../../../application/use-cases/email-sequence/initialize-email-sequence.use-case'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import * as bcrypt from 'bcrypt'
 
 interface FastifyReply {
@@ -50,6 +51,7 @@ export class InviteController {
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
     private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
+    private readonly emailService: EmailService,
   ) { }
 
   @Get(':token')
@@ -205,6 +207,7 @@ export class InviteController {
       email: data.email || user.email,
     })
     await this.userAuthService.syncTenantStatuses(user.email)
+    this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification on invite accept', e))
 
     const updatedUser = await this.userRepository.findById(user.id!)
     if (!updatedUser) throw new Error('Failed to update user')
@@ -277,6 +280,8 @@ export class InviteController {
           email: updated.email,
         }).catch(e => console.error('Failed to init Email sequence on invite accept', e))
       }
+
+      this.userAuthService.sendWelcomeMessages(updatedUser, updatedUser.firstName, pmName).catch(e => console.error('Failed to send welcome messages on invite accept', e))
     } catch (e) {
       console.error('Error initializing sequences on invite accept', e)
     }

@@ -19,6 +19,7 @@ import { EventsModule } from './application/events/events.module'
 import { HttpModule } from './interfaces/http/http.module'
 import { ActivityTrackingModule } from './shared/infrastructure/activity-tracking/activity-tracking.module'
 import { SchedulingModule } from './scheduling/scheduling.module'
+import { SubscriptionModule } from './domains/subscription/subscription.module'
 
 import { CommunicationModule } from './shared/infrastructure/communication/communication.module'
 
@@ -42,6 +43,7 @@ import { CommunicationModule } from './shared/infrastructure/communication/commu
     BugsnagModule,
     ActivityTrackingModule,
     SchedulingModule,
+    SubscriptionModule,
 
     // Core Layers
     AuthModule,

@@ -115,3 +115,24 @@
     display: none;
   }
 }
+
+.desktop-header__wallet-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 14px;
+  background-color: var(--forest-faint, rgba(22, 101, 52, 0.06));
+  color: var(--forest, #166534);
+  border: 1px solid rgba(22, 101, 52, 0.15);
+  border-radius: var(--radius-full, 9999px);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.desktop-header__wallet-pill:hover {
+  background-color: var(--forest-glow, rgba(22, 101, 52, 0.2));
+  transform: translateY(-1px);
+}
+

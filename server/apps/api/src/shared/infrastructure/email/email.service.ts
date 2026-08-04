@@ -338,13 +338,64 @@ export class EmailService {
       return
     }
 
+    let uuid = id
+    let displayName = 'Unknown'
+    let emailAddress = 'Unknown'
+
+    if (id) {
+      if (role === 'USER') {
+        const isNumeric = /^\d+$/.test(id)
+        const user = await this.prisma.upward_user.findFirst({
+          where: isNumeric ? { id: parseInt(id, 10) } : { uuid: id },
+          select: { uuid: true, firstName: true, lastName: true, email: true },
+        })
+        if (user) {
+          uuid = user.uuid
+          const fn = user.firstName ? this.encryption.decrypt(user.firstName) : ''
+          const ln = user.lastName ? this.encryption.decrypt(user.lastName) : ''
+          displayName = `${fn} ${ln}`.trim() || 'Unknown'
+          emailAddress = user.email ? this.encryption.decrypt(user.email) : 'Unknown'
+        }
+      } else if (role === 'PM') {
+        const isNumeric = /^\d+$/.test(id)
+        const pm = await this.prisma.upward_property_manager.findFirst({
+          where: isNumeric ? { id: parseInt(id, 10) } : { uuid: id },
+          select: { uuid: true, firstName: true, lastName: true, email: true },
+        })
+        if (pm) {
+          uuid = pm.uuid
+          const fn = pm.firstName ? this.encryption.decrypt(pm.firstName) : ''
+          const ln = pm.lastName ? this.encryption.decrypt(pm.lastName) : ''
+          displayName = `${fn} ${ln}`.trim() || 'Unknown'
+          emailAddress = pm.email ? this.encryption.decrypt(pm.email) : 'Unknown'
+        }
+      }
+    }
+
+    const adminSiteUrl = (this.configService.get<string>('ADMIN_SITE_URL') || 'https://admin.upward.goodtenants.io').split(',')[0]!.trim()
+    const profileUrl = uuid ? `${adminSiteUrl}/${role === 'PM' ? 'pms' : 'users'}/${uuid}` : null
+
     const subject = `New ${role} Signup Alert`
-    const html = `<div style="font-family: sans-serif; padding: 20px;">
-      <h2>New ${role} Signup</h2>
-      <p>A new ${role} has successfully registered on the platform.</p>
-      <p><strong>System ID:</strong> ${id || 'Unknown'}</p>
+    const html = `<div style="font-family: sans-serif; padding: 20px; line-height: 1.5; color: #333;">
+      <h2 style="color: #166534; margin-bottom: 20px;">New ${role} Signup</h2>
+      <p style="font-size: 15px;">A new ${role.toLowerCase()} has successfully registered on the platform.</p>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 25px;">
+        <tr>
+          <td style="padding: 8px 0; font-weight: bold; width: 120px; border-bottom: 1px solid #eee;">Name:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${displayName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${emailAddress}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #eee;">System ID:</td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${id || 'Unknown'}</td>
+        </tr>
+      </table>
+      ${profileUrl ? `<p style="margin-top: 20px;"><a href="${profileUrl}" style="background-color: #166534; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">View Profile in Admin Portal</a></p>` : ''}
     </div>`
-    const text = `New ${role} Signup. ID: ${id || 'Unknown'}`
+    const text = `New ${role} Signup.\nName: ${displayName}\nEmail: ${emailAddress}\nID: ${id || 'Unknown'}${profileUrl ? `\nView Profile: ${profileUrl}` : ''}`
 
     await Promise.allSettled(
       alertAdmins.map(({ email }) =>

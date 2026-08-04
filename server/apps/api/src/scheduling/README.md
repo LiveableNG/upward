@@ -50,6 +50,7 @@ Do **not** put `@Cron` on individual services. Register jobs only in `defineSche
 | `settlements` | hourly | Settlements and automated refunds |
 | `rentReminders` | daily at 08:00 | Tenant rent-end reminders |
 | `dailySequences` | daily at 08:00 | Queue daily WhatsApp / email sequences |
+| `homeRequestDigest` | daily at 08:00 | Email digest of prior day's home requests, sent to all PMs |
 | `pmDailyDigest` | daily at 09:00 | PM daily rent digests |
 
 ## Adding a new job
