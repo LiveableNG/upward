@@ -404,12 +404,16 @@ export function RequestAHomeForm() {
           <BudgetGuidance
             locations={selectedLocations}
             bedrooms={beds}
-            onApplyMin={(value) =>
-              setValue('budgetMin', value as FormData['budgetMin'], {
+            onApplyRange={(min, max) => {
+              setValue('budgetMin', min as FormData['budgetMin'], {
                 shouldValidate: true,
                 shouldDirty: true,
               })
-            }
+              setValue('budgetMax', max as FormData['budgetMax'], {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }}
           />
           <div className="rah-grid rah-grid--2">
             <div className="rah-field">
