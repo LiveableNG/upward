@@ -91,7 +91,7 @@ export class SyncUnitToUpwardUseCase {
     if (!company) {
       company = await this.companyRepo.save({
         uuid: crypto.randomUUID(),
-        name: 'UPWARD',
+        name: pmBusinessName,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any);

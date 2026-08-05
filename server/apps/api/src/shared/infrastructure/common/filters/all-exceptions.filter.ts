@@ -51,14 +51,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status = isHttp ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
     const message = isHttp ? exception.getResponse() : exception.message || 'Internal server error'
 
+    const isTest = process.env.NODE_ENV === 'test' || !!process.env.DATABASE_URL_TEST
+
     // Temporary debug logging
-    console.error('--- EXCEPTION CAUGHT BY FILTER ---')
-    console.error(exception)
-    if (exception.stack) console.error(exception.stack)
-    console.error('----------------------------------')
+    if (!isTest) {
+      console.error('--- EXCEPTION CAUGHT BY FILTER ---')
+      console.error(exception)
+      if (exception.stack) console.error(exception.stack)
+      console.error('----------------------------------')
+    }
 
     // 1. Log to Bugsnag — skip noisy/expected errors
-    if (status >= 400 && !shouldExcludeFromBugsnag(exception, status, request)) {
+    if (!isTest && status >= 400 && !shouldExcludeFromBugsnag(exception, status, request)) {
       Bugsnag.notify(exception as any, (event) => {
         event.addMetadata('request', {
           url: request.url,
