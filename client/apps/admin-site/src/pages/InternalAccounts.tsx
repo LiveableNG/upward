@@ -14,6 +14,7 @@ type InternalAccount = {
   isInternal: boolean
   hasRealPassword?: boolean
   inviteStatus?: string
+  pmType?: string | null
   _type: 'user' | 'pm' | 'guest' | 'company' | 'waitlist'
 }
 
@@ -178,17 +179,27 @@ export default function InternalAccounts({ token }: { token: string }) {
                   'Guest'}
               </td>
               <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                <span
-                  style={{
-                    padding: '2px 6px',
-                    background: 'var(--surface-hover)',
-                    borderRadius: '4px',
-                    fontSize: '11px',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {item._type}
-                </span>
+                {(() => {
+                  const isPlatform = item._type === 'company'
+                  const label = isPlatform ? 'platform' : item._type
+                  const bg = isPlatform ? '#7c3aed22' : 'var(--surface-hover)'
+                  const color = isPlatform ? '#7c3aed' : 'inherit'
+                  return (
+                    <span
+                      style={{
+                        padding: '2px 6px',
+                        background: bg,
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        textTransform: 'uppercase',
+                        color,
+                        fontWeight: isPlatform ? 700 : 'inherit',
+                      }}
+                    >
+                      {label}
+                    </span>
+                  )
+                })()}
               </td>
               <td
                 style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}
