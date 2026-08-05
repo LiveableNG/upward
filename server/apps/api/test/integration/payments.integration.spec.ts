@@ -125,11 +125,17 @@ describe('Payments Webhook (Integration)', () => {
         });
 
         // 4. Construct payload mimicking Paystack's charge.success structure
+        // The fee structure for rent < 1,000,000 NGN is: txFee=500, benefitsFee=1000
+        // Total = 100,000 rent + 500 txFee + 1,000 benefitsFee = 101,500 NGN
+        const RENT_AMOUNT = 100000;
+        const TX_FEE = 500;
+        const BENEFITS_FEE = 1000;
+        const TOTAL_PAID = RENT_AMOUNT + TX_FEE + BENEFITS_FEE; // 101500
         const payload = {
           event: 'charge.success',
           data: {
-            reference: `TFD_PAYMENT_100450_${Date.now()}`,
-            amount: 10045000, // 100,450 NGN = 100,000 rent + 450 processing fee
+            reference: `TFD_PAYMENT_${TOTAL_PAID}_${Date.now()}`,
+            amount: TOTAL_PAID * 100, // Paystack sends amount in kobo (101500 * 100 = 10150000)
             currency: 'NGN',
             status: 'success',
             metadata: {
@@ -170,14 +176,14 @@ describe('Payments Webhook (Integration)', () => {
         });
 
         expect(updatedPaymentRequest?.status).toBe('PAID');
-        expect(updatedPaymentRequest?.amountPaid).toBe(100000);
+        expect(updatedPaymentRequest?.amountPaid).toBe(RENT_AMOUNT);
 
         const tx = await prisma.upward_transaction.findFirst({
           where: { reference: payload.data.reference },
         });
 
         expect(tx).toBeDefined();
-        expect(tx?.amount).toBe(100450);
+        expect(tx?.amount).toBe(TOTAL_PAID); // 101500
         expect(tx?.status).toBe('SUCCESS');
       });
 

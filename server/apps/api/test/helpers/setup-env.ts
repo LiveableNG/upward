@@ -42,4 +42,4 @@ process.env.WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || 'test-whatsapp';
 process.env.WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'test-whatsapp';
 process.env.WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || 'test-whatsapp';
 process.env.WHATSAPP_BUSINESS_ACCOUNT_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || 'test-whatsapp';
-
+process.env.REMOVE_TRANSACTION_FEE='true'
