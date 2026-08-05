@@ -8,7 +8,7 @@
     "start": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "type-check": "tsc --noEmit",
-    "test": "jest --passWithNoTests",
+    "test": "jest --testPathIgnorePatterns=integration --passWithNoTests",
     "test:integration": "jest --config jest-integration.json --runInBand --passWithNoTests",
     "prisma:generate": "prisma generate --schema=prisma/schema",
     "postinstall": "prisma generate --schema=prisma/schema",
