@@ -1,0 +1,69 @@
+# Robust Testing Infrastructure Implementation Plan
+
+This plan introduces a tiered integration testing system to ensure that core features (Authentication, Payments, and API Keys) are verified automatically and never break during deployments.
+
+---
+
+## Selected Database Strategy
+
+> [!NOTE]
+> We will use a dedicated test database URL defined by the `DATABASE_URL_TEST` environment variable.
+> - **Local Docker/Native**: Developers can set this to their local Postgres container or native local Postgres instance (e.g., `postgresql://localhost:5432/upward_test`).
+> - **CI/CD Pipeline**: GitHub Actions will spin up a transient PostgreSQL container service and inject `DATABASE_URL_TEST` automatically.
+> - **Fallback**: If `DATABASE_URL_TEST` is not set locally, the integration tests will print a clear message and skip gracefully (or fail with instructions) so developers without local databases aren't blocked.
+
+---
+
+## Proposed Phases
+
+We will implement this in 4 sequential phases. You can approve and execute them one by one.
+
+### Phase 1: Authentication across PMS & Tenants [Current Phase]
+We will configure the integration testing environment and write tests to verify cookie-based JWT authentication.
+
+#### [NEW] [jest-integration.json](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/jest-integration.json)
+Configure Jest to run tests matching `*.integration.spec.ts` with a dedicated test environment setup.
+
+#### [NEW] [test-db-helper.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/test/helpers/test-db-helper.ts)
+Helper module to reset and seed the test database using Prisma before each test suite runs.
+
+#### [NEW] [auth.integration.spec.ts](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/server/apps/api/test/integration/auth.integration.spec.ts)
+- Test `/auth/login` to confirm cookies (`access_token`, `tenant_refresh`) are correctly set in the response headers.
+- Test protected endpoints under PMS and Tenant controllers to verify that request access is blocked/permitted correctly based on the cookies sent.
+- Test `/auth/refresh` to verify token rotation works as expected.
+
+---
+
+### Phase 2: Payment Infrastructure
+Verify webhook handling, database updates, and transactional safety under `server/apps/api/test/integration/payments.integration.spec.ts`.
+
+- Simulate webhook payloads (from Paystack, Stripe, etc.) posted to the API.
+- Verify status changes in the database (e.g. contracts activated, wallet balances updated) using Prisma queries directly in tests.
+- Ensure malformed webhooks or invalid signatures are rejected with correct status codes (`400`/`401`).
+
+---
+
+### Phase 3: Upward to Platform Communication (API Keys)
+Verify API key parsing, middleware validation, and permission scoping under `server/apps/api/test/integration/platform.integration.spec.ts`.
+
+- Test validation of custom request headers (`x-api-key`).
+- Verify that request scoping works (e.g., API keys scoped for read-only fail on mutation endpoints).
+- Test key revocation scenarios (valid keys vs revoked keys).
+
+---
+
+### Phase 4: CI/CD Automation
+Integrate the newly created integration tests into the CI/CD pipeline.
+
+#### [MODIFY] [ci.yml](file:///c:/Users/owner/Desktop/2025/Good%20Tenant/upward/.github/workflows/ci.yml)
+- Update CI workflow to start a lightweight PostgreSQL container (using GitHub Actions services).
+- Run Prisma migrations against the test database container.
+- Run `pnpm run test:integration`.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- `pnpm run test:integration` (backend integration tests)
+- `pnpm run test` (unit tests validation)
