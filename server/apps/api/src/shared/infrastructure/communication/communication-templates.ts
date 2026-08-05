@@ -446,7 +446,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       </div>
     `,
   },
-  
+
   SUPPORT_TICKET: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Update on your Support Ticket',
@@ -511,6 +511,18 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
 
   ONBOARDING_SEQUENCE_DAY_5: {
     recipientRole: 'TENANT',
+    subjectTemplate: 'How paying rent through Upward builds your future',
+    plainTextTemplate: 'Hi {{displayName}}, read how a resident in Yaba renews rent through Upward and watches their score increase.',
+    whatsappTemplateName: 'upward_seq_day9_v2',
+    whatsappParams: ['displayName'],
+    buildHtml: (ctx) => buildSequenceDay9Html({
+      firstName: ctx.displayName || 'there',
+      appLink: ctx.appLink || 'https://upward.goodtenants.io/blog',
+    }),
+  },
+
+  ONBOARDING_SEQUENCE_DAY_9: {
+    recipientRole: 'TENANT',
     subjectTemplate: '5 Ways to Build a Stronger Rental Reputation',
     plainTextTemplate: 'Hi {{displayName}}, two tenants can pay the exact same rent for years, but one does it with credit. Learn why in our short guide.',
     whatsappTemplateName: 'upward_seq_day5_v2',
@@ -521,17 +533,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     }),
   },
 
-  ONBOARDING_SEQUENCE_DAY_9: {
-    recipientRole: 'TENANT',
-    subjectTemplate: 'How paying rent through Upward builds your future',
-    plainTextTemplate: 'Hi {{displayName}}, read how a resident in Yaba renews rent through Upward and watches their score increase.',
-    whatsappTemplateName: 'upward_seq_day9_v2',
-    whatsappParams: ['displayName'],
-    buildHtml: (ctx) => buildSequenceDay9Html({
-      firstName: ctx.displayName || 'there',
-      appLink: ctx.appLink || 'https://upward.goodtenants.io/dashboard',
-    }),
-  },
+
 
   ONBOARDING_SEQUENCE_DAY_14: {
     recipientRole: 'TENANT',

@@ -67,3 +67,28 @@ jobs:
 
       - run: pnpm audit --audit-level=high
         continue-on-error: true
+
+  migrate-dev:
+    name: Migrate Dev DB
+    needs: verify
+    # Only run on direct pushes to dev — not on PRs (avoids running twice)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations to Dev DB
+        run: pnpm --filter @upward/api exec prisma migrate deploy --schema=prisma/schema
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
