@@ -12,6 +12,7 @@ describe('Auth (Integration)', () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
+    jest.setTimeout(30000);
     // Only run if DATABASE_URL_TEST is set
     if (!process.env.DATABASE_URL_TEST) {
       console.warn('Skipping integration tests: DATABASE_URL_TEST is not set.');

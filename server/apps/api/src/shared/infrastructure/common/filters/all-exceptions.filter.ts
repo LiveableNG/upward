@@ -58,7 +58,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     console.error('----------------------------------')
 
     // 1. Log to Bugsnag — skip noisy/expected errors
-    if (status >= 400 && !shouldExcludeFromBugsnag(exception, status, request)) {
+    const isTest = process.env.NODE_ENV === 'test' || !!process.env.DATABASE_URL_TEST
+    if (!isTest && status >= 400 && !shouldExcludeFromBugsnag(exception, status, request)) {
       Bugsnag.notify(exception as any, (event) => {
         event.addMetadata('request', {
           url: request.url,
