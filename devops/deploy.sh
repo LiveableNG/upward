@@ -38,9 +38,8 @@ ssh -i "$EC2_KEY_PATH" "$EC2_USER@$EC2_HOST" << EOF
   echo "Generating Prisma Client..."
   pnpm --filter @upward/api prisma:generate
 
-  # Uncomment the following line if you want to run DB migrations automatically during deployment
-  # echo "Running DB Migrations..."
-  # pnpm --filter @upward/api exec prisma migrate deploy --schema=prisma/schema
+  echo "Running DB Migrations..."
+  pnpm --filter @upward/api exec prisma migrate deploy --schema=prisma/schema
 
   echo "Restarting application via PM2..."
   # Use the ecosystem config located in the devops directory
