@@ -1485,6 +1485,12 @@ export class GenerateReceiptPdfUseCase {
           location: true,
           company: true,
           manager: true,
+          pm: {
+            include: {
+              emailSetting: true,
+              receiptSetting: true
+            }
+          }
         }
       }) as any
 
@@ -1499,6 +1505,33 @@ export class GenerateReceiptPdfUseCase {
 
         if (addressParts.length > 0) {
           enriched.propertyAddress = addressParts.join(', ')
+        }
+
+        // Apply PM Branding if exists
+        let companyName = 'Upward'
+        if (prop.company?.name && prop.company.name !== 'account_name') {
+          companyName = prop.company.name
+        } else if (prop.pm?.businessName) {
+          companyName = this.encryption.decrypt(prop.pm.businessName)
+        } else if (prop.manager) {
+          const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
+          const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
+          if (first !== 'account_name' && last !== 'account_name') {
+            companyName = `${first} ${last}`.trim()
+          }
+        }
+
+        const logoUrl = prop.pm?.receiptSetting?.useEmailLogo === false 
+          ? prop.pm?.receiptSetting?.logoUrl 
+          : prop.pm?.emailSetting?.logoUrl
+
+        if (logoUrl) {
+          enriched.logoUrl = logoUrl
+          enriched.brandName = companyName
+        }
+
+        if (prop.pm?.receiptSetting?.themeColor) {
+          enriched.themeColor = prop.pm.receiptSetting.themeColor
         }
 
         // Resolve Recipient (Landlord Name)

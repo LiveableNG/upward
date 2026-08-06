@@ -39,6 +39,7 @@ import { PmVerificationAdminController } from './admin/pm-verification-admin.con
 import { PmAuthController } from './pm/pm-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmEmailSettingController } from './pm/pm-email-setting.controller'
+import { PmReceiptSettingController } from './pm/pm-receipt-setting.controller'
 import { PmLetterheadController } from './pm/pm-letterhead.controller'
 import { PmSignatureController } from './pm/pm-signature.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
@@ -115,6 +116,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PmAuthController,
     PmProfileController,
     PmEmailSettingController,
+    PmReceiptSettingController,
     PmLetterheadController,
     PmSignatureController,
     PmPropertyController,

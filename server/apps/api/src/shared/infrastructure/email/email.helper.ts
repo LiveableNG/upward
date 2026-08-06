@@ -232,27 +232,31 @@ export function applyPmBranding(html: string, emailSetting: any): string {
   let brandedHtml = html;
 
   if (emailSetting.logoUrl) {
-    const logoTag = `<div style="text-align: center; margin-bottom: 24px;"><img src="${emailSetting.logoUrl}" alt="${emailSetting.senderName}" style="max-height: 60px; object-fit: contain;" /></div>`;
+    const logoTag = `<div style="text-align: center; margin-bottom: 24px;"><img src="${emailSetting.logoUrl}" alt="${emailSetting.senderName || 'Logo'}" style="max-height: 60px; object-fit: contain;" /></div>`;
     if (brandedHtml.includes('<body')) {
       brandedHtml = brandedHtml.replace(/(<body[^>]*>)/i, `$1\n${logoTag}`);
+    } else {
+      brandedHtml = `${logoTag}\n${brandedHtml}`;
     }
   }
 
+  let footerContent = '';
   if (emailSetting.closingStatement) {
-    const closingTag = `<p style="margin-top: 24px; font-size: 14px; color: #4b5563;">${emailSetting.closingStatement.replace(/\n/g, '<br />')}</p>`;
-    if (brandedHtml.includes('Your Cheerleader,')) {
-      brandedHtml = brandedHtml.replace(/<p style="margin-top: 32px;[^>]*>[\s\S]*?<\/p>/i, closingTag);
-    } else if (brandedHtml.includes('<div class="footer"')) {
-      brandedHtml = brandedHtml.replace('<div class="footer"', `${closingTag}\n<div class="footer"`);
-    }
+    footerContent += `<p style="margin-top: 24px; font-size: 14px; color: #4b5563;">${emailSetting.closingStatement.replace(/\n/g, '<br />')}</p>`;
+  }
+  if (emailSetting.footerAddress) {
+    footerContent += `<div style="margin-top: 24px; font-size: 12px; color: #8a8a8a; border-top: 1px solid #eaeaea; padding-top: 12px;">${emailSetting.footerAddress.replace(/\n/g, '<br />')}</div>`;
   }
 
-  if (emailSetting.footerAddress) {
-    const footerAddressHtml = `<p style="margin-top: 12px; font-size: 12px; color: #8a8a8a;">${emailSetting.footerAddress.replace(/\n/g, '<br />')}</p>`;
-    if (brandedHtml.includes('class="footer-text"')) {
-      brandedHtml = brandedHtml.replace(/(class="footer-text"[^>]*>)/i, `$1${footerAddressHtml}`);
-    } else if (brandedHtml.includes('class="footer"')) {
-      brandedHtml = brandedHtml.replace(/(class="footer"[^>]*>)/i, `$1${footerAddressHtml}`);
+  if (footerContent) {
+    if (brandedHtml.includes('<!-- Footer Area -->')) {
+       brandedHtml = brandedHtml.replace('<!-- Footer Area -->', `<tr><td style="padding: 0 32px; background-color: #fdfcfb;">${footerContent}</td></tr>\n<!-- Footer Area -->`);
+    } else if (brandedHtml.includes('<!-- Footer -->')) {
+       brandedHtml = brandedHtml.replace('<!-- Footer -->', `<tr><td style="padding: 0 32px;">${footerContent}</td></tr>\n<!-- Footer -->`);
+    } else if (brandedHtml.includes('</body>')) {
+      brandedHtml = brandedHtml.replace('</body>', `${footerContent}\n</body>`);
+    } else {
+      brandedHtml += `\n${footerContent}`;
     }
   }
 

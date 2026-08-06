@@ -148,6 +148,25 @@ export function DocumentEditorView({
   const [showSettings, setShowSettings] = useState(true)
   const [previewMode, setPreviewMode] = useState(false)
 
+  const { data: emailSettings } = useQuery({
+    queryKey: ['emailSettings'],
+    queryFn: () => api.getEmailSettings(),
+  })
+
+  useEffect(() => {
+    if (emailSettings) {
+      if (emailSettings.senderEmail) {
+        if (emailSettings.isVerified) {
+          setFromEmail(`"${emailSettings.senderName}" <${emailSettings.senderEmail}>`)
+        } else {
+          setFromEmail(`"${emailSettings.senderName || 'Property Manager'} (via Upward)" <noreply@goodtenants.io>`)
+        }
+      }
+      if (emailSettings.cc && !ccEmails) setCcEmails(emailSettings.cc)
+      if (emailSettings.bcc && !bccEmails) setBccEmails(emailSettings.bcc)
+    }
+  }, [emailSettings])
+
   const getRenderedContent = () => {
     let rendered = content
     if (!rendered) return ''
@@ -777,7 +796,7 @@ export function DocumentEditorView({
                   <input
                     type="text"
                     className="form-input"
-                    value={isSystemTemplate ? fromEmail : 'noreply@goodtenants.io'}
+                    value={fromEmail}
                     onChange={(e) => setFromEmail(e.target.value)}
                     disabled={!isSystemTemplate}
                     style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}

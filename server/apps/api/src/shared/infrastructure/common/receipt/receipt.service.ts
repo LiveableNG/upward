@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import PDFDocument from 'pdfkit'
+import { S3Service } from '../s3/s3.service'
 
 export interface ReceiptPdfData {
   title: string
@@ -19,19 +20,51 @@ export interface ReceiptPdfData {
   lineItems?: Array<{ label: string; amount: number }>
   logoUrl?: string
   brandName?: string
+  themeColor?: string
 }
 
 @Injectable()
 export class ReceiptService {
+  constructor(private readonly s3Service: S3Service) {}
+
   async generateReceiptPdf(data: ReceiptPdfData): Promise<Buffer> {
     let logoBuffer: Buffer | undefined
     if (data.logoUrl) {
       try {
-        const response = await fetch(data.logoUrl)
-        if (response.ok) {
-          logoBuffer = Buffer.from(await response.arrayBuffer())
+        let s3Key: string | null = null
+        if (data.logoUrl.includes('amazonaws.com/')) {
+          s3Key = data.logoUrl.split('amazonaws.com/')[1] || null
+        } else if (data.logoUrl.includes('/public/documents/')) {
+          const docPart = data.logoUrl.split('/public/documents/')[1]
+          if (docPart) {
+            const parts = docPart.split('/')
+            const [pm, type, logo, uuid, filename] = parts
+            if (pm === 'pm' && logo === 'logo' && uuid && filename) {
+              if (type === 'receipt-settings') {
+                s3Key = `pm/${uuid}/receipt-settings/${filename}`
+              } else if (type === 'email-settings') {
+                s3Key = `pm/${uuid}/email-settings/${filename}`
+              }
+            }
+          }
         }
-      } catch {
+
+        if (s3Key) {
+          logoBuffer = await this.s3Service.getFileBuffer(s3Key)
+        } else {
+          let fetchUrl = data.logoUrl
+          if (fetchUrl.includes('localhost')) {
+            fetchUrl = fetchUrl.replace('localhost', '127.0.0.1')
+          }
+          const response = await fetch(fetchUrl)
+          if (response.ok) {
+            logoBuffer = Buffer.from(await response.arrayBuffer())
+          } else {
+            console.error(`Failed to fetch logo: ${response.status} ${response.statusText}`)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching logo for receipt:', err)
         // Fall back to default Upward branding
       }
     }
@@ -55,7 +88,7 @@ export class ReceiptService {
       const W = 595.28
       const H = 841.89
 
-      const clay = '#d97757'
+      const clay = data.themeColor || '#d97757'
       const dark = '#0a0a0f'
       const textSecondary = '#4a4642'
       const textMuted = '#928e89'
@@ -188,7 +221,7 @@ export class ReceiptService {
       const hasBreakdown = data.lineItems && data.lineItems.length > 0
       const breakdownDesc = hasBreakdown
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+        `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
         : data.propertyName || data.propertyAddress || ''
 
       if (data.type === 'RENT') {
