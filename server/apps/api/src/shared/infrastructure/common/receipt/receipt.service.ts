@@ -34,23 +34,26 @@ export class ReceiptService {
         let s3Key: string | null = null
         if (data.logoUrl.includes('amazonaws.com/')) {
           s3Key = data.logoUrl.split('amazonaws.com/')[1] || null
-        } else if (data.logoUrl.includes('/public/documents/')) {
-          const docPart = data.logoUrl.split('/public/documents/')[1]
-          if (docPart) {
-            const parts = docPart.split('/')
-            const [pm, type, logo, uuid, filename] = parts
-            if (pm === 'pm' && logo === 'logo' && uuid && filename) {
-              if (type === 'receipt-settings') {
-                s3Key = `pm/${uuid}/receipt-settings/${filename}`
-              } else if (type === 'email-settings') {
-                s3Key = `pm/${uuid}/email-settings/${filename}`
-              }
-            }
+        } else {
+          const receiptSettingsMatch = data.logoUrl.match(/\/receipt-settings\/logo\/([^\/]+)\/([^\/?#]+)/)
+          const emailSettingsMatch = data.logoUrl.match(/\/email-settings\/logo\/([^\/]+)\/([^\/?#]+)/)
+          
+          if (receiptSettingsMatch) {
+            const uuid = receiptSettingsMatch[1]
+            const filename = receiptSettingsMatch[2]
+            s3Key = `pm/${uuid}/receipt-settings/${filename}`
+          } else if (emailSettingsMatch) {
+            const uuid = emailSettingsMatch[1]
+            const filename = emailSettingsMatch[2]
+            s3Key = `pm/${uuid}/email-settings/${filename}`
           }
         }
 
+        console.log(`[ReceiptService] logoUrl: ${data.logoUrl}, resolved s3Key: ${s3Key}`);
+
         if (s3Key) {
           logoBuffer = await this.s3Service.getFileBuffer(s3Key)
+          console.log(`[ReceiptService] Fetched logo from S3, buffer length: ${logoBuffer?.length}`);
         } else {
           let fetchUrl = data.logoUrl
           if (fetchUrl.includes('localhost')) {
@@ -59,6 +62,7 @@ export class ReceiptService {
           const response = await fetch(fetchUrl)
           if (response.ok) {
             logoBuffer = Buffer.from(await response.arrayBuffer())
+            console.log(`[ReceiptService] Fetched logo from fallback HTTP, buffer length: ${logoBuffer?.length}`);
           } else {
             console.error(`Failed to fetch logo: ${response.status} ${response.statusText}`)
           }
@@ -123,7 +127,20 @@ export class ReceiptService {
       const brandLabel = (data.brandName || 'Upward').toUpperCase()
 
       if (logoBuffer) {
-        doc.image(logoBuffer, BRAND_X, BRAND_Y - 4, { fit: [120, 36] })
+        // Draw a white background container card for the logo to ensure transparent/dark logos are clearly visible
+        const LOGO_BOX_W = 120
+        const LOGO_BOX_H = 36
+        const PADDING = 4
+        
+        doc.save()
+        doc.roundedRect(BRAND_X, BRAND_Y - 4, LOGO_BOX_W, LOGO_BOX_H, 6).fill(white)
+        doc.restore()
+
+        doc.image(logoBuffer, BRAND_X + PADDING, BRAND_Y - 4 + PADDING, { 
+          fit: [LOGO_BOX_W - (PADDING * 2), LOGO_BOX_H - (PADDING * 2)],
+          align: 'center',
+          valign: 'center'
+        })
       } else {
         doc.save()
 
