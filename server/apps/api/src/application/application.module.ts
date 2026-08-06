@@ -282,6 +282,22 @@ import {
   CompleteImportJobUseCase,
 } from './use-cases/pm/bulk-import.use-cases'
 
+import {
+  GetPmEmailSettingsUseCase,
+  SavePmEmailConfigUseCase,
+  UploadPmEmailLogoUseCase,
+  CreatePmEmailDomainUseCase,
+  VerifyPmEmailDomainUseCase,
+  SendPmTestEmailUseCase,
+} from './pm/use-cases/email-settings'
+
+import {
+  GetDocumentPdfUseCase,
+  GetSignatureImageUseCase,
+  GetPublicAssetUseCase,
+  GetRelayDocumentUseCase,
+} from './public/use-cases/documents'
+
 // Payments
 import {
   SaveLandlordUseCase,
@@ -678,6 +694,16 @@ const UseCases = [
   UploadRelayDocumentUseCase,
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
+  GetPmEmailSettingsUseCase,
+  SavePmEmailConfigUseCase,
+  UploadPmEmailLogoUseCase,
+  CreatePmEmailDomainUseCase,
+  VerifyPmEmailDomainUseCase,
+  SendPmTestEmailUseCase,
+  GetDocumentPdfUseCase,
+  GetSignatureImageUseCase,
+  GetPublicAssetUseCase,
+  GetRelayDocumentUseCase,
 ]
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
