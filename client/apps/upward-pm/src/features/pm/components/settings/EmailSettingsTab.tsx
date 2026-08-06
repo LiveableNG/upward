@@ -50,7 +50,11 @@ interface EmailSettings {
   isVerified: boolean
 }
 
-export function EmailSettingsTab() {
+interface EmailSettingsTabProps {
+  mode?: 'sender' | 'domain'
+}
+
+export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
   const { user } = useAuth()
   const { success, error: toastError } = useToast()
   const queryClient = useQueryClient()
@@ -68,8 +72,14 @@ export function EmailSettingsTab() {
   const [dnsRecords, setDnsRecords] = useState<DnsRecord[]>([])
   const [domainState, setDomainState] = useState<string | null>(null)
   const [copiedRecord, setCopiedRecord] = useState<string | null>(null)
-  const [activeSection, setActiveSection] = useState<'sender' | 'domain'>('sender')
+  const [activeSection, setActiveSection] = useState<'sender' | 'domain'>(mode || 'sender')
   const [showPreview, setShowPreview] = useState(false)
+
+  useEffect(() => {
+    if (mode) {
+      setActiveSection(mode)
+    }
+  }, [mode])
 
   const handleSaveConfig = () => {
     if (!senderName.trim() || !senderEmail.trim()) {
@@ -188,27 +198,29 @@ export function EmailSettingsTab() {
   return (
     <div className="email-settings animate-fade-in">
       {/* Section Nav */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
-        {(['sender', 'domain'] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setActiveSection(s)}
-            style={{
-              padding: '8px 20px',
-              borderRadius: 40,
-              border: '1px solid var(--border)',
-              background: activeSection === s ? 'var(--forest)' : 'transparent',
-              color: activeSection === s ? '#fff' : 'var(--text)',
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
-            {s === 'sender' ? 'Sender & Branding' : 'Custom Domain'}
-          </button>
-        ))}
-      </div>
+      {!mode && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 32 }}>
+          {(['sender', 'domain'] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setActiveSection(s)}
+              style={{
+                padding: '8px 20px',
+                borderRadius: 40,
+                border: '1px solid var(--border)',
+                background: activeSection === s ? 'var(--forest)' : 'transparent',
+                color: activeSection === s ? '#fff' : 'var(--text)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {s === 'sender' ? 'Sender & Branding' : 'Custom Domain'}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ─── SENDER & BRANDING ─── */}
       {activeSection === 'sender' && (
@@ -221,18 +233,11 @@ export function EmailSettingsTab() {
                   Configure how your emails appear to tenants — name, address, and branding.
                 </p>
               </div>
-              <button
-                className="btn btn--secondary"
-                onClick={() => setShowPreview(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '8px 16px', fontSize: 13 }}
-              >
-                <Eye size={16} /> Preview
-              </button>
             </div>
 
             <div style={{ marginTop: 28, display: 'grid', gap: 20 }}>
               {/* Logo */}
-              <div className="glass" style={{ padding: 24, borderRadius: 20, border: '1px solid var(--border)' }}>
+              <div style={{ padding: 0, border: 'none', background: 'transparent' }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <ImageIcon size={16} /> Company Logo
                 </h3>
@@ -362,16 +367,26 @@ export function EmailSettingsTab() {
                 />
               </div>
 
-              <button
-                id="save-email-config"
-                className="btn btn--primary"
-                onClick={handleSaveConfig}
-                disabled={saveConfigMutation.isPending}
-                style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12 }}
-              >
-                {saveConfigMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                Save Sender Settings
-              </button>
+              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                <button
+                  id="save-email-config"
+                  className="btn btn--primary"
+                  onClick={handleSaveConfig}
+                  disabled={saveConfigMutation.isPending}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12 }}
+                >
+                  {saveConfigMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  Save Sender Settings
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowPreview(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '10px 20px', fontSize: 13 }}
+                >
+                  <Eye size={16} /> Preview Email
+                </button>
+              </div>
             </div>
           </section>
         </div>

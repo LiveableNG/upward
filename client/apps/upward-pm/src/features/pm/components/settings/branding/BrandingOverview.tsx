@@ -151,7 +151,7 @@ export function BrandingOverview({
           </div>
           <button
             className="branding-overview__card-action"
-            onClick={() => onNavigate('email-settings')}
+            onClick={() => onNavigate('sender-identity')}
           >
             Manage <ChevronRight size={14} />
           </button>
