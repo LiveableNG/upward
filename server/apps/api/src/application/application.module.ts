@@ -162,6 +162,11 @@ import { InviteTenantUseCase } from './pm/use-cases/tenants/invite-tenant.use-ca
 import { CreateTenantUseCase } from './pm/use-cases/tenants/create-tenant.use-case'
 import { GetTenantUseCase } from './pm/use-cases/tenants/get-tenant.use-case'
 import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-to-unit.use-case'
+
+import { GetPmReceiptSettingsUseCase } from './pm/use-cases/receipt-settings/get-pm-receipt-settings.use-case'
+import { UpdatePmReceiptSettingsUseCase } from './pm/use-cases/receipt-settings/update-pm-receipt-settings.use-case'
+import { PreviewPmReceiptUseCase } from './pm/use-cases/receipt-settings/preview-pm-receipt.use-case'
+import { UploadPmReceiptLogoUseCase } from './pm/use-cases/receipt-settings/upload-pm-receipt-logo.use-case'
 import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-case'
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
@@ -696,6 +701,10 @@ const UseCases = [
   CompleteImportJobUseCase,
   GetPmEmailSettingsUseCase,
   SavePmEmailConfigUseCase,
+  GetPmReceiptSettingsUseCase,
+  UpdatePmReceiptSettingsUseCase,
+  PreviewPmReceiptUseCase,
+  UploadPmReceiptLogoUseCase,
   UploadPmEmailLogoUseCase,
   CreatePmEmailDomainUseCase,
   VerifyPmEmailDomainUseCase,

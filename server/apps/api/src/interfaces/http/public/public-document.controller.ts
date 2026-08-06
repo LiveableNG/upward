@@ -49,6 +49,13 @@ export class PublicDocumentController {
     return S3Service.streamBuffer(result.buffer, result.filename, res, { cacheControl: result.cacheControl });
   }
 
+  @Get('pm/receipt-settings/logo/:uuid/:filename')
+  async getPmReceiptLogo(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
+    const s3Key = `pm/${uuid}/receipt-settings/${filename}`;
+    const result = await this.getPublicAssetUseCase.execute(s3Key);
+    return S3Service.streamBuffer(result.buffer, result.filename, res, { cacheControl: result.cacheControl });
+  }
+
   @Get('relays/:uuid/download')
   async getRelayDocument(@Param('uuid') uuid: string, @Res({ passthrough: true }) res: any) {
     const result = await this.getRelayDocumentUseCase.execute(uuid);
