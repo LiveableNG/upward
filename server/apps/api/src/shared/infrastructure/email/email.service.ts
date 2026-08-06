@@ -145,15 +145,15 @@ export class EmailService {
     bcc?: string
     emailSequenceLogId?: number
   }) {
-    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, replyToOverride, attachments, cc, bcc } = params
+    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, replyToOverride, attachments } = params
+    let { cc, bcc } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
     if (!domain) {
       this.logger.error('MAILGUN_DOMAIN not configured')
       return { success: false, error: 'MAILGUN_DOMAIN not configured' }
     }
 
-    let from =
-      fromOverride || this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
+    let from = this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
     let replyTo = replyToOverride || this.replyToEmail
     let brandedHtml = html
 
@@ -163,15 +163,63 @@ export class EmailService {
         where: { uuid: targetPmUuid },
         include: { emailSetting: true },
       })
+      
+      let isSenderVerified = false
+      let pmDomain = ''
+      
       if (pm?.emailSetting) {
         if (pm.emailSetting.isVerified && pm.emailSetting.domain) {
+          isSenderVerified = true
+          pmDomain = pm.emailSetting.domain
           domain = pm.emailSetting.domain
-          from = `"${pm.emailSetting.senderName}" <${pm.emailSetting.senderEmail}>`
-          // For PM-branded emails, reply-to the PM's own sender so tenants reach them directly
+        }
+        
+        if (!replyToOverride && pm.emailSetting.senderEmail) {
           replyTo = pm.emailSetting.senderEmail
+        }
+        
+        if (pm.emailSetting.cc) {
+          cc = cc ? `${cc}, ${pm.emailSetting.cc}` : pm.emailSetting.cc
+        }
+        if (pm.emailSetting.bcc) {
+          bcc = bcc ? `${bcc}, ${pm.emailSetting.bcc}` : pm.emailSetting.bcc
         }
         brandedHtml = applyPmBranding(html, pm.emailSetting)
       }
+      
+      if (!fromOverride) {
+        if (pm?.emailSetting) {
+          if (isSenderVerified) {
+            from = `"${pm.emailSetting.senderName}" <${pm.emailSetting.senderEmail}>`
+          } else if (pm.emailSetting.senderEmail) {
+            const defaultFrom = this.configService.get<string>('EMAIL_FROM') || 'noreply@goodtenants.io'
+            const senderName = pm.emailSetting.senderName || 'Property Manager'
+            from = `"${senderName} (via Upward)" <${defaultFrom.replace(/^.*<([^>]+)>$/, '$1')}>`
+          }
+        }
+      } else {
+        const emailMatch = fromOverride.match(/<([^>]+)>/) || [null, fromOverride]
+        const extractedEmail = emailMatch[1]?.trim() || fromOverride.trim()
+        
+        const isOverrideVerified = isSenderVerified && pmDomain && extractedEmail.endsWith(`@${pmDomain}`)
+        const isPlatformDomain = extractedEmail.endsWith(`@${this.configService.get<string>('MAILGUN_DOMAIN')}`)
+        const isDefaultFrom = extractedEmail === (this.configService.get<string>('EMAIL_FROM') || 'noreply@goodtenants.io').replace(/^.*<([^>]+)>$/, '$1')
+        
+        if (!isOverrideVerified && !isPlatformDomain && !isDefaultFrom) {
+          const defaultFrom = this.configService.get<string>('EMAIL_FROM') || 'noreply@goodtenants.io'
+          let senderName = fromOverride.replace(/<[^>]+>/, '').replace(/"/g, '').trim()
+          if (!senderName) senderName = extractedEmail.split('@')[0] || 'Property Manager'
+          from = `"${senderName} (via Upward)" <${defaultFrom.replace(/^.*<([^>]+)>$/, '$1')}>`
+          
+          if (!replyToOverride && extractedEmail) {
+            replyTo = extractedEmail
+          }
+        } else {
+          from = fromOverride
+        }
+      }
+    } else if (fromOverride) {
+      from = fromOverride
     }
 
     let retries = 0
