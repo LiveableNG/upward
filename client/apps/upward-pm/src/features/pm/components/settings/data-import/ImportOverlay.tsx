@@ -32,6 +32,13 @@ interface ImportOverlayProps {
   mappings: { [sheet: string]: ColumnMapping[] }
   splitConfigs: { [sheet: string]: SplitConfig[] }
   activeSheet: string
+  setFieldColumn?: (sheetName: string, fieldKey: string, entityType: string, userColumn: string | null) => void
+  addFieldColumn?: (sheetName: string, fieldKey: string, entityType: string, userColumn: string) => void
+  removeFieldColumn?: (sheetName: string, fieldKey: string, userColumn: string) => void
+  swapNameOrder?: boolean
+  setSwapNameOrder?: (v: boolean) => void
+  dateOrder?: 'dmy' | 'mdy' | 'iso' | 'unknown'
+  setDateOrder?: (v: 'dmy' | 'mdy' | 'iso' | 'unknown') => void
   workbook: XLSX.WorkBook | null
   savedTemplates: {id: string, name: string, data: any}[]
   applyTemplate: (templateId: string) => void
@@ -57,7 +64,9 @@ interface ImportOverlayProps {
 export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   mode, phase, setPhase, closeOverlay, transformData, handleConfirmImport, isPending,
   reviewJob, handleSaveDraft, isSavingDraft, hasDirtyEdits, setHasDirtyEdits,
-  columns, userColumns, mappings, splitConfigs, activeSheet, workbook,
+  columns, userColumns, mappings, splitConfigs, activeSheet,
+  setFieldColumn, addFieldColumn, removeFieldColumn,
+  swapNameOrder, setSwapNameOrder, dateOrder, setDateOrder, workbook,
   savedTemplates, applyTemplate, saveTemplate, updateMapping, toggleSplit,
   updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
   previewRows, validationErrors, amberWarnings, editingCell, setEditingCell,
@@ -79,36 +88,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
     }
   }, [])
   
-  // Derived state: errors and warnings
-  const duplicateMappings = useMemo(() => {
-    const fieldMap: Record<string, string[]> = {}
-    const duplicates: { field: string, columns: string[] }[] = []
-
-    const sheetMappings = mappings[activeSheet] || []
-    sheetMappings.forEach(m => {
-      if (m.systemField && m.entityType !== 'skip') {
-        if (!fieldMap[m.systemField]) fieldMap[m.systemField] = []
-        fieldMap[m.systemField].push(m.userColumn)
-      }
-    })
-
-    const sheetSplits = splitConfigs[activeSheet] || []
-    sheetSplits.forEach(s => {
-      s.parts.forEach(p => {
-        if (p.systemField && p.entityType !== 'skip') {
-          if (!fieldMap[p.systemField]) fieldMap[p.systemField] = []
-          if (!fieldMap[p.systemField].includes(s.userColumn)) fieldMap[p.systemField].push(s.userColumn)
-        }
-      })
-    })
-
-    Object.entries(fieldMap).forEach(([field, cols]) => {
-      if (cols.length > 1) duplicates.push({ field, columns: cols })
-    })
-
-    return duplicates
-  }, [mappings, splitConfigs, activeSheet])
-
+  // Several columns feeding one field is intentional now — names, instalments,
+  // an address split in two — so there is nothing to guard against here.
   const missingRequired = useMemo(() => {
     const mappedFields = new Set<string>()
     const sheetMappings = mappings[activeSheet] || []
@@ -121,9 +102,6 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   }, [mappings, splitConfigs, activeSheet, columns])
 
   const handlePreviewClick = () => {
-    if (duplicateMappings.length > 0) {
-      return toastError('Please resolve duplicate field mappings before continuing.')
-    }
     if (missingRequired.length > 0) {
       const firstMissing = missingRequired[0].label
       return toastError(`Missing required field mapping: ${firstMissing}`)
@@ -153,7 +131,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginRight: 16 }}
               onClick={() => setPhase('mapping')}
             >
-              <ArrowLeft size={16} /> Review Column Matches
+              <ArrowLeft size={16} /> Back to matching
             </button>
           )}
           {phase === 'mapping' && !reviewJob && (
@@ -166,6 +144,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               Continue <ArrowRight size={16} style={{ marginLeft: 8 }}/>
             </button>
           )}
+
           {phase === 'preview' && !reviewJob && (
             <button 
               type="button"
@@ -222,11 +201,11 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
       {!reviewJob && (
         <div className="import-overlay__steps">
           <div className={cn('import-step', phase === 'mapping' && 'import-step--active')}>
-            <span className="import-step__number">1</span> Review Detected Columns
+            <span className="import-step__number">1</span> Match Columns
           </div>
           <div className="import-step__separator">—</div>
           <div className={cn('import-step', phase === 'preview' && 'import-step--active')}>
-            <span className="import-step__number">2</span> Review Before Import
+            <span className="import-step__number">2</span> Check &amp; Import
           </div>
         </div>
       )}
@@ -245,15 +224,21 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             applyTemplate={applyTemplate}
             saveTemplate={saveTemplate}
             updateMapping={updateMapping}
+            setFieldColumn={setFieldColumn}
+            addFieldColumn={addFieldColumn}
+            removeFieldColumn={removeFieldColumn}
+            swapNameOrder={swapNameOrder}
+            setSwapNameOrder={setSwapNameOrder}
+            dateOrder={dateOrder}
+            setDateOrder={setDateOrder}
             toggleSplit={toggleSplit}
             updateSplitConfig={updateSplitConfig}
             updateSplitPart={updateSplitPart}
             addSplitPart={addSplitPart}
             removeSplitPart={removeSplitPart}
-            duplicateMappings={duplicateMappings}
-            missingRequired={missingRequired}
             />
           </div>
+
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0 }}>
             {reviewJob && (
@@ -283,8 +268,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 </div>
               </div>
             )}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
-              <PreviewGridPhase 
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'auto' }}>
+              <PreviewGridPhase
                 columns={columns}
                 previewRows={previewRows}
                 validationErrors={validationErrors}
@@ -296,7 +281,6 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 setValidationErrors={setValidationErrors}
                 revalidateDuplicates={revalidateDuplicates}
               />
-
             </div>
           </div>
         )}

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react'
-import { Trash2, Plus, CheckCircle, Pencil, AlertCircle } from 'lucide-react'
+import React from 'react'
+import { Trash2, CheckCircle, Pencil, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ColumnDef } from './types'
 
@@ -20,27 +20,6 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
   columns, previewRows, validationErrors, amberWarnings = {}, editingCell, setEditingCell,
   updateRowField, setPreviewRows, setValidationErrors, revalidateDuplicates
 }) => {
-  const handleAddRow = () => {
-    const newId = `row-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
-    const newRow: any = { id: newId }
-    columns.forEach(col => { newRow[col.key] = '' })
-    const updated = [...previewRows, newRow]
-    setPreviewRows(updated)
-    revalidateDuplicates(updated)
-    setEditingCell({ rowId: newId, field: columns[0]?.key || '' })
-  }
-
-  const stats = useMemo(() => {
-    const properties = new Set(previewRows.map(r => r.propertyName || r.name).filter(Boolean)).size
-    const units = previewRows.length
-    const tenants = previewRows.filter(r => r.tenantEmail || r.tenantFirstName || r.tenantLastName).length
-    const landlords = new Set(
-      previewRows.map(r => r.landlordEmail || r.landlordFirstName || r.landlordLastName).filter(Boolean)
-    ).size
-    return { properties, units, tenants, landlords }
-  }, [previewRows])
-
-  const warningCount = Object.keys(amberWarnings).length
   const errorCount = Object.keys(validationErrors).length
 
   return (
@@ -187,47 +166,6 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                 </span>
               )}
             </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn--secondary"
-            onClick={handleAddRow}
-            style={{ borderRadius: 10, height: 36, padding: '0 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-          >
-            <Plus size={14} /> Add Row
-          </button>
-        </div>
-
-        {/* Merged summary card */}
-        <div className="pgp-summary">
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Import Ready</div>
-            <div className="pgp-summary__entities">
-              {[
-                { label: stats.properties === 1 ? 'Property' : 'Properties', count: stats.properties },
-                { label: stats.units === 1 ? 'Unit' : 'Units', count: stats.units },
-                { label: stats.tenants === 1 ? 'Tenant' : 'Tenants', count: stats.tenants },
-                { label: stats.landlords === 1 ? 'Landlord' : 'Landlords', count: stats.landlords },
-              ].map(({ label, count }) => (
-                <div key={label} className="pgp-summary__entity">
-                  <span className="pgp-check">✓</span>
-                  <span>{count} {label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pgp-summary__divider" />
-
-          <div>
-            <div className="pgp-summary__fixes-title">Upward also:</div>
-            <div className="pgp-summary__fixes">
-              {warningCount > 0 && (
-                <span className="pgp-summary__fix"><CheckCircle size={12} /> {warningCount} rent end dates calculated</span>
-              )}
-              <span className="pgp-summary__fix"><CheckCircle size={12} /> Standardized imported dates</span>
-              <span className="pgp-summary__fix"><CheckCircle size={12} /> Validated required fields</span>
-            </div>
           </div>
         </div>
 

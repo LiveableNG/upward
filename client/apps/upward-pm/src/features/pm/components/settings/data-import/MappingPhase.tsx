@@ -1,10 +1,10 @@
+'use client'
+
 import React, { useMemo, useState } from 'react'
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, ArrowRight, Trash2, Lightbulb } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { ColumnDef, ColumnMapping, SplitConfig } from './types'
-import { getSplitPreview } from './utils'
-import { FormSelect } from '@/components/ui/Select/FormSelect'
 import * as XLSX from 'xlsx'
+import { ChevronDown, Plus, X, CalendarDays } from 'lucide-react'
+import { ColumnDef, ColumnMapping, SplitConfig } from './types'
+import { extractForField, scrub, splitPersonName, inferDateOrder, countDatesIn, type DateOrder } from './utils'
 
 interface MappingPhaseProps {
   columns: ColumnDef[]
@@ -13,535 +13,448 @@ interface MappingPhaseProps {
   splitConfigs: { [sheet: string]: SplitConfig[] }
   activeSheet: string
   workbook: XLSX.WorkBook | null
-  savedTemplates: {id: string, name: string, data: any}[]
+  savedTemplates: { id: string; name: string; data: unknown }[]
   applyTemplate: (templateId: string) => void
   saveTemplate: () => void
   updateMapping: (sheetName: string, userColumn: string, systemField: string | null, entityType: string | null) => void
+  setFieldColumn?: (sheetName: string, fieldKey: string, entityType: string, userColumn: string | null) => void
+  addFieldColumn?: (sheetName: string, fieldKey: string, entityType: string, userColumn: string) => void
+  removeFieldColumn?: (sheetName: string, fieldKey: string, userColumn: string) => void
+  swapNameOrder?: boolean
+  setSwapNameOrder?: (v: boolean) => void
+  dateOrder?: DateOrder
+  setDateOrder?: (v: DateOrder) => void
   toggleSplit: (userColumn: string) => void
   updateSplitConfig: (userColumn: string, updates: Partial<SplitConfig>) => void
   updateSplitPart: (userColumn: string, partIndex: number, field: string | null, entityType: string | null) => void
   addSplitPart: (userColumn: string) => void
   removeSplitPart: (userColumn: string, partIndex: number) => void
-  duplicateMappings: { field: string, columns: string[] }[]
-  missingRequired: ColumnDef[]
 }
 
+// What each field is called when it asks for itself
+const QUESTIONS: Record<string, string> = {
+  propertyAddress: 'The address',
+  tenantFirstName: "The tenant's name",
+  tenantLastName: "The tenant's surname",
+  tenantEmail: "The tenant's email",
+  tenantPhone: "The tenant's phone number",
+  unitRentAmount: 'The rent',
+  unitRentAmountPaid: 'How much has been paid',
+  unitRentStartDate: 'When the rent started',
+  unitRentDueDate: 'When the rent ends',
+  unitName: 'The flat or unit name',
+  propertyName: 'The property name',
+  landlordFirstName: "The landlord's name",
+  landlordLastName: "The landlord's surname",
+  landlordEmail: "The landlord's email",
+  landlordPhone: "The landlord's phone number",
+}
+
+const askFor = (col: ColumnDef) => QUESTIONS[col.key] || col.label
+
+const NONE = '__none__'
+
 export const MappingPhase: React.FC<MappingPhaseProps> = ({
-  columns, userColumns, mappings, splitConfigs, activeSheet, workbook,
-  savedTemplates, applyTemplate, saveTemplate, updateMapping, toggleSplit,
-  updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
-  duplicateMappings, missingRequired
+  columns, userColumns, mappings, activeSheet, workbook,
+  setFieldColumn, addFieldColumn, removeFieldColumn,
+  swapNameOrder = false, setSwapNameOrder,
+  dateOrder = 'dmy', setDateOrder,
 }) => {
-  const [localExpandedCards, setLocalExpandedCards] = useState<Record<string, boolean>>({})
+  const [addingTo, setAddingTo] = useState<string | null>(null)
+  const [askDateOrder, setAskDateOrder] = useState(false)
+  const [showOptional, setShowOptional] = useState(false)
 
-  // Category selection sub-states for guided wizard (mapping change flows)
-  const [editingCategory, setEditingCategory] = useState<Record<string, string>>({})
-  const [showAdvanced, setShowAdvanced] = useState<Record<string, boolean>>({})
-
-  // Category grouping
-  const systemFieldsGrouped = useMemo(() => {
-    const groups: Record<string, ColumnDef[]> = {}
-    columns.forEach(col => {
-      if (!groups[col.category]) groups[col.category] = []
-      groups[col.category].push(col)
-    })
-    return groups
-  }, [columns])
-
-  // Extract first row values for visual examples
-  const sampleRowValues = useMemo(() => {
-    if (!workbook || !activeSheet) return {}
+  const rawByColumn = useMemo(() => {
+    if (!workbook || !activeSheet) return {} as Record<string, string[]>
     const worksheet = workbook.Sheets[activeSheet]
     if (!worksheet) return {}
-    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
-    if (rawData.length <= 1) return {}
-    const headers = (rawData[0] as any[]).map(h => String(h || '').trim())
-    const firstDataRow = rawData[1] as any[]
-    
-    const sampleMap: Record<string, string> = {}
-    headers.forEach((h, idx) => {
-      if (h && firstDataRow && firstDataRow[idx] !== undefined) {
-        sampleMap[h] = String(firstDataRow[idx]).trim()
-      }
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as unknown[][]
+    if (!rows.length) return {}
+    const headers = rows[0].map(h => scrub(h))
+    const out: Record<string, string[]> = {}
+    headers.forEach((h, i) => {
+      if (!h) return
+      out[h] = rows.slice(1).map(r => scrub(r?.[i])).filter(Boolean)
     })
-    return sampleMap
+    return out
   }, [workbook, activeSheet])
 
-  // Calculate mapping statistics
-  const stats = useMemo(() => {
-    const sheetMappings = mappings[activeSheet] || []
-    const sheetSplits = splitConfigs[activeSheet] || []
+  const sheetMappings = mappings[activeSheet] || []
+  const columnsFor = (fieldKey: string) =>
+    sheetMappings.filter(m => m.systemField === fieldKey).map(m => m.userColumn)
+  const columnFor = (fieldKey: string) => columnsFor(fieldKey)[0] || null
 
-    let matched = 0
-    let needsReview = 0
+  const required = columns.filter(c => c.required && !c.readOnly)
+  const optional = columns.filter(c => !c.required && !c.readOnly && c.key !== 'tenantLastName')
+  const nameField = columns.find(c => c.key === 'tenantFirstName')
 
-    userColumns.forEach(col => {
-      const mapping = sheetMappings.find(m => m.userColumn === col)
-      const splitConfig = sheetSplits.find(s => s.userColumn === col)
+  const nameAnswered = columnsFor('tenantFirstName').length > 0
+  const answered = required.filter(c =>
+    c.key === 'tenantFirstName' ? nameAnswered : !!columnFor(c.key)
+  ).length
 
-      if (splitConfig) {
-        const allPartsMapped = splitConfig.parts.every(p => p.systemField && p.entityType !== 'skip')
-        if (allPartsMapped) {
-          matched++
-        } else {
-          needsReview++
-        }
-      } else {
-        const isSkipped = mapping?.entityType === 'skip'
-        const mappedField = mapping?.systemField
-        const isDuplicate = mappedField ? duplicateMappings.some(d => d.field === mappedField) : false
-
-        if (mappedField && !isDuplicate && !isSkipped) {
-          matched++
-        } else {
-          needsReview++
-        }
-      }
-    })
-
-    return { matched, needsReview, total: userColumns.length }
-  }, [mappings, splitConfigs, activeSheet, userColumns, duplicateMappings])
-
-  const toggleCard = (col: string) => {
-    setLocalExpandedCards(prev => ({
-      ...prev,
-      [col]: !prev[col]
-    }))
-  }
-
-  // Category labels mappings for non-technical readouts
-  const categoryLabels: Record<string, string> = {
-    property: 'Property',
-    unit: 'Unit',
-    tenant: 'Tenant',
-    landlord: 'Landlord',
-    skip: 'Ignore Column'
-  }
-
-  const handleCategorySelect = (col: string, category: string) => {
-    setEditingCategory(prev => ({ ...prev, [col]: category }))
-    if (category === 'skip') {
-      updateMapping(activeSheet, col, null, 'skip')
-      toggleCard(col)
+  const pick = (field: ColumnDef, userColumn: string | null) => {
+    setFieldColumn?.(activeSheet, field.key, field.category, userColumn)
+    if (!userColumn) return
+    const values = rawByColumn[userColumn] || []
+    // Date order belongs to the column, decided once from every row
+    if (field.type === 'date') {
+      const inferred = inferDateOrder(values)
+      if (inferred !== 'unknown') setDateOrder?.(inferred === 'iso' ? 'dmy' : inferred)
+      setAskDateOrder(inferred === 'unknown')
     }
   }
 
-  const handleFieldSelect = (col: string, category: string, fieldKey: string) => {
-    updateMapping(activeSheet, col, fieldKey, category)
-    toggleCard(col)
+  const addColumn = (field: ColumnDef, userColumn: string) => {
+    addFieldColumn?.(activeSheet, field.key, field.category, userColumn)
+    setAddingTo(null)
   }
 
-  return (
-    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 640, margin: '0 auto', width: '100%' }}>
-      
-      {/* Summary Header Banner */}
-      <div 
-        style={{ 
-          background: stats.needsReview > 0 ? '#fffbeb' : '#f0fdf4',
-          border: stats.needsReview > 0 ? '1px solid #fde68a' : '1px solid #bbf7d0',
-          borderRadius: 14,
-          padding: '16px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24,
-          flexWrap: 'wrap',
-          gap: 12
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'left' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: stats.needsReview > 0 ? '#78350f' : '#14532d', margin: 0 }}>
-            Review Detected Columns
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: stats.needsReview > 0 ? '#b45309' : '#15803d' }}>
-            <span style={{ fontWeight: 600 }}>✓ {stats.matched} columns matched</span>
-            <span style={{ color: 'var(--border)' }}>|</span>
-            <span style={{ fontWeight: 600 }}>⚠ {stats.needsReview} need review</span>
+  // The most expensive wrong pick in the file — show the other money columns beside it
+  const otherMoneyColumns = (exclude: string | null) =>
+    userColumns
+      .filter(c => c !== exclude)
+      .filter(c => {
+        const vals = (rawByColumn[c] || []).slice(0, 3)
+        return vals.length > 0 && vals.every(v => /^[₦N$£€]?\s*[\d,. ]+$/.test(v) && /\d{4,}/.test(v))
+      })
+      .slice(0, 2)
+
+  const optionLabel = (col: string) => {
+    const preview = (rawByColumn[col] || []).slice(0, 2).join(' · ')
+    const short = preview.length > 46 ? `${preview.slice(0, 46)}…` : preview
+    return short ? `${col} — ${short}` : col
+  }
+
+  const selectStyle = (filled: boolean): React.CSSProperties => ({
+    width: '100%',
+    height: 44,
+    borderRadius: 10,
+    border: `1px solid ${filled ? 'var(--forest)' : 'var(--border-strong)'}`,
+    background: filled ? 'var(--forest-faint)' : 'var(--surface)',
+    padding: '0 12px',
+    fontSize: 14,
+    fontWeight: 600,
+    color: filled ? 'var(--forest-hover)' : 'var(--text-muted)',
+    cursor: 'pointer',
+  })
+
+  // A plain render function, not a nested component — keeps the select mounted between renders
+  const columnSelect = (
+    value: string | null,
+    onChange: (col: string | null) => void,
+    placeholder: string,
+    label: string,
+  ) => (
+    <select
+      aria-label={label}
+      value={value || ''}
+      onChange={e => onChange(e.target.value === NONE || e.target.value === '' ? null : e.target.value)}
+      style={selectStyle(!!value)}
+    >
+      <option value="">{placeholder}</option>
+      {userColumns.map(c => (
+        <option key={c} value={c}>{optionLabel(c)}</option>
+      ))}
+      <option value={NONE}>My sheet doesn&apos;t have this</option>
+    </select>
+  )
+
+  const rowStyle: React.CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    gap: 16,
+    padding: '16px 0',
+    borderBottom: '1px solid var(--border)',
+  }
+
+  // Our field · what it means · their column
+  const cellLabel: React.CSSProperties = { flex: '1 1 200px', minWidth: 0, paddingTop: 8 }
+  const cellDesc: React.CSSProperties = { flex: '1 1 240px', minWidth: 0, paddingTop: 9, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }
+  const cellPick: React.CSSProperties = { flex: '1 1 320px', minWidth: 0 }
+
+  const renderNameRow = () => {
+    if (!nameField) return null
+    const nameColumns = columnsFor('tenantFirstName')
+    const samples = nameColumns.map(c => (rawByColumn[c] || [])[0] || '')
+    const joined = samples.filter(Boolean).join(' ')
+
+    let preview: { first: string; last: string; corporate: string } | null = null
+    if (nameColumns.length === 1 && samples[0]) {
+      preview = splitPersonName(samples[0], swapNameOrder)
+    } else if (nameColumns.length > 1 && joined) {
+      const parts = samples.filter(Boolean)
+      preview = swapNameOrder
+        ? { first: parts.slice(1).join(' '), last: parts[0] || '', corporate: '' }
+        : { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] || '', corporate: '' }
+    }
+
+    return (
+      <div style={rowStyle}>
+        <div style={cellLabel}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>Tenant name</span>
+            {nameAnswered
+              ? <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--forest)' }}>✓</span>
+              : <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--clay)' }}>NEEDED</span>}
           </div>
         </div>
-        {stats.needsReview > 0 && (
-          <button 
-            className="btn btn--secondary btn--sm"
-            onClick={() => {
-              const allUpdates: Record<string, boolean> = {}
-              userColumns.forEach(col => {
-                const mapping = (mappings[activeSheet] || []).find(m => m.userColumn === col)
-                const mappedField = mapping?.systemField
-                const isSkipped = mapping?.entityType === 'skip'
-                const isDuplicate = mappedField ? duplicateMappings.some(d => d.field === mappedField) : false
-                const isProblem = !mappedField || isDuplicate || isSkipped
-                if (isProblem) allUpdates[col] = true
-              })
-              setLocalExpandedCards(allUpdates)
-            }}
-            style={{ height: 32, fontSize: 12, borderRadius: 8 }}
-          >
-            Review Remaining
-          </button>
-        )}
-      </div>
 
-      {/* Main Single Column Card List */}
-      <div className="mapping-main" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {userColumns.map((col, idx) => {
-          const mapping = (mappings[activeSheet] || []).find(m => m.userColumn === col)
-          const isSkipped = mapping?.entityType === 'skip'
-          const mappedField = mapping?.systemField
-          const splitConfig = (splitConfigs[activeSheet] || []).find(s => s.userColumn === col)
-          const isSplit = !!splitConfig
-          const isDuplicate = mappedField ? duplicateMappings.some(d => d.field === mappedField) : false
-          
-          const isProblem = !mappedField || isDuplicate || isSkipped
-          const isExpanded = localExpandedCards[col] !== undefined ? localExpandedCards[col] : isProblem
+        <div style={cellDesc}>First and last name of the tenant</div>
 
-          const sampleValue = sampleRowValues[col]
+        <div style={cellPick}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 7 }}>
+            Select all the name columns you have.
+          </div>
 
-          const categoryName = mapping?.entityType ? (categoryLabels[mapping.entityType] || mapping.entityType) : ''
-          const fieldLabel = mappedField ? (columns.find(c => c.key === mappedField)?.label || mappedField) : ''
-          
-          const activeCategory = editingCategory[col] || mapping?.entityType || ''
-
-          return (
-            <div 
-              key={idx}
-              className={cn('mapping-card', 
-                mappedField && !isSplit && !isDuplicate ? 'mapping-card--success' : '',
-                isDuplicate ? 'mapping-card--error' : '',
-                isSplit ? 'mapping-card--split' : '',
-                isSkipped && !isSplit ? 'mapping-card--skipped' : ''
-              )}
-              style={{
-                background: 'white',
-                border: '1px solid var(--border)',
-                borderRadius: 14,
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 16,
-                boxShadow: isExpanded ? '0 4px 12px rgba(0,0,0,0.02)' : 'none',
-                borderColor: isExpanded ? 'var(--border)' : '#e2e8f0',
-                transition: 'all 0.15s'
-              }}
-            >
-              
-              {/* Collapsed State Layout */}
-              {!isExpanded ? (
-                <div 
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                  onClick={() => toggleCard(col)}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'left' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{col}</span>
-                    {sampleValue && (
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        Spreadsheet: <strong style={{ color: '#475569' }}>{sampleValue}</strong>
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {mappedField && !isDuplicate && !isSkipped && !isSplit && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#dcfce7', padding: '3px 8px', borderRadius: 6 }}>
-                          Perfect Match ✓
-                        </span>
-                      )}
-                      {isSkipped && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '3px 8px', borderRadius: 6 }}>
-                          Ignored
-                        </span>
-                      )}
-                      {isDuplicate && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '3px 8px', borderRadius: 6 }}>
-                          Duplicate Match ⚠
-                        </span>
-                      )}
-                      {isSplit && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--clay)', background: '#fff5ec', padding: '3px 8px', borderRadius: 6 }}>
-                          Separated
-                        </span>
-                      )}
-                      {!mappedField && !isSkipped && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: '#d97706', background: '#fef3c7', padding: '3px 8px', borderRadius: 6 }}>
-                          Needs Review ⚠
-                        </span>
-                      )}
-                      
-                      {mappedField && !isSkipped && !isSplit && (
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
-                          We'll save as: <strong style={{ color: 'var(--dark)' }}>{categoryName} → {fieldLabel}</strong>
-                        </span>
-                      )}
-                      {isSkipped && (
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                          Ignored (Excluded from import)
-                        </span>
-                      )}
-                    </div>
-                    
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toggleCard(col); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 700, cursor: 'pointer', fontSize: 13, padding: 0 }}
-                    >
-                      Change
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Expanded Editing Wizard State (Vertical Stack Flow) */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}>
-                  
-                  {/* Summary Label Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Spreadsheet Column</span>
-                      <strong style={{ fontSize: 15, color: 'var(--dark)' }}>{col}</strong>
-                      {sampleValue && (
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                          Example: <strong style={{ color: '#475569' }}>{sampleValue}</strong>
-                        </span>
-                      )}
-                    </div>
-                    <button 
-                      onClick={() => toggleCard(col)}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
-                    >
-                      Collapse
-                    </button>
-                  </div>
-
-                  {/* Guided Wizard Flow */}
-                  {!isSplit ? (
-                    <div style={{ background: '#f8fafc', padding: 16, borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 14, border: '1px solid var(--border)' }}>
-                      
-                      {/* Step 1: Category Intent Choice */}
-                      <div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)', display: 'block', marginBottom: 8 }}>
-                          What does this column contain?
-                        </span>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {['property', 'unit', 'tenant', 'landlord'].map((cat) => (
-                            <button
-                              key={cat}
-                              onClick={() => handleCategorySelect(col, cat)}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: 8,
-                                border: activeCategory === cat ? '1px solid var(--clay)' : '1px solid var(--border)',
-                                background: activeCategory === cat ? '#fff5ec' : 'white',
-                                color: activeCategory === cat ? 'var(--clay)' : 'var(--text-muted)',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {categoryLabels[cat]}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Step 2: Specific Field mapping */}
-                      {activeCategory && activeCategory !== 'skip' && (
-                        <div className="animate-slide-up" style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)', display: 'block', marginBottom: 8 }}>
-                            Which information is it?
-                          </span>
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            {systemFieldsGrouped[activeCategory]?.map((field) => (
-                              <button
-                                key={field.key}
-                                onClick={() => handleFieldSelect(col, activeCategory, field.key)}
-                                style={{
-                                  padding: '6px 12px',
-                                  borderRadius: 8,
-                                  border: mappedField === field.key ? '1px solid var(--forest)' : '1px solid var(--border)',
-                                  background: mappedField === field.key ? '#f0fdf4' : 'white',
-                                  color: mappedField === field.key ? 'var(--forest)' : 'var(--text-muted)',
-                                  fontSize: 12,
-                                  fontWeight: 600,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {field.label} {field.required ? '*' : ''}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Advanced Accordion Link */}
-                      <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                        <button
-                          onClick={() => setShowAdvanced(prev => ({ ...prev, [col]: !prev[col] }))}
-                          style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 700, cursor: 'pointer', fontSize: 11, padding: 0 }}
-                        >
-                          {showAdvanced[col] ? 'Hide Advanced Options' : '▼ Advanced Options'}
-                        </button>
-
-                        {showAdvanced[col] && (
-                          <div className="animate-slide-up" style={{ display: 'flex', gap: 12, marginTop: 10 }}>
-                            <button
-                              onClick={() => {
-                                handleCategorySelect(col, 'skip')
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: 8,
-                                border: isSkipped ? '1px solid var(--border)' : '1px dashed #cbd5e1',
-                                background: isSkipped ? '#f1f5f9' : 'white',
-                                color: '#64748b',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Ignore this column
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                toggleSplit(col)
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: 8,
-                                border: '1px dashed #cbd5e1',
-                                background: 'white',
-                                color: 'var(--clay)',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Split Column
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    /* Split Mode Panel */
-                    <div className="mapping-split-config animate-fade-in" style={{ background: '#f8fafc', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
-                      <div className="mapping-split-config__delimiters" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--dark)' }}>Separate by:</span>
-                        {[
-                          { label: 'Space', value: ' ' },
-                          { label: 'Comma (,)', value: ',' },
-                          { label: 'Dash (-)', value: '-' },
-                          { label: 'Slash (/)', value: '/' }
-                        ].map(d => (
-                          <button
-                            key={d.value}
-                            className={cn('delimiter-btn', splitConfig.delimiter === d.value && 'delimiter-btn--active')}
-                            onClick={() => updateSplitConfig(col, { delimiter: d.value })}
-                            style={{
-                              padding: '4px 10px',
-                              borderRadius: 6,
-                              border: splitConfig.delimiter === d.value ? '1px solid var(--clay)' : '1px solid var(--border)',
-                              background: splitConfig.delimiter === d.value ? '#fff5ec' : 'white',
-                              color: splitConfig.delimiter === d.value ? 'var(--clay)' : 'var(--text-muted)',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {d.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mapping-split-preview" style={{ marginBottom: 16 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Live Separation Preview</div>
-                        {getSplitPreview(workbook, activeSheet, col, splitConfig.delimiter).slice(0, 1).map((item: any, i: number) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', padding: 8, borderRadius: 8, border: '1px solid var(--border)' }}>
-                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>"{item.original}"</span>
-                            <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              {item.parts.map((p: string, j: number) => (
-                                <span key={j} style={{ fontSize: 11, fontWeight: 600, background: 'var(--bg)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 4, color: 'var(--dark)' }}>
-                                  {p}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {splitConfig.parts.map((part, pIdx) => {
-                          const partCategoryOptions = [
-                            ...Object.keys(systemFieldsGrouped).map(cat => ({ label: categoryLabels[cat] || cat, value: cat })),
-                            { label: 'Skip Part', value: 'skip' }
-                          ]
-                          const partFieldOptions = part.entityType && part.entityType !== 'skip'
-                            ? systemFieldsGrouped[part.entityType]?.map(f => ({ label: f.label, value: f.key })) || []
-                            : []
-
-                          return (
-                            <div key={part.index} style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--dark)', width: 50 }}>Part {pIdx + 1}</span>
-                              <FormSelect
-                                value={part.entityType || ''}
-                                onChange={(val) => updateSplitPart(col, part.index, null, val)}
-                                options={partCategoryOptions}
-                                placeholder="Category"
-                                triggerStyle={{ height: 38, borderRadius: 8 }}
-                                style={{ flex: 1 }}
-                              />
-                              {part.entityType && part.entityType !== 'skip' && (
-                                <FormSelect
-                                  value={part.systemField || ''}
-                                  onChange={(val) => updateSplitPart(col, part.index, val, part.entityType)}
-                                  options={partFieldOptions}
-                                  placeholder="Save as"
-                                  triggerStyle={{ height: 38, borderRadius: 8 }}
-                                  style={{ flex: 1 }}
-                                  searchable
-                                />
-                              )}
-                              <button 
-                                onClick={() => removeSplitPart(col, part.index)} 
-                                style={{ color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          )
-                        })}
-                        <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
-                          <button 
-                            onClick={() => addSplitPart(col)} 
-                            style={{ fontSize: 11, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                          >
-                            + Add Segment
-                          </button>
-                          <button 
-                            onClick={() => toggleSplit(col)} 
-                            style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                          >
-                            Cancel Split
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Simplified Visual preview: mr. ↓ Tenant First Name */}
-                  {mappedField && !isSkipped && !isSplit && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, borderTop: '1px solid var(--border)', paddingTop: 10, color: 'var(--text-muted)' }}>
-                      <span>{sampleValue || 'Example'}</span>
-                      <ArrowRight size={12} />
-                      <strong style={{ color: 'var(--forest)' }}>{categoryName} → {fieldLabel}</strong>
-                    </div>
-                  )}
-
-                </div>
-              )}
+          {nameColumns.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {nameColumns.map((c, i) => (
+                <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, background: 'var(--forest-faint)', border: '1px solid var(--forest)', color: 'var(--forest-hover)', borderRadius: 8, padding: '5px 10px' }}>
+                  <span style={{ opacity: 0.6 }}>{i + 1}</span> {c}
+                  <button onClick={() => removeFieldColumn?.(activeSheet, 'tenantFirstName', c)} aria-label={`Remove ${c}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--forest-hover)', padding: 0, display: 'flex' }}>
+                    <X size={13} />
+                  </button>
+                </span>
+              ))}
             </div>
-          )
-        })}
+          )}
+
+          {nameColumns.length < 3 && (
+            <select
+              aria-label="Add a column holding part of the tenant's name"
+              value=""
+              onChange={e => { if (e.target.value) addFieldColumn?.(activeSheet, 'tenantFirstName', 'tenant', e.target.value) }}
+              style={selectStyle(false)}
+            >
+              <option value="">{nameColumns.length === 0 ? 'Choose a column…' : 'Add another name column…'}</option>
+              {userColumns.filter(c => !nameColumns.includes(c)).map(c => (
+                <option key={c} value={c}>{optionLabel(c)}</option>
+              ))}
+            </select>
+          )}
+
+          {preview && (
+            <div style={{ marginTop: 9, fontSize: 12, color: 'var(--text-secondary)' }}>
+              we found{' '}
+              {preview.corporate
+                ? <strong style={{ color: 'var(--dark)' }}>{preview.corporate}</strong>
+                : <>
+                    <strong style={{ color: 'var(--dark)' }}>{preview.first}</strong>
+                    {preview.last ? <> · <strong style={{ color: 'var(--dark)' }}>{preview.last}</strong></> : null}
+                    <button
+                      onClick={() => setSwapNameOrder?.(!swapNameOrder)}
+                      style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+                    >
+                      swap
+                    </button>
+                  </>}
+            </div>
+          )}
+        </div>
       </div>
+    )
+  }
+
+  const renderField = (field: ColumnDef) => {
+    const allColumns = columnsFor(field.key)
+    const picked = allColumns[0] || null
+    const extraColumns = allColumns.slice(1)
+    const values = picked ? (rawByColumn[picked] || []) : []
+    // When one cell holds a whole range, both date fields read from it
+    const sharesDateColumn = field.key === 'unitRentDueDate' && picked && picked === columnFor('unitRentStartDate')
+    const rangeShortfall = sharesDateColumn ? values.filter(v => countDatesIn(v) < 2).length : 0
+    const found = values.slice(0, 2).map(v => extractForField(v, field)).filter(Boolean)
+    const foundCount = values.filter(v => extractForField(v, field) !== '').length
+    const moneyNeighbours = field.key === 'unitRentAmount' && picked ? otherMoneyColumns(picked) : []
+
+    return (
+      <div key={field.key} style={rowStyle}>
+        <div style={cellLabel}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{askFor(field)}</span>
+            {picked
+              ? <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--forest)' }}>✓</span>
+              : field.required ? <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--clay)' }}>NEEDED</span> : null}
+          </div>
+        </div>
+
+        <div style={cellDesc}>{field.description || ''}</div>
+
+        <div style={cellPick}>
+          {columnSelect(picked, c => pick(field, c), 'Choose a column…', askFor(field))}
+
+          {extraColumns.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+              {extraColumns.map(c => (
+                <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, background: 'var(--forest-faint)', border: '1px solid var(--forest)', color: 'var(--forest-hover)', borderRadius: 8, padding: '5px 10px' }}>
+                  + {c}
+                  <button onClick={() => removeFieldColumn?.(activeSheet, field.key, c)} aria-label={`Remove ${c}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--forest-hover)', padding: 0, display: 'flex' }}>
+                    <X size={13} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {picked && (
+            <div style={{ marginTop: 9 }}>
+              {found.map((v, i) => (
+                <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 3 }}>
+                  we found <strong style={{ color: 'var(--dark)', fontWeight: 700 }}>{v}</strong>
+                </div>
+              ))}
+              {rangeShortfall > 0 && (
+                <div style={{ fontSize: 11, color: '#854f0b', fontWeight: 600, marginTop: 4 }}>
+                  {rangeShortfall} row{rangeShortfall === 1 ? '' : 's'} only have one date in that cell — we will ask you for the other
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: foundCount === values.length ? 'var(--forest)' : '#854f0b', fontWeight: 600, marginTop: 4 }}>
+                {foundCount === values.length
+                  ? `found it in all ${values.length}`
+                  : `found it in ${foundCount} of ${values.length} — we will ask you about the rest`}
+              </div>
+            </div>
+          )}
+
+          {moneyNeighbours.length > 0 && (
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              Also in your sheet:{' '}
+              {moneyNeighbours.map((c, i) => (
+                <span key={c}>
+                  {i > 0 ? ' · ' : ''}
+                  <strong style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{c}</strong> {(rawByColumn[c] || [])[0]}
+                </span>
+              ))}
+              {' '}— is the one above the right one?
+            </div>
+          )}
+
+          {picked && addingTo !== field.key && (
+            <button
+              onClick={() => setAddingTo(field.key)}
+              style={{ marginTop: 8, background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              <Plus size={13} /> Add another column
+            </button>
+          )}
+
+          {addingTo === field.key && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                {field.type === 'number' ? 'We will add them together' : 'We will join them together'}
+              </div>
+              <select
+                aria-label={`Another column for ${askFor(field)}`}
+                value=""
+                onChange={e => { if (e.target.value) addColumn(field, e.target.value) }}
+                style={selectStyle(false)}
+              >
+                <option value="">Choose another column…</option>
+                {userColumns.filter(c => !allColumns.includes(c)).map(c => (
+                  <option key={c} value={c}>{optionLabel(c)}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setAddingTo(null)}
+                style={{ marginTop: 6, background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const dateColumn = columnFor('unitRentStartDate')
+  const dateSamples = dateColumn ? (rawByColumn[dateColumn] || []).slice(0, 2) : []
+
+  const headerRow = (
+    <div className="desktop-only" style={{ display: 'flex', gap: 16, padding: '0 0 10px', borderBottom: '1px solid var(--border-strong)' }}>
+      <span style={{ flex: '1 1 200px', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+        Our field
+      </span>
+      <span style={{ flex: '1 1 240px', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+        Description
+      </span>
+      <span style={{ flex: '1 1 320px', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+        Your column(s)
+      </span>
+    </div>
+  )
+
+  return (
+    <div className="animate-slide-up" style={{ maxWidth: 960, margin: '0 auto', width: '100%', padding: '24px 20px' }}>
+      <div style={{ marginBottom: 18 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', margin: '0 0 4px' }}>
+          Point us at each one
+        </h3>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+          Tell us which of your columns holds each thing. The same column can answer more than one.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', whiteSpace: 'nowrap' }}>
+          {answered} of {required.length} done
+        </span>
+        <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--ivory-dark)', overflow: 'hidden' }}>
+          <div style={{ width: `${required.length ? (answered / required.length) * 100 : 0}%`, height: '100%', background: 'var(--forest)', transition: 'width 0.2s' }} />
+        </div>
+      </div>
+
+      {headerRow}
+      {required.map(f => (
+        f.key === 'tenantFirstName'
+          ? <React.Fragment key={f.key}>{renderNameRow()}</React.Fragment>
+          : renderField(f)
+      ))}
+
+      {askDateOrder && (
+        <div style={{ background: 'var(--surface)', border: '1px solid #fac775', borderRadius: 12, padding: 18, margin: '18px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <CalendarDays size={16} style={{ color: '#854f0b' }} />
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>One thing about your dates</h4>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
+            Your dates look like {dateSamples[0] ? <strong style={{ color: 'var(--dark)' }}>{dateSamples[0]}</strong> : 'this'} and
+            every number is 12 or under, so we cannot tell which is the day.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
+            {(['dmy', 'mdy'] as const).map(order => (
+              <button
+                key={order}
+                onClick={() => { setDateOrder?.(order); setAskDateOrder(false) }}
+                className={dateOrder === order ? 'btn btn--primary' : 'btn btn--secondary'}
+                style={{ height: 40, borderRadius: 10, fontSize: 13, fontWeight: 600 }}
+              >
+                {order === 'dmy' ? '03/12 is 3 December' : '03/12 is 12 March'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => setShowOptional(v => !v)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px', cursor: 'pointer', marginTop: 18 }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Bring more over — landlord, unit name, notes</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+          {optional.filter(c => columnFor(c.key)).length} of {optional.length}
+          <ChevronDown size={15} style={{ transform: showOptional ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+        </span>
+      </button>
+
+      {showOptional && (
+        <div style={{ marginTop: 18 }}>
+          {headerRow}
+          {optional.map(renderField)}
+        </div>
+      )}
     </div>
   )
 }

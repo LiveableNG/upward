@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
-import { suggestMapping, formatPhoneNumberByCountry, validateCell, parseDateString, calculateRentEndDateAndWarning } from './utils'
+import { extractForField, splitPersonName, stripContacts, looksCorporate, looksSurnameFirst, inferDateOrder, countDatesIn, resolvePaidWord, scrub, formatPhoneNumberByCountry, validateCell, parseDateString, calculateRentEndDateAndWarning , type DateOrder } from './utils'
 import { useToast } from '@/components/common/Toast'
 
 export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties: any[], targetPropertyUuid: string) => {
@@ -12,6 +12,9 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   const [phase, setPhase] = useState<'mapping' | 'preview'>('mapping')
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null)
   const [activeSheet, setActiveSheet] = useState<string>('')
+  const [swapNameOrder, setSwapNameOrder] = useState(false)
+  const [dateOrder, setDateOrder] = useState<DateOrder>('dmy')
+  const [dateOrderIsAmbiguous, setDateOrderIsAmbiguous] = useState(false)
   const [userColumns, setUserColumns] = useState<string[]>([])
   const [mappings, setMappings] = useState<{ [sheet: string]: ColumnMapping[] }>({})
   const [splitConfigs, setSplitConfigs] = useState<{ [sheet: string]: SplitConfig[] }>({})
@@ -87,14 +90,11 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
           const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
           const headers = (sheetData[0] as any[]).map((h: any) => String(h || '').trim()).filter(h => h)
           
-          initialMappings[sheetName] = headers.map(column => {
-            const suggestion = suggestMapping(column, columns)
-            return {
-              userColumn: column,
-              systemField: suggestion?.field || null,
-              entityType: suggestion?.entityType || null,
-            }
-          })
+          initialMappings[sheetName] = headers.map(column => ({
+            userColumn: column,
+            systemField: null,
+            entityType: null,
+          }))
         })
 
         setMappings(initialMappings)
@@ -108,114 +108,9 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
 
         setIsOverlayOpen(true)
 
-        // Check if all required columns are cleanly mapped (e.g. downloaded sample template)
-        const sheetMappings = initialMappings[validSheets[0]] || []
-        const mappedFieldKeys = new Set(
-          sheetMappings
-            .filter(m => m.systemField && m.entityType !== 'skip')
-            .map(m => m.systemField as string)
-        )
-        const missingRequiredKeys = columns.filter(c => c.required && !mappedFieldKeys.has(c.key))
+        setPhase('mapping')
 
-        // Check for duplicate field mappings
-        const fieldCounts: Record<string, number> = {}
-        sheetMappings.forEach(m => {
-          if (m.systemField && m.entityType !== 'skip') {
-            fieldCounts[m.systemField] = (fieldCounts[m.systemField] || 0) + 1
-          }
-        })
-        const hasDuplicates = Object.values(fieldCounts).some(count => count > 1)
-
-        if (missingRequiredKeys.length === 0 && !hasDuplicates) {
-          // Auto-advance to preview data grid stage
-          setTimeout(() => {
-            const newRows: any[] = []
-            const rawRows = firstSheetData.slice(1) as any[][]
-
-            rawRows.forEach((row, index) => {
-              if (!row || row.every(cell => !cell || String(cell).trim() === '')) return
-
-              const mappedRow: any = { id: `row-${Date.now()}-${index}` }
-              columns.forEach(col => mappedRow[col.key] = col.type === 'number' ? '' : '')
-
-              sheetMappings.forEach(mapping => {
-                if (mapping.systemField && mapping.entityType !== 'skip') {
-                  const colIndex = firstSheetHeaders.indexOf(mapping.userColumn)
-                  if (colIndex !== -1 && row[colIndex] !== undefined) {
-                    mappedRow[mapping.systemField] = String(row[colIndex]).trim()
-                  }
-                }
-              })
-
-              columns.forEach(col => {
-                if (col.type === 'number' && mappedRow[col.key]) {
-                  const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
-                  mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
-                } else if (col.type === 'date' && mappedRow[col.key]) {
-                  mappedRow[col.key] = parseDateString(mappedRow[col.key])
-                }
-              })
-
-              const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
-              const hasCommercialName = !!(mappedRow.tenantCommercialName?.trim())
-              if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
-                const cleanName = hasCommercialName
-                  ? (mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-                  : `${(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
-                mappedRow.tenantEmail = `guest-${cleanName}-${Math.random().toString(36).substring(2, 8)}@upward.com`
-              }
-
-              const rowCountry = mode === 'full' ? (mappedRow.propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
-              if (mappedRow.tenantPhone) mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
-              if (mappedRow.landlordPhone) mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
-
-              newRows.push(mappedRow)
-            })
-
-            const newErrors: Record<string, string> = {}
-            const newWarnings: Record<string, string> = {}
-
-            newRows.forEach(row => {
-              const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
-              const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
-              const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
-
-              const startDateVal = row[startDateField]
-              const rentTypeVal = row[rentTypeField] || 'Annually'
-              const leaseYearsVal = row.leaseYears
-
-              if (startDateVal) {
-                const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
-                row[dueDateField] = fixedEndDate
-                if (warningMessage) {
-                  newWarnings[`${row.id}-${dueDateField}`] = warningMessage
-                }
-              }
-
-              columns.forEach(col => {
-                validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, (val) => {
-                  if (typeof val === 'function') {
-                    const next = val(newErrors)
-                    Object.assign(newErrors, next)
-                  } else {
-                    Object.assign(newErrors, val)
-                  }
-                }, true)
-              })
-            })
-
-
-            setPreviewRows(newRows)
-            setValidationErrors(newErrors)
-            setAmberWarnings(newWarnings)
-            revalidateDuplicates(newRows)
-            setPhase('preview')
-            success('Template matched! Auto-advanced to Data Grid.')
-          }, 50)
-        } else {
-          setPhase('mapping')
-          success('File read successfully. Map your columns to proceed.')
-        }
+        success('File read. Now match your columns to Upward fields.')
       } catch (err) {
         console.error(err)
         error('Error reading file. Please ensure it is a valid Excel or CSV file.')
@@ -231,6 +126,35 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
       const sheetMappings = prev[sheetName] || []
       const updated = sheetMappings.map(m => m.userColumn === userColumn ? { ...m, systemField, entityType } : m)
       return { ...prev, [sheetName]: updated }
+    })
+  }
+
+  const addFieldColumn = (sheetName: string, fieldKey: string, entityType: string, userColumn: string) => {
+    setMappings(prev => {
+      const sheetMappings = prev[sheetName] || []
+      const already = sheetMappings.some(m => m.systemField === fieldKey && m.userColumn === userColumn)
+      if (already) return prev
+      return { ...prev, [sheetName]: [...sheetMappings, { userColumn, systemField: fieldKey, entityType }] }
+    })
+  }
+
+  const removeFieldColumn = (sheetName: string, fieldKey: string, userColumn: string) => {
+    setMappings(prev => {
+      const sheetMappings = prev[sheetName] || []
+      return { ...prev, [sheetName]: sheetMappings.filter(m => !(m.systemField === fieldKey && m.userColumn === userColumn)) }
+    })
+  }
+
+  // Field-first: the field asks which column holds it. Several fields may name the
+  // same column — each pulls its own kind of value out of that cell.
+  const setFieldColumn = (sheetName: string, fieldKey: string, entityType: string, userColumn: string | null) => {
+    setMappings(prev => {
+      const sheetMappings = prev[sheetName] || []
+      const withoutField = sheetMappings.filter(m => m.systemField !== fieldKey)
+      const next = userColumn
+        ? [...withoutField, { userColumn, systemField: fieldKey, entityType }]
+        : withoutField
+      return { ...prev, [sheetName]: next }
     })
   }
 
@@ -373,14 +297,60 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
 
       columns.forEach(col => mappedRow[col.key] = col.type === 'number' ? '' : '')
 
-      sheetMappings.forEach(mapping => {
-        if (mapping.systemField && mapping.entityType !== 'skip') {
-          const colIndex = headers.indexOf(mapping.userColumn)
-          if (colIndex !== -1 && row[colIndex] !== undefined) {
-            mappedRow[mapping.systemField] = String(row[colIndex]).trim()
-          }
-        }
+      const startCol = sheetMappings.find(m => m.systemField === 'unitRentStartDate')?.userColumn
+      const endCol = sheetMappings.find(m => m.systemField === 'unitRentDueDate')?.userColumn
+      const datesShareColumn = !!startCol && startCol === endCol
+
+      const fieldKeys = Array.from(new Set(sheetMappings.filter(m => m.systemField && m.entityType !== 'skip').map(m => m.systemField as string)))
+
+      fieldKeys.forEach(fieldKey => {
+        const colDef = columns.find(c => c.key === fieldKey)
+        const cols = sheetMappings.filter(m => m.systemField === fieldKey).map(m => m.userColumn)
+        // A range packed into one cell: the end date is the second date in that cell
+        const occurrence = datesShareColumn && fieldKey === 'unitRentDueDate' ? 1 : 0
+
+        const values = cols
+          .map(c => headers.indexOf(c))
+          .filter(i => i !== -1)
+          .map(i => extractForField(row[i], colDef, { dateOrder, occurrence }))
+          .filter(v => v !== '')
+
+        if (values.length === 0) { mappedRow[fieldKey] = ''; return }
+        if (values.length === 1) { mappedRow[fieldKey] = values[0]; return }
+
+        // Several columns feeding one field: numbers add up, text joins
+        mappedRow[fieldKey] = colDef?.type === 'number'
+          ? String(values.reduce((sum, v) => sum + (parseFloat(v) || 0), 0))
+          : values.join(' ')
       })
+
+      // The manager picks every column that holds part of the name; we work out the shape.
+      // One column is a whole name, two are first and surname, three add a middle name.
+      const nameColumns = sheetMappings
+        .filter(m => m.systemField === 'tenantFirstName')
+        .map(m => headers.indexOf(m.userColumn))
+        .filter(i => i !== -1)
+
+      if (nameColumns.length > 0) {
+        const parts = nameColumns.map(i => stripContacts(scrub(row[i]))).filter(Boolean)
+
+        if (nameColumns.length === 1) {
+          const { first, last, corporate } = splitPersonName(scrub(row[nameColumns[0]]), swapNameOrder)
+          mappedRow.tenantCommercialName = corporate || mappedRow.tenantCommercialName || ''
+          mappedRow.tenantFirstName = corporate ? '' : first
+          mappedRow.tenantLastName = corporate ? '' : last
+        } else if (looksCorporate(parts.join(' '))) {
+          mappedRow.tenantCommercialName = parts.join(' ')
+          mappedRow.tenantFirstName = ''
+          mappedRow.tenantLastName = ''
+        } else if (swapNameOrder) {
+          mappedRow.tenantFirstName = parts.slice(1).join(' ')
+          mappedRow.tenantLastName = parts[0] || ''
+        } else {
+          mappedRow.tenantFirstName = parts.slice(0, -1).join(' ')
+          mappedRow.tenantLastName = parts[parts.length - 1] || ''
+        }
+      }
 
       sheetSplits.forEach(split => {
         const colIndex = headers.indexOf(split.userColumn)
@@ -418,6 +388,17 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         mappedRow.tenantEmail = `guest-${cleanName}-${Math.random().toString(36).substring(2, 8)}@upward.com`
       }
 
+      const paidField = mode === 'full' ? 'unitRentAmountPaid' : 'rentAmountPaid'
+      const rentField = mode === 'full' ? 'unitRentAmount' : 'rentAmount'
+      if (!mappedRow[paidField]) {
+        const paidMapping = sheetMappings.find(m => m.systemField === paidField)
+        const paidIndex = paidMapping ? headers.indexOf(paidMapping.userColumn) : -1
+        if (paidIndex !== -1) {
+          const resolved = resolvePaidWord(String(row[paidIndex] ?? ''), parseFloat(mappedRow[rentField]) || 0)
+          if (resolved !== null) mappedRow[paidField] = resolved
+        }
+      }
+
       const rowCountry = mode === 'full' ? (mappedRow.propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
       if (mappedRow.tenantPhone) mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
       if (mappedRow.landlordPhone) mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
@@ -434,10 +415,15 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
       const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
 
       const startDateVal = row[startDateField]
+      const endDateVal = row[dueDateField]
+      if (startDateVal && endDateVal && new Date(endDateVal) < new Date(startDateVal)) {
+        newErrors[`${row.id}-${dueDateField}`] = 'The end date is before the start date'
+      }
       const rentTypeVal = row[rentTypeField] || 'Annually'
       const leaseYearsVal = row.leaseYears
 
-      if (startDateVal) {
+      // Only derive the end date when their sheet did not give us one
+      if (startDateVal && !endDateVal) {
         const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
         row[dueDateField] = fixedEndDate
         if (warningMessage) {
@@ -463,7 +449,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     revalidateDuplicates(newRows)
 
     setPhase('preview')
-  }, [workbook, activeSheet, mappings, splitConfigs, columns, mode, properties, targetPropertyUuid])
+  }, [workbook, activeSheet, mappings, splitConfigs, columns, mode, properties, targetPropertyUuid, swapNameOrder, dateOrder])
 
   const updateRowField = (rowId: string, field: string, value: any) => {
     const rowIndex = previewRows.findIndex(r => r.id === rowId)
@@ -539,6 +525,10 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   return {
     isOverlayOpen, setIsOverlayOpen,
     phase, setPhase,
+    setFieldColumn, addFieldColumn, removeFieldColumn,
+    setDateOrderIsAmbiguous,
+    swapNameOrder, setSwapNameOrder,
+    dateOrder, setDateOrder, dateOrderIsAmbiguous,
     workbook, setWorkbook,
     activeSheet, setActiveSheet,
     userColumns, setUserColumns,

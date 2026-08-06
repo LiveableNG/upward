@@ -50,6 +50,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     pathname?.startsWith('/reset-password')
   const isPortalPage = pathname?.startsWith('/portal')
   const isCheckoutPage = pathname === '/subscription/checkout'
+  // Onboarding import runs full screen — no sidebar, still behind auth
+  const isImportPage = pathname?.startsWith('/import')
   
   useEffect(() => {
     if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
@@ -60,7 +62,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }, [loading, isLoggedIn, isAuthPage, isPublicPage, isPortalPage, pathname, router])
 
-  if (isAuthPage || isPublicPage || isPortalPage || isCheckoutPage) {
+  if (isAuthPage || isPublicPage || isPortalPage || isCheckoutPage || isImportPage) {
     return <main>{children}</main>
   }
 

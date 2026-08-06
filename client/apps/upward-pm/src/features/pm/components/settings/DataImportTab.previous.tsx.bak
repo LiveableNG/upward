@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, FileText, AlertTriangle, ArrowRight, ArrowLeft, Eye, Building, Home, User, Table, Files, Clock, Pencil, Keyboard, Lock } from 'lucide-react'
+import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, FileText, AlertTriangle, ArrowRight, Eye, Building, Home, User } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import { useProperties, useBulkFullImport } from '@/features/pm/hooks/useProperties'
@@ -67,55 +67,23 @@ export const DataImportTab: React.FC = () => {
   }, [])
 
   const handleDownloadTemplate = () => {
-    // Keyed by column key, not by position — a positional array silently drifts
-    // whenever FULL_COLUMNS changes, which is how Additional Phone lost its value.
-    const sampleRows: Record<string, string>[] = [
-      {
-        propertyName: 'Maple Residences', propertyAddress: '18 Freedom Way, Lekki Phase 1',
-        propertyType: 'Residential', propertyCountry: 'Nigeria', propertyState: 'Lagos', propertyArea: 'Lekki Phase 1',
-        landlordFirstName: 'Michael', landlordLastName: 'Adebayo',
-        landlordEmail: 'michael.adebayo@landlord.com', landlordPhone: '+2348012345678',
-        tenantFirstName: 'Daniel', tenantLastName: 'Okafor',
-        tenantEmail: 'daniel.okafor@email.com', tenantPhone: '+2348031112233',
-        unitName: 'Flat B3', unitRentAmount: '4200000', unitRentAmountPaid: '4200000',
-        unitRentType: 'Annually', unitCurrency: 'NGN',
-        unitRentStartDate: '2025-01-15', unitRentDueDate: '2026-01-14',
-        unitManagementFee: '420000', unitNotes: '3-bedroom apartment', unitType: 'Flat / Apartment',
-      },
-      {
-        propertyName: 'The Oak Apartments', propertyAddress: '7 Prince Ade Odedina Street, Victoria Island',
-        propertyType: 'Residential', propertyCountry: 'Nigeria', propertyState: 'Lagos', propertyArea: 'Victoria Island',
-        landlordFirstName: 'Grace', landlordLastName: 'Johnson',
-        landlordEmail: 'grace.johnson@landlord.com', landlordPhone: '+2348023456789',
-        tenantFirstName: 'Sarah', tenantLastName: 'Williams',
-        tenantEmail: 'sarah.williams@email.com', tenantPhone: '+2348056677889',
-        unitName: 'Unit 5C', unitRentAmount: '650000', unitRentAmountPaid: '650000',
-        unitRentType: 'Monthly', unitCurrency: 'NGN',
-        unitRentStartDate: '2025-02-01', unitRentDueDate: '2025-03-01',
-        unitManagementFee: '65000', unitNotes: 'Luxury serviced apartment', unitType: 'Flat / Apartment',
-      },
-      {
-        propertyName: 'Atlantic Business Hub', propertyAddress: '22 Adeola Odeku Street, Victoria Island',
-        propertyType: 'Commercial', propertyCountry: 'Nigeria', propertyState: 'Lagos', propertyArea: 'Victoria Island',
-        landlordFirstName: 'David', landlordLastName: 'Ogunleye',
-        landlordEmail: 'david.indigo@landlord.com', landlordPhone: '+2348034567890',
-        tenantCommercialName: 'TechNova Solutions Ltd',
-        tenantEmail: 'admin@technova.com', tenantPhone: '+2348078899001',
-        unitName: 'Office 401', unitRentAmount: '24000000', unitRentAmountPaid: '24000000',
-        unitRentType: 'Lease', leaseYears: '5', unitCurrency: 'NGN',
-        unitRentStartDate: '2025-03-01', unitRentDueDate: '2030-02-28',
-        unitManagementFee: '2400000', unitNotes: '5-year commercial office lease', unitType: 'Office Space',
-      },
+    const exportColumns = columns.filter(c => 
+      c.key !== 'unitRentDueDate' && 
+      c.key !== 'rentDueDate'
+    );
+    const headers = exportColumns.map(c => c.label)
+    
+    const rows = [
+      ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
+      ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
+      ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.indigo@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
     ]
-
-    const headers = columns.map(c => c.label)
-    const rows = sampleRows.map(row => columns.map(c => row[c.key] ?? ''))
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     downloadBlob(blob, `upward_full_import_template.csv`).then(() => {
       success('Template downloaded successfully!')
-    }).catch((err: unknown) => console.error(err))
+    }).catch((err: any) => console.error(err))
   }
 
   const parseBackendError = (message: string): string => {
@@ -394,9 +362,12 @@ export const DataImportTab: React.FC = () => {
   }
 
   const requiredColumns = useMemo(() => columns.filter(c => c.required), [columns])
+  const optionalPreview = useMemo(
+    () => columns.filter(c => !c.required && !c.readOnly).slice(0, 6).map(c => c.label),
+    [columns]
+  )
 
   const [isDragging, setIsDragging] = useState(false)
-  const [selectedPath, setSelectedPath] = useState<'spreadsheet' | 'documents' | null>(null)
 
   const passFileToImporter = (file: File) => {
     const transfer = new DataTransfer()
@@ -412,46 +383,15 @@ export const DataImportTab: React.FC = () => {
     if (file) passFileToImporter(file)
   }
 
-  const pathCardBase: React.CSSProperties = {
-    background: 'var(--bg)',
-    border: '1px solid var(--border)',
-    borderRadius: 16,
-    padding: '22px 20px',
-    display: 'flex',
-    flexDirection: 'column',
-    textAlign: 'left',
-  }
-
-  const pathBenefit = (icon: React.ReactNode, text: string) => (
-    <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-      <span style={{ color: 'var(--forest)', flexShrink: 0, display: 'flex', marginTop: 1 }}>{icon}</span>
-      <span>{text}</span>
-    </div>
-  )
-
   return (
-    <section className="settings__section animate-fade-in">
+    <div className="import-page animate-fade-in" style={{ padding: '24px 0', maxWidth: 740, margin: '0 auto' }}>
 
-      {/* Header — copy follows whichever lane the manager is in */}
-      <div className="settings__section-header import-page__header">
-        {selectedPath && (
-          <button
-            onClick={() => setSelectedPath(null)}
-            className="btn btn--secondary btn--sm"
-            style={{ marginBottom: 16, height: 36, borderRadius: 10, fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 7 }}
-          >
-            <ArrowLeft size={15} /> Back to import options
-          </button>
-        )}
-        <h2 className="settings__section-title">
-          {selectedPath === 'spreadsheet' ? 'Upload your spreadsheet'
-            : selectedPath === 'documents' ? 'Send your documents'
-            : 'Import your properties'}
-        </h2>
-        <p className="settings__section-subtitle" style={{ maxWidth: 520 }}>
-          {selectedPath === 'spreadsheet' ? 'Upload whatever spreadsheet you already use — you will match your columns to ours on the next screen.'
-            : selectedPath === 'documents' ? 'Send us what you have and our team will type it up into a spreadsheet for you.'
-            : 'What do you have right now? Both options end in the same place — your properties in your dashboard.'}
+      {/* Header */}
+      <div className="import-page__header" style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 6 }}>Bulk Import</h2>
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+          Bring the spreadsheet you already use. Most imports take about 5 minutes, and nothing is added to your
+          dashboard until you review it first.
         </p>
       </div>
 
@@ -461,254 +401,204 @@ export const DataImportTab: React.FC = () => {
         onDeleteJob={handleDeleteJob}
       />
 
-      {/* SCREEN 1 — the fork. Two lanes, equal weight, stated tradeoffs. */}
-      {!selectedPath && (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16 }}>
+      {/* STEP 1 — What the file must contain, shown before we ask for a file */}
+      <section
+        className="import-requirements"
+        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 20, padding: 24, marginBottom: 16 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>
+            Your file needs {requiredColumns.length} column{requiredColumns.length === 1 ? '' : 's'}
+          </h3>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', background: 'var(--forest-faint)', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+            Step 1 of 2
+          </span>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px', lineHeight: 1.5 }}>
+          Every row is one unit. If your sheet has these columns, it will import — the column order and any extra
+          columns you have do not matter.
+        </p>
 
-            <div style={pathCardBase}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                <Table size={22} style={{ color: 'var(--clay)' }} />
-              </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: '0 0 6px' }}>A spreadsheet</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 16px' }}>
-                Excel or CSV listing your properties, units, and what each tenant pays.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 20, flex: 1 }}>
-                {pathBenefit(<Clock size={15} />, 'Done in about 5 minutes')}
-                {pathBenefit(<Pencil size={15} />, 'You fix any problems on screen, no going back to Excel')}
-                {pathBenefit(<Download size={15} />, "Don't have one? We give you a template to fill in")}
-              </div>
-              <button
-                onClick={() => setSelectedPath('spreadsheet')}
-                className="btn btn--primary"
-                style={{ width: '100%', height: 42, borderRadius: 10, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-              >
-                Use this path <ArrowRight size={16} />
-              </button>
-            </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {requiredColumns.map(col => (
+            <span
+              key={col.key}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--dark)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '7px 12px' }}
+            >
+              <Check size={14} style={{ color: 'var(--forest)' }} />
+              {col.label}
+            </span>
+          ))}
+        </div>
 
-            <div style={pathCardBase}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                <Files size={22} style={{ color: 'var(--clay)' }} />
-              </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: '0 0 6px' }}>Documents or photos</h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 16px' }}>
-                Tenancy agreements, rent books, scans, phone photos — or a spreadsheet too messy to read.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 20, flex: 1 }}>
-                {pathBenefit(<Clock size={15} />, 'Ready in about 48 hours')}
-                {pathBenefit(<Keyboard size={15} />, 'Our team types it up for you')}
-                {pathBenefit(<Eye size={15} />, 'You approve every row before it saves')}
-              </div>
-              <button
-                onClick={() => setSelectedPath('documents')}
-                className="btn btn--secondary"
-                style={{ width: '100%', height: 42, borderRadius: 10, fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
-              >
-                Use this path <ArrowRight size={16} />
-              </button>
-            </div>
+        <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 12, marginBottom: 14 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left', whiteSpace: 'nowrap' }}>
+            <thead>
+              <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text-muted)' }}>Property Name</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--dark)' }}>Address <span style={{ color: 'var(--clay)' }}>*</span></th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text-muted)' }}>Unit Name</th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--dark)' }}>Rent Amount <span style={{ color: 'var(--clay)' }}>*</span></th>
+                <th style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--dark)' }}>Amount Paid <span style={{ color: 'var(--clay)' }}>*</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>Maple Residences</td>
+                <td style={{ padding: '10px 12px', color: 'var(--dark)' }}>18 Freedom Way, Lekki</td>
+                <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>Flat B3</td>
+                <td style={{ padding: '10px 12px', color: 'var(--dark)' }}>4200000</td>
+                <td style={{ padding: '10px 12px', color: 'var(--dark)' }}>4200000</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>Maple Residences</td>
+                <td style={{ padding: '10px 12px', color: 'var(--dark)' }}>18 Freedom Way, Lekki</td>
+                <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>Flat B4</td>
+                <td style={{ padding: '10px 12px', color: 'var(--dark)' }}>650000</td>
+                <td style={{ padding: '10px 12px', color: 'var(--dark)' }}>0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-          </div>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--text-secondary)' }}>Amounts are plain numbers</strong> — no currency symbols or
+          commas. Two units at the same address? Repeat the address on both rows.
+        </p>
 
-          <div style={{ marginTop: 18, background: 'var(--forest-faint)', border: '1px solid rgba(22, 101, 52, 0.15)', borderRadius: 12, padding: '13px 15px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <Lock size={16} style={{ color: 'var(--forest)', flexShrink: 0, marginTop: 1 }} />
-            <p style={{ fontSize: 12, color: 'var(--forest-hover)', margin: 0, lineHeight: 1.6 }}>
-              Whichever you pick, nothing is saved until you review the rows and press Import.
-            </p>
-          </div>
-
-        </>
-      )}
-
-      {/* SCREEN 2A — spreadsheet lane. No gate: the mapping step enforces the schema. */}
-      {selectedPath === 'spreadsheet' && (
-        <>
-          <div
-            className="upload-hero-dropzone"
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              padding: '44px 24px',
-              borderRadius: 16,
-              border: `2px dashed ${isDragging ? 'var(--clay)' : 'var(--border-strong)'}`,
-              background: isDragging ? 'var(--clay-faint)' : 'var(--bg)',
-              transition: 'background 0.15s, border-color 0.15s',
-            }}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+          <span>Optional if you have them: {optionalPreview.join(', ')} and more.</span>
+          <button
+            onClick={() => setIsHelpDrawerOpen(true)}
+            style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
           >
-            <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
-              <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
-            </div>
+            See all {columns.length} columns
+          </button>
+        </div>
+      </section>
 
-            <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: '0 0 6px' }}>
-              {isDragging ? 'Drop it here' : 'Choose your spreadsheet'}
-            </h4>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px' }}>
-              Excel (.xlsx, .xls) or CSV
-            </p>
+      {/* STEP 2 — Hand over the file */}
+      <section
+        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 20, padding: 24, marginBottom: 16 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+          <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>Upload your file</h3>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', background: 'var(--forest-faint)', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+            Step 2 of 2
+          </span>
+        </div>
 
-            <label className="btn btn--primary" style={{ padding: '12px 30px', height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Upload size={16} /> Choose file
-              <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef} />
-            </label>
-
-            <p className="desktop-only" style={{ fontSize: 12, color: 'var(--text-muted)', margin: '12px 0 0' }}>
-              or drop the file into this box
-            </p>
+        <div
+          className="upload-hero-dropzone"
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            padding: '40px 24px',
+            borderRadius: 16,
+            border: `2px dashed ${isDragging ? 'var(--clay)' : 'var(--border-strong)'}`,
+            background: isDragging ? 'var(--clay-faint)' : 'var(--bg)',
+            transition: 'background 0.15s, border-color 0.15s',
+          }}
+        >
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
+            <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', margin: '0 0 2px' }}>No spreadsheet yet?</p>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                Our template has the right columns and three example rows filled in.
-              </p>
-            </div>
-            <button
-              onClick={handleDownloadTemplate}
-              className="btn btn--secondary btn--sm"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, borderRadius: 10, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
-            >
-              <Download size={15} /> Download template
-            </button>
+          <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', margin: '0 0 6px' }}>
+            {isDragging ? 'Drop it here' : 'Drag your spreadsheet here'}
+          </h4>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px' }}>
+            Excel (.xlsx, .xls) or CSV, up to 5,000 rows
+          </p>
+
+          <label className="btn btn--primary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={16} /> Choose file
+            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef} />
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', margin: '0 0 2px' }}>No spreadsheet ready?</p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+              Start from our template — it already has the right columns and three filled-in example rows.
+            </p>
           </div>
+          <button
+            onClick={handleDownloadTemplate}
+            className="btn btn--secondary btn--sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, borderRadius: 10, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
+          >
+            <Download size={15} /> Download template
+          </button>
+        </div>
+      </section>
 
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.6 }}>
-              Use one row per unit, and make sure the sheet contains{' '}
-              {requiredColumns.map(c => c.label.toLowerCase()).join(', ')} somewhere. Your column names do not matter —
-              you will point us at the right ones on the next screen.
-            </p>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.6 }}>
-              <strong style={{ color: 'var(--text-secondary)' }}>Next:</strong> you match your columns to ours, we flag
-              any rows with problems, you fix them here, then press Import. Nothing is saved until that last step.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, fontSize: 12 }}>
-              <button
-                onClick={() => setIsHelpDrawerOpen(true)}
-                style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
-              >
-                See all {columns.length} columns
-              </button>
-              <span style={{ color: 'var(--border-strong)' }}>|</span>
-              <button
-                onClick={() => setIsExampleModalOpen(true)}
-                style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
-              >
-                View a full example
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      {/* What happens after the upload — sets expectations before they commit */}
+      <section
+        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 20, padding: 24, marginBottom: 16 }}
+      >
+        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', margin: '0 0 16px' }}>After you upload</h3>
 
-      {/* SCREEN 2B — assisted lane */}
-      {selectedPath === 'documents' && (
-        <>
-          <section style={{ borderTop: '1px solid var(--border)', paddingTop: 24, marginTop: 24 }}>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--dark)', margin: '0 0 4px' }}>What you can send</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px', lineHeight: 1.5 }}>
-              PDFs, photos, scans, and Word files. A clear phone photo of a rent book works.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <Building size={18} style={{ color: 'var(--clay)', flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Make sure the address is visible</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>We use it to group units under the right property.</span>
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {[
+            { n: 1, title: 'We read your column headers', body: 'You confirm which of your columns is the address, the rent, and so on. We guess first — you only correct what we got wrong.' },
+            { n: 2, title: 'We check every row', body: 'Anything missing or malformed gets highlighted in red, with the row number and what to change.' },
+            { n: 3, title: 'You fix it here', body: 'Edit the flagged cells on screen. No need to go back to Excel and re-upload.' },
+            { n: 4, title: 'You press Import', body: 'Your properties, units and tenants appear in your dashboard. This is the first moment anything is saved.' },
+          ].map(step => (
+            <div key={step.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)', flexShrink: 0, marginTop: 1 }}>
+                {step.n}
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <Home size={18} style={{ color: 'var(--clay)', flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Include the unit or flat name</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>One entry per unit, even when several share an address.</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <Check size={18} style={{ color: 'var(--clay)', flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Rent and amount paid should be legible</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>If a figure is unclear we will leave it blank for you to fill in at review.</span>
-                </div>
+              <div>
+                <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>{step.title}</strong>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>{step.body}</span>
               </div>
             </div>
+          ))}
+        </div>
 
-            <div
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                padding: '36px 24px',
-                borderRadius: 16,
-                border: `2px dashed ${isDragging ? 'var(--clay)' : 'var(--border-strong)'}`,
-                background: isDragging ? 'var(--clay-faint)' : 'var(--bg)',
-                transition: 'background 0.15s, border-color 0.15s',
-              }}
-            >
-              <div style={{ width: 56, height: 56, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
-                <FileText size={28} style={{ color: 'var(--clay)' }} />
-              </div>
-              <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: '0 0 6px' }}>
-                {isDragging ? 'Drop it here' : 'Choose your document'}
-              </h4>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px' }}>
-                PDF, JPG, PNG, DOC or DOCX — one file at a time
-              </p>
-              <label className="btn btn--primary" style={{ padding: '12px 30px', height: 44, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Upload size={16} /> Choose file
-                <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef} />
-              </label>
-              <p className="desktop-only" style={{ fontSize: 12, color: 'var(--text-muted)', margin: '12px 0 0' }}>
-                or drop the file into this box
-              </p>
-            </div>
-          </section>
+        <div style={{ marginTop: 18, background: 'var(--forest-faint)', border: '1px solid rgba(22, 101, 52, 0.15)', borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <Eye size={16} style={{ color: 'var(--forest)', flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 12, color: 'var(--forest-hover)', margin: 0, lineHeight: 1.55 }}>
+            Nothing reaches your dashboard until step 4, and no tenant or landlord is emailed by this import. You
+            choose when to invite them, later.
+          </p>
+        </div>
 
-          <section style={{ borderTop: '1px solid var(--border)', paddingTop: 24, marginTop: 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', margin: '0 0 16px' }}>After you send</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { n: 1, title: 'Our team types it up', body: 'We turn your documents into rows. Usually within 48 hours — this page shows the request while it is in progress.' },
-                { n: 2, title: 'We let you know it is ready', body: 'The request moves to Ready to review at the top of this page, and you get a notification.' },
-                { n: 3, title: 'You check every row', body: 'Open the review sheet and edit anything we read wrong. You can save and come back to it.' },
-                { n: 4, title: 'You press Import', body: 'Your properties, units and tenants appear in your dashboard. This is the first moment anything is saved.' },
-              ].map(step => (
-                <div key={step.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)', flexShrink: 0, marginTop: 1 }}>
-                    {step.n}
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>{step.title}</strong>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55 }}>{step.body}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <button
+          onClick={() => setIsExampleModalOpen(true)}
+          style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12, marginTop: 14, display: 'flex', alignItems: 'center', gap: 5 }}
+        >
+          View a full example spreadsheet <ArrowRight size={13} />
+        </button>
+      </section>
 
-            <div style={{ marginTop: 18, background: 'var(--forest-faint)', border: '1px solid rgba(22, 101, 52, 0.15)', borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <Eye size={16} style={{ color: 'var(--forest)', flexShrink: 0, marginTop: 1 }} />
-              <p style={{ fontSize: 12, color: 'var(--forest-hover)', margin: 0, lineHeight: 1.55 }}>
-                Nothing our team types goes into your dashboard on its own. You review and press Import yourself.
-              </p>
-            </div>
-          </section>
-        </>
-      )}
-
+      {/* Last resort — deliberately quiet, below the self-serve path */}
+      <details className="import-assisted" style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 18px' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+          <FileText size={16} style={{ color: 'var(--text-muted)', flexShrink: 0, verticalAlign: -3, marginRight: 8 }} />
+          Only have paper records, a PDF, or photos?
+        </summary>
+        <div style={{ paddingTop: 12, marginTop: 12, borderTop: '1px solid var(--border)' }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.55 }}>
+            Send them over and our team will type them up into a spreadsheet for you. You will still get to review
+            every row before anything is imported. Turnaround is about 48 hours — uploading a spreadsheet yourself is
+            immediate.
+          </p>
+          <label className="btn btn--secondary btn--sm" style={{ height: 38, borderRadius: 10, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={15} /> Send documents to support
+            <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef} />
+          </label>
+        </div>
+      </details>
 
       {/* Floating / On-Demand Help Drawer */}
       <Modal
@@ -905,6 +795,6 @@ export const DataImportTab: React.FC = () => {
           Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
         </p>
       </Modal>
-    </section>
+    </div>
   )
 }

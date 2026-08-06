@@ -28,16 +28,14 @@ export interface CarouselItem {
 const defaultItems: CarouselItem[] = [
   {
     id: 'add-property',
-    title: 'Onboard Your Unit',
-    description: 'List your first property',
-    descriptionExtended: ' and start managing your tenants.',
+    title: 'Onboard Your Properties',
+    description: 'Let\'s get your properties set up.',
+    descriptionExtended: '',
     icon: Building2,
-    link: '/properties?action=add-property',
+    link: '/import',
     color: 'warning',
     actionLabel: 'Add Property',
-    priority: 'HIGH PRIORITY',
-    secondaryActionLabel: 'Bulk Import',
-    secondaryActionLink: '/settings?tab=import'
+    priority: 'HIGH PRIORITY'
   },
   {
     id: 'payment-info',
