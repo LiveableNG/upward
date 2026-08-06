@@ -4,8 +4,6 @@ import {
   Search,
   Trash2,
   RefreshCcw,
-  Clock,
-  User,
   ArrowLeft,
   ArrowRight,
   Eye,
