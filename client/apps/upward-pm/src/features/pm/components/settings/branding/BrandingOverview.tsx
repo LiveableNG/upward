@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { FileText, PenTool, Settings, Loader2, ChevronRight } from 'lucide-react'
+import { FileText, PenTool, Settings, Loader2, ChevronRight, Mail } from 'lucide-react'
 import type { SavedPmLetterhead } from '../branding.types'
 import type { SignatureConfig } from '../branding.types'
 
@@ -130,6 +130,30 @@ export function BrandingOverview({
             onClick={() => onNavigate('defaults')}
           >
             Configure <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Email Settings card */}
+        <div className="branding-overview__card">
+          <div className="branding-overview__card-icon branding-overview__card-icon--email" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+            <Mail size={24} />
+          </div>
+          <div className="branding-overview__card-body">
+            <h3 className="branding-overview__card-title">Email Settings</h3>
+            <p className="branding-overview__card-desc">
+              Configure your verified sender domain, global CC/BCC, and email footer settings.
+            </p>
+            <div className="branding-overview__card-meta">
+              <span className="branding-overview__badge">
+                Domain Verification & Footer
+              </span>
+            </div>
+          </div>
+          <button
+            className="branding-overview__card-action"
+            onClick={() => onNavigate('email-settings')}
+          >
+            Manage <ChevronRight size={14} />
           </button>
         </div>
       </div>

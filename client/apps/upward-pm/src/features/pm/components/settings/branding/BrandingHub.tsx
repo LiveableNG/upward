@@ -1,21 +1,23 @@
 'use client'
 
 import React, { useState } from 'react'
-import { LayoutDashboard, FileText, PenTool, Settings } from 'lucide-react'
+import { LayoutDashboard, FileText, PenTool, Settings, Mail } from 'lucide-react'
 import { BrandingOverview } from './BrandingOverview'
 import { LetterheadManager } from './LetterheadManager'
 import { SignatureManager } from './SignatureManager'
 import { DocumentDefaults } from './DocumentDefaults'
 import { useLetterheads } from './branding.hooks'
 import { useSignatures } from './branding.hooks'
+import { EmailSettingsTab } from '../EmailSettingsTab'
 
-type Section = 'overview' | 'letterheads' | 'signatures' | 'defaults'
+type Section = 'overview' | 'letterheads' | 'signatures' | 'defaults' | 'email-settings'
 
 const NAV_ITEMS: { key: Section; label: string; icon: React.ReactNode }[] = [
   { key: 'overview', label: 'Overview', icon: <LayoutDashboard size={16} /> },
   { key: 'letterheads', label: 'Letterheads', icon: <FileText size={16} /> },
   { key: 'signatures', label: 'Signatures', icon: <PenTool size={16} /> },
   { key: 'defaults', label: 'Document Defaults', icon: <Settings size={16} /> },
+  { key: 'email-settings', label: 'Email Settings', icon: <Mail size={16} /> },
 ]
 
 export function BrandingHub() {
@@ -71,6 +73,7 @@ export function BrandingHub() {
         {activeSection === 'letterheads' && <LetterheadManager />}
         {activeSection === 'signatures' && <SignatureManager />}
         {activeSection === 'defaults' && <DocumentDefaults />}
+        {activeSection === 'email-settings' && <EmailSettingsTab />}
       </main>
     </div>
   )

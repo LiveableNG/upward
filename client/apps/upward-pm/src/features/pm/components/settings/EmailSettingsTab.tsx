@@ -18,8 +18,11 @@ import {
   RefreshCw,
   ChevronRight,
   Shield,
+  Eye,
+  Info,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { Modal } from '@/components/ui/Modal/Modal'
 
 interface DnsRecord {
   name: string
@@ -66,6 +69,15 @@ export function EmailSettingsTab() {
   const [domainState, setDomainState] = useState<string | null>(null)
   const [copiedRecord, setCopiedRecord] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<'sender' | 'domain'>('sender')
+  const [showPreview, setShowPreview] = useState(false)
+
+  const handleSaveConfig = () => {
+    if (!senderName.trim() || !senderEmail.trim()) {
+      toastError('Sender Name and Sender Email are required.')
+      return
+    }
+    saveConfigMutation.mutate()
+  }
 
   // Load existing settings
   const { data: settings, isLoading } = useQuery<EmailSettings | null>({
@@ -202,11 +214,20 @@ export function EmailSettingsTab() {
       {activeSection === 'sender' && (
         <div>
           <section className="settings__section">
-            <div className="settings__section-header">
-              <h2 className="settings__section-title">Sender Identity</h2>
-              <p className="settings__section-subtitle">
-                Configure how your emails appear to tenants — name, address, and branding.
-              </p>
+            <div className="settings__section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 className="settings__section-title">Sender Identity</h2>
+                <p className="settings__section-subtitle">
+                  Configure how your emails appear to tenants — name, address, and branding.
+                </p>
+              </div>
+              <button
+                className="btn btn--secondary"
+                onClick={() => setShowPreview(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '8px 16px', fontSize: 13 }}
+              >
+                <Eye size={16} /> Preview
+              </button>
             </div>
 
             <div style={{ marginTop: 28, display: 'grid', gap: 20 }}>
@@ -252,7 +273,12 @@ export function EmailSettingsTab() {
               {/* Sender fields */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group">
-                  <label className="form-label">Sender Name</label>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Sender Name <span style={{ color: 'var(--red)' }}>*</span>
+                    <span title="The name tenants will see in their inbox." style={{ display: 'inline-flex', cursor: 'help' }}>
+                      <Info size={14} color="var(--text-muted)" />
+                    </span>
+                  </label>
                   <input
                     id="email-sender-name"
                     className="form-input"
@@ -262,7 +288,12 @@ export function EmailSettingsTab() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Sender Email</label>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Sender Email <span style={{ color: 'var(--red)' }}>*</span>
+                    <span title="The email address tenants will see. If unverified, replies will route here." style={{ display: 'inline-flex', cursor: 'help' }}>
+                      <Info size={14} color="var(--text-muted)" />
+                    </span>
+                  </label>
                   <input
                     id="email-sender-email"
                     className="form-input"
@@ -276,17 +307,32 @@ export function EmailSettingsTab() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group">
-                  <label className="form-label">CC Address <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                  <input id="email-cc" className="form-input" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="cc@yourcompany.com" />
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    CC Address
+                    <span title="Addresses to automatically CC. Use commas for multiple (e.g. cc1@domain.com, cc2@domain.com)" style={{ display: 'inline-flex', cursor: 'help' }}>
+                      <Info size={14} color="var(--text-muted)" />
+                    </span>
+                  </label>
+                  <input id="email-cc" className="form-input" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="e.g. team1@domain.com, team2@domain.com" />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">BCC Address <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                  <input id="email-bcc" className="form-input" value={bcc} onChange={(e) => setBcc(e.target.value)} placeholder="bcc@yourcompany.com" />
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    BCC Address
+                    <span title="Addresses to automatically BCC. Use commas for multiple." style={{ display: 'inline-flex', cursor: 'help' }}>
+                      <Info size={14} color="var(--text-muted)" />
+                    </span>
+                  </label>
+                  <input id="email-bcc" className="form-input" value={bcc} onChange={(e) => setBcc(e.target.value)} placeholder="e.g. archive@domain.com, logs@domain.com" />
                 </div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Closing Statement <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Closing Statement
+                  <span title="A standardized sign-off appended to the end of your emails." style={{ display: 'inline-flex', cursor: 'help' }}>
+                    <Info size={14} color="var(--text-muted)" />
+                  </span>
+                </label>
                 <textarea
                   id="email-closing"
                   className="form-input"
@@ -299,7 +345,12 @@ export function EmailSettingsTab() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Footer Address <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Footer Address
+                  <span title="The physical address of your company, appended below the closing statement." style={{ display: 'inline-flex', cursor: 'help' }}>
+                    <Info size={14} color="var(--text-muted)" />
+                  </span>
+                </label>
                 <textarea
                   id="email-footer"
                   className="form-input"
@@ -314,8 +365,8 @@ export function EmailSettingsTab() {
               <button
                 id="save-email-config"
                 className="btn btn--primary"
-                onClick={() => saveConfigMutation.mutate()}
-                disabled={saveConfigMutation.isPending || !senderName || !senderEmail}
+                onClick={handleSaveConfig}
+                disabled={saveConfigMutation.isPending}
                 style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12 }}
               >
                 {saveConfigMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
@@ -323,69 +374,42 @@ export function EmailSettingsTab() {
               </button>
             </div>
           </section>
-
-          {/* Preview */}
-          {(logoUrl || senderName || closingStatement || footerAddress) && (
-            <section className="settings__section" style={{ marginTop: 32 }}>
-              <div className="settings__section-header">
-                <h2 className="settings__section-title">Email Preview</h2>
-                <p className="settings__section-subtitle">How your branding will appear in outgoing emails.</p>
-              </div>
-              <div style={{ marginTop: 20, background: '#f9fafb', borderRadius: 20, border: '1px solid var(--border)', padding: 32, maxWidth: 540 }}>
-                {logoUrl && (
-                  <div style={{ textAlign: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #e5e7eb' }}>
-                    <img src={logoUrl} alt="Logo" style={{ maxHeight: 48, objectFit: 'contain' }} />
-                  </div>
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ height: 10, width: '50%', background: '#e5e7eb', borderRadius: 4 }} />
-                  <div style={{ height: 10, width: '85%', background: '#e5e7eb', borderRadius: 4 }} />
-                  <div style={{ height: 10, width: '70%', background: '#e5e7eb', borderRadius: 4 }} />
-                </div>
-                {closingStatement && (
-                  <p style={{ marginTop: 20, fontSize: 13, color: '#4b5563', whiteSpace: 'pre-line', lineHeight: 1.7 }}>{closingStatement}</p>
-                )}
-                {footerAddress && (
-                  <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #e5e7eb', fontSize: 11, color: '#9ca3af', whiteSpace: 'pre-line' }}>{footerAddress}</div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* Test Email */}
-          {settings && (
-            <section className="settings__section" style={{ marginTop: 32 }}>
-              <div className="settings__section-header">
-                <h2 className="settings__section-title">Send a Test Email</h2>
-                <p className="settings__section-subtitle">Preview exactly how your emails will look when sent to tenants.</p>
-              </div>
-              <div style={{ marginTop: 20, display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-                <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                  <label className="form-label">Recipient Email</label>
-                  <input
-                    id="test-email-input"
-                    className="form-input"
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder={user?.email || 'your@email.com'}
-                  />
-                </div>
-                <button
-                  id="send-test-email"
-                  className="btn btn--secondary"
-                  onClick={() => sendTestMutation.mutate()}
-                  disabled={sendTestMutation.isPending || !testEmail}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, height: 44, whiteSpace: 'nowrap' }}
-                >
-                  {sendTestMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  Send Test
-                </button>
-              </div>
-            </section>
-          )}
         </div>
       )}
+
+      <Modal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title="Email Preview"
+        icon={Eye}
+        maxWidth={600}
+      >
+        <div style={{ background: '#f9fafb', borderRadius: 12, padding: 32, border: '1px solid var(--border)' }}>
+          <div style={{ background: '#fff', borderRadius: 12, border: '1px solid var(--border)', padding: 32, boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+            {logoUrl && (
+              <div style={{ textAlign: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '1px solid #e5e7eb' }}>
+                <img src={logoUrl} alt="Logo" style={{ maxHeight: 56, objectFit: 'contain' }} />
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ height: 12, width: '40%', background: '#f1f5f9', borderRadius: 6 }} />
+              <div style={{ height: 12, width: '90%', background: '#f1f5f9', borderRadius: 6 }} />
+              <div style={{ height: 12, width: '75%', background: '#f1f5f9', borderRadius: 6 }} />
+              <div style={{ height: 12, width: '85%', background: '#f1f5f9', borderRadius: 6 }} />
+            </div>
+            
+            {closingStatement && (
+              <p style={{ marginTop: 32, fontSize: 14, color: '#475569', whiteSpace: 'pre-line', lineHeight: 1.6 }}>{closingStatement}</p>
+            )}
+            {footerAddress && (
+              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #e5e7eb', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-line' }}>
+                {footerAddress}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* ─── CUSTOM DOMAIN ─── */}
       {activeSection === 'domain' && (
