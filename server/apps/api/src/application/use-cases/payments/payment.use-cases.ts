@@ -1478,9 +1478,22 @@ export class GenerateReceiptPdfUseCase {
       enriched.paidAt = new Date(enriched.paidAt)
     }
 
-    if (enriched.userPropertyId && !enriched.landlordName) {
+    let userPropertyId = enriched.userPropertyId
+    if (!userPropertyId && enriched.reference) {
+      const tx = await this.prisma.upward_transaction.findFirst({
+        where: { reference: enriched.reference },
+        include: {
+          paymentRequest: true
+        }
+      })
+      if (tx?.paymentRequest?.userPropertyId) {
+        userPropertyId = tx.paymentRequest.userPropertyId
+      }
+    }
+
+    if (userPropertyId) {
       const prop = await this.prisma.upward_user_property.findUnique({
-        where: { id: Number(enriched.userPropertyId) },
+        where: { id: Number(userPropertyId) },
         include: {
           location: true,
           company: true,
@@ -1527,21 +1540,23 @@ export class GenerateReceiptPdfUseCase {
 
         if (logoUrl) {
           enriched.logoUrl = logoUrl
-          enriched.brandName = companyName
         }
+        enriched.brandName = companyName
 
         if (prop.pm?.receiptSetting?.themeColor) {
           enriched.themeColor = prop.pm.receiptSetting.themeColor
         }
 
         // Resolve Recipient (Landlord Name)
-        if (prop.company && prop.company.name !== 'account_name') {
-          enriched.landlordName = prop.company.name
-        } else if (prop.manager) {
-          const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
-          const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
-          if (first !== 'account_name' && last !== 'account_name') {
-            enriched.landlordName = `${first} ${last}`
+        if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
+          if (prop.company && prop.company.name !== 'account_name') {
+            enriched.landlordName = prop.company.name
+          } else if (prop.manager) {
+            const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
+            const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
+            if (first !== 'account_name' && last !== 'account_name') {
+              enriched.landlordName = `${first} ${last}`
+            }
           }
         }
       }
