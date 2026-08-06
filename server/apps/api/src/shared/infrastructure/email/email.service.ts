@@ -85,6 +85,7 @@ export class EmailService {
               await this.prisma.upward_dev_email_preview.create({
                 data: {
                   uuid,
+                  from: data.from || null,
                   to: toStr,
                   cc: data.cc || null,
                   bcc: data.bcc || null,
