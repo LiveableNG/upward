@@ -278,12 +278,10 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </div>
       )
     }
-  ];
-
-  if (viewMode === 'all_templates') {
+  ];  if (viewMode === 'all_templates') {
     return (
       <div className="document-management animate-fade-in">
-        <header style={{ marginBottom: 40, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <header className="document-management__header">
           <div>
             <button
               onClick={() => setViewMode('dashboard')}
@@ -294,13 +292,15 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--dark)' }}>All Document Templates</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>Browse and manage all your property management templates.</p>
           </div>
-          <button
-            onClick={() => router.push('/documents/bulk')}
-            className="btn btn--secondary"
-            style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <Users size={20} /> Send Bulk Document
-          </button>
+          <div className="document-management__header-actions">
+            <button
+              onClick={() => router.push('/documents/bulk')}
+              className="btn btn--secondary"
+              style={{ borderRadius: 12, padding: '0 24px', height: 48, display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <Users size={20} /> Send Bulk Document
+            </button>
+          </div>
         </header>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48 }}>
@@ -344,12 +344,12 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
 
   return (
     <div className="document-management animate-fade-in">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+      <header className="document-management__header">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)' }}>Document Management</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Manage your document templates and track sent items.</p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <div className="document-management__header-actions">
           <button
             onClick={() => router.push('/documents/bulk')}
             className="btn btn--secondary"
@@ -395,7 +395,7 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
               onClick={() => {
                 const isFreeTemplate = t.name === 'Getting Started' || t.name === 'Benefits' || t.uuid === 'system-onboarding-1' || t.uuid === 'system-onboarding-2';
                 if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
-                  openPricing()
+                   openPricing()
                 } else {
                   onSelectTemplate(t)
                 }
@@ -418,8 +418,8 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
         </div>
 
         <div className="glass" style={{ borderRadius: 24, overflow: 'hidden', border: '1px solid var(--border)', background: 'white', marginBottom: 32 }}>
-          <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ position: 'relative', flex: 1 }}>
+          <div className="document-management__filter-bar">
+            <div style={{ position: 'relative', flex: 1, width: '100%' }}>
               <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
                 type="text"
@@ -449,10 +449,131 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
             emptyMessage="No documents sent yet."
             pageSize={8}
             keyExtractor={(doc) => doc.uuid}
+            renderMobileCard={(doc) => {
+              const isFailed = doc.status === 'FAILED';
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px', position: 'relative' }}>
+                  {/* Top line: Recipient name, Status badge, and Action button */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14 }}>{doc.recipientName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{doc.recipientEmail}</div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: 100,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: isFailed ? '#fee2e2' : 'var(--forest-faint)',
+                        color: isFailed ? '#dc2626' : 'var(--forest)',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {isFailed ? 'Failed' : 'Sent'}
+                      </span>
+                      
+                      {/* Actions Trigger */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenu(activeMenu === doc.uuid ? null : doc.uuid);
+                        }}
+                        style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Subject line */}
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    {doc.subject}
+                  </div>
+
+                  {/* Bottom line: Doc Type and Date */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                    <div>
+                      Type: <strong style={{ color: 'var(--dark)' }}>{doc.documentType}</strong> (PDF)
+                    </div>
+                    <div>
+                      {format(new Date(doc.createdAt), 'MMM d, yyyy @ h:mm a')}
+                    </div>
+                  </div>
+
+                  {/* Action Dropdown if active */}
+                  {activeMenu === doc.uuid && (
+                    <>
+                      <div
+                        style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                        onClick={(e) => { e.stopPropagation(); setActiveMenu(null); }}
+                      />
+                      <div className="glass action-dropdown" style={{ right: 12, top: 40 }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setPreviewDocument(doc); setActiveMenu(null); }}
+                          className="dropdown-item"
+                        >
+                          <Mail size={16} /> View Email
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
+                          className="dropdown-item"
+                          disabled={isDownloading === doc.uuid}
+                        >
+                          <Download size={16} /> {isDownloading === doc.uuid ? 'Downloading...' : 'Download PDF'}
+                        </button>
+                        {doc.tenant?.phone && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isFreeTemplate = 
+                                doc.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' || 
+                                doc.subject === 'Your Good Rental History Should Work for You' ||
+                                doc.subject === 'Getting Started' ||
+                                doc.subject === 'Benefits';
+                              if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                                openPricing()
+                              } else {
+                                handleSendViaWhatsApp(doc);
+                              }
+                            }}
+                            className="dropdown-item"
+                            disabled={isSendingWhatsApp === doc.uuid}
+                            style={{ color: 'var(--forest)' }}
+                          >
+                            <MessageCircle size={16} /> {isSendingWhatsApp === doc.uuid ? 'Preparing...' : 'Send via WhatsApp'}
+                          </button>
+                        )}
+                        <div style={{ height: 1, background: 'var(--border)' }} />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const isFreeTemplate = 
+                              doc.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' || 
+                              doc.subject === 'Your Good Rental History Should Work for You' ||
+                              doc.subject === 'Getting Started' ||
+                              doc.subject === 'Benefits';
+                            if (!isFreeTemplate && !checkAccess(FeatureKey.DOCUMENT_MANAGEMENT).hasAccess) {
+                              openPricing()
+                            } else {
+                              onResendDocument(doc);
+                            }
+                            setActiveMenu(null);
+                          }}
+                          className="dropdown-item"
+                          style={{ color: 'var(--clay)' }}
+                        >
+                          <Plus size={16} /> Edit & Resend
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            }}
           />
         </div>
       </section>
-
 
 
       {previewDocument && (
@@ -502,6 +623,29 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       )}
 
       <style jsx>{`
+        .document-management {
+          max-width: 1440px;
+          margin: 0 auto;
+        }
+        .document-management__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 32px;
+          gap: 20px;
+        }
+        .document-management__header-actions {
+          display: flex;
+          gap: 12px;
+        }
+        .document-management__filter-bar {
+          padding: 16px 24px;
+          border-bottom: 1px solid var(--border);
+          background: var(--ivory-dim);
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
         .dropdown-item {
           display: flex;
           align-items: center;
@@ -604,10 +748,34 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
           gap: 12px;
           background: white;
         }
+        @media (max-width: 768px) {
+          .document-management__header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .document-management__header-actions {
+            width: 100%;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .document-management__header-actions button {
+            width: 100%;
+            justify-content: center;
+          }
+          .document-management__filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 16px;
+            gap: 12px;
+          }
+        }
       `}</style>
     </div>
   )
 }
+
 
 function TemplateCard({ 
   title, 

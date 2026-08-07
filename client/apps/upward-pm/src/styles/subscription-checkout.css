@@ -879,18 +879,84 @@
   overflow-y: auto;
 }
 
+.transaction-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #E7E3DB;
+  padding-bottom: 16px;
+}
+
+.transaction-item-wrapper:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
 .transaction-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #E7E3DB;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
 }
 
-.transaction-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+.transaction-item:hover {
+  opacity: 0.85;
 }
+
+.transaction-item__dropdown {
+  background: var(--ivory-dim, #f2f1eb);
+  border-radius: var(--radius-sm, 8px);
+  padding: 12px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.transaction-item__dropdown-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.transaction-item__dropdown-label {
+  color: var(--text-secondary, #5d5954);
+  font-weight: 600;
+}
+
+.transaction-item__dropdown-value {
+  color: var(--text, #1a1a17);
+  font-weight: 500;
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.transaction-item__copy-btn {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--forest, #166534);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.transaction-item__copy-btn:hover {
+  background-color: rgba(22, 101, 52, 0.1);
+}
+
 
 .transaction-item-left {
   display: flex;
@@ -1563,5 +1629,54 @@
   }
 }
 
-
-
+/* Mobile Wallet Responsive Overrides */
+@media (max-width: 768px) {
+  .wallet-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .wallet-header button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .wallet-hero-card {
+    padding: 24px 20px !important;
+    gap: 20px !important;
+  }
+  
+  .wallet-hero-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .wallet-hero-card__meta {
+    text-align: left;
+    align-items: flex-start;
+  }
+  
+  .wallet-hero-card__balance {
+    font-size: 32px !important;
+  }
+  
+  .wallet-hero-card__actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .wallet-hero-card__actions button {
+    width: 100% !important;
+  }
+  
+  .wallet-hero-card__watermark {
+    display: none;
+  }
+  
+  .checkout-container {
+    padding: 0 16px;
+  }
+}
