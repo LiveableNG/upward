@@ -296,6 +296,7 @@ export class CalculateRentScoreUseCase {
           totalCycles: allCycles.length,
           historyYears: parseFloat(yearsOfHistory.toFixed(1)),
           discipline: D * 100,
+          savingsBonus: savingsBonus,
           avgDaysLeadTime: (() => {
             const paidCycles = scoredCycles.filter((c: any) => c.paidDate && (c.status === 'PAID_ON_TIME' || c.status === 'PAID_LATE'));
             if (paidCycles.length === 0) return 0;

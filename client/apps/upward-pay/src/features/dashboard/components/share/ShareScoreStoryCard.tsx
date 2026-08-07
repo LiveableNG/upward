@@ -125,7 +125,7 @@ export function ShareScoreStoryCard({
           <div className="share-score-story__stat">
             <Flame size={22} color="#c2501f" />
             <span className="share-score-story__stat-value">{longestStreak}</span>
-            <span className="share-score-story__stat-label">Month streak</span>
+            <span className="share-score-story__stat-label">On-time streak</span>
           </div>
         </div>
       </div>
