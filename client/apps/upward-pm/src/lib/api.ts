@@ -41,10 +41,12 @@ export const api = {
   uploadLogo: pmService.uploadLogo,
   uploadReceiptLogo: pmService.uploadReceiptLogo,
   fetchLetterheads: pmService.fetchLetterheads,
+  getDocumentLetterheadContext: pmService.getDocumentLetterheadContext,
   saveLetterhead: pmService.saveLetterhead,
   setDefaultLetterhead: pmService.setDefaultLetterhead,
   deleteLetterhead: pmService.deleteLetterhead,
   fetchSignatures: pmService.fetchSignatures,
+  getDocumentSignatureContext: pmService.getDocumentSignatureContext,
   saveSignature: pmService.saveSignature,
   setDefaultSignature: pmService.setDefaultSignature,
   deleteSignature: pmService.deleteSignature,
@@ -88,6 +90,7 @@ export const api = {
   getTeamMembers: pmService.getTeamMembers,
   updateTeamMemberPermissions: pmService.updateTeamMemberPermissions,
   revokeTeamMember: pmService.revokeTeamMember,
+  transferTeamProperties: pmService.transferTeamProperties,
   getCollaboratorActivities: pmService.getCollaboratorActivities,
 
   // Generic Helpers

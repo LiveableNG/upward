@@ -1,8 +1,9 @@
-import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, Inject, NotFoundException, ForbiddenException } from '@nestjs/common'
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { ActivityAction, ActivityLogService } from '../../../shared/application/activity-log.service'
+import { resolveCanManageCompanySettings } from '../../../shared/application/pm-settings-access'
 
 @Injectable()
 export class UpdatePmProfileUseCase {
@@ -32,34 +33,54 @@ export class UpdatePmProfileUseCase {
     const pm = await this.pmRepository.findByUuid(pmUuid)
     if (!pm) throw new NotFoundException('Property manager not found')
 
-    const changedFields = Object.entries(dto)
+    const canManageCompanySettings = await resolveCanManageCompanySettings(this.prisma, pm.id!)
+
+    const companyOnlyKeys = [
+      'businessName',
+      'pmType',
+      'country',
+      'companyAddress',
+      'cacNumber',
+      'letterheadHeaderUrl',
+      'letterheadFooterUrl',
+    ] as const
+
+    const sanitizedDto = { ...dto }
+    if (!canManageCompanySettings) {
+      const attempted = companyOnlyKeys.filter((key) => sanitizedDto[key] !== undefined)
+      if (attempted.length > 0) {
+        throw new ForbiddenException(
+          'Team members can only update personal profile fields (name, phone, avatar)',
+        )
+      }
+    }
+
+    const changedFields = Object.entries(sanitizedDto)
       .filter(([_, value]) => value !== undefined)
       .filter(([key, value]) => (pm as any)[key] !== value)
       .map(([key]) => key)
 
-    // 1. Handle file deletions for replaced/removed items
-    if (dto.profilePic !== undefined && pm.profilePic && pm.profilePic !== dto.profilePic) {
+    if (sanitizedDto.profilePic !== undefined && pm.profilePic && pm.profilePic !== sanitizedDto.profilePic) {
       await this.s3Service.deleteObject(pm.profilePic)
     }
-    if (dto.letterheadHeaderUrl !== undefined && pm.letterheadHeaderUrl && pm.letterheadHeaderUrl !== dto.letterheadHeaderUrl) {
+    if (sanitizedDto.letterheadHeaderUrl !== undefined && pm.letterheadHeaderUrl && pm.letterheadHeaderUrl !== sanitizedDto.letterheadHeaderUrl) {
       await this.s3Service.deleteObject(pm.letterheadHeaderUrl)
     }
-    if (dto.letterheadFooterUrl !== undefined && pm.letterheadFooterUrl && pm.letterheadFooterUrl !== dto.letterheadFooterUrl) {
+    if (sanitizedDto.letterheadFooterUrl !== undefined && pm.letterheadFooterUrl && pm.letterheadFooterUrl !== sanitizedDto.letterheadFooterUrl) {
       await this.s3Service.deleteObject(pm.letterheadFooterUrl)
     }
 
-    // 2. Update the profile
-    const updatedPm = await this.pmRepository.update(pm.id!, dto)
+    const updatedPm = await this.pmRepository.update(pm.id!, sanitizedDto)
     
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, id: serverId, uuid, ...rest } = updatedPm
     const clientProfile: any = {
       id: uuid,
       uuid,
-      ...rest
+      ...rest,
+      canManageCompanySettings,
     }
 
-    // 3. Sign all S3 URLs for the client
     if (clientProfile.profilePic) {
       clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }

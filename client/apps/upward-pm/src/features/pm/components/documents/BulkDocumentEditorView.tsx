@@ -106,11 +106,20 @@ export function BulkDocumentEditorView({
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
   const [tempEmail, setTempEmail] = useState('')
   const { updateTenant } = useTenantActions()
-  const { data: letterheads = [] } = useQuery<any[]>({
-    queryKey: ['letterheads'],
-    queryFn: () => api.fetchLetterheads()
+  const firstRecipient = recipients[0]
+  const firstRecipientTenantUuid =
+    firstRecipient?.type === 'TENANT' ? firstRecipient.uuid : undefined
+
+  const { data: letterheadContext } = useQuery({
+    queryKey: ['letterhead-document-context', firstRecipientTenantUuid, recipients.length],
+    queryFn: () =>
+      api.getDocumentLetterheadContext({
+        tenantUuid: firstRecipientTenantUuid,
+      }),
   })
-  const hasLetterhead = letterheads.length > 0 || !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
+  const hasLetterhead = !!letterheadContext?.hasLetterhead
+  const letterheadHeaderUrl = letterheadContext?.letterheadHeaderUrl || null
+  const letterheadFooterUrl = letterheadContext?.letterheadFooterUrl || null
 
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
@@ -848,9 +857,9 @@ export function BulkDocumentEditorView({
                     lineHeight: 1.6
                   }}>
                     {/* Header Letterhead */}
-                    {includeLetterhead && user?.letterheadHeaderUrl && (
+                    {includeLetterhead && letterheadHeaderUrl && (
                       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-                        <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
+                        <img src={letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
                       </div>
                     )}
 
@@ -862,9 +871,9 @@ export function BulkDocumentEditorView({
                     />
 
                     {/* Footer Letterhead */}
-                    {includeLetterhead && user?.letterheadFooterUrl && (
+                    {includeLetterhead && letterheadFooterUrl && (
                       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                        <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
+                        <img src={letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
                       </div>
                     )}
                   </div>
@@ -877,6 +886,7 @@ export function BulkDocumentEditorView({
                   value={content}
                   onChange={(newContent) => setContent(newContent)}
                   height="100%"
+                  tenantUuid={firstRecipientTenantUuid}
                 />
               </div>
             )}

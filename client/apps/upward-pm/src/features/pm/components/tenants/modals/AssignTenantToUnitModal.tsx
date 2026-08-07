@@ -3,7 +3,7 @@ import { Search, UserPlus, CheckCircle2, Calendar, CreditCard } from 'lucide-rea
 import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
-import { cn, formatTenantName } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 
 interface AssignTenantToUnitModalProps {
@@ -15,6 +15,30 @@ interface AssignTenantToUnitModalProps {
   initialRentType?: string
   initialRentStartDate?: string
   initialRentDueDate?: string
+}
+
+const CONTROL_HEIGHT = 48
+
+const controlStyle: React.CSSProperties = {
+  fontSize: 13,
+  height: CONTROL_HEIGHT,
+  padding: '0 14px',
+  boxSizing: 'border-box',
+  width: '100%',
+}
+
+function formatAmountDisplay(value: string | number | undefined | null): string {
+  if (value === undefined || value === null || value === '') return ''
+  const raw = String(value).replace(/[^0-9.]/g, '')
+  if (!raw) return ''
+  const [intPart, decPart] = raw.split('.')
+  const formattedInt = (intPart || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  if (decPart !== undefined) return `${formattedInt}.${decPart.slice(0, 2)}`
+  return formattedInt
+}
+
+function parseAmountValue(value: string): number {
+  return parseFloat(value.replace(/,/g, '')) || 0
 }
 
 export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = ({
@@ -33,7 +57,7 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
   const [selectedTenantUuid, setSelectedTenantUuid] = useState<string | null>(null)
   
   const [rentDetails, setRentDetails] = useState({
-    rentAmount: initialRentAmount?.toString() || '',
+    rentAmount: formatAmountDisplay(initialRentAmount),
     rentType: initialRentType || 'Annually',
     leaseYears: '1',
     rentStartDate: initialRentStartDate ? new Date(initialRentStartDate).toISOString().split('T')[0] : '',
@@ -41,7 +65,7 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
     rentAmountPaid: '0'
   })
 
-  // Auto-calculate End Date
+  // Auto-calculate End Date when start/cycle/years change (still editable afterward)
   React.useEffect(() => {
     if (rentDetails.rentStartDate && rentDetails.rentType) {
       const [y, m, d] = rentDetails.rentStartDate.split('-').map(Number)
@@ -91,8 +115,8 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
     assignTenant.mutate({ 
       tenantUuid: selectedTenantUuid, 
       unitUuid,
-      rentAmountPaid: parseFloat(rentDetails.rentAmountPaid) || 0,
-      rentAmount: parseFloat(rentDetails.rentAmount),
+      rentAmountPaid: parseAmountValue(rentDetails.rentAmountPaid),
+      rentAmount: parseAmountValue(rentDetails.rentAmount),
       rentType: rentDetails.rentType,
       rentStartDate: rentDetails.rentStartDate,
       rentDueDate: rentDetails.rentDueDate
@@ -124,11 +148,11 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
         </div>
       }
     >
-        <div className="search-input" style={{ marginBottom: 20 }}>
+        <div className="search-input" style={{ marginBottom: 20, width: '100%', maxWidth: 'none', flex: 'none' }}>
           <Search size={16} className="search-icon" />
           <input 
             type="text" 
-            style={{ fontSize: 13, padding: '10px 14px 10px 40px' }}
+            style={{ ...controlStyle, paddingLeft: 40, width: '100%' }}
             placeholder="Search tenant name or email..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -175,21 +199,23 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: 11 }}>Rent Amount (₦)</label>
                 <input 
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   className={cn("form-input", !rentDetails.rentAmount && "form-input--error")}
-                  style={{ fontSize: 13, padding: '10px 14px' }}
+                  style={controlStyle}
                   value={rentDetails.rentAmount}
-                  onChange={(e) => setRentDetails({...rentDetails, rentAmount: e.target.value})}
+                  onChange={(e) => setRentDetails({...rentDetails, rentAmount: formatAmountDisplay(e.target.value)})}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: 11 }}>Initial Paid (₦)</label>
                 <input 
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   className="form-input"
-                  style={{ fontSize: 13, padding: '10px 14px' }}
+                  style={controlStyle}
                   value={rentDetails.rentAmountPaid}
-                  onChange={(e) => setRentDetails({...rentDetails, rentAmountPaid: e.target.value})}
+                  onChange={(e) => setRentDetails({...rentDetails, rentAmountPaid: formatAmountDisplay(e.target.value)})}
                 />
               </div>
               <div className="form-group">
@@ -203,6 +229,7 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
                     { label: 'Monthly', value: 'Monthly' },
                     { label: 'Lease', value: 'Lease' }
                   ]}
+                  triggerStyle={controlStyle}
                 />
               </div>
               {rentDetails.rentType === 'Lease' && (
@@ -212,7 +239,7 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
                     type="number"
                     min="1"
                     className={cn("form-input", (!rentDetails.leaseYears || parseInt(String(rentDetails.leaseYears), 10) < 1) && "form-input--error")}
-                    style={{ fontSize: 13, padding: '10px 14px' }}
+                    style={controlStyle}
                     value={rentDetails.leaseYears}
                     onChange={(e) => setRentDetails({...rentDetails, leaseYears: e.target.value})}
                   />
@@ -228,23 +255,26 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
                 <input 
                   type="date"
                   className={cn("form-input", !rentDetails.rentStartDate && "form-input--error")}
-                  style={{ fontSize: 13, padding: '10px 14px' }}
+                  style={controlStyle}
                   value={rentDetails.rentStartDate}
                   onChange={(e) => setRentDetails({...rentDetails, rentStartDate: e.target.value})}
                 />
               </div>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Calendar size={12} /> End Date (Auto-calculated)
+                    <Calendar size={12} /> End Date
                 </label>
                 <input 
                   type="date"
-                  readOnly
                   className={cn("form-input", !rentDetails.rentDueDate && "form-input--error")}
-                  style={{ fontSize: 13, padding: '10px 14px', background: 'var(--bg)', cursor: 'not-allowed', opacity: 0.8 }}
+                  style={controlStyle}
                   value={rentDetails.rentDueDate}
-                  title="Auto-calculated based on rent start date and cycle"
+                  onChange={(e) => setRentDetails({...rentDetails, rentDueDate: e.target.value})}
+                  title="Auto-filled from start date and cycle — you can edit if needed"
                 />
+                <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Auto-filled from start date and cycle. Edit if needed.
+                </p>
               </div>
             </div>
           </div>
@@ -294,6 +324,10 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
         .property-name {
           font-size: 12px;
           color: var(--text-muted);
+        }
+        .form-input--error {
+          border-color: var(--error) !important;
+          background: var(--error-bg) !important;
         }
       `}</style>
     </Modal>

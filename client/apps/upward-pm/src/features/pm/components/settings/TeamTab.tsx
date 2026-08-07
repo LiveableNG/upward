@@ -11,27 +11,34 @@ import {
   CheckCircle2,
   Clock,
   Info,
-  History
+  History,
+  ArrowRightLeft
 } from 'lucide-react'
 import { useTeam, useRevokeMember } from '@/features/pm/hooks/useTeam'
 import { InviteMemberModal } from './modals/InviteMemberModal'
 import { UpdatePermissionsModal } from './modals/UpdatePermissionsModal'
+import { TransferPropertiesModal } from './modals/TransferPropertiesModal'
 import { ActivityLogModal } from './modals/ActivityLogModal'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 
 export function TeamTab() {
   const { data: team = [], isLoading } = useTeam()
-  const { mutate: revokeMember } = useRevokeMember()
+  const { mutate: revokeMember, isPending: isRevoking } = useRevokeMember()
   
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedCollab, setSelectedCollab] = useState<any>(null)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [showActivityModal, setShowActivityModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [transferTarget, setTransferTarget] = useState<any>(null)
+  const [revokeTarget, setRevokeTarget] = useState<{ uuid: string; name: string } | null>(null)
 
-  const handleRevoke = (uuid: string, name: string) => {
-    if (confirm(`Are you sure you want to remove ${name} from your team? They will lose access to all your properties.`)) {
-      revokeMember(uuid)
-    }
+  const handleConfirmRevoke = () => {
+    if (!revokeTarget) return
+    revokeMember(revokeTarget.uuid, {
+      onSuccess: () => setRevokeTarget(null),
+    })
   }
 
   const columns: Column<any>[] = [
@@ -61,11 +68,11 @@ export function TeamTab() {
       )
     },
     {
-      header: 'Access Level',
+      header: 'Role',
       render: (collab) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
           <Shield size={16} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'All Properties' : 'Custom Selection'}
+          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
         </div>
       )
     },
@@ -74,7 +81,7 @@ export function TeamTab() {
       render: (collab) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
           <Building2 size={16} />
-          {collab.accessLevel === 'ALL' ? 'Everything' : `${collab.properties.length} Properties`}
+          {collab.accessLevel === 'ALL' ? 'Everything' : collab.properties.length === 0 ? 'None assigned yet' : `${collab.properties.length} Properties`}
         </div>
       )
     },
@@ -113,6 +120,19 @@ export function TeamTab() {
           >
             <History size={18} />
           </button>
+          {collab.accessLevel === 'CUSTOM' && collab.status === 'ACCEPTED' && (
+            <button
+              className="btn-icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setTransferTarget(collab)
+                setShowTransferModal(true)
+              }}
+              title="Transfer Properties"
+            >
+              <ArrowRightLeft size={18} />
+            </button>
+          )}
           <button 
             className="btn-icon" 
             onClick={(e) => {
@@ -128,7 +148,10 @@ export function TeamTab() {
             className="btn-icon" 
             onClick={(e) => {
               e.stopPropagation()
-              handleRevoke(collab.uuid, collab.member.firstName)
+              setRevokeTarget({
+                uuid: collab.uuid,
+                name: `${collab.member.firstName} ${collab.member.lastName}`.trim(),
+              })
             }}
             style={{ color: 'var(--error)' }}
             title="Remove Member"
@@ -147,13 +170,25 @@ export function TeamTab() {
           <h2 className="settings__section-title">Team Management</h2>
           <p className="settings__section-subtitle">Invite other managers to collaborate on your properties.</p>
         </div>
-        <button 
-            className="btn btn--primary" 
-            onClick={() => setShowInviteModal(true)}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn btn--secondary"
+            onClick={() => {
+              setTransferTarget(null)
+              setShowTransferModal(true)
+            }}
             style={{ borderRadius: 12, height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-            <UserPlus size={18} /> Invite Member
-        </button>
+          >
+            <ArrowRightLeft size={18} /> Transfer Properties
+          </button>
+          <button 
+              className="btn btn--primary" 
+              onClick={() => setShowInviteModal(true)}
+              style={{ borderRadius: 12, height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+              <UserPlus size={18} /> Invite Member
+          </button>
+        </div>
       </div>
 
       <div className="team-info-card" style={{ 
@@ -171,7 +206,8 @@ export function TeamTab() {
         <div>
             <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>How Collaboration Works</h4>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 800 }}>
-                You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests. 
+                You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests.
+                Choose <strong>Admin</strong> for access to all properties (including ones added later), or <strong>Manager</strong> for assigned properties only (you can invite first and assign later).
                 <strong> Privacy Note:</strong> If an invited manager creates a new property of their own, you will not have access to it unless they invite you back. Access is strictly per-property.
             </p>
         </div>
@@ -208,6 +244,32 @@ export function TeamTab() {
             }} 
         />
       )}
+
+      {showTransferModal && (
+        <TransferPropertiesModal
+          team={team}
+          targetCollaboration={transferTarget}
+          onClose={() => {
+            setShowTransferModal(false)
+            setTransferTarget(null)
+          }}
+        />
+      )}
+
+      <ConfirmationModal
+        isOpen={!!revokeTarget}
+        onClose={() => setRevokeTarget(null)}
+        onConfirm={handleConfirmRevoke}
+        title="Remove Team Member"
+        message={
+          revokeTarget
+            ? `Are you sure you want to remove ${revokeTarget.name} from your team? They will lose access to all your properties.`
+            : ''
+        }
+        confirmText="Remove Member"
+        type="danger"
+        isPending={isRevoking}
+      />
 
       <style jsx>{`
         .btn-icon {

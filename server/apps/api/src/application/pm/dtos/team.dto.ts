@@ -31,3 +31,16 @@ export class UpdateTeamMemberPermissionsDto {
   @IsString({ each: true })
   propertyUuids?: string[];
 }
+
+export class TransferTeamPropertiesDto {
+  @IsString()
+  toCollaborationUuid!: string;
+
+  @IsOptional()
+  @IsString()
+  fromCollaborationUuid?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  propertyUuids!: string[];
+}

@@ -65,7 +65,7 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
                 form="update-permissions-form"
                 className="btn btn--primary" 
                 style={{ flex: 1, height: 48, borderRadius: 12 }} 
-                disabled={isPending || (formData.accessLevel === 'CUSTOM' && formData.propertyUuids.length === 0)}
+                disabled={isPending}
             >
               {isPending ? 'Saving...' : 'Update Permissions'}
             </button>
@@ -76,6 +76,9 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
             
             <div className="form-group">
                 <label className="form-label">Access Level</label>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.45 }}>
+                  Choose Admin or Manager. This controls which properties they can manage. You can change it later.
+                </p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
                     <button 
                         type="button"
@@ -85,8 +88,10 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
                     >
                         <Shield size={24} color={formData.accessLevel === 'ALL' ? 'var(--clay)' : 'var(--text-muted)'} />
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontWeight: 700, fontSize: 13 }}>All Properties</div>
-                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>Auto-access to all portfolios.</div>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>Admin</div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4, lineHeight: 1.4 }}>
+                              All properties — including ones added later.
+                            </div>
                         </div>
                     </button>
                     <button 
@@ -97,8 +102,10 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
                     >
                         <Building2 size={24} color={formData.accessLevel === 'CUSTOM' ? 'var(--clay)' : 'var(--text-muted)'} />
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontWeight: 700, fontSize: 13 }}>Custom Selection</div>
-                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>Pick specific properties.</div>
+                            <div style={{ fontWeight: 700, fontSize: 13 }}>Manager</div>
+                            <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4, lineHeight: 1.4 }}>
+                              Only assigned properties. You can leave this empty and assign later.
+                            </div>
                         </div>
                     </button>
                 </div>
@@ -106,7 +113,10 @@ export function UpdatePermissionsModal({ collaboration, onClose }: UpdatePermiss
 
             {formData.accessLevel === 'CUSTOM' && (
                 <div className="form-group">
-                    <label className="form-label">Select Properties ({formData.propertyUuids.length})</label>
+                    <label className="form-label">Select Properties ({formData.propertyUuids.length}) — optional</label>
+                    <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0, lineHeight: 1.45 }}>
+                      Leave empty for no property access yet. Assign properties whenever you are ready.
+                    </p>
                     <input
                         type="text"
                         placeholder="Search properties..."
