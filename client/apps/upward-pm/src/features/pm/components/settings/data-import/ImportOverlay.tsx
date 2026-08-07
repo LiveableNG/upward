@@ -150,8 +150,19 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               type="button"
               className="btn btn--primary" 
               style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer' }}
-              onClick={() => handleConfirmImport()}
-              disabled={Object.keys(validationErrors).length > 0 || isPending}
+              onClick={() => {
+                if (Object.keys(validationErrors).length > 0) {
+                  const firstErrorKey = Object.keys(validationErrors)[0]
+                  const lastDashIndex = firstErrorKey.lastIndexOf('-')
+                  const rowId = firstErrorKey.substring(0, lastDashIndex)
+                  const field = firstErrorKey.substring(lastDashIndex + 1)
+                  const rowIndex = previewRows.findIndex(r => r.id === rowId)
+                  const colLabel = columns.find(c => c.key === field)?.label || field
+                  return toastError(`Please resolve validation issues first. Error at Row ${rowIndex + 1}, Column "${colLabel}": ${validationErrors[firstErrorKey]}`)
+                }
+                handleConfirmImport()
+              }}
+              disabled={isPending}
             >
               {isPending ? 'Saving...' : 'Complete Import'}
             </button>
@@ -163,23 +174,45 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 className="btn btn--secondary"
                 style={{
                   borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: hasDirtyEdits && Object.keys(validationErrors).length === 0 ? '#f8fafc' : '#f1f5f9',
+                  background: hasDirtyEdits ? '#f8fafc' : '#f1f5f9',
                   border: '1px solid #cbd5e1',
-                  cursor: hasDirtyEdits && !isPending && !isSavingDraft && Object.keys(validationErrors).length === 0 ? 'pointer' : 'not-allowed',
-                  opacity: hasDirtyEdits && Object.keys(validationErrors).length === 0 ? 1 : 0.5
+                  cursor: hasDirtyEdits && !isPending && !isSavingDraft ? 'pointer' : 'not-allowed',
+                  opacity: hasDirtyEdits ? 1 : 0.5
                 }}
-                onClick={() => setShowDraftConfirm(true)}
-                disabled={isPending || isSavingDraft || !hasDirtyEdits || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
-                title={Object.keys(validationErrors).length > 0 ? 'Resolve validation issues first' : !hasDirtyEdits ? 'Make edits to enable Save Draft' : 'Save draft edits'}
+                onClick={() => {
+                  if (Object.keys(validationErrors).length > 0) {
+                    const firstErrorKey = Object.keys(validationErrors)[0]
+                    const lastDashIndex = firstErrorKey.lastIndexOf('-')
+                    const rowId = firstErrorKey.substring(0, lastDashIndex)
+                    const field = firstErrorKey.substring(lastDashIndex + 1)
+                    const rowIndex = previewRows.findIndex(r => r.id === rowId)
+                    const colLabel = columns.find(c => c.key === field)?.label || field
+                    return toastError(`Please resolve validation issues first. Error at Row ${rowIndex + 1}, Column "${colLabel}": ${validationErrors[firstErrorKey]}`)
+                  }
+                  setShowDraftConfirm(true)
+                }}
+                disabled={isPending || isSavingDraft || !hasDirtyEdits || previewRows.length === 0}
+                title={!hasDirtyEdits ? 'Make edits to enable Save Draft' : 'Save draft edits'}
               >
                 <Save size={16} /> {isSavingDraft ? 'Saving...' : 'Save Draft'}
               </button>
               <button
                 type="button"
                 className="btn btn--primary"
-                style={{ borderRadius: 10, height: 40, cursor: isPending || isSavingDraft || Object.keys(validationErrors).length > 0 ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                onClick={() => setShowApproveConfirm(true)}
-                disabled={isPending || isSavingDraft || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
+                style={{ borderRadius: 10, height: 40, cursor: isPending || isSavingDraft ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                onClick={() => {
+                  if (Object.keys(validationErrors).length > 0) {
+                    const firstErrorKey = Object.keys(validationErrors)[0]
+                    const lastDashIndex = firstErrorKey.lastIndexOf('-')
+                    const rowId = firstErrorKey.substring(0, lastDashIndex)
+                    const field = firstErrorKey.substring(lastDashIndex + 1)
+                    const rowIndex = previewRows.findIndex(r => r.id === rowId)
+                    const colLabel = columns.find(c => c.key === field)?.label || field
+                    return toastError(`Please resolve validation issues first. Error at Row ${rowIndex + 1}, Column "${colLabel}": ${validationErrors[firstErrorKey]}`)
+                  }
+                  setShowApproveConfirm(true)
+                }}
+                disabled={isPending || isSavingDraft || previewRows.length === 0}
               >
                 Complete Import
               </button>

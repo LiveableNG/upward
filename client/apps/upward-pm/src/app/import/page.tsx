@@ -21,15 +21,15 @@ const COMPULSORY_KEYS = [
   'unitRentAmount',
   'unitRentAmountPaid',
   'unitRentStartDate',
-  'unitRentDueDate',
+  'unitRentType',
 ] as const
 
 const SAMPLE_ROWS = [
-  ['18 Freedom Way, Lekki', 'Daniel Okafor', '08015470104', '4200000', '4200000', '15/01/2025', '14/01/2026'],
-  ['18 Freedom Way, Lekki', 'Sarah Williams', '08056677889', '650000', '650000', '01/02/2025', '31/01/2026'],
-  ['7 Prince Ade Odedina St, VI', 'Chinedu Okeke', '08097337649', '15000000', '7500000', '15/07/2025', '14/07/2026'],
-  ['22 Adeola Odeku St, VI', 'TechNova Ltd', '08078899001', '24000000', '24000000', '01/03/2025', '28/02/2030'],
-  ['40 Gwarimpa Estate, Abuja', 'Aisha Mohammed', '08076729376', '18000000', '18000000', '10/07/2025', '09/07/2026'],
+  ['18 Freedom Way, Lekki', 'Daniel Okafor', '08015470104', '4200000', '4200000', '15/01/2025', 'Annually'],
+  ['18 Freedom Way, Lekki', 'Sarah Williams', '08056677889', '650000', '650000', '01/02/2025', 'Monthly'],
+  ['7 Prince Ade Odedina St, VI', 'Chinedu Okeke', '08097337649', '15000000', '7500000', '15/07/2025', 'Annually'],
+  ['22 Adeola Odeku St, VI', 'TechNova Ltd', '08078899001', '24000000', '24000000', '01/03/2025', 'Lease'],
+  ['40 Gwarimpa Estate, Abuja', 'Aisha Mohammed', '08076729376', '18000000', '18000000', '10/07/2025', 'Annually'],
 ]
 
 export default function ImportPage() {

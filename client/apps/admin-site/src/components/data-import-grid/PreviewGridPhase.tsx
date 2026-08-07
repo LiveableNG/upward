@@ -93,6 +93,12 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                   const isEditing = !col.readOnly && editingCell?.rowId === row.id && editingCell?.field === col.key
                   const error = validationErrors[`${row.id}-${col.key}`]
                   const warning = amberWarnings[`${row.id}-${col.key}`]
+
+                  let cellValue = row[col.key]
+                  if ((col.key === 'tenantEmail' || col.key === 'email') && typeof cellValue === 'string' && cellValue.endsWith('@upward.com')) {
+                    cellValue = ''
+                  }
+
                   return (
                     <td 
                       key={col.key} 
@@ -104,7 +110,7 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                           className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')}
                           autoFocus
                           onBlur={() => setEditingCell(null)}
-                          value={row[col.key]}
+                          value={cellValue}
                           onChange={(e) => updateRowField(row.id, col.key, e.target.value)}
                         />
                       ) : (
@@ -112,7 +118,7 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                           className={cn('data-grid-input', error && 'data-grid-input--error', !error && warning && 'data-grid-input--warning')} 
                           style={{ cursor: col.readOnly ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, background: col.readOnly ? 'rgba(0,0,0,0.02)' : undefined }}
                         >
-                          <span>{row[col.key] || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
+                          <span>{cellValue || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
                           {!error && warning && (
                             <AlertTriangle size={14} style={{ color: '#d97706', flexShrink: 0 }} />
                           )}

@@ -48,7 +48,7 @@ export const TenantAssignmentSection: React.FC<TenantAssignmentSectionProps> = (
               </div>
               <div>
                 <h4 style={{ margin: 0 }}>{currentTenant.commercialName || `${currentTenant.firstName || ''} ${currentTenant.lastName || ''}`.trim()}</h4>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>{currentTenant.email}</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>{currentTenant.email?.endsWith('@upward.com') ? 'N/A' : currentTenant.email}</p>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

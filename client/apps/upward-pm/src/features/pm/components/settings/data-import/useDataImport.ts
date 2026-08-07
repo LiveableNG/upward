@@ -379,6 +379,12 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         }
       })
 
+      const rentTypeKey = mode === 'full' ? 'unitRentType' : 'rentType'
+      const hasTenant = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim() || mappedRow.tenantCommercialName?.trim())
+      if (hasTenant && !mappedRow[rentTypeKey]) {
+        mappedRow[rentTypeKey] = 'Annually'
+      }
+
       const hasTenantName = !!(mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim())
       const hasCommercialName = !!(mappedRow.tenantCommercialName?.trim())
       if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || mappedRow.tenantEmail.trim() === '')) {
@@ -432,14 +438,10 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
       }
 
       columns.forEach(col => {
-        validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, (val) => {
-          if (typeof val === 'function') {
-            const next = val(newErrors)
-            Object.assign(newErrors, next)
-          } else {
-            Object.assign(newErrors, val)
-          }
-        }, true)
+        const err = validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, () => {}, true)
+        if (err) {
+          newErrors[`${row.id}-${col.key}`] = err
+        }
       })
     })
 
@@ -501,13 +503,12 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     }
 
     setPreviewRows(updated)
-    validateCell(rowId, field, formattedValue, undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
-    if (field === rentTypeField || field === 'leaseYears') {
-      validateCell(rowId, 'leaseYears', updated[rowIndex].leaseYears, undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
-      validateCell(rowId, rentTypeField, updated[rowIndex][rentTypeField], undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
-    }
-
     
+    // Re-validate all cells of the modified row to handle conditional requirements dynamically (e.g. name or phone errors)
+    columns.forEach(col => {
+      validateCell(rowId, col.key, updated[rowIndex][col.key], col, columns, updated[rowIndex], updated, setValidationErrors, false)
+    })
+
     if (field === 'unitName' || field === 'propertyName') {
       revalidateDuplicates(updated)
     }

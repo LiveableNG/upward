@@ -231,12 +231,37 @@ export const validateCell = (
   const config = colDef || columns.find(c => c.key === field)
   const row = rowData || previewRows.find(r => r.id === rowId)
   
-  const hasAnyTenantData = row ? [
-    row.tenantCommercialName, row.tenantFirstName, row.tenantLastName, row.tenantEmail, row.tenantPhone
+  const hasTenantName = row ? [
+    row.tenantFirstName, row.tenantLastName, row.tenantCommercialName
   ].some(val => val && val.toString().trim() !== '') : false
 
-  const isTenantField = ['tenantFirstName', 'tenantLastName', 'tenantEmail', 'tenantPhone', 'unitRentStartDate', 'unitRentDueDate'].includes(field)
-  const isRequired = config?.required && !(isTenantField && !hasAnyTenantData)
+  const hasOtherTenantData = row ? [
+    row.tenantEmail, row.tenantPhone, row.unitRentStartDate, row.rentStartDate, row.unitRentAmountPaid, row.rentAmountPaid
+  ].some(val => val && val.toString().trim() !== '' && val.toString().trim() !== '0') : false
+
+  let isRequired = false
+  if (field === 'propertyAddress' || field === 'address' || field === 'unitRentAmount' || field === 'rentAmount') {
+    isRequired = true
+  } else if (hasTenantName) {
+    if ([
+      'tenantPhone',
+      'unitRentStartDate',
+      'rentStartDate',
+      'unitRentAmountPaid',
+      'rentAmountPaid',
+      'unitRentType',
+      'rentType'
+    ].includes(field)) {
+      isRequired = true
+    }
+    if (field === 'tenantFirstName' && !row.tenantFirstName?.trim() && !row.tenantCommercialName?.trim()) {
+      isRequired = true
+    }
+  } else if (hasOtherTenantData) {
+    if (field === 'tenantFirstName' && !row.tenantCommercialName?.trim()) {
+      isRequired = true
+    }
+  }
 
   if (isRequired && !value && value !== 0) {
     errorMsg = 'Required'

@@ -220,6 +220,11 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                     const error = validationErrors[`${row.id}-${col.key}`]
                     const warning = amberWarnings[`${row.id}-${col.key}`]
 
+                    let cellValue = row[col.key]
+                    if ((col.key === 'tenantEmail' || col.key === 'email') && typeof cellValue === 'string' && cellValue.endsWith('@upward.com')) {
+                      cellValue = ''
+                    }
+
                     return (
                       <td
                         key={col.key}
@@ -235,7 +240,7 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                               className={cn('pgp-input', error && 'pgp-input--error')}
                               autoFocus
                               onBlur={() => setEditingCell(null)}
-                              value={row[col.key]}
+                              value={cellValue}
                               onChange={e => updateRowField(row.id, col.key, e.target.value)}
                             >
                               <option value="">Select...</option>
@@ -246,13 +251,13 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                               className={cn('pgp-input', error && 'pgp-input--error')}
                               autoFocus
                               onBlur={() => setEditingCell(null)}
-                              value={row[col.key]}
+                              value={cellValue}
                               onChange={e => updateRowField(row.id, col.key, e.target.value)}
                             />
                           )
                         ) : isReadOnly ? (
                           <div className="pgp-cell-readonly">
-                            {row[col.key] || <span style={{ opacity: 0.35 }}>—</span>}
+                            {cellValue || <span style={{ opacity: 0.35 }}>—</span>}
                           </div>
                         ) : (
                           <div
@@ -262,7 +267,7 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
                               !error && warning && 'data-grid-input--warning'
                             )}
                           >
-                            <span>{row[col.key] || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
+                            <span>{cellValue || <span style={{ color: 'var(--text-muted)', opacity: 0.4 }}>—</span>}</span>
                             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                               {!error && warning && <CheckCircle size={12} style={{ color: '#16a34a', flexShrink: 0 }} />}
                               <Pencil size={11} className="pgp-pencil" />
