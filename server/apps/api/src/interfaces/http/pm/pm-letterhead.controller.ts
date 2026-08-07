@@ -15,6 +15,9 @@ import {
   Inject,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard'
+import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator'
+import { FeatureKey } from '../../../domains/subscription/subscription.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { PM_LETTERHEAD_REPOSITORY, IPmLetterheadRepository } from '../../../domains/pm/pm-letterhead.repository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
@@ -60,6 +63,8 @@ export class PmLetterheadController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async saveLetterhead(@Req() req: FastifyRequest, @Body() body: any) {
     if (!req.user?.sub) throw new UnauthorizedException()
 
@@ -71,7 +76,6 @@ export class PmLetterheadController {
     const isDefault = body.isDefault === true
 
     if (isDefault) {
-      // Clear existing default letterheads for this PM
       await this.prisma.upward_pm_letterhead.updateMany({
         where: { pmId: pm.id },
         data: { isDefault: false },
@@ -96,6 +100,8 @@ export class PmLetterheadController {
 
   @Patch(':id/set-as-default')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async setAsDefault(
     @Req() req: FastifyRequest,
     @Param('id') id: string,
@@ -113,18 +119,18 @@ export class PmLetterheadController {
       throw new NotFoundException('Letterhead not found')
     }
 
-    // Set all other letterheads to false
     await this.prisma.upward_pm_letterhead.updateMany({
       where: { pmId: pm.id },
       data: { isDefault: false },
     })
 
-    // Set this one as default
     return this.letterheadRepo.update(letterheadId, { isDefault: true })
   }
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async updateLetterhead(
     @Req() req: FastifyRequest,
     @Param('id') id: string,
@@ -150,6 +156,8 @@ export class PmLetterheadController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async deleteLetterhead(
     @Req() req: FastifyRequest,
     @Param('id') id: string,

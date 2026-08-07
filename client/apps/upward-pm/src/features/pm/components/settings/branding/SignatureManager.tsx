@@ -16,6 +16,9 @@ import { useSignatures, useSignatureCanvas } from './branding.hooks'
 import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
 import type { SignatureConfig } from '../branding.types'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { FeatureKey } from '@/features/pm/types/subscription'
 
 type SigType = 'pad' | 'upload' | 'digital'
 
@@ -23,6 +26,9 @@ export function SignatureManager() {
   const { error: toastError } = useToast()
   const { signatures, signaturesLoading, saveSigMutation, setDefaultSigMutation, deleteSigMutation } =
     useSignatures()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
+  const hasBrandingAccess = checkAccess(FeatureKey.BRANDING).hasAccess
 
   const [showForm, setShowForm] = useState(false)
   const [sigType, setSigType] = useState<SigType | null>(null)
@@ -112,7 +118,10 @@ export function SignatureManager() {
         {!showForm && (
           <button
             className="btn btn--primary branding-manager__add-btn"
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              if (!hasBrandingAccess) { openPricing(); return }
+              setShowForm(true)
+            }}
           >
             <Plus size={16} /> New Signature
           </button>
@@ -276,7 +285,10 @@ export function SignatureManager() {
           <PenTool size={48} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
           <h4>No Signatures Yet</h4>
           <p>Create a drawn, digital, or uploaded signature for use in documents.</p>
-          <button className="btn btn--primary" onClick={() => setShowForm(true)}>
+          <button className="btn btn--primary" onClick={() => {
+            if (!hasBrandingAccess) { openPricing(); return }
+            setShowForm(true)
+          }}>
             <Plus size={14} /> Create Your First Signature
           </button>
         </div>
@@ -318,7 +330,10 @@ export function SignatureManager() {
                   <button
                     className="branding-sig-card__action"
                     title="Set as default"
-                    onClick={() => setDefaultSigMutation.mutate(sig.id)}
+                    onClick={() => {
+                      if (!hasBrandingAccess) { openPricing(); return }
+                      setDefaultSigMutation.mutate(sig.id)
+                    }}
                   >
                     <Star size={14} />
                   </button>
@@ -343,7 +358,10 @@ export function SignatureManager() {
                   <button
                     className="branding-sig-card__action branding-sig-card__action--danger"
                     title="Delete signature"
-                    onClick={() => setDeleteConfirm(sig.id)}
+                    onClick={() => {
+                      if (!hasBrandingAccess) { openPricing(); return }
+                      setDeleteConfirm(sig.id)
+                    }}
                   >
                     <Trash2 size={14} />
                   </button>

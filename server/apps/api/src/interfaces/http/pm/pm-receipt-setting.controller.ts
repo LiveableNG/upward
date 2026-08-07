@@ -13,6 +13,9 @@ import {
 } from '@nestjs/common'
 import { FastifyReply } from 'fastify'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard'
+import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator'
+import { FeatureKey } from '../../../domains/subscription/subscription.service'
 
 import { GetPmReceiptSettingsUseCase } from '../../../application/pm/use-cases/receipt-settings/get-pm-receipt-settings.use-case'
 import { UpdatePmReceiptSettingsUseCase, UpdateReceiptSettingDto } from '../../../application/pm/use-cases/receipt-settings/update-pm-receipt-settings.use-case'
@@ -42,6 +45,8 @@ export class PmReceiptSettingController {
   }
 
   @Patch()
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async updateSettings(
     @Req() req: FastifyRequest,
     @Body() body: UpdateReceiptSettingDto
@@ -67,6 +72,8 @@ export class PmReceiptSettingController {
   }
 
   @Post('logo-upload')
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async uploadLogo(
     @Req() req: FastifyRequest,
     @Body() body: { base64Data: string; contentType: string }

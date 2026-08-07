@@ -16,6 +16,9 @@ import {
   Inject,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard'
+import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator'
+import { FeatureKey } from '../../../domains/subscription/subscription.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { PM_SIGNATURE_REPOSITORY, IPmSignatureRepository } from '../../../domains/pm/pm-signature.repository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
@@ -40,6 +43,8 @@ export class PmSignatureController {
 
   @Post('upload')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async uploadSignature(
     @Req() req: FastifyRequest,
     @Body() body: { base64Data: string; contentType: string },
@@ -89,6 +94,8 @@ export class PmSignatureController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async saveSignature(@Req() req: FastifyRequest, @Body() body: any) {
     if (!req.user?.sub) throw new UnauthorizedException()
 
@@ -100,7 +107,6 @@ export class PmSignatureController {
     const isDefault = body.isDefault === true
 
     if (isDefault) {
-      // Clear existing default signatures for this PM
       await (this.prisma as any).upward_pm_signature.updateMany({
         where: { pmId: pm.id },
         data: { isDefault: false },
@@ -122,6 +128,8 @@ export class PmSignatureController {
 
   @Patch(':id/set-as-default')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async setAsDefault(
     @Req() req: FastifyRequest,
     @Param('id') id: string,
@@ -139,18 +147,18 @@ export class PmSignatureController {
       throw new NotFoundException('Signature not found')
     }
 
-    // Set all other signatures to false
     await (this.prisma as any).upward_pm_signature.updateMany({
       where: { pmId: pm.id },
       data: { isDefault: false },
     })
 
-    // Set this one as default
     return this.signatureRepo.update(signatureId, { isDefault: true })
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(SubscriptionGateGuard)
+  @RequireFeature(FeatureKey.BRANDING)
   async deleteSignature(
     @Req() req: FastifyRequest,
     @Param('id') id: string,

@@ -3,10 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
 import { Loader2, Save, UploadCloud, Eye, Image as ImageIcon, CheckCircle2, Paintbrush } from 'lucide-react'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { FeatureKey } from '@/features/pm/types/subscription'
 
 export function ReceiptSettingsTab() {
   const { success, error: toastError } = useToast()
   const queryClient = useQueryClient()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
+  const hasBrandingAccess = checkAccess(FeatureKey.BRANDING).hasAccess
 
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [themeColor, setThemeColor] = useState<string>('#d97757')
@@ -62,6 +68,11 @@ export function ReceiptSettingsTab() {
   }, [logoUrl, themeColor, isLoading])
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!hasBrandingAccess) {
+      e.target.value = ''
+      openPricing()
+      return
+    }
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -88,6 +99,10 @@ export function ReceiptSettingsTab() {
   }
 
   const handleSave = () => {
+    if (!hasBrandingAccess) {
+      openPricing()
+      return
+    }
     saveMutation.mutate({ logoUrl, useEmailLogo: false, themeColor })
   }
 
