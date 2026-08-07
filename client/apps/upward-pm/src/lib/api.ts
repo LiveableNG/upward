@@ -84,6 +84,7 @@ export const api = {
   getTeamMembers: pmService.getTeamMembers,
   updateTeamMemberPermissions: pmService.updateTeamMemberPermissions,
   revokeTeamMember: pmService.revokeTeamMember,
+  transferTeamProperties: pmService.transferTeamProperties,
   getCollaboratorActivities: pmService.getCollaboratorActivities,
 
   // Generic Helpers

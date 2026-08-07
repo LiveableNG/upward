@@ -59,6 +59,23 @@ export function useRevokeMember() {
   })
 }
 
+export function useTransferTeamProperties() {
+  const queryClient = useQueryClient()
+  const { success, error } = useToast()
+
+  return useMutation({
+    mutationFn: api.transferTeamProperties,
+    onSuccess: (data) => {
+      success(`${data.transferredCount} propert${data.transferredCount === 1 ? 'y' : 'ies'} transferred`)
+      queryClient.invalidateQueries({ queryKey: ['pm-team'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+    },
+    onError: (err: any) => {
+      error(err.message || 'Failed to transfer properties')
+    }
+  })
+}
+
 export function useCollaboratorActivities(uuid: string) {
   return useQuery({
     queryKey: ['pm-team-activities', uuid],

@@ -114,6 +114,17 @@ export const revokeTeamMember = async (uuid: string) => {
   })
 }
 
+export const transferTeamProperties = async (data: {
+  toCollaborationUuid: string
+  fromCollaborationUuid?: string
+  propertyUuids: string[]
+}) => {
+  return request<{ success: boolean; transferredCount: number }>('/pm/team/transfer', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
 export const getCollaboratorActivities = async (uuid: string) => {
   return request<any>(`/pm/team/${uuid}/activities`, {
     method: 'GET'

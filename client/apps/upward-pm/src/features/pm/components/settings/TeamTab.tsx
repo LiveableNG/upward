@@ -11,11 +11,13 @@ import {
   CheckCircle2,
   Clock,
   Info,
-  History
+  History,
+  ArrowRightLeft
 } from 'lucide-react'
 import { useTeam, useRevokeMember } from '@/features/pm/hooks/useTeam'
 import { InviteMemberModal } from './modals/InviteMemberModal'
 import { UpdatePermissionsModal } from './modals/UpdatePermissionsModal'
+import { TransferPropertiesModal } from './modals/TransferPropertiesModal'
 import { ActivityLogModal } from './modals/ActivityLogModal'
 import { DataTable, Column } from '@/components/common/DataTable'
 
@@ -27,6 +29,8 @@ export function TeamTab() {
   const [selectedCollab, setSelectedCollab] = useState<any>(null)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [showActivityModal, setShowActivityModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [transferTarget, setTransferTarget] = useState<any>(null)
 
   const handleRevoke = (uuid: string, name: string) => {
     if (confirm(`Are you sure you want to remove ${name} from your team? They will lose access to all your properties.`)) {
@@ -113,6 +117,19 @@ export function TeamTab() {
           >
             <History size={18} />
           </button>
+          {collab.accessLevel === 'CUSTOM' && collab.status === 'ACCEPTED' && (
+            <button
+              className="btn-icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setTransferTarget(collab)
+                setShowTransferModal(true)
+              }}
+              title="Transfer Properties"
+            >
+              <ArrowRightLeft size={18} />
+            </button>
+          )}
           <button 
             className="btn-icon" 
             onClick={(e) => {
@@ -147,13 +164,25 @@ export function TeamTab() {
           <h2 className="settings__section-title">Team Management</h2>
           <p className="settings__section-subtitle">Invite other managers to collaborate on your properties.</p>
         </div>
-        <button 
-            className="btn btn--primary" 
-            onClick={() => setShowInviteModal(true)}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="btn btn--secondary"
+            onClick={() => {
+              setTransferTarget(null)
+              setShowTransferModal(true)
+            }}
             style={{ borderRadius: 12, height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-            <UserPlus size={18} /> Invite Member
-        </button>
+          >
+            <ArrowRightLeft size={18} /> Transfer Properties
+          </button>
+          <button 
+              className="btn btn--primary" 
+              onClick={() => setShowInviteModal(true)}
+              style={{ borderRadius: 12, height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+              <UserPlus size={18} /> Invite Member
+          </button>
+        </div>
       </div>
 
       <div className="team-info-card" style={{ 
@@ -207,6 +236,17 @@ export function TeamTab() {
                 setShowActivityModal(false)
                 setSelectedCollab(null)
             }} 
+        />
+      )}
+
+      {showTransferModal && (
+        <TransferPropertiesModal
+          team={team}
+          targetCollaboration={transferTarget}
+          onClose={() => {
+            setShowTransferModal(false)
+            setTransferTarget(null)
+          }}
         />
       )}
 
