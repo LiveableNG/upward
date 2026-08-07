@@ -191,6 +191,24 @@ export const fetchLetterheads = async () => {
   })
 }
 
+export const getDocumentLetterheadContext = async (params?: {
+  unitUuid?: string
+  tenantUuid?: string
+}) => {
+  const search = new URLSearchParams()
+  if (params?.unitUuid) search.set('unitUuid', params.unitUuid)
+  if (params?.tenantUuid) search.set('tenantUuid', params.tenantUuid)
+  const qs = search.toString()
+  return request<{
+    hasLetterhead: boolean
+    letterheadHeaderUrl: string | null
+    letterheadFooterUrl: string | null
+    source: 'own' | 'company' | 'none'
+  }>(`/pm/letterheads/document-context${qs ? `?${qs}` : ''}`, {
+    method: 'GET'
+  })
+}
+
 export const saveLetterhead = async (data: any) => {
   return request<any>('/pm/letterheads', {
     method: 'POST',
@@ -212,6 +230,23 @@ export const deleteLetterhead = async (id: number | string) => {
 
 export const fetchSignatures = async () => {
   return request<any[]>('/pm/signatures', {
+    method: 'GET'
+  })
+}
+
+export const getDocumentSignatureContext = async (params?: {
+  unitUuid?: string
+  tenantUuid?: string
+}) => {
+  const search = new URLSearchParams()
+  if (params?.unitUuid) search.set('unitUuid', params.unitUuid)
+  if (params?.tenantUuid) search.set('tenantUuid', params.tenantUuid)
+  const qs = search.toString()
+  return request<{
+    hasSignature: boolean
+    signatures: any[]
+    source: 'own' | 'company' | 'none'
+  }>(`/pm/signatures/document-context${qs ? `?${qs}` : ''}`, {
     method: 'GET'
   })
 }
