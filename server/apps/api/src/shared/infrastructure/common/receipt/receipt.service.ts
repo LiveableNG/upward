@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import PDFDocument from 'pdfkit'
 import { S3Service } from '../s3/s3.service'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 
 export interface ReceiptPdfData {
   title: string
@@ -127,20 +130,30 @@ export class ReceiptService {
       const brandLabel = (data.brandName || 'Upward').toUpperCase()
 
       if (logoBuffer) {
-        // Draw a white background container card for the logo to ensure transparent/dark logos are clearly visible
         const LOGO_BOX_W = 120
         const LOGO_BOX_H = 36
-        const PADDING = 4
-        
-        doc.save()
-        doc.roundedRect(BRAND_X, BRAND_Y - 4, LOGO_BOX_W, LOGO_BOX_H, 6).fill(white)
-        doc.restore()
 
-        doc.image(logoBuffer, BRAND_X + PADDING, BRAND_Y - 4 + PADDING, { 
-          fit: [LOGO_BOX_W - (PADDING * 2), LOGO_BOX_H - (PADDING * 2)],
-          align: 'center',
-          valign: 'center'
-        })
+        // Write the buffer to a temporary file and pass the path to PDFKit to avoid memory buffer decoding issues
+        let tempFilePath: string | null = null
+        try {
+          const tempDir = os.tmpdir()
+          tempFilePath = path.join(tempDir, `upward_logo_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`)
+          fs.writeFileSync(tempFilePath, logoBuffer)
+
+          doc.image(tempFilePath, BRAND_X, BRAND_Y - 4, { 
+            fit: [LOGO_BOX_W, LOGO_BOX_H]
+          })
+        } catch (imageErr) {
+          console.error('[ReceiptService] Error rendering logo image in PDFKit:', imageErr)
+        } finally {
+          if (tempFilePath && fs.existsSync(tempFilePath)) {
+            try {
+              fs.unlinkSync(tempFilePath)
+            } catch (unlinkErr) {
+              console.error('[ReceiptService] Failed to clean up temp logo file:', unlinkErr)
+            }
+          }
+        }
       } else {
         doc.save()
 
