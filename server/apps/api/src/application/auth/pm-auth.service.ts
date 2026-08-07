@@ -5,6 +5,7 @@ import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY, PropertyManager
 import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
+import { resolveCanManageCompanySettings } from '../../shared/application/pm-settings-access'
 import { S3Service } from '../../shared/infrastructure/common/s3/s3.service'
 import * as bcrypt from 'bcrypt'
 import { BaseAuthService } from './base-auth.service'
@@ -77,6 +78,11 @@ export class PmAuthService extends BaseAuthService {
     if (clientProfile.letterheadFooterUrl) {
       clientProfile.letterheadFooterUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadFooterUrl)
     }
+
+    clientProfile.canManageCompanySettings = await resolveCanManageCompanySettings(
+      this.prisma,
+      pm.id!,
+    )
 
     return {
       accessToken,
@@ -277,6 +283,11 @@ export class PmAuthService extends BaseAuthService {
       clientProfile.letterheadFooterUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadFooterUrl)
     }
 
+    clientProfile.canManageCompanySettings = await resolveCanManageCompanySettings(
+      this.prisma,
+      serverId!,
+    )
+
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
@@ -318,6 +329,11 @@ export class PmAuthService extends BaseAuthService {
     if (clientProfile.letterheadFooterUrl) {
       clientProfile.letterheadFooterUrl = await this.s3Service.getDownloadUrl(clientProfile.letterheadFooterUrl)
     }
+
+    clientProfile.canManageCompanySettings = await resolveCanManageCompanySettings(
+      this.prisma,
+      serverId!,
+    )
 
     return clientProfile
   }

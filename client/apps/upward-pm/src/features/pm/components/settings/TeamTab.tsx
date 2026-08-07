@@ -20,10 +20,11 @@ import { UpdatePermissionsModal } from './modals/UpdatePermissionsModal'
 import { TransferPropertiesModal } from './modals/TransferPropertiesModal'
 import { ActivityLogModal } from './modals/ActivityLogModal'
 import { DataTable, Column } from '@/components/common/DataTable'
+import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 
 export function TeamTab() {
   const { data: team = [], isLoading } = useTeam()
-  const { mutate: revokeMember } = useRevokeMember()
+  const { mutate: revokeMember, isPending: isRevoking } = useRevokeMember()
   
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedCollab, setSelectedCollab] = useState<any>(null)
@@ -31,11 +32,13 @@ export function TeamTab() {
   const [showActivityModal, setShowActivityModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [transferTarget, setTransferTarget] = useState<any>(null)
+  const [revokeTarget, setRevokeTarget] = useState<{ uuid: string; name: string } | null>(null)
 
-  const handleRevoke = (uuid: string, name: string) => {
-    if (confirm(`Are you sure you want to remove ${name} from your team? They will lose access to all your properties.`)) {
-      revokeMember(uuid)
-    }
+  const handleConfirmRevoke = () => {
+    if (!revokeTarget) return
+    revokeMember(revokeTarget.uuid, {
+      onSuccess: () => setRevokeTarget(null),
+    })
   }
 
   const columns: Column<any>[] = [
@@ -145,7 +148,10 @@ export function TeamTab() {
             className="btn-icon" 
             onClick={(e) => {
               e.stopPropagation()
-              handleRevoke(collab.uuid, collab.member.firstName)
+              setRevokeTarget({
+                uuid: collab.uuid,
+                name: `${collab.member.firstName} ${collab.member.lastName}`.trim(),
+              })
             }}
             style={{ color: 'var(--error)' }}
             title="Remove Member"
@@ -249,6 +255,21 @@ export function TeamTab() {
           }}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={!!revokeTarget}
+        onClose={() => setRevokeTarget(null)}
+        onConfirm={handleConfirmRevoke}
+        title="Remove Team Member"
+        message={
+          revokeTarget
+            ? `Are you sure you want to remove ${revokeTarget.name} from your team? They will lose access to all your properties.`
+            : ''
+        }
+        confirmText="Remove Member"
+        type="danger"
+        isPending={isRevoking}
+      />
 
       <style jsx>{`
         .btn-icon {
