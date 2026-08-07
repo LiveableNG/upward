@@ -237,46 +237,41 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
 
             <div style={{ marginTop: 28, display: 'grid', gap: 20 }}>
               {/* Logo */}
-              <div style={{ padding: 0, border: 'none', background: 'transparent' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="email-settings__logo-section">
+                <h3 className="email-settings__logo-title">
                   <ImageIcon size={16} /> Company Logo
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <div className="email-settings__logo-row">
                   {/* Preview */}
-                  <div style={{
-                    width: 120, height: 72, borderRadius: 14,
-                    border: '2px dashed var(--border)', background: 'var(--bg)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    overflow: 'hidden', flexShrink: 0, position: 'relative',
-                  }}>
+                  <div className="email-settings__logo-preview">
                     {uploadingLogo && (
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.8)' }}>
+                      <div className="email-settings__logo-loader">
                         <Loader2 size={20} className="animate-spin" style={{ color: 'var(--forest)' }} />
                       </div>
                     )}
                     {logoUrl ? (
-                      <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      <img src={logoUrl} alt="Logo" className="email-settings__logo-img" />
                     ) : (
                       <ImageIcon size={24} style={{ color: 'var(--border)' }} />
                     )}
                   </div>
-                  <div>
+                  <div className="email-settings__logo-actions">
                     <input type="file" id="logo-upload" className="hidden" accept="image/*" onChange={handleLogoUpload} disabled={uploadingLogo} />
-                    <label htmlFor="logo-upload" className="btn btn--secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', borderRadius: 12, padding: '10px 20px', fontSize: 13 }}>
+                    <label htmlFor="logo-upload" className="btn btn--secondary email-settings__logo-upload-btn">
                       <Upload size={14} /> {logoUrl ? 'Replace Logo' : 'Upload Logo'}
                     </label>
                     {logoUrl && (
-                      <button onClick={() => setLogoUrl(null)} style={{ display: 'block', marginTop: 8, fontSize: 12, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      <button onClick={() => setLogoUrl(null)} className="email-settings__logo-remove-btn">
                         Remove logo
                       </button>
                     )}
-                    <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>PNG or JPG · Max 5MB · Displayed in email header</p>
+                    <p className="email-settings__logo-tip">PNG or JPG · Max 5MB · Displayed in email header</p>
                   </div>
                 </div>
               </div>
 
               {/* Sender fields */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="email-settings__form-row">
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     Sender Name <span style={{ color: 'var(--red)' }}>*</span>
@@ -310,7 +305,7 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="email-settings__form-row">
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     CC Address
@@ -367,22 +362,20 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+              <div className="email-settings__actions-row">
                 <button
                   id="save-email-config"
-                  className="btn btn--primary"
+                  className="btn btn--primary email-settings__save-btn"
                   onClick={handleSaveConfig}
                   disabled={saveConfigMutation.isPending}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12 }}
                 >
                   {saveConfigMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
                   Save Sender Settings
                 </button>
                 <button
                   type="button"
-                  className="btn btn--secondary"
+                  className="btn btn--secondary email-settings__preview-btn"
                   onClick={() => setShowPreview(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, padding: '10px 20px', fontSize: 13 }}
                 >
                   <Eye size={16} /> Preview Email
                 </button>
@@ -469,7 +462,7 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Globe size={14} /> Your Domain
                 </label>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="email-settings__domain-row">
                   <input
                     id="custom-domain-input"
                     className="form-input"
@@ -482,10 +475,9 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
                   {!isVerified && (
                     <button
                       id="register-domain-btn"
-                      className="btn btn--primary"
+                      className="btn btn--primary email-settings__domain-register-btn"
                       onClick={() => createDomainMutation.mutate()}
                       disabled={createDomainMutation.isPending || !domainInput.trim()}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, whiteSpace: 'nowrap' }}
                     >
                       {createDomainMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <ChevronRight size={16} />}
                       Register Domain
@@ -501,7 +493,7 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
             {/* DNS Records Table */}
             {dnsRecords.length > 0 && (
               <div style={{ marginTop: 32 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div className="email-settings__domain-header">
                   <div>
                     <h3 style={{ fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Shield size={16} style={{ color: 'var(--forest)' }} /> DNS Records
@@ -512,10 +504,9 @@ export function EmailSettingsTab({ mode }: EmailSettingsTabProps = {}) {
                   </div>
                   <button
                     id="verify-domain-btn"
-                    className="btn btn--secondary"
+                    className="btn btn--secondary email-settings__domain-verify-btn"
                     onClick={() => verifyDomainMutation.mutate()}
                     disabled={verifyDomainMutation.isPending}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, fontSize: 13 }}
                   >
                     {verifyDomainMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     Check & Verify

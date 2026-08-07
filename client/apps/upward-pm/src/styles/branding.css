@@ -1621,3 +1621,423 @@
     display: none;
   }
 }
+
+/* Receipt Branding Styles */
+.receipt-branding {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.receipt-branding__config {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.receipt-branding__header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.receipt-branding__header p {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.receipt-branding__row {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.receipt-branding__card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 24px;
+}
+
+.receipt-branding__card h3 {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.receipt-branding__card-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.receipt-branding__logo-container {
+  margin-top: 16px;
+}
+
+.receipt-branding__logo-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.receipt-branding__logo-img {
+  height: 60px;
+  object-fit: contain;
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.receipt-branding__logo-remove-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+/* Compact horizontal upload zone */
+.receipt-branding__upload-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.receipt-branding__upload-zone:hover {
+  border-color: var(--forest);
+  background: var(--forest-faint);
+}
+
+.receipt-branding__upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.receipt-branding__upload-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.receipt-branding__upload-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.receipt-branding__color-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.receipt-branding__color-picker {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.receipt-branding__color-text {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  width: 120px;
+  font-family: monospace;
+}
+
+.receipt-branding__actions {
+  margin-top: 8px;
+}
+
+.receipt-branding__save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 12px 24px;
+  width: 100%;
+  font-weight: 600;
+}
+
+.receipt-branding__preview {
+  position: sticky;
+  top: 24px;
+  background: #f8fafc;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 600px; /* Force same height as config column */
+}
+
+.receipt-branding__preview-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+}
+
+.receipt-branding__preview-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.receipt-branding__preview-frame {
+  flex: 1;
+  background: #e2e8f0;
+  position: relative;
+}
+
+.receipt-branding__iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.receipt-branding__loader-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 992px) {
+  .receipt-branding {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .receipt-branding__preview {
+    position: static;
+    height: 520px;
+  }
+
+  .receipt-branding__upload-zone {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .receipt-branding__upload-title {
+    font-size: 12px;
+  }
+}
+
+/* Email Settings Tab Styles */
+.email-settings__form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.email-settings__logo-section {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.email-settings__logo-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.email-settings__logo-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.email-settings__logo-preview {
+  width: 120px;
+  height: 72px;
+  border-radius: 14px;
+  border: 2px dashed var(--border);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.email-settings__logo-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.email-settings__logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.email-settings__logo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.email-settings__logo-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 13px;
+}
+
+.email-settings__logo-remove-btn {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--clay);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.email-settings__logo-tip {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.email-settings__actions-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.email-settings__save-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+}
+
+.email-settings__preview-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 13px;
+}
+
+.email-settings__domain-row {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .email-settings__form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .email-settings__logo-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .email-settings__actions-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .email-settings__save-btn,
+  .email-settings__preview-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.email-settings__domain-row {
+  display: flex;
+  gap: 12px;
+}
+
+.email-settings__domain-register-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.email-settings__domain-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.email-settings__domain-verify-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  .email-settings__domain-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .email-settings__domain-register-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .email-settings__domain-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .email-settings__domain-verify-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+
+

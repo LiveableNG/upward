@@ -119,25 +119,25 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       subtitle={`Update core details for ${unit?.unitName || ''}`}
       maxWidth={650}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, width: '100%' }}>
-          <button type="button" className="btn btn--secondary" onClick={onClose} style={{ borderRadius: 12, padding: '12px 32px' }}>
+        <div className="edit-unit-form__footer-actions">
+          <button type="button" className="btn btn--secondary edit-unit-form__btn" onClick={onClose}>
             Cancel
           </button>
-          <button type="button" className="btn btn--primary" disabled={isPending} onClick={handleSubmit(onSubmit)} style={{ borderRadius: 12, padding: '12px 40px', background: 'var(--forest)' }}>
+          <button type="button" className="btn btn--primary edit-unit-form__btn edit-unit-form__btn--primary" disabled={isPending} onClick={handleSubmit(onSubmit)}>
             {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '16px 0 0 0' }}>
+      <form onSubmit={handleSubmit(onSubmit)} className="edit-unit-form">
         <div className="form-group" style={{ marginBottom: 20 }}>
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label className="form-label edit-unit-form__label-with-icon">
             <Home size={14} color="var(--clay)" /> Unit Name
           </label>
           <input {...register('unitName', { required: true })} className="form-input" placeholder="e.g. Apartment 4B" />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 20 }}>
+        <div className="edit-unit-form__row edit-unit-form__row--2-1">
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Unit Type</label>
             <FormSelect
@@ -190,13 +190,13 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
           <input type="number" {...register('managementFee')} className="form-input" placeholder="e.g. 150000" />
         </div>
 
-        <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+        <div className="edit-unit-form__section">
+          <div className="edit-unit-form__section-header">
             <CreditCard size={14} color="var(--forest)" />
-            <h5 style={{ fontSize: 12, fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rent Configuration</h5>
+            <h5>Rent Configuration</h5>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: watch('rentType') === 'Lease' ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div className={`edit-unit-form__row edit-unit-form__row--${watch('rentType') === 'Lease' ? '3-col' : '2-col'}`}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Rent Amount ({watch('currency') === 'USD' ? '$' : '₦'})</label>
               <input type="number" {...register('rentAmount')} className="form-input" />
@@ -221,7 +221,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+          <div className="edit-unit-form__row edit-unit-form__row--2-col edit-unit-form__row--dates">
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Rent Start Date</label>
               <input
@@ -236,23 +236,22 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                 type="date"
                 readOnly
                 {...register('rentDueDate')}
-                className="form-input"
-                style={{ background: 'var(--bg)', cursor: 'not-allowed', opacity: 0.8 }}
+                className="form-input form-input--readonly"
                 title="Auto-calculated based on rent start date and cycle"
               />
             </div>
           </div>
         </div>
 
-        <div className="glass" style={{ padding: 24, borderRadius: 16, background: 'var(--ivory-faint)', marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--forest-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="glass edit-unit-form__reminder-box">
+          <div className="edit-unit-form__reminder-header">
+            <div className="edit-unit-form__reminder-info">
+              <div className="edit-unit-form__reminder-icon-wrapper">
                 <Bell size={16} color="var(--forest)" />
               </div>
               <div>
-                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>Rent Reminders</h4>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Automatically notify tenant before rent expires</p>
+                <h4>Rent Reminders</h4>
+                <p>Automatically notify tenant before rent expires</p>
               </div>
             </div>
             <div className="toggle-switch">
@@ -291,17 +290,16 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Send reminder</span>
+          <div className="edit-unit-form__reminder-inputs">
+            <span>Send reminder</span>
             <input
               type="number"
               {...register('rentReminderDaysBefore')}
-              className="form-input"
-              style={{ width: 76, height: 38, padding: '4px 8px', textAlign: 'center', fontSize: 14, fontWeight: 600 }}
+              className="form-input edit-unit-form__reminder-days-input"
               min="1"
               max="30"
             />
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>days before rent is due.</span>
+            <span>days before rent is due.</span>
           </div>
         </div>
 

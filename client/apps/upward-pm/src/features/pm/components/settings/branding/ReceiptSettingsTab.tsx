@@ -115,77 +115,76 @@ export function ReceiptSettingsTab() {
   }
 
   return (
-    <div className="receipt-settings animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'flex-start' }}>
+    <div className="receipt-branding animate-fade-in">
       
       {/* ─── CONFIGURATION SECTION ─── */}
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Receipt Branding</h2>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+      <section className="receipt-branding__config">
+        <div className="receipt-branding__header">
+          <h2>Receipt Branding</h2>
+          <p>
             Customize the look and feel of your payment receipts.
           </p>
         </div>
 
-        {/* Logo Configuration */}
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--border)', padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <ImageIcon size={18} /> Receipt Logo
-          </h3>
-          
-          <div style={{ marginTop: 16 }}>
-            {logoUrl ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
-                  <img src={logoUrl} alt="Receipt Logo" style={{ height: 60, objectFit: 'contain', background: '#f8fafc', padding: 8, borderRadius: 8, border: '1px solid var(--border)' }} />
-                  <button onClick={() => setLogoUrl('')} className="btn btn--secondary" style={{ fontSize: 12, padding: '6px 12px' }}>
+        <div className="receipt-branding__row">
+          {/* Logo Configuration */}
+          <div className="receipt-branding__card">
+            <h3>
+              <ImageIcon size={18} /> Receipt Logo
+            </h3>
+            
+            <div className="receipt-branding__logo-container">
+              {logoUrl ? (
+                <div className="receipt-branding__logo-preview-wrapper">
+                  <img src={logoUrl} alt="Receipt Logo" className="receipt-branding__logo-img" />
+                  <button onClick={() => setLogoUrl('')} className="btn btn--secondary receipt-branding__logo-remove-btn">
                     Remove Logo
                   </button>
                 </div>
               ) : (
-                <label style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                  padding: 32, border: '2px dashed var(--border)', borderRadius: 12,
-                  background: 'var(--bg)', cursor: 'pointer', transition: 'all 0.2s'
-                }}>
-                  <UploadCloud size={24} color="var(--text-muted)" />
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>Click to upload custom logo</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>PNG or JPG (Max 2MB)</span>
+                <label className="receipt-branding__upload-zone">
+                  <UploadCloud size={20} color="var(--forest)" />
+                  <div className="receipt-branding__upload-text">
+                    <span className="receipt-branding__upload-title">Click to upload custom logo</span>
+                    <span className="receipt-branding__upload-desc">PNG or JPG (Max 2MB)</span>
+                  </div>
                   <input type="file" accept="image/png, image/jpeg" style={{ display: 'none' }} onChange={handleLogoUpload} />
                 </label>
               )}
             </div>
-        </div>
+          </div>
 
-        {/* Theme Color Configuration */}
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--border)', padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <Paintbrush size={18} /> Theme Color
-          </h3>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-            This color will replace the default Upward clay color in the receipt header and accents.
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <input 
-              type="color" 
-              value={themeColor} 
-              onChange={(e) => setThemeColor(e.target.value)}
-              style={{ width: 48, height: 48, padding: 0, border: 'none', borderRadius: 8, cursor: 'pointer' }}
-            />
-            <input 
-              type="text" 
-              value={themeColor} 
-              onChange={(e) => setThemeColor(e.target.value)}
-              style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, width: 120, fontFamily: 'monospace' }}
-            />
+          {/* Theme Color Configuration */}
+          <div className="receipt-branding__card">
+            <h3>
+              <Paintbrush size={18} /> Theme Color
+            </h3>
+            <p className="receipt-branding__card-desc">
+              Replaces the default Upward clay color in the receipt header and accents.
+            </p>
+            <div className="receipt-branding__color-inputs">
+              <input 
+                type="color" 
+                value={themeColor} 
+                onChange={(e) => setThemeColor(e.target.value)}
+                className="receipt-branding__color-picker"
+              />
+              <input 
+                type="text" 
+                value={themeColor} 
+                onChange={(e) => setThemeColor(e.target.value)}
+                className="receipt-branding__color-text"
+              />
+            </div>
           </div>
         </div>
 
         {/* Save Button */}
-        <div>
+        <div className="receipt-branding__actions">
           <button
-            className="btn btn--primary"
+            className="btn btn--primary receipt-branding__save-btn"
             onClick={handleSave}
             disabled={saveMutation.isPending}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12 }}
           >
             {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             Save Receipt Settings
@@ -194,23 +193,23 @@ export function ReceiptSettingsTab() {
       </section>
 
       {/* ─── PREVIEW SECTION ─── */}
-      <section style={{ position: 'sticky', top: 24, background: '#f8fafc', borderRadius: 24, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <section className="receipt-branding__preview">
+        <div className="receipt-branding__preview-header">
+          <h3>
             <Eye size={16} /> Live Preview
           </h3>
           {isPreviewLoading && <Loader2 size={14} className="animate-spin text-muted" />}
         </div>
         
-        <div style={{ height: 600, background: '#e2e8f0', position: 'relative' }}>
+        <div className="receipt-branding__preview-frame">
           {previewBlobUrl ? (
             <iframe 
               src={previewBlobUrl + '#toolbar=0&navpanes=0&scrollbar=0'} 
-              style={{ width: '100%', height: '100%', border: 'none' }}
+              className="receipt-branding__iframe"
               title="Receipt Preview"
             />
           ) : (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="receipt-branding__loader-wrapper">
               <Loader2 className="animate-spin text-muted" size={32} />
             </div>
           )}
