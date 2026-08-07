@@ -4,10 +4,16 @@ import React from 'react'
 import { Loader2, Check } from 'lucide-react'
 import { useLetterheads } from './branding.hooks'
 import { useSignatures } from './branding.hooks'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { FeatureKey } from '@/features/pm/types/subscription'
 
 export function DocumentDefaults() {
   const { letterheads, isLoading: lhLoading, setDefaultMutation } = useLetterheads()
   const { signatures, signaturesLoading, setDefaultSigMutation } = useSignatures()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
+  const hasBrandingAccess = checkAccess(FeatureKey.BRANDING).hasAccess
 
   const defaultLetterhead = letterheads.find((l) => l.isDefault)
   const defaultSignature = signatures.find((s) => s.isDefault)
@@ -49,7 +55,10 @@ export function DocumentDefaults() {
                     type="radio"
                     name="default-letterhead"
                     checked={lh.isDefault}
-                    onChange={() => setDefaultMutation.mutate(lh.id)}
+                    onChange={() => {
+                      if (!hasBrandingAccess) { openPricing(); return }
+                      setDefaultMutation.mutate(lh.id)
+                    }}
                     style={{ display: 'none' }}
                   />
                   {lh.previewFirstPageUrl && (
@@ -109,7 +118,10 @@ export function DocumentDefaults() {
                     type="radio"
                     name="default-signature"
                     checked={sig.isDefault}
-                    onChange={() => setDefaultSigMutation.mutate(sig.id)}
+                    onChange={() => {
+                      if (!hasBrandingAccess) { openPricing(); return }
+                      setDefaultSigMutation.mutate(sig.id)
+                    }}
                     style={{ display: 'none' }}
                   />
                   <div className="branding-defaults__option-sig-preview">

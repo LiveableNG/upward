@@ -178,8 +178,35 @@ export const sendEmailSettingsTest = async (email: string) => {
   })
 }
 
+export const getReceiptSettings = async () => {
+  return request<any>('/pm/receipt-settings', {
+    method: 'GET'
+  })
+}
+
+export const updateReceiptSettings = async (payload: { logoUrl?: string | null, useEmailLogo?: boolean, themeColor?: string }) => {
+  return request<any>('/pm/receipt-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  })
+}
+
+export const previewReceipt = async (payload: { logoUrl?: string | null, useEmailLogo?: boolean, themeColor?: string }) => {
+  return request<Blob>('/pm/receipt-settings/preview', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+}
+
 export const uploadLogo = async (params: { base64Data: string, contentType: string }) => {
   return request<{ publicUrl: string }>('/pm/email-settings/logo-upload', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
+export const uploadReceiptLogo = async (params: { base64Data: string, contentType: string }) => {
+  return request<{ publicUrl: string }>('/pm/receipt-settings/logo-upload', {
     method: 'POST',
     body: JSON.stringify(params)
   })

@@ -406,6 +406,7 @@ model upward_app_activity_log {
 model upward_dev_email_preview {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
+  from        String?
   to          String
   cc          String?
   bcc         String?

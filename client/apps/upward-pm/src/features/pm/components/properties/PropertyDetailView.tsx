@@ -42,9 +42,9 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
     const exportColumns = importColumns.filter(c => c.key !== 'rentDueDate')
     const headers = exportColumns.map(c => c.label)
     const rows = [
-      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '2400000', '2400000', '2024-01-01', 'Annually', '', '240000', 'NGN', 'Annual tenant', 'Flat / Apartment'],
-      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348012345679', '200000', '200000', '2024-02-01', 'Monthly', '', '20000', 'NGN', 'Monthly tenant', 'Flat / Apartment'],
-      ['103', 'XYZ Biz', '', '', 'contact@xyz.com', '+2348012345680', '5000000', '5000000', '2024-03-01', 'Lease', '5', '500000', 'NGN', '5-year lease', 'Office Space']
+      ['101', '', 'John', 'Doe', 'john@example.com', '+2348012345678', '', '2400000', '2400000', '2024-01-01', 'Annually', '', '240000', 'NGN', 'Annual tenant', 'Flat / Apartment'],
+      ['102', '', 'Jane', 'Smith', 'jane@example.com', '+2348012345679', '', '200000', '200000', '2024-02-01', 'Monthly', '', '20000', 'NGN', 'Monthly tenant', 'Flat / Apartment'],
+      ['103', 'XYZ Biz', '', '', 'contact@xyz.com', '+2348012345680', '', '5000000', '5000000', '2024-03-01', 'Lease', '5', '500000', 'NGN', '5-year lease', 'Office Space']
     ]
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })

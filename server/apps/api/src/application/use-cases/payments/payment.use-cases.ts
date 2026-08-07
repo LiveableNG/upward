@@ -1478,31 +1478,107 @@ export class GenerateReceiptPdfUseCase {
       enriched.paidAt = new Date(enriched.paidAt)
     }
 
-    if (enriched.userPropertyId && !enriched.landlordName) {
-      const prop = await this.prisma.upward_user_property.findUnique({
-        where: { id: Number(enriched.userPropertyId) },
-        include: {
-          location: true,
-          company: true,
-          manager: true,
+    const txWithBranding = enriched.reference
+      ? await this.prisma.upward_transaction.findFirst({
+          where: { reference: enriched.reference },
+          include: {
+            paymentRequest: {
+              include: {
+
+                pmPaymentRequests: {
+                  include: {
+                    pm: {
+                      include: {
+                        emailSetting: true,
+                        receiptSetting: true,
+                      }
+                    }
+                  },
+                  take: 1,
+                },
+                userProperty: {
+                  include: {
+                    location: true,
+                    company: true,
+                    manager: true,
+                  }
+                }
+              }
+            }
+          }
+        })
+      : null
+
+    const prop = (txWithBranding?.paymentRequest?.userProperty as any)
+      || (enriched.userPropertyId
+          ? await this.prisma.upward_user_property.findUnique({
+              where: { id: Number(enriched.userPropertyId) },
+              include: {
+                location: true,
+                company: true,
+                manager: true,
+              }
+            })
+          : null) as any
+
+    if (prop) {
+
+      let pm: any = (txWithBranding?.paymentRequest as any)?.pmPaymentRequests?.[0]?.pm
+
+      if (!pm && prop.pmId) {
+        const directPm = await this.prisma.upward_property_manager.findUnique({
+          where: { id: prop.pmId },
+          include: { emailSetting: true, receiptSetting: true }
+        })
+        pm = directPm
+      }
+
+      if (!pm && prop.companyId) {
+        const sibling = await this.prisma.upward_user_property.findFirst({
+          where: { companyId: prop.companyId, pmId: { not: null } },
+          include: { pm: { include: { emailSetting: true, receiptSetting: true } } }
+        }) as any
+        if (sibling?.pm) pm = sibling.pm
+      }
+
+      const loc = prop.location
+      const addressParts = [loc?.address || loc?.area, loc?.state, loc?.country].filter(Boolean)
+      if (addressParts.length > 0) {
+        enriched.propertyAddress = addressParts.join(', ')
+      }
+
+
+      let companyName = 'Upward'
+      if (pm?.businessName) {
+        const decrypted = pm.businessName.includes(':') ? this.encryption.decrypt(pm.businessName) : pm.businessName
+        if (decrypted && decrypted !== 'account_name') {
+          companyName = decrypted
         }
-      }) as any
-
-      if (prop) {
-        // Concatenated location string
-        const loc = prop.location
-        const addressParts = [
-          loc?.address || loc?.area,
-          loc?.state,
-          loc?.country
-        ].filter(Boolean)
-
-        if (addressParts.length > 0) {
-          enriched.propertyAddress = addressParts.join(', ')
+      } else if (prop.company?.name && !prop.company.name.includes(':')) {
+        companyName = prop.company.name
+      } else if (prop.manager) {
+        const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
+        const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
+        if (first !== 'account_name' && last !== 'account_name') {
+          companyName = `${first} ${last}`.trim()
         }
+      }
+      enriched.brandName = companyName
 
-        // Resolve Recipient (Landlord Name)
-        if (prop.company && prop.company.name !== 'account_name') {
+      if (pm) {
+        const logoUrl = pm.receiptSetting?.useEmailLogo === false
+          ? pm.receiptSetting?.logoUrl
+          : pm.emailSetting?.logoUrl
+        if (logoUrl) {
+          enriched.logoUrl = logoUrl
+        }
+        if (pm.receiptSetting?.themeColor) {
+          enriched.themeColor = pm.receiptSetting.themeColor
+        }
+      }
+
+      if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
+        if (prop.company?.name && !prop.company.name.includes(':')) {
           enriched.landlordName = prop.company.name
         } else if (prop.manager) {
           const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName

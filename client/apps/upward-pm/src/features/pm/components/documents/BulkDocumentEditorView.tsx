@@ -71,6 +71,25 @@ export function BulkDocumentEditorView({
   const { checkAccess } = useSubscription()
   const { openPricing } = usePricingModal()
 
+  const { data: emailSettings } = useQuery({
+    queryKey: ['emailSettings'],
+    queryFn: () => api.getEmailSettings(),
+  })
+
+  useEffect(() => {
+    if (emailSettings) {
+      if (emailSettings.senderEmail) {
+        if (emailSettings.isVerified) {
+          setFromEmail(`"${emailSettings.senderName}" <${emailSettings.senderEmail}>`)
+        } else {
+          setFromEmail(`"${emailSettings.senderName || 'Property Manager'} (via Upward)" <noreply@goodtenants.io>`)
+        }
+      }
+      if (emailSettings.cc && !cc) setCc(emailSettings.cc)
+      if (emailSettings.bcc && !bcc) setBcc(emailSettings.bcc)
+    }
+  }, [emailSettings])
+
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
   const { user } = useAuth()
   const [fromEmail, setFromEmail] = useState(user?.email || 'noreply@goodtenants.io')
@@ -640,7 +659,7 @@ export function BulkDocumentEditorView({
                   <input
                     type="text"
                     className="form-input"
-                    value={isSystemTemplate ? fromEmail : 'noreply@goodtenants.io'}
+                    value={fromEmail}
                     onChange={(e) => setFromEmail(e.target.value)}
                     disabled={!isSystemTemplate}
                     style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
