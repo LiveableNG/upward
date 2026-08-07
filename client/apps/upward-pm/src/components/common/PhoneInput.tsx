@@ -17,6 +17,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   value, 
   onChange,
   className,
+  style,
   ...props 
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +67,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           value={value}
           onChange={handleChange}
           className={`form-input ${error ? 'form-input--error' : ''} ${className || ''}`}
-          style={{ paddingLeft: '40px' }}
+          style={{ boxSizing: 'border-box', ...style, paddingLeft: '40px' }}
         />
       </div>
       {error && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '4px' }}>{error}</p>}

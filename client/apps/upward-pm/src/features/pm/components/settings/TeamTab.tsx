@@ -61,11 +61,11 @@ export function TeamTab() {
       )
     },
     {
-      header: 'Access Level',
+      header: 'Role',
       render: (collab) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
           <Shield size={16} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'All Properties' : 'Custom Selection'}
+          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
         </div>
       )
     },
@@ -74,7 +74,7 @@ export function TeamTab() {
       render: (collab) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
           <Building2 size={16} />
-          {collab.accessLevel === 'ALL' ? 'Everything' : `${collab.properties.length} Properties`}
+          {collab.accessLevel === 'ALL' ? 'Everything' : collab.properties.length === 0 ? 'None assigned yet' : `${collab.properties.length} Properties`}
         </div>
       )
     },
@@ -171,7 +171,8 @@ export function TeamTab() {
         <div>
             <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>How Collaboration Works</h4>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 800 }}>
-                You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests. 
+                You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests.
+                Choose <strong>Admin</strong> for access to all properties (including ones added later), or <strong>Manager</strong> for assigned properties only (you can invite first and assign later).
                 <strong> Privacy Note:</strong> If an invited manager creates a new property of their own, you will not have access to it unless they invite you back. Access is strictly per-property.
             </p>
         </div>
