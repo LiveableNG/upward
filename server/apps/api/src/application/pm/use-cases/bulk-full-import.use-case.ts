@@ -119,12 +119,14 @@ export class BulkFullImportUseCase {
       const firstName = row.tenantFirstName?.trim();
       const lastName = row.tenantLastName?.trim();
 
-      // A tenant row is valid if it has email, commercialName, or at least a name
-      const hasTenantIdentifier = !!(email || commercialName || firstName || lastName || row.tenantPhone);
+      // A tenant row is valid if it has email, phone, start date, amount paid, commercialName, or name details
+      const hasTenantData = !!(email || row.tenantPhone || row.unitRentStartDate || row.unitRentAmountPaid);
+      const hasTenantName = !!(commercialName || firstName || lastName);
+      const hasTenantIdentifier = hasTenantData || hasTenantName;
 
       if (hasTenantIdentifier) {
         if (!commercialName && !firstName && !lastName) {
-          throw new BadRequestException(`Tenant with email/phone ${email || row.tenantPhone} must have a first/last name or commercial name provided.`);
+          throw new BadRequestException(`Tenant with email/phone/rent details must have a first name or commercial name provided.`);
         }
         let phoneVal = row.tenantPhone?.trim() || undefined;
         let otherPhoneVal = undefined;
@@ -178,9 +180,9 @@ export class BulkFullImportUseCase {
         }
       }
 
-      // Unit Name is optional — auto-generate from truncated address + row index if absent
+      // Unit Name is optional — fallback to property name if absent, adding index suffix to avoid skipping duplicates
       const resolvedUnitName = (row.unitName?.trim()) ||
-        `Unit at ${row.propertyAddress.trim().substring(0, 25)}${rows.indexOf(row) > 0 ? ` (${rows.indexOf(row) + 1})` : ''}`;
+        `${resolvedPropertyName}${rows.indexOf(row) > 0 ? ` (${rows.indexOf(row) + 1})` : ''}`;
 
       const existingUnits = await this.unitRepository.findByPropertyId(property.id);
       const duplicateUnit = existingUnits.find(u => u.unitName.trim().toLowerCase() === resolvedUnitName.trim().toLowerCase());
@@ -197,7 +199,7 @@ export class BulkFullImportUseCase {
         const diffDays = Math.ceil(Math.abs(due.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
         inferredRentType = diffDays > 300 ? 'Annually' : 'Monthly';
       } else if (!inferredRentType) {
-        inferredRentType = 'Monthly';
+        inferredRentType = 'Annually';
       }
 
       const newUnit = await this.unitRepository.create({
@@ -205,8 +207,8 @@ export class BulkFullImportUseCase {
         unitName: resolvedUnitName,
         rentAmount: row.unitRentAmount || 0,
         managementFee: row.unitManagementFee ?? 0,
-        rentStartDate: row.unitRentStartDate ? new Date(row.unitRentStartDate) : null,
-        rentDueDate: row.unitRentDueDate ? new Date(row.unitRentDueDate) : null,
+        rentStartDate: tenantId && row.unitRentStartDate ? new Date(row.unitRentStartDate) : null,
+        rentDueDate: tenantId && row.unitRentDueDate ? new Date(row.unitRentDueDate) : null,
         rentType: inferredRentType,
         currency: row.unitCurrency || 'NGN',
         notes: row.unitNotes || null,
@@ -220,8 +222,8 @@ export class BulkFullImportUseCase {
       });
 
 
-      // 4. Create Payment Record if amount paid > 0
-      if (row.unitRentAmountPaid && row.unitRentAmountPaid > 0) {
+      // 4. Create Payment Record if amount paid > 0 and tenant exists
+      if (tenantId && row.unitRentAmountPaid && row.unitRentAmountPaid > 0) {
         let periodEnd: Date | null = null;
         if (newUnit.rentStartDate) {
           periodEnd = new Date(newUnit.rentStartDate);

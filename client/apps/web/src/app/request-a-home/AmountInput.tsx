@@ -26,7 +26,7 @@ export function AmountInput({
   id,
   value,
   onChange,
-  placeholder = '2,000,000',
+  placeholder = 'Enter amount',
   'aria-invalid': ariaInvalid,
 }: AmountInputProps) {
   return (

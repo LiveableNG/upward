@@ -23,8 +23,8 @@ export const RelayConfirmationModal: React.FC<RelayConfirmationModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Assisted Bulk Onboarding"
-      subtitle="Document processing by Upward Customer Support"
+      title="Send to our team"
+      subtitle="We will set up your properties for you"
       icon={FileText}
       maxWidth={520}
       footer={
@@ -45,9 +45,9 @@ export const RelayConfirmationModal: React.FC<RelayConfirmationModalProps> = ({
             onClick={onConfirm}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Relaying Document...' : (
+            {isSubmitting ? 'Sending...' : (
               <>
-                Confirm & Send to Team <ArrowRight size={16} />
+                Yes, send to team <ArrowRight size={16} />
               </>
             )}
           </button>
@@ -57,7 +57,7 @@ export const RelayConfirmationModal: React.FC<RelayConfirmationModalProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ background: 'var(--bg)', padding: 14, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clay)', fontWeight: 700, fontSize: 13, border: '1px solid var(--border)' }}>
-            {file.name.split('.').pop()?.toUpperCase() || 'DOC'}
+            {file.name.split('.').pop()?.toUpperCase() || 'FILE'}
           </div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -71,17 +71,17 @@ export const RelayConfirmationModal: React.FC<RelayConfirmationModalProps> = ({
 
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--dark)', fontWeight: 700, fontSize: 14, marginBottom: 6 }}>
-            <Clock size={18} style={{ color: 'var(--clay)' }} /> Estimated Processing Time: ~48 Hours
+            <Clock size={18} style={{ color: 'var(--clay)' }} /> Takes about 48 hours (2 days)
           </div>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-            Because this file is not a standard Excel or CSV spreadsheet, our dedicated customer support team will manually transcribe and structure your properties, units, and lease data into the system.
+            Since this is not an Excel file, our customer support team will manually read it and type in your property and tenant details for you. This service is completely free!
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--dark)', background: '#fffbeb', border: '1px solid #fde68a', padding: 12, borderRadius: 10 }}>
           <AlertTriangle size={18} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
           <span>
-            Once processed, you will be able to preview and confirm all structured data before it goes live on your account.
+            Once our team is finished typing in your details, we will ask you to double-check everything before it goes live on your account.
           </span>
         </div>
       </div>

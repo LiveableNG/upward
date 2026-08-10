@@ -28,16 +28,14 @@ export interface CarouselItem {
 const defaultItems: CarouselItem[] = [
   {
     id: 'add-property',
-    title: 'Onboard Your Unit',
-    description: 'List your first property',
-    descriptionExtended: ' and start managing your tenants.',
+    title: 'Onboard Your Properties',
+    description: 'Let\'s get your properties set up.',
+    descriptionExtended: '',
     icon: Building2,
-    link: '/properties?action=add-property',
+    link: '/import',
     color: 'warning',
     actionLabel: 'Add Property',
-    priority: 'HIGH PRIORITY',
-    secondaryActionLabel: 'Bulk Import',
-    secondaryActionLink: '/settings?tab=import'
+    priority: 'HIGH PRIORITY'
   },
   {
     id: 'payment-info',
@@ -75,11 +73,48 @@ export function useActivityTasks() {
       return res || []
     }
   })
+
+  const { data: importJobs = [], isLoading: isLoadingJobs } = useQuery<any[]>({
+    queryKey: ['pmImportJobs'],
+    queryFn: () => api.get('/pm/bulk-imports'),
+  })
   
-  const isLoading = loadingAuth || isLoadingProperties || isLoadingCred || isLoadingJoin
+  const isLoading = loadingAuth || isLoadingProperties || isLoadingCred || isLoadingJoin || isLoadingJobs
   
   let dynamicItems = [...defaultItems]
   
+  const activeJob = importJobs.find(j => j.status !== 'COMPLETED' && j.status !== 'CANCELLED')
+  if (activeJob) {
+    const isSelfDraft = activeJob.fileUrl === 'self_import_draft' || activeJob.fileUrl === 'self_onboarding_draft'
+    const isReady = activeJob.status === 'STAGED_FOR_REVIEW'
+    
+    const addPropertyIndex = dynamicItems.findIndex(item => item.id === 'add-property')
+    if (addPropertyIndex !== -1) {
+      if (isSelfDraft) {
+        dynamicItems[addPropertyIndex] = {
+          ...dynamicItems[addPropertyIndex],
+          title: 'Resume Property Import',
+          description: 'You have a saved draft waiting to be imported.',
+          actionLabel: 'Resume Draft',
+        }
+      } else if (isReady) {
+        dynamicItems[addPropertyIndex] = {
+          ...dynamicItems[addPropertyIndex],
+          title: 'Review Prepared Properties',
+          description: 'Your prepared import is ready for review.',
+          actionLabel: 'Review Data',
+        }
+      } else {
+        dynamicItems[addPropertyIndex] = {
+          ...dynamicItems[addPropertyIndex],
+          title: 'Import Processing',
+          description: 'Our team is preparing your properties file.',
+          actionLabel: 'Check Status',
+        }
+      }
+    }
+  }
+
   if (joinRequests.length > 0) {
     dynamicItems.unshift({
       id: 'join-requests',

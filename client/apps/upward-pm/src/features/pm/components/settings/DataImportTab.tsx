@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, HelpCircle, FileText, AlertTriangle, ArrowRight, Eye, Building, Home, User, Lightbulb } from 'lucide-react'
+import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, FileText, AlertTriangle, ArrowRight, ArrowLeft, Eye, Building, Home, User, Table, Files, Clock, Pencil, Keyboard, Lock, Info } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import { useProperties, useBulkFullImport } from '@/features/pm/hooks/useProperties'
@@ -12,12 +12,22 @@ import { useSocket } from '@/hooks/useSocket'
 
 import { FULL_COLUMNS } from './data-import/types'
 import { useDataImport } from './data-import/useDataImport'
-import { parseDateString } from './data-import/utils'
+import { parseDateString, serializeWorkbook, deserializeWorkbook } from './data-import/utils'
 import { ImportOverlay } from './data-import/ImportOverlay'
 import { RelayConfirmationModal } from './data-import/RelayConfirmationModal'
 import { ActiveImportJobsList } from './data-import/ActiveImportJobsList'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { useQueryClient } from '@tanstack/react-query'
+
+const COMPULSORY_KEYS = [
+  'propertyAddress',
+  'tenantFirstName',
+  'tenantPhone',
+  'unitRentAmount',
+  'unitRentAmountPaid',
+  'unitRentStartDate',
+  'unitRentType',
+] as const
 
 export const DataImportTab: React.FC = () => {
   const queryClient = useQueryClient()
@@ -29,61 +39,76 @@ export const DataImportTab: React.FC = () => {
   const bulkFullImportMutation = useBulkFullImport()
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const docInputRef = useRef<HTMLInputElement>(null)
   const columns = useMemo(() => FULL_COLUMNS, [])
   const importState = useDataImport(columns, mode, properties, '')
 
   // UX Redesign state
-  const [isHelpDrawerOpen, setIsHelpDrawerOpen] = useState(false)
   const [isExampleModalOpen, setIsExampleModalOpen] = useState(false)
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    property: true,
-    unit: true,
-    tenant: false,
-    landlord: false
-  })
+  const [isDragging, setIsDragging] = useState(false)
+  const [pendingExcelUpload, setPendingExcelUpload] = useState<{ file: File; event: React.ChangeEvent<HTMLInputElement> } | null>(null)
 
-  // Dynamic schema summary grouping for Help Drawer
-  const schemaSummary = useMemo(() => {
-    const categories: Record<string, { label: string; icon: React.ReactNode; required: typeof FULL_COLUMNS; optional: typeof FULL_COLUMNS }> = {
-      property: { label: 'Property Information', icon: <Building size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
-      unit: { label: 'Units Details', icon: <Home size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
-      tenant: { label: 'Tenant Information', icon: <User size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] },
-      landlord: { label: 'Landlord Details', icon: <User size={16} style={{ color: 'var(--clay)' }} />, required: [], optional: [] }
-    }
+  const compulsory = useMemo(() => {
+    return COMPULSORY_KEYS
+      .map(key => columns.find(c => c.key === key))
+      .filter((c): c is NonNullable<typeof c> => !!c)
+  }, [columns])
 
-    FULL_COLUMNS.forEach(col => {
-      const cat = col.category
-      if (categories[cat]) {
-        if (col.required) {
-          categories[cat].required.push(col)
-        } else {
-          categories[cat].optional.push(col)
-        }
-      }
-    })
+  const optional = useMemo(() => {
+    return columns.filter(c => !COMPULSORY_KEYS.includes(c.key as any))
+  }, [columns])
 
-    return categories
-  }, [])
+
 
   const handleDownloadTemplate = () => {
-    const exportColumns = columns.filter(c => 
-      c.key !== 'unitRentDueDate' && 
-      c.key !== 'rentDueDate'
-    );
-    const headers = exportColumns.map(c => c.label)
-    
-    const rows = [
-      ['Maple Residences', '18 Freedom Way, Lekki Phase 1', 'Residential', 'Nigeria', 'Lagos', 'Lekki Phase 1', 'Michael', 'Adebayo', 'michael.adebayo@landlord.com', '+2348012345678', '', 'Daniel', 'Okafor', 'daniel.okafor@email.com', '+2348031112233', '', 'Flat B3', '4200000', '4200000', 'Annually', '', 'NGN', '2025-01-15', '420000', '3-bedroom apartment', 'Flat / Apartment'],
-      ['The Oak Apartments', '7 Prince Ade Odedina Street, Victoria Island', 'Residential', 'Nigeria', 'Lagos', 'Victoria Island', 'Grace', 'Johnson', 'grace.johnson@landlord.com', '+2348023456789', '', 'Sarah', 'Williams', 'sarah.williams@email.com', '+2348056677889', '', 'Unit 5C', '650000', '650000', 'Monthly', '', 'NGN', '2025-02-01', '65000', 'Luxury serviced apartment', 'Flat / Apartment'],
-      ['Atlantic Business Hub', '22 Adeola Odeku Street, Victoria Island', 'Commercial', 'Nigeria', 'Lagos', 'Victoria Island', 'David', 'Ogunleye', 'david.indigo@landlord.com', '+2348034567890', 'TechNova Solutions Ltd', '', '', 'admin@technova.com', '+2348078899001', '', 'Office 401', '24000000', '24000000', 'Lease', '5', 'NGN', '2025-03-01', '2400000', '5-year commercial office lease', 'Office Space']
+    // Keyed by column key, not by position — a positional array silently drifts
+    // whenever FULL_COLUMNS changes, which is how Additional Phone lost its value.
+    const sampleRows: Record<string, string>[] = [
+      {
+        propertyName: 'Maple Residences', propertyAddress: '18 Freedom Way, Lekki Phase 1',
+        propertyType: 'Residential', propertyCountry: 'Nigeria', propertyState: 'Lagos', propertyArea: 'Lekki Phase 1',
+        landlordFirstName: 'Michael', landlordLastName: 'Adebayo',
+        landlordEmail: 'michael.adebayo@landlord.com', landlordPhone: '+2348012345678',
+        tenantFirstName: 'Daniel', tenantLastName: 'Okafor',
+        tenantEmail: 'daniel.okafor@email.com', tenantPhone: '+2348031112233',
+        unitName: 'Flat B3', unitRentAmount: '4200000', unitRentAmountPaid: '4200000',
+        unitRentType: 'Annually', unitCurrency: 'NGN',
+        unitRentStartDate: '2025-01-15', unitRentDueDate: '2026-01-14',
+        unitManagementFee: '420000', unitNotes: '3-bedroom apartment', unitType: 'Flat / Apartment',
+      },
+      {
+        propertyName: 'The Oak Apartments', propertyAddress: '7 Prince Ade Odedina Street, Victoria Island',
+        propertyType: 'Residential', propertyCountry: 'Nigeria', propertyState: 'Lagos', propertyArea: 'Victoria Island',
+        landlordFirstName: 'Grace', landlordLastName: 'Johnson',
+        landlordEmail: 'grace.johnson@landlord.com', landlordPhone: '+2348023456789',
+        tenantFirstName: 'Sarah', tenantLastName: 'Williams',
+        tenantEmail: 'sarah.williams@email.com', tenantPhone: '+2348056677889',
+        unitName: 'Unit 5C', unitRentAmount: '650000', unitRentAmountPaid: '650000',
+        unitRentType: 'Monthly', unitCurrency: 'NGN',
+        unitRentStartDate: '2025-02-01', unitRentDueDate: '2025-03-01',
+        unitManagementFee: '65000', unitNotes: 'Luxury serviced apartment', unitType: 'Flat / Apartment',
+      },
+      {
+        propertyName: 'Atlantic Business Hub', propertyAddress: '22 Adeola Odeku Street, Victoria Island',
+        propertyType: 'Commercial', propertyCountry: 'Nigeria', propertyState: 'Lagos', propertyArea: 'Victoria Island',
+        landlordFirstName: 'David', landlordLastName: 'Ogunleye',
+        landlordEmail: 'david.indigo@landlord.com', landlordPhone: '+2348034567890',
+        tenantCommercialName: 'TechNova Solutions Ltd',
+        tenantEmail: 'admin@technova.com', tenantPhone: '+2348078899001',
+        unitName: 'Office 401', unitRentAmount: '24000000', unitRentAmountPaid: '24000000',
+        unitRentType: 'Lease', leaseYears: '5', unitCurrency: 'NGN',
+        unitRentStartDate: '2025-03-01', unitRentDueDate: '2030-02-28',
+        unitManagementFee: '2400000', unitNotes: '5-year commercial office lease', unitType: 'Office Space',
+      },
     ]
+
+    const headers = columns.map(c => c.label)
+    const rows = sampleRows.map(row => columns.map(c => row[c.key] ?? ''))
 
     const csvContent = [headers, ...rows].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     downloadBlob(blob, `upward_full_import_template.csv`).then(() => {
       success('Template downloaded successfully!')
-    }).catch((err: any) => console.error(err))
+    }).catch((err: unknown) => console.error(err))
   }
 
   const parseBackendError = (message: string): string => {
@@ -197,12 +222,11 @@ export const DataImportTab: React.FC = () => {
       ext === 'xltx' ||
       ext === 'xltm'
     ) {
-      importState.handleFileUpload(e, fileInputRef)
+      setPendingExcelUpload({ file, event: e })
     } else {
       setPendingRelayFile(file)
       setShowRelayModal(true)
       if (fileInputRef.current) fileInputRef.current.value = ''
-      if (docInputRef.current) docInputRef.current.value = ''
     }
   }
 
@@ -248,15 +272,37 @@ export const DataImportTab: React.FC = () => {
   }
 
   const handleSaveDraft = async () => {
-    if (!reviewJob) return
     setIsSavingDraft(true)
     try {
-      await api.patch(`/pm/bulk-imports/${reviewJob.uuid}/staged-data`, {
-        stagedRowsJson: JSON.stringify(importState.previewRows)
+      let jobUuid = reviewJob?.uuid
+      const serializedWb = serializeWorkbook(importState.workbook)
+      const draftPayload = {
+        __isDraftWithMappings__: true,
+        stagedRows: importState.previewRows,
+        mappings: importState.mappings,
+        userColumns: importState.userColumns,
+        activeSheet: importState.activeSheet,
+        splitConfigs: importState.splitConfigs,
+        serializedWb,
+      }
+      if (!jobUuid) {
+        const newJob = await api.post('/pm/bulk-imports/relay', {
+          targetPropertyUuid: '',
+          mode,
+          originalFileName: 'Draft Import',
+          fileUrl: 'self_import_draft',
+          fileType: 'xlsx',
+        })
+        jobUuid = newJob.uuid
+      }
+      await api.patch(`/pm/bulk-imports/${jobUuid}/staged-data`, {
+        stagedRowsJson: JSON.stringify(draftPayload)
       })
       queryClient.invalidateQueries({ queryKey: ['pmImportJobs'] })
       setHasDirtyEdits(false)
-      success('Draft saved! The support agent can now see your changes.')
+      success('Draft saved! You can resume it anytime from the uploads list below.')
+      importState.closeOverlay()
+      setReviewJob(null)
     } catch (e: any) {
       console.error(e)
       error(e?.message || 'Failed to save draft.')
@@ -268,7 +314,21 @@ export const DataImportTab: React.FC = () => {
   const handleOpenReviewModal = (job: any) => {
     setReviewJob(job)
     try {
-      const rows = typeof job.stagedRowsJson === 'string' ? JSON.parse(job.stagedRowsJson) : job.stagedRowsJson
+      const rawData = typeof job.stagedRowsJson === 'string' ? JSON.parse(job.stagedRowsJson) : job.stagedRowsJson
+      let rows: any[] = []
+      if (rawData && rawData.__isDraftWithMappings__) {
+        rows = rawData.stagedRows || []
+        if (rawData.mappings) importState.setMappings(rawData.mappings)
+        if (rawData.userColumns) importState.setUserColumns(rawData.userColumns)
+        if (rawData.activeSheet) importState.setActiveSheet(rawData.activeSheet)
+        if (rawData.splitConfigs) importState.setSplitConfigs(rawData.splitConfigs)
+        if (rawData.serializedWb) {
+          const wb = deserializeWorkbook(rawData.serializedWb)
+          importState.setWorkbook(wb)
+        }
+      } else {
+        rows = Array.isArray(rawData) ? rawData : []
+      }
       
       const cleanRows = rows.map((r: any) => {
         if (r.tenantPhone && typeof r.tenantPhone === 'string' && r.tenantPhone.startsWith('+234234')) {
@@ -354,29 +414,28 @@ export const DataImportTab: React.FC = () => {
     })
   }
 
-  const toggleCategory = (key: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
+  const passFileToImporter = (file: File) => {
+    const transfer = new DataTransfer()
+    transfer.items.add(file)
+    if (fileInputRef.current) fileInputRef.current.files = transfer.files
+    handleFileSelect({ target: { files: transfer.files } } as unknown as React.ChangeEvent<HTMLInputElement>)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) passFileToImporter(file)
   }
 
   return (
-    <div className="import-page animate-fade-in" style={{ padding: '24px 0', maxWidth: 740, margin: '0 auto' }}>
-      
-      {/* Header Block */}
-      <div className="import-page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
-        <div>
-          <h2 style={{ fontSize: 24, fontWeight: 800, color: 'var(--dark)', marginBottom: 6 }}>Bulk Import</h2>
-          <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: 0 }}>Import your existing spreadsheet in just a few minutes.</p>
-        </div>
-        <button 
-          onClick={() => setIsHelpDrawerOpen(true)}
-          className="btn btn--secondary btn--sm"
-          style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, borderRadius: 10, fontSize: 13, fontWeight: 600 }}
-        >
-          <HelpCircle size={16} /> Need help importing?
-        </button>
+    <section className="settings__section animate-fade-in">
+
+      <div className="settings__section-header import-page__header">
+        <h2 className="settings__section-title">Import your properties</h2>
+        <p className="settings__section-subtitle" style={{ maxWidth: 520, marginBottom: 12 }}>
+          Upload your properties and tenants. If you use Excel, we will guide you through matching columns. If you have a PDF, photo, or document, our team will type it in for you.
+        </p>
       </div>
 
       <ActiveImportJobsList
@@ -385,243 +444,121 @@ export const DataImportTab: React.FC = () => {
         onDeleteJob={handleDeleteJob}
       />
 
-      {/* Visual Timeline Stepper */}
-      <div className="workflow-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 24px', marginBottom: 32 }}>
-        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>1</div>
-          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Upload File</div>
-        </div>
-        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
-        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>2</div>
-          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Review Columns</div>
-        </div>
-        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
-        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>3</div>
-          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Fix Issues</div>
-        </div>
-        <div className="workflow-step__line" style={{ flex: 1, height: 1, background: 'var(--border)', margin: '0 16px' }} />
-        <div className="workflow-step" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div className="workflow-step__num" style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'var(--dark)' }}>4</div>
-          <div className="workflow-step__desc" style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Import</div>
-        </div>
-      </div>
-
-      {/* Two-panel import choice — both visible at a glance */}
       <div
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          gap: 0,
-          background: 'white',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          overflow: 'hidden',
-          marginBottom: 24,
-          minHeight: 280,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: '20px 16px',
+          borderRadius: 12,
+          border: `2px dashed ${isDragging ? 'var(--clay)' : 'var(--border-strong)'}`,
+          background: isDragging ? 'var(--clay-faint)' : 'var(--bg)',
+          transition: 'background 0.15s, border-color 0.15s',
+          marginBottom: 16,
         }}
       >
-        {/* Left: Spreadsheet upload */}
-        <div
-          className="upload-hero-dropzone"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '40px 32px',
-            textAlign: 'center',
-            gap: 0,
-          }}
-        >
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
-            <FileSpreadsheet size={28} style={{ color: 'var(--clay)' }} />
-          </div>
-
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 6, marginTop: 0 }}>
-            Upload a Spreadsheet
-          </h3>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.5 }}>
-            Drag and drop your file, or click below.
-            Supports Excel (.xlsx, .xls) and CSV.
-          </p>
-
-          <label className="btn btn--primary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Upload size={16} /> Select Spreadsheet
-            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef}/>
-          </label>
-
-          <div style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-muted)', alignItems: 'center', marginTop: 14 }}>
-            <button
-              onClick={handleDownloadTemplate}
-              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
-            >
-              Download Template
-            </button>
-            <span style={{ color: 'var(--border)' }}>|</span>
-            <button
-              onClick={() => setIsExampleModalOpen(true)}
-              style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
-            >
-              View Example
-            </button>
-          </div>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, border: '1px solid var(--border)' }}>
+          <FileSpreadsheet size={20} style={{ color: 'var(--clay)' }} />
         </div>
-
-        {/* Divider */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-          <div style={{ flex: 1, width: 1, background: 'var(--border)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', padding: '10px 0', letterSpacing: '0.05em' }}>or</span>
-          <div style={{ flex: 1, width: 1, background: 'var(--border)' }} />
-        </div>
-
-        {/* Right: PDF / photo assisted upload */}
-        <div
-          className="assisted-upload-card animate-fade-in"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '40px 32px',
-            textAlign: 'center',
-            background: 'var(--bg)',
-            gap: 0,
-          }}
-        >
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, border: '1px solid var(--border)' }}>
-            <FileText size={28} style={{ color: 'var(--clay)' }} />
-          </div>
-
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', marginBottom: 6, marginTop: 0 }}>
-            Send a PDF or Photo
-          </h3>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280, margin: '0 auto 20px', lineHeight: 1.5 }}>
-            Have physical records or scanned documents?
-            Our support team will transcribe them manually.
-          </p>
-
-          <label className="btn btn--secondary" style={{ padding: '11px 28px', height: 42, borderRadius: 12, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Upload size={16} /> Send to Support
-            <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={docInputRef}/>
-          </label>
-
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12, marginBottom: 0, lineHeight: 1.5 }}>
-            Typical turnaround ~48 hours.
-          </p>
-        </div>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', margin: '0 0 2px' }}>
+          {isDragging ? 'Drop it here' : 'Choose your file'}
+        </h3>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 12px' }}>Excel, PDF, image, or document</p>
+        <label className="btn btn--primary" style={{ padding: '8px 24px', height: 38, borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Upload size={15} /> Choose file
+          <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.pdf,.png,.jpg,.jpeg,.doc,.docx" style={{ display: 'none' }} onChange={handleFileSelect} ref={fileInputRef} />
+        </label>
+        <p className="desktop-only" style={{ fontSize: 11, color: 'var(--text-muted)', margin: '6px 0 0' }}>
+          or drag and drop it here
+        </p>
       </div>
 
-      {/* Reassurance Card */}
-      <div 
-        className="reassurance-card" 
-        style={{ 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
-          borderRadius: 16, 
-          padding: 18, 
-          display: 'flex', 
-          gap: 12, 
-          alignItems: 'flex-start' 
-        }}
-      >
-        <Lightbulb size={20} style={{ color: '#16a34a', flexShrink: 0, marginTop: 2 }} />
-        <div style={{ textAlign: 'left' }}>
-          <h4 style={{ fontSize: 13, fontWeight: 700, color: '#14532d', margin: '0 0 4px 0' }}>Only 4 Fields are Required to Get Started</h4>
-          <p style={{ fontSize: 12, color: '#15803d', margin: 0, lineHeight: 1.5 }}>
-            You only need columns for <strong>Property Name, Address, Unit Name,</strong> and <strong>Rent Amount</strong>. 
-            All other information—including tenant details, landlord contacts, lease dates, and notes—can be added or edited later.
-          </p>
-        </div>
-      </div>
-
-      {/* Floating / On-Demand Help Drawer */}
-      <Modal
-        isOpen={isHelpDrawerOpen}
-        onClose={() => setIsHelpDrawerOpen(false)}
-        title="Import Help Guide"
-        maxWidth={520}
-        footer={
-          <button className="btn btn--secondary" style={{ width: '100%', borderRadius: 10 }} onClick={() => setIsHelpDrawerOpen(false)}>
-            Close Guide
-          </button>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <section style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
           <div>
-            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>What information should my spreadsheet contain?</h4>
-            <div className="schema-categories" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {Object.entries(schemaSummary).map(([key, cat]) => {
-                const isExpanded = expandedCategories[key]
-                const reqCount = cat.required.length
-                const optCount = cat.optional.length
-                return (
-                  <div key={key} style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                    <button 
-                      onClick={() => toggleCategory(key)}
-                      style={{ width: '100%', padding: '12px', background: 'var(--bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontSize: 13, color: 'var(--dark)' }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {cat.icon}
-                        <span style={{ fontWeight: 600 }}>{cat.label}</span>
-                      </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-                        <span>{reqCount} req, {optCount} opt</span>
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </span>
-                    </button>
-
-                    {isExpanded && (
-                      <div style={{ padding: 12, background: 'white', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)' }}>
-                        {cat.required.map(col => (
-                          <div key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dark)' }}>
-                            <Check size={14} style={{ color: 'var(--forest)' }} />
-                            <span>{col.label} <span style={{ color: 'var(--error)' }}>*</span></span>
-                          </div>
-                        ))}
-                        {cat.optional.map(col => (
-                          <div key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-                            <span style={{ display: 'inline-block', width: 14, textAlign: 'center' }}>•</span>
-                            <span>{col.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>
+              How to name your Excel columns
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+              Make sure your file has these columns. Put everything on one sheet, with one row for each flat or tenant.
+            </p>
           </div>
+          <button
+            onClick={handleDownloadTemplate}
+            className="btn btn--secondary btn--sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, borderRadius: 10, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}
+          >
+            <Download size={14} /> Download template
+          </button>
+        </div>
 
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-            <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Import Guidelines</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Building size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
-                <div>
-                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Properties</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Import names and locations. Multiple units can belong to the same property.</span>
+        {/* Row 1: Required Columns */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--forest)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
+            Required Columns (Must have these)
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
+            {compulsory.map(c => {
+              let example = 'Text info';
+              if (c.key === 'propertyAddress') example = '18 Freedom Way';
+              else if (c.key === 'tenantFirstName') example = 'Daniel Okafor';
+              else if (c.key === 'tenantPhone') example = '08012345678';
+              else if (c.key === 'unitRentAmount') example = '4,200,000';
+              else if (c.key === 'unitRentAmountPaid') example = '4,200,000';
+              else if (c.key === 'unitRentStartDate') example = '15/01/2025';
+              else if (c.key === 'unitRentType') example = 'Annually';
+
+              return (
+                <div key={c.key} style={{ flexShrink: 0, width: 130, padding: '10px 12px', background: 'var(--forest-faint)', border: '1px solid rgba(22, 101, 52, 0.15)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{example}</span>
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Home size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
-                <div>
-                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Units</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Import flats, commercial offices, or shops.</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <User size={18} style={{ color: 'var(--clay)', flexShrink: 0 }} />
-                <div>
-                  <strong style={{ fontSize: 13, color: 'var(--dark)', display: 'block' }}>Tenants & Landlords</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Optional fields. They will receive automated setup emails only when you choose to activate them later.</span>
-                </div>
-              </div>
-            </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--forest)', display: 'flex', alignItems: 'flex-start', gap: 6, background: 'var(--forest-faint)', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(22, 101, 52, 0.1)' }}>
+            <Info size={14} style={{ color: 'var(--forest)', marginTop: 2, flexShrink: 0 }} />
+            <span style={{ lineHeight: 1.4 }}>
+              <strong>Why is Tenant Phone Number required?</strong> We use it to send automated rent reminders and digital receipts directly to your tenants via WhatsApp or SMS.
+            </span>
           </div>
         </div>
-      </Modal>
+
+        {/* Row 2: Optional Columns */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' }} />
+            Optional Columns (Add if you want)
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
+            {optional.map(c => {
+              let example = 'Optional';
+              if (c.key === 'propertyName') example = 'Freedom Court';
+              else if (c.key === 'tenantLastName') example = 'Okafor';
+              else if (c.key === 'tenantEmail') example = 'daniel@email.com';
+              else if (c.key === 'unitManagementFee') example = '10%';
+              else if (c.key === 'unitNotes') example = 'Paid on time';
+              else if (c.key === 'unitType') example = '2 Bedroom Flat';
+              else if (c.key === 'propertyType') example = 'Residential';
+
+              return (
+                <div key={c.key} style={{ flexShrink: 0, width: 130, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{example}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+
 
       {/* Example Spreadsheet Modal */}
       <Modal
@@ -674,6 +611,101 @@ export const DataImportTab: React.FC = () => {
         </div>
       </Modal>
 
+      {pendingExcelUpload && (
+        <Modal
+          isOpen={true}
+          onClose={() => setPendingExcelUpload(null)}
+          title="How is your Excel sheet laid out?"
+          maxWidth={500}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '6px 0' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              Choose the layout that best matches your file. If it has a complex structure, our team will process it for you for free.
+            </p>
+            
+            <button
+              onClick={() => {
+                const { file, event } = pendingExcelUpload
+                setPendingExcelUpload(null)
+                importState.handleFileUpload(event, fileInputRef)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: 14,
+                borderRadius: 12,
+                border: '1px solid var(--border-strong)',
+                background: 'var(--surface)',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, background-color 0.15s',
+                width: '100%',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--clay)'
+                e.currentTarget.style.backgroundColor = 'var(--ivory-faint)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
+                e.currentTarget.style.backgroundColor = 'var(--surface)'
+              }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-secondary)' }}>
+                <FileSpreadsheet size={16} />
+              </div>
+              <div>
+                <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>Simple table layout</strong>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
+                  A clean grid of columns and rows. You will match the columns yourself in 5 minutes.
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                const { file } = pendingExcelUpload
+                setPendingExcelUpload(null)
+                setPendingRelayFile(file)
+                setShowRelayModal(true)
+                if (fileInputRef.current) fileInputRef.current.value = ''
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: 14,
+                borderRadius: 12,
+                border: '1px solid var(--border-strong)',
+                background: 'var(--surface)',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, background-color 0.15s',
+                width: '100%',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--clay)'
+                e.currentTarget.style.backgroundColor = 'var(--ivory-faint)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
+                e.currentTarget.style.backgroundColor = 'var(--surface)'
+              }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-secondary)' }}>
+                <FileText size={16} />
+              </div>
+              <div>
+                <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>Custom or complex layout</strong>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
+                  Nested tables, receipt styles, or multiple tables. Our team will transcribe it for you.
+                </span>
+              </div>
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {/* Relay Prompt Modal */}
       <RelayConfirmationModal
         isOpen={showRelayModal}
@@ -713,7 +745,7 @@ export const DataImportTab: React.FC = () => {
       <Modal
         isOpen={jobToDelete !== null}
         onClose={() => setJobToDelete(null)}
-        title="Delete Upload Request"
+        title={activeJobs.find(j => j.uuid === jobToDelete)?.fileUrl === 'self_import_draft' || activeJobs.find(j => j.uuid === jobToDelete)?.fileUrl === 'self_onboarding_draft' ? "Delete Saved Draft?" : "Delete Upload Request"}
         icon={AlertTriangle}
         maxWidth={400}
         footer={
@@ -722,15 +754,18 @@ export const DataImportTab: React.FC = () => {
               Cancel
             </button>
             <button className="btn btn--primary" onClick={confirmDeleteJob} disabled={isDeleting} style={{ background: '#dc2626', borderColor: '#dc2626' }}>
-              {isDeleting ? 'Deleting...' : 'Delete Request'}
+              {isDeleting ? 'Deleting...' : (activeJobs.find(j => j.uuid === jobToDelete)?.fileUrl === 'self_import_draft' || activeJobs.find(j => j.uuid === jobToDelete)?.fileUrl === 'self_onboarding_draft' ? 'Delete Draft' : 'Delete Request')}
             </button>
           </>
         }
       >
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
-          Are you sure you want to permanently delete this assisted upload request? This action cannot be undone.
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5, marginBottom: 16 }}>
+          {activeJobs.find(j => j.uuid === jobToDelete)?.fileUrl === 'self_import_draft' || activeJobs.find(j => j.uuid === jobToDelete)?.fileUrl === 'self_onboarding_draft'
+            ? "Are you sure you want to permanently delete this saved import draft? This action cannot be undone."
+            : "Are you sure you want to permanently delete this assisted upload request? This action cannot be undone."
+          }
         </p>
       </Modal>
-    </div>
+    </section>
   )
 }

@@ -1,0 +1,458 @@
+'use client'
+
+import React, { useMemo, useState } from 'react'
+import * as XLSX from 'xlsx'
+import { ChevronDown, CircleCheck, TriangleAlert } from 'lucide-react'
+import { ColumnDef, ColumnMapping } from './types'
+
+export type CleanAssignment = { field: string; index: number; anchor: 'start' | 'end' }
+
+export type CleanRule =
+  | { kind: 'none' }
+  | { kind: 'split'; delimiter: string; assignments: CleanAssignment[] }
+  | { kind: 'extract'; what: 'email' | 'phone' | 'number'; field: string | null }
+  | { kind: 'trim' }
+  | { kind: 'manual' }
+
+interface CleanPhaseProps {
+  columns: ColumnDef[]
+  mappings: { [sheet: string]: ColumnMapping[] }
+  activeSheet: string
+  workbook: XLSX.WorkBook | null
+  cleanRules: Record<string, CleanRule>
+  setCleanRule: (userColumn: string, rule: CleanRule) => void
+}
+
+const DELIMITERS: { label: string; value: string }[] = [
+  { label: 'a comma', value: ',' },
+  { label: 'a space', value: ' ' },
+  { label: 'a semicolon', value: ';' },
+  { label: 'a slash', value: '/' },
+  { label: 'a dash', value: '-' },
+]
+
+const EXTRACTORS: Record<string, RegExp> = {
+  email: /[\w.+-]+@[\w-]+\.[\w.]+/,
+  phone: /(?:\+?\d[\d\s-]{7,})/,
+  number: /-?\d+(?:\.\d+)?/,
+}
+
+// Zero-width spaces, tabs and direction marks are never typed on purpose
+const INVISIBLE = /[\t​-‏‪-‮⁦-⁩﻿]/g
+
+export const stripInvisible = (value: string) => value.replace(INVISIBLE, '').trim()
+
+export const CleanPhase: React.FC<CleanPhaseProps> = ({
+  columns, mappings, activeSheet, workbook, cleanRules, setCleanRule,
+}) => {
+  const [openColumn, setOpenColumn] = useState<string | null>(null)
+
+  const sheetMappings = mappings[activeSheet] || []
+  const mapped = sheetMappings.filter(m => m.systemField)
+
+  const valuesByColumn = useMemo(() => {
+    if (!workbook || !activeSheet) return {} as Record<string, string[]>
+    const worksheet = workbook.Sheets[activeSheet]
+    if (!worksheet) return {}
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as unknown[][]
+    if (!rows.length) return {}
+    const headers = rows[0].map(h => String(h ?? '').trim())
+    const out: Record<string, string[]> = {}
+    headers.forEach((h, i) => {
+      if (!h) return
+      out[h] = rows.slice(1).map(r => stripInvisible(String(r?.[i] ?? ''))).filter(v => v !== '')
+    })
+    return out
+  }, [workbook, activeSheet])
+
+  const fieldLabel = (key: string) => columns.find(c => c.key === key)?.label || key
+
+  const partsOf = (value: string, delimiter: string) =>
+    value.split(delimiter).map(p => p.trim()).filter(Boolean)
+
+  const readPart = (parts: string[], a: CleanAssignment) =>
+    a.anchor === 'start' ? (parts[a.index] ?? '') : (parts[parts.length - 1 - a.index] ?? '')
+
+  const ruleFor = (col: string): CleanRule => cleanRules[col] || { kind: 'none' }
+
+  const setKind = (col: string, kind: CleanRule['kind'], target: string) => {
+    if (kind === 'split') setCleanRule(col, { kind: 'split', delimiter: ',', assignments: [] })
+    else if (kind === 'extract') setCleanRule(col, { kind: 'extract', what: 'email', field: target })
+    else setCleanRule(col, { kind } as CleanRule)
+  }
+
+  const renderColumn = (mapping: ColumnMapping) => {
+    const col = mapping.userColumn
+    const target = mapping.systemField as string
+    const rule = ruleFor(col)
+    const isOpen = openColumn === col
+    const values = valuesByColumn[col] || []
+    const sample = values[0] || ''
+
+    const kindLabel =
+      rule.kind === 'split' ? 'Split it'
+      : rule.kind === 'extract' ? 'Pull something out'
+      : rule.kind === 'trim' ? 'Remove characters'
+      : rule.kind === 'manual' ? "I'll fix it by hand"
+      : 'Leave as is'
+
+    return (
+      <div key={col} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <button
+          onClick={() => setOpenColumn(isOpen ? null : col)}
+          style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{col}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>→ {fieldLabel(target)}</span>
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {sample || 'no values'}
+            </span>
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: rule.kind === 'none' ? 'var(--text-muted)' : 'var(--forest)', whiteSpace: 'nowrap' }}>
+            {kindLabel}
+          </span>
+          <ChevronDown size={16} style={{ color: 'var(--text-muted)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+        </button>
+
+        {isOpen && (
+          <div style={{ padding: '0 16px 18px', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, margin: '16px 0' }}>
+              {([
+                ['split', 'Split it'],
+                ['extract', 'Pull something out'],
+                ['trim', 'Remove characters'],
+                ['none', 'Leave as is'],
+                ['manual', "I'll fix it by hand"],
+              ] as const).map(([kind, label]) => (
+                <button
+                  key={kind}
+                  onClick={() => setKind(col, kind, target)}
+                  style={{
+                    borderRadius: 8,
+                    padding: '7px 13px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: rule.kind === kind ? '1px solid var(--forest)' : '1px solid var(--border-strong)',
+                    background: rule.kind === kind ? 'var(--forest)' : 'var(--surface)',
+                    color: rule.kind === kind ? 'white' : 'var(--text-secondary)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {rule.kind === 'split' && <SplitEditor
+              col={col} rule={rule} values={values} columns={columns}
+              partsOf={partsOf} readPart={readPart} fieldLabel={fieldLabel}
+              setCleanRule={setCleanRule}
+            />}
+
+            {rule.kind === 'extract' && <ExtractEditor
+              col={col} rule={rule} values={values} columns={columns}
+              setCleanRule={setCleanRule}
+            />}
+
+            {rule.kind === 'trim' && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                Hidden characters and stray spaces are removed from every column already. Use Split or Pull something
+                out if this column holds more than one thing.
+              </p>
+            )}
+
+            {rule.kind === 'manual' && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                This column goes through untouched. You can edit its values row by row on the next screen.
+              </p>
+            )}
+
+            {rule.kind === 'none' && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+                The whole value goes into {fieldLabel(target)}.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 680, margin: '0 auto', width: '100%', padding: '24px 20px' }}>
+      <div>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', margin: '0 0 4px' }}>Clean up your columns</h3>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+          Some columns hold more than one piece of information. Tell us how to break them up and we will do it for
+          every row. Leave the rest alone.
+        </p>
+      </div>
+
+      {mapped.length === 0 && (
+        <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No columns mapped yet.</p>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {mapped.map(renderColumn)}
+      </div>
+    </div>
+  )
+}
+
+const SplitEditor: React.FC<{
+  col: string
+  rule: Extract<CleanRule, { kind: 'split' }>
+  values: string[]
+  columns: ColumnDef[]
+  partsOf: (v: string, d: string) => string[]
+  readPart: (parts: string[], a: CleanAssignment) => string
+  fieldLabel: (k: string) => string
+  setCleanRule: (col: string, rule: CleanRule) => void
+}> = ({ col, rule, values, columns, partsOf, readPart, fieldLabel, setCleanRule }) => {
+  const [picking, setPicking] = useState<number | null>(null)
+
+  const firstParts = partsOf(values[0] || '', rule.delimiter)
+  const counts = values.map(v => partsOf(v, rule.delimiter).length)
+  const minParts = counts.length ? Math.min(...counts) : 0
+  const maxParts = counts.length ? Math.max(...counts) : 0
+  const ragged = minParts !== maxParts
+
+  const assignmentAt = (index: number) =>
+    rule.assignments.find(a => (a.anchor === 'start' ? a.index : firstParts.length - 1 - a.index) === index)
+
+  const assign = (index: number, field: string | null) => {
+    const others = rule.assignments.filter(a => {
+      const at = a.anchor === 'start' ? a.index : firstParts.length - 1 - a.index
+      return at !== index && a.field !== field
+    })
+    if (!field) {
+      setCleanRule(col, { ...rule, assignments: others })
+    } else {
+      // Parts past the midpoint are counted from the end so shorter rows still line up
+      const fromEnd = index >= firstParts.length / 2
+      const next: CleanAssignment = fromEnd
+        ? { field, index: firstParts.length - 1 - index, anchor: 'end' }
+        : { field, index, anchor: 'start' }
+      setCleanRule(col, { ...rule, assignments: [...others, next] })
+    }
+    setPicking(null)
+  }
+
+  const flipAnchor = (a: CleanAssignment) => {
+    const at = a.anchor === 'start' ? a.index : firstParts.length - 1 - a.index
+    const flipped: CleanAssignment = a.anchor === 'start'
+      ? { ...a, index: firstParts.length - 1 - at, anchor: 'end' }
+      : { ...a, index: at, anchor: 'start' }
+    setCleanRule(col, { ...rule, assignments: rule.assignments.map(x => (x.field === a.field ? flipped : x)) })
+  }
+
+  const fillFor = (a: CleanAssignment) =>
+    values.filter(v => readPart(partsOf(v, rule.delimiter), a) !== '').length
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 9, fontSize: 13, marginBottom: 16 }}>
+        <span style={{ color: 'var(--text-secondary)' }}>Break each value on</span>
+        <select
+          value={rule.delimiter}
+          onChange={e => setCleanRule(col, { ...rule, delimiter: e.target.value, assignments: [] })}
+          style={{ borderRadius: 8, border: '1px solid var(--border-strong)', padding: '6px 10px', fontSize: 13, fontWeight: 600, background: 'var(--surface)', color: 'var(--dark)' }}
+        >
+          {DELIMITERS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+        </select>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          gives {ragged ? `${minParts} to ${maxParts}` : minParts} part{maxParts === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 9px' }}>
+        Your first row, broken up. Say what each part is.
+      </p>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 14 }}>
+        {firstParts.map((part, i) => {
+          const a = assignmentAt(i)
+          return (
+            <div key={i} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setPicking(picking === i ? null : i)}
+                style={{
+                  textAlign: 'left',
+                  borderRadius: 8,
+                  padding: '6px 11px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  border: a ? '1px solid var(--forest)' : '1px dashed var(--border-strong)',
+                  background: a ? 'var(--forest-faint)' : 'var(--bg)',
+                  color: a ? 'var(--forest-hover)' : 'var(--text-muted)',
+                }}
+              >
+                <span style={{ display: 'block', fontWeight: 600 }}>{part}</span>
+                <span style={{ display: 'block', fontSize: 10 }}>{a ? fieldLabel(a.field) : 'not used'}</span>
+              </button>
+
+              {a && (
+                <button
+                  onClick={() => flipAnchor(a)}
+                  title="Count this part from the other end"
+                  style={{ marginTop: 4, width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--clay)' }}
+                >
+                  from {a.anchor === 'start' ? 'left' : 'right'}
+                </button>
+              )}
+
+              {picking === i && (
+                <div style={{ position: 'absolute', zIndex: 20, top: '100%', left: 0, marginTop: 4, minWidth: 190, maxHeight: 220, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 10px 25px rgba(26,26,23,0.10)' }}>
+                  {columns.filter(c => !c.readOnly).map(c => (
+                    <button
+                      key={c.key}
+                      onClick={() => assign(i, c.key)}
+                      style={{ width: '100%', textAlign: 'left', padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontSize: 12, color: 'var(--dark)' }}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => assign(i, null)}
+                    style={{ width: '100%', textAlign: 'left', padding: '9px 12px', background: 'var(--bg)', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}
+                  >
+                    Do not use this part
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {ragged && (
+        <div style={{ background: '#faeeda', border: '1px solid #fac775', borderRadius: 10, padding: '11px 13px', marginBottom: 14, display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+          <TriangleAlert size={15} style={{ color: '#854f0b', flexShrink: 0, marginTop: 1 }} />
+          <p style={{ fontSize: 12, color: '#854f0b', margin: 0, lineHeight: 1.55 }}>
+            Rows do not all have the same number of parts ({minParts} to {maxParts}). Parts counted <strong>from the
+            right</strong> stay lined up when a row is shorter — use the small link under each part to switch it.
+          </p>
+        </div>
+      )}
+
+      {rule.assignments.length > 0 && (
+        <>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 8px' }}>What that gives you</p>
+          <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, whiteSpace: 'nowrap' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg)' }}>
+                  <th style={{ padding: '8px 11px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>Your value</th>
+                  {rule.assignments.map(a => (
+                    <th key={a.field} style={{ padding: '8px 11px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>{fieldLabel(a.field)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {values.slice(0, 3).map((v, i) => {
+                  const parts = partsOf(v, rule.delimiter)
+                  return (
+                    <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '8px 11px', color: 'var(--text-muted)', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</td>
+                      {rule.assignments.map(a => {
+                        const out = readPart(parts, a)
+                        return (
+                          <td key={a.field} style={{ padding: '8px 11px', color: out ? 'var(--dark)' : 'var(--text-muted)' }}>
+                            {out || '—'}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: 'var(--forest-faint)', border: '1px solid rgba(22,101,52,0.18)', borderRadius: 10, padding: '11px 13px' }}>
+            <CircleCheck size={15} style={{ color: 'var(--forest)', flexShrink: 0, marginTop: 1 }} />
+            <p style={{ fontSize: 12, color: 'var(--forest-hover)', margin: 0, lineHeight: 1.6 }}>
+              {rule.assignments.map(a => {
+                const n = fillFor(a)
+                return `${fieldLabel(a.field)} ${n} of ${values.length}`
+              }).join(' · ')}
+              . Rows with no value are left empty, never guessed.
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+const ExtractEditor: React.FC<{
+  col: string
+  rule: Extract<CleanRule, { kind: 'extract' }>
+  values: string[]
+  columns: ColumnDef[]
+  setCleanRule: (col: string, rule: CleanRule) => void
+}> = ({ col, rule, values, columns, setCleanRule }) => {
+  const pattern = EXTRACTORS[rule.what]
+  const hits = values.filter(v => pattern.test(v)).length
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 9, fontSize: 13, marginBottom: 14 }}>
+        <span style={{ color: 'var(--text-secondary)' }}>Pull out the first</span>
+        <select
+          value={rule.what}
+          onChange={e => setCleanRule(col, { ...rule, what: e.target.value as 'email' | 'phone' | 'number' })}
+          style={{ borderRadius: 8, border: '1px solid var(--border-strong)', padding: '6px 10px', fontSize: 13, fontWeight: 600, background: 'var(--surface)', color: 'var(--dark)' }}
+        >
+          <option value="email">email address</option>
+          <option value="phone">phone number</option>
+          <option value="number">number</option>
+        </select>
+        <span style={{ color: 'var(--text-secondary)' }}>into</span>
+        <select
+          value={rule.field || ''}
+          onChange={e => setCleanRule(col, { ...rule, field: e.target.value || null })}
+          style={{ borderRadius: 8, border: '1px solid var(--border-strong)', padding: '6px 10px', fontSize: 13, fontWeight: 600, background: 'var(--surface)', color: 'var(--dark)' }}
+        >
+          <option value="">choose a field</option>
+          {columns.filter(c => !c.readOnly).map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+        </select>
+      </div>
+
+      <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, whiteSpace: 'nowrap' }}>
+          <thead>
+            <tr style={{ background: 'var(--bg)' }}>
+              <th style={{ padding: '8px 11px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>Your value</th>
+              <th style={{ padding: '8px 11px', textAlign: 'left', fontWeight: 700, color: 'var(--text-muted)' }}>We would take</th>
+            </tr>
+          </thead>
+          <tbody>
+            {values.slice(0, 3).map((v, i) => {
+              const m = v.match(pattern)
+              return (
+                <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td style={{ padding: '8px 11px', color: 'var(--text-muted)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</td>
+                  <td style={{ padding: '8px 11px', color: m ? 'var(--dark)' : 'var(--text-muted)' }}>{m ? m[0] : '—'}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: hits === values.length ? 'var(--forest-faint)' : '#faeeda', border: `1px solid ${hits === values.length ? 'rgba(22,101,52,0.18)' : '#fac775'}`, borderRadius: 10, padding: '11px 13px' }}>
+        {hits === values.length
+          ? <CircleCheck size={15} style={{ color: 'var(--forest)', flexShrink: 0, marginTop: 1 }} />
+          : <TriangleAlert size={15} style={{ color: '#854f0b', flexShrink: 0, marginTop: 1 }} />}
+        <p style={{ fontSize: 12, color: hits === values.length ? 'var(--forest-hover)' : '#854f0b', margin: 0, lineHeight: 1.6 }}>
+          Found one in <strong>{hits} of {values.length} rows</strong>.
+          {hits < values.length && ' The rest are left empty for you to fill in on the next screen.'}
+        </p>
+      </div>
+    </div>
+  )
+}

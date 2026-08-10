@@ -423,7 +423,7 @@ export function RequestAHomeForm() {
               <AmountInput
                 id="rah-budget-min"
                 value={budgetMin}
-                placeholder="2,000,000"
+                placeholder="Enter minimum amount"
                 aria-invalid={Boolean(errors.budgetMin)}
                 onChange={(value) =>
                   setValue('budgetMin', value as FormData['budgetMin'], {
@@ -441,7 +441,7 @@ export function RequestAHomeForm() {
               <AmountInput
                 id="rah-budget-max"
                 value={budgetMax}
-                placeholder="3,500,000"
+                placeholder="Enter maximum amount"
                 aria-invalid={Boolean(errors.budgetMax)}
                 onChange={(value) =>
                   setValue('budgetMax', value as FormData['budgetMax'], {
