@@ -1,13 +1,16 @@
-'use client'
+import React, { Suspense } from 'react'
+import HomeRequestDetailRouteClient from './page.client'
 
-import { use } from 'react'
-import { TenantHomeRequestDetailPage } from '@/features/pm/components/home-requests/TenantHomeRequestDetailPage'
-
-export default function HomeRequestDetailRoute({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = use(params)
-  return <TenantHomeRequestDetailPage requestId={id} />
+export function generateStaticParams() {
+  return [{ id: 'placeholder' }]
 }
+
+export default function Page({ params }: any) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      {/* @ts-ignore */}
+      <HomeRequestDetailRouteClient params={params} />
+    </Suspense>
+  )
+}
+
