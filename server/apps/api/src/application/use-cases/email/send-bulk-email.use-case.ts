@@ -21,7 +21,7 @@ export class SendBulkEmailUseCase {
     userIds: string[]
     subject: string
     content: string
-    targetGroup?: 'TENANTS' | 'PMS' | 'WAITLIST'
+    targetGroup?: 'TENANTS' | 'PMS' | 'WAITLIST' | 'RAW'
     sessionId?: string
     requesterId?: string
   }) {
@@ -51,9 +51,9 @@ export class SendBulkEmailUseCase {
 
         try {
           const customizedContent = payload.content
-            .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
-            .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
-            .replace(/{{email}}/g, email)
+            .replace(/{{first\s*name}}|{{firstName}}|{{first_name}}/gi, firstName ? formatName(firstName) : 'there')
+            .replace(/{{last\s*name}}|{{lastName}}|{{last_name}}/gi, lastName ? formatName(lastName) : '')
+            .replace(/{{email}}/gi, email)
 
           const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
           await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, pm.uuid)
@@ -83,9 +83,9 @@ export class SendBulkEmailUseCase {
 
         try {
           const customizedContent = payload.content
-            .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
-            .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
-            .replace(/{{email}}/g, email)
+            .replace(/{{first\s*name}}|{{firstName}}|{{first_name}}/gi, firstName ? formatName(firstName) : 'there')
+            .replace(/{{last\s*name}}|{{lastName}}|{{last_name}}/gi, lastName ? formatName(lastName) : '')
+            .replace(/{{email}}/gi, email)
 
           const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
           await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, entry.id)
@@ -93,6 +93,25 @@ export class SendBulkEmailUseCase {
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           this.logger.error(`Failed to send email to Waitlist ${email}`, error)
+          results.push({ email, status: 'FAILED', error: errorMessage })
+        }
+      }
+    } else if (target === 'RAW') {
+      recipientCount = payload.userIds.length
+
+      for (const email of payload.userIds) {
+        try {
+          const customizedContent = payload.content
+            .replace(/{{first\s*name}}|{{firstName}}|{{first_name}}/gi, 'there')
+            .replace(/{{last\s*name}}|{{lastName}}|{{last_name}}/gi, '')
+            .replace(/{{email}}/gi, email)
+
+          const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
+          await this.emailService.sendGenericEmail(email, payload.subject, finalHtml)
+          results.push({ email, status: 'SENT' })
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          this.logger.error(`Failed to send raw email to ${email}`, error)
           results.push({ email, status: 'FAILED', error: errorMessage })
         }
       }
@@ -119,9 +138,9 @@ export class SendBulkEmailUseCase {
 
         try {
           const customizedContent = payload.content
-            .replace(/{{firstName}}/g, firstName ? formatName(firstName) : 'there')
-            .replace(/{{lastName}}/g, lastName ? formatName(lastName) : '')
-            .replace(/{{email}}/g, email)
+            .replace(/{{first\s*name}}|{{firstName}}|{{first_name}}/gi, firstName ? formatName(firstName) : 'there')
+            .replace(/{{last\s*name}}|{{lastName}}|{{last_name}}/gi, lastName ? formatName(lastName) : '')
+            .replace(/{{email}}/gi, email)
 
           const finalHtml = wrapInBaseTemplate(customizedContent, payload.subject, email)
           await this.emailService.sendGenericEmail(email, payload.subject, finalHtml, String(user.id))

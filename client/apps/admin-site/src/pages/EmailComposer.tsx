@@ -94,7 +94,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
   const location = useLocation()
 
   // Recipients & Target State
-  const [targetGroup, setTargetGroup] = useState<'TENANTS' | 'PMS' | 'WAITLIST'>('TENANTS')
+  const [targetGroup, setTargetGroup] = useState<'TENANTS' | 'PMS' | 'WAITLIST' | 'RAW'>('TENANTS')
   const [recipients, setRecipients] = useState<EmailRecipient[]>([])
 
   // Form Fields
@@ -243,7 +243,13 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
         id: item.id,
         email: item.email,
         name: item.name,
-        type: targetGroup === 'TENANTS' ? 'TENANT' : targetGroup === 'PMS' ? 'PM' : 'WAITLIST',
+        type: targetGroup === 'TENANTS'
+          ? 'TENANT'
+          : targetGroup === 'PMS'
+            ? 'PM'
+            : targetGroup === 'WAITLIST'
+              ? 'WAITLIST'
+              : 'RAW',
       },
     ])
     setSearchTerm('')
@@ -378,8 +384,7 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
           userIds: recipients.map((r) => r.id),
           subject,
           content,
-          targetGroup:
-            targetGroup === 'TENANTS' ? 'TENANTS' : targetGroup === 'PMS' ? 'PMS' : 'WAITLIST',
+          targetGroup: targetGroup,
         },
         token,
       )
@@ -506,14 +511,16 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
             {/* Target Group Selector (Only show if not navigated from dashboard selection state) */}
             {!location.state?.selectedUsers && !location.state?.selectedPms && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-                {(['TENANTS', 'PMS', 'WAITLIST'] as const).map((group) => {
+                {(['TENANTS', 'PMS', 'WAITLIST', 'RAW'] as const).map((group) => {
                   const label =
                     group === 'TENANTS'
                       ? 'Tenants'
                       : group === 'PMS'
                         ? 'Property Managers'
-                        : 'Waitlist Contacts'
-                  const Icon = group === 'TENANTS' ? Users : group === 'PMS' ? Building2 : Clock
+                        : group === 'WAITLIST'
+                          ? 'Waitlist Contacts'
+                          : 'Custom List (Raw)'
+                  const Icon = group === 'TENANTS' ? Users : group === 'PMS' ? Building2 : group === 'WAITLIST' ? Clock : Mail
                   return (
                     <button
                       key={group}
@@ -563,9 +570,22 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                   />
                   <input
                     type="text"
-                    placeholder={`Search and add ${targetGroup === 'TENANTS' ? 'tenants' : targetGroup === 'PMS' ? 'property managers' : 'waitlist contacts'} by name or email...`}
+                    placeholder={targetGroup === 'RAW' ? "Enter or paste custom email addresses..." : `Search and add ${targetGroup === 'TENANTS' ? 'tenants' : targetGroup === 'PMS' ? 'property managers' : 'waitlist contacts'} by name or email...`}
                     value={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const trimmed = searchTerm.trim().toLowerCase()
+                        if (trimmed && trimmed.includes('@')) {
+                          handleAddSelectedRecipient({
+                            id: trimmed,
+                            name: trimmed,
+                            email: trimmed,
+                          })
+                        }
+                      }
+                    }}
                     onPaste={(e) => {
                       const text = e.clipboardData.getData('Text')
                       const potentialEmails = text
@@ -576,43 +596,59 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
 
                       if (validEmails.length > 0) {
                         e.preventDefault()
-                        const activeDir = getActiveDirectory()
-                        const matchedUsers = activeDir.filter(
-                          (item: any) =>
-                            item.email && validEmails.includes(item.email.toLowerCase()),
-                        )
-
-                        if (matchedUsers.length > 0) {
+                        if (targetGroup === 'RAW') {
                           setRecipients((prev) => {
-                            const existingIds = new Set(prev.map((r) => r.id))
-                            const newRecipients = matchedUsers
-                              .filter((u: any) => !existingIds.has(u.uuid || u.id))
-                              .map((item: any) => {
-                                let name = ''
-                                if (targetGroup === 'PMS') {
-                                  name =
-                                    item.businessName || `${item.firstName} ${item.lastName}`.trim()
-                                } else {
-                                  name = `${item.firstName} ${item.lastName}`.trim()
-                                }
-                                return {
-                                  id: item.uuid || item.id,
-                                  email: item.email,
-                                  name: name || 'N/A',
-                                  type: (targetGroup === 'TENANTS'
-                                    ? 'TENANT'
-                                    : targetGroup === 'PMS'
-                                      ? 'PM'
-                                      : 'WAITLIST') as 'TENANT' | 'PM' | 'WAITLIST',
-                                }
-                              })
+                            const existingEmails = new Set(prev.map((r) => r.email.toLowerCase()))
+                            const newRecipients = validEmails
+                              .filter((email) => !existingEmails.has(email))
+                              .map((email) => ({
+                                id: email,
+                                email: email,
+                                name: email,
+                                type: 'RAW' as const,
+                              }))
                             return [...prev, ...newRecipients]
                           })
-                          showToast(
-                            `Successfully added ${matchedUsers.length} matching recipient(s)!`,
-                          )
+                          showToast(`Successfully added ${validEmails.length} custom email(s)!`)
                         } else {
-                          showToast(`No matching recipients found for the pasted emails`, true)
+                          const activeDir = getActiveDirectory()
+                          const matchedUsers = activeDir.filter(
+                            (item: any) =>
+                              item.email && validEmails.includes(item.email.toLowerCase()),
+                          )
+
+                          if (matchedUsers.length > 0) {
+                            setRecipients((prev) => {
+                              const existingIds = new Set(prev.map((r) => r.id))
+                              const newRecipients = matchedUsers
+                                .filter((u: any) => !existingIds.has(u.uuid || u.id))
+                                .map((item: any) => {
+                                  let name = ''
+                                  if (targetGroup === 'PMS') {
+                                    name =
+                                      item.businessName || `${item.firstName} ${item.lastName}`.trim()
+                                  } else {
+                                    name = `${item.firstName} ${item.lastName}`.trim()
+                                  }
+                                  return {
+                                    id: item.uuid || item.id,
+                                    email: item.email,
+                                    name: name || 'N/A',
+                                    type: (targetGroup === 'TENANTS'
+                                      ? 'TENANT'
+                                      : targetGroup === 'PMS'
+                                        ? 'PM'
+                                        : 'WAITLIST') as 'TENANT' | 'PM' | 'WAITLIST',
+                                  }
+                                })
+                              return [...prev, ...newRecipients]
+                            })
+                            showToast(
+                              `Successfully added ${matchedUsers.length} matching recipient(s)!`,
+                            )
+                          } else {
+                            showToast(`No matching recipients found for the pasted emails`, true)
+                          }
                         }
                         setSearchTerm('')
                         setSuggestions([])

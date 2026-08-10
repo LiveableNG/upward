@@ -7,7 +7,7 @@ interface EmailConfirmModalProps {
   onClose: () => void
   onConfirm: () => void
   recipientsCount: number
-  targetGroup: 'TENANTS' | 'PMS' | 'WAITLIST'
+  targetGroup: 'TENANTS' | 'PMS' | 'WAITLIST' | 'RAW'
   subject: string
   content: string
   sending: boolean

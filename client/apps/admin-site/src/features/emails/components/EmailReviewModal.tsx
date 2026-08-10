@@ -6,7 +6,7 @@ export interface EmailRecipient {
   id: string
   email: string
   name: string
-  type: 'TENANT' | 'PM' | 'WAITLIST'
+  type: 'TENANT' | 'PM' | 'WAITLIST' | 'RAW'
 }
 
 interface EmailReviewModalProps {
