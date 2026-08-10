@@ -36,6 +36,16 @@ const ACCESS_COOKIE_NAME = 'pm_access_token'
 function setPmAuthCookies(reply: FastifyReply, accessToken: string, refreshToken: string) {
   const isProd = process.env['NODE_ENV'] === 'production' || !!process.env['VERCEL']
 
+  // Clear User/Pay cookies to ensure mutual exclusivity of active sessions
+  const clearOptions = {
+    path: '/',
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as any,
+  }
+  reply.clearCookie('user_refresh', clearOptions)
+  reply.clearCookie('pay_access_token', clearOptions)
+
   reply.setCookie(REFRESH_COOKIE_NAME, refreshToken, {
     httpOnly: true,
     secure: isProd,
@@ -64,6 +74,8 @@ function clearPmAuthCookies(reply: FastifyReply) {
 
   reply.clearCookie(REFRESH_COOKIE_NAME, options)
   reply.clearCookie(ACCESS_COOKIE_NAME, options)
+  reply.clearCookie('user_refresh', options)
+  reply.clearCookie('pay_access_token', options)
 }
 
 @Controller('pm/auth')

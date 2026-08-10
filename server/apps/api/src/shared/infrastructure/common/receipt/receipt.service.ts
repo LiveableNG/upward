@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import PDFDocument from 'pdfkit'
+import { S3Service } from '../s3/s3.service'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 
 export interface ReceiptPdfData {
   title: string
@@ -19,19 +23,55 @@ export interface ReceiptPdfData {
   lineItems?: Array<{ label: string; amount: number }>
   logoUrl?: string
   brandName?: string
+  themeColor?: string
 }
 
 @Injectable()
 export class ReceiptService {
+  constructor(private readonly s3Service: S3Service) {}
+
   async generateReceiptPdf(data: ReceiptPdfData): Promise<Buffer> {
     let logoBuffer: Buffer | undefined
     if (data.logoUrl) {
       try {
-        const response = await fetch(data.logoUrl)
-        if (response.ok) {
-          logoBuffer = Buffer.from(await response.arrayBuffer())
+        let s3Key: string | null = null
+        if (data.logoUrl.includes('amazonaws.com/')) {
+          s3Key = data.logoUrl.split('amazonaws.com/')[1] || null
+        } else {
+          const receiptSettingsMatch = data.logoUrl.match(/\/receipt-settings\/logo\/([^\/]+)\/([^\/?#]+)/)
+          const emailSettingsMatch = data.logoUrl.match(/\/email-settings\/logo\/([^\/]+)\/([^\/?#]+)/)
+          
+          if (receiptSettingsMatch) {
+            const uuid = receiptSettingsMatch[1]
+            const filename = receiptSettingsMatch[2]
+            s3Key = `pm/${uuid}/receipt-settings/${filename}`
+          } else if (emailSettingsMatch) {
+            const uuid = emailSettingsMatch[1]
+            const filename = emailSettingsMatch[2]
+            s3Key = `pm/${uuid}/email-settings/${filename}`
+          }
         }
-      } catch {
+
+        console.log(`[ReceiptService] logoUrl: ${data.logoUrl}, resolved s3Key: ${s3Key}`);
+
+        if (s3Key) {
+          logoBuffer = await this.s3Service.getFileBuffer(s3Key)
+          console.log(`[ReceiptService] Fetched logo from S3, buffer length: ${logoBuffer?.length}`);
+        } else {
+          let fetchUrl = data.logoUrl
+          if (fetchUrl.includes('localhost')) {
+            fetchUrl = fetchUrl.replace('localhost', '127.0.0.1')
+          }
+          const response = await fetch(fetchUrl)
+          if (response.ok) {
+            logoBuffer = Buffer.from(await response.arrayBuffer())
+            console.log(`[ReceiptService] Fetched logo from fallback HTTP, buffer length: ${logoBuffer?.length}`);
+          } else {
+            console.error(`Failed to fetch logo: ${response.status} ${response.statusText}`)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching logo for receipt:', err)
         // Fall back to default Upward branding
       }
     }
@@ -55,7 +95,7 @@ export class ReceiptService {
       const W = 595.28
       const H = 841.89
 
-      const clay = '#d97757'
+      const clay = data.themeColor || '#d97757'
       const dark = '#0a0a0f'
       const textSecondary = '#4a4642'
       const textMuted = '#928e89'
@@ -90,7 +130,30 @@ export class ReceiptService {
       const brandLabel = (data.brandName || 'Upward').toUpperCase()
 
       if (logoBuffer) {
-        doc.image(logoBuffer, BRAND_X, BRAND_Y - 4, { fit: [120, 36] })
+        const LOGO_BOX_W = 120
+        const LOGO_BOX_H = 36
+
+        // Write the buffer to a temporary file and pass the path to PDFKit to avoid memory buffer decoding issues
+        let tempFilePath: string | null = null
+        try {
+          const tempDir = os.tmpdir()
+          tempFilePath = path.join(tempDir, `upward_logo_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`)
+          fs.writeFileSync(tempFilePath, logoBuffer)
+
+          doc.image(tempFilePath, BRAND_X, BRAND_Y - 4, { 
+            fit: [LOGO_BOX_W, LOGO_BOX_H]
+          })
+        } catch (imageErr) {
+          console.error('[ReceiptService] Error rendering logo image in PDFKit:', imageErr)
+        } finally {
+          if (tempFilePath && fs.existsSync(tempFilePath)) {
+            try {
+              fs.unlinkSync(tempFilePath)
+            } catch (unlinkErr) {
+              console.error('[ReceiptService] Failed to clean up temp logo file:', unlinkErr)
+            }
+          }
+        }
       } else {
         doc.save()
 
@@ -188,7 +251,7 @@ export class ReceiptService {
       const hasBreakdown = data.lineItems && data.lineItems.length > 0
       const breakdownDesc = hasBreakdown
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+        `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
         : data.propertyName || data.propertyAddress || ''
 
       if (data.type === 'RENT') {

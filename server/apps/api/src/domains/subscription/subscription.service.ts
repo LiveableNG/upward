@@ -8,6 +8,7 @@ export enum FeatureKey {
   DOCUMENT_MANAGEMENT = 'DOCUMENT_MANAGEMENT',
   SERVICE_CHARGE_PAYMENTS = 'SERVICE_CHARGE_PAYMENTS',
   LISTING_BROKERAGE = 'LISTING_BROKERAGE',
+  BRANDING = 'BRANDING',
 }
 
 export interface FeatureGateResult {
@@ -31,6 +32,8 @@ export class SubscriptionService {
         return UpwardSubscriptionTier.TIER_2;
       case FeatureKey.LISTING_BROKERAGE:
         return UpwardSubscriptionTier.TIER_2;
+      case FeatureKey.BRANDING:
+        return UpwardSubscriptionTier.TIER_3;
       default:
         return UpwardSubscriptionTier.FREE;
     }

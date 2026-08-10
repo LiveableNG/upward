@@ -62,6 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   const opsItems: NavItem[] = [
     { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
+    { name: 'Demo Requests', path: '/demo-requests', icon: CalendarClock },
     { name: 'Bulk Import Queue', path: '/bulk-imports', icon: FileText },
     { name: 'Area Price Guide', path: '/area-price-guide', icon: MapPin },
   ]

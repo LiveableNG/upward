@@ -1158,6 +1158,45 @@ export class UserAuthService extends BaseAuthService {
       user = await this.userRepository.findByEmail(email)
       if (!user) throw new Error('Failed to create user after Google sign-in')
       await this.syncTenantStatuses(email)
+
+      this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
+
+      let pmName: string | undefined = undefined;
+      if (user.companyUsers && user.companyUsers.length > 0) {
+        pmName = user.companyUsers[0].company?.name;
+      }
+      if (!pmName && user.properties && user.properties.length > 0) {
+        const prop = user.properties[0];
+        if (prop.company?.name) {
+          pmName = prop.company.name;
+        } else if (prop.manager) {
+          pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+        }
+      }
+
+      const isPhoneOnlyEmail = email.toLowerCase().endsWith('@upward.com');
+      const hasPhone = !!user.phone;
+      const sendWhatsapp = hasPhone;
+      const sendEmail = !isPhoneOnlyEmail && !hasPhone;
+
+      if (sendWhatsapp && user.phone) {
+        this.initializeUserSequenceUseCase.execute({
+          userId: user.id!,
+          firstName: firstName,
+          phoneEncrypted: user.phone,
+          phoneHash: user.phoneHash,
+          pmName: pmName,
+        }).catch(e => console.error('Failed to init WA sequence', e));
+      }
+
+      if (sendEmail) {
+        this.initializeEmailSequenceUseCase.execute({
+          userId: user.id!,
+          email: user.email,
+        }).catch(e => console.error('Failed to init email sequence', e));
+      }
+
+      this.sendWelcomeMessages(user, firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
     }
 
     if (!user) {

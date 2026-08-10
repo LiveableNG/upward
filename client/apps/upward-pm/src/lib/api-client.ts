@@ -104,7 +104,27 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
         // If it's a 401 on an authenticated route and refresh failed, we don't always want a loud error
         const isAuthRoute = !path.includes('/auth/') || path.includes('/auth/me')
         if (isAuthRoute) {
-           throw new Error('Session expired')
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('upward_session_active')
+            const isPortal = window.location.pathname.startsWith('/portal')
+            const loginPath = isPortal ? '/portal/login' : '/pm-login'
+            const isPublicPage = window.location.pathname === '/' ||
+                                 window.location.pathname === '/welcome' ||
+                                 window.location.pathname === '/login' || 
+                                 window.location.pathname === '/signup' ||
+                                 window.location.pathname === '/pm-login' || 
+                                 window.location.pathname === '/pm-signup' ||
+                                 window.location.pathname === '/forgot-password' ||
+                                 window.location.pathname === '/pm-forgot-password' ||
+                                 window.location.pathname.startsWith('/invite') ||
+                                 window.location.pathname.startsWith('/reset-password') ||
+                                 (isPortal && (window.location.pathname === '/portal/login' || window.location.pathname === '/portal/signup'))
+
+            if (!isPublicPage) {
+              window.location.href = `${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`
+            }
+          }
+          throw new Error('Session expired')
         }
         return {} as T
       }

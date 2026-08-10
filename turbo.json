@@ -11,7 +11,8 @@
     "ADMIN_SITE_URL",
     "CRON_SECRET",
     "NODE_ENV",
-    "BUGSNAG_API_KEY"
+    "BUGSNAG_API_KEY",
+    "DATABASE_URL_TEST"
   ],
   "ui": "tui",
   "tasks": {
@@ -32,6 +33,10 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "cache": false
     },
     "clean": {
       "cache": false

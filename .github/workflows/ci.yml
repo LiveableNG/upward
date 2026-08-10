@@ -14,9 +14,25 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: upward_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/upward_test?schema=public
 
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +40,6 @@ jobs:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
-        # version comes from package.json "packageManager" (pnpm@10.29.1)
 
       - uses: actions/setup-node@v4
         with:
@@ -36,11 +51,44 @@ jobs:
       - name: Type Check
         run: pnpm turbo run type-check
 
+      - name: Deploy Prisma Migrations to Test DB
+        run: pnpm --filter @upward/api exec prisma migrate deploy --schema=prisma/schema
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
+
       - name: Run Backend Unit Tests
         run: pnpm turbo run test --filter=@upward/api
+
+      - name: Run Backend Integration Tests
+        run: pnpm turbo run test:integration
 
       - name: Build Application
         run: pnpm turbo run build
 
       - run: pnpm audit --audit-level=high
         continue-on-error: true
+
+  migrate-dev:
+    name: Migrate Dev DB
+    needs: verify
+    # Only run on direct pushes to dev — not on PRs (avoids running twice)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations to Dev DB
+        run: pnpm --filter @upward/api exec prisma migrate deploy --schema=prisma/schema
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}

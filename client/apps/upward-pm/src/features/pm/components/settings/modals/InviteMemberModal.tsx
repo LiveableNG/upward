@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Mail, User, Shield, Building2, Check, AlertCircle } from 'lucide-react'
+import { Mail, User, Shield, Building2, Check } from 'lucide-react'
 import { useInviteMember } from '@/features/pm/hooks/useTeam'
 import { useProperties } from '@/features/pm/hooks/useProperties'
 import { cn } from '@/lib/utils'
@@ -65,7 +65,7 @@ export function InviteMemberModal({ onClose }: InviteMemberModalProps) {
             form="invite-member-form"
             className="btn btn--primary" 
             style={{ flex: 1, height: 48 }}
-            disabled={isPending || (formData.accessLevel === 'CUSTOM' && formData.propertyUuids.length === 0)}
+            disabled={isPending}
           >
             {isPending ? 'Sending Invite...' : 'Send Invitation'}
           </button>
@@ -109,6 +109,9 @@ export function InviteMemberModal({ onClose }: InviteMemberModalProps) {
 
           <div className="form-group">
               <label className="form-label">Access Level</label>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.45 }}>
+                Choose Admin or Manager. This controls which properties they can manage. You can change it later.
+              </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
                   <button 
                       type="button"
@@ -118,8 +121,10 @@ export function InviteMemberModal({ onClose }: InviteMemberModalProps) {
                   >
                       <Shield size={24} color={formData.accessLevel === 'ALL' ? 'var(--clay)' : 'var(--text-muted)'} />
                       <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>All Properties</div>
-                          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>Auto-access to all portfolios.</div>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>Admin</div>
+                          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4, lineHeight: 1.4 }}>
+                            All properties — including ones added later.
+                          </div>
                       </div>
                   </button>
                   <button 
@@ -130,8 +135,10 @@ export function InviteMemberModal({ onClose }: InviteMemberModalProps) {
                   >
                       <Building2 size={24} color={formData.accessLevel === 'CUSTOM' ? 'var(--clay)' : 'var(--text-muted)'} />
                       <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>Custom Selection</div>
-                          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>Pick specific properties.</div>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>Manager</div>
+                          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4, lineHeight: 1.4 }}>
+                            Only assigned properties. Invite now and assign later if needed.
+                          </div>
                       </div>
                   </button>
               </div>
@@ -139,7 +146,10 @@ export function InviteMemberModal({ onClose }: InviteMemberModalProps) {
 
           {formData.accessLevel === 'CUSTOM' && (
               <div className="form-group">
-                  <label className="form-label">Select Properties ({formData.propertyUuids.length})</label>
+                  <label className="form-label">Select Properties ({formData.propertyUuids.length}) — optional</label>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, marginBottom: 0, lineHeight: 1.45 }}>
+                    Leave empty to invite without access. Assign properties anytime from Edit Permissions.
+                  </p>
                   <input
                       type="text"
                       placeholder="Search properties..."
@@ -203,13 +213,6 @@ export function InviteMemberModal({ onClose }: InviteMemberModalProps) {
                   </div>
               </div>
           )}
-
-          <div style={{ background: 'var(--bg)', padding: 16, borderRadius: 16, display: 'flex', gap: 12, border: '1px solid var(--border)' }}>
-              <AlertCircle size={18} color="var(--clay)" style={{ flexShrink: 0 }} />
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  We'll create a shadow account for this member. They will receive an email to claim it and set their password.
-              </p>
-          </div>
         </div>
       </form>
       <style jsx>{`

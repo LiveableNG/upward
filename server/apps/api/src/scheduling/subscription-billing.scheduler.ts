@@ -121,16 +121,30 @@ export class SubscriptionBillingScheduler {
     
     const unitCount = await this.countManagedUnits(sub.pmId, billingMode);
     
-    const yearlyRate = billingTier === UpwardSubscriptionTier.TIER_2 ? 1500 : billingTier === UpwardSubscriptionTier.TIER_3 ? 2250 : 0;
+    // Use the explicitly set yearly price if available, otherwise fallback to default tier pricing
+    let yearlyRate = sub.priceYearly > 0 
+      ? sub.priceYearly 
+      : (billingTier === UpwardSubscriptionTier.TIER_2 ? 1500 : billingTier === UpwardSubscriptionTier.TIER_3 ? 2250 : 0);
+
     const monthlyRate = yearlyRate / 12;
 
-    let discountPercent = 0;
-    if (sub.discountType === 'PERCENTAGE' && sub.discountStart && sub.discountEnd && sub.discountStart <= today && sub.discountEnd >= today) {
-      discountPercent = sub.discountValue ?? 0;
+    const calculatedBase = unitCount * monthlyRate;
+    let discountAmount = 0;
+
+    // Check if a valid discount is currently active
+    const isDiscountActive = sub.discountStart && sub.discountEnd 
+      ? (sub.discountStart <= today && sub.discountEnd >= today) 
+      : true; // If no dates are set, assume permanent discount if discountType exists
+
+    if (sub.discountType && isDiscountActive && sub.discountValue > 0) {
+      if (sub.discountType === 'PERCENTAGE') {
+        discountAmount = calculatedBase * (sub.discountValue / 100);
+      } else if (sub.discountType === 'FIXED') {
+        const fixedMonthlyDiscountPerUnit = sub.discountValue / 12;
+        discountAmount = unitCount * fixedMonthlyDiscountPerUnit;
+      }
     }
 
-    const calculatedBase = unitCount * monthlyRate;
-    const discountAmount = calculatedBase * (discountPercent / 100);
     const upcomingMonthAmount = Math.max(0, calculatedBase - discountAmount);
 
     if (isFirstCycle) {

@@ -8,6 +8,9 @@ import { LetterheadEditor } from './LetterheadEditor'
 import { useLetterheads, usePdfProcessor } from './branding.hooks'
 import { downloadBlob } from '@/lib/download-helper'
 import type { SavedPmLetterhead, MarginBox } from '../branding.types'
+import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { FeatureKey } from '@/features/pm/types/subscription'
 
 type OverflowMenu = { id: number; open: boolean }
 
@@ -22,6 +25,9 @@ export function LetterheadManager() {
   } = useLetterheads()
 
   const pdfProcessor = usePdfProcessor()
+  const { checkAccess } = useSubscription()
+  const { openPricing } = usePricingModal()
+  const hasBrandingAccess = checkAccess(FeatureKey.BRANDING).hasAccess
 
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editingLetterhead, setEditingLetterhead] = useState<SavedPmLetterhead | null>(null)
@@ -97,7 +103,10 @@ export function LetterheadManager() {
             PDF background templates applied to generated documents.
           </p>
         </div>
-        <button className="btn btn--primary branding-manager__add-btn" onClick={() => setWizardOpen(true)}>
+        <button className="btn btn--primary branding-manager__add-btn" onClick={() => {
+          if (!hasBrandingAccess) { openPricing(); return }
+          setWizardOpen(true)
+        }}>
           <Plus size={16} /> Add Template
         </button>
       </div>
@@ -112,7 +121,10 @@ export function LetterheadManager() {
           <FileText size={48} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
           <h4>No Templates Yet</h4>
           <p>Upload a PDF template to style your generated documents.</p>
-          <button className="btn btn--primary" onClick={() => setWizardOpen(true)}>
+          <button className="btn btn--primary" onClick={() => {
+            if (!hasBrandingAccess) { openPricing(); return }
+            setWizardOpen(true)
+          }}>
             <Plus size={14} /> Add Your First Template
           </button>
         </div>
@@ -162,7 +174,10 @@ export function LetterheadManager() {
                 <button
                   className="branding-card__action-btn"
                   title="Edit"
-                  onClick={() => setEditingLetterhead(lh)}
+                  onClick={() => {
+                    if (!hasBrandingAccess) { openPricing(); return }
+                    setEditingLetterhead(lh)
+                  }}
                 >
                   <Pencil size={14} />
                 </button>
@@ -186,6 +201,7 @@ export function LetterheadManager() {
                           <button
                             className="branding-card__overflow-item"
                             onClick={() => {
+                              if (!hasBrandingAccess) { openPricing(); setOverflowMenu(null); return }
                               setDefaultMutation.mutate(lh.id)
                               setOverflowMenu(null)
                             }}
@@ -209,6 +225,7 @@ export function LetterheadManager() {
                         <button
                           className="branding-card__overflow-item branding-card__overflow-item--danger"
                           onClick={() => {
+                            if (!hasBrandingAccess) { openPricing(); setOverflowMenu(null); return }
                             setOverflowMenu(null)
                             handleDelete(lh.id)
                           }}
