@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import * as XLSX from 'xlsx'
-import { ChevronDown, Plus, X, CalendarDays } from 'lucide-react'
+import { ChevronDown, Plus, X, CalendarDays, Upload } from 'lucide-react'
 import { ColumnDef, ColumnMapping, SplitConfig } from './types'
 import { extractForField, scrub, splitPersonName, inferDateOrder, countDatesIn, type DateOrder } from './utils'
 
@@ -29,6 +29,8 @@ interface MappingPhaseProps {
   updateSplitPart: (userColumn: string, partIndex: number, field: string | null, entityType: string | null) => void
   addSplitPart: (userColumn: string) => void
   removeSplitPart: (userColumn: string, partIndex: number) => void
+  setWorkbook?: (wb: XLSX.WorkBook | null) => void
+  setActiveSheet?: (sheetName: string) => void
 }
 
 // What each field is called when it asks for itself
@@ -59,10 +61,28 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
   setFieldColumn, addFieldColumn, removeFieldColumn,
   swapNameOrder = false, setSwapNameOrder,
   dateOrder = 'dmy', setDateOrder,
+  toggleSplit, updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
+  setWorkbook, setActiveSheet
 }) => {
   const [addingTo, setAddingTo] = useState<string | null>(null)
   const [askDateOrder, setAskDateOrder] = useState(false)
   const [showOptional, setShowOptional] = useState(false)
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const data = evt.target?.result
+      if (data) {
+        const wb = XLSX.read(data, { type: 'binary' })
+        setWorkbook?.(wb)
+        const sheetName = wb.SheetNames[0]
+        setActiveSheet?.(sheetName)
+      }
+    }
+    reader.readAsBinaryString(file)
+  }
 
   const rawByColumn = useMemo(() => {
     if (!workbook || !activeSheet) return {} as Record<string, string[]>
@@ -135,7 +155,7 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
     padding: '0 12px',
     fontSize: 14,
     fontWeight: 600,
-    color: filled ? 'var(--forest-hover)' : 'var(--text-muted)',
+    color: filled ? 'var(--forest-hover)' : 'var(--text-secondary)',
     cursor: 'pointer',
   })
 
@@ -171,7 +191,7 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
 
   // Our field · what it means · their column
   const cellLabel: React.CSSProperties = { flex: '1 1 200px', minWidth: 0, paddingTop: 8 }
-  const cellDesc: React.CSSProperties = { flex: '1 1 240px', minWidth: 0, paddingTop: 9, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }
+  const cellDesc: React.CSSProperties = { flex: '1 1 240px', minWidth: 0, paddingTop: 9, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }
   const cellPick: React.CSSProperties = { flex: '1 1 320px', minWidth: 0 }
 
   const renderNameRow = () => {
@@ -374,13 +394,13 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
 
   const headerRow = (
     <div className="desktop-only" style={{ display: 'flex', gap: 16, padding: '0 0 10px', borderBottom: '1px solid var(--border-strong)' }}>
-      <span style={{ flex: '1 1 200px', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+      <span style={{ flex: '1 1 200px', fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
         Our field
       </span>
-      <span style={{ flex: '1 1 240px', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+      <span style={{ flex: '1 1 240px', fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
         Description
       </span>
-      <span style={{ flex: '1 1 320px', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+      <span style={{ flex: '1 1 320px', fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
         Your column(s)
       </span>
     </div>
@@ -392,7 +412,7 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
         <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--dark)', margin: '0 0 4px' }}>
           Point us at each one
         </h3>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
           Tell us which of your columns holds each thing. The same column can answer more than one.
         </p>
       </div>
@@ -405,6 +425,18 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
           <div style={{ width: `${required.length ? (answered / required.length) * 100 : 0}%`, height: '100%', background: 'var(--forest)', transition: 'width 0.2s' }} />
         </div>
       </div>
+
+      {!workbook && (
+        <div style={{ background: '#f8fafc', border: '1px dashed var(--border-strong)', borderRadius: 12, padding: 20, marginBottom: 20, textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+            To adjust column mappings, please choose your original Excel spreadsheet file again.
+          </p>
+          <label className="btn btn--secondary btn--sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Upload size={14} /> Select original file
+            <input type="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb" style={{ display: 'none' }} onChange={onFileChange} />
+          </label>
+        </div>
+      )}
 
       {headerRow}
       {required.map(f => (

@@ -631,3 +631,28 @@ export const inspectSheet = (workbook: XLSX.WorkBook, sheetName: string): SheetR
     blocking,
   }
 }
+
+export const serializeWorkbook = (wb: XLSX.WorkBook | null): Record<string, any[][]> | null => {
+  if (!wb) return null
+  const out: Record<string, any[][]> = {}
+  wb.SheetNames.forEach(name => {
+    const ws = wb.Sheets[name]
+    if (ws) {
+      out[name] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+    }
+  })
+  return out
+}
+
+export const deserializeWorkbook = (rawSheetsData: Record<string, any[][]> | null): XLSX.WorkBook | null => {
+  if (!rawSheetsData) return null
+  const sheetNames = Object.keys(rawSheetsData)
+  const sheets: Record<string, XLSX.WorkSheet> = {}
+  sheetNames.forEach(name => {
+    sheets[name] = XLSX.utils.aoa_to_sheet(rawSheetsData[name])
+  })
+  return {
+    SheetNames: sheetNames,
+    Sheets: sheets
+  }
+}
