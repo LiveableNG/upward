@@ -705,8 +705,8 @@
                 </select>
             </div>
             <div>
-                <label for="demo-date" class="demo-label">Preferred Date for Demo</label>
-                <input type="date" id="demo-date" name="date" required class="demo-input">
+                <label for="demo-date" class="demo-label">Preferred Date & Time for Demo</label>
+                <input type="datetime-local" id="demo-date" name="date" required class="demo-input">
             </div>
             <button type="submit" class="w-full bg-forest-600 text-white py-4 rounded-xl font-black text-base shadow-lg shadow-forest-600/25 hover:bg-forest-700 transition-colors mt-2">
                 Request Demo
@@ -801,8 +801,8 @@
         
             if (payload.date) {
                 payload.demoDate = new Date(payload.date).toISOString();
-                delete payload.date;
             }
+            delete payload.date;
             
             try {
                 const response = await fetch('/api/v1/public/demo-requests', {

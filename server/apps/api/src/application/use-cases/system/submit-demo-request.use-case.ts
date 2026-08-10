@@ -13,18 +13,20 @@ export class SubmitDemoRequestUseCase {
   ) {}
 
   async execute(dto: CreateDemoRequestDto) {
+    const demoDate = new Date(dto.demoDate)
+
     const demoRequest = await this.prisma.upward_demo_request.create({
       data: {
         name: dto.name,
         email: dto.email,
         phone: dto.phone,
         tenants: dto.tenants,
-        demoDate: new Date(dto.demoDate),
+        demoDate,
       },
     })
 
     try {
-      const dateString = new Date(dto.demoDate).toLocaleString('en-US', {
+      const dateString = demoDate.toLocaleString('en-US', {
         dateStyle: 'full',
         timeStyle: 'short',
       })
