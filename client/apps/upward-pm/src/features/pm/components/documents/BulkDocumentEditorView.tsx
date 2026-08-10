@@ -889,21 +889,18 @@ export function BulkDocumentEditorView({
                       fontSize: '15px',
                       lineHeight: 1.6
                     }}>
-                      {/* Header Letterhead */}
                       {includeLetterhead && letterheadHeaderUrl && (
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
                           <img src={letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
                         </div>
                       )}
 
-                      {/* Document Body */}
                       <div
                         className="preview-body-content"
                         style={{ flex: 1, color: '#1e293b' }}
                         dangerouslySetInnerHTML={{ __html: getRenderedContent() }}
                       />
 
-                      {/* Footer Letterhead */}
                       {includeLetterhead && letterheadFooterUrl && (
                         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                           <img src={letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />

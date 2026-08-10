@@ -75,6 +75,7 @@ import {
   AdminBulkImportController,
 } from './controllers/bulk-import.controller'
 import { DemoRequestController } from './public/demo-request.controller'
+import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -152,6 +153,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PmBulkImportController,
     AdminBulkImportController,
     DemoRequestController,
+    DemoRequestAdminController,
   ],
 })
 export class HttpModule {}

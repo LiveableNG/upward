@@ -93,6 +93,8 @@ import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
 import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
+import { GetDemoRequestsUseCase } from './use-cases/admin/get-demo-requests.use-case'
+import { UpdateDemoRequestStatusUseCase } from './use-cases/admin/update-demo-request-status.use-case'
 
 import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
 import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
@@ -456,6 +458,8 @@ const UseCases = [
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,
   SubmitDemoRequestUseCase,
+  GetDemoRequestsUseCase,
+  UpdateDemoRequestStatusUseCase,
   CreateFairnessStoryUseCase,
   GetFairnessStoriesUseCase,
   DeleteFairnessStoryUseCase,
