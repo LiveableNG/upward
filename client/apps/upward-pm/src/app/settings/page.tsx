@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense, useRef, useState, useEffect } from 'react'
+import React, { Suspense, useRef, useState, useEffect, useMemo } from 'react'
 import { AvatarUpload } from '@/features/pm/components/settings/AvatarUpload'
 import { ProfileForm } from '@/features/pm/components/settings/ProfileForm'
 import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
@@ -9,22 +9,41 @@ import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
+import { EmailSettingsTab } from '@/features/pm/components/settings/EmailSettingsTab'
 import { ListSkeleton } from '@/components/skeletons'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
+import { useAuth } from '@/features/auth/AuthContext'
+
+const MEMBER_TABS = new Set(['profile', 'security', 'feedback'])
+const COMPANY_TABS = new Set(['payment', 'import', 'team', 'branding', 'email'])
 
 function SettingsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const activeTab = searchParams.get('tab') || 'profile'
-
+  const { user } = useAuth()
+  const canManageCompanySettings = user?.canManageCompanySettings !== false
+  const requestedTab = searchParams.get('tab') || 'profile'
+  const activeTab = useMemo(() => {
+    if (canManageCompanySettings) return requestedTab
+    return MEMBER_TABS.has(requestedTab) ? requestedTab : 'profile'
+  }, [canManageCompanySettings, requestedTab])
 
   const setTab = (tab: string) => {
+    if (!canManageCompanySettings && COMPANY_TABS.has(tab)) return
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', tab)
     router.replace(`/settings?${params.toString()}`)
   }
+
+  useEffect(() => {
+    if (!canManageCompanySettings && COMPANY_TABS.has(requestedTab)) {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('tab', 'profile')
+      router.replace(`/settings?${params.toString()}`)
+    }
+  }, [canManageCompanySettings, requestedTab, router, searchParams])
 
   const scrollContainerRef = useRef<HTMLElement>(null)
   const [scrollState, setScrollState] = useState<'start' | 'middle' | 'end'>('start')
@@ -57,13 +76,32 @@ function SettingsContent() {
     handleScroll()
     const timeout = setTimeout(handleScroll, 100)
     return () => clearTimeout(timeout)
-  }, [isMobile, activeTab])
+  }, [isMobile, activeTab, canManageCompanySettings])
+
+  const tabs = [
+    { id: 'profile', label: 'Profile' },
+    ...(canManageCompanySettings ? [{ id: 'payment', label: 'Payment' }] : []),
+    { id: 'security', label: 'Security' },
+    ...(canManageCompanySettings
+      ? [
+          { id: 'import', label: 'Bulk Import' },
+          { id: 'team', label: 'Team' },
+          { id: 'branding', label: 'Branding' },
+          { id: 'email', label: 'Email' },
+        ]
+      : []),
+    { id: 'feedback', label: 'Feedback' },
+  ]
 
   return (
     <div className="settings animate-fade-in">
       <header className="settings__header">
         <h1 className="settings__title">Settings</h1>
-        <p className="settings__subtitle">Manage your account, payment details and security.</p>
+        <p className="settings__subtitle">
+          {canManageCompanySettings
+            ? 'Manage your account, payment details and security.'
+            : 'Manage your personal profile and security.'}
+        </p>
       </header>
 
       <div style={{ position: 'relative', width: '100%' }}>
@@ -72,49 +110,15 @@ function SettingsContent() {
           ref={scrollContainerRef}
           onScroll={handleScroll}
         >
-          <button 
-          className={cn('settings__nav-item', activeTab === 'profile' && 'settings__nav-item--active')}
-          onClick={() => setTab('profile')}
-        >
-          Profile
-        </button>
-
-        <button 
-          className={cn('settings__nav-item', activeTab === 'payment' && 'settings__nav-item--active')}
-          onClick={() => setTab('payment')}
-        >
-          Payment
-        </button>
-        <button 
-          className={cn('settings__nav-item', activeTab === 'security' && 'settings__nav-item--active')}
-          onClick={() => setTab('security')}
-        >
-          Security
-        </button>
-        <button 
-          className={cn('settings__nav-item', activeTab === 'import' && 'settings__nav-item--active')}
-          onClick={() => setTab('import')}
-        >
-          Bulk Import
-        </button>
-        <button 
-          className={cn('settings__nav-item', activeTab === 'team' && 'settings__nav-item--active')}
-          onClick={() => setTab('team')}
-        >
-          Team
-        </button>
-        <button 
-          className={cn('settings__nav-item', activeTab === 'branding' && 'settings__nav-item--active')}
-          onClick={() => setTab('branding')}
-        >
-          Branding
-        </button>
-        <button 
-          className={cn('settings__nav-item', activeTab === 'feedback' && 'settings__nav-item--active')}
-          onClick={() => setTab('feedback')}
-        >
-          Feedback
-        </button>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={cn('settings__nav-item', activeTab === tab.id && 'settings__nav-item--active')}
+              onClick={() => setTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
 
         {isMobile && canScroll && scrollState !== 'end' && (
@@ -138,11 +142,12 @@ function SettingsContent() {
           </>
         )}
 
-        {activeTab === 'payment' && <BankInfoForm />}
+        {canManageCompanySettings && activeTab === 'payment' && <BankInfoForm />}
         {activeTab === 'security' && <SecurityForm />}
-        {activeTab === 'import' && <DataImportTab />}
-        {activeTab === 'team' && <TeamTab />}
-        {activeTab === 'branding' && <BrandingTab />}
+        {canManageCompanySettings && activeTab === 'import' && <DataImportTab />}
+        {canManageCompanySettings && activeTab === 'team' && <TeamTab />}
+        {canManageCompanySettings && activeTab === 'branding' && <BrandingTab />}
+        {canManageCompanySettings && activeTab === 'email' && <EmailSettingsTab />}
         {activeTab === 'feedback' && <FeedbackTab />}
       </div>
     </div>

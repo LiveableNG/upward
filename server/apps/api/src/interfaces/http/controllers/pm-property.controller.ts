@@ -31,11 +31,12 @@ import { GetLandlordReportUseCase } from '../../../application/pm/use-cases/get-
 import { PmBulkRentReminderUseCase } from '../../../application/pm/use-cases/pm-bulk-rent-reminder.use-case';
 import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto, BulkFullImportDto } from '../../../application/pm/dtos/property.dto';
 import { SendLandlordReportDto } from '../../../application/pm/dtos/landlord.dto';
-import { InviteTeamMemberDto, UpdateTeamMemberPermissionsDto } from '../../../application/pm/dtos/team.dto';
+import { InviteTeamMemberDto, UpdateTeamMemberPermissionsDto, TransferTeamPropertiesDto } from '../../../application/pm/dtos/team.dto';
 import { InviteTeamMemberUseCase } from '../../../application/pm/use-cases/team/invite-team-member.use-case';
 import { GetTeamMembersUseCase } from '../../../application/pm/use-cases/team/get-team-members.use-case';
 import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-cases/team/update-team-member-permissions.use-case';
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
+import { TransferTeamPropertiesUseCase } from '../../../application/pm/use-cases/team/transfer-team-properties.use-case';
 import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
 import { GetPmLandlordsUseCase } from '../../../application/pm/use-cases/landlord/get-pm-landlords.use-case';
 import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase, GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
@@ -80,6 +81,7 @@ export class PmPropertyController {
     private readonly getTeamMembersUseCase: GetTeamMembersUseCase,
     private readonly updateTeamMemberPermissionsUseCase: UpdateTeamMemberPermissionsUseCase,
     private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
+    private readonly transferTeamPropertiesUseCase: TransferTeamPropertiesUseCase,
     private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
     private readonly getPmLandlordsUseCase: GetPmLandlordsUseCase,
     private readonly getPmPayoutsUseCase: GetPmPayoutsUseCase,
@@ -332,6 +334,12 @@ export class PmPropertyController {
   ) {
     const pmId = await this.getPmId(req);
     return this.updateTeamMemberPermissionsUseCase.execute(pmId, uuid, dto);
+  }
+
+  @Post('team/transfer')
+  async transferTeamProperties(@Req() req: any, @Body() dto: TransferTeamPropertiesDto) {
+    const pmId = await this.getPmId(req);
+    return this.transferTeamPropertiesUseCase.execute(pmId, dto);
   }
 
   @Delete('team/:uuid')

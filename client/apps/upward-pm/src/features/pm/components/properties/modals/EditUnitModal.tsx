@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
-import { X, Building2, CreditCard, Home, Settings, Bell } from 'lucide-react'
+import { CreditCard, Home, Bell } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
 import { useForm } from 'react-hook-form'
 
@@ -12,6 +12,35 @@ interface EditUnitModalProps {
   onSave: (data: any) => void;
   isPending: boolean;
   hasPayments?: boolean;
+}
+
+const CONTROL_HEIGHT = 48
+
+const controlStyle: React.CSSProperties = {
+  fontSize: 13,
+  height: CONTROL_HEIGHT,
+  padding: '0 14px',
+  boxSizing: 'border-box',
+  width: '100%',
+}
+
+function RequiredMark() {
+  return <span style={{ color: 'var(--error)', marginLeft: 2 }}>*</span>
+}
+
+function formatAmountDisplay(value: string | number | undefined | null): string {
+  if (value === undefined || value === null || value === '') return ''
+  const raw = String(value).replace(/[^0-9.]/g, '')
+  if (!raw) return ''
+  const [intPart, decPart] = raw.split('.')
+  const formattedInt = (intPart || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  if (decPart !== undefined) return `${formattedInt}.${decPart.slice(0, 2)}`
+  return formattedInt
+}
+
+function parseAmountValue(value: string | number | undefined | null): number {
+  if (value === undefined || value === null || value === '') return 0
+  return parseFloat(String(value).replace(/,/g, '')) || 0
 }
 
 const getInitialLeaseYears = (unit: any) => {
@@ -27,7 +56,7 @@ const getInitialLeaseYears = (unit: any) => {
 }
 
 export const EditUnitModal: React.FC<EditUnitModalProps> = ({
-  isOpen, onClose, unit, onSave, isPending, hasPayments
+  isOpen, onClose, unit, onSave, isPending
 }) => {
   const { register, handleSubmit, reset, watch, setValue } = useForm({
     defaultValues: {
@@ -35,8 +64,8 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       unitType: unit.unitType || '',
       rentType: unit.rentType || 'Annually',
       currency: unit.currency || 'NGN',
-      rentAmount: unit.rentAmount || 0,
-      managementFee: unit.managementFee || 0,
+      rentAmount: formatAmountDisplay(unit.rentAmount || 0),
+      managementFee: formatAmountDisplay(unit.managementFee || 0),
       rentReminderEnabled: unit.rentReminderEnabled || false,
       rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
       rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
@@ -47,6 +76,11 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
 
   const isReminderEnabled = watch('rentReminderEnabled')
   const hasContactInfo = unit?.tenant ? !!(unit.tenant.email || unit.tenant.phone) : true;
+  const rentType = watch('rentType')
+  const rentStartDate = watch('rentStartDate')
+  const leaseYears = watch('leaseYears')
+  const rentAmount = watch('rentAmount')
+  const managementFee = watch('managementFee')
 
   useEffect(() => {
     if (unit && isOpen) {
@@ -55,24 +89,19 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         unitType: unit.unitType || '',
         rentType: unit.rentType || 'Annually',
         currency: unit.currency || 'NGN',
-        rentAmount: unit.rentAmount || 0,
-        managementFee: unit.managementFee || 0,
+        rentAmount: formatAmountDisplay(unit.rentAmount || 0),
+        managementFee: formatAmountDisplay(unit.managementFee || 0),
         rentReminderEnabled: unit.rentReminderEnabled || false,
         rentReminderDaysBefore: unit.rentReminderDaysBefore || 7,
         rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : '',
         rentDueDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString().split('T')[0] : '',
         leaseYears: (unit as any).leaseYears || getInitialLeaseYears(unit),
       })
-
     }
   }, [unit, isOpen, reset])
 
-  // Auto-calculate Rent Due Date (End Date)
+  // Auto-calculate Rent Due Date (End Date) — still editable afterward
   useEffect(() => {
-    const rentStartDate = watch('rentStartDate')
-    const rentType = watch('rentType')
-    const leaseYears = watch('leaseYears')
-
     if (rentStartDate && rentType) {
       const start = new Date(rentStartDate)
       if (isNaN(start.getTime())) return
@@ -93,15 +122,15 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
         setValue('rentDueDate', formattedEnd, { shouldValidate: true })
       }
     }
-  }, [watch('rentStartDate'), watch('rentType'), watch('leaseYears')])
+  }, [rentStartDate, rentType, leaseYears, setValue, watch])
 
   if (!isOpen) return null;
 
   const onSubmit = (data: any) => {
     const processedData = {
       ...data,
-      rentAmount: Number(data.rentAmount),
-      managementFee: Number(data.managementFee),
+      rentAmount: parseAmountValue(data.rentAmount),
+      managementFee: parseAmountValue(data.managementFee),
       rentReminderDaysBefore: data.rentReminderDaysBefore ? Number(data.rentReminderDaysBefore) : null,
       leaseYears: data.rentType === 'Lease' && data.leaseYears ? Number(data.leaseYears) : undefined,
     }
@@ -132,9 +161,14 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
       <form onSubmit={handleSubmit(onSubmit)} className="edit-unit-form">
         <div className="form-group" style={{ marginBottom: 20 }}>
           <label className="form-label edit-unit-form__label-with-icon">
-            <Home size={14} color="var(--clay)" /> Unit Name
+            <Home size={14} color="var(--clay)" /> Unit Name <RequiredMark />
           </label>
-          <input {...register('unitName', { required: true })} className="form-input" placeholder="e.g. Apartment 4B" />
+          <input
+            {...register('unitName', { required: true })}
+            className="form-input"
+            style={controlStyle}
+            placeholder="e.g. Apartment 4B"
+          />
         </div>
 
         <div className="edit-unit-form__row edit-unit-form__row--2-1">
@@ -170,6 +204,7 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                 { label: 'Block Of Flats', value: 'Block Of Flats' }
               ]}
               placeholder="Select an option"
+              triggerStyle={controlStyle}
             />
           </div>
           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -181,13 +216,22 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                 { label: 'NGN (₦)', value: 'NGN' },
                 { label: 'USD ($)', value: 'USD' }
               ]}
+              triggerStyle={controlStyle}
             />
           </div>
         </div>
 
         <div className="form-group" style={{ marginBottom: 24 }}>
-          <label className="form-label">Management Fee (₦)</label>
-          <input type="number" {...register('managementFee')} className="form-input" placeholder="e.g. 150000" />
+          <label className="form-label">Management Fee ({watch('currency') === 'USD' ? '$' : '₦'})</label>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="form-input"
+            style={controlStyle}
+            placeholder="e.g. 150,000"
+            value={managementFee || ''}
+            onChange={(e) => setValue('managementFee', formatAmountDisplay(e.target.value), { shouldValidate: true })}
+          />
         </div>
 
         <div className="edit-unit-form__section">
@@ -199,24 +243,40 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
           <div className={`edit-unit-form__row edit-unit-form__row--${watch('rentType') === 'Lease' ? '3-col' : '2-col'}`}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Rent Amount ({watch('currency') === 'USD' ? '$' : '₦'})</label>
-              <input type="number" {...register('rentAmount')} className="form-input" />
+              <input
+                type="text"
+                inputMode="decimal"
+                className="form-input"
+                style={controlStyle}
+                placeholder="e.g. 1,500,000"
+                value={rentAmount || ''}
+                onChange={(e) => setValue('rentAmount', formatAmountDisplay(e.target.value), { shouldValidate: true })}
+              />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Rent Type</label>
               <FormSelect
-                value={watch('rentType') || 'Annually'}
+                value={rentType || 'Annually'}
                 onChange={val => setValue('rentType', val, { shouldValidate: true })}
                 options={[
                   { label: 'Annually', value: 'Annually' },
                   { label: 'Monthly', value: 'Monthly' },
                   { label: 'Lease', value: 'Lease' }
                 ]}
+                triggerStyle={controlStyle}
               />
             </div>
-            {watch('rentType') === 'Lease' && (
+            {rentType === 'Lease' && (
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label">Lease Years</label>
-                <input type="number" {...register('leaseYears')} className="form-input" placeholder="e.g. 5" min="1" />
+                <input
+                  type="number"
+                  {...register('leaseYears')}
+                  className="form-input"
+                  style={controlStyle}
+                  placeholder="e.g. 5"
+                  min="1"
+                />
               </div>
             )}
           </div>
@@ -228,17 +288,21 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                 type="date"
                 {...register('rentStartDate')}
                 className="form-input"
+                style={controlStyle}
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Rent End Date (Auto-calculated)</label>
+              <label className="form-label">Rent End Date</label>
               <input
                 type="date"
-                readOnly
                 {...register('rentDueDate')}
-                className="form-input form-input--readonly"
-                title="Auto-calculated based on rent start date and cycle"
+                className="form-input"
+                style={controlStyle}
+                title="Auto-filled from start date and cycle — you can edit if needed"
               />
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                Auto-filled from start date and cycle. Edit if needed.
+              </p>
             </div>
           </div>
         </div>

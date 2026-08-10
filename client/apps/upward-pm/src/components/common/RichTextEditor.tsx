@@ -12,6 +12,9 @@ interface RichTextEditorProps {
   menubar?: boolean
   toolbar?: string
   disabled?: boolean
+  /** Optional document context so managers can insert company signatures. */
+  unitUuid?: string
+  tenantUuid?: string
 }
 
 export function RichTextEditor({
@@ -21,9 +24,13 @@ export function RichTextEditor({
   placeholder = 'Start typing...',
   menubar = true,
   toolbar,
-  disabled = false
+  disabled = false,
+  unitUuid,
+  tenantUuid,
 }: RichTextEditorProps) {
   const editorRef = useRef<any>(null)
+  const contextRef = useRef({ unitUuid, tenantUuid })
+  contextRef.current = { unitUuid, tenantUuid }
 
   const defaultToolbar = 'undo redo | blocks fontfamily fontsize | ' +
     'bold italic forecolor | alignleft aligncenter ' +
@@ -123,9 +130,18 @@ export function RichTextEditor({
               icon: 'signature',
               onAction: async () => {
                 try {
-                  const signatures = await api.fetchSignatures()
-                  if (!signatures || signatures.length === 0) {
-                    editor.windowManager.alert('No signatures found. Please configure them in Settings -> Branding.')
+                  const { unitUuid: ctxUnit, tenantUuid: ctxTenant } = contextRef.current
+                  const context = await api.getDocumentSignatureContext({
+                    unitUuid: ctxUnit,
+                    tenantUuid: ctxTenant,
+                  })
+                  const signatures = context?.signatures || []
+                  if (!signatures.length) {
+                    editor.windowManager.alert(
+                      context?.source === 'company' || context?.source === 'none'
+                        ? 'No company signatures found. Ask your admin to configure them in Branding.'
+                        : 'No signatures found. Please configure them in Settings -> Branding.'
+                    )
                     return
                   }
 

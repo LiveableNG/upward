@@ -121,11 +121,23 @@ export function DocumentEditorView({
   const { sendTemplateToVault } = useVaultActions()
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
   const { updateTenant } = useTenantActions()
-  const { data: letterheads = [] } = useQuery<any[]>({
-    queryKey: ['letterheads'],
-    queryFn: () => api.fetchLetterheads()
+  const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
+  const contextUnitUuid =
+    unitUuid ||
+    selectedTenant?.units?.find((u: any) => u.uuid === unitUuid)?.uuid ||
+    selectedTenant?.units?.[0]?.uuid
+
+  const { data: letterheadContext } = useQuery({
+    queryKey: ['letterhead-document-context', contextUnitUuid, selectedTenantUuid],
+    queryFn: () =>
+      api.getDocumentLetterheadContext({
+        unitUuid: contextUnitUuid,
+        tenantUuid: selectedTenantUuid || undefined,
+      }),
   })
-  const hasLetterhead = letterheads.length > 0 || !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
+  const hasLetterhead = !!letterheadContext?.hasLetterhead
+  const letterheadHeaderUrl = letterheadContext?.letterheadHeaderUrl || null
+  const letterheadFooterUrl = letterheadContext?.letterheadFooterUrl || null
 
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
@@ -384,8 +396,6 @@ export function DocumentEditorView({
       }
     }
   }, [previewPdfUrl])
-
-  const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
 
   useEffect(() => {
     if (selectedTenant) {
@@ -1189,9 +1199,9 @@ export function DocumentEditorView({
                       lineHeight: 1.6
                     }}>
                       {/* Header Letterhead */}
-                      {includeLetterhead && user?.letterheadHeaderUrl && (
+                      {includeLetterhead && letterheadHeaderUrl && (
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-                          <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
+                          <img src={letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
                         </div>
                       )}
 
@@ -1233,9 +1243,9 @@ export function DocumentEditorView({
                       />
 
                       {/* Footer Letterhead */}
-                      {includeLetterhead && user?.letterheadFooterUrl && (
+                      {includeLetterhead && letterheadFooterUrl && (
                         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                          <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
+                          <img src={letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
                         </div>
                       )}
                     </div>
@@ -1248,6 +1258,8 @@ export function DocumentEditorView({
                     value={content}
                     onChange={(newContent) => setContent(newContent)}
                     height="100%"
+                    unitUuid={contextUnitUuid}
+                    tenantUuid={selectedTenantUuid || undefined}
                   />
                 </div>
               )}
