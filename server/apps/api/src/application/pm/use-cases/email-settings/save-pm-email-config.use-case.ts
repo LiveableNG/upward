@@ -14,6 +14,7 @@ interface SavePmEmailConfigDto {
   defaultFontFamily?: string | null
   defaultFontSize?: string | null
   defaultLineHeight?: string | null
+  provider?: string | null
 }
 
 @Injectable()
@@ -27,7 +28,7 @@ export class SavePmEmailConfigUseCase {
 
     if (!pm) throw new BadRequestException('Property manager not found')
 
-    const data = {
+    const data: any = {
       senderName: dto.senderName || null,
       senderEmail: dto.senderEmail || null,
       logoUrl: dto.logoUrl || null,
@@ -40,6 +41,13 @@ export class SavePmEmailConfigUseCase {
       defaultFontFamily: dto.defaultFontFamily || null,
       defaultFontSize: dto.defaultFontSize || null,
       defaultLineHeight: dto.defaultLineHeight || null,
+    }
+
+    if (dto.provider) {
+      data.provider = dto.provider
+      if (dto.provider === 'platform-sender') {
+        data.isVerified = true
+      }
     }
 
     const settings = await this.prisma.upward_pm_email_setting.upsert({
