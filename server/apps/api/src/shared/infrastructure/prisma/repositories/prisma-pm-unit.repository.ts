@@ -266,7 +266,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     return this.prisma.upward_pm_rent_payment.create({
       data: {
         ...data,
-        unitId: unit.id
+        unitId: unit.id,
+        rentAmountAtPayment: data.rentAmountAtPayment !== undefined ? data.rentAmountAtPayment : unit.rentAmount
       }
     });
   }
