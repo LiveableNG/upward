@@ -627,6 +627,9 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
           max-width: 1440px;
           margin: 0 auto;
         }
+        .document-management :global(.upward-table-container) {
+          min-height: 220px;
+        }
         .document-management__header {
           display: flex;
           justify-content: space-between;
