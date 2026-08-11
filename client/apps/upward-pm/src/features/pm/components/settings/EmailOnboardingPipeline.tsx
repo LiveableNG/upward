@@ -182,7 +182,7 @@ export function EmailOnboardingPipeline() {
 
   useEffect(() => {
     if (selectedProvider === 'platform-sender') {
-      setSenderEmail('hello@upward.com')
+      setSenderEmail('replyupward@goodtenants.io')
     }
   }, [selectedProvider])
 
