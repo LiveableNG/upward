@@ -9,6 +9,7 @@ import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
+import { EmailSettingsTab } from '@/features/pm/components/settings/EmailSettingsTab'
 import { ListSkeleton } from '@/components/skeletons'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -16,7 +17,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 
 const MEMBER_TABS = new Set(['profile', 'security', 'feedback'])
-const COMPANY_TABS = new Set(['payment', 'import', 'team', 'branding'])
+const COMPANY_TABS = new Set(['payment', 'import', 'team', 'branding', 'email'])
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -86,6 +87,7 @@ function SettingsContent() {
           { id: 'import', label: 'Bulk Import' },
           { id: 'team', label: 'Team' },
           { id: 'branding', label: 'Branding' },
+          { id: 'email', label: 'Email' },
         ]
       : []),
     { id: 'feedback', label: 'Feedback' },
@@ -145,6 +147,7 @@ function SettingsContent() {
         {canManageCompanySettings && activeTab === 'import' && <DataImportTab />}
         {canManageCompanySettings && activeTab === 'team' && <TeamTab />}
         {canManageCompanySettings && activeTab === 'branding' && <BrandingTab />}
+        {canManageCompanySettings && activeTab === 'email' && <EmailSettingsTab />}
         {activeTab === 'feedback' && <FeedbackTab />}
       </div>
     </div>

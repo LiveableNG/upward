@@ -335,8 +335,8 @@ model upward_pm_verification {
 model upward_pm_email_setting {
   id                Int                     @id @default(autoincrement())
   pmId              Int                     @unique
-  senderName        String
-  senderEmail       String
+  senderName        String?
+  senderEmail       String?
   logoUrl           String?
   footerAddress     String?
   cc                String?                 // Comma-separated email addresses
@@ -344,6 +344,23 @@ model upward_pm_email_setting {
   closingStatement  String?
   domain            String?
   isVerified        Boolean                 @default(false)
+  
+  provider                  String?
+  office365Config           Json?
+  office365SecretExpiresAt  DateTime?
+  gmailOauthConfig          Json?
+  zohoConfig                Json?
+  smtpEmail                 String?
+  smtpPassword              String?
+  emailSignature            String?
+  useEmailSignature         Boolean                 @default(true)
+  defaultFontFamily         String?
+  defaultFontSize           String?
+  defaultLineHeight         String?
+  sendTestEmail             Boolean                 @default(false)
+  enableMailbox             Boolean                 @default(false)
+  enableReplyTo             Boolean                 @default(false)
+
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   pm                upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)

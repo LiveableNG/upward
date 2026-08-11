@@ -9,6 +9,11 @@ interface SavePmEmailConfigDto {
   cc?: string | null
   bcc?: string | null
   closingStatement?: string | null
+  emailSignature?: string | null
+  useEmailSignature?: boolean
+  defaultFontFamily?: string | null
+  defaultFontSize?: string | null
+  defaultLineHeight?: string | null
 }
 
 @Injectable()
@@ -23,13 +28,18 @@ export class SavePmEmailConfigUseCase {
     if (!pm) throw new BadRequestException('Property manager not found')
 
     const data = {
-      senderName: dto.senderName || '',
-      senderEmail: dto.senderEmail || '',
+      senderName: dto.senderName || null,
+      senderEmail: dto.senderEmail || null,
       logoUrl: dto.logoUrl || null,
       footerAddress: dto.footerAddress || null,
       cc: dto.cc || null,
       bcc: dto.bcc || null,
       closingStatement: dto.closingStatement || null,
+      emailSignature: dto.emailSignature || null,
+      useEmailSignature: dto.useEmailSignature ?? true,
+      defaultFontFamily: dto.defaultFontFamily || null,
+      defaultFontSize: dto.defaultFontSize || null,
+      defaultLineHeight: dto.defaultLineHeight || null,
     }
 
     const settings = await this.prisma.upward_pm_email_setting.upsert({

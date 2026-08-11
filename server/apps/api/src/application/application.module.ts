@@ -297,6 +297,9 @@ import {
   CreatePmEmailDomainUseCase,
   VerifyPmEmailDomainUseCase,
   SendPmTestEmailUseCase,
+  VerifyPmOffice365ConfigUseCase,
+  VerifyPmGmailConfigUseCase,
+  VerifyPmOauthConfigUseCase,
 } from './pm/use-cases/email-settings'
 
 import {
@@ -715,6 +718,9 @@ const UseCases = [
   CreatePmEmailDomainUseCase,
   VerifyPmEmailDomainUseCase,
   SendPmTestEmailUseCase,
+  VerifyPmOffice365ConfigUseCase,
+  VerifyPmGmailConfigUseCase,
+  VerifyPmOauthConfigUseCase,
   GetDocumentPdfUseCase,
   GetSignatureImageUseCase,
   GetPublicAssetUseCase,

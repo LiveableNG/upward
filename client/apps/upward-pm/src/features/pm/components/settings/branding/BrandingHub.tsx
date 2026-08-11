@@ -10,7 +10,7 @@ import { useLetterheads, useSignatures } from './branding.hooks'
 import { EmailSettingsTab } from '../EmailSettingsTab'
 import { ReceiptSettingsTab } from './ReceiptSettingsTab'
 
-type Section = 'overview' | 'sender-identity' | 'receipt-settings' | 'letterheads' | 'signatures' | 'domains' | 'defaults'
+type Section = 'overview' | 'receipt-settings' | 'letterheads' | 'signatures' | 'defaults'
 
 interface NavItem {
   key: Section
@@ -31,13 +31,6 @@ const NAV_GROUPS: NavGroup[] = [
       { key: 'receipt-settings', label: 'Receipt Branding', icon: <FileText size={16} /> },
       { key: 'letterheads', label: 'Letterheads', icon: <FileText size={16} /> },
       { key: 'signatures', label: 'Signatures', icon: <PenTool size={16} /> },
-    ]
-  },
-  {
-    title: 'Email',
-    items: [
-      { key: 'sender-identity', label: 'Sender Identity', icon: <Mail size={16} /> },
-      { key: 'domains', label: 'Domains', icon: <Globe size={16} /> },
     ]
   },
   {
@@ -117,8 +110,6 @@ export function BrandingHub() {
             onNavigate={(section) => setActiveSection(section as Section)}
           />
         )}
-        {activeSection === 'sender-identity' && <EmailSettingsTab mode="sender" />}
-        {activeSection === 'domains' && <EmailSettingsTab mode="domain" />}
         {activeSection === 'receipt-settings' && <ReceiptSettingsTab />}
         {activeSection === 'letterheads' && <LetterheadManager />}
         {activeSection === 'signatures' && <SignatureManager />}
