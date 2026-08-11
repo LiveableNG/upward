@@ -157,8 +157,19 @@ export class EmailService {
     let replyTo = replyToOverride || this.replyToEmail
     let brandedHtml = html
 
+    const upperType = type.toUpperCase()
+    const isPlatformSpecial = upperType.includes('OTP') || upperType.includes('ADMIN') || upperType === 'CUSTOMER_SUPPORT' || upperType === 'SYSTEM_ALERT'
+
+    if (isPlatformSpecial) {
+      if (upperType.includes('OTP')) {
+        from = `"Upward" <noreplyupward@goodtenants.io>`
+      } else {
+        from = `"Upward Admin" <upwardadmin@goodtenants.io>`
+      }
+    }
+
     const targetPmUuid = pmUuid || userId
-    if (targetPmUuid) {
+    if (targetPmUuid && !isPlatformSpecial) {
       const pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: targetPmUuid },
         include: { emailSetting: true },

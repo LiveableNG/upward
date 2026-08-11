@@ -252,7 +252,7 @@ export function StepAmount({
     setExtraLineItems(newItems)
   }
 
-  const canProceed = resolvedAmount >= 1000
+  const canProceed = resolvedAmount > 0
 
   const resolvedLineItems = [
     { label: 'Rent', amount: rentAmount },
