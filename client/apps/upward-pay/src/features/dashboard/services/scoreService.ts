@@ -15,6 +15,7 @@ export interface ScoreProfile {
       totalCycles: number
       historyYears: number
       discipline: number
+      savingsBonus?: number
     }
     profile: {
       name: string

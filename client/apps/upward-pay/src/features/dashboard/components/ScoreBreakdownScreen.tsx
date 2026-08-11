@@ -61,9 +61,10 @@ export function ScoreBreakdownScreen() {
 
   const scoreFactors = [
     { label: 'Payment Timeliness', value: `${Math.round(metrics.ptPercentage)}%`, icon: Clock, desc: 'How often you pay on or before the due date.' },
-    { label: 'Payment Consistency', value: `${metrics.longestStreak} mo`, icon: Flame, desc: 'Your longest continuous streak of on-time months.' },
+    { label: 'Payment Consistency', value: `${metrics.longestStreak} cycles`, icon: Flame, desc: 'Your longest continuous streak of on-time rent cycles.' },
     { label: 'Financial Discipline', value: `${Math.round(metrics.discipline)}%`, icon: Target, desc: 'The ratio of full payments vs partial payments.' },
     { label: 'Tenure', value: `${metrics.historyYears} yrs`, icon: History, desc: 'Length of your verified rent payment history.' },
+    { label: 'Savings Bonus', value: `+${metrics.savingsBonus || 0} pts`, icon: TrendingUp, desc: 'Bonus points awarded for your rent preparation savings.' },
   ]
 
   return (
@@ -105,8 +106,8 @@ export function ScoreBreakdownScreen() {
               </div>
             ) : null}
             <p>
-              Your score reflects payment timeliness, consistency, discipline, and tenancy history.
-              Every recorded cycle can improve or reduce this rating.
+              Your score reflects payment timeliness, consistency, discipline, tenancy history, and rent savings habits.
+              Every recorded cycle and savings deposit can improve this rating.
             </p>
           </div>
         </section>

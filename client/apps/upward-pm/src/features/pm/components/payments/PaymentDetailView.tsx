@@ -339,15 +339,17 @@ export const PaymentDetailView: React.FC = () => {
                         <div>
                           <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>EMAIL</span>
                           <span style={{ fontWeight: 500, fontSize: 13, color: '#5D5954' }}>
-                            {request.tenant.email}
+                            {request.tenant.email?.endsWith('@upward.com') ? 'N/A' : request.tenant.email}
                           </span>
                         </div>
                         
                         {/* Instant messaging / quick action shortcuts */}
                         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                          <a href={`mailto:${request.tenant.email}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
-                            <Mail size={12} /> Email
-                          </a>
+                          {request.tenant.email && !request.tenant.email.endsWith('@upward.com') && (
+                            <a href={`mailto:${request.tenant.email}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
+                              <Mail size={12} /> Email
+                            </a>
+                          )}
                           {request.tenant.phone && (
                             <a href={`tel:${request.tenant.phone}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
                               <Phone size={12} /> Call

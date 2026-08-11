@@ -8,7 +8,8 @@
     "start": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "type-check": "tsc --noEmit",
-    "test": "jest --passWithNoTests",
+    "test": "jest --testPathIgnorePatterns=integration --passWithNoTests",
+    "test:integration": "jest --config jest-integration.json --runInBand --passWithNoTests",
     "prisma:generate": "prisma generate --schema=prisma/schema",
     "postinstall": "prisma generate --schema=prisma/schema",
     "db:seed": "prisma db seed --schema=prisma/schema"
@@ -23,6 +24,7 @@
       "ts"
     ],
     "rootDir": ".",
+    "setupFiles": ["<rootDir>/test/helpers/setup-env.ts"],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"

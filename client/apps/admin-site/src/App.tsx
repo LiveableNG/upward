@@ -32,6 +32,7 @@ import WhatsappSequences from './pages/WhatsappSequences'
 import EmailSequences from './pages/EmailSequences'
 import { BulkImportQueue } from './pages/BulkImportQueue'
 import { BulkImportDetail } from './pages/BulkImportDetail'
+import DemoRequests from './pages/DemoRequests'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -102,6 +103,7 @@ function AppRoutes() {
           <Route path="/area-price-guide" element={<AreaPriceGuide token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
+          <Route path="/demo-requests" element={<DemoRequests token={auth.token} />} />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}

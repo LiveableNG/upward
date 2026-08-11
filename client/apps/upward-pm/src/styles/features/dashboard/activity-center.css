@@ -51,13 +51,6 @@
   gap: var(--space-4);
   flex: 1;
   min-width: 380px;
-  background-image: repeating-radial-gradient(
-    circle at 0 0, 
-    transparent 0, 
-    var(--surface) 10px, 
-    transparent 10px, 
-    rgba(0, 0, 0, 0.02) 11px
-  );
   background-size: 100% 100%;
 }
 
@@ -112,7 +105,6 @@
 }
 .action-card--warning {
   border-left: 4px solid var(--error, #ef4444);
-  background-color: rgba(239, 68, 68, 0.02);
 }
 .action-card--warning .action-card__icon {
   color: var(--error, #ef4444);
@@ -213,7 +205,6 @@
 }
 
 .animate-beam-warning {
-  animation: beamWarning 3s infinite ease-in-out;
   border-color: rgba(239, 68, 68, 0.3);
 }
 

@@ -4,8 +4,6 @@ import {
   Search,
   Trash2,
   RefreshCcw,
-  Clock,
-  User,
   ArrowLeft,
   ArrowRight,
   Eye,
@@ -18,6 +16,7 @@ import { apiService } from '../services/api.service'
 interface DevEmail {
   id: number
   uuid: string
+  from?: string | null
   to: string
   cc?: string | null
   bcc?: string | null
@@ -262,6 +261,14 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
             ) : (
               emails.map((email) => {
                 const isSelected = selectedEmail?.uuid === email.uuid
+                
+                // Extract name from "Name <email@domain.com>" or just use the email
+                const rawFrom = email.from || 'System Default'
+                let fromName = rawFrom
+                if (rawFrom.includes('<')) {
+                  fromName = rawFrom.split('<')[0].replace(/"/g, '').trim()
+                }
+
                 return (
                   <div
                     key={email.id}
@@ -279,18 +286,18 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? 'var(--accent)' : 'var(--text-dark)' }}>
-                        {email.to}
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: isSelected ? 'var(--accent)' : 'var(--text-dark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: '8px' }}>
+                        {fromName}
                       </span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0 }}>
                         {new Date(email.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-dark)', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {email.subject}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {new Date(email.createdAt).toLocaleDateString()}
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      To: {email.to}
                     </div>
                   </div>
                 )
@@ -348,102 +355,116 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
         >
           {selectedEmail ? (
             <>
-              {/* Preview Header Metadata */}
+              {/* Preview Header Metadata (Gmail Style) */}
               <div
                 style={{
-                  padding: '20px 24px',
+                  padding: '24px 32px',
                   borderBottom: '1px solid var(--border)',
-                  background: 'var(--surface)',
+                  background: 'var(--white)',
                   display: 'flex',
                   flexDirection: isMobile ? 'column' : 'row',
                   justifyContent: 'space-between',
                   alignItems: isMobile ? 'stretch' : 'flex-start',
-                  gap: isMobile ? '12px' : '0',
+                  gap: isMobile ? '16px' : '0',
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <User size={16} color="var(--text-muted)" />
-                    <span style={{ fontSize: '14px', fontWeight: 600 }}>To:</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{selectedEmail.to}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FileText size={16} color="var(--text-muted)" />
-                    <span style={{ fontSize: '14px', fontWeight: 600 }}>Subject:</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700 }}>{selectedEmail.subject}</span>
-                  </div>
-                  {selectedEmail.cc ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 600 }}>CC:</span>
-                      <span style={{ fontSize: '14px', fontWeight: 700 }}>{selectedEmail.cc}</span>
-                    </div>
-                  ) : null}
-                  {selectedEmail.bcc ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 600 }}>BCC:</span>
-                      <span style={{ fontSize: '14px', fontWeight: 700 }}>{selectedEmail.bcc}</span>
-                    </div>
-                  ) : null}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Clock size={16} color="var(--text-muted)" />
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Captured on: {new Date(selectedEmail.createdAt).toLocaleString()}
-                    </span>
-                  </div>
+                <div style={{ display: 'flex', gap: '16px', flex: 1 }}>
+                  {/* Sender Avatar */}
+                  {(() => {
+                    const rawFrom = selectedEmail.from || 'System Default'
+                    let initial = 'S'
+                    if (rawFrom.includes('<')) {
+                      const namePart = rawFrom.split('<')[0].replace(/"/g, '').trim()
+                      initial = namePart ? namePart.charAt(0).toUpperCase() : 'S'
+                    } else {
+                      initial = rawFrom.charAt(0).toUpperCase()
+                    }
+                    
+                    // Simple hash for consistent colors
+                    const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399', '#22d3ee', '#818cf8', '#c084fc', '#f472b6']
+                    const colorIndex = initial.charCodeAt(0) % colors.length
+                    const bgColor = colors[colorIndex]
 
-                  {selectedEmail.attachments && Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 && (
-                    <div
-                      style={{
+                    return (
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: bgColor,
+                        color: 'white',
                         display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                        marginTop: '12px',
-                        paddingTop: '12px',
-                        borderTop: '1px dashed var(--border)',
-                      }}
-                    >
-                      <span
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        fontWeight: 600,
+                        flexShrink: 0
+                      }}>
+                        {initial}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Header Details */}
+                  <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                      <h2 style={{ fontSize: '20px', fontWeight: 600, margin: 0, color: 'var(--text-dark)', lineHeight: 1.2 }}>
+                        {selectedEmail.subject}
+                      </h2>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', flexShrink: 0, marginLeft: '16px' }}>
+                        {new Date(selectedEmail.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    
+                    <div style={{ fontSize: '14px', color: 'var(--text-dark)', fontWeight: 500, marginBottom: '2px' }}>
+                      {selectedEmail.from || 'System Default'}
+                    </div>
+                    
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div><span style={{ fontWeight: 500 }}>To:</span> {selectedEmail.to}</div>
+                      {selectedEmail.cc && <div><span style={{ fontWeight: 500 }}>CC:</span> {selectedEmail.cc}</div>}
+                      {selectedEmail.bcc && <div><span style={{ fontWeight: 500 }}>BCC:</span> {selectedEmail.bcc}</div>}
+                    </div>
+
+                    {/* Attachments */}
+                    {selectedEmail.attachments && Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 && (
+                      <div
                         style={{
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          color: 'var(--text-muted)',
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          width: '100%',
+                          flexWrap: 'wrap',
+                          gap: '8px',
+                          marginTop: '16px',
                         }}
                       >
-                        <Paperclip size={14} /> Attachments ({selectedEmail.attachments.length})
-                      </span>
-                      {selectedEmail.attachments.map((att, idx) => (
-                        <a
-                          key={idx}
-                          href={att.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '6px 12px',
-                            background: 'var(--white)',
-                            border: '1px solid var(--border)',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            color: 'var(--accent)',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                            transition: 'all 0.2s',
-                          }}
-                        >
-                          <FileText size={14} />
-                          <span>{att.filename}</span>
-                          <Download size={12} style={{ marginLeft: '4px', opacity: 0.7 }} />
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                        {selectedEmail.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 12px',
+                              background: 'var(--surface)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              color: 'var(--accent)',
+                              fontWeight: 600,
+                              textDecoration: 'none',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            <Paperclip size={14} />
+                            <span>{att.filename}</span>
+                            <Download size={12} style={{ marginLeft: '4px', opacity: 0.7 }} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* View Mode Toggle */}

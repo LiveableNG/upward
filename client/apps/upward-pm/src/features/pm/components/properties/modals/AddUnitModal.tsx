@@ -38,11 +38,25 @@ interface AddUnitModalProps {
   setFormData: (data: any) => void;
 }
 
+const CONTROL_HEIGHT = 48
+
+const controlStyle: React.CSSProperties = {
+  fontSize: 13,
+  height: CONTROL_HEIGHT,
+  padding: '0 14px',
+  boxSizing: 'border-box',
+}
+
+function RequiredMark() {
+  return <span style={{ color: 'var(--error)', marginLeft: 2 }}>*</span>
+}
+
 export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   isOpen, onClose, onSave, isPending, properties, targetPropertyUuid, setTargetPropertyUuid, formData, setFormData
 }) => {
   const { data: tenants = [] } = useTenants()
   const [tenantMode, setTenantMode] = React.useState<'NONE' | 'NEW' | 'EXISTING'>('NONE')
+  const [attemptedSave, setAttemptedSave] = React.useState(false)
 
   // Auto-calculate Rent Due Date (End Date)
   React.useEffect(() => {
@@ -72,6 +86,10 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
     }
   }, [formData.rentStartDate, formData.rentType, formData.leaseYears, formData.rentDueDate, setFormData])
 
+  React.useEffect(() => {
+    if (!isOpen) setAttemptedSave(false)
+  }, [isOpen])
+
   if (!isOpen) return null;
 
   const phoneError = formData.tenantPhone && !isValidPhoneNumber(formData.tenantPhone)
@@ -89,10 +107,23 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
 
   const hasTenant = tenantMode !== 'NONE'
   
-  // Validation for Rent Fields (Required if tenant is assigned)
   const rentFieldsError = hasTenant && (!formData.rentAmount || !formData.rentType || !formData.rentStartDate || !formData.rentDueDate || (formData.rentType === 'Lease' && (!formData.leaseYears || parseInt(String(formData.leaseYears), 10) < 1)))
 
   const isInvalid = !!phoneError || !!emailError || isDuplicateUnit || !formData.unitName || !targetPropertyUuid || (hasTenant && rentFieldsError)
+
+  const missingRequired: string[] = []
+  if (!targetPropertyUuid) missingRequired.push('Property')
+  if (!formData.unitName.trim()) missingRequired.push('Unit name')
+  if (hasTenant) {
+    if (!formData.rentAmount) missingRequired.push('Rent amount')
+    if (!formData.rentType) missingRequired.push('Rent cycle')
+    if (!formData.rentStartDate) missingRequired.push('Start date')
+    if (formData.rentType === 'Lease' && (!formData.leaseYears || parseInt(String(formData.leaseYears), 10) < 1)) {
+      missingRequired.push('Lease years')
+    }
+  }
+
+  const showFieldError = (missing: boolean) => attemptedSave && missing
 
   const handleToggleTenantMode = (mode: 'NONE' | 'NEW' | 'EXISTING') => {
     setTenantMode(mode === tenantMode ? 'NONE' : mode)
@@ -111,9 +142,14 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             rentDueDate: ''
         })
     } else {
-        // Set default amount paid to 0 if assigning tenant
         setFormData({ ...formData, rentAmountPaid: '0', isFullyPaid: true })
     }
+  }
+
+  const handleSaveClick = () => {
+    setAttemptedSave(true)
+    if (isInvalid) return
+    onSave()
   }
 
   return (
@@ -124,18 +160,25 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
       subtitle="Register a unit to your property portfolio."
       maxWidth={640}
       footer={
-        <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-          <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
-            Cancel
-          </button>
-          <button 
-            className="btn btn--primary" 
-            style={{ flex: 1, fontSize: 13 }} 
-            onClick={onSave} 
-            disabled={isPending || isInvalid}
-          >
-            {isPending ? 'Saving...' : 'Save Unit'}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+          {attemptedSave && missingRequired.length > 0 && (
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--error)', textAlign: 'center' }}>
+              Required: {missingRequired.join(', ')}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button className="btn btn--secondary" style={{ flex: 1, fontSize: 13 }} onClick={onClose}>
+              Cancel
+            </button>
+            <button 
+              className="btn btn--primary" 
+              style={{ flex: 1, fontSize: 13 }} 
+              onClick={handleSaveClick} 
+              disabled={isPending || (attemptedSave && isInvalid)}
+            >
+              {isPending ? 'Saving...' : 'Save Unit'}
+            </button>
+          </div>
         </div>
       }
     >
@@ -149,27 +192,28 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label" style={{ fontSize: 11 }}>Select Target Property</label>
+            <label className="form-label" style={{ fontSize: 11 }}>
+              Select Target Property <RequiredMark />
+            </label>
             <FormSelect
               value={targetPropertyUuid}
               onChange={setTargetPropertyUuid}
               options={properties.map(p => ({ label: p.name, value: p.uuid }))}
               placeholder="-- Choose Property --"
+              triggerClassName={cn(showFieldError(!targetPropertyUuid) && 'form-input--error')}
+              triggerStyle={controlStyle}
             />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="form-group">
-              <label className="form-label" style={{ fontSize: 11 }}>Unit Name / Number</label>
+              <label className="form-label" style={{ fontSize: 11 }}>
+                Unit Name / Number <RequiredMark />
+              </label>
               <input
                 type="text"
-                className="form-input"
-                style={{ 
-                  fontSize: 13, 
-                  padding: '10px 14px',
-                  borderColor: isDuplicateUnit ? 'var(--error)' : undefined,
-                  background: isDuplicateUnit ? 'var(--error-bg)' : undefined
-                }}
+                className={cn('form-input', (isDuplicateUnit || showFieldError(!formData.unitName.trim())) && 'form-input--error')}
+                style={controlStyle}
                 placeholder="e.g. Apt 4B"
                 value={formData.unitName}
                 onChange={e => setFormData({ ...formData, unitName: e.target.value })}
@@ -192,6 +236,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                   { label: 'Office Space', value: 'Office Space' }
                 ]}
                 placeholder="Select Type"
+                triggerStyle={controlStyle}
               />
             </div>
           </div>
@@ -201,7 +246,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
             <input
               type="number"
               className="form-input"
-              style={{ fontSize: 13, padding: '10px 14px' }}
+              style={controlStyle}
               placeholder="e.g. 150000"
               value={formData.managementFee}
               onChange={e => setFormData({ ...formData, managementFee: e.target.value })}
@@ -262,6 +307,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     }}
                     options={tenants.map(t => ({ label: `${t.firstName} ${t.lastName} (${t.email})`, value: t.uuid }))}
                     placeholder="-- Choose Tenant --"
+                    triggerStyle={controlStyle}
                   />
                 </div>
               ) : (
@@ -271,7 +317,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     <input
                       type="text"
                       className="form-input"
-                      style={{ fontSize: 13, padding: '10px 14px' }}
+                      style={controlStyle}
                       placeholder="John"
                       value={formData.tenantFirstName}
                       onChange={e => setFormData({ ...formData, tenantFirstName: e.target.value })}
@@ -282,7 +328,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     <input
                       type="text"
                       className="form-input"
-                      style={{ fontSize: 13, padding: '10px 14px' }}
+                      style={controlStyle}
                       placeholder="Doe"
                       value={formData.tenantLastName}
                       onChange={e => setFormData({ ...formData, tenantLastName: e.target.value })}
@@ -293,7 +339,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     <input
                       type="email"
                       className="form-input"
-                      style={{ fontSize: 13, padding: '10px 14px' }}
+                      style={controlStyle}
                       placeholder="john@example.com"
                       value={formData.tenantEmail}
                       onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
@@ -306,33 +352,42 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     onValueChange={(val) => setFormData({ ...formData, tenantPhone: val })}
                     placeholder="e.g. +234..."
                     error={phoneError}
+                    style={controlStyle}
                   />
                 </div>
               )}
 
-              {/* Repositioned Rent Details (Shown only with tenant) */}
               <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
                 <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                     <CreditCard size={14} color="var(--forest)" />
-                    <h5 style={{ fontSize: 11, fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Rent Configuration</h5>
+                    <h5 style={{ fontSize: 11, fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Rent Configuration <RequiredMark />
+                    </h5>
                 </div>
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 12px' }}>
+                  Required when a tenant is assigned.
+                </p>
 
                 <div style={{ display: 'grid', gridTemplateColumns: formData.rentType === 'Lease' ? '1fr 1fr 1fr' : '1fr 1fr', gap: 12 }}>
                   <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11 }}>Rent Amount (₦)</label>
+                    <label className="form-label" style={{ fontSize: 11 }}>
+                      Rent Amount (₦) <RequiredMark />
+                    </label>
                     <input
                       type="number"
-                      className={cn("form-input", !formData.rentAmount && "form-input--error")}
-                      style={{ fontSize: 13, padding: '10px 14px' }}
-                      placeholder="Required"
+                      className={cn('form-input', showFieldError(!formData.rentAmount) && 'form-input--error')}
+                      style={controlStyle}
+                      placeholder="e.g. 500000"
                       value={formData.rentAmount}
                       onChange={e => setFormData({ ...formData, rentAmount: e.target.value })}
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11 }}>Rent Cycle</label>
+                    <label className="form-label" style={{ fontSize: 11 }}>
+                      Rent Cycle <RequiredMark />
+                    </label>
                     <FormSelect
-                      className={cn(!formData.rentType && "form-input--error")}
+                      triggerClassName={cn(showFieldError(!formData.rentType) && 'form-input--error')}
                       value={formData.rentType}
                       onChange={val => setFormData({ ...formData, rentType: val })}
                       options={[
@@ -341,16 +396,22 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                         { label: 'Lease', value: 'Lease' }
                       ]}
                       placeholder="Select Rent Cycle"
+                      triggerStyle={controlStyle}
                     />
                   </div>
                   {formData.rentType === 'Lease' && (
                     <div className="form-group">
-                      <label className="form-label" style={{ fontSize: 11 }}>Lease Years</label>
+                      <label className="form-label" style={{ fontSize: 11 }}>
+                        Lease Years <RequiredMark />
+                      </label>
                       <input
                         type="number"
                         min="1"
-                        className={cn("form-input", (!formData.leaseYears || parseInt(String(formData.leaseYears), 10) < 1) && "form-input--error")}
-                        style={{ fontSize: 13, padding: '10px 14px' }}
+                        className={cn(
+                          'form-input',
+                          showFieldError(!formData.leaseYears || parseInt(String(formData.leaseYears), 10) < 1) && 'form-input--error'
+                        )}
+                        style={controlStyle}
                         placeholder="e.g. 3"
                         value={formData.leaseYears || '1'}
                         onChange={e => setFormData({ ...formData, leaseYears: e.target.value === '' ? '' : parseInt(e.target.value, 10) })}
@@ -362,12 +423,12 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Calendar size={12} /> Start Date
+                        <Calendar size={12} /> Start Date <RequiredMark />
                     </label>
                     <input
                       type="date"
-                      className={cn("form-input", !formData.rentStartDate && "form-input--error")}
-                      style={{ fontSize: 13, padding: '10px 14px' }}
+                      className={cn('form-input', showFieldError(!formData.rentStartDate) && 'form-input--error')}
+                      style={controlStyle}
                       value={formData.rentStartDate}
                       onChange={e => setFormData({ ...formData, rentStartDate: e.target.value })}
                     />
@@ -379,8 +440,8 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     <input
                       type="date"
                       readOnly
-                      className={cn("form-input", !formData.rentDueDate && "form-input--error")}
-                      style={{ fontSize: 13, padding: '10px 14px', background: 'var(--bg)', cursor: 'not-allowed', opacity: 0.8 }}
+                      className="form-input"
+                      style={{ ...controlStyle, background: 'var(--bg)', cursor: 'not-allowed', opacity: 0.8 }}
                       value={formData.rentDueDate}
                       title="Auto-calculated based on rent start date and cycle"
                     />
@@ -410,7 +471,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                       <input
                         type="number"
                         className="form-input"
-                        style={{ fontSize: 13, padding: '10px 14px' }}
+                        style={controlStyle}
                         placeholder="e.g. 500000"
                         value={formData.rentAmountPaid}
                         onChange={e => setFormData({ ...formData, rentAmountPaid: e.target.value })}
@@ -429,7 +490,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
           </label>
           <textarea
             className="form-input"
-            style={{ fontSize: 13, minHeight: 60, resize: 'vertical' }}
+            style={{ fontSize: 13, minHeight: 60, padding: '12px 14px', resize: 'vertical', boxSizing: 'border-box' }}
             placeholder="Special instructions..."
             value={formData.notes}
             onChange={e => setFormData({ ...formData, notes: e.target.value })}
@@ -454,4 +515,3 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
     </Modal>
   )
 }
-

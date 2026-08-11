@@ -140,6 +140,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               <li className="locked"><X size={14} /> Document Management</li>
               <li className="locked"><X size={14} /> Service Charge Payments</li>
               <li className="locked"><X size={14} /> Listing & Brokerage</li>
+              <li className="locked"><X size={14} /> Branding & White-labelling</li>
             </ul>
             {(() => {
               const btn = getButtonProps('FREE');
@@ -169,6 +170,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               <li><Check size={14} /> Document Management</li>
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 30% Listing Announcements</li>
+              <li className="locked"><X size={14} /> Branding & White-labelling</li>
             </ul>
             {(() => {
               const btn = getButtonProps('TIER_2');
@@ -201,6 +203,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
               <li><Check size={14} /> Document Management</li>
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 100% Listing Announcements</li>
+              <li><Check size={14} /> Branding & White-labelling</li>
             </ul>
             {(() => {
               const btn = getButtonProps('TIER_3');

@@ -16,27 +16,27 @@ export function TransactionList({
       <div className="checkout-card__title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span>Recent Transactions</span>
-          <span style={{ 
-            background: '#F2F1EB', 
-            color: '#5D5954', 
-            fontSize: '11px', 
-            padding: '2px 8px', 
-            borderRadius: '100px', 
-            fontWeight: 700 
+          <span style={{
+            background: '#F2F1EB',
+            color: '#5D5954',
+            fontSize: '11px',
+            padding: '2px 8px',
+            borderRadius: '100px',
+            fontWeight: 700
           }}>
             {transactions.length}
           </span>
         </div>
-        
+
         {transactions.length > 5 ? (
-          <button 
-            onClick={() => setShowAll(!showAll)} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'var(--forest, #166534)', 
-              fontSize: '12px', 
-              fontWeight: 700, 
+          <button
+            onClick={() => setShowAll(!showAll)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--forest, #166534)',
+              fontSize: '12px',
+              fontWeight: 700,
               cursor: 'pointer',
               padding: 0
             }}
@@ -66,8 +66,8 @@ export function TransactionList({
                   <div className="transaction-info">
                     <span className="transaction-name">{tx.narration || (isDeposit ? 'Wallet Top-up' : 'Subscription Charge')}</span>
                     <span className="transaction-meta">
-                      {new Date(tx.createdAt).toLocaleDateString(undefined, { 
-                        month: 'short', 
+                      {new Date(tx.createdAt).toLocaleDateString(undefined, {
+                        month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'

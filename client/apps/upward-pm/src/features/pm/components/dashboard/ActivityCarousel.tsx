@@ -1,45 +1,28 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useActivityTasks, CarouselItem } from '@/features/pm/hooks/useActivityTasks'
-import { 
-  ChevronRight, 
+import {
+  ChevronRight,
   AlertCircle,
-  ArrowRight,
-  Building2
+  ArrowRight
 } from 'lucide-react'
 
-export function ActivityCarousel({ onAddProperty }: { onAddProperty?: () => void }) {
+export function ActivityCarousel() {
   const { tasks: carouselItems, isLoading } = useActivityTasks()
   const router = useRouter()
-  const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null)
 
-  useEffect(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('.action-card')) {
-        setDropdownOpenId(null)
-      }
-    }
-    document.addEventListener('click', handleOutsideClick)
-    return () => document.removeEventListener('click', handleOutsideClick)
-  }, [])
-  
   if (carouselItems.length === 0 || isLoading) return null
 
   const handleCardClick = (e: React.MouseEvent, item: CarouselItem) => {
     const target = e.target as HTMLElement
-    if (target.closest('a') || target.closest('button') || target.closest('.action-card__dropdown-menu')) {
+    if (target.closest('a') || target.closest('button')) {
       return
     }
-    if (item.id === 'add-property') {
-      setDropdownOpenId(dropdownOpenId === 'add-property' ? null : 'add-property')
-    } else {
-      router.push(item.link)
-    }
+    router.push(item.link)
   }
 
   return (
@@ -70,9 +53,9 @@ export function ActivityCarousel({ onAddProperty }: { onAddProperty?: () => void
               )}
               style={{ position: 'relative' }}
             >
-              <div className="action-card__icon">
+              {/* <div className="action-card__icon">
                 <Icon size={24} strokeWidth={2.5} />
-              </div>
+              </div> */}
               <div className="action-card__content">
                 {item.priority && (
                   <div className="priority-badge desktop-only">
@@ -87,19 +70,7 @@ export function ActivityCarousel({ onAddProperty }: { onAddProperty?: () => void
                 </p>
                 
                 <div className="action-card__mobile-btn mobile-only" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
-                  {item.id === 'add-property' ? (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDropdownOpenId(dropdownOpenId === 'add-property' ? null : 'add-property')
-                      }}
-                      className="action-card__btn"
-                      style={{ width: '100%', justifyContent: 'space-between', border: '1px solid var(--border)', background: 'var(--surface)', padding: '10px 14px' }}
-                    >
-                      <span>{item.actionLabel} Options</span>
-                      <ChevronRight size={16} style={{ transform: dropdownOpenId === 'add-property' ? 'rotate(90deg)' : 'none', transition: '0.2s' }} />
-                    </button>
-                  ) : item.secondaryActionLabel ? (
+                  {item.secondaryActionLabel ? (
                     <MobileDropdownAction item={item} />
                   ) : (
                     <Link href={item.link} className="action-card__btn">
@@ -111,18 +82,7 @@ export function ActivityCarousel({ onAddProperty }: { onAddProperty?: () => void
               </div>
               
               <div className="action-card__actions-wrapper desktop-only" style={{ position: 'relative' }}>
-                {item.id === 'add-property' ? (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setDropdownOpenId(dropdownOpenId === 'add-property' ? null : 'add-property')
-                    }}
-                    className="action-card__circle-btn" 
-                    title={item.actionLabel}
-                  >
-                    <ChevronRight size={18} strokeWidth={2.5} style={{ transform: dropdownOpenId === 'add-property' ? 'rotate(90deg)' : 'none', transition: '0.2s' }} />
-                  </button>
-                ) : item.secondaryActionLabel ? (
+                {item.secondaryActionLabel ? (
                   <DropdownAction item={item} />
                 ) : (
                   <Link href={item.link} className="action-card__circle-btn" title={item.actionLabel}>
@@ -130,80 +90,6 @@ export function ActivityCarousel({ onAddProperty }: { onAddProperty?: () => void
                   </Link>
                 )}
               </div>
-
-              {item.id === 'add-property' && dropdownOpenId === 'add-property' && (
-                <div 
-                  className="action-card__dropdown-menu"
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 8px)',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: '#ffffff',
-                    border: '1px solid #E7E3DB',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(26, 26, 23, 0.08)',
-                    zIndex: 100,
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => {
-                      onAddProperty?.()
-                      setDropdownOpenId(null)
-                    }}
-                    style={{
-                      padding: '14px 20px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#1A1A17',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: '1px solid #F2F1EB',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8F7F4'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <Building2 size={16} style={{ color: 'var(--forest)' }} />
-                    Add Single Property
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      router.push('/settings?tab=import')
-                      setDropdownOpenId(null)
-                    }}
-                    style={{
-                      padding: '14px 20px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#1A1A17',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8F7F4'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <ArrowRight size={16} style={{ color: 'var(--clay)' }} />
-                    Bulk Import Properties
-                  </button>
-                </div>
-              )}
             </div>
           )
         })}

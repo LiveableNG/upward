@@ -93,6 +93,8 @@ import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
 import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
+import { GetDemoRequestsUseCase } from './use-cases/admin/get-demo-requests.use-case'
+import { UpdateDemoRequestStatusUseCase } from './use-cases/admin/update-demo-request-status.use-case'
 
 import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
 import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
@@ -162,6 +164,11 @@ import { InviteTenantUseCase } from './pm/use-cases/tenants/invite-tenant.use-ca
 import { CreateTenantUseCase } from './pm/use-cases/tenants/create-tenant.use-case'
 import { GetTenantUseCase } from './pm/use-cases/tenants/get-tenant.use-case'
 import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-to-unit.use-case'
+
+import { GetPmReceiptSettingsUseCase } from './pm/use-cases/receipt-settings/get-pm-receipt-settings.use-case'
+import { UpdatePmReceiptSettingsUseCase } from './pm/use-cases/receipt-settings/update-pm-receipt-settings.use-case'
+import { PreviewPmReceiptUseCase } from './pm/use-cases/receipt-settings/preview-pm-receipt.use-case'
+import { UploadPmReceiptLogoUseCase } from './pm/use-cases/receipt-settings/upload-pm-receipt-logo.use-case'
 import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-case'
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
@@ -195,6 +202,7 @@ import { ResolveDuplicateJoinRequestUseCase } from './pm/use-cases/tenants/resol
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
 import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case'
 import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case'
+import { TransferTeamPropertiesUseCase } from './pm/use-cases/team/transfer-team-properties.use-case'
 import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case'
 import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case'
 import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
@@ -281,6 +289,22 @@ import {
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
 } from './use-cases/pm/bulk-import.use-cases'
+
+import {
+  GetPmEmailSettingsUseCase,
+  SavePmEmailConfigUseCase,
+  UploadPmEmailLogoUseCase,
+  CreatePmEmailDomainUseCase,
+  VerifyPmEmailDomainUseCase,
+  SendPmTestEmailUseCase,
+} from './pm/use-cases/email-settings'
+
+import {
+  GetDocumentPdfUseCase,
+  GetSignatureImageUseCase,
+  GetPublicAssetUseCase,
+  GetRelayDocumentUseCase,
+} from './public/use-cases/documents'
 
 // Payments
 import {
@@ -434,6 +458,8 @@ const UseCases = [
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,
   SubmitDemoRequestUseCase,
+  GetDemoRequestsUseCase,
+  UpdateDemoRequestStatusUseCase,
   CreateFairnessStoryUseCase,
   GetFairnessStoriesUseCase,
   DeleteFairnessStoryUseCase,
@@ -602,6 +628,7 @@ const UseCases = [
   GetTeamMembersUseCase,
   UpdateTeamMemberPermissionsUseCase,
   RevokeTeamMemberUseCase,
+  TransferTeamPropertiesUseCase,
   BulkAddRentHistoryUseCase,
   MarkCredibilityRequestDoneUseCase,
   GetLandlordPortfolioUseCase,
@@ -678,6 +705,20 @@ const UseCases = [
   UploadRelayDocumentUseCase,
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
+  GetPmEmailSettingsUseCase,
+  SavePmEmailConfigUseCase,
+  GetPmReceiptSettingsUseCase,
+  UpdatePmReceiptSettingsUseCase,
+  PreviewPmReceiptUseCase,
+  UploadPmReceiptLogoUseCase,
+  UploadPmEmailLogoUseCase,
+  CreatePmEmailDomainUseCase,
+  VerifyPmEmailDomainUseCase,
+  SendPmTestEmailUseCase,
+  GetDocumentPdfUseCase,
+  GetSignatureImageUseCase,
+  GetPublicAssetUseCase,
+  GetRelayDocumentUseCase,
 ]
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'

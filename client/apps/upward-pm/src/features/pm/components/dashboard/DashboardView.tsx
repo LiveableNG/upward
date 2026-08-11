@@ -33,7 +33,6 @@ import { useToast } from '@/components/common/Toast'
 import { DashboardSkeleton } from '@/components/skeletons'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
 import { CreatePaymentRequestModal } from '../payments/modals/CreatePaymentRequestModal'
-import { ManagedAddPropertyModal } from '../properties/modals/ManagedAddPropertyModal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { formatTenantName } from '@/lib/utils'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
@@ -87,7 +86,6 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   const [editingTemplate, setEditingTemplate] = useState<any>(null)
   const [paymentContext, setPaymentContext] = useState<any>(null)
   const [showMetrics, setShowMetrics] = useState(false)
-  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
 
   if (isLoading) {
     return <DashboardSkeleton />
@@ -435,7 +433,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         </div>
       </div>
 
-      <ActivityCarousel onAddProperty={() => setShowAddPropertyModal(true)} />
+      <ActivityCarousel />
 
 
 
@@ -517,10 +515,6 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         onClose={() => setShowPaymentRequestModal(false)}
         unit={selectedUnitForPayment}
         onProceedToEditor={handleProceedToEditor}
-      />
-      <ManagedAddPropertyModal
-        isOpen={showAddPropertyModal}
-        onClose={() => setShowAddPropertyModal(false)}
       />
       <SuccessNotificationModal
         isOpen={showSubSuccessModal}

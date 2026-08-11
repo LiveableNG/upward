@@ -15,6 +15,18 @@ function BulkDocumentContent() {
   const [initialRecipients, setInitialRecipients] = useState<any[]>([])
   const [isReady, setIsReady] = useState(false)
 
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+
   useEffect(() => {
     if (!isLoading && tenants.length > 0) {
       if (tenantUuids.length > 0) {
@@ -45,48 +57,19 @@ function BulkDocumentContent() {
   }
 
   return (
-    <>
-      <div className="documents-desktop-view">
-        <div className="container" style={{ padding: '40px' }}>
-          {isReady ? (
-            <BulkDocumentEditorView 
-              initialRecipients={initialRecipients}
-              onBack={handleBack}
-            />
-          ) : (
-            <ListSkeleton />
-          )}
-        </div>
-      </div>
-
-      <div className="documents-mobile-view">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center' }}>
-          <div style={{ background: 'var(--surface-hover)', padding: 24, borderRadius: 24, marginBottom: 24 }}>
-            <span style={{ fontSize: 48 }}>💻</span>
-          </div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Desktop Only Feature</h2>
-          <p style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            Bulk Document management requires complex configuration that is best handled on a larger screen.
-          </p>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .documents-mobile-view {
-          display: none;
-        }
-        @media (max-width: 768px) {
-          .documents-desktop-view {
-            display: none;
-          }
-          .documents-mobile-view {
-            display: block;
-          }
-        }
-      `}</style>
-    </>
+    <div className="container" style={{ padding: isMobile ? '16px' : '40px' }}>
+      {isReady ? (
+        <BulkDocumentEditorView 
+          initialRecipients={initialRecipients}
+          onBack={handleBack}
+        />
+      ) : (
+        <ListSkeleton />
+      )}
+    </div>
   )
 }
+
 
 export default function BulkDocumentPage() {
   return (

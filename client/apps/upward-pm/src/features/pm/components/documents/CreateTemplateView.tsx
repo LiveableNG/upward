@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { ChevronLeft, ChevronDown, FileText, Upload, Sparkles } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { ChevronLeft, ChevronDown, FileText, Upload, Sparkles, Eye } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 const RichTextEditor = dynamic(
@@ -10,6 +10,8 @@ const RichTextEditor = dynamic(
 )
 import { useDocuments } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
+import { Modal } from '@/components/ui/Modal/Modal'
+
 
 interface CreateTemplateViewProps {
   onBack: () => void
@@ -35,6 +37,19 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
   const [content, setContent] = useState(template?.content || '')
   const [isSaving, setIsSaving] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
+
+  const [isMobile, setIsMobile] = useState(false)
+  const [isContentModalOpen, setIsContentModalOpen] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
 
   const handleCreate = async () => {
     if (!name.trim()) return error('Please enter a template name')
@@ -84,6 +99,78 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
 
   const selectedType = TEMPLATE_TYPES.find(t => t.value === type)
 
+  const renderTemplateSettingsContent = () => (
+    <aside className="create-template-view__panel">
+      <div className="create-template-view__panel-section">
+        <h3 className="create-template-view__panel-heading">Template Settings</h3>
+
+        {isMobile && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => setIsContentModalOpen(true)}
+            style={{ width: '100%', height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: '1.5px solid var(--forest)', color: 'var(--forest)', fontWeight: 600 }}
+          >
+            <Eye size={16} /> Edit Template Content
+          </button>
+        )}
+
+        <div className="create-template-view__field">
+          <label className="create-template-view__label">Template Name</label>
+          <input
+            type="text"
+            placeholder="e.g. Standard Rent Increase Notice"
+            className="form-input"
+            style={{ borderRadius: 12, height: 48 }}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div className="create-template-view__field">
+          <label className="create-template-view__label">Template Type</label>
+          <div style={{ position: 'relative' }}>
+            <select
+              className="form-input"
+              style={{ borderRadius: 12, height: 48, paddingRight: 40, appearance: 'none', background: 'var(--surface)' }}
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              {TEMPLATE_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Pro Tip */}
+      <div className="create-template-view__tip">
+        <div className="create-template-view__tip-icon">
+          <Sparkles size={16} />
+        </div>
+        <div>
+          <p className="create-template-view__tip-title">Pro Tip</p>
+          <p className="create-template-view__tip-body">
+            Use <strong>[Tenant Name]</strong>, <strong>[RentAmount]</strong>, <strong>[UnitName]</strong>, <strong>[Date]</strong>, and other placeholders — they'll be auto-filled when you send the document.
+          </p>
+        </div>
+      </div>
+
+      {/* Word import hint */}
+      <div className="create-template-view__import-hint">
+        <Upload size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+        <p>
+          You can import an existing <strong>.docx</strong> Word document to pre-fill the editor, then customise it here before saving.
+        </p>
+      </div>
+    </aside>
+  )
+
   return (
     <div className="create-template-view animate-fade-in">
 
@@ -127,7 +214,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           />
           <button
             onClick={onBack}
-            className="btn btn--secondary"
+            className="btn btn--secondary create-template-view__discard-btn"
             style={{ borderRadius: 12, height: 48, padding: '0 24px' }}
           >
             Discard
@@ -143,70 +230,46 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
       </header>
 
       {/* ── Body ─────────────────────────────────────────── */}
-      <div className="create-template-view__body">
+      {isMobile ? (
+        <div className="create-template-view__mobile-container">
+          {renderTemplateSettingsContent()}
+        </div>
+      ) : (
+        <div className="create-template-view__body">
+          {/* Left: Settings panel */}
+          {renderTemplateSettingsContent()}
 
-        {/* Left: Settings panel */}
-        <aside className="create-template-view__panel">
-          <div className="create-template-view__panel-section">
-            <h3 className="create-template-view__panel-heading">Template Settings</h3>
-
-            <div className="create-template-view__field">
-              <label className="create-template-view__label">Template Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Standard Rent Increase Notice"
-                className="form-input"
-                style={{ borderRadius: 12, height: 48 }}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
-            <div className="create-template-view__field">
-              <label className="create-template-view__label">Template Type</label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  className="form-input"
-                  style={{ borderRadius: 12, height: 48, paddingRight: 40, appearance: 'none', background: 'var(--surface)' }}
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                >
-                  {TEMPLATE_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={16}
-                  style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}
-                />
-              </div>
-            </div>
+          {/* Right: Editor */}
+          <div className="create-template-view__editor">
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              height="100%"
+              placeholder="Start writing your template or import a Word document above..."
+            />
           </div>
+        </div>
+      )}
 
-          {/* Pro Tip */}
-          <div className="create-template-view__tip">
-            <div className="create-template-view__tip-icon">
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <p className="create-template-view__tip-title">Pro Tip</p>
-              <p className="create-template-view__tip-body">
-                Use <strong>[Tenant Name]</strong>, <strong>[RentAmount]</strong>, <strong>[UnitName]</strong>, <strong>[Date]</strong>, and other placeholders — they'll be auto-filled when you send the document.
-              </p>
-            </div>
+      {/* Mobile Content Editor Modal */}
+      <Modal
+        isOpen={isContentModalOpen && isMobile}
+        onClose={() => setIsContentModalOpen(false)}
+        title="Edit Template Content"
+        maxWidth="95%"
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <button
+              onClick={() => setIsContentModalOpen(false)}
+              className="btn btn--primary"
+              style={{ borderRadius: 12, height: 44, padding: '0 24px', background: 'var(--forest)' }}
+            >
+              Save & Close
+            </button>
           </div>
-
-          {/* Word import hint */}
-          <div className="create-template-view__import-hint">
-            <Upload size={14} style={{ flexShrink: 0, marginTop: 2 }} />
-            <p>
-              You can import an existing <strong>.docx</strong> Word document to pre-fill the editor, then customise it here before saving.
-            </p>
-          </div>
-        </aside>
-
-        {/* Right: Editor */}
-        <div className="create-template-view__editor">
+        }
+      >
+        <div style={{ height: '60vh', marginTop: 16 }}>
           <RichTextEditor
             value={content}
             onChange={setContent}
@@ -214,7 +277,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
             placeholder="Start writing your template or import a Word document above..."
           />
         </div>
-      </div>
+      </Modal>
 
       <style jsx>{`
         .create-template-view {
@@ -331,7 +394,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           min-height: 700px;
         }
 
-        .create-template-view__panel {
+        :global(.create-template-view__panel) {
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -339,7 +402,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           top: 24px;
         }
 
-        .create-template-view__panel-section {
+        :global(.create-template-view__panel-section) {
           background: var(--surface);
           border: 1px solid var(--border);
           border-radius: 20px;
@@ -349,7 +412,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           gap: 20px;
         }
 
-        .create-template-view__panel-heading {
+        :global(.create-template-view__panel-heading) {
           font-size: 11px;
           font-weight: 800;
           color: var(--text-muted);
@@ -358,19 +421,19 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           margin: 0;
         }
 
-        .create-template-view__field {
+        :global(.create-template-view__field) {
           display: flex;
           flex-direction: column;
           gap: 8px;
         }
 
-        .create-template-view__label {
+        :global(.create-template-view__label) {
           font-size: 13px;
           font-weight: 600;
           color: var(--text-secondary);
         }
 
-        .create-template-view__tip {
+        :global(.create-template-view__tip) {
           background: var(--forest-faint);
           border: 1px solid var(--forest-glow);
           border-radius: 16px;
@@ -380,7 +443,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           align-items: flex-start;
         }
 
-        .create-template-view__tip-icon {
+        :global(.create-template-view__tip-icon) {
           width: 28px;
           height: 28px;
           background: var(--forest);
@@ -392,7 +455,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           flex-shrink: 0;
         }
 
-        .create-template-view__tip-title {
+        :global(.create-template-view__tip-title) {
           font-size: 12px;
           font-weight: 800;
           color: var(--forest);
@@ -401,14 +464,14 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           margin: 0 0 4px 0;
         }
 
-        .create-template-view__tip-body {
+        :global(.create-template-view__tip-body) {
           font-size: 12.5px;
           color: var(--accent);
           line-height: 1.6;
           margin: 0;
         }
 
-        .create-template-view__import-hint {
+        :global(.create-template-view__import-hint) {
           background: var(--ivory-dim);
           border: 1px solid var(--border);
           border-radius: 14px;
@@ -420,6 +483,7 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
           font-size: 12px;
           line-height: 1.5;
         }
+
 
         .create-template-view__import-hint p {
           margin: 0;
@@ -448,18 +512,30 @@ export function CreateTemplateView({ onBack, onCreated, template }: CreateTempla
 
         @media (max-width: 768px) {
           .create-template-view {
-            padding: 20px;
+            padding: 16px;
+            gap: 20px;
           }
           .create-template-view__header {
             flex-direction: column;
             align-items: flex-start;
+            gap: 16px;
           }
           .create-template-view__actions {
             width: 100%;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .create-template-view__actions button,
+          .create-template-view__actions .create-template-view__import-btn,
+          .create-template-view__actions .create-template-view__discard-btn,
+          .create-template-view__actions .create-template-view__save-btn {
+            width: 100% !important;
+            justify-content: center !important;
+            margin: 0 !important;
           }
         }
       `}</style>
     </div>
   )
 }
+

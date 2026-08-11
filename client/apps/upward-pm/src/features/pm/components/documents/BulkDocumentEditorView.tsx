@@ -71,6 +71,25 @@ export function BulkDocumentEditorView({
   const { checkAccess } = useSubscription()
   const { openPricing } = usePricingModal()
 
+  const { data: emailSettings } = useQuery({
+    queryKey: ['emailSettings'],
+    queryFn: () => api.getEmailSettings(),
+  })
+
+  useEffect(() => {
+    if (emailSettings) {
+      if (emailSettings.senderEmail) {
+        if (emailSettings.isVerified) {
+          setFromEmail(`"${emailSettings.senderName}" <${emailSettings.senderEmail}>`)
+        } else {
+          setFromEmail(`"${emailSettings.senderName || 'Property Manager'} (via Upward)" <noreply@goodtenants.io>`)
+        }
+      }
+      if (emailSettings.cc && !cc) setCc(emailSettings.cc)
+      if (emailSettings.bcc && !bcc) setBcc(emailSettings.bcc)
+    }
+  }, [emailSettings])
+
   const [content, setContent] = useState(initialTemplate?.content || initialContent)
   const { user } = useAuth()
   const [fromEmail, setFromEmail] = useState(user?.email || 'noreply@goodtenants.io')
@@ -87,11 +106,20 @@ export function BulkDocumentEditorView({
   const [includeLetterhead, setIncludeLetterhead] = useState(true)
   const [tempEmail, setTempEmail] = useState('')
   const { updateTenant } = useTenantActions()
-  const { data: letterheads = [] } = useQuery<any[]>({
-    queryKey: ['letterheads'],
-    queryFn: () => api.fetchLetterheads()
+  const firstRecipient = recipients[0]
+  const firstRecipientTenantUuid =
+    firstRecipient?.type === 'TENANT' ? firstRecipient.uuid : undefined
+
+  const { data: letterheadContext } = useQuery({
+    queryKey: ['letterhead-document-context', firstRecipientTenantUuid, recipients.length],
+    queryFn: () =>
+      api.getDocumentLetterheadContext({
+        tenantUuid: firstRecipientTenantUuid,
+      }),
   })
-  const hasLetterhead = letterheads.length > 0 || !!(user?.letterheadHeaderUrl || user?.letterheadFooterUrl)
+  const hasLetterhead = !!letterheadContext?.hasLetterhead
+  const letterheadHeaderUrl = letterheadContext?.letterheadHeaderUrl || null
+  const letterheadFooterUrl = letterheadContext?.letterheadFooterUrl || null
 
   const [isPreviewingPdf, setIsPreviewingPdf] = useState(false)
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null)
@@ -102,6 +130,20 @@ export function BulkDocumentEditorView({
   const [currentTemplate, setCurrentTemplate] = useState<any>(initialTemplate)
   const isSystemTemplate = currentTemplate?.type === 'SYSTEM' || currentTemplate?.isSystem
   const [previewMode, setPreviewMode] = useState(false)
+
+  // Mobile responsiveness
+  const [isMobile, setIsMobile] = useState(false)
+  const [isContentModalOpen, setIsContentModalOpen] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
 
   const validRecipients = React.useMemo(() => {
     return recipients.filter(r => {
@@ -419,10 +461,282 @@ export function BulkDocumentEditorView({
     }
   }
 
+  const renderSettingsPanelContent = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 24 }}>Document Settings</h3>
+
+        {isMobile && (
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => setIsContentModalOpen(true)}
+            style={{ width: '100%', height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24, border: '1.5px solid var(--forest)', color: 'var(--forest)', fontWeight: 600 }}
+          >
+            <Eye size={16} /> Edit Document Content
+          </button>
+        )}
+
+        <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <label className="form-label" style={{ marginBottom: 0 }}>Template</label>
+            <button
+              onClick={() => setIsTemplateModalOpen(true)}
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              Change Template
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border)', marginTop: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', color: 'var(--clay)' }}>
+              <FileText size={16} />
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {subject || 'Blank Document'}
+            </div>
+          </div>
+        </div>
+
+        <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Recipients</label>
+              {invalidRecipients.length > 0 && (
+                <button
+                  onClick={() => setShowRecipientsList(true)}
+                  style={{ fontSize: 11, fontWeight: 600, color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <AlertCircle size={12} />
+                  {invalidRecipients.length} Excluded (Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'}) - Click to view
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+                {validRecipients.length} Selected
+              </div>
+              <button
+                onClick={() => setIsRecipientModalOpen(true)}
+                style={{ fontSize: 12, fontWeight: 600, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                + Add
+              </button>
+              <button
+                onClick={() => setShowRecipientsList(!showRecipientsList)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', width: '24px', height: '24px', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
+              >
+                <ChevronDown size={14} style={{ transform: showRecipientsList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+            </div>
+          </div>
+
+          {showRecipientsList && (
+            <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', background: 'var(--bg)', borderRadius: 12, padding: 12, border: '1px solid var(--border)', marginTop: 16 }}>
+              {validRecipients.map(r => (
+                <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)' }}>{r.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.email || r.phone || 'No Contact'}</div>
+                </div>
+              ))}
+              {invalidRecipients.map(r => (
+                <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, border: '1px dashed var(--border)', opacity: 0.6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <AlertCircle size={14} color="var(--error)" />
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{r.name}</div>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--error)' }}>Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
+          <label className="form-label">Delivery Mode</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {[
+              { id: 'email', label: 'Email', icon: Mail, desc: 'Send via Email' },
+              { id: 'sms', label: 'SMS', icon: MessageCircle, desc: 'Send Text' },
+              { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, desc: 'Broadcast' }
+            ].map(mode => (
+              <button
+                key={mode.id}
+                onClick={() => setDeliveryMode(mode.id as any)}
+                className={`mode-btn ${deliveryMode === mode.id ? 'active' : ''}`}
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: `1px solid ${deliveryMode === mode.id ? 'var(--clay)' : 'var(--border)'}`,
+                  background: deliveryMode === mode.id ? 'var(--clay-faint)' : 'white',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                <mode.icon size={18} color={deliveryMode === mode.id ? 'var(--clay)' : 'var(--text-muted)'} />
+                <div style={{ fontWeight: 600, color: deliveryMode === mode.id ? 'var(--clay)' : 'var(--text-secondary)' }}>{mode.label}</div>
+                <div style={{ fontSize: 11, color: deliveryMode === mode.id ? 'var(--forest)' : 'var(--text-muted)' }}>{mode.desc}</div>
+              </button>
+            ))}
+          </div>
+          {deliveryMode === 'email' && (
+            <div style={{ marginTop: 12, display: 'flex', background: 'var(--bg)', borderRadius: 12, padding: 4 }}>
+              <button
+                type="button"
+                onClick={() => setEmailFormat('pdf')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: 'none',
+                  background: emailFormat === 'pdf' ? 'white' : 'transparent',
+                  color: emailFormat === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
+                  boxShadow: emailFormat === 'pdf' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <Download size={14} /> PDF Attachment
+              </button>
+              <button
+                type="button"
+                onClick={() => setEmailFormat('text')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  border: 'none',
+                  background: emailFormat === 'text' ? 'white' : 'transparent',
+                  color: emailFormat === 'text' ? 'var(--clay)' : 'var(--text-muted)',
+                  boxShadow: emailFormat === 'text' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <Mail size={14} /> Email Text
+              </button>
+            </div>
+          )}
+          {deliveryMode === 'whatsapp' && (
+            <div style={{ marginTop: 16, padding: 16, background: 'var(--accent-faint)', borderRadius: 12, border: '1px solid var(--accent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, marginBottom: 8, fontSize: 13 }}>
+                <AlertCircle size={16} /> WhatsApp Bulk Policy
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                To prevent spam blocks, we do not automate mass WhatsApp messages. Instead, click <strong>Generate PDF</strong> below, then create a <strong style={{ color: 'var(--dark)' }}>Broadcast List</strong> in your WhatsApp application and attach the PDF to send it to all recipients securely.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>From</label>
+          <input
+            type="text"
+            className="form-input"
+            value={fromEmail}
+            onChange={(e) => setFromEmail(e.target.value)}
+            disabled={!isSystemTemplate}
+            style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>CC</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="comma-separated emails"
+            value={cc}
+            onChange={(e) => setCc(e.target.value)}
+            style={{ borderRadius: 12 }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>BCC</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="comma-separated emails"
+            value={bcc}
+            onChange={(e) => setBcc(e.target.value)}
+            style={{ borderRadius: 12 }}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Subject</label>
+          <input
+            type="text"
+            placeholder="e.g. Rent Review Notice"
+            className="form-input"
+            style={{ borderRadius: 12 }}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            disabled={isSystemTemplate}
+          />
+        </div>
+
+        {hasLetterhead && (deliveryMode === 'whatsapp' || (deliveryMode === 'email' && emailFormat === 'pdf')) && (
+          <div
+            onClick={() => setIncludeLetterhead(!includeLetterhead)}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
+          >
+            <div style={{
+              width: 36,
+              height: 20,
+              borderRadius: 10,
+              background: includeLetterhead ? 'var(--forest)' : 'var(--border)',
+              position: 'relative',
+              transition: 'background 0.2s',
+              flexShrink: 0
+            }}>
+              <div style={{
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                background: 'white',
+                position: 'absolute',
+                top: 2,
+                left: includeLetterhead ? 18 : 2,
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+              }} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
+          </div>
+        )}
+      </div>
+
+      <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
+        <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
+          {isSystemTemplate
+            ? "This is a read-only system template provided by Upward. You can send it directly or include your custom letterhead."
+            : "Double check your document content and recipient details before sending. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
+          }
+        </p>
+      </div>
+    </div>
+  )
+
   return (
     <>
       <div className="document-editor animate-fade-in">
-        <header style={{ marginBottom: 32, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header className="document-editor__header">
           <div>
             <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 14, fontWeight: 500, marginBottom: 8, background: 'none', border: 'none', cursor: 'pointer' }}>
               <ChevronLeft size={18} /> Back to Documents
@@ -433,7 +747,7 @@ export function BulkDocumentEditorView({
               </h1>
             </div>
           </div>
-          <div className="settings-panel animate-slide-left" style={{ display: 'flex', gap: 12 }}>
+          <div className="document-editor__header-actions settings-panel animate-slide-left">
             {deliveryMode !== 'whatsapp' ? (
               <button
                 className="btn btn--primary"
@@ -456,414 +770,188 @@ export function BulkDocumentEditorView({
           </div>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: showSettings ? '400px 1fr' : '1fr', gap: 40, alignItems: 'start', transition: 'all 0.3s' }}>
+        {isMobile ? (
+          <div className="document-editor__mobile-container">
+            {renderSettingsPanelContent()}
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: showSettings ? '400px 1fr' : '1fr', gap: 40, alignItems: 'start', transition: 'all 0.3s' }}>
+            {/* Left Panel: Settings */}
+            {showSettings && renderSettingsPanelContent()}
 
-          {/* Left Panel: Settings */}
-          {showSettings && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-              <div className="glass" style={{ padding: 24, borderRadius: 24, border: '1px solid var(--border)', background: 'white' }}>
-                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 24 }}>Document Settings</h3>
-
-                <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <label className="form-label" style={{ marginBottom: 0 }}>Template</label>
+            {/* Right Panel: Rich Text Editor or Live Preview */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 12,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: '1px solid var(--border)',
+                      background: 'white',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <PanelLeft size={16} />
+                    {showSettings ? 'Hide Settings' : 'Show Settings'}
+                  </button>
+                  <div style={{
+                    display: 'inline-flex',
+                    background: 'var(--ivory-dim)',
+                    padding: 4,
+                    borderRadius: 12,
+                    border: '1px solid var(--border)'
+                  }}>
                     <button
-                      onClick={() => setIsTemplateModalOpen(true)}
-                      style={{ fontSize: 12, fontWeight: 600, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      onClick={() => setPreviewMode(false)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        border: 'none',
+                        background: !previewMode ? 'white' : 'transparent',
+                        color: !previewMode ? 'var(--dark)' : 'var(--text-muted)',
+                        boxShadow: !previewMode ? 'var(--shadow-sm)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
                     >
-                      Change Template
+                      Edit Template
+                    </button>
+                    <button
+                      onClick={() => setPreviewMode(true)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        border: 'none',
+                        background: previewMode ? 'white' : 'transparent',
+                        color: previewMode ? 'var(--dark)' : 'var(--text-muted)',
+                        boxShadow: previewMode ? 'var(--shadow-sm)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Live Preview
                     </button>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--surface-hover)', borderRadius: '12px', border: '1px solid var(--border)', marginTop: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'var(--bg)', color: 'var(--clay)' }}>
-                      <FileText size={16} />
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {subject || 'Blank Document'}
-                    </div>
-                  </div>
                 </div>
-
-                <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: showRecipientsList ? 0 : 0 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <label className="form-label" style={{ marginBottom: 0 }}>Recipients</label>
-                      {invalidRecipients.length > 0 && (
-                        <button
-                          onClick={() => setShowRecipientsList(true)}
-                          style={{ fontSize: 11, fontWeight: 600, color: '#d97706', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <AlertCircle size={12} />
-                          {invalidRecipients.length} Excluded (Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'}) - Click to view
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
-                        {validRecipients.length} Selected
-                      </div>
-                      <button
-                        onClick={() => setIsRecipientModalOpen(true)}
-                        style={{ fontSize: 12, fontWeight: 600, color: 'var(--clay)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                      >
-                        + Add
-                      </button>
-                      <button
-                        onClick={() => setShowRecipientsList(!showRecipientsList)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', width: '24px', height: '24px', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
-                      >
-                        <ChevronDown size={14} style={{ transform: showRecipientsList ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {showRecipientsList && (
-                    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', background: 'var(--bg)', borderRadius: 12, padding: 12, border: '1px solid var(--border)', marginTop: 16 }}>
-                      {validRecipients.map(r => (
-                        <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)' }}>{r.name}</div>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.email || r.phone || 'No Contact'}</div>
-                        </div>
-                      ))}
-                      {invalidRecipients.map(r => (
-                        <div key={r.uuid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, border: '1px dashed var(--border)', opacity: 0.6 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <AlertCircle size={14} color="var(--error)" />
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'line-through' }}>{r.name}</div>
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--error)' }}>Invalid {deliveryMode === 'email' ? 'Email' : 'Phone'}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="section" style={{ paddingBottom: 16, borderBottom: '1px solid var(--border)', marginBottom: 16 }}>
-                  <label className="form-label">Delivery Mode</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                    {[
-                      { id: 'email', label: 'Email', icon: Mail, desc: 'Send via Email' },
-                      { id: 'sms', label: 'SMS', icon: MessageCircle, desc: 'Send Text' },
-                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, desc: 'Broadcast' }
-                    ].map(mode => (
-                      <button
-                        key={mode.id}
-                        onClick={() => setDeliveryMode(mode.id as any)}
-                        className={`mode-btn ${deliveryMode === mode.id ? 'active' : ''}`}
-                        style={{
-                          padding: '12px',
-                          borderRadius: '12px',
-                          border: `1px solid ${deliveryMode === mode.id ? 'var(--clay)' : 'var(--border)'}`,
-                          background: deliveryMode === mode.id ? 'var(--clay-faint)' : 'white',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <mode.icon size={18} color={deliveryMode === mode.id ? 'var(--clay)' : 'var(--text-muted)'} />
-                        <div style={{ fontWeight: 600, color: deliveryMode === mode.id ? 'var(--clay)' : 'var(--text-secondary)' }}>{mode.label}</div>
-                        <div style={{ fontSize: 11, color: deliveryMode === mode.id ? 'var(--forest)' : 'var(--text-muted)' }}>{mode.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                  {deliveryMode === 'email' && (
-                    <div style={{ marginTop: 12, display: 'flex', background: 'var(--bg)', borderRadius: 12, padding: 4 }}>
-                      <button
-                        onClick={() => setEmailFormat('pdf')}
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          border: 'none',
-                          background: emailFormat === 'pdf' ? 'white' : 'transparent',
-                          color: emailFormat === 'pdf' ? 'var(--clay)' : 'var(--text-muted)',
-                          boxShadow: emailFormat === 'pdf' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6
-                        }}
-                      >
-                        <Download size={14} /> PDF Attachment
-                      </button>
-                      <button
-                        onClick={() => setEmailFormat('text')}
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          border: 'none',
-                          background: emailFormat === 'text' ? 'white' : 'transparent',
-                          color: emailFormat === 'text' ? 'var(--clay)' : 'var(--text-muted)',
-                          boxShadow: emailFormat === 'text' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6
-                        }}
-                      >
-                        <Mail size={14} /> Email Text
-                      </button>
-                    </div>
-                  )}
-                  {deliveryMode === 'whatsapp' && (
-                    <div style={{ marginTop: 16, padding: 16, background: 'var(--accent-faint)', borderRadius: 12, border: '1px solid var(--accent)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, marginBottom: 8, fontSize: 13 }}>
-                        <AlertCircle size={16} /> WhatsApp Bulk Policy
-                      </div>
-                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                        To prevent spam blocks, we do not automate mass WhatsApp messages. Instead, click <strong>Generate PDF</strong> below, then create a <strong style={{ color: 'var(--dark)' }}>Broadcast List</strong> in your WhatsApp application and attach the PDF to send it to all recipients securely.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>From</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={isSystemTemplate ? fromEmail : 'noreply@goodtenants.io'}
-                    onChange={(e) => setFromEmail(e.target.value)}
-                    disabled={!isSystemTemplate}
-                    style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>CC</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="comma-separated emails"
-                    value={cc}
-                    onChange={(e) => setCc(e.target.value)}
-                    style={{ borderRadius: 12 }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>BCC</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="comma-separated emails"
-                    value={bcc}
-                    onChange={(e) => setBcc(e.target.value)}
-                    style={{ borderRadius: 12 }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>Subject</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Rent Review Notice"
-                    className="form-input"
-                    style={{ borderRadius: 12 }}
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    disabled={isSystemTemplate}
-                  />
-                </div>
-
-                {hasLetterhead && (deliveryMode === 'whatsapp' || (deliveryMode === 'email' && emailFormat === 'pdf')) && (
-                  <div
-                    onClick={() => setIncludeLetterhead(!includeLetterhead)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', paddingTop: 20, marginTop: 20, borderTop: '1px solid var(--bg)' }}
-                  >
-                    <div style={{
-                      width: 36,
-                      height: 20,
-                      borderRadius: 10,
-                      background: includeLetterhead ? 'var(--forest)' : 'var(--border)',
-                      position: 'relative',
-                      transition: 'background 0.2s',
-                      flexShrink: 0
-                    }}>
-                      <div style={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: '50%',
-                        background: 'white',
-                        position: 'absolute',
-                        top: 2,
-                        left: includeLetterhead ? 18 : 2,
-                        transition: 'left 0.2s',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                      }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Include custom letterhead</span>
-                  </div>
+                {previewMode && (
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }}></span>
+                    Showing rendered placeholders
+                  </span>
                 )}
               </div>
 
-              <div className="glass" style={{ padding: 20, borderRadius: 24, border: '1px solid var(--border)', background: 'var(--ivory-dim)', display: 'flex', gap: 12 }}>
-                <AlertCircle size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>
-                  {isSystemTemplate
-                    ? "This is a read-only system template provided by Upward. You can send it directly or include your custom letterhead."
-                    : "Double check your document content and recipient details before sending. You can include dynamic placeholders like [Tenant Name], [BankDetails], [PaymentURL] or [PaymentInfo] which will be replaced when sending."
-                  }
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Right Panel: Rich Text Editor or Live Preview */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '800px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 12,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    border: '1px solid var(--border)',
-                    background: 'white',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <PanelLeft size={16} />
-                  {showSettings ? 'Hide Settings' : 'Show Settings'}
-                </button>
-                <div style={{
-                  display: 'inline-flex',
-                  background: 'var(--ivory-dim)',
-                  padding: 4,
-                  borderRadius: 12,
-                  border: '1px solid var(--border)'
-                }}>
-                  <button
-                    onClick={() => setPreviewMode(false)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      border: 'none',
-                      background: !previewMode ? 'white' : 'transparent',
-                      color: !previewMode ? 'var(--dark)' : 'var(--text-muted)',
-                      boxShadow: !previewMode ? 'var(--shadow-sm)' : 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    Edit Template
-                  </button>
-                  <button
-                    onClick={() => setPreviewMode(true)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      border: 'none',
-                      background: previewMode ? 'white' : 'transparent',
-                      color: previewMode ? 'var(--dark)' : 'var(--text-muted)',
-                      boxShadow: previewMode ? 'var(--shadow-sm)' : 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    Live Preview
-                  </button>
-                </div>
-              </div>
-              {previewMode && (
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)' }}></span>
-                  Showing rendered placeholders
-                </span>
-              )}
-            </div>
-
-            {previewMode ? (
-              <div style={{
-                flex: 1,
-                boxShadow: 'var(--shadow-lg)',
-                borderRadius: 24,
-                background: 'white',
-                overflowY: 'auto',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
+              {previewMode ? (
                 <div style={{
                   flex: 1,
-                  padding: '40px',
-                  background: 'var(--ivory)',
-                  minHeight: '100%',
+                  boxShadow: 'var(--shadow-lg)',
+                  borderRadius: 24,
+                  background: 'white',
+                  overflowY: 'auto',
+                  border: '1px solid var(--border)',
                   display: 'flex',
-                  justifyContent: 'center'
+                  flexDirection: 'column'
                 }}>
                   <div style={{
-                    width: '100%',
-                    maxWidth: '800px',
-                    minHeight: '297mm',
-                    background: 'white',
-                    boxShadow: 'var(--shadow-md)',
-                    borderRadius: 8,
-                    padding: '20mm',
-                    boxSizing: 'border-box',
+                    flex: 1,
+                    padding: '40px',
+                    background: 'var(--ivory)',
+                    minHeight: '100%',
                     display: 'flex',
-                    flexDirection: 'column',
-                    fontFamily: 'var(--font-main)',
-                    color: 'var(--text)',
-                    fontSize: '15px',
-                    lineHeight: 1.6
+                    justifyContent: 'center'
                   }}>
-                    {/* Header Letterhead */}
-                    {includeLetterhead && user?.letterheadHeaderUrl && (
-                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-                        <img src={user.letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
-                      </div>
-                    )}
+                    <div style={{
+                      width: '100%',
+                      maxWidth: '800px',
+                      minHeight: '297mm',
+                      background: 'white',
+                      boxShadow: 'var(--shadow-md)',
+                      borderRadius: 8,
+                      padding: '20mm',
+                      boxSizing: 'border-box',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      fontFamily: 'var(--font-main)',
+                      color: 'var(--text)',
+                      fontSize: '15px',
+                      lineHeight: 1.6
+                    }}>
+                      {includeLetterhead && letterheadHeaderUrl && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                          <img src={letterheadHeaderUrl} style={{ maxWidth: '100%', maxHeight: '30mm', objectFit: 'contain' }} alt="Letterhead Header" />
+                        </div>
+                      )}
 
-                    {/* Document Body */}
-                    <div
-                      className="preview-body-content"
-                      style={{ flex: 1, color: '#1e293b' }}
-                      dangerouslySetInnerHTML={{ __html: getRenderedContent() }}
-                    />
+                      <div
+                        className="preview-body-content"
+                        style={{ flex: 1, color: '#1e293b' }}
+                        dangerouslySetInnerHTML={{ __html: getRenderedContent() }}
+                      />
 
-                    {/* Footer Letterhead */}
-                    {includeLetterhead && user?.letterheadFooterUrl && (
-                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                        <img src={user.letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
-                      </div>
-                    )}
+                      {includeLetterhead && letterheadFooterUrl && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                          <img src={letterheadFooterUrl} style={{ maxWidth: '100%', maxHeight: '20mm', objectFit: 'contain' }} alt="Letterhead Footer" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
-                <RichTextEditor
-                  disabled={isSystemTemplate}
-                  value={content}
-                  onChange={(newContent) => setContent(newContent)}
-                  height="100%"
-                />
-              </div>
-            )}
+              ) : (
+                <div style={{ flex: 1, boxShadow: 'var(--shadow-lg)', borderRadius: 24, background: 'white', overflow: 'hidden' }}>
+                  <RichTextEditor
+                    disabled={isSystemTemplate}
+                    value={content}
+                    onChange={(newContent) => setContent(newContent)}
+                    height="100%"
+                    tenantUuid={firstRecipientTenantUuid}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* Mobile Content Editor Modal */}
+      <Modal
+        isOpen={isContentModalOpen && isMobile}
+        onClose={() => setIsContentModalOpen(false)}
+        title="Edit Document Content"
+        maxWidth="95%"
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <button
+              onClick={() => setIsContentModalOpen(false)}
+              className="btn btn--primary"
+              style={{ borderRadius: 12, height: 44, padding: '0 24px', background: 'var(--forest)' }}
+            >
+              Save & Close
+            </button>
+          </div>
+        }
+      >
+        <div style={{ height: '60vh', marginTop: 16 }}>
+          <RichTextEditor
+            disabled={isSystemTemplate}
+            value={content}
+            onChange={(newContent) => setContent(newContent)}
+            height="100%"
+          />
+        </div>
+      </Modal>
 
       <BulkRecipientSelectModal
         isOpen={isRecipientModalOpen}
@@ -983,6 +1071,16 @@ export function BulkDocumentEditorView({
           margin: 0 auto;
           padding-bottom: 40px;
         }
+        .document-editor__header {
+          margin-bottom: 32px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .document-editor__header-actions {
+          display: flex;
+          gap: 12px;
+        }
         .glass {
           backdrop-filter: blur(8px);
           box-shadow: 0 4px 24px rgba(0,0,0,0.02);
@@ -998,6 +1096,23 @@ export function BulkDocumentEditorView({
         }
         .form-input:focus {
           border-color: var(--clay);
+        }
+        @media (max-width: 768px) {
+          .document-editor__header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .document-editor__header-actions {
+            width: 100%;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .document-editor__header-actions button {
+            width: 100%;
+            justify-content: center;
+          }
         }
       `}</style>
     </>

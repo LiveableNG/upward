@@ -98,6 +98,7 @@ export class SendRentReceiptEmailUseCase {
       managerName?: string
       logoUrl?: string
       brandName?: string
+      themeColor?: string
     } = {
       title: 'Rent Payment Receipt',
       receiptNumber,
@@ -118,6 +119,7 @@ export class SendRentReceiptEmailUseCase {
       managerName: branding.managerName,
       logoUrl: branding.logoUrl,
       brandName: branding.companyName,
+      themeColor: branding.themeColor,
     }
 
     const pdfBuffer = await this.generateReceiptPdf.executeBuffer(receiptData)
@@ -158,6 +160,7 @@ export class SendRentReceiptEmailUseCase {
       companyName: 'Upward',
       managerName: undefined as string | undefined,
       logoUrl: undefined as string | undefined,
+      themeColor: undefined as string | undefined,
       propertyAddress: undefined as string | undefined,
     }
 
@@ -170,10 +173,13 @@ export class SendRentReceiptEmailUseCase {
         company: true,
         manager: true,
         pm: {
-          include: { emailSetting: true },
+          include: { 
+            emailSetting: true,
+            receiptSetting: true 
+          },
         },
       },
-    })
+    }) as any
 
     if (!property) return fallback
 
@@ -197,7 +203,14 @@ export class SendRentReceiptEmailUseCase {
       }
     }
 
-    const logoUrl = property.pm?.emailSetting?.logoUrl || undefined
+    let logoUrl = property.pm?.receiptSetting?.useEmailLogo === false 
+      ? property.pm?.receiptSetting?.logoUrl 
+      : property.pm?.emailSetting?.logoUrl
+
+    if (!logoUrl) logoUrl = undefined
+
+    const themeColor = property.pm?.receiptSetting?.themeColor || '#d97757'
+
     const managerName = property.manager
       ? `${property.manager.firstName?.includes(':') ? this.encryption.decrypt(property.manager.firstName) : property.manager.firstName} ${property.manager.lastName?.includes(':') ? this.encryption.decrypt(property.manager.lastName) : property.manager.lastName}`.trim()
       : undefined
@@ -206,6 +219,7 @@ export class SendRentReceiptEmailUseCase {
       companyName: logoUrl ? companyName : 'Upward',
       managerName,
       logoUrl,
+      themeColor,
       propertyAddress,
     }
   }

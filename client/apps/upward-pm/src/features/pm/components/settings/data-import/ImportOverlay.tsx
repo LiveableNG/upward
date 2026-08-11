@@ -32,7 +32,16 @@ interface ImportOverlayProps {
   mappings: { [sheet: string]: ColumnMapping[] }
   splitConfigs: { [sheet: string]: SplitConfig[] }
   activeSheet: string
+  setFieldColumn?: (sheetName: string, fieldKey: string, entityType: string, userColumn: string | null) => void
+  addFieldColumn?: (sheetName: string, fieldKey: string, entityType: string, userColumn: string) => void
+  removeFieldColumn?: (sheetName: string, fieldKey: string, userColumn: string) => void
+  swapNameOrder?: boolean
+  setSwapNameOrder?: (v: boolean) => void
+  dateOrder?: 'dmy' | 'mdy' | 'iso' | 'unknown'
+  setDateOrder?: (v: 'dmy' | 'mdy' | 'iso' | 'unknown') => void
   workbook: XLSX.WorkBook | null
+  setWorkbook?: (wb: XLSX.WorkBook | null) => void
+  setActiveSheet?: (sheetName: string) => void
   savedTemplates: {id: string, name: string, data: any}[]
   applyTemplate: (templateId: string) => void
   saveTemplate: () => void
@@ -57,7 +66,9 @@ interface ImportOverlayProps {
 export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   mode, phase, setPhase, closeOverlay, transformData, handleConfirmImport, isPending,
   reviewJob, handleSaveDraft, isSavingDraft, hasDirtyEdits, setHasDirtyEdits,
-  columns, userColumns, mappings, splitConfigs, activeSheet, workbook,
+  columns, userColumns, mappings, splitConfigs, activeSheet,
+  setFieldColumn, addFieldColumn, removeFieldColumn,
+  swapNameOrder, setSwapNameOrder, dateOrder, setDateOrder, workbook, setWorkbook, setActiveSheet,
   savedTemplates, applyTemplate, saveTemplate, updateMapping, toggleSplit,
   updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
   previewRows, validationErrors, amberWarnings, editingCell, setEditingCell,
@@ -79,36 +90,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
     }
   }, [])
   
-  // Derived state: errors and warnings
-  const duplicateMappings = useMemo(() => {
-    const fieldMap: Record<string, string[]> = {}
-    const duplicates: { field: string, columns: string[] }[] = []
-
-    const sheetMappings = mappings[activeSheet] || []
-    sheetMappings.forEach(m => {
-      if (m.systemField && m.entityType !== 'skip') {
-        if (!fieldMap[m.systemField]) fieldMap[m.systemField] = []
-        fieldMap[m.systemField].push(m.userColumn)
-      }
-    })
-
-    const sheetSplits = splitConfigs[activeSheet] || []
-    sheetSplits.forEach(s => {
-      s.parts.forEach(p => {
-        if (p.systemField && p.entityType !== 'skip') {
-          if (!fieldMap[p.systemField]) fieldMap[p.systemField] = []
-          if (!fieldMap[p.systemField].includes(s.userColumn)) fieldMap[p.systemField].push(s.userColumn)
-        }
-      })
-    })
-
-    Object.entries(fieldMap).forEach(([field, cols]) => {
-      if (cols.length > 1) duplicates.push({ field, columns: cols })
-    })
-
-    return duplicates
-  }, [mappings, splitConfigs, activeSheet])
-
+  // Several columns feeding one field is intentional now — names, instalments,
+  // an address split in two — so there is nothing to guard against here.
   const missingRequired = useMemo(() => {
     const mappedFields = new Set<string>()
     const sheetMappings = mappings[activeSheet] || []
@@ -121,9 +104,6 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   }, [mappings, splitConfigs, activeSheet, columns])
 
   const handlePreviewClick = () => {
-    if (duplicateMappings.length > 0) {
-      return toastError('Please resolve duplicate field mappings before continuing.')
-    }
     if (missingRequired.length > 0) {
       const firstMissing = missingRequired[0].label
       return toastError(`Missing required field mapping: ${firstMissing}`)
@@ -131,13 +111,15 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
     transformData()
   }
 
+  const isSelfDraft = reviewJob && (reviewJob.fileUrl === 'self_import_draft' || reviewJob.fileUrl === 'self_onboarding_draft')
+
   if (!mounted) return null
 
   const overlayContent = (
     <div className="import-overlay">
       <header className="import-overlay__header">
         <div className="import-overlay__header-title">
-          <h2>{reviewJob ? 'Review & Edit Prepared Data' : 'Bulk Data Import'}</h2>
+          <h2>{isSelfDraft ? 'Review Import Draft' : reviewJob ? 'Review & Edit Prepared Data' : 'Bulk Data Import'}</h2>
           {!reviewJob && (
             <span className="import-overlay__mode-badge">
               {mode === 'full' ? 'Full Portfolio Mode' : 'Units & Leases Mode'}
@@ -146,36 +128,81 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
         </div>
 
         <div className="import-overlay__actions">
-          {phase === 'preview' && !reviewJob && (
+          {phase === 'preview' && (!reviewJob || isSelfDraft) && (
             <button 
               type="button" 
               className="link-btn" 
               style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginRight: 16 }}
               onClick={() => setPhase('mapping')}
             >
-              <ArrowLeft size={16} /> Review Column Matches
+              <ArrowLeft size={16} /> Back to matching
             </button>
           )}
-          {phase === 'mapping' && !reviewJob && (
-            <button 
-              type="button"
-              className="btn btn--primary" 
-              style={{ borderRadius: 10, height: 40, cursor: 'pointer' }}
-              onClick={handlePreviewClick}
-            >
-              Continue <ArrowRight size={16} style={{ marginLeft: 8 }}/>
-            </button>
+          {phase === 'mapping' && (!reviewJob || isSelfDraft) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {handleSaveDraft && (
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  style={{ borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => {
+                    if (missingRequired.length > 0) {
+                      const firstMissing = missingRequired[0].label
+                      return toastError(`To save a draft, please map the required fields first: ${firstMissing}`)
+                    }
+                    transformData()
+                    setTimeout(() => setShowDraftConfirm(true), 100)
+                  }}
+                  disabled={isSavingDraft || isPending}
+                >
+                  <Save size={16} /> Save Draft &amp; Exit
+                </button>
+              )}
+              <button 
+                type="button"
+                className="btn btn--primary" 
+                style={{ borderRadius: 10, height: 40, cursor: 'pointer' }}
+                onClick={handlePreviewClick}
+              >
+                Continue <ArrowRight size={16} style={{ marginLeft: 8 }}/>
+              </button>
+            </div>
           )}
+
           {phase === 'preview' && !reviewJob && (
-            <button 
-              type="button"
-              className="btn btn--primary" 
-              style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer' }}
-              onClick={() => handleConfirmImport()}
-              disabled={Object.keys(validationErrors).length > 0 || isPending}
-            >
-              {isPending ? 'Saving...' : 'Complete Import'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {handleSaveDraft && (
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  style={{ borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => setShowDraftConfirm(true)}
+                  disabled={isSavingDraft || isPending}
+                >
+                  <Save size={16} /> Save Draft &amp; Exit
+                </button>
+              )}
+              <button 
+                type="button"
+                className="btn btn--primary" 
+                style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer' }}
+                onClick={() => {
+                  if (Object.keys(validationErrors).length > 0) {
+                    const firstErrorKey = Object.keys(validationErrors)[0]
+                    const lastDashIndex = firstErrorKey.lastIndexOf('-')
+                    const rowId = firstErrorKey.substring(0, lastDashIndex)
+                    const field = firstErrorKey.substring(lastDashIndex + 1)
+                    const rowIndex = previewRows.findIndex(r => r.id === rowId)
+                    const colLabel = columns.find(c => c.key === field)?.label || field
+                    return toastError(`Please resolve validation issues first. Error at Row ${rowIndex + 1}, Column "${colLabel}": ${validationErrors[firstErrorKey]}`)
+                  }
+                  handleConfirmImport()
+                }}
+                disabled={isPending}
+              >
+                {isPending ? 'Saving...' : 'Complete Import'}
+              </button>
+            </div>
           )}
           {phase === 'preview' && reviewJob && (
             <>
@@ -184,23 +211,45 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 className="btn btn--secondary"
                 style={{
                   borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: hasDirtyEdits && Object.keys(validationErrors).length === 0 ? '#f8fafc' : '#f1f5f9',
+                  background: hasDirtyEdits ? '#f8fafc' : '#f1f5f9',
                   border: '1px solid #cbd5e1',
-                  cursor: hasDirtyEdits && !isPending && !isSavingDraft && Object.keys(validationErrors).length === 0 ? 'pointer' : 'not-allowed',
-                  opacity: hasDirtyEdits && Object.keys(validationErrors).length === 0 ? 1 : 0.5
+                  cursor: hasDirtyEdits && !isPending && !isSavingDraft ? 'pointer' : 'not-allowed',
+                  opacity: hasDirtyEdits ? 1 : 0.5
                 }}
-                onClick={() => setShowDraftConfirm(true)}
-                disabled={isPending || isSavingDraft || !hasDirtyEdits || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
-                title={Object.keys(validationErrors).length > 0 ? 'Resolve validation issues first' : !hasDirtyEdits ? 'Make edits to enable Save Draft' : 'Save draft edits'}
+                onClick={() => {
+                  if (Object.keys(validationErrors).length > 0) {
+                    const firstErrorKey = Object.keys(validationErrors)[0]
+                    const lastDashIndex = firstErrorKey.lastIndexOf('-')
+                    const rowId = firstErrorKey.substring(0, lastDashIndex)
+                    const field = firstErrorKey.substring(lastDashIndex + 1)
+                    const rowIndex = previewRows.findIndex(r => r.id === rowId)
+                    const colLabel = columns.find(c => c.key === field)?.label || field
+                    return toastError(`Please resolve validation issues first. Error at Row ${rowIndex + 1}, Column "${colLabel}": ${validationErrors[firstErrorKey]}`)
+                  }
+                  setShowDraftConfirm(true)
+                }}
+                disabled={isPending || isSavingDraft || !hasDirtyEdits || previewRows.length === 0}
+                title={!hasDirtyEdits ? 'Make edits to enable Save Draft' : 'Save draft edits'}
               >
                 <Save size={16} /> {isSavingDraft ? 'Saving...' : 'Save Draft'}
               </button>
               <button
                 type="button"
                 className="btn btn--primary"
-                style={{ borderRadius: 10, height: 40, cursor: isPending || isSavingDraft || Object.keys(validationErrors).length > 0 ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                onClick={() => setShowApproveConfirm(true)}
-                disabled={isPending || isSavingDraft || previewRows.length === 0 || Object.keys(validationErrors).length > 0}
+                style={{ borderRadius: 10, height: 40, cursor: isPending || isSavingDraft ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                onClick={() => {
+                  if (Object.keys(validationErrors).length > 0) {
+                    const firstErrorKey = Object.keys(validationErrors)[0]
+                    const lastDashIndex = firstErrorKey.lastIndexOf('-')
+                    const rowId = firstErrorKey.substring(0, lastDashIndex)
+                    const field = firstErrorKey.substring(lastDashIndex + 1)
+                    const rowIndex = previewRows.findIndex(r => r.id === rowId)
+                    const colLabel = columns.find(c => c.key === field)?.label || field
+                    return toastError(`Please resolve validation issues first. Error at Row ${rowIndex + 1}, Column "${colLabel}": ${validationErrors[firstErrorKey]}`)
+                  }
+                  setShowApproveConfirm(true)
+                }}
+                disabled={isPending || isSavingDraft || previewRows.length === 0}
               >
                 Complete Import
               </button>
@@ -219,20 +268,20 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
 
       </header>
       
-      {!reviewJob && (
+      {(!reviewJob || isSelfDraft) && (
         <div className="import-overlay__steps">
           <div className={cn('import-step', phase === 'mapping' && 'import-step--active')}>
-            <span className="import-step__number">1</span> Review Detected Columns
+            <span className="import-step__number">1</span> Match Columns
           </div>
           <div className="import-step__separator">—</div>
           <div className={cn('import-step', phase === 'preview' && 'import-step--active')}>
-            <span className="import-step__number">2</span> Review Before Import
+            <span className="import-step__number">2</span> Check &amp; Import
           </div>
         </div>
       )}
 
       <main className="import-overlay__content">
-        {phase === 'mapping' && !reviewJob ? (
+        {phase === 'mapping' && (!reviewJob || isSelfDraft) ? (
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             <MappingPhase
             columns={columns}
@@ -245,18 +294,26 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             applyTemplate={applyTemplate}
             saveTemplate={saveTemplate}
             updateMapping={updateMapping}
+            setFieldColumn={setFieldColumn}
+            addFieldColumn={addFieldColumn}
+            removeFieldColumn={removeFieldColumn}
+            swapNameOrder={swapNameOrder}
+            setSwapNameOrder={setSwapNameOrder}
+            dateOrder={dateOrder}
+            setDateOrder={setDateOrder}
             toggleSplit={toggleSplit}
             updateSplitConfig={updateSplitConfig}
             updateSplitPart={updateSplitPart}
             addSplitPart={addSplitPart}
             removeSplitPart={removeSplitPart}
-            duplicateMappings={duplicateMappings}
-            missingRequired={missingRequired}
+            setWorkbook={setWorkbook}
+            setActiveSheet={setActiveSheet}
             />
           </div>
+
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0 }}>
-            {reviewJob && (
+            {reviewJob && !isSelfDraft && (
               <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: 16, borderRadius: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
@@ -283,8 +340,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 </div>
               </div>
             )}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
-              <PreviewGridPhase 
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'auto' }}>
+              <PreviewGridPhase
                 columns={columns}
                 previewRows={previewRows}
                 validationErrors={validationErrors}
@@ -296,7 +353,6 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                 setValidationErrors={setValidationErrors}
                 revalidateDuplicates={revalidateDuplicates}
               />
-
             </div>
           </div>
         )}
@@ -341,8 +397,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
       <Modal
         isOpen={showDraftConfirm}
         onClose={() => setShowDraftConfirm(false)}
-        title="Save Draft Edits?"
-        subtitle="Save modifications so Customer Support can review your edits."
+        title={reviewJob && !isSelfDraft ? "Save Draft Edits?" : "Save Import Draft?"}
+        subtitle={reviewJob && !isSelfDraft ? "Save modifications so Customer Support can review your edits." : "Save your progress and finish setting up later."}
         icon={Save}
         maxWidth={460}
         footer={
@@ -364,8 +420,11 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
           </>
         }
       >
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-          Are you sure you want to save your current edits as a draft? The support agent will be able to see these updated rows.
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+          {reviewJob && !isSelfDraft
+            ? "Are you sure you want to save your current edits as a draft? The support agent will be able to see these updated rows."
+            : "Are you sure you want to save your progress as a draft? You can resume matching and review these rows anytime from settings."
+          }
         </p>
       </Modal>
 

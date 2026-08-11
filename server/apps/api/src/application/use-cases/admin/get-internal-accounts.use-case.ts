@@ -60,24 +60,16 @@ export class GetInternalAccountsUseCase {
         email: true,
         phone: true,
         isInternal: true,
-        userProperties: {
-          select: { companyId: true }
-        }
+        pmType: true,
       },
       orderBy: { createdAt: 'desc' },
-    })
-
-    const pmCompanyIds = new Set<number>()
-    rawPms.forEach((pm: any) => {
-      pm.userProperties.forEach((up: any) => {
-        if (up.companyId) pmCompanyIds.add(up.companyId)
-      })
     })
 
     const pms = await Promise.all(
       rawPms.map(async (pm: any) => ({
         uuid: pm.uuid,
         isInternal: pm.isInternal,
+        pmType: pm.pmType ?? null,
         firstName: await this.encryption.decrypt(pm.firstName),
         lastName: await this.encryption.decrypt(pm.lastName),
         email: await this.encryption.decrypt(pm.email),
@@ -86,11 +78,8 @@ export class GetInternalAccountsUseCase {
       }))
     )
 
-    // 3. Fetch Platforms (Companies)
+    // 3. Fetch Platforms (Companies) — all upward_company records
     const rawCompanies = await this.prisma.upward_company.findMany({
-      where: {
-        id: { notIn: Array.from(pmCompanyIds) }
-      },
       select: {
         uuid: true,
         name: true,

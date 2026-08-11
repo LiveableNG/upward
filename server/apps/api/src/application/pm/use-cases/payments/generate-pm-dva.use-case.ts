@@ -27,15 +27,13 @@ export class GeneratePmDvaUseCase {
   }
 
   async execute(pmUuid: string): Promise<any> {
-    const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: pmUuid },
-    });
+    const pm = await this.pmRepo.findByUuid(pmUuid);
     if (!pm) {
       throw new NotFoundException('Property manager not found');
     }
 
     const existingDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
-      where: { pmId: pm.id },
+      where: { pmId: pm.id! },
     });
 
     if (existingDva) {
@@ -46,7 +44,7 @@ export class GeneratePmDvaUseCase {
       const emailParts = pm.email.split('@');
       const aliasEmail = emailParts.length === 2 
         ? `${emailParts[0]}+pm@${emailParts[1]}`
-        : `pm-${pm.id}@upward.com`; 
+        : `pm-${pm.id!}@upward.com`; 
 
       const customerCode = await this.paymentGateway.createCustomer({
         email: aliasEmail,
@@ -66,7 +64,7 @@ export class GeneratePmDvaUseCase {
 
       const newDva = await this.prisma.upward_pm_dedicated_virtual_account.create({
         data: {
-          pmId: pm.id,
+          pmId: pm.id!,
           accountNumber: dvaResponse.data.account_number,
           accountName: dvaResponse.data.account_name,
           bankName: bankDetails.name || 'Wema Bank',
@@ -75,7 +73,7 @@ export class GeneratePmDvaUseCase {
         },
       });
 
-      this.logger.log(`Successfully generated PM DVA for PM ID ${pm.id}`);
+      this.logger.log(`Successfully generated PM DVA for PM ID ${pm.id!}`);
       return newDva;
     } catch (error: any) {
       this.logger.error(`Failed to generate PM DVA: ${error.message}`, error.stack);

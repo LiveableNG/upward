@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsNotEmpty, IsDateString } from 'class-validator'
+import { IsString, IsEmail, IsNotEmpty, IsDateString, IsOptional } from 'class-validator'
 
 export class CreateDemoRequestDto {
   @IsString()
@@ -21,3 +21,4 @@ export class CreateDemoRequestDto {
   @IsNotEmpty()
   demoDate!: string
 }
+

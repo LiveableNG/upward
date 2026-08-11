@@ -35,6 +35,18 @@ function DocumentManagementContent() {
   const [templateToEdit, setTemplateToEdit] = useState<any>(null)
   const [initialRecipient, setInitialRecipient] = useState<any>(null)
 
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+
   // Resolve recipient from query parameters
   useEffect(() => {
     if (tenantUuid && tenants.length > 0 && !initialRecipient) {
@@ -129,123 +141,61 @@ function DocumentManagementContent() {
   }
 
   return (
-    <>
-      <div className="documents-desktop-view">
-        <div className="container" style={{ padding: '40px' }}>
-          {view === 'list' && unit && (
-            <div style={{
-              background: 'var(--ivory-dim)',
-              border: '1px solid var(--border)',
-              padding: '16px 24px',
-              borderRadius: 16,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 32,
-              animation: 'fade-in 0.2s ease'
-            }}>
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unit Attachment Context</span>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 4 }}>
-                  Attaching document to unit: <strong>{unit.unitName}</strong> at <strong>{unit.property?.name || 'Property'}</strong>
-                </h3>
-              </div>
-              <button 
-                className="btn btn--secondary" 
-                onClick={handleBack}
-                style={{ height: 40, borderRadius: 10 }}
-              >
-                ← Return to Unit
-              </button>
-            </div>
-          )}
-
-          {view === 'list' ? (
-            <DocumentManagementView 
-              onNewDocument={handleNewDocument}
-              onSelectTemplate={handleSelectTemplate}
-              onResendDocument={handleResendDocument}
-              onCreateTemplate={handleCreateTemplate}
-              onEditTemplate={handleEditTemplate}
-            />
-          ) : view === 'create-template' ? (
-            <CreateTemplateView
-              template={templateToEdit}
-              onBack={handleBack}
-            />
-          ) : (
-            <DocumentEditorView 
-              initialTemplate={editingTemplate}
-              initialRecipient={initialRecipient}
-              unitUuid={unitUuid || undefined}
-              onBack={handleEditorBack}
-              disableRecipientEdit={disableRecipientEdit}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="documents-mobile-view">
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', padding: 24, textAlign: 'center' }}>
-          
-          <div className="construction-scene" style={{ position: 'relative', width: 140, height: 140, marginBottom: 32 }}>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2 }}>
-              <div style={{ background: 'var(--surface-hover)', padding: 24, borderRadius: '50%', boxShadow: '0 8px 32px rgba(0,0,0,0.05)' }}>
-                <HardHat size={48} color="var(--clay)" />
-              </div>
-            </div>
-            <div className="animate-swing" style={{ position: 'absolute', top: 0, right: 10, transformOrigin: 'bottom left' }}>
-              <Hammer size={32} color="var(--forest)" />
-            </div>
-            <div className="animate-spin-slow" style={{ position: 'absolute', bottom: 10, left: 10, transformOrigin: 'center' }}>
-              <Wrench size={28} color="var(--blue, #0ea5e9)" />
-            </div>
+    <div className="container" style={{ padding: isMobile ? '16px' : '40px' }}>
+      {view === 'list' && unit && (
+        <div style={{
+          background: 'var(--ivory-dim)',
+          border: '1px solid var(--border)',
+          padding: '16px 24px',
+          borderRadius: 16,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 32,
+          animation: 'fade-in 0.2s ease'
+        }}>
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unit Attachment Context</span>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginTop: 4 }}>
+              Attaching document to unit: <strong>{unit.unitName}</strong> at <strong>{unit.property?.name || 'Property'}</strong>
+            </h3>
           </div>
-
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--dark)', marginBottom: 12 }}>Under Construction</h2>
-          <p style={{ fontSize: 15, color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
-            We're currently building a powerful mobile experience for Document Management. Our tiny digital workers are on it!
-          </p>
-
+          <button 
+            className="btn btn--secondary" 
+            onClick={handleBack}
+            style={{ height: 40, borderRadius: 10 }}
+          >
+            ← Return to Unit
+          </button>
         </div>
-      </div>
+      )}
 
-      <style jsx>{`
-        .documents-mobile-view {
-          display: none;
-        }
-        
-        @keyframes swing {
-          0% { transform: rotate(0deg); }
-          50% { transform: rotate(-45deg); }
-          100% { transform: rotate(0deg); }
-        }
-        
-        @keyframes spin-slow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        .animate-swing {
-          animation: swing 2s infinite ease-in-out;
-        }
-        
-        .animate-spin-slow {
-          animation: spin-slow 4s infinite linear;
-        }
-
-        @media (max-width: 768px) {
-          .documents-desktop-view {
-            display: none;
-          }
-          .documents-mobile-view {
-            display: block;
-          }
-        }
-      `}</style>
-    </>
+      {view === 'list' ? (
+        <DocumentManagementView 
+          onNewDocument={handleNewDocument}
+          onSelectTemplate={handleSelectTemplate}
+          onResendDocument={handleResendDocument}
+          onCreateTemplate={handleCreateTemplate}
+          onEditTemplate={handleEditTemplate}
+        />
+      ) : view === 'create-template' ? (
+        <CreateTemplateView
+          template={templateToEdit}
+          onBack={handleBack}
+        />
+      ) : (
+        <DocumentEditorView 
+          initialTemplate={editingTemplate}
+          initialRecipient={initialRecipient}
+          unitUuid={unitUuid || undefined}
+          onBack={handleEditorBack}
+          disableRecipientEdit={disableRecipientEdit}
+        />
+      )}
+    </div>
   )
 }
+
 
 export default function DocumentManagementPage() {
   return (
