@@ -21,3 +21,22 @@ export class SendLandlordReportDto {
   @IsBoolean()
   includeLetterhead?: boolean;
 }
+
+export class CreatePmLandlordDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+
+  @IsString()
+  @IsOptional()
+  company?: string;
+}
+

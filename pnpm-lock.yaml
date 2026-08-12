@@ -560,6 +560,9 @@ importers:
       mailgun.js:
         specifier: ^12.7.1
         version: 12.7.1
+      nodemailer:
+        specifier: ^6.9.14
+        version: 6.10.1
       passport:
         specifier: ^0.7.0
         version: 0.7.0
@@ -621,6 +624,9 @@ importers:
       '@types/node':
         specifier: ^22.13.10
         version: 22.19.15
+      '@types/nodemailer':
+        specifier: ^6.4.15
+        version: 6.4.24
       '@types/passport-jwt':
         specifier: ^4.0.1
         version: 4.0.1
@@ -3413,6 +3419,9 @@ packages:
 
   '@types/node@24.12.0':
     resolution: {integrity: sha512-GYDxsZi3ChgmckRT9HPU0WEhKLP08ev/Yfcq2AstjrDASOYCSXeyjDsHg4v5t4jOj7cyDX3vmprafKlWIG9MXQ==}
+
+  '@types/nodemailer@6.4.24':
+    resolution: {integrity: sha512-Ww4u0rT9wQNXh4JiQaIwx3QWdcOFXzOjQA2zc+jtFYNmQiT4mIUqcDin51bDFdkzKubFnQCZNK7FIHlPKQ/q9w==}
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
@@ -6996,6 +7005,10 @@ packages:
 
   node-releases@2.0.36:
     resolution: {integrity: sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA==}
+
+  nodemailer@6.10.1:
+    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+    engines: {node: '>=6.0.0'}
 
   normalize-package-data@2.5.0:
     resolution: {integrity: sha512-/5CMN3T0R4XTj4DcGaexo+roZSdSFW/0AOOTROrjxzCG1wrWXEsGbRKevjlIL+ZDE4sZlJr5ED4YW0yqmkK+eA==}
@@ -12089,6 +12102,10 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/nodemailer@6.4.24':
+    dependencies:
+      '@types/node': 22.19.15
+
   '@types/normalize-package-data@2.4.4': {}
 
   '@types/papaparse@5.5.2':
@@ -16248,6 +16265,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.36: {}
+
+  nodemailer@6.10.1: {}
 
   normalize-package-data@2.5.0:
     dependencies:

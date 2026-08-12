@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useToast } from '@/components/common/Toast'
 import { useCreateProperty } from '@/features/pm/hooks/useProperties'
-import { getPropertyImageUploadUrl } from '@/features/pm/services/propertyService'
+import { uploadPropertyImage } from '@/features/pm/services/propertyService'
 import { AddPropertyModal } from './AddPropertyModal'
 
 interface ManagedAddPropertyModalProps {
@@ -50,12 +50,17 @@ export const ManagedAddPropertyModal: React.FC<ManagedAddPropertyModalProps> = (
     let finalImageUrl = ''
     try {
       if (propForm.imageFile) {
-        info("Uploading image...")
-        const { uploadUrl, publicUrl } = await getPropertyImageUploadUrl(propForm.imageFile.type, propForm.imageFile.name)
-        await fetch(uploadUrl, { 
-            method: 'PUT', 
-            body: propForm.imageFile, 
-            headers: { 'Content-Type': propForm.imageFile.type } 
+        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+        const base64Data = await toBase64(propForm.imageFile);
+        const { publicUrl } = await uploadPropertyImage({ 
+            base64Data, 
+            contentType: propForm.imageFile.type,
+            filename: propForm.imageFile.name 
         })
         finalImageUrl = publicUrl
       }

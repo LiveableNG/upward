@@ -22,7 +22,9 @@ export const useDocuments = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] });
-      queryClient.invalidateQueries({ queryKey: ['pm-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-unit'] });
     },
   });
 
@@ -35,7 +37,9 @@ export const useDocuments = () => {
     mutationFn: documentService.sendBulkDocument,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pm-documents'] });
-      queryClient.invalidateQueries({ queryKey: ['pm-tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-units'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-unit'] });
     },
   });
 

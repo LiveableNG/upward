@@ -197,3 +197,13 @@ export const useLandlords = () => {
     queryFn: () => api.getPmLandlords()
   })
 }
+
+export const useCreateLandlord = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { name: string; email: string; phone?: string; company?: string }) => api.createPmLandlord(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pm-landlords'] })
+    }
+  })
+}

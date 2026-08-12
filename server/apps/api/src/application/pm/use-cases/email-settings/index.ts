@@ -4,3 +4,7 @@ export * from './upload-pm-email-logo.use-case'
 export * from './create-pm-email-domain.use-case'
 export * from './verify-pm-email-domain.use-case'
 export * from './send-pm-test-email.use-case'
+export * from './verify-office365-config.use-case'
+export * from './verify-gmail-config.use-case'
+export * from './verify-oauth-config.use-case'
+

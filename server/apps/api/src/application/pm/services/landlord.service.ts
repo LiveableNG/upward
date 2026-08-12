@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 
 @Injectable()
 export class LandlordService {
@@ -15,13 +16,35 @@ export class LandlordService {
     private readonly encryption: EncryptionService,
     private readonly config: ConfigService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async ensureLandlord(email: string, name?: string, phone?: string, pmUuid?: string) {
     if (!email) return;
 
+    const ensureRelation = async (landlordId: number) => {
+      if (pmUuid) {
+        const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: pmUuid } });
+        if (pm) {
+          await this.prisma.upward_pm_landlord_relation.upsert({
+            where: {
+              pmId_landlordId: { pmId: pm.id, landlordId }
+            },
+            update: {},
+            create: {
+              pmId: pm.id,
+              landlordId
+            }
+          });
+        }
+      }
+    };
+
     const existing = await this.landlordRepository.findByEmail(email);
     if (existing) {
+      if (existing.id) {
+        await ensureRelation(existing.id);
+      }
       const defaultPortalUrl = this.config.get<string>('PM_APP_URL') ? `${this.config.get<string>('PM_APP_URL')}/portal/login` : 'http://localhost:3000/portal/login';
       const portalUrl = this.config.get('PM_LANDLORD_PORTAL_URL', defaultPortalUrl);
       await this.unifiedCommService.processCommunication({
@@ -70,10 +93,18 @@ export class LandlordService {
         },
       });
 
+      if (landlord.id) {
+        await ensureRelation(landlord.id);
+      }
+
       return landlord;
     } catch (error: any) {
       if (error.code === 'P2002') {
-        return this.landlordRepository.findByEmail(email);
+        const found = await this.landlordRepository.findByEmail(email);
+        if (found && found.id) {
+          await ensureRelation(found.id);
+        }
+        return found;
       }
       throw error;
     }
