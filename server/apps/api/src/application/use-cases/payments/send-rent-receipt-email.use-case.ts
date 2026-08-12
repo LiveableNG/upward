@@ -231,7 +231,8 @@ export class SendRentReceiptEmailUseCase {
       .filter((item: any) => {
         const name = item.label || item.name || ''
         const isFee =
-          item.category === ['Upward Benefits'].includes(name)
+          item.category === 'Fee' ||
+          ['Upward Benefits'].includes(name)
         return !isFee && name
       })
       .map((item: any) => ({
