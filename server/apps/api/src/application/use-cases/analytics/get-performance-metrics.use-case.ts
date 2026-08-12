@@ -36,10 +36,24 @@ export class GetPerformanceMetricsUseCase {
           isInternal: false,
           ...(startDate || endDate
             ? {
-                createdAt: {
-                  ...(startDate ? { gte: new Date(startDate) } : {}),
-                  ...(endDate ? { lte: new Date(endDate) } : {}),
-                },
+                OR: [
+                  {
+                    createdAt: {
+                      ...(startDate ? { gte: new Date(startDate) } : {}),
+                      ...(endDate ? { lte: new Date(endDate) } : {}),
+                    },
+                  },
+                  {
+                    authSessions: {
+                      some: {
+                        createdAt: {
+                          ...(startDate ? { gte: new Date(startDate) } : {}),
+                          ...(endDate ? { lte: new Date(endDate) } : {}),
+                        },
+                      },
+                    },
+                  },
+                ],
               }
             : {}),
         },
