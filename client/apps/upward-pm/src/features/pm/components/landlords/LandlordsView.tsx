@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, User, Building2, Mail, Phone } from 'lucide-react'
-import { useProperties } from '@/features/pm/hooks/useProperties'
+import { useProperties, useLandlords } from '@/features/pm/hooks/useProperties'
 import { AddLandlordModal } from './modals/AddLandlordModal'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -14,6 +14,8 @@ import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 interface LandlordData {
+  id: number;
+  uuid: string;
   name: string;
   email: string;
   phone: string;
@@ -23,36 +25,27 @@ interface LandlordData {
 export function LandlordsView() {
   const router = useRouter()
   const { data: properties = [] } = useProperties()
+  const { data: apiLandlords = [] } = useLandlords()
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
-  // Aggregate unique landlords from properties
   const landlords = useMemo(() => {
-    const map = new Map<string, LandlordData>()
-    
-    properties.forEach(prop => {
-      if (prop.landlordName) {
-        const key = `${prop.landlordName.toLowerCase()}-${(prop.landlordEmail || '').toLowerCase()}`
-        const existing = map.get(key)
-        if (existing) {
-          existing.propertiesCount += 1
-        } else {
-          map.set(key, {
-            name: prop.landlordName,
-            email: prop.landlordEmail || '',
-            phone: prop.landlordPhone || '',
-            propertiesCount: 1
-          })
-        }
+    return apiLandlords.map(l => {
+      const propCount = properties.filter(p => p.landlordEmail === l.email).length
+      return {
+        id: l.id,
+        uuid: l.uuid,
+        name: l.name,
+        email: l.email,
+        phone: l.phone,
+        propertiesCount: propCount,
       }
-    })
-    
-    return Array.from(map.values()).filter(l => 
+    }).filter(l => 
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.phone.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  }, [properties, searchQuery])
+  }, [apiLandlords, properties, searchQuery])
 
   const columns: Column<LandlordData>[] = [
     {

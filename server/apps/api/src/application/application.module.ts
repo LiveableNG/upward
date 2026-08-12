@@ -159,6 +159,7 @@ import { DeleteUnitUseCase } from './pm/use-cases/delete-unit.use-case'
 import { GetUnitPaymentsUseCase } from './pm/use-cases/get-unit-payments.use-case'
 import { AddUnitPaymentUseCase } from './pm/use-cases/add-unit-payment.use-case'
 import { GetPropertyImageUploadUrlUseCase } from './pm/use-cases/get-property-image-upload-url.use-case'
+import { UploadPropertyImageUseCase } from './pm/use-cases/upload-property-image.use-case'
 import { GetPmTenantsUseCase } from './pm/use-cases/tenants/get-pm-tenants.use-case'
 import { InviteTenantUseCase } from './pm/use-cases/tenants/invite-tenant.use-case'
 import { CreateTenantUseCase } from './pm/use-cases/tenants/create-tenant.use-case'
@@ -227,6 +228,7 @@ import { GetLandlordPortfolioUseCase } from './pm/use-cases/landlord/get-landlor
 import { LandlordChangePasswordUseCase } from './pm/use-cases/landlord/landlord-change-password.use-case'
 import { LandlordService } from './pm/services/landlord.service'
 import { GetPmLandlordsUseCase } from './pm/use-cases/landlord/get-pm-landlords.use-case'
+import { CreatePmLandlordUseCase } from './pm/use-cases/landlord/create-pm-landlord.use-case'
 import { GetLandlordPropertyDetailsUseCase } from './pm/use-cases/landlord/get-landlord-property-details.use-case'
 import {
   GetPmNotificationsUseCase,
@@ -576,6 +578,7 @@ const UseCases = [
   GetUnitPaymentsUseCase,
   AddUnitPaymentUseCase,
   GetPropertyImageUploadUrlUseCase,
+  UploadPropertyImageUseCase,
   GetPmTenantsUseCase,
   InviteTenantUseCase,
   CreateTenantUseCase,
@@ -637,6 +640,7 @@ const UseCases = [
   GetLandlordPortfolioUseCase,
   LandlordChangePasswordUseCase,
   GetPmLandlordsUseCase,
+  CreatePmLandlordUseCase,
   GetLandlordPropertyDetailsUseCase,
   LandlordService,
   ActivityLogService,

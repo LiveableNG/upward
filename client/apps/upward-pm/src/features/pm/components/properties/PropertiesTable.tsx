@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Plus, Search, Menu, Building2, Filter, ChevronDown } from 'lucide-react'
+import { Plus, Search, Menu, Building2, Filter, ChevronDown, Eye } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -91,9 +91,9 @@ export function PropertiesTable({
         <div className="action-buttons" style={{ justifyContent: 'flex-end' }}>
           <button className="btn-icon" onClick={(e) => {
             e.stopPropagation();
-            onEditProperty(prop);
+            onViewPropertyDetail(prop);
           }}>
-            <Menu size={16} color="#64748b" />
+            <Eye size={16} color="#64748b" />
           </button>
         </div>
       )

@@ -1,31 +1,31 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../../domains/pm/IPropertyRepository';
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class GetPmLandlordsUseCase {
   constructor(
-    @Inject(PM_PROPERTY_REPOSITORY)
-    private readonly propertyRepository: IPropertyRepository,
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async execute(pmId: number) {
-    const properties = await this.propertyRepository.findByPmId(pmId);
-    
-    const landlordsMap = new Map<string, { name: string, email: string, phone: string }>();
-    
-    properties.forEach(prop => {
-      if (prop.landlordEmail) {
-        const email = prop.landlordEmail.toLowerCase().trim();
-        if (!landlordsMap.has(email)) {
-          landlordsMap.set(email, {
-            name: prop.landlordName || '',
-            email: prop.landlordEmail,
-            phone: prop.landlordPhone || '',
-          });
-        }
-      }
+    const relations = await this.prisma.upward_pm_landlord_relation.findMany({
+      where: { pmId },
+      include: { landlord: true },
+      orderBy: { createdAt: 'desc' }
     });
 
-    return Array.from(landlordsMap.values());
+    return relations.map((r:any) => {
+      const l = r.landlord;
+      return {
+        id: l.id,
+        uuid: l.uuid,
+        name: l.firstName ? this.encryption.decrypt(l.firstName) + (l.lastName ? ' ' + this.encryption.decrypt(l.lastName) : '') : 'Landlord',
+        email: l.email ? this.encryption.decrypt(l.email) : '',
+        phone: l.phone ? this.encryption.decrypt(l.phone) : '',
+        createdAt: l.createdAt,
+      };
+    });
   }
 }

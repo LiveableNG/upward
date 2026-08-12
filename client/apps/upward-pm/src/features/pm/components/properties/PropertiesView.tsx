@@ -16,7 +16,7 @@ import {
   useDeleteProperty 
 } from '@/features/pm/hooks/useProperties'
 import { usePaymentRequests } from '@/features/pm/hooks/usePayments'
-import { Property, getPropertyImageUploadUrl } from '../../services/propertyService'
+import { Property, uploadPropertyImage } from '../../services/propertyService'
 
 import { PropertiesTable } from './PropertiesTable'
 import { UnitsTable } from './UnitsTable'
@@ -138,8 +138,18 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
     try {
       if (propForm.imageFile) {
         info("Uploading image...")
-        const { uploadUrl, publicUrl } = await getPropertyImageUploadUrl(propForm.imageFile.type, propForm.imageFile.name)
-        await fetch(uploadUrl, { method: 'PUT', body: propForm.imageFile, headers: { 'Content-Type': propForm.imageFile.type } })
+        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+        const base64Data = await toBase64(propForm.imageFile);
+        const { publicUrl } = await uploadPropertyImage({ 
+            base64Data, 
+            contentType: propForm.imageFile.type,
+            filename: propForm.imageFile.name 
+        })
         finalImageUrl = publicUrl
       }
       const payload = {
@@ -179,8 +189,18 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
     try {
       if (propForm.imageFile) {
         info("Uploading new image...")
-        const { uploadUrl, publicUrl } = await getPropertyImageUploadUrl(propForm.imageFile.type, propForm.imageFile.name)
-        await fetch(uploadUrl, { method: 'PUT', body: propForm.imageFile, headers: { 'Content-Type': propForm.imageFile.type } })
+        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+        const base64Data = await toBase64(propForm.imageFile);
+        const { publicUrl } = await uploadPropertyImage({ 
+            base64Data, 
+            contentType: propForm.imageFile.type,
+            filename: propForm.imageFile.name 
+        })
         finalImageUrl = publicUrl
       }
       

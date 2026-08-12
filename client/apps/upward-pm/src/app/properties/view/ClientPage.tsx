@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useProperty, useUnits, useUpdateProperty, useDeleteProperty } from '@/features/pm/hooks/useProperties'
-import { getPropertyImageUploadUrl } from '@/features/pm/services/propertyService'
+import { getPropertyImageUploadUrl, uploadPropertyImage } from '@/features/pm/services/propertyService'
 import { PropertyDetailView } from '@/features/pm/components/properties/PropertyDetailView'
 import { DetailSkeleton } from '@/components/skeletons'
 import { EditPropertyModal } from '@/features/pm/components/properties/modals/EditPropertyModal'
@@ -54,8 +54,19 @@ function PropertyDetailContent() {
     
     try {
       if (propForm.imageFile) {
-        const { uploadUrl, publicUrl } = await getPropertyImageUploadUrl(propForm.imageFile.type, propForm.imageFile.name)
-        await fetch(uploadUrl, { method: 'PUT', body: propForm.imageFile, headers: { 'Content-Type': propForm.imageFile.type } })
+        const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = error => reject(error);
+        });
+
+        const base64Data = await toBase64(propForm.imageFile);
+        const { publicUrl } = await uploadPropertyImage({ 
+            base64Data, 
+            contentType: propForm.imageFile.type,
+            filename: propForm.imageFile.name 
+        })
         finalImageUrl = publicUrl
       }
     } catch (err) {

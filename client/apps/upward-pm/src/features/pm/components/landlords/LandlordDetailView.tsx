@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Building2, 
   Users, 
@@ -43,6 +44,7 @@ export function LandlordDetailView({
   onBack,
   onCreateReport
 }: LandlordDetailViewProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'properties' | 'units' | 'rent' | 'actions'>('properties')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -342,7 +344,12 @@ export function LandlordDetailView({
                     <td style={{ padding: '20px 24px', fontWeight: 600 }}>{prop.totalUnits}</td>
                     <td style={{ padding: '20px 24px', fontWeight: 600 }}>{units.filter(u => u.propertyId === prop.id).length}</td>
                     <td className="col-actions" style={{ padding: '20px 24px' }}>
-                      <button style={{ color: 'var(--forest)', fontWeight: 700, fontSize: 13 }}>Manage</button>
+                      <button 
+                        onClick={() => router.push(`/properties/view?uuid=${prop.uuid}`)}
+                        style={{ color: 'var(--forest)', fontWeight: 700, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        Manage
+                      </button>
                     </td>
                   </tr>
                 ))}

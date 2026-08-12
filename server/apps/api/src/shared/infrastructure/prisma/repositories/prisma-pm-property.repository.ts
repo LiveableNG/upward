@@ -23,20 +23,14 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       country: p.country,
       state: p.state,
       area: p.area,
-      landlordName: p.landlordNameEncrypted ? this.encryption.decrypt(p.landlordNameEncrypted) : null,
-      landlordEmail: p.landlordEmailEncrypted ? this.encryption.decrypt(p.landlordEmailEncrypted) : null,
-      landlordPhone: p.landlordPhoneEncrypted ? this.encryption.decrypt(p.landlordPhoneEncrypted) : null,
+      landlordId: p.landlordId || null,
+      landlordName: p.landlord?.firstName ? this.encryption.decrypt(p.landlord.firstName) + (p.landlord.lastName ? ' ' + this.encryption.decrypt(p.landlord.lastName) : '') : null,
+      landlordEmail: p.landlord?.email ? this.encryption.decrypt(p.landlord.email) : null,
+      landlordPhone: p.landlord?.phone ? this.encryption.decrypt(p.landlord.phone) : null,
     };
   }
 
   async create(data: Omit<PropertyEntity, 'id' | 'uuid'>): Promise<PropertyEntity> {
-    const landlordNameEncrypted = data.landlordName ? this.encryption.encrypt(data.landlordName) : null;
-    const landlordNameSearch = data.landlordName?.toLowerCase();
-    const landlordEmailEncrypted = data.landlordEmail ? this.encryption.encrypt(data.landlordEmail) : null;
-    const landlordEmailHash = data.landlordEmail ? this.encryption.hash(data.landlordEmail) : null;
-    const landlordPhoneEncrypted = data.landlordPhone ? this.encryption.encrypt(data.landlordPhone) : null;
-    const landlordPhoneHash = data.landlordPhone ? this.encryption.hash(data.landlordPhone) : null;
-
     const property = await this.prisma.upward_pm_property.create({
       data: {
         pmId: data.pmId,
@@ -48,13 +42,9 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         country: data.country,
         state: data.state,
         area: data.area,
-        landlordNameEncrypted,
-        landlordNameSearch,
-        landlordEmailEncrypted,
-        landlordEmailHash,
-        landlordPhoneEncrypted,
-        landlordPhoneHash,
+        landlordId: data.landlordId || undefined,
       },
+      include: { landlord: true },
     });
 
     return this.mapProperty(property);
@@ -64,6 +54,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const properties = await this.prisma.upward_pm_property.findMany({
       where: { pmId },
       orderBy: { createdAt: 'desc' },
+      include: { landlord: true },
     });
     return properties.map(p => this.mapProperty(p));
   }
@@ -73,6 +64,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const ownedProperties = await this.prisma.upward_pm_property.findMany({
       where: { pmId },
       orderBy: { createdAt: 'desc' },
+      include: { landlord: true },
     });
 
     // 2. Get collaborations
@@ -89,6 +81,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       if (collab.accessLevel === 'ALL') {
         const ownerProps = await this.prisma.upward_pm_property.findMany({
           where: { pmId: collab.ownerPmId },
+          include: { landlord: true },
         });
         collabProperties.push(...ownerProps);
       } else {
@@ -97,7 +90,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
             collaboratorPmId: pmId,
             ownerPmId: collab.ownerPmId 
           },
-          include: { property: true }
+          include: { property: { include: { landlord: true } } }
         });
         collabProperties.push(...customProps.map((cp: any) => cp.property));
       }
@@ -116,6 +109,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async findById(id: number): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { id },
+      include: { landlord: true },
     });
     return property ? this.mapProperty(property) : null;
   }
@@ -123,6 +117,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async findByUuid(uuid: string): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { uuid },
+      include: { landlord: true },
     });
     return property ? this.mapProperty(property) : null;
   }
@@ -130,25 +125,14 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async update(uuid: string, data: Partial<Omit<PropertyEntity, 'id' | 'uuid' | 'pmId'>>): Promise<PropertyEntity> {
     const updateData: any = { ...data };
 
-    if (data.landlordName !== undefined) {
-      updateData.landlordNameEncrypted = data.landlordName ? this.encryption.encrypt(data.landlordName) : null;
-      updateData.landlordNameSearch = data.landlordName?.toLowerCase();
-      delete updateData.landlordName;
-    }
-    if (data.landlordEmail !== undefined) {
-      updateData.landlordEmailEncrypted = data.landlordEmail ? this.encryption.encrypt(data.landlordEmail) : null;
-      updateData.landlordEmailHash = data.landlordEmail ? this.encryption.hash(data.landlordEmail) : null;
-      delete updateData.landlordEmail;
-    }
-    if (data.landlordPhone !== undefined) {
-      updateData.landlordPhoneEncrypted = data.landlordPhone ? this.encryption.encrypt(data.landlordPhone) : null;
-      updateData.landlordPhoneHash = data.landlordPhone ? this.encryption.hash(data.landlordPhone) : null;
-      delete updateData.landlordPhone;
-    }
+    delete updateData.landlordName;
+    delete updateData.landlordEmail;
+    delete updateData.landlordPhone;
 
     const property = await this.prisma.upward_pm_property.update({
       where: { uuid },
       data: updateData,
+      include: { landlord: true },
     });
 
     return this.mapProperty(property);

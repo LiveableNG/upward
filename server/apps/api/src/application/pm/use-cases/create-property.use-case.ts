@@ -33,6 +33,20 @@ export class CreatePropertyUseCase {
       throw new ConflictException(`A property with the name "${dto.name}" already exists in your portfolio.`);
     }
 
+    let landlordId: number | null = null;
+    if (dto.landlordEmail) {
+      const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
+      const landlord = await this.landlordService.ensureLandlord(
+        dto.landlordEmail, 
+        dto.landlordName, 
+        dto.landlordPhone,
+        pm?.uuid,
+      );
+      if (landlord && landlord.id) {
+        landlordId = landlord.id;
+      }
+    }
+
     const property = await this.propertyRepository.create({
       pmId,
       name: dto.name,
@@ -43,20 +57,11 @@ export class CreatePropertyUseCase {
       country: dto.country || 'Nigeria',
       state: dto.state || null,
       area: dto.area || null,
+      landlordId,
       landlordName: dto.landlordName || null,
       landlordEmail: dto.landlordEmail || null,
       landlordPhone: dto.landlordPhone || null,
     });
-
-    if (dto.landlordEmail) {
-      const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
-      await this.landlordService.ensureLandlord(
-        dto.landlordEmail, 
-        dto.landlordName, 
-        dto.landlordPhone,
-        pm?.uuid,
-      );
-    }
 
     if (dto.collaboratorUuids && dto.collaboratorUuids.length > 0) {
         const collaborators = await (this.prisma as any).upward_property_manager.findMany({
