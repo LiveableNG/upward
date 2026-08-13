@@ -17,6 +17,8 @@ model upward_pm_landlord {
   updatedAt       DateTime                    @updatedAt
 
   authSessions    upward_pm_landlord_auth_session[]
+  properties      upward_pm_property[]
+  pmRelations     upward_pm_landlord_relation[]
 }
 
 model upward_pm_landlord_auth_session {
@@ -32,5 +34,21 @@ model upward_pm_landlord_auth_session {
   updatedAt        DateTime                @updatedAt
   landlord         upward_pm_landlord      @relation(fields: [landlordId], references: [id], onDelete: Cascade)
 
+  @@index([landlordId])
+}
+
+model upward_pm_landlord_relation {
+  id          Int                     @id @default(autoincrement())
+  uuid        String                  @unique @default(uuid())
+  pmId        Int
+  landlordId  Int
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  pm          upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  landlord    upward_pm_landlord      @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+
+  @@unique([pmId, landlordId])
+  @@index([pmId])
   @@index([landlordId])
 }

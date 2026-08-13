@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, Users, Check } from 'lucide-react'
+import { X, Users, Check, UserPlus } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { ImageUpload } from './ImageUpload'
@@ -8,6 +8,7 @@ import { useTeam } from '@/features/pm/hooks/useTeam'
 import { useLandlords } from '@/features/pm/hooks/useProperties'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { PhoneInput } from '@/components/common/PhoneInput'
+import { cn } from '@/lib/utils'
 
 interface AddPropertyModalProps {
   isOpen: boolean;
@@ -39,23 +40,23 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
   const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
   const { data: team = [] } = useTeam()
   const { data: existingLandlords = [] } = useLandlords()
-  const [showLandlordSuggestions, setShowLandlordSuggestions] = React.useState(false)
+  const [landlordMode, setLandlordMode] = React.useState<'NONE' | 'NEW' | 'EXISTING'>(
+    formData.landlordEmail ? 'EXISTING' : 'NONE'
+  )
 
-  const filteredLandlords = existingLandlords.filter(l => {
-    const searchStr = (formData.landlordName || '').toLowerCase()
-    if (!searchStr) return true
-    return l.name.toLowerCase().includes(searchStr) || l.email.toLowerCase().includes(searchStr)
-  })
-
-  const handleSelectLandlord = (l: any) => {
-    setFormData({
-      ...formData,
-      landlordName: l.name,
-      landlordEmail: l.email,
-      landlordPhone: l.phone
-    })
-    setShowLandlordSuggestions(false)
+  const handleToggleLandlordMode = (mode: 'NONE' | 'NEW' | 'EXISTING') => {
+    setLandlordMode(mode === landlordMode ? 'NONE' : mode)
+    if (mode === 'NONE' || mode === landlordMode) {
+        setFormData({
+            ...formData,
+            landlordName: '',
+            landlordEmail: '',
+            landlordPhone: ''
+        })
+    }
   }
+
+
 
   const phoneError = formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone)
     ? 'Invalid international phone number'
@@ -162,78 +163,96 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
 
         {!isLandlordPortal && (
           <>
-            <div style={{ marginTop: 24, padding: 16, background: 'var(--bg)', borderRadius: 12 }}>
-              <h4 style={{ fontSize: 13, marginBottom: 16, color: 'var(--text-secondary)' }}>Landlord Details (Optional)</h4>
-              <div className="form-group" style={{ position: 'relative' }}>
-                <label className="form-label">Landlord Name</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="e.g. John Doe" 
-                  value={formData.landlordName || ''} 
-                  onChange={e => {
-                    setFormData({ ...formData, landlordName: e.target.value })
-                    setShowLandlordSuggestions(true)
-                  }}
-                  onFocus={() => setShowLandlordSuggestions(true)}
-                />
-                {showLandlordSuggestions && filteredLandlords.length > 0 && (
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '100%', 
-                    left: 0, 
-                    right: 0, 
-                    background: 'white', 
-                    border: '1px solid var(--border)', 
-                    borderRadius: 8, 
-                    zIndex: 10,
-                    boxShadow: 'var(--shadow-md)',
-                    marginTop: 4,
-                    maxHeight: 200,
-                    overflowY: 'auto'
-                  }}>
-                    {filteredLandlords.map((l, i) => (
-                      <div 
-                        key={i}
-                        onClick={() => handleSelectLandlord(l)}
-                        style={{ 
-                          padding: '10px 16px', 
-                          cursor: 'pointer',
-                          borderBottom: i === filteredLandlords.length - 1 ? 'none' : '1px solid var(--ivory-dim)',
-                          fontSize: 13
+            <div style={{ marginTop: 24, padding: 16, background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Users size={16} color="var(--forest)" />
+                    <h4 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Landlord Assignment</h4>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <button 
+                        className={cn("btn btn--sm", landlordMode === 'NEW' ? "btn--primary" : "btn--secondary")}
+                        style={{ fontSize: 11, padding: '6px 12px' }}
+                        onClick={() => handleToggleLandlordMode('NEW')}
+                    >
+                        <UserPlus size={14} /> New Landlord
+                    </button>
+                    <button 
+                        className={cn("btn btn--sm", landlordMode === 'EXISTING' ? "btn--primary" : "btn--secondary")}
+                        style={{ fontSize: 11, padding: '6px 12px' }}
+                        onClick={() => handleToggleLandlordMode('EXISTING')}
+                    >
+                        <Users size={14} /> Existing
+                    </button>
+                </div>
+              </div>
+
+              {landlordMode === 'NONE' && (
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0', margin: 0 }}>
+                    Optional: Link a landlord to this property.
+                </p>
+              )}
+
+              {landlordMode !== 'NONE' && (
+                <div className="animate-fade-in">
+                  {landlordMode === 'EXISTING' ? (
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: 11 }}>Select Existing Landlord</label>
+                      <FormSelect
+                        value={formData.landlordEmail || ''}
+                        onChange={val => {
+                          const selected = existingLandlords.find(l => l.email === val)
+                          if (selected) {
+                            setFormData({
+                              ...formData,
+                              landlordName: selected.name || '',
+                              landlordEmail: selected.email || '',
+                              landlordPhone: selected.phone || ''
+                            })
+                          }
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--ivory-dim)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <div style={{ fontWeight: 700 }}>{l.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{l.email}</div>
+                        options={existingLandlords.map(l => ({ label: `${l.name} (${l.email})`, value: l.email }))}
+                        placeholder="-- Choose Landlord --"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: 11 }}>Landlord Name</label>
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          placeholder="e.g. John Doe" 
+                          value={formData.landlordName || ''} 
+                          onChange={e => setFormData({ ...formData, landlordName: e.target.value })}
+                        />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div className="form-group">
-                  <label className="form-label">Email Address</label>
-                  <input 
-                    type="email" 
-                    className="form-input" 
-                    placeholder="landlord@email.com" 
-                    value={formData.landlordEmail || ''} 
-                    onChange={e => setFormData({ ...formData, landlordEmail: e.target.value })} 
-                  />
-                  {emailError && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{emailError}</p>}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: 11 }}>Email Address</label>
+                          <input 
+                            type="email" 
+                            className="form-input" 
+                            placeholder="landlord@email.com" 
+                            value={formData.landlordEmail || ''} 
+                            onChange={e => setFormData({ ...formData, landlordEmail: e.target.value })} 
+                          />
+                          {emailError && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{emailError}</p>}
+                        </div>
+                        <div className="form-group">
+                          <PhoneInput 
+                            label="Phone Number" 
+                            value={formData.landlordPhone || ''}
+                            onValueChange={(val) => setFormData({ ...formData, landlordPhone: val })}
+                            placeholder="e.g. +234..."
+                            error={phoneError}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="form-group">
-                  <PhoneInput 
-                    label="Phone Number" 
-                    value={formData.landlordPhone || ''}
-                    onValueChange={(val) => setFormData({ ...formData, landlordPhone: val })}
-                    placeholder="e.g. +234..."
-                    error={phoneError}
-                  />
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Collaboration Section */}

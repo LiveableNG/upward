@@ -26,6 +26,18 @@ export class UpdatePropertyUseCase {
       throw new ForbiddenException('You do not have access to update this property');
     }
 
+    let landlordId: number | undefined = undefined;
+    if (dto.landlordEmail && dto.landlordEmail !== property.landlordEmail) {
+        const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
+        const landlord = await this.landlordService.ensureLandlord(
+            dto.landlordEmail,
+            dto.landlordName,
+            dto.landlordPhone,
+            pm?.uuid,
+        );
+        if (landlord && landlord.id) landlordId = landlord.id;
+    }
+
     const updatedProperty = await this.propertyRepository.update(propertyUuid, {
       name: dto.name,
       address: dto.address,
@@ -35,20 +47,11 @@ export class UpdatePropertyUseCase {
       country: dto.country,
       state: dto.state,
       area: dto.area,
+      landlordId,
       landlordName: dto.landlordName,
       landlordEmail: dto.landlordEmail,
       landlordPhone: dto.landlordPhone,
     });
-    
-    if (dto.landlordEmail && dto.landlordEmail !== property.landlordEmail) {
-        const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
-        await this.landlordService.ensureLandlord(
-            dto.landlordEmail,
-            dto.landlordName,
-            dto.landlordPhone,
-            pm?.uuid,
-        );
-    }
 
     if (updatedProperty.imageUrl) {
       updatedProperty.imageUrl = await this.s3Service.getDownloadUrl(updatedProperty.imageUrl);

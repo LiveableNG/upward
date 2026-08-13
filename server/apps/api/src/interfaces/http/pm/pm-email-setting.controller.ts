@@ -18,6 +18,9 @@ import {
   CreatePmEmailDomainUseCase,
   VerifyPmEmailDomainUseCase,
   SendPmTestEmailUseCase,
+  VerifyPmOffice365ConfigUseCase,
+  VerifyPmGmailConfigUseCase,
+  VerifyPmOauthConfigUseCase,
 } from '../../../application/pm/use-cases/email-settings'
 
 interface FastifyRequest {
@@ -38,6 +41,9 @@ export class PmEmailSettingController {
     private readonly createPmEmailDomainUseCase: CreatePmEmailDomainUseCase,
     private readonly verifyPmEmailDomainUseCase: VerifyPmEmailDomainUseCase,
     private readonly sendPmTestEmailUseCase: SendPmTestEmailUseCase,
+    private readonly verifyPmOffice365ConfigUseCase: VerifyPmOffice365ConfigUseCase,
+    private readonly verifyPmGmailConfigUseCase: VerifyPmGmailConfigUseCase,
+    private readonly verifyPmOauthConfigUseCase: VerifyPmOauthConfigUseCase,
   ) {}
 
   @Get()
@@ -87,5 +93,26 @@ export class PmEmailSettingController {
   async sendTestEmail(@Req() req: FastifyRequest, @Body() body: { email: string }) {
     if (!req.user?.sub) throw new UnauthorizedException()
     return this.sendPmTestEmailUseCase.execute(req.user.sub, body.email)
+  }
+
+  @Post('office365/verify-config')
+  @HttpCode(HttpStatus.OK)
+  async verifyOffice365(@Req() req: FastifyRequest, @Body() body: any) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    return this.verifyPmOffice365ConfigUseCase.execute(req.user.sub, body)
+  }
+
+  @Post('gmail/verify-config')
+  @HttpCode(HttpStatus.OK)
+  async verifyGmail(@Req() req: FastifyRequest, @Body() body: any) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    return this.verifyPmGmailConfigUseCase.execute(req.user.sub, body)
+  }
+
+  @Post('oauth/verify-config')
+  @HttpCode(HttpStatus.OK)
+  async verifyOauth(@Req() req: FastifyRequest, @Body() body: any) {
+    if (!req.user?.sub) throw new UnauthorizedException()
+    return this.verifyPmOauthConfigUseCase.execute(req.user.sub, body)
   }
 }

@@ -79,8 +79,8 @@
   text-align: left;
 }
 
-/* Force action dropdowns to open upwards on the last two rows to prevent clipping */
-.upward-table tbody tr:nth-last-child(-n+2) .action-dropdown {
+/* Force action dropdowns to open upwards on the last two rows (except when it's the first row) to prevent clipping */
+.upward-table tbody tr:nth-last-child(-n+2):not(:first-child) .action-dropdown {
   top: auto !important;
   bottom: 100% !important;
 }

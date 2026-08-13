@@ -15,6 +15,7 @@ export interface PropertyEntity {
   country: string;
   state: string | null;
   area: string | null;
+  landlordId: number | null;
   landlordName: string | null;
   landlordEmail: string | null;
   landlordPhone: string | null;

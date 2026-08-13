@@ -78,7 +78,7 @@ export function DocumentEditorView({
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
   const { user } = useAuth()
-  const [fromEmail, setFromEmail] = useState(user?.email || 'noreply@goodtenants.io')
+  const [fromEmail, setFromEmail] = useState(user?.businessName || 'Property Manager')
   const [ccEmails, setCcEmails] = useState('')
   const [bccEmails, setBccEmails] = useState('')
 
@@ -182,10 +182,11 @@ export function DocumentEditorView({
   useEffect(() => {
     if (emailSettings) {
       if (emailSettings.senderEmail) {
-        if (emailSettings.isVerified) {
-          setFromEmail(`"${emailSettings.senderName}" <${emailSettings.senderEmail}>`)
+        const isExternal = emailSettings.provider && emailSettings.provider !== 'platform-sender' && emailSettings.provider !== 'mailgun'
+        if (emailSettings.isVerified || isExternal) {
+          setFromEmail(emailSettings.senderName || 'Property Manager')
         } else {
-          setFromEmail(`"${emailSettings.senderName || 'Property Manager'} (via Upward)" <noreply@goodtenants.io>`)
+          setFromEmail(`${emailSettings.senderName || 'Property Manager'} (via Upward)`)
         }
       }
       if (emailSettings.cc && !ccEmails) setCcEmails(emailSettings.cc)
@@ -534,7 +535,7 @@ export function DocumentEditorView({
 
         // 2. Send Document (linked to payment if context exists)
         const docResp = await sendDocument.mutateAsync({
-          fromEmail: isSystemTemplate ? fromEmail : undefined,
+          fromEmail: undefined,
           uuid: documentUuid,
           tenantUuid: recipientType === 'existing' ? selectedTenantUuid : undefined,
           unitUuid,
@@ -765,8 +766,8 @@ export function DocumentEditorView({
             className="form-input"
             value={fromEmail}
             onChange={(e) => setFromEmail(e.target.value)}
-            disabled={!isSystemTemplate}
-            style={{ background: !isSystemTemplate ? '#f8fafc' : 'white', borderRadius: 12 }}
+            disabled={true}
+            style={{ background: '#f8fafc', borderRadius: 12 }}
           />
         </div>
 

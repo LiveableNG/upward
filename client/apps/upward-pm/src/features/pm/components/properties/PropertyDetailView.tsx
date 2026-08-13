@@ -228,11 +228,19 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
       {/* Top Section Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 32 }}>
         {/* Image Card */}
-        <div className="glass" style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1f44', borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ textAlign: 'center', color: '#8fa3cf' }}>
-            <LayoutGrid size={48} strokeWidth={1} style={{ marginBottom: 12, opacity: 0.5 }} />
-            <div style={{ fontSize: 14 }}>No Images</div>
-          </div>
+        <div className="glass" style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a1f44', borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+          {property.imageUrl ? (
+            <img 
+              src={property.imageUrl} 
+              alt={property.name} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+          ) : (
+            <div style={{ textAlign: 'center', color: '#8fa3cf' }}>
+              <LayoutGrid size={48} strokeWidth={1} style={{ marginBottom: 12, opacity: 0.5 }} />
+              <div style={{ fontSize: 14 }}>No Images</div>
+            </div>
+          )}
         </div>
 
         {/* Info Card */}

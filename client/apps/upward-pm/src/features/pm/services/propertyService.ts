@@ -164,9 +164,16 @@ export const bulkCreateUnits = (propertyUuid: string, units: Partial<Unit>[]) =>
 }
 
 export const getPropertyImageUploadUrl = (contentType: string, filename: string) => {
-  return request<{ key: string; uploadUrl: string; publicUrl: string }>('/pm/properties/image-upload-url', {
+  return request<{ uploadUrl: string, publicUrl: string, key: string }>('/pm/properties/image-upload-url', {
     method: 'POST',
     body: JSON.stringify({ contentType, filename })
+  })
+}
+
+export const uploadPropertyImage = async (params: { base64Data: string, contentType: string, filename?: string }) => {
+  return request<{ publicUrl: string, key: string }>('/pm/properties/image-upload', {
+    method: 'POST',
+    body: JSON.stringify(params)
   })
 }
 
@@ -191,5 +198,12 @@ export const bulkAddRentHistory = (unitUuid: string, rows: any[]) => {
 }
 
 export const getLandlords = () => {
-  return request<{ name: string; email: string; phone: string }[]>('/pm/landlords')
+  return request<{ id: number, uuid: string, name: string; email: string; phone: string }[]>('/pm/landlords')
+}
+
+export const createLandlord = (data: { name: string; email: string; phone?: string; company?: string }) => {
+  return request<any>('/pm/landlords', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
 }

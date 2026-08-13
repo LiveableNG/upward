@@ -1,4 +1,5 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common'
+import * as nodemailer from 'nodemailer'
 import { ConfigService } from '@nestjs/config'
 import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
@@ -157,8 +158,20 @@ export class EmailService {
     let replyTo = replyToOverride || this.replyToEmail
     let brandedHtml = html
 
+    const upperType = type.toUpperCase()
+    const isPlatformSpecial = upperType.includes('OTP') || upperType.includes('ADMIN') || upperType === 'CUSTOMER_SUPPORT' || upperType === 'SYSTEM_ALERT'
+
+    if (isPlatformSpecial) {
+      if (upperType.includes('OTP')) {
+        from = `"Upward" <noreplyupward@goodtenants.io>`
+      } else {
+        from = `"Upward Admin" <upwardadmin@goodtenants.io>`
+      }
+    }
+
     const targetPmUuid = pmUuid || userId
-    if (targetPmUuid) {
+    let emailSetting: any = null
+    if (targetPmUuid && !isPlatformSpecial) {
       const pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: targetPmUuid },
         include: { emailSetting: true },
@@ -168,6 +181,7 @@ export class EmailService {
       let pmDomain = ''
       
       if (pm?.emailSetting) {
+        emailSetting = pm.emailSetting
         if (pm.emailSetting.isVerified && pm.emailSetting.domain) {
           isSenderVerified = true
           pmDomain = pm.emailSetting.domain
@@ -189,7 +203,8 @@ export class EmailService {
       
       if (!fromOverride) {
         if (pm?.emailSetting) {
-          if (isSenderVerified) {
+          const isExternalProvider = pm.emailSetting.provider && pm.emailSetting.provider !== 'platform-sender' && pm.emailSetting.provider !== 'mailgun'
+          if (isSenderVerified || isExternalProvider) {
             from = `"${pm.emailSetting.senderName}" <${pm.emailSetting.senderEmail}>`
           } else if (pm.emailSetting.senderEmail) {
             const defaultFrom = this.configService.get<string>('EMAIL_FROM') || 'noreply@goodtenants.io'
@@ -276,9 +291,22 @@ export class EmailService {
           }))
         }
 
-        const response = await this.mg.messages.create(domain, mailData)
+        if (emailSetting && emailSetting.isVerified && emailSetting.provider && emailSetting.provider !== 'platform-sender') {
+          if (emailSetting.provider === 'office365') {
+            mailgunId = await this.sendViaOffice365(emailSetting, mailData)
+          } else if (['gmail', 'zoho-smtp', 'yahoo-smtp'].includes(emailSetting.provider)) {
+            mailgunId = await this.sendViaSmtp(emailSetting, mailData)
+          } else if (['gmail-oauth', 'zoho-oauth'].includes(emailSetting.provider)) {
+            mailgunId = await this.sendViaOAuth(emailSetting, mailData)
+          } else {
+            const response = await this.mg.messages.create(domain, mailData)
+            mailgunId = response.id
+          }
+        } else {
+          const response = await this.mg.messages.create(domain, mailData)
+          mailgunId = response.id
+        }
         success = true
-        mailgunId = response.id
         this.logger.log(`Email ${type} sent to ${email} (Attempt ${retries + 1})`)
       } catch (error: unknown) {
         retries++
@@ -476,4 +504,221 @@ export class EmailService {
     )
   }
 
+  private async sendViaSmtp(emailSetting: any, mailData: any): Promise<string> {
+    let host = 'smtp.gmail.com'
+    let port = 465
+    let secure = true
+
+    if (emailSetting.provider === 'zoho-smtp') {
+      host = 'smtp.zoho.com'
+    } else if (emailSetting.provider === 'yahoo-smtp') {
+      host = 'smtp.mail.yahoo.com'
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: {
+        user: emailSetting.smtpEmail,
+        pass: emailSetting.smtpPassword,
+      },
+    })
+
+    const mailOptions: any = {
+      from: mailData.from,
+      to: mailData.to,
+      subject: mailData.subject,
+      text: mailData.text,
+      html: mailData.html,
+    }
+
+    if (mailData.cc) mailOptions.cc = mailData.cc
+    if (mailData.bcc) mailOptions.bcc = mailData.bcc
+    if (mailData['h:Reply-To']) mailOptions.replyTo = mailData['h:Reply-To']
+
+    if (mailData.attachment && mailData.attachment.length > 0) {
+      mailOptions.attachments = mailData.attachment.map((a: any) => ({
+        filename: a.filename,
+        content: a.data,
+      }))
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    return info.messageId || `smtp-${Date.now()}`
+  }
+
+  private async sendViaOffice365(emailSetting: any, mailData: any): Promise<string> {
+    const config = emailSetting.office365Config
+    if (!config || !config.applicationId || !config.directoryId || !config.clientSecret || !config.userObjectId) {
+      throw new Error('Office365 configuration is incomplete')
+    }
+
+    const tokenUrl = `https://login.microsoftonline.com/${config.directoryId}/oauth2/v2.0/token`
+    const bodyParams = new URLSearchParams()
+    bodyParams.append('client_id', config.applicationId)
+    bodyParams.append('client_secret', config.clientSecret)
+    bodyParams.append('scope', 'https://graph.microsoft.com/.default')
+    bodyParams.append('grant_type', 'client_credentials')
+
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: bodyParams.toString(),
+    })
+
+    if (!tokenRes.ok) {
+      const errorText = await tokenRes.text()
+      throw new Error(`Failed to refresh Office365 access token: ${errorText}`)
+    }
+
+    const tokenData = await tokenRes.json()
+    const accessToken = tokenData.access_token
+
+    const message: any = {
+      subject: mailData.subject,
+      body: {
+        contentType: 'HTML',
+        content: mailData.html,
+      },
+      toRecipients: mailData.to.map((email: string) => ({
+        emailAddress: { address: email },
+      })),
+    }
+
+    if (mailData.cc) {
+      message.ccRecipients = mailData.cc.split(',').map((email: string) => ({
+        emailAddress: { address: email.trim() },
+      }))
+    }
+
+    if (mailData.bcc) {
+      message.bccRecipients = mailData.bcc.split(',').map((email: string) => ({
+        emailAddress: { address: email.trim() },
+      }))
+    }
+
+    if (mailData['h:Reply-To']) {
+      message.replyTo = [
+        {
+          emailAddress: { address: mailData['h:Reply-To'] },
+        },
+      ]
+    }
+
+    if (mailData.attachment && mailData.attachment.length > 0) {
+      message.attachments = mailData.attachment.map((a: any) => ({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: a.filename,
+        contentType: 'application/octet-stream',
+        contentBytes: Buffer.from(a.data).toString('base64'),
+      }))
+    }
+
+    const sendMailUrl = `https://graph.microsoft.com/v1.0/users/${config.userObjectId}/sendMail`
+    const sendRes = await fetch(sendMailUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message, saveToSentItems: true }),
+    })
+
+    if (!sendRes.ok) {
+      const errText = await sendRes.text()
+      throw new Error(`Office365 sending failed: ${errText}`)
+    }
+
+    return `office365-${Date.now()}`
+  }
+
+  private async sendViaOAuth(emailSetting: any, mailData: any): Promise<string> {
+    const isGmail = emailSetting.provider === 'gmail-oauth'
+    const config = isGmail ? emailSetting.gmailOauthConfig : emailSetting.zohoConfig
+    if (!config || !config.clientId || !config.clientSecret || !config.refreshToken) {
+      throw new Error('OAuth configuration is incomplete or missing tokens')
+    }
+
+    let accessToken = ''
+    if (isGmail) {
+      const tokenUrl = 'https://oauth2.googleapis.com/token'
+      const bodyParams = new URLSearchParams()
+      bodyParams.append('client_id', config.clientId)
+      bodyParams.append('client_secret', config.clientSecret)
+      bodyParams.append('refresh_token', config.refreshToken)
+      bodyParams.append('grant_type', 'refresh_token')
+
+      const tokenRes = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: bodyParams.toString(),
+      })
+
+      if (!tokenRes.ok) {
+        const errorText = await tokenRes.text()
+        throw new Error(`Failed to refresh Gmail OAuth token: ${errorText}`)
+      }
+
+      const tokenData = await tokenRes.json()
+      accessToken = tokenData.access_token
+    } else {
+      const tokenUrl = 'https://accounts.zoho.com/oauth/v2/token'
+      const bodyParams = new URLSearchParams()
+      bodyParams.append('client_id', config.clientId)
+      bodyParams.append('client_secret', config.clientSecret)
+      bodyParams.append('refresh_token', config.refreshToken)
+      bodyParams.append('grant_type', 'refresh_token')
+
+      const tokenRes = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: bodyParams.toString(),
+      })
+
+      if (!tokenRes.ok) {
+        const errorText = await tokenRes.text()
+        throw new Error(`Failed to refresh Zoho OAuth token: ${errorText}`)
+      }
+
+      const tokenData = await tokenRes.json()
+      accessToken = tokenData.access_token
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: isGmail ? 'smtp.gmail.com' : 'smtp.zoho.com',
+      port: 465,
+      secure: true,
+      auth: {
+        type: 'OAuth2',
+        user: emailSetting.smtpEmail || emailSetting.senderEmail,
+        clientId: config.clientId,
+        clientSecret: config.clientSecret,
+        refreshToken: config.refreshToken,
+        accessToken,
+      },
+    } as any)
+
+    const mailOptions: any = {
+      from: mailData.from,
+      to: mailData.to,
+      subject: mailData.subject,
+      text: mailData.text,
+      html: mailData.html,
+    }
+
+    if (mailData.cc) mailOptions.cc = mailData.cc
+    if (mailData.bcc) mailOptions.bcc = mailData.bcc
+    if (mailData['h:Reply-To']) mailOptions.replyTo = mailData['h:Reply-To']
+
+    if (mailData.attachment && mailData.attachment.length > 0) {
+      mailOptions.attachments = mailData.attachment.map((a: any) => ({
+        filename: a.filename,
+        content: a.data,
+      }))
+    }
+
+    const info = await transporter.sendMail(mailOptions)
+    return info.messageId || `oauth-${Date.now()}`
+  }
 }

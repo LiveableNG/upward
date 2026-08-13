@@ -49,10 +49,7 @@ export class DistributePaymentAllocationsUseCase {
     // This ensures the mandatory transaction fee is prioritized and settled first
     if (upwardFeeAmount > 0) {
       const feeInAllocations = lineItemPayments?.find(lp => 
-        lp.name === 'Processing Fee' || 
-        lp.name === 'Transaction Fee' ||
-        lp.name === 'Upward Benefits' ||
-        ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(lp.name || '')
+        lp.name === 'Upward Benefits'
       )
       
       if (!feeInAllocations) {
@@ -105,10 +102,8 @@ export class DistributePaymentAllocationsUseCase {
           
           return false
         })
-        const isFee = lp.name === 'Processing Fee' || 
-                     lp.name === 'Transaction Fee' ||
-                     lp.name === 'Upward Benefits' ||
-                     (item && ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name))
+        const isFee = lp.name === 'Upward Benefits' || 
+                     (item && item.name === 'Upward Benefits')
         
         const lpAmount = Number(lp.amountPaid || lp.amount || 0)
         
@@ -172,7 +167,7 @@ export class DistributePaymentAllocationsUseCase {
     if (!hasManualAllocations && remainingPayment > 0 && currentItems.length > 0) {
       const unpaidItems = currentItems
         .filter(item => {
-          const isFee = ['Upward Processing Fee', 'Upward & Provider Fee', 'Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name)
+          const isFee = item.name === 'Upward Benefits'
           const need = item.totalAmount - item.amountPaid
           return !isFee && need > 0
         })

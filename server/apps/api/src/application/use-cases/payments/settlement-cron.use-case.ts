@@ -3,6 +3,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/payment.repository';
 import { ConfigService } from '@nestjs/config';
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service';
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class ProcessHourlySettlementsUseCase {
     private readonly paymentGateway: IPaymentGateway,
     private readonly configService: ConfigService,
     private readonly paymentConfig: PaymentConfigurationService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async execute() {
@@ -38,10 +40,11 @@ export class ProcessHourlySettlementsUseCase {
           include: {
             subaccount: true,
             userProperty: {
-              include: { subaccount: true }
+              include: { subaccount: true, pmUnit: true }
             }
           }
-        }
+        },
+        user: true
       }
     });
 
@@ -190,12 +193,32 @@ export class ProcessHourlySettlementsUseCase {
         // Initiate ONE Bundled Transfer to Landlord
         this.logger.log(`Settling batch ${batch.uuid}: ₦${totalRentToSettle} for ${txs.length} transactions to ${sub.accountNumber}`);
         
+        let finalNarration = `Upward Batch Settlement: ${txs.length} properties`
+        if (txs.length === 1) {
+          const tenant = txs[0]?.user
+          const unit = txs[0]?.paymentRequest?.userProperty?.pmUnit
+          const externalUnit = txs[0]?.propertyAddress || txs[0]?.paymentRequest?.description
+          
+          let tenantName = 'Tenant'
+          if (tenant) {
+            const fName = tenant.firstName ? this.encryption.decrypt(tenant.firstName) : ''
+            const lName = tenant.lastName ? this.encryption.decrypt(tenant.lastName) : ''
+            tenantName = `${fName} ${lName}`.trim() || 'Tenant'
+          }
+          
+          let unitName = unit?.unitName || externalUnit || 'N/A'
+          const unitDesc = unitName !== 'N/A' ? ` (Unit: ${unitName})` : ''
+          finalNarration = `Upward: ${tenantName}${unitDesc}`
+          // Truncate to avoid Paystack narration limit (100 chars)
+          if (finalNarration.length > 80) finalNarration = finalNarration.substring(0, 80)
+        }
+
         await this.paymentGateway.initiateTransfer({
           amount: totalRentToSettle,
           accountNumber: sub.accountNumber,
           bankCode: sub.bankCode,
           reference: finalReference,
-          narration: `Upward Batch Settlement: ${txs.length} properties`
+          narration: finalNarration
         });
 
         // Update Transactions and Batch status

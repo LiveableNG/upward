@@ -83,7 +83,8 @@
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tsc-alias": "^1.8.16",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "nodemailer": "^6.9.14"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.3.0",
@@ -96,6 +97,7 @@
     "@types/node": "^22.13.10",
     "@types/passport-jwt": "^4.0.1",
     "@types/supertest": "^7.2.0",
+    "@types/nodemailer": "^6.4.15",
     "eslint": "^9.22.0",
     "jest": "^30.3.0",
     "prisma": "6.19.0",

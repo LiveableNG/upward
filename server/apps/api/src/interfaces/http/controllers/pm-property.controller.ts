@@ -16,6 +16,7 @@ import { AddUnitPaymentUseCase } from '../../../application/pm/use-cases/add-uni
 import { UpdateRentPaymentUseCase } from '../../../application/pm/use-cases/update-rent-payment.use-case';
 import { DeleteRentPaymentUseCase } from '../../../application/pm/use-cases/delete-rent-payment.use-case';
 import { GetPropertyImageUploadUrlUseCase } from '../../../application/pm/use-cases/get-property-image-upload-url.use-case';
+import { UploadPropertyImageUseCase } from '../../../application/pm/use-cases/upload-property-image.use-case';
 import { SyncUnitToUpwardUseCase } from '../../../application/pm/use-cases/units/sync-unit.use-case';
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
 import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
@@ -39,6 +40,8 @@ import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/
 import { TransferTeamPropertiesUseCase } from '../../../application/pm/use-cases/team/transfer-team-properties.use-case';
 import { BulkAddRentHistoryUseCase } from '../../../application/pm/use-cases/bulk-add-rent-history.use-case';
 import { GetPmLandlordsUseCase } from '../../../application/pm/use-cases/landlord/get-pm-landlords.use-case';
+import { CreatePmLandlordUseCase } from '../../../application/pm/use-cases/landlord/create-pm-landlord.use-case';
+import { CreatePmLandlordDto } from '../../../application/pm/dtos/landlord.dto';
 import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase, GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
 import { ResolvePendingRefundUseCase, RefundResolutionAction } from '../../../application/pm/use-cases/payments/resolve-refund.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
@@ -64,6 +67,7 @@ export class PmPropertyController {
     private readonly updateRentPaymentUseCase: UpdateRentPaymentUseCase,
     private readonly deleteRentPaymentUseCase: DeleteRentPaymentUseCase,
     private readonly getPropertyImageUploadUrlUseCase: GetPropertyImageUploadUrlUseCase,
+    private readonly uploadPropertyImageUseCase: UploadPropertyImageUseCase,
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
     private readonly getPmPaymentRequestsUseCase: GetPmPaymentRequestsUseCase,
@@ -84,6 +88,7 @@ export class PmPropertyController {
     private readonly transferTeamPropertiesUseCase: TransferTeamPropertiesUseCase,
     private readonly bulkAddRentHistoryUseCase: BulkAddRentHistoryUseCase,
     private readonly getPmLandlordsUseCase: GetPmLandlordsUseCase,
+    private readonly createPmLandlordUseCase: CreatePmLandlordUseCase,
     private readonly getPmPayoutsUseCase: GetPmPayoutsUseCase,
     private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
     private readonly getPmUnresolvedTransactionsUseCase: GetPmUnresolvedTransactionsUseCase,
@@ -217,6 +222,12 @@ export class PmPropertyController {
     return this.getPropertyImageUploadUrlUseCase.execute(pmId, body.contentType, body.filename);
   }
 
+  @Post('properties/image-upload')
+  async uploadImage(@Req() req: any, @Body() body: { base64Data: string; contentType: string; filename?: string }) {
+    const pmId = await this.getPmId(req);
+    return this.uploadPropertyImageUseCase.execute(pmId, body.base64Data, body.contentType, body.filename);
+  }
+
   @Post('payment-requests')
   async createPaymentRequest(@Req() req: any, @Body() dto: CreatePmPaymentRequestDto) {
     const pmId = await this.getPmId(req);
@@ -261,6 +272,12 @@ export class PmPropertyController {
   async getLandlords(@Req() req: any) {
     const pmId = await this.getPmId(req);
     return this.getPmLandlordsUseCase.execute(pmId);
+  }
+
+  @Post('landlords')
+  async createLandlord(@Req() req: any, @Body() dto: CreatePmLandlordDto) {
+    const pmId = await this.getPmId(req);
+    return this.createPmLandlordUseCase.execute(pmId, dto);
   }
 
   @Post('landlords/send-report')

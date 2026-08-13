@@ -232,7 +232,7 @@ export class SendRentReceiptEmailUseCase {
         const name = item.label || item.name || ''
         const isFee =
           item.category === 'Fee' ||
-          ['Processing Fee', 'Upward Processing Fee', 'Upward & Provider Fee', 'Transaction Fee', 'Upward Benefits'].includes(name)
+          ['Upward Benefits'].includes(name)
         return !isFee && name
       })
       .map((item: any) => ({

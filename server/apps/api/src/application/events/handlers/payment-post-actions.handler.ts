@@ -167,8 +167,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
       if (tx && tx.lineItems && Array.isArray(tx.lineItems)) {
         const items = tx.lineItems as any[]
         for (const item of items) {
-          const isFee = item.category === 'Fee' || 
-                        ['Processing Fee', 'Upward Processing Fee', 'Upward & Provider Fee'].includes(item.name)
+          const isFee = item.category === 'Fee' || ['Upward Benefits'].includes(item.name)
           if (!isFee) {
             lineItemsPaid[item.name] = (lineItemsPaid[item.name] || 0) + (item.amount || 0)
           }

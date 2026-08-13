@@ -28,6 +28,7 @@ export const api = {
   getLandlordReport: pmService.getLandlordReport,
   sendBulkReminders: pmService.sendBulkReminders,
   getPmLandlords: propertyService.getLandlords,
+  createPmLandlord: propertyService.createLandlord,
   submitVerification: pmService.submitVerification,
   getVerificationStatus: pmService.getVerificationStatus,
   getEmailSettings: pmService.getEmailSettings,
@@ -71,6 +72,7 @@ export const api = {
   bulkFullImport: propertyService.bulkFullImport,
   bulkAddRentHistory: propertyService.bulkAddRentHistory,
   getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
+  uploadPropertyImage: propertyService.uploadPropertyImage,
   
   // Payments
   getPaymentRequests: paymentService.getPaymentRequests,

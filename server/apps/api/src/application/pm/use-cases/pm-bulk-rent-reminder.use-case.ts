@@ -27,11 +27,13 @@ export class PmBulkRentReminderUseCase {
 
     const pmName = pm.businessName || `${pm.firstName || ''} ${pm.lastName || ''}`.trim() || 'Property Manager';
 
-    // 1. Find all properties for this landlord under this PM
+    const emailHash = this.encryption.hash(landlordEmail);
     const properties = await this.prisma.upward_pm_property.findMany({
       where: {
         pmId,
-        landlordEmailEncrypted: { not: null }
+        landlord: {
+          emailHash
+        }
       },
       include: {
         units: {

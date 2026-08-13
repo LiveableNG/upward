@@ -125,7 +125,6 @@ export class GetPmMetricsUseCase {
       })
 
     const finalPmDirectory = [...finalPmDirectoryRaw, ...finalCompanyDirectory]
-      .filter((pm) => pm.businessName?.trim().toLowerCase() !== 'upward')
 
     return {
       finalPmDirectory,

@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE "upward_pm_email_setting" ADD COLUMN     "defaultFontFamily" TEXT,
+ADD COLUMN     "defaultFontSize" TEXT,
+ADD COLUMN     "defaultLineHeight" TEXT,
+ADD COLUMN     "emailSignature" TEXT,
+ADD COLUMN     "enableMailbox" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "enableReplyTo" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "gmailOauthConfig" JSONB,
+ADD COLUMN     "office365Config" JSONB,
+ADD COLUMN     "office365SecretExpiresAt" TIMESTAMP(3),
+ADD COLUMN     "provider" TEXT,
+ADD COLUMN     "sendTestEmail" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "smtpEmail" TEXT,
+ADD COLUMN     "smtpPassword" TEXT,
+ADD COLUMN     "useEmailSignature" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "zohoConfig" JSONB,
+ALTER COLUMN "senderName" DROP NOT NULL,
+ALTER COLUMN "senderEmail" DROP NOT NULL;

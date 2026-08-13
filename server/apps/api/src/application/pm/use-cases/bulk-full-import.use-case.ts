@@ -11,6 +11,8 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { BulkFullImportDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { LandlordService } from '../services/landlord.service';
 
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
@@ -35,6 +37,8 @@ export class BulkFullImportUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     private readonly encryption: EncryptionService,
     private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
+    private readonly prisma: PrismaService,
+    private readonly landlordService: LandlordService,
   ) {}
 
   async execute(pmId: number, dto: BulkFullImportDto) {
@@ -91,6 +95,20 @@ export class BulkFullImportUseCase {
             ? `${row.landlordFirstName} ${row.landlordLastName || ''}`.trim()
             : undefined;
 
+          let landlordId: number | null = null;
+          if (row.landlordEmail) {
+            const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
+            const landlord = await this.landlordService.ensureLandlord(
+              row.landlordEmail,
+              landlordName,
+              row.landlordPhone,
+              pm?.uuid
+            );
+            if (landlord && landlord.id) {
+              landlordId = landlord.id;
+            }
+          }
+
           const created = await this.propertyRepository.create({
             pmId,
             name: resolvedPropertyName,
@@ -101,6 +119,7 @@ export class BulkFullImportUseCase {
             country: row.propertyCountry || 'Nigeria',
             state: row.propertyState || null,
             area: row.propertyArea || null,
+            landlordId,
             landlordName: landlordName || null,
             landlordEmail: row.landlordEmail || null,
             landlordPhone: row.landlordPhone || null,
