@@ -304,7 +304,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     {
       key: 'joinedAt',
       label: 'Join Date',
-      sortable: false,
+      sortable: true,
       render: (item) => (
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
           {item.joinedAt ? (

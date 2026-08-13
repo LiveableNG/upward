@@ -173,12 +173,12 @@ export class ResolveExternalPendingRefundUseCase {
           
           let upwardFeeAmount = 0;
           const parsedLineItems = Array.isArray((tx as any).lineItems) ? (tx as any).lineItems as any[] : [];
-          const fee = parsedLineItems.find((lp: any) => lp.name === 'Processing Fee');
+          const fee = parsedLineItems.find((lp: any) => lp.name === 'Upward Benefits');
           if (fee) upwardFeeAmount = Number(fee.amount || fee.amountPaid || 0);
 
           if (upwardFeeAmount === 0) {
             const feeItem = (await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } }))
-              .find((i: any) => i.name === 'Processing Fee');
+              .find((i: any) => i.name === 'Upward Benefits');
             if (feeItem) {
               upwardFeeAmount = Math.min(effectiveAmount, feeItem.totalAmount - feeItem.amountPaid);
             }
@@ -187,7 +187,7 @@ export class ResolveExternalPendingRefundUseCase {
           // Check if rent remaining
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } });
           const rentRemaining = prItems.reduce((sum: number, item: any) => {
-            if (item.name === 'Processing Fee') return sum;
+            if (item.name === 'Upward Benefits') return sum;
             return sum + Math.max(0, item.totalAmount - item.amountPaid);
           }, 0);
 
@@ -196,7 +196,7 @@ export class ResolveExternalPendingRefundUseCase {
 
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount);
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion;
-          const totalRentOwed = prItems.reduce((sum: number, i: any) => i.name === 'Processing Fee' ? sum : sum + i.totalAmount, 0);
+          const totalRentOwed = prItems.reduce((sum: number, i: any) => i.name === 'Upward Benefits' ? sum : sum + i.totalAmount, 0);
           const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL';
 
           await this.paymentRequestRepo.update(pr.id!, {

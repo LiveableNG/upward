@@ -421,7 +421,7 @@ export class RecordTransactionUseCase {
 
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
           const rentRemaining = prItems.reduce((sum, item) => {
-            if (item.name === 'Processing Fee' || item.name === 'Transaction Fee' || item.name === 'Upward Benefits') return sum
+            if (item.name === 'Upward Benefits') return sum
             return sum + Math.max(0, item.totalAmount - item.amountPaid)
           }, 0)
           remaining = rentRemaining
@@ -431,8 +431,6 @@ export class RecordTransactionUseCase {
       let upwardFeeAmount = 0
       if (data.lineItemPayments && Array.isArray(data.lineItemPayments)) {
         const fees = data.lineItemPayments.filter(lp =>
-          lp.name === 'Processing Fee' ||
-          lp.name === 'Transaction Fee' ||
           lp.name === 'Upward Benefits'
         )
         if (fees.length > 0) {
@@ -489,7 +487,7 @@ export class RecordTransactionUseCase {
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion
           const prItems = await txClient.upward_payment_line_item.findMany({ where: { paymentRequestId: pr.id } })
           const totalRentOwed = prItems.reduce((sum: number, i: any) =>
-            (i.name === 'Processing Fee' || i.name === 'Transaction Fee' || i.name === 'Upward Benefits') ? sum : sum + i.totalAmount
+            (i.name === 'Upward Benefits') ? sum : sum + i.totalAmount
             , 0)
           const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL'
 
@@ -812,7 +810,7 @@ export class InitializePaymentUseCase {
       let clientFee = 0
       if (data.metadata?.lineItems) {
         const feeItems = data.metadata.lineItems.filter((i: any) =>
-          ['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(i.label || i.name || '')
+          ['Upward Benefits'].includes(i.label || i.name || '')
         )
         if (feeItems.length > 0) {
           clientFee = feeItems.reduce((sum: number, fi: any) => sum + Number(fi.amount || fi.amountPaid || 0), 0)
@@ -1332,7 +1330,7 @@ export class ProcessPaymentWebhookUseCase {
         this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations. ExcludeBenefits: ${excludeBenefits}`)
 
         // Extract fee if specified
-        const feeItem = lineItemPayments?.find(lp => lp.name === 'Processing Fee')
+        const feeItem = lineItemPayments?.find(lp => lp.name === 'Upward Benefits')
         if (feeItem) {
           upwardFeeAmount = Number(feeItem.amount || feeItem.amountPaid || 0)
         }
