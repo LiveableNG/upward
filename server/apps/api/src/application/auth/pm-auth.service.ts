@@ -69,6 +69,10 @@ export class PmAuthService extends BaseAuthService {
       ...rest
     }
 
+    if (clientProfile.pmType === 'INDIVIDUAL_LANDLORD') {
+      clientProfile.pmType = 'Landlord'
+    }
+
     if (clientProfile.profilePic) {
       clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }
@@ -273,6 +277,10 @@ export class PmAuthService extends BaseAuthService {
       ...rest
     }
 
+    if (clientProfile.pmType === 'INDIVIDUAL_LANDLORD') {
+      clientProfile.pmType = 'Landlord'
+    }
+
     if (clientProfile.profilePic) {
       clientProfile.profilePic = await this.s3Service.getDownloadUrl(clientProfile.profilePic)
     }
@@ -318,6 +326,10 @@ export class PmAuthService extends BaseAuthService {
       id: uuid,
       uuid,
       ...profile
+    }
+
+    if (clientProfile.pmType === 'INDIVIDUAL_LANDLORD') {
+      clientProfile.pmType = 'Landlord'
     }
 
     if (clientProfile.profilePic) {
