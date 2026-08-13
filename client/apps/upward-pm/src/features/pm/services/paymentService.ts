@@ -137,3 +137,27 @@ export const addManualAccount = (data: { propertyId: number; bankName: string; b
     body: JSON.stringify(data)
   })
 }
+
+export const getManualAccounts = () => {
+  return request<any[]>('/payments/manual/accounts')
+}
+
+export const addManualSettlementAccount = (data: { accountNumber: string; accountName: string; bankName: string; bankCode: string; isPrimary?: boolean }) => {
+  return request<any>('/payments/manual/accounts', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const deleteManualSettlementAccount = (id: number) => {
+  return request<any>(`/payments/manual/accounts/${id}`, {
+    method: 'DELETE'
+  })
+}
+
+export const linkPropertiesToAccount = (id: number, propertyUuids: string[]) => {
+  return request<any>(`/payments/manual/accounts/${id}/link`, {
+    method: 'POST',
+    body: JSON.stringify({ propertyUuids })
+  })
+}

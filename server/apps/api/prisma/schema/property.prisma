@@ -40,7 +40,8 @@ model upward_user_property {
   subaccount             upward_paystack_subaccount?  @relation(fields: [subaccountId], references: [id])
   user                   upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   dedicatedAccount       upward_dedicated_virtual_account?
-  manualAccount          upward_manual_account?
+  manualAccountId        Int?
+  manualAccount          upward_manual_account? @relation(fields: [manualAccountId], references: [id])
   benefitsSubscriptions  upward_benefits_subscription[]
 
   @@unique([platformId, externalUnitId])
@@ -54,13 +55,14 @@ model upward_manual_account {
   accountName     String
   bankName        String
   bankCode        String?
-  userPropertyId  Int?                  @unique
-  pmPropertyId    Int?                  @unique
+  pmId            Int?
+  isPrimary       Boolean               @default(false)
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 
-  userProperty    upward_user_property? @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
-  pmProperty      upward_pm_property?   @relation(fields: [pmPropertyId], references: [id], onDelete: Cascade)
+  pm              upward_property_manager? @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  userProperties  upward_user_property[]
+  pmProperties    upward_pm_property[]
 }
 
 model upward_location {

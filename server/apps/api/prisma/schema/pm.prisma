@@ -44,6 +44,7 @@ model upward_property_manager {
   signatures      upward_pm_signature[]
   notifications   upward_pm_notification[]
   landlordRelations upward_pm_landlord_relation[]
+  manualAccounts  upward_manual_account[]
   
   teamOwner         upward_pm_team_collaboration[] @relation("OwnerTeam")
   teamCollaborator  upward_pm_team_collaboration[] @relation("CollaboratorTeam")
@@ -117,7 +118,8 @@ model upward_pm_property {
   pm                     upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   units                  upward_pm_unit[]
   collaborators          upward_pm_property_collaboration[]
-  manualAccount          upward_manual_account?
+  manualAccountId        Int?
+  manualAccount          upward_manual_account? @relation(fields: [manualAccountId], references: [id])
 
   @@index([pmId])
 }

@@ -351,6 +351,9 @@ import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-ove
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 import {
   AddManualAccountUseCase,
+  GetManualAccountsUseCase,
+  DeleteManualAccountUseCase,
+  LinkPropertiesToAccountUseCase,
   UploadProofOfPaymentUseCase,
   ReviewManualPaymentUseCase,
   GetPaymentProofUploadUrlUseCase,
@@ -652,6 +655,9 @@ const UseCases = [
   HandlePaymentOverpaymentUseCase,
   ProcessHourlySettlementsUseCase,
   AddManualAccountUseCase,
+  GetManualAccountsUseCase,
+  DeleteManualAccountUseCase,
+  LinkPropertiesToAccountUseCase,
   UploadProofOfPaymentUseCase,
   ReviewManualPaymentUseCase,
   GetPaymentProofUploadUrlUseCase,
