@@ -62,6 +62,7 @@ export class VerifyPmOffice365ConfigUseCase {
         create: {
           pmId: pm.id,
           provider: 'office365',
+          isVerified: true,
           office365Config: {
             applicationId: dto.clientId,
             directoryId: dto.tenantId,
@@ -72,6 +73,7 @@ export class VerifyPmOffice365ConfigUseCase {
         },
         update: {
           provider: 'office365',
+          isVerified: true,
           office365Config: {
             applicationId: dto.clientId,
             directoryId: dto.tenantId,

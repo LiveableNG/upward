@@ -73,6 +73,7 @@ export class VerifyPmOauthConfigUseCase {
             pmId: pm.id,
             provider: 'gmail-oauth',
             domain: 'gmail.com',
+            isVerified: true,
             gmailOauthConfig: {
               clientId: dto.clientId,
               clientSecret: secret,
@@ -82,6 +83,7 @@ export class VerifyPmOauthConfigUseCase {
           update: {
             provider: 'gmail-oauth',
             domain: 'gmail.com',
+            isVerified: true,
             gmailOauthConfig: {
               clientId: dto.clientId,
               clientSecret: secret,
@@ -111,6 +113,7 @@ export class VerifyPmOauthConfigUseCase {
           create: {
             pmId: pm.id,
             provider: 'zoho-oauth',
+            isVerified: true,
             zohoConfig: {
               clientId: dto.clientId,
               clientSecret: secret,
@@ -122,6 +125,7 @@ export class VerifyPmOauthConfigUseCase {
           },
           update: {
             provider: 'zoho-oauth',
+            isVerified: true,
             zohoConfig: {
               clientId: dto.clientId,
               clientSecret: secret,

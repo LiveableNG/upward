@@ -65,11 +65,13 @@ export class VerifyPmGmailConfigUseCase {
           provider: dto.provider,
           smtpEmail: dto.email,
           smtpPassword: password,
+          isVerified: true,
         },
         update: {
           provider: dto.provider,
           smtpEmail: dto.email,
           smtpPassword: password,
+          isVerified: true,
         },
       })
 

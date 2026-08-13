@@ -703,6 +703,21 @@ export function EmailOnboardingPipeline() {
                     </div>
                   </div>
 
+                  <div style={{
+                    background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 16,
+                    fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5
+                  }}>
+                    <h4 style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>How to configure Office365 App Registration:</h4>
+                    <ol style={{ paddingLeft: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 4, listStyleType: 'decimal' }}>
+                      <li>Log in to the <strong>Microsoft Entra admin center</strong> (Azure Portal).</li>
+                      <li>Go to <strong>App registrations</strong> and click <strong>New registration</strong>.</li>
+                      <li>Register the app and note down the <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong>.</li>
+                      <li>Go to <strong>Certificates & secrets</strong>, generate a new client secret, and copy the <strong>Secret Value</strong> (not ID).</li>
+                      <li>Go to <strong>API permissions</strong> and grant Microsoft Graph application permissions: <code>Mail.Send</code>.</li>
+                      <li>Under <strong>Users</strong>, find the target sending user account and copy their <strong>Object ID</strong>.</li>
+                    </ol>
+                  </div>
+
                   <div style={{ display: 'flex', gap: 16, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input type="checkbox" id="enable-mailbox" checked={officeEnableMailbox} onChange={(e) => setOfficeEnableMailbox(e.target.checked)} />
@@ -798,6 +813,23 @@ export function EmailOnboardingPipeline() {
                     </div>
                   )}
 
+                  {selectedProvider === 'yahoo-smtp' && (
+                    <div style={{
+                      background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 16,
+                      fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5
+                    }}>
+                      <h4 style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>How to generate a Yahoo SMTP App Password:</h4>
+                      <ol style={{ paddingLeft: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 4, listStyleType: 'decimal' }}>
+                        <li>Log in to your Yahoo Mail Account.</li>
+                        <li>Click on your profile picture at the top right and go to <strong>Account Info</strong>.</li>
+                        <li>Select <strong>Account Security</strong> from the left sidebar.</li>
+                        <li>Scroll down and click on <strong>Generate app password</strong>.</li>
+                        <li>Enter the App Name: <strong>Upward</strong></li>
+                        <li>Click <strong>Generate</strong> and copy the 16-character app password.</li>
+                      </ol>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
                     <button
                       className="btn btn--primary"
@@ -829,6 +861,38 @@ export function EmailOnboardingPipeline() {
                     <label className="form-label">Client Secret</label>
                     <input className="form-input" type="password" value={oauthClientSecret} onChange={(e) => setOauthClientSecret(e.target.value)} />
                   </div>
+
+                  {selectedProvider === 'gmail-oauth' && (
+                    <div style={{
+                      background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 16,
+                      fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5
+                    }}>
+                      <h4 style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>How to get Gmail OAuth Credentials:</h4>
+                      <ol style={{ paddingLeft: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 4, listStyleType: 'decimal' }}>
+                        <li>Go to the <strong>Google Cloud Console</strong>.</li>
+                        <li>Create or select a project, search for the <strong>Gmail API</strong> and enable it.</li>
+                        <li>Configure the <strong>OAuth Consent Screen</strong> and add the scope: <code>https://www.googleapis.com/auth/gmail.send</code>.</li>
+                        <li>Navigate to <strong>Credentials</strong>, click <strong>Create Credentials</strong> &gt; <strong>OAuth client ID</strong> (Web application).</li>
+                        <li>Add the Authorized Redirect URI: <code>{window.location.origin}/settings</code>.</li>
+                        <li>Copy the generated <strong>Client ID</strong> and <strong>Client Secret</strong>.</li>
+                      </ol>
+                    </div>
+                  )}
+
+                  {selectedProvider === 'zoho-oauth' && (
+                    <div style={{
+                      background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 16,
+                      fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5
+                    }}>
+                      <h4 style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>How to get Zoho OAuth Credentials:</h4>
+                      <ol style={{ paddingLeft: 16, margin: 0, display: 'flex', flexDirection: 'column', gap: 4, listStyleType: 'decimal' }}>
+                        <li>Go to the <strong>Zoho Developer Console</strong>.</li>
+                        <li>Click <strong>Add Client</strong> and choose <strong>Server-based Applications</strong>.</li>
+                        <li>Enter a client name, homepage URL, and set the Authorized Redirect URI: <code>{window.location.origin}/settings</code>.</li>
+                        <li>Click <strong>Create</strong> and copy the generated <strong>Client ID</strong> and <strong>Client Secret</strong>.</li>
+                      </ol>
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <button
