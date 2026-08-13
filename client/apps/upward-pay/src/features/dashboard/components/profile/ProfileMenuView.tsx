@@ -148,7 +148,7 @@ export function ProfileMenuView({
     },
   ]
 
-  const discoverGroup = [
+  const discoverGroup: any[] = [
     // Hidden for now — leave Find a home / request flow intact
     // {
     //   id: 'request-home',
@@ -157,20 +157,20 @@ export function ProfileMenuView({
     //   icon: Search,
     //   onClick: () => router.push('/dashboard/exclusive-homes/request'),
     // },
-    {
-      id: 'exclusive-homes',
-      title: 'Browse Exclusive Homes',
-      desc: 'Verified rentals only on Upward · 0% agent fees',
-      icon: Building2,
-      onClick: () => router.push('/dashboard/exclusive-homes'),
-    },
-    {
-      id: 'home-applications',
-      title: 'My requests & applications',
-      desc: 'Track matches, prep, and viewing status',
-      icon: ClipboardList,
-      onClick: () => router.push('/dashboard/exclusive-homes/applications'),
-    },
+    // {
+    //   id: 'exclusive-homes',
+    //   title: 'Browse Exclusive Homes',
+    //   desc: 'Verified rentals only on Upward · 0% agent fees',
+    //   icon: Building2,
+    //   onClick: () => router.push('/dashboard/exclusive-homes'),
+    // },
+    // {
+    //   id: 'home-applications',
+    //   title: 'My requests & applications',
+    //   desc: 'Track matches, prep, and viewing status',
+    //   icon: ClipboardList,
+    //   onClick: () => router.push('/dashboard/exclusive-homes/applications'),
+    // },
   ]
 
   const supportGroup = [
@@ -279,33 +279,35 @@ export function ProfileMenuView({
         </div>
       </div>
 
-      <div className="profile-page__section">
-        <h3 className="profile-page__section-label">Discover</h3>
-        <div className="profile-page__menu-card">
-          {discoverGroup.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="profile-page__menu-item"
-                onClick={item.onClick}
-              >
-                <span className="profile-page__menu-icon">
-                  <Icon size={16} />
-                </span>
-                <span className="profile-page__menu-text">
-                  <span className="profile-page__menu-title">{item.title}</span>
-                  <span className="profile-page__menu-desc">{item.desc}</span>
-                </span>
-                <span className="profile-page__menu-trail">
-                  <ChevronRight size={16} />
-                </span>
-              </button>
-            )
-          })}
+      {discoverGroup.length > 0 && (
+        <div className="profile-page__section">
+          <h3 className="profile-page__section-label">Discover</h3>
+          <div className="profile-page__menu-card">
+            {discoverGroup.map((item) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="profile-page__menu-item"
+                  onClick={item.onClick}
+                >
+                  <span className="profile-page__menu-icon">
+                    <Icon size={16} />
+                  </span>
+                  <span className="profile-page__menu-text">
+                    <span className="profile-page__menu-title">{item.title}</span>
+                    <span className="profile-page__menu-desc">{item.desc}</span>
+                  </span>
+                  <span className="profile-page__menu-trail">
+                    <ChevronRight size={16} />
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="profile-page__section">
         <h3 className="profile-page__section-label">Support &amp; Info</h3>
