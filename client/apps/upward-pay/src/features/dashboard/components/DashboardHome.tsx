@@ -435,13 +435,13 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
+        {/* Hidden for now — exclusive homes prototype hidden for production deployment
         <div className="dash-home__discover">
           <h2 className="dash-home__discover-title">Discover</h2>
-          {/* Hidden for now — leave Find a home / request flow intact
           <ExclusiveHomesPromo />
-          */}
           <ExclusiveHomesBrowseLink />
         </div>
+        */}
 
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>

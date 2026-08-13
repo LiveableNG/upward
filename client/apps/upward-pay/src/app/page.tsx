@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense, useState } from 'react'
-import { fetchInvitationData, type InvitationData } from '@/lib/invitation-service'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
@@ -21,8 +20,6 @@ function LandingPageContent() {
   const token = searchParams.get('token')
   const email = searchParams.get('email')
 
-  const [invitationData, setInvitationData] = useState<InvitationData | null>(null)
-  
   const [pathToken, setPathToken] = useState<string | null>(null)
   const [isPayRoute, setIsPayRoute] = useState(false)
   const [isWaitlistRoute, setIsWaitlistRoute] = useState(false)
@@ -77,15 +74,7 @@ function LandingPageContent() {
 
     // Invited / whitelist flow
     if (finalToken && !isPayRoute) {
-      setFetchingInvitation(true)
-      fetchInvitationData(finalToken)
-        .then((data) => {
-          setInvitationData(data)
-          setFetchingInvitation(false)
-        })
-        .catch(() => {
-          setFetchingInvitation(false)
-        })
+      setFetchingInvitation(false)
       return
     }
 
