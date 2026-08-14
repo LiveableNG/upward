@@ -35,11 +35,11 @@ export class AiParseDocumentUseCase {
           input.mimeType,
           input.fileName
         );
-        if (extractedText) {
+        if (extractedText && extractedText.trim().length > 0 && !extractedText.startsWith('[')) {
           processedBuffer = Buffer.from(extractedText, 'utf-8');
           mimeType = 'text/plain';
         } else {
-          this.logger.warn('Unstructured processing failed. Self-healing: Falling back to direct layout/vision parsing.');
+          this.logger.warn('Unstructured processing returned no direct text elements. Self-healing: Falling back to direct layout/vision parsing.');
         }
       } else {
         this.logger.log('Hybrid Pathway: Using native DocumentPreProcessorEngine');
