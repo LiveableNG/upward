@@ -3,9 +3,13 @@ import * as XLSX from 'xlsx'
 import { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
 import { extractForField, splitPersonName, stripContacts, looksCorporate, looksSurnameFirst, inferDateOrder, countDatesIn, resolvePaidWord, scrub, formatPhoneNumberByCountry, validateCell, parseDateString, calculateRentEndDateAndWarning , type DateOrder } from './utils'
 import { useToast } from '@/components/common/Toast'
+import { api } from '@/lib/api'
 
 export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties: any[], targetPropertyUuid: string) => {
   const { success, error } = useToast()
+
+  // AI states
+  const [isAiParsing, setIsAiParsing] = useState(false)
 
   // Overlay states
   const [isOverlayOpen, setIsOverlayOpen] = useState(false)
@@ -514,6 +518,104 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     }
   }
 
+  const handleAiFileUpload = async (file: File) => {
+    setIsAiParsing(true)
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const base64Data = (e.target?.result as string).split(',')[1]
+        const responseRows = await api.parseDocumentWithAi({
+          base64Data,
+          contentType: file.type || 'application/octet-stream',
+          fileName: file.name,
+          mode,
+          targetPropertyUuid,
+        })
+
+        const formattedRows = responseRows.map((r: any, idx: number) => ({
+          id: `row-ai-${Date.now()}-${idx}`,
+          ...r,
+        }))
+
+        const newErrors: Record<string, string> = {}
+        const newWarnings: Record<string, string> = {}
+
+        formattedRows.forEach(row => {
+          const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
+          const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
+          const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
+
+          const startDateVal = row[startDateField]
+          const endDateVal = row[dueDateField]
+          if (startDateVal && endDateVal && new Date(endDateVal) < new Date(startDateVal)) {
+            newErrors[`${row.id}-${dueDateField}`] = 'The end date is before the start date'
+          }
+          const rentTypeVal = row[rentTypeField] || 'Annually'
+          const leaseYearsVal = row.leaseYears
+
+          if (startDateVal && !endDateVal) {
+            const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
+            row[dueDateField] = fixedEndDate
+            if (warningMessage) {
+              newWarnings[`${row.id}-${dueDateField}`] = warningMessage
+            }
+          }
+
+          columns.forEach(col => {
+            const err = validateCell(row.id, col.key, row[col.key], col, columns, row, formattedRows, () => {}, true)
+            if (err) {
+              newErrors[`${row.id}-${col.key}`] = err
+            }
+          })
+        })
+
+        setPreviewRows(formattedRows)
+        setValidationErrors(newErrors)
+        setAmberWarnings(newWarnings)
+        
+        // Run duplicate detection
+        const unitMap = new Map<string, number[]>() 
+        formattedRows.forEach((row, idx) => {
+          const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
+          const unitKey = (row.unitName || '').trim().toLowerCase()
+          
+          if (unitKey) {
+            const fullKey = `${propertyKey}|${unitKey}`
+            if (!unitMap.has(fullKey)) unitMap.set(fullKey, [])
+            unitMap.get(fullKey)!.push(idx)
+          }
+        })
+        unitMap.forEach((indexes, fullKey) => {
+          if (indexes.length > 1) {
+            indexes.forEach(idx => newErrors[`${formattedRows[idx].id}-unitName`] = 'Duplicate unit')
+          } else {
+            const idx = indexes[0]
+            const row = formattedRows[idx]
+            const [propertyKey, unitKey] = fullKey.split('|')
+            const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
+            const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
+            if (unitExists) newErrors[`${row.id}-unitName`] = 'Unit already exists in system'
+          }
+        })
+
+        setValidationErrors(newErrors)
+        setPhase('preview')
+        setIsOverlayOpen(true)
+        success('AI parsing complete! Review the extracted rows below.')
+      } catch (err: any) {
+        console.error(err)
+        error(err?.message || 'Failed to parse document via AI. Please try again.')
+      } finally {
+        setIsAiParsing(false)
+      }
+    }
+    reader.onerror = () => {
+      error('Failed to read file.')
+      setIsAiParsing(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
   const closeOverlay = () => {
     setIsOverlayOpen(false)
     setWorkbook(null)
@@ -526,6 +628,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   return {
     isOverlayOpen, setIsOverlayOpen,
     phase, setPhase,
+    isAiParsing, handleAiFileUpload,
     setFieldColumn, addFieldColumn, removeFieldColumn,
     setDateOrderIsAmbiguous,
     swapNameOrder, setSwapNameOrder,

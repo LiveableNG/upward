@@ -73,6 +73,7 @@ export const api = {
   bulkAddRentHistory: propertyService.bulkAddRentHistory,
   getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
   uploadPropertyImage: propertyService.uploadPropertyImage,
+  parseDocumentWithAi: propertyService.parseDocumentWithAi,
   
   // Payments
   getPaymentRequests: paymentService.getPaymentRequests,

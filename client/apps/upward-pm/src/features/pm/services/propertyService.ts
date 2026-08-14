@@ -207,3 +207,18 @@ export const createLandlord = (data: { name: string; email: string; phone?: stri
     body: JSON.stringify(data)
   })
 }
+
+export const parseDocumentWithAi = (params: {
+  base64Data: string;
+  contentType: string;
+  fileName: string;
+  mode: 'full' | 'units';
+  targetPropertyUuid?: string;
+  contextHint?: string;
+}) => {
+  return request<any[]>('/pm/ai-document/parse', {
+    method: 'POST',
+    body: JSON.stringify(params)
+  })
+}
+
