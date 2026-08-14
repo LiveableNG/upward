@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, FileText, AlertTriangle, ArrowRight, ArrowLeft, Eye, Building, Home, User, Table, Files, Clock, Pencil, Keyboard, Lock, Info, Loader2, Sparkles } from 'lucide-react'
+import { FileSpreadsheet, Download, Upload, Check, ChevronDown, ChevronUp, FileText, AlertTriangle, ArrowRight, ArrowLeft, Eye, Building, Home, User, Table, Files, Clock, Pencil, Keyboard, Lock, Info } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 import { useProperties, useBulkFullImport } from '@/features/pm/hooks/useProperties'
@@ -45,6 +45,7 @@ export const DataImportTab: React.FC = () => {
   // UX Redesign state
   const [isExampleModalOpen, setIsExampleModalOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [pendingExcelUpload, setPendingExcelUpload] = useState<{ file: File; event: React.ChangeEvent<HTMLInputElement> } | null>(null)
 
   const compulsory = useMemo(() => {
     return COMPULSORY_KEYS
@@ -207,12 +208,26 @@ export const DataImportTab: React.FC = () => {
     }
   }, [socket])
 
-  const [pendingFile, setPendingFile] = useState<{ file: File; event?: React.ChangeEvent<HTMLInputElement> } | null>(null)
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setPendingFile({ file, event: e })
+
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (
+      ext === 'csv' ||
+      ext === 'xlsx' ||
+      ext === 'xls' ||
+      ext === 'xlsm' ||
+      ext === 'xlsb' ||
+      ext === 'xltx' ||
+      ext === 'xltm'
+    ) {
+      setPendingExcelUpload({ file, event: e })
+    } else {
+      setPendingRelayFile(file)
+      setShowRelayModal(true)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const handleConfirmRelay = async () => {
@@ -596,23 +611,23 @@ export const DataImportTab: React.FC = () => {
         </div>
       </Modal>
 
-      {pendingFile && (
+      {pendingExcelUpload && (
         <Modal
           isOpen={true}
-          onClose={() => setPendingFile(null)}
-          title="Choose Import Option"
+          onClose={() => setPendingExcelUpload(null)}
+          title="How is your Excel sheet laid out?"
           maxWidth={500}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '6px 0' }}>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-              We recommend using our AI parser. It automatically reads layouts, handles dirty data, and bypasses manual mapping.
+              Choose the layout that best matches your file. If it has a complex structure, our team will process it for you for free.
             </p>
-
+            
             <button
               onClick={() => {
-                const { file } = pendingFile
-                setPendingFile(null)
-                importState.handleAiFileUpload(file)
+                const { file, event } = pendingExcelUpload
+                setPendingExcelUpload(null)
+                importState.handleFileUpload(event, fileInputRef)
               }}
               style={{
                 display: 'flex',
@@ -620,124 +635,73 @@ export const DataImportTab: React.FC = () => {
                 gap: 12,
                 padding: 14,
                 borderRadius: 12,
-                border: '2px solid var(--clay)',
-                background: 'var(--ivory-faint)',
+                border: '1px solid var(--border-strong)',
+                background: 'var(--surface)',
                 textAlign: 'left',
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, background-color 0.15s',
                 width: '100%',
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--clay)'
+                e.currentTarget.style.backgroundColor = 'var(--ivory-faint)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
+                e.currentTarget.style.backgroundColor = 'var(--surface)'
+              }}
             >
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--clay-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--clay)' }}>
-                <Sparkles size={16} />
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-secondary)' }}>
+                <FileSpreadsheet size={16} />
               </div>
               <div>
-                <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>
-                  AI Auto-Onboarding <span style={{ fontSize: 10, background: 'var(--clay)', color: 'white', padding: '2px 6px', borderRadius: 10, marginLeft: 6 }}>Recommended</span>
-                </strong>
+                <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>Simple table layout</strong>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
-                  Auto-extracts properties, units, and tenants instantly. Drops data directly to the review table.
+                  A clean grid of columns and rows. You will match the columns yourself in 5 minutes.
                 </span>
               </div>
             </button>
 
-            {pendingFile.file.name.match(/\.(xlsx|xls|csv|xlsm|xlsb)$/i) ? (
-              <button
-                onClick={() => {
-                  const { event } = pendingFile
-                  setPendingFile(null)
-                  if (event) importState.handleFileUpload(event, fileInputRef)
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                  padding: 14,
-                  borderRadius: 12,
-                  border: '1px solid var(--border-strong)',
-                  background: 'var(--surface)',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'border-color 0.15s, background-color 0.15s',
-                  width: '100%',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--clay)'
-                  e.currentTarget.style.backgroundColor = 'var(--ivory-faint)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-strong)'
-                  e.currentTarget.style.backgroundColor = 'var(--surface)'
-                }}
-              >
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-secondary)' }}>
-                  <FileSpreadsheet size={16} />
-                </div>
-                <div>
-                  <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>Manual Column Mapping (Legacy)</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
-                    Match each spreadsheet column to Upward database fields manually step-by-step.
-                  </span>
-                </div>
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  const { file } = pendingFile
-                  setPendingFile(null)
-                  setPendingRelayFile(file)
-                  setShowRelayModal(true)
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                  padding: 14,
-                  borderRadius: 12,
-                  border: '1px solid var(--border-strong)',
-                  background: 'var(--surface)',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'border-color 0.15s, background-color 0.15s',
-                  width: '100%',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--clay)'
-                  e.currentTarget.style.backgroundColor = 'var(--ivory-faint)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-strong)'
-                  e.currentTarget.style.backgroundColor = 'var(--surface)'
-                }}
-              >
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-secondary)' }}>
-                  <FileText size={16} />
-                </div>
-                <div>
-                  <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>Request Support Setup (48hrs)</strong>
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
-                    Send this complex document to customer support to clean and upload manually.
-                  </span>
-                </div>
-              </button>
-            )}
-          </div>
-        </Modal>
-      )}
-
-      {importState.isAiParsing && (
-        <Modal
-          isOpen={true}
-          onClose={() => {}}
-          title="Processing Document with AI"
-          maxWidth={450}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '24px 12px' }}>
-            <Loader2 className="animate-spin text-clay" size={40} style={{ marginBottom: 16 }} />
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--dark)', marginBottom: 8 }}>Analyzing layout & mapping fields...</h3>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-              Upward AI is parsing your file to extract properties, unit configurations, and tenant details. This will take a few seconds...
-            </p>
+            <button
+              onClick={() => {
+                const { file } = pendingExcelUpload
+                setPendingExcelUpload(null)
+                setPendingRelayFile(file)
+                setShowRelayModal(true)
+                if (fileInputRef.current) fileInputRef.current.value = ''
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: 14,
+                borderRadius: 12,
+                border: '1px solid var(--border-strong)',
+                background: 'var(--surface)',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, background-color 0.15s',
+                width: '100%',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--clay)'
+                e.currentTarget.style.backgroundColor = 'var(--ivory-faint)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-strong)'
+                e.currentTarget.style.backgroundColor = 'var(--surface)'
+              }}
+            >
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--text-secondary)' }}>
+                <FileText size={16} />
+              </div>
+              <div>
+                <strong style={{ fontSize: 14, color: 'var(--dark)', display: 'block', marginBottom: 2 }}>Custom or complex layout</strong>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4, display: 'block' }}>
+                  Nested tables, receipt styles, or multiple tables. Our team will transcribe it for you.
+                </span>
+              </div>
+            </button>
           </div>
         </Modal>
       )}
