@@ -23,11 +23,16 @@ export class PmAiDocumentController {
       contextHint?: string;
     }
   ) {
-    const pm = await this.prisma.upward_property_manager.findUnique({
+    let pm = await this.prisma.upward_property_manager.findUnique({
       where: { uuid: req.user.id || req.user.sub },
     });
     if (!pm) {
-      throw new UnauthorizedException('PM not found');
+      const admin = await this.prisma.upward_admin.findUnique({
+        where: { id: req.user.id || req.user.sub },
+      });
+      if (!admin) {
+        throw new UnauthorizedException('Access denied: Caller is neither a PM nor an Admin.');
+      }
     }
 
     if (!body.base64Data || !body.contentType || !body.fileName) {
