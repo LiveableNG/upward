@@ -7,7 +7,7 @@ export class UnstructuredPipelineService {
 
   constructor(private readonly configService: ConfigService) {}
 
-  async processDocument(fileBuffer: Buffer, mimeType: string, fileName: string): Promise<string> {
+  async processDocument(fileBuffer: Buffer, mimeType: string, fileName: string): Promise<string | null> {
     const apiUrl = this.configService.get<string>('UNSTRUCTURED_API_URL', 'http://localhost:8000/general/v0/general');
     const apiKey = this.configService.get<string>('UNSTRUCTURED_API_KEY', '');
 
@@ -53,7 +53,7 @@ export class UnstructuredPipelineService {
       return extractedContent;
     } catch (err: any) {
       this.logger.error(`Failed to parse document via Unstructured.io: ${err.message}`);
-      return fileBuffer.toString('utf-8');
+      return null;
     }
   }
 }

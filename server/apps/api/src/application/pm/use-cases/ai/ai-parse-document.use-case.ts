@@ -35,8 +35,12 @@ export class AiParseDocumentUseCase {
           input.mimeType,
           input.fileName
         );
-        processedBuffer = Buffer.from(extractedText, 'utf-8');
-        mimeType = 'text/plain';
+        if (extractedText) {
+          processedBuffer = Buffer.from(extractedText, 'utf-8');
+          mimeType = 'text/plain';
+        } else {
+          this.logger.warn('Unstructured processing failed. Self-healing: Falling back to direct layout/vision parsing.');
+        }
       } else {
         this.logger.log('Hybrid Pathway: Using native DocumentPreProcessorEngine');
         const preProcessResult = await this.preProcessorEngine.preProcess(
