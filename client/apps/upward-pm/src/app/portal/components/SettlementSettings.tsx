@@ -10,6 +10,7 @@ import { CheckCircle2, Loader2, Edit2, Check, Landmark, Trash2, Link, Search, X,
 import { api } from '@/lib/api'
 import { dedupeBanksByCode } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal/Modal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
 
 const bankSchema = z.object({
   bankCode: z.string().min(1, 'Please select a bank'),
@@ -340,15 +341,16 @@ export function SettlementSettings({ landlord }: SettlementSettingsProps) {
 
         {isEditingPrimary ? (
           <form onSubmit={primaryForm.handleSubmit((data) => updatePrimaryMutation.mutate(data))} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <div className="settlement-form__grid">
               <div className="form-group">
                 <label className="form-label">Select Bank</label>
-                <select {...primaryForm.register('bankCode')} className="form-input" style={{ width: '100%', height: 44, borderRadius: 12, border: '1px solid var(--border)', padding: '0 12px' }}>
-                  <option value="">Select a bank</option>
-                  {dedupeBanksByCode(banks).map(bank => (
-                    <option key={bank.code} value={bank.code}>{bank.name}</option>
-                  ))}
-                </select>
+                <FormSelect
+                  value={primaryBankCode || ''}
+                  onChange={(val) => primaryForm.setValue('bankCode', val, { shouldValidate: true, shouldDirty: true })}
+                  options={dedupeBanksByCode(banks).map(bank => ({ label: bank.name, value: bank.code }))}
+                  placeholder="Select a bank"
+                  searchable
+                />
                 {primaryForm.formState.errors.bankCode && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{primaryForm.formState.errors.bankCode.message}</p>}
               </div>
               <div className="form-group">
@@ -567,15 +569,16 @@ export function SettlementSettings({ landlord }: SettlementSettingsProps) {
               </button>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <div className="settlement-form__grid">
               <div className="form-group">
                 <label className="form-label">Select Bank</label>
-                <select {...secondaryForm.register('bankCode')} className="form-input" style={{ width: '100%', height: 44, borderRadius: 12, border: '1px solid var(--border)', padding: '0 12px', background: 'white' }}>
-                  <option value="">Select a bank</option>
-                  {dedupeBanksByCode(banks).map(bank => (
-                    <option key={bank.code} value={bank.code}>{bank.name}</option>
-                  ))}
-                </select>
+                <FormSelect
+                  value={secondaryBankCode || ''}
+                  onChange={(val) => secondaryForm.setValue('bankCode', val, { shouldValidate: true, shouldDirty: true })}
+                  options={dedupeBanksByCode(banks).map(bank => ({ label: bank.name, value: bank.code }))}
+                  placeholder="Select a bank"
+                  searchable
+                />
                 {secondaryForm.formState.errors.bankCode && <p style={{ color: 'var(--error)', fontSize: 11, marginTop: 4 }}>{secondaryForm.formState.errors.bankCode.message}</p>}
               </div>
               <div className="form-group">

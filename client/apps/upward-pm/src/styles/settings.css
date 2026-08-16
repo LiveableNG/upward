@@ -457,3 +457,19 @@
     text-align: left;
   }
 }
+
+/* Settlement settings form grid */
+.settlement-form__grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-5);
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .settlement-form__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
