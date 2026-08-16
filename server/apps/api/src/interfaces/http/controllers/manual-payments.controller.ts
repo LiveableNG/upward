@@ -1,9 +1,20 @@
 import { Controller, Post, Body, Patch, Param, UseGuards, Req, Logger, Get, Delete, Query, Res, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common'
-import { AddManualAccountUseCase, UploadProofOfPaymentUseCase, ReviewManualPaymentUseCase, GetPaymentProofUploadUrlUseCase, GetPaymentProofUseCase, DeletePaymentProofUseCase } from '../../../application/use-cases/payments/manual-payment.use-cases'
+import {
+  AddManualAccountUseCase,
+  GetManualAccountsUseCase,
+  DeleteManualAccountUseCase,
+  LinkPropertiesToAccountUseCase,
+  UploadProofOfPaymentUseCase,
+  ReviewManualPaymentUseCase,
+  GetPaymentProofUploadUrlUseCase,
+  GetPaymentProofUseCase,
+  DeletePaymentProofUseCase,
+} from '../../../application/use-cases/payments/manual-payment.use-cases'
 import { GetPendingManualPaymentsUseCase } from '../../../application/use-cases/payments/get-pending-manual-payments.use-case'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Controller('payments/manual')
 @UseGuards(JwtAuthGuard)
@@ -12,26 +23,77 @@ export class ManualPaymentsController {
 
   constructor(
     private readonly addAccountUseCase: AddManualAccountUseCase,
+    private readonly getAccountsUseCase: GetManualAccountsUseCase,
+    private readonly deleteAccountUseCase: DeleteManualAccountUseCase,
+    private readonly linkPropertiesUseCase: LinkPropertiesToAccountUseCase,
     private readonly uploadProofUseCase: UploadProofOfPaymentUseCase,
     private readonly reviewProofUseCase: ReviewManualPaymentUseCase,
     private readonly getUploadUrlUseCase: GetPaymentProofUploadUrlUseCase,
     private readonly getProofUseCase: GetPaymentProofUseCase,
     private readonly deleteProofUseCase: DeletePaymentProofUseCase,
     private readonly getPendingManualPaymentsUseCase: GetPendingManualPaymentsUseCase,
+    private readonly prisma: PrismaService,
   ) {}
 
-  @Post('account')
-  async addManualAccount(@Req() req: any, @Body() body: any) {
-    const isPm = req.user.role === 'PM'
-    
+  @Get('accounts')
+  async getManualAccounts(@Req() req: any) {
+    return this.getAccountsUseCase.execute(req.user.id)
+  }
+
+  @Post('accounts')
+  async addManualSettlementAccount(@Req() req: any, @Body() body: any) {
     return this.addAccountUseCase.execute({
       accountNumber: body.accountNumber,
       accountName: body.accountName,
       bankName: body.bankName,
       bankCode: body.bankCode,
-      userPropertyId: isPm ? undefined : body.propertyId,
-      pmPropertyId: isPm ? body.propertyId : undefined,
+      pmUuid: req.user.id,
+      isPrimary: body.isPrimary,
     })
+  }
+
+  @Delete('accounts/:id')
+  async deleteManualSettlementAccount(@Req() req: any, @Param('id') id: string) {
+    return this.deleteAccountUseCase.execute(Number(id), req.user.id)
+  }
+
+  @Post('accounts/:id/link')
+  async linkProperties(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.linkPropertiesUseCase.execute({
+      accountId: Number(id),
+      propertyUuids: body.propertyUuids || [],
+      pmUuid: req.user.id,
+    })
+  }
+
+  @Post('account')
+  async addManualAccount(@Req() req: any, @Body() body: any) {
+    // Legacy endpoint support (used by ManualAccountModal in property detail pages)
+    const pmUuid = req.user.id
+    
+    const account = await this.addAccountUseCase.execute({
+      accountNumber: body.accountNumber,
+      accountName: body.accountName,
+      bankName: body.bankName,
+      bankCode: body.bankCode,
+      pmUuid,
+    })
+
+    const propertyId = req.user.role === 'PM' ? body.propertyId : undefined
+    if (propertyId) {
+      const prop = await this.prisma.upward_pm_property.findUnique({
+        where: { id: Number(propertyId) }
+      })
+      if (prop) {
+        await this.linkPropertiesUseCase.execute({
+          accountId: account.id,
+          propertyUuids: [prop.uuid],
+          pmUuid,
+        })
+      }
+    }
+
+    return account
   }
 
   @Get('proof')
