@@ -42,11 +42,22 @@ export class SyncPmPaymentStatusUseCase {
         const userProp = await txClient.upward_user_property.findUnique({
           where: { id: pr.userPropertyId }
         })
-        if (userProp && userProp.pmUnitId) {
-          unitId = userProp.pmUnitId
-          const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
-          if (unit) {
-            tenantId = unit.tenantId
+        if (userProp) {
+          if (userProp.pmUnitId) {
+            unitId = userProp.pmUnitId
+          } else {
+            const pmUnit = await txClient.upward_pm_unit.findFirst({
+              where: { userPropertyUuid: userProp.uuid }
+            })
+            if (pmUnit) {
+              unitId = pmUnit.id
+            }
+          }
+          if (unitId) {
+            const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
+            if (unit) {
+              tenantId = unit.tenantId
+            }
           }
         }
       }
@@ -56,13 +67,14 @@ export class SyncPmPaymentStatusUseCase {
         return
       }
 
-      if (pmPr) {
-        // Update PM request status
-        await this.pmPaymentRepo.update(pmPr.uuid, {
+
+      await txClient.upward_pm_payment_request.updateMany({
+        where: { paymentRequestId },
+        data: {
           amountPaid: pr.amountPaid, // Status and amountPaid come from the core PR which was already updated
           status: pr.status,
-        }, txClient)
-      }
+        }
+      })
 
       if (rentPortion > 0) {
         const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
@@ -129,24 +141,12 @@ export class SyncPmPaymentStatusUseCase {
 
           if (fullyPaidPeriods.length > 0) {
             const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
-            
-            let nextStart = new Date(latestFullyPaid.periodEnd);
-            nextStart.setDate(nextStart.getDate() + 1);
-
-            let nextEnd = new Date(nextStart);
-            if (unit.rentType === 'Monthly') {
-              nextEnd.setMonth(nextEnd.getMonth() + 1);
-            } else {
-              const years = (unit as any).leaseYears || 1;
-              nextEnd.setFullYear(nextEnd.getFullYear() + years);
-            }
-            nextEnd.setDate(nextEnd.getDate() - 1);
 
             await txClient.upward_pm_unit.update({
               where: { id: unit.id },
               data: {
-                rentStartDate: nextStart,
-                rentDueDate: nextEnd
+                rentStartDate: latestFullyPaid.periodStart,
+                rentDueDate: latestFullyPaid.periodEnd
               }
             });
 
@@ -154,14 +154,12 @@ export class SyncPmPaymentStatusUseCase {
               await txClient.upward_user_property.updateMany({
                 where: { uuid: unit.userPropertyUuid },
                 data: {
-                  rentStartDate: nextStart,
-                  rentEndDate: nextEnd,
-                  amountRemaining: Math.max(0, unit.rentAmount),
-                  amountPaid: 0
+                  rentStartDate: latestFullyPaid.periodStart,
+                  rentEndDate: latestFullyPaid.periodEnd,
                 }
               });
             }
-            this.logger.log(`Synced active tenancy dates for unit ${unit.id} to next upcoming period: ${nextStart.toISOString()} - ${nextEnd.toISOString()}`);
+            this.logger.log(`Synced active tenancy dates for unit ${unit.id} to latest fully paid period: ${latestFullyPaid.periodStart.toISOString()} - ${latestFullyPaid.periodEnd.toISOString()}`);
           }
         }
 
@@ -231,9 +229,20 @@ export class SyncPmPaymentStatusUseCase {
       const userProp = await txClient.upward_user_property.findUnique({
         where: { uuid: userPropertyUuid }
       })
-      if (!userProp || !userProp.pmUnitId) return
+      if (!userProp) return
 
-      const unit = await txClient.upward_pm_unit.findUnique({ where: { id: userProp.pmUnitId } })
+      let unitId = userProp.pmUnitId
+      if (!unitId) {
+        const pmUnit = await txClient.upward_pm_unit.findFirst({
+          where: { userPropertyUuid: userProp.uuid }
+        })
+        if (pmUnit) {
+          unitId = pmUnit.id
+        }
+      }
+      if (!unitId) return
+
+      const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
       if (!unit) return
 
       const effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null
@@ -293,23 +302,11 @@ export class SyncPmPaymentStatusUseCase {
       if (fullyPaidPeriods.length > 0) {
         const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!
 
-        let nextStart = new Date(latestFullyPaid.periodEnd)
-        nextStart.setDate(nextStart.getDate() + 1)
-
-        let nextEnd = new Date(nextStart)
-        if (unit.rentType === 'Monthly') {
-          nextEnd.setMonth(nextEnd.getMonth() + 1)
-        } else {
-          const years = (unit as any).leaseYears || 1
-          nextEnd.setFullYear(nextEnd.getFullYear() + years)
-        }
-        nextEnd.setDate(nextEnd.getDate() - 1)
-
         await txClient.upward_pm_unit.update({
           where: { id: unit.id },
           data: {
-            rentStartDate: nextStart,
-            rentDueDate: nextEnd
+            rentStartDate: latestFullyPaid.periodStart,
+            rentDueDate: latestFullyPaid.periodEnd
           }
         })
 
@@ -317,10 +314,8 @@ export class SyncPmPaymentStatusUseCase {
           await txClient.upward_user_property.updateMany({
             where: { uuid: unit.userPropertyUuid },
             data: {
-              rentStartDate: nextStart,
-              rentEndDate: nextEnd,
-              amountRemaining: Math.max(0, unit.rentAmount),
-              amountPaid: 0
+              rentStartDate: latestFullyPaid.periodStart,
+              rentEndDate: latestFullyPaid.periodEnd,
             }
           })
         }
