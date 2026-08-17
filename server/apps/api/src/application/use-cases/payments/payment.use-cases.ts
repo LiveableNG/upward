@@ -160,6 +160,8 @@ export class CreateManualPaymentRequestUseCase {
 
     let userPropertyId: number | undefined
     let dueDate = new Date()
+    let rentStartDate: Date | undefined
+    let rentEndDate: Date | undefined
 
     if (data.propertyUuid) {
       const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
@@ -167,6 +169,10 @@ export class CreateManualPaymentRequestUseCase {
         userPropertyId = prop.id
         if (prop.rentEndDate) {
           dueDate = prop.rentEndDate
+          rentEndDate = prop.rentEndDate
+        }
+        if (prop.rentStartDate) {
+          rentStartDate = prop.rentStartDate
         }
       }
     }
@@ -183,8 +189,8 @@ export class CreateManualPaymentRequestUseCase {
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : undefined,
-      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : undefined,
+      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : rentStartDate,
+      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : rentEndDate,
       rentType: data.metadata?.rentType,
       companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
@@ -1520,8 +1526,8 @@ export class GenerateReceiptPdfUseCase {
           : null) as any
 
     if (!enriched.tenancyPeriod) {
-      const rentStartDate = txWithBranding?.paymentRequest?.rentStartDate || prop?.rentStartDate
-      const rentEndDate = txWithBranding?.paymentRequest?.rentEndDate || prop?.rentEndDate
+      const rentStartDate = txWithBranding?.paymentRequest?.rentStartDate
+      const rentEndDate = txWithBranding?.paymentRequest?.rentEndDate
       if (rentStartDate && rentEndDate) {
         enriched.tenancyPeriod = `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       }

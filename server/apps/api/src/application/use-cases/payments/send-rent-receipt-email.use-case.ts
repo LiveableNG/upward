@@ -92,21 +92,8 @@ export class SendRentReceiptEmailUseCase {
     const formattedAmount = `${tx.currency || 'NGN'} ${rentAmount.toLocaleString()}`
     const pdfFilename = `receipt-${receiptNumber.replace(/\//g, '-')}.pdf`
 
-    let rentStartDate = tx.paymentRequest?.rentStartDate
-    let rentEndDate = tx.paymentRequest?.rentEndDate
-    if (!rentStartDate || !rentEndDate) {
-      const propId = params.propertyId ?? tx.paymentRequest?.userPropertyId
-      if (propId) {
-        const prop = await this.prisma.upward_user_property.findUnique({
-          where: { id: propId },
-          select: { rentStartDate: true, rentEndDate: true }
-        })
-        if (prop) {
-          rentStartDate = prop.rentStartDate
-          rentEndDate = prop.rentEndDate
-        }
-      }
-    }
+    const rentStartDate = tx.paymentRequest?.rentStartDate
+    const rentEndDate = tx.paymentRequest?.rentEndDate
     const tenancyPeriod = (rentStartDate && rentEndDate)
       ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : undefined
