@@ -78,23 +78,70 @@ export class SyncPmPaymentStatusUseCase {
 
       if (rentPortion > 0) {
         const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
-        const effectivePeriodStart = pr.rentStartDate
+        let effectivePeriodStart = pr.rentStartDate
           ? new Date(pr.rentStartDate)
           : (unit?.rentStartDate ? new Date(unit.rentStartDate) : (pr.dueDate ? new Date(pr.dueDate) : null))
         let effectivePeriodEnd = pr.rentEndDate
           ? new Date(pr.rentEndDate)
           : (unit?.rentDueDate ? new Date(unit.rentDueDate) : null)
 
-        if (effectivePeriodStart && !effectivePeriodEnd && unit) {
-          const endD = new Date(effectivePeriodStart)
-          if (unit.rentType === 'Monthly') {
-            endD.setMonth(endD.getMonth() + 1)
-          } else {
-            const years = (unit as any).leaseYears || 1
-            endD.setFullYear(endD.getFullYear() + years)
+        if (effectivePeriodStart && unit?.rentAmount) {
+          const existingPayments = await txClient.upward_pm_rent_payment.findMany({
+            where: { unitId: unit.id, tenantId: tenantId || undefined, status: 'SUCCESS' }
+          })
+
+          const currentPeriodKey = effectivePeriodStart.toISOString().split('T')[0]!
+          const currentPeriodPaid = existingPayments
+            .filter((p: any) => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === currentPeriodKey)
+            .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+
+          if (currentPeriodPaid >= (unit.rentAmount - 1) && effectivePeriodEnd) {
+            const nextStart = new Date(effectivePeriodEnd)
+            nextStart.setDate(nextStart.getDate() + 1)
+
+            const nextEnd = new Date(nextStart)
+            if (unit.rentType === 'Monthly') {
+              nextEnd.setMonth(nextEnd.getMonth() + 1)
+            } else {
+              const years = (unit as any).leaseYears || 1
+              nextEnd.setFullYear(nextEnd.getFullYear() + years)
+            }
+            nextEnd.setDate(nextEnd.getDate() - 1)
+
+            effectivePeriodStart = nextStart
+            effectivePeriodEnd = nextEnd
+          } else if (!effectivePeriodEnd) {
+            const endD = new Date(effectivePeriodStart)
+            if (unit.rentType === 'Monthly') {
+              endD.setMonth(endD.getMonth() + 1)
+            } else {
+              const years = (unit as any).leaseYears || 1
+              endD.setFullYear(endD.getFullYear() + years)
+            }
+            endD.setDate(endD.getDate() - 1)
+            effectivePeriodEnd = endD
           }
-          endD.setDate(endD.getDate() - 1)
-          effectivePeriodEnd = endD
+        }
+
+        // Update the core PR and PM PR records to match the resolved effective period
+        if (effectivePeriodStart && effectivePeriodEnd) {
+          await txClient.upward_payment_request.update({
+            where: { id: paymentRequestId },
+            data: {
+              rentStartDate: effectivePeriodStart,
+              rentEndDate: effectivePeriodEnd,
+              dueDate: effectivePeriodEnd,
+            }
+          })
+
+          await txClient.upward_pm_payment_request.updateMany({
+            where: { paymentRequestId },
+            data: {
+              rentStartDate: effectivePeriodStart,
+              rentEndDate: effectivePeriodEnd,
+              dueDate: effectivePeriodEnd,
+            }
+          })
         }
 
         // Record in PM Rent History
