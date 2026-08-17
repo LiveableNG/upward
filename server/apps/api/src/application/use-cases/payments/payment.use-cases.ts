@@ -1507,14 +1507,6 @@ export class GenerateReceiptPdfUseCase {
         })
       : null
 
-    if (txWithBranding?.paymentRequest && !enriched.tenancyPeriod) {
-      const rentStartDate = txWithBranding.paymentRequest.rentStartDate
-      const rentEndDate = txWithBranding.paymentRequest.rentEndDate
-      if (rentStartDate && rentEndDate) {
-        enriched.tenancyPeriod = `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-      }
-    }
-
     const prop = (txWithBranding?.paymentRequest?.userProperty as any)
       || (enriched.userPropertyId
           ? await this.prisma.upward_user_property.findUnique({
@@ -1526,6 +1518,14 @@ export class GenerateReceiptPdfUseCase {
               }
             })
           : null) as any
+
+    if (!enriched.tenancyPeriod) {
+      const rentStartDate = txWithBranding?.paymentRequest?.rentStartDate || prop?.rentStartDate
+      const rentEndDate = txWithBranding?.paymentRequest?.rentEndDate || prop?.rentEndDate
+      if (rentStartDate && rentEndDate) {
+        enriched.tenancyPeriod = `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      }
+    }
 
     if (prop) {
 

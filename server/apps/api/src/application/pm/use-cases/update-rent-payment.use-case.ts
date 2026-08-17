@@ -86,16 +86,13 @@ export class UpdateRentPaymentUseCase {
         after: data
       }
     });
-
-    // 3. If unit is synced, try to update the corresponding rent cycle in Upward Core
     if (payment.unit.isSynced && payment.unit.userPropertyUuid) {
       const userProperty = await this.prisma.upward_user_property.findUnique({
         where: { uuid: payment.unit.userPropertyUuid }
       });
 
       if (userProperty) {
-        // Try to find the matching rent cycle
-        // We match by the old values to find the right record
+
         const matchingCycle = await this.prisma.upward_rent_cycle.findFirst({
           where: {
             userPropertyId: userProperty.id,
