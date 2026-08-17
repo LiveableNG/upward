@@ -27,16 +27,6 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       landlordName: p.landlord?.firstName ? this.encryption.decrypt(p.landlord.firstName) + (p.landlord.lastName ? ' ' + this.encryption.decrypt(p.landlord.lastName) : '') : null,
       landlordEmail: p.landlord?.email ? this.encryption.decrypt(p.landlord.email) : null,
       landlordPhone: p.landlord?.phone ? this.encryption.decrypt(p.landlord.phone) : null,
-      manualAccountId: p.manualAccountId || null,
-      manualAccount: p.manualAccount ? {
-        id: p.manualAccount.id,
-        uuid: p.manualAccount.uuid,
-        accountNumber: p.manualAccount.accountNumber,
-        accountName: p.manualAccount.accountName,
-        bankName: p.manualAccount.bankName,
-        bankCode: p.manualAccount.bankCode,
-        isPrimary: p.manualAccount.isPrimary,
-      } : null,
     };
   }
 
@@ -54,7 +44,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         area: data.area,
         landlordId: data.landlordId || undefined,
       },
-      include: { landlord: true, manualAccount: true },
+      include: { landlord: true },
     });
 
     return this.mapProperty(property);
@@ -64,7 +54,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const properties = await this.prisma.upward_pm_property.findMany({
       where: { pmId },
       orderBy: { createdAt: 'desc' },
-      include: { landlord: true, manualAccount: true },
+      include: { landlord: true },
     });
     return properties.map(p => this.mapProperty(p));
   }
@@ -74,7 +64,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const ownedProperties = await this.prisma.upward_pm_property.findMany({
       where: { pmId },
       orderBy: { createdAt: 'desc' },
-      include: { landlord: true, manualAccount: true },
+      include: { landlord: true },
     });
 
     // 2. Get collaborations
@@ -91,7 +81,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       if (collab.accessLevel === 'ALL') {
         const ownerProps = await this.prisma.upward_pm_property.findMany({
           where: { pmId: collab.ownerPmId },
-          include: { landlord: true, manualAccount: true },
+          include: { landlord: true },
         });
         collabProperties.push(...ownerProps);
       } else {
@@ -100,7 +90,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
             collaboratorPmId: pmId,
             ownerPmId: collab.ownerPmId 
           },
-          include: { property: { include: { landlord: true, manualAccount: true } } }
+          include: { property: { include: { landlord: true } } }
         });
         collabProperties.push(...customProps.map((cp: any) => cp.property));
       }
@@ -119,7 +109,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async findById(id: number): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { id },
-      include: { landlord: true, manualAccount: true },
+      include: { landlord: true },
     });
     return property ? this.mapProperty(property) : null;
   }
@@ -127,7 +117,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async findByUuid(uuid: string): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { uuid },
-      include: { landlord: true, manualAccount: true },
+      include: { landlord: true },
     });
     return property ? this.mapProperty(property) : null;
   }
@@ -142,7 +132,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const property = await this.prisma.upward_pm_property.update({
       where: { uuid },
       data: updateData,
-      include: { landlord: true, manualAccount: true },
+      include: { landlord: true },
     });
 
     return this.mapProperty(property);

@@ -19,8 +19,6 @@ export interface PropertyEntity {
   landlordName: string | null;
   landlordEmail: string | null;
   landlordPhone: string | null;
-  manualAccountId?: number | null;
-  manualAccount?: any;
 }
 
 export interface UnitEntity {
