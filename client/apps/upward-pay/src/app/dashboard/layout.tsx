@@ -49,9 +49,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     user &&
     !isProfileSetupComplete(user) &&
     !blockerDismissed
+  const hideBottomNav =
+    !!showProfileBlocker ||
+    !!isSetupRoute ||
+    !!isHomeRequestRoute ||
+    !!pathname?.startsWith('/dashboard/savings/deposit') ||
+    !!pathname?.startsWith('/dashboard/notifications') ||
+    !!pathname?.startsWith('/dashboard/kyc')
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker ? ' dashboard-layout--blocker' : ''}`}>
+    <div
+      className={`dashboard-layout${showProfileBlocker ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}
+    >
       {showProfileBlocker && user && (
         <ProfileSetupBlocker
           user={user}
@@ -73,12 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="dashboard-layout__content">
         <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
       </main>
-      {!showProfileBlocker &&
-        !isSetupRoute &&
-        !isHomeRequestRoute &&
-        !pathname?.startsWith('/dashboard/savings/deposit') &&
-        !pathname?.startsWith('/dashboard/notifications') &&
-        !pathname?.startsWith('/dashboard/kyc') && <BottomNav />}
+      {!hideBottomNav && <BottomNav />}
     </div>
   )
 }

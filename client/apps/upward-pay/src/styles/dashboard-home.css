@@ -89,6 +89,15 @@
   border-color: rgba(34, 140, 90, 0.35);
 }
 
+.dash-home__benefits-card--tenancy .dash-home__benefits-card-icon {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.dash-home__benefits-card--tenancy:hover {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
 .dash-home__main,
 .dash-home__aside,
 .dash-home__wide {

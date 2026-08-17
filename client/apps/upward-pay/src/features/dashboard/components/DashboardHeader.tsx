@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Suspense } from 'react'
+import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 
 interface DashboardHeaderProps {
 
@@ -28,6 +29,7 @@ export function DashboardHeader({
   const router = useRouter()
   const pathname = usePathname()
   const { user } = useAuth()
+  const hasMyHome = useHasMyHome()
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
 
@@ -125,13 +127,25 @@ export function DashboardHeader({
           <nav className="dashboard__header-nav">
             {(() => {
               const isActive = (href: string) => {
-                const normalizedPath = pathname?.endsWith('/') ? pathname : `${pathname}/`
+                if (!pathname) return false
+                if (href === '/dashboard/my-home') {
+                  return pathname === href || pathname.startsWith(`${href}/`)
+                }
+                const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`
                 const normalizedHref = href.endsWith('/') ? href : `${href}/`
                 return normalizedPath === normalizedHref
               }
+              const isDashboardHome = pathname === '/dashboard' || pathname === '/dashboard/'
+              const isMyHomeRoute =
+                pathname === '/dashboard/my-home' || !!pathname?.startsWith('/dashboard/my-home/')
               return (
                 <>
-                  <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
+                  {!isDashboardHome ? (
+                    <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
+                  ) : null}
+                  {hasMyHome && !isMyHomeRoute ? (
+                    <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
+                  ) : null}
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
                   <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
                   <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
