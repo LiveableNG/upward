@@ -74,7 +74,6 @@ import {
   PmBulkImportController,
   AdminBulkImportController,
 } from './controllers/bulk-import.controller'
-import { PmAiDocumentController } from './controllers/pm-ai-document.controller'
 import { DemoRequestController } from './public/demo-request.controller'
 import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
 
@@ -85,7 +84,6 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
   imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule, SubscriptionModule],
   providers: [NotificationsGateway],
   controllers: [
-    PmAiDocumentController,
     SubscriptionController,
     ManualPaymentsController,
     AdminAuthController,

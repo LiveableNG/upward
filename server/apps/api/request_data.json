@@ -1,9 +1,0 @@
-{
-  "job_nodes": [
-    {
-      "name": "Partitioner",
-      "type": "partition",
-      "subtype": "vlm"
-    }
-  ]
-}

@@ -396,7 +396,7 @@ import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/rep
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
 import { GoogleAnalyticsService } from '../shared/infrastructure/common/google-analytics.service'
 
-const UseCases: any[] = [
+const UseCases = [
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,
@@ -737,18 +737,6 @@ const UseCases: any[] = [
   GetRelayDocumentUseCase,
 ]
 
-// AI Document ingestion imports
-import { DOCUMENT_AI_PROVIDER } from '../domains/pm/ai-document/ai-document.interface'
-import { GeminiDocumentAiProvider } from '../shared/infrastructure/ai/gemini-document-ai.provider'
-import { LocalModelAiProvider } from '../shared/infrastructure/ai/local-model-ai.provider'
-import { DocumentPreProcessorEngine } from '../shared/infrastructure/ai/document-pre-processor.engine'
-import { UnstructuredPipelineService } from '../shared/infrastructure/ai/unstructured-pipeline.service'
-import { AiParseDocumentUseCase } from './pm/use-cases/ai/ai-parse-document.use-case'
-import { ConfigService } from '@nestjs/config'
-
-UseCases.push(AiParseDocumentUseCase);
-
-
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
 import { SubscriptionModule } from '../domains/subscription/subscription.module'
@@ -777,19 +765,6 @@ import { SubscriptionModule } from '../domains/subscription/subscription.module'
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,
-    DocumentPreProcessorEngine,
-    UnstructuredPipelineService,
-    GeminiDocumentAiProvider,
-    LocalModelAiProvider,
-    {
-      provide: DOCUMENT_AI_PROVIDER,
-      useFactory: (config: ConfigService, gemini: GeminiDocumentAiProvider, local: LocalModelAiProvider) => {
-        const prov = config.get<string>('AI_DOCUMENT_PROVIDER', 'gemini');
-        if (prov === 'local_ollama') return local;
-        return gemini;
-      },
-      inject: [ConfigService, GeminiDocumentAiProvider, LocalModelAiProvider],
-    },
     ...UseCases,
   ],
   exports: [
@@ -805,9 +780,6 @@ import { SubscriptionModule } from '../domains/subscription/subscription.module'
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,
-    DOCUMENT_AI_PROVIDER,
-    DocumentPreProcessorEngine,
-    UnstructuredPipelineService,
     ...UseCases,
   ],
 })
