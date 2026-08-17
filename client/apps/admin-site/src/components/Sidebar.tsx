@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Activity,
   MapPin,
+  Sparkles,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -101,6 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     devItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
     if (showSandboxTools) {
       devItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })
+      devItems.push({ name: 'Dev Document AI Sandbox', path: '/dev-document-ai', icon: Sparkles })
     }
     devItems.push({ name: 'Webhook Logs', path: '/webhooks', icon: Webhook })
     devItems.push({ name: 'System Logs', path: '/logs', icon: FileText })

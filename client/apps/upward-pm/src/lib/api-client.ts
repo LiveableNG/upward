@@ -73,7 +73,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     const controller = new AbortController()
-    const timeoutMs = options.body instanceof FormData ? 120000 : 15000
+    const timeoutMs = (options.body instanceof FormData || path.includes('/ai-document/')) ? 120000 : 15000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     const fetchOptions: RequestInit = {
