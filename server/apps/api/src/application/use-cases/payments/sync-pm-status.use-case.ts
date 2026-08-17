@@ -245,19 +245,46 @@ export class SyncPmPaymentStatusUseCase {
       const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
       if (!unit) return
 
-      const effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null
+      let effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null
       let effectivePeriodEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : null
 
-      if (effectivePeriodStart && !effectivePeriodEnd) {
-        const endD = new Date(effectivePeriodStart)
-        if (unit.rentType === 'Monthly') {
-          endD.setMonth(endD.getMonth() + 1)
-        } else {
-          const years = (unit as any).leaseYears || 1
-          endD.setFullYear(endD.getFullYear() + years)
+      if (effectivePeriodStart && unit.rentAmount) {
+        const existingPayments = await txClient.upward_pm_rent_payment.findMany({
+          where: { unitId: unit.id, tenantId: unit.tenantId || undefined, status: 'SUCCESS' }
+        })
+
+        const currentPeriodKey = effectivePeriodStart.toISOString().split('T')[0]!
+        const currentPeriodPaid = existingPayments
+          .filter((p: any) => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === currentPeriodKey)
+          .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+
+        // If the current cycle is ALREADY fully paid off, this manual payment applies to the UPCOMING cycle
+        if (currentPeriodPaid >= unit.rentAmount && effectivePeriodEnd) {
+          const nextStart = new Date(effectivePeriodEnd)
+          nextStart.setDate(nextStart.getDate() + 1)
+
+          const nextEnd = new Date(nextStart)
+          if (unit.rentType === 'Monthly') {
+            nextEnd.setMonth(nextEnd.getMonth() + 1)
+          } else {
+            const years = (unit as any).leaseYears || 1
+            nextEnd.setFullYear(nextEnd.getFullYear() + years)
+          }
+          nextEnd.setDate(nextEnd.getDate() - 1)
+
+          effectivePeriodStart = nextStart
+          effectivePeriodEnd = nextEnd
+        } else if (!effectivePeriodEnd) {
+          const endD = new Date(effectivePeriodStart)
+          if (unit.rentType === 'Monthly') {
+            endD.setMonth(endD.getMonth() + 1)
+          } else {
+            const years = (unit as any).leaseYears || 1
+            endD.setFullYear(endD.getFullYear() + years)
+          }
+          endD.setDate(endD.getDate() - 1)
+          effectivePeriodEnd = endD
         }
-        endD.setDate(endD.getDate() - 1)
-        effectivePeriodEnd = endD
       }
 
       await txClient.upward_pm_rent_payment.create({

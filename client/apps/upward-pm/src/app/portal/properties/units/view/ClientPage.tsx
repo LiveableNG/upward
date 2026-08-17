@@ -545,7 +545,8 @@ function UnitDetailContent() {
                   const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0)
                   const isFullyPaid = totalPaidForPeriod >= (unit?.rentAmount || 0)
                   const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid
-                  const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment'
+                  const isSinglePaymentFull = row.amount >= (row.rentAmountAtPayment || unit?.rentAmount || 0)
+                  const statusLabel = (isSinglePaymentFull || (isFullyPaid && isLatestForPeriod)) ? 'Paid' : 'Part-Payment'
 
                   return (
                     <tr key={row.uuid} style={{ borderTop: '1px solid var(--border)' }}>

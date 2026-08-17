@@ -155,9 +155,10 @@ function UnitDetailContent() {
           sp.tenantId === p.tenantId
         );
         const totalPaidForPeriod = samePeriodPayments.reduce((sum, sp) => sum + sp.amount, 0);
-        const isFullyPaid = totalPaidForPeriod >= (p.rentAmountAtPayment || 0);
+        const isFullyPaid = totalPaidForPeriod >= (p.rentAmountAtPayment || unit?.rentAmount || 0);
         const isLatestForPeriod = p.uuid === samePeriodPayments[0]?.uuid;
-        const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+        const isSinglePaymentFull = p.amount >= (p.rentAmountAtPayment || unit?.rentAmount || 0);
+        const statusLabel = (isSinglePaymentFull || (isFullyPaid && isLatestForPeriod)) ? 'Paid' : 'Part-Payment';
 
         if (rentFilters.status === 'paid' && statusLabel !== 'Paid') return false;
         if (rentFilters.status === 'part-payment' && statusLabel !== 'Part-Payment') return false;
@@ -433,9 +434,10 @@ function UnitDetailContent() {
           p.periodStart === row.periodStart && p.periodEnd === row.periodEnd
         );
         const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
-        const isFullyPaid = totalPaidForPeriod >= (row.rentAmountAtPayment || 0);
+        const isFullyPaid = totalPaidForPeriod >= (row.rentAmountAtPayment || unit?.rentAmount || 0);
         const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
-        const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+        const isSinglePaymentFull = row.amount >= (row.rentAmountAtPayment || unit?.rentAmount || 0);
+        const statusLabel = (isSinglePaymentFull || (isFullyPaid && isLatestForPeriod)) ? 'Paid' : 'Part-Payment';
 
         return (
           <span style={{
