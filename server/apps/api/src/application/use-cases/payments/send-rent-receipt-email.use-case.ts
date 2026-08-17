@@ -92,6 +92,12 @@ export class SendRentReceiptEmailUseCase {
     const formattedAmount = `${tx.currency || 'NGN'} ${rentAmount.toLocaleString()}`
     const pdfFilename = `receipt-${receiptNumber.replace(/\//g, '-')}.pdf`
 
+    const rentStartDate = tx.paymentRequest?.rentStartDate
+    const rentEndDate = tx.paymentRequest?.rentEndDate
+    const tenancyPeriod = (rentStartDate && rentEndDate)
+      ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : undefined
+
     const receiptData: ReceiptPdfData & {
       userPropertyId?: number
       companyName?: string
@@ -99,6 +105,7 @@ export class SendRentReceiptEmailUseCase {
       logoUrl?: string
       brandName?: string
       themeColor?: string
+      tenancyPeriod?: string
     } = {
       title: 'Rent Payment Receipt',
       receiptNumber,
@@ -120,6 +127,7 @@ export class SendRentReceiptEmailUseCase {
       logoUrl: branding.logoUrl,
       brandName: branding.companyName,
       themeColor: branding.themeColor,
+      tenancyPeriod,
     }
 
     const pdfBuffer = await this.generateReceiptPdf.executeBuffer(receiptData)
@@ -144,11 +152,13 @@ export class SendRentReceiptEmailUseCase {
         tenantName,
         firstName: tenantFirstName,
         amount: formattedAmount,
+        amountPaid: rentAmount,
         propertyAddress,
         receiptNumber,
         receiptUrl,
         companyName: branding.companyName,
         logoUrl: branding.logoUrl,
+        tenancyPeriod,
       },
     })
 

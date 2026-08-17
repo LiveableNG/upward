@@ -37,6 +37,7 @@ export interface ReceiptData {
   type?: 'credit' | 'debit'
   status?: string
   lineItems: Array<{ label: string; amount: number; category: string }>
+  tenancyPeriod?: string
 }
 
 function formatDate(dateStr: string) {
@@ -217,6 +218,7 @@ export default function ReceiptTemplate({
             { label: 'Receipt No.', value: receipt.receiptNumber },
             { label: 'Date', value: formatDate(receipt.paidAt) },
             { label: 'Tenant', value: receipt.tenantName },
+            ...(receipt.tenancyPeriod ? [{ label: 'Tenancy Period', value: receipt.tenancyPeriod }] : []),
           ].map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span

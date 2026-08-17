@@ -31,6 +31,7 @@ import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { CreatePaymentRequestModal } from '@/features/pm/components/payments/modals/CreatePaymentRequestModal'
 import Link from 'next/link'
+import '@/styles/subscription-checkout.css'
 
 export const PaymentDetailView: React.FC = () => {
   const searchParams = useSearchParams()
