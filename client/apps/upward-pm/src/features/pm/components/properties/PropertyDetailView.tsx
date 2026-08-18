@@ -386,9 +386,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         isOpen={isManualModalOpen} 
         onClose={() => setIsManualModalOpen(false)} 
         propertyId={property.id} 
-        propertyUuid={property.uuid}
         propertyName={property.name} 
-        currentManualAccount={(property as any).manualAccount}
       />
 
       {/* Bulk Import Units Dialog Modal */}

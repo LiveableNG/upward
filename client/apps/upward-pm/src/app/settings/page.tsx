@@ -3,7 +3,7 @@
 import React, { Suspense, useRef, useState, useEffect, useMemo } from 'react'
 import { AvatarUpload } from '@/features/pm/components/settings/AvatarUpload'
 import { ProfileForm } from '@/features/pm/components/settings/ProfileForm'
-import { SettlementSettings } from '../portal/components/SettlementSettings'
+import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
 import { SecurityForm } from '@/features/pm/components/settings/SecurityForm'
 import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
@@ -142,7 +142,7 @@ function SettingsContent() {
           </>
         )}
 
-        {canManageCompanySettings && activeTab === 'payment' && <SettlementSettings landlord={user} />}
+        {canManageCompanySettings && activeTab === 'payment' && <BankInfoForm />}
         {activeTab === 'security' && <SecurityForm />}
         {canManageCompanySettings && activeTab === 'import' && <DataImportTab />}
         {canManageCompanySettings && activeTab === 'team' && <TeamTab />}

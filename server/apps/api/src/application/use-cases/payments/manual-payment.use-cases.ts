@@ -17,198 +17,32 @@ export class AddManualAccountUseCase {
     accountName: string
     bankName: string
     bankCode?: string
-    pmUuid?: string
-    isPrimary?: boolean
     userPropertyId?: number
     pmPropertyId?: number
   }) {
-    let pmId: number | undefined
-
-    if (data.pmUuid) {
-      const pm = await this.prisma.upward_property_manager.findUnique({
-        where: { uuid: data.pmUuid }
-      })
-      if (!pm) throw new NotFoundException('Property manager not found')
-      pmId = pm.id
-    } else if (data.pmPropertyId) {
-      const pmProperty = await this.prisma.upward_pm_property.findUnique({
-        where: { id: data.pmPropertyId }
-      })
-      if (pmProperty) pmId = pmProperty.pmId
-    } else if (data.userPropertyId) {
-      const userProperty = await this.prisma.upward_user_property.findUnique({
-        where: { id: data.userPropertyId }
-      })
-      if (userProperty) pmId = userProperty.pmId || undefined
+    if (!data.userPropertyId && !data.pmPropertyId) {
+      throw new Error('Must provide either userPropertyId or pmPropertyId')
     }
 
-    if (data.isPrimary && pmId) {
-      const existingPrimary = await this.prisma.upward_manual_account.findFirst({
-        where: { pmId, isPrimary: true }
-      })
-      if (existingPrimary) {
-        return this.prisma.upward_manual_account.update({
-          where: { id: existingPrimary.id },
-          data: {
-            accountNumber: data.accountNumber,
-            accountName: data.accountName,
-            bankName: data.bankName,
-            bankCode: data.bankCode,
-          }
-        })
-      }
-    }
-
-    const account = await this.prisma.upward_manual_account.create({
-      data: {
+    return this.prisma.upward_manual_account.upsert({
+      where: data.userPropertyId 
+        ? { userPropertyId: data.userPropertyId } 
+        : { pmPropertyId: data.pmPropertyId },
+      create: {
         accountNumber: data.accountNumber,
         accountName: data.accountName,
         bankName: data.bankName,
         bankCode: data.bankCode,
-        pmId,
-        isPrimary: data.isPrimary || false,
-      }
-    })
-
-    if (data.userPropertyId) {
-      await this.prisma.upward_user_property.update({
-        where: { id: data.userPropertyId },
-        data: { manualAccountId: account.id }
-      })
-    }
-    if (data.pmPropertyId) {
-      await this.prisma.upward_pm_property.update({
-        where: { id: data.pmPropertyId },
-        data: { manualAccountId: account.id }
-      })
-    }
-
-    return account
-  }
-}
-
-@Injectable()
-export class GetManualAccountsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async execute(pmUuid: string) {
-    const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: pmUuid }
-    })
-    if (!pm) throw new NotFoundException('Property manager not found')
-
-    if (pm.accountNumber && pm.bankName) {
-      const existingPrimary = await this.prisma.upward_manual_account.findFirst({
-        where: { pmId: pm.id, isPrimary: true }
-      })
-      if (!existingPrimary) {
-        await this.prisma.upward_manual_account.create({
-          data: {
-            accountNumber: pm.accountNumber,
-            accountName: pm.accountName || pm.businessName || `${pm.firstName} ${pm.lastName}`,
-            bankName: pm.bankName,
-            bankCode: pm.bankCode,
-            pmId: pm.id,
-            isPrimary: true,
-          }
-        })
-      }
-    }
-
-    return this.prisma.upward_manual_account.findMany({
-      where: { pmId: pm.id },
-      include: {
-        pmProperties: {
-          select: { id: true, uuid: true, name: true }
-        }
+        userPropertyId: data.userPropertyId,
+        pmPropertyId: data.pmPropertyId,
       },
-      orderBy: { createdAt: 'desc' }
-    })
-  }
-}
-
-@Injectable()
-export class DeleteManualAccountUseCase {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async execute(id: number, pmUuid: string) {
-    const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: pmUuid }
-    })
-    if (!pm) throw new NotFoundException('Property manager not found')
-
-    const account = await this.prisma.upward_manual_account.findFirst({
-      where: { id, pmId: pm.id }
-    })
-    if (!account) throw new NotFoundException('Account not found')
-    if (account.isPrimary) throw new Error('Cannot delete the primary settlement account')
-
-    await this.prisma.upward_pm_property.updateMany({
-      where: { manualAccountId: id },
-      data: { manualAccountId: null }
-    })
-    await this.prisma.upward_user_property.updateMany({
-      where: { manualAccountId: id },
-      data: { manualAccountId: null }
-    })
-
-    await this.prisma.upward_manual_account.delete({
-      where: { id }
-    })
-
-    return { success: true }
-  }
-}
-
-@Injectable()
-export class LinkPropertiesToAccountUseCase {
-  constructor(private readonly prisma: PrismaService) {}
-
-  async execute(data: { accountId: number; propertyUuids: string[]; pmUuid: string }) {
-    const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: data.pmUuid }
-    })
-    if (!pm) throw new NotFoundException('Property manager not found')
-
-    const account = await this.prisma.upward_manual_account.findFirst({
-      where: { id: data.accountId, pmId: pm.id }
-    })
-    if (!account) throw new NotFoundException('Account not found')
-
-    const properties = await this.prisma.upward_pm_property.findMany({
-      where: { uuid: { in: data.propertyUuids }, pmId: pm.id },
-      select: { id: true }
-    })
-
-    const propertyIds = properties.map(p => p.id)
-
-    // Clear old links for this account
-    await this.prisma.upward_pm_property.updateMany({
-      where: { manualAccountId: data.accountId, id: { notIn: propertyIds } },
-      data: { manualAccountId: null }
-    })
-
-    // Link new ones
-    if (propertyIds.length > 0) {
-      await this.prisma.upward_pm_property.updateMany({
-        where: { id: { in: propertyIds } },
-        data: { manualAccountId: data.accountId }
-      })
-
-      const pmUnits = await this.prisma.upward_pm_unit.findMany({
-        where: { propertyId: { in: propertyIds } },
-        select: { id: true }
-      })
-      const pmUnitIds = pmUnits.map(u => u.id)
-      if (pmUnitIds.length > 0) {
-        await this.prisma.upward_user_property.updateMany({
-          where: { pmUnitId: { in: pmUnitIds } },
-          data: { manualAccountId: data.accountId }
-        })
+      update: {
+        accountNumber: data.accountNumber,
+        accountName: data.accountName,
+        bankName: data.bankName,
+        bankCode: data.bankCode,
       }
-    }
-
-    return { success: true }
+    })
   }
 }
 
