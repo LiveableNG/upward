@@ -20,6 +20,7 @@ export class UpdateAdminPmUseCase {
       personalPhone?: string
       businessName?: string
       isVerified?: boolean
+      isBlocked?: boolean
     },
   ) {
     const pm = await this.prisma.upward_property_manager.findUnique({
@@ -58,6 +59,9 @@ export class UpdateAdminPmUseCase {
     }
     if (data.isVerified !== undefined) {
       updateData.isVerified = data.isVerified
+    }
+    if (data.isBlocked !== undefined) {
+      updateData.isBlocked = data.isBlocked
     }
 
     const updatedPm = await this.prisma.upward_property_manager.update({
