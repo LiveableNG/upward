@@ -1564,12 +1564,22 @@ export class GenerateReceiptPdfUseCase {
 
       let pm: any = (txWithBranding?.paymentRequest as any)?.pmPaymentRequests?.[0]?.pm
 
-      if (!pm && prop.pmId) {
-        const directPm = await this.prisma.upward_property_manager.findUnique({
-          where: { id: prop.pmId },
-          include: { emailSetting: true, receiptSetting: true }
-        })
-        pm = directPm
+      if (!pm && prop) {
+        let pmIdToFind = prop.pmId
+        if (!pmIdToFind && prop.pmUnitId) {
+          const pmUnit = await this.prisma.upward_pm_unit.findUnique({
+            where: { id: prop.pmUnitId },
+            include: { property: true }
+          })
+          pmIdToFind = pmUnit?.property?.pmId || null
+        }
+
+        if (pmIdToFind) {
+          pm = await this.prisma.upward_property_manager.findUnique({
+            where: { id: pmIdToFind },
+            include: { emailSetting: true, receiptSetting: true }
+          })
+        }
       }
 
       if (!pm && prop.companyId) {

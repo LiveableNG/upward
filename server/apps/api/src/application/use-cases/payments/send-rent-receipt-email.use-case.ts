@@ -196,11 +196,31 @@ export class SendRentReceiptEmailUseCase {
     const loc = property.location
     const propertyAddress = [loc?.address || loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ') || undefined
 
+    let pm = property.pm
+    if (!pm && property.pmUnitId) {
+      const pmUnit = await this.prisma.upward_pm_unit.findUnique({
+        where: { id: property.pmUnitId },
+        include: {
+          property: {
+            include: {
+              pm: {
+                include: { emailSetting: true, receiptSetting: true }
+              }
+            }
+          }
+        }
+      })
+      pm = pmUnit?.property?.pm
+    }
+
     let companyName = 'Upward'
-    if (property.company?.name && property.company.name !== 'account_name') {
+    if (pm?.businessName) {
+      const decrypted = pm.businessName.includes(':') ? this.encryption.decrypt(pm.businessName) : pm.businessName
+      if (decrypted && decrypted !== 'account_name') {
+        companyName = decrypted
+      }
+    } else if (property.company?.name && property.company.name !== 'account_name') {
       companyName = property.company.name
-    } else if (property.pm?.businessName) {
-      companyName = this.encryption.decrypt(property.pm.businessName)
     } else if (property.manager) {
       const first = property.manager.firstName?.includes(':')
         ? this.encryption.decrypt(property.manager.firstName)
