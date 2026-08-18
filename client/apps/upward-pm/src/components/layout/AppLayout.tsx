@@ -71,7 +71,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return null
   }
 
-  if (user?.isBlocked) {
+  if (user?.isBlocked || user?.isManuallyBlocked) {
     return <AccessSuspended />
   }
 

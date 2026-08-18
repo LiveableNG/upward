@@ -26,6 +26,7 @@ export interface PropertyManager {
   letterheadFooterUrl?: string | null
   isVerified?: boolean
   isBlocked?: boolean
+  isManuallyBlocked?: boolean
   resetPasswordOTP?: string | null
   resetPasswordExpires?: Date | null
   createdAt: Date

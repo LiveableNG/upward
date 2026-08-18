@@ -36,6 +36,7 @@ interface PmDetailData {
   phone: string
   isVerified: boolean
   isBlocked: boolean
+  isManuallyBlocked: boolean
   createdAt: string
   updatedAt: string
   properties: any[]
@@ -68,6 +69,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
   // Block Access Toggle State
   const [updatingBlock, setUpdatingBlock] = useState(false)
+  const [updatingManualBlock, setUpdatingManualBlock] = useState(false)
 
   // Notification Form State
   const [notifTitle, setNotifTitle] = useState('')
@@ -216,8 +218,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
       showToast(
         nextBlocked
-          ? 'Platform access revoked & account blocked successfully!'
-          : 'Platform access restored & account unblocked successfully!',
+          ? 'Subscription suspended (Unpaid status active) successfully!'
+          : 'Subscription active (Unpaid status cleared) successfully!',
       )
       fetchPmDetails()
     } catch (err: any) {
@@ -225,6 +227,33 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       showToast(err.message || 'Failed to update access status', true)
     } finally {
       setUpdatingBlock(false)
+    }
+  }
+
+  const handleToggleManualBlock = async () => {
+    if (!pm || !uuid) return
+    setUpdatingManualBlock(true)
+    try {
+      const nextManualBlocked = !pm.isManuallyBlocked
+      await apiService.patch(
+        `/admin/pms/${uuid}`,
+        {
+          isManuallyBlocked: nextManualBlocked,
+        },
+        token,
+      )
+
+      showToast(
+        nextManualBlocked
+          ? 'Account manually banned and support appeal screen activated!'
+          : 'Account ban lifted successfully!',
+      )
+      fetchPmDetails()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update manual block status', true)
+    } finally {
+      setUpdatingManualBlock(false)
     }
   }
 
@@ -580,24 +609,25 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShieldAlert size={16} /> Platform Access Control
             </h4>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Status</div>
-                <div style={{ fontWeight: 700, fontSize: '14px', marginTop: '4px' }}>
-                  {pm.isBlocked ? (
-                    <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <XCircle size={14} /> Suspended / Blocked
-                    </span>
-                  ) : (
-                    <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle2 size={14} /> Active / Allowed
-                    </span>
-                  )}
+            
+            {/* Control 1: Subscription Suspension (isBlocked) */}
+            <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Subscription Status</div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', marginTop: '4px' }}>
+                    {pm.isBlocked ? (
+                      <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <XCircle size={14} /> Suspended (Unpaid)
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle2 size={14} /> Active
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div>
               <button
                 onClick={handleToggleBlock}
                 disabled={updatingBlock}
@@ -618,8 +648,51 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 {updatingBlock
                   ? 'Processing...'
                   : pm.isBlocked
-                    ? 'Allow Access (Unblock)'
-                    : 'Revoke Access (Block)'}
+                    ? 'Activate Subscription'
+                    : 'Suspend Subscription (Unpaid)'}
+              </button>
+            </div>
+
+            {/* Control 2: Administrative Ban (isManuallyBlocked) */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Administrative Ban</div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', marginTop: '4px' }}>
+                    {pm.isManuallyBlocked ? (
+                      <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <XCircle size={14} /> Banned / Restricted
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle2 size={14} /> Allowed / Good Standing
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleToggleManualBlock}
+                disabled={updatingManualBlock}
+                className="btn"
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  justifyContent: 'center',
+                  background: pm.isManuallyBlocked ? 'var(--success-faint)' : 'var(--danger-faint)',
+                  color: pm.isManuallyBlocked ? 'var(--success)' : 'var(--danger)',
+                  border: '1px solid transparent',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  gap: '8px',
+                }}
+              >
+                {pm.isManuallyBlocked ? <CheckCircle2 size={15} /> : <XCircle size={15} />}
+                {updatingManualBlock
+                  ? 'Processing...'
+                  : pm.isManuallyBlocked
+                    ? 'Unban Account'
+                    : 'Ban Account (Manual)'}
               </button>
             </div>
           </div>

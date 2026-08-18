@@ -45,12 +45,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: AdminJwtPayload) {
     let isBlocked = false
+    let isManuallyBlocked = false
     if ((payload.role as string) === 'PM') {
       const pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: payload.sub },
-        select: { isBlocked: true },
+        select: { isBlocked: true, isManuallyBlocked: true } as any,
       })
-      isBlocked = pm?.isBlocked ?? false
+      isBlocked = (pm as any)?.isBlocked ?? false
+      isManuallyBlocked = (pm as any)?.isManuallyBlocked ?? false
     }
 
     return {
@@ -60,6 +62,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: payload.role,
       mustChangePassword: payload.mustChangePassword,
       isBlocked,
+      isManuallyBlocked,
     }
   }
 }

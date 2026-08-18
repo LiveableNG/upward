@@ -38,6 +38,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       letterheadFooterUrl: model.letterheadFooterUrl,
       isVerified: model.isVerified,
       isBlocked: model.isBlocked,
+      isManuallyBlocked: model.isManuallyBlocked,
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
       createdAt: model.createdAt,
@@ -104,6 +105,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         accountName: pm.accountName ? this.encryption.encrypt(pm.accountName) : null,
         isVerified: pm.isVerified ?? false,
         isBlocked: pm.isBlocked ?? false,
+        isManuallyBlocked: pm.isManuallyBlocked ?? false,
         resetPasswordOTP: pm.resetPasswordOTP,
         resetPasswordExpires: pm.resetPasswordExpires,
       },
@@ -162,6 +164,9 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     }
     if (data.isBlocked !== undefined) {
       updateData.isBlocked = data.isBlocked
+    }
+    if (data.isManuallyBlocked !== undefined) {
+      updateData.isManuallyBlocked = data.isManuallyBlocked
     }
     if (data.resetPasswordOTP !== undefined) {
       updateData.resetPasswordOTP = data.resetPasswordOTP

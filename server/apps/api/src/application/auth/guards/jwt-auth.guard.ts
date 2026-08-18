@@ -24,7 +24,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw err || new UnauthorizedException(info?.message || 'Unauthorized')
     }
 
-    if (user.isBlocked) {
+    if (user.isBlocked || (user as any).isManuallyBlocked) {
       const request = _context.switchToHttp().getRequest()
       const url = request.url || ''
       const path = url.split('?')[0]

@@ -180,7 +180,10 @@ export class InviteTenantUseCase {
           });
           await this.prisma.upward_user_property.update({
             where: { uuid: syncedProp.uuid },
-            data: { pmUnitId: unit.id }
+            data: { 
+              pmUnitId: unit.id,
+              pmId: pmId,
+            }
           });
         }
       }
