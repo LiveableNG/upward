@@ -536,12 +536,23 @@ export function usePaymentFlow(
           setStep(!paymentData.hasPassword ? 'onboarding' : 'success')
         }
         // Invalidate and refetch queries to reflect changes immediately
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-        queryClient.invalidateQueries({ queryKey: ['scoreProfile'] })
-        queryClient.invalidateQueries({ queryKey: ['notifications'] })
-        queryClient.refetchQueries({ queryKey: ['dashboard'] })
-        queryClient.refetchQueries({ queryKey: ['scoreProfile'] })
-        queryClient.refetchQueries({ queryKey: ['notifications'] })
+        const keys = [
+          'dashboard',
+          'scoreProfile',
+          'score-profile',
+          'notifications',
+          'pendingPayments',
+          'pending-payments',
+          'transactions',
+          'profile',
+          'user-profile',
+          'wallet',
+          'dashboard-counts'
+        ]
+        keys.forEach(key => {
+          queryClient.invalidateQueries({ queryKey: [key] })
+          queryClient.refetchQueries({ queryKey: [key] })
+        })
       }
     } catch (err: any) {
       toastError(err.message || 'Failed to verify payment')

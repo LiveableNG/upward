@@ -439,6 +439,7 @@ const DevEmails: React.FC<DevEmailsProps> = ({ token }) => {
                           <a
                             key={idx}
                             href={att.url}
+                            download={att.filename}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{

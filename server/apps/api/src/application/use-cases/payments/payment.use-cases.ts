@@ -160,13 +160,42 @@ export class CreateManualPaymentRequestUseCase {
 
     let userPropertyId: number | undefined
     let dueDate = new Date()
+    let rentStartDate: Date | undefined
+    let rentEndDate: Date | undefined
 
     if (data.propertyUuid) {
       const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
       if (prop) {
         userPropertyId = prop.id
-        if (prop.rentEndDate) {
-          dueDate = prop.rentEndDate
+        let startD = prop.rentStartDate ? new Date(prop.rentStartDate) : null
+        let endD = prop.rentEndDate ? new Date(prop.rentEndDate) : null
+
+        // If the property's current period is already fully paid off, advance the manual request to the upcoming cycle
+        const isCurrentPeriodPaid = (prop.amountRemaining === 0 || (prop.rentAmount && prop.amountPaid >= prop.rentAmount))
+        if (isCurrentPeriodPaid && startD && endD) {
+          const nextStart = new Date(endD)
+          nextStart.setDate(nextStart.getDate() + 1)
+
+          const nextEnd = new Date(nextStart)
+          const rType = (prop.rentType || '').toUpperCase()
+          if (rType === 'MONTHLY') {
+            nextEnd.setMonth(nextEnd.getMonth() + 1)
+          } else {
+            const years = Math.max(1, (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1)
+            nextEnd.setFullYear(nextEnd.getFullYear() + years)
+          }
+          nextEnd.setDate(nextEnd.getDate() - 1)
+
+          startD = nextStart
+          endD = nextEnd
+        }
+
+        if (endD) {
+          dueDate = endD
+          rentEndDate = endD
+        }
+        if (startD) {
+          rentStartDate = startD
         }
       }
     }
@@ -183,8 +212,8 @@ export class CreateManualPaymentRequestUseCase {
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : undefined,
-      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : undefined,
+      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : rentStartDate,
+      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : rentEndDate,
       rentType: data.metadata?.rentType,
       companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
@@ -1507,6 +1536,10 @@ export class GenerateReceiptPdfUseCase {
         })
       : null
 
+    if (txWithBranding && txWithBranding.settlementStatus === 'PENDING_REFUND') {
+      throw new BadRequestException('Receipt cannot be generated for payments pending review or refund')
+    }
+
     const prop = (txWithBranding?.paymentRequest?.userProperty as any)
       || (enriched.userPropertyId
           ? await this.prisma.upward_user_property.findUnique({
@@ -1519,16 +1552,34 @@ export class GenerateReceiptPdfUseCase {
             })
           : null) as any
 
+    if (!enriched.tenancyPeriod) {
+      const rentStartDate = txWithBranding?.paymentRequest?.rentStartDate
+      const rentEndDate = txWithBranding?.paymentRequest?.rentEndDate
+      if (rentStartDate && rentEndDate) {
+        enriched.tenancyPeriod = `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      }
+    }
+
     if (prop) {
 
       let pm: any = (txWithBranding?.paymentRequest as any)?.pmPaymentRequests?.[0]?.pm
 
-      if (!pm && prop.pmId) {
-        const directPm = await this.prisma.upward_property_manager.findUnique({
-          where: { id: prop.pmId },
-          include: { emailSetting: true, receiptSetting: true }
-        })
-        pm = directPm
+      if (!pm && prop) {
+        let pmIdToFind = prop.pmId
+        if (!pmIdToFind && prop.pmUnitId) {
+          const pmUnit = await this.prisma.upward_pm_unit.findUnique({
+            where: { id: prop.pmUnitId },
+            include: { property: true }
+          })
+          pmIdToFind = pmUnit?.property?.pmId || null
+        }
+
+        if (pmIdToFind) {
+          pm = await this.prisma.upward_property_manager.findUnique({
+            where: { id: pmIdToFind },
+            include: { emailSetting: true, receiptSetting: true }
+          })
+        }
       }
 
       if (!pm && prop.companyId) {
@@ -1910,7 +1961,12 @@ export class GetPmUnresolvedTransactionsUseCase {
 
   async execute(pmId: number) {
     const properties = await this.prisma.upward_user_property.findMany({
-      where: { pmId },
+      where: {
+        OR: [
+          { pmId },
+          { pmUnit: { property: { pmId } } }
+        ]
+      },
       select: { id: true }
     });
 

@@ -249,13 +249,23 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     buildHtml: (ctx) =>
       buildRentReceiptEmailHtml({
         tenantName: ctx.tenantName || 'Tenant',
-        amountPaid: Number(ctx.amountPaid || ctx.amount || 0),
+        amountPaid: (() => {
+          const val = ctx.amountPaid ?? ctx.amount ?? 0;
+          if (typeof val === 'number') return val;
+          if (typeof val === 'string') {
+            const cleaned = val.replace(/[^0-9.]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
+          }
+          return 0;
+        })(),
         balance: Number(ctx.balance || 0),
         propertyAddress: ctx.propertyAddress || 'Property',
         unitName: ctx.unitName || 'Unit',
         receiptNumber: ctx.receiptNumber || '',
         paymentDate: ctx.paymentDate || new Date().toLocaleDateString(),
         receiptUrl: ctx.receiptUrl || '',
+        tenancyPeriod: ctx.tenancyPeriod,
       }),
   },
 

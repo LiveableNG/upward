@@ -41,9 +41,6 @@ export class AddUnitPaymentUseCase {
         new Date(p.periodStart).getTime() === new Date(unit.rentStartDate as Date).getTime()
       );
 
-      // The open period's due amount is locked to whatever rent was in effect when it
-      // started (its own payments' snapshot) — a later rent review must not change what's
-      // owed on an already-open tenure, only what the NEXT period will charge.
       const currentPeriodDueAmount = samePeriodPayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
       const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
 

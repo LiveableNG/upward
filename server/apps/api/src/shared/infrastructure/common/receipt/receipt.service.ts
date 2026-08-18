@@ -24,6 +24,7 @@ export interface ReceiptPdfData {
   logoUrl?: string
   brandName?: string
   themeColor?: string
+  tenancyPeriod?: string
 }
 
 @Injectable()
@@ -256,11 +257,14 @@ export class ReceiptService {
 
       if (data.type === 'RENT') {
         rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
+        if (data.tenancyPeriod) {
+          rows.push({ label: 'Tenancy Period', value: data.tenancyPeriod })
+        }
       }
       if (data.type === 'RENT' && data.landlordName) {
         rows.push({ label: 'Recipient', value: data.landlordName })
       }
-      if (data.propertyAddress && !hasBreakdown) {
+      if (data.propertyAddress && !hasBreakdown && data.type !== 'RENT') {
         rows.push({ label: 'Address', value: data.propertyAddress })
       }
 

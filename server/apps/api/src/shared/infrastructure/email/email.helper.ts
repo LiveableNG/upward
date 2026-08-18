@@ -517,7 +517,15 @@ export function buildRentReceiptEmailHtml(params: {
   receiptNumber: string;
   paymentDate: string;
   receiptUrl: string;
+  tenancyPeriod?: string;
 }): string {
+  const tenancyPeriodRow = params.tenancyPeriod
+    ? `<tr>
+        <td><strong>Tenancy Period:</strong></td>
+        <td align="right">${params.tenancyPeriod}</td>
+      </tr>`
+    : '';
+
   const content = `
     <p>Hi ${params.tenantName},</p>
     <p>Your rent payment was successful. Thank you!</p>
@@ -528,6 +536,7 @@ export function buildRentReceiptEmailHtml(params: {
           <td><strong>Receipt Number:</strong></td>
           <td align="right">${params.receiptNumber}</td>
         </tr>
+        ${tenancyPeriodRow}
         <tr>
           <td><strong>Amount Paid:</strong></td>
           <td align="right" style="color: #166534; font-weight: 700;">NGN ${params.amountPaid.toLocaleString()}</td>

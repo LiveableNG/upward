@@ -92,6 +92,12 @@ export class SendRentReceiptEmailUseCase {
     const formattedAmount = `${tx.currency || 'NGN'} ${rentAmount.toLocaleString()}`
     const pdfFilename = `receipt-${receiptNumber.replace(/\//g, '-')}.pdf`
 
+    const rentStartDate = tx.paymentRequest?.rentStartDate
+    const rentEndDate = tx.paymentRequest?.rentEndDate
+    const tenancyPeriod = (rentStartDate && rentEndDate)
+      ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : undefined
+
     const receiptData: ReceiptPdfData & {
       userPropertyId?: number
       companyName?: string
@@ -99,6 +105,7 @@ export class SendRentReceiptEmailUseCase {
       logoUrl?: string
       brandName?: string
       themeColor?: string
+      tenancyPeriod?: string
     } = {
       title: 'Rent Payment Receipt',
       receiptNumber,
@@ -120,6 +127,7 @@ export class SendRentReceiptEmailUseCase {
       logoUrl: branding.logoUrl,
       brandName: branding.companyName,
       themeColor: branding.themeColor,
+      tenancyPeriod,
     }
 
     const pdfBuffer = await this.generateReceiptPdf.executeBuffer(receiptData)
@@ -144,11 +152,13 @@ export class SendRentReceiptEmailUseCase {
         tenantName,
         firstName: tenantFirstName,
         amount: formattedAmount,
+        amountPaid: rentAmount,
         propertyAddress,
         receiptNumber,
         receiptUrl,
         companyName: branding.companyName,
         logoUrl: branding.logoUrl,
+        tenancyPeriod,
       },
     })
 
@@ -186,11 +196,31 @@ export class SendRentReceiptEmailUseCase {
     const loc = property.location
     const propertyAddress = [loc?.address || loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ') || undefined
 
+    let pm = property.pm
+    if (!pm && property.pmUnitId) {
+      const pmUnit = await this.prisma.upward_pm_unit.findUnique({
+        where: { id: property.pmUnitId },
+        include: {
+          property: {
+            include: {
+              pm: {
+                include: { emailSetting: true, receiptSetting: true }
+              }
+            }
+          }
+        }
+      })
+      pm = pmUnit?.property?.pm
+    }
+
     let companyName = 'Upward'
-    if (property.company?.name && property.company.name !== 'account_name') {
+    if (pm?.businessName) {
+      const decrypted = pm.businessName.includes(':') ? this.encryption.decrypt(pm.businessName) : pm.businessName
+      if (decrypted && decrypted !== 'account_name') {
+        companyName = decrypted
+      }
+    } else if (property.company?.name && property.company.name !== 'account_name') {
       companyName = property.company.name
-    } else if (property.pm?.businessName) {
-      companyName = this.encryption.decrypt(property.pm.businessName)
     } else if (property.manager) {
       const first = property.manager.firstName?.includes(':')
         ? this.encryption.decrypt(property.manager.firstName)
