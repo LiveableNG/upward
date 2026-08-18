@@ -159,6 +159,7 @@ export class SendRentReceiptEmailUseCase {
         companyName: branding.companyName,
         logoUrl: branding.logoUrl,
         tenancyPeriod,
+        lineItems,
       },
     })
 
@@ -237,6 +238,10 @@ export class SendRentReceiptEmailUseCase {
       ? property.pm?.receiptSetting?.logoUrl 
       : property.pm?.emailSetting?.logoUrl
 
+    if (!logoUrl && property.company?.logoUrl) {
+      logoUrl = property.company.logoUrl
+    }
+
     if (!logoUrl) logoUrl = undefined
 
     const themeColor = property.pm?.receiptSetting?.themeColor || '#d97757'
@@ -246,7 +251,7 @@ export class SendRentReceiptEmailUseCase {
       : undefined
 
     return {
-      companyName: logoUrl ? companyName : 'Upward',
+      companyName: logoUrl ? companyName : (property.company?.name || 'Upward'),
       managerName,
       logoUrl,
       themeColor,

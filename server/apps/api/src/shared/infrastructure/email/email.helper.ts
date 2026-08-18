@@ -226,13 +226,14 @@ export function buildGlobalLayoutHtml(params: {
   }
 }
 
-export function applyPmBranding(html: string, emailSetting: any): string {
-  if (!emailSetting) return html;
+export function applyPmBranding(html: string, emailSetting?: any, fallbackLogoUrl?: string): string {
+  if (!emailSetting && !fallbackLogoUrl) return html;
 
   let brandedHtml = html;
+  const logoUrl = emailSetting?.logoUrl || fallbackLogoUrl;
 
-  if (emailSetting.logoUrl) {
-    const logoTag = `<div style="text-align: center; margin-bottom: 24px;"><img src="${emailSetting.logoUrl}" alt="${emailSetting.senderName || 'Logo'}" style="max-height: 60px; object-fit: contain;" /></div>`;
+  if (logoUrl && !brandedHtml.includes(logoUrl) && !brandedHtml.includes('<img')) {
+    const logoTag = `<div style="text-align: center; margin-bottom: 24px;"><img src="${logoUrl}" alt="${emailSetting?.senderName || 'Logo'}" style="max-height: 60px; object-fit: contain;" /></div>`;
     if (brandedHtml.includes('<body')) {
       brandedHtml = brandedHtml.replace(/(<body[^>]*>)/i, `$1\n${logoTag}`);
     } else {
@@ -518,6 +519,9 @@ export function buildRentReceiptEmailHtml(params: {
   paymentDate: string;
   receiptUrl: string;
   tenancyPeriod?: string;
+  companyName?: string;
+  logoUrl?: string;
+  lineItems?: Array<{ label: string; amount: number }>;
 }): string {
   const tenancyPeriodRow = params.tenancyPeriod
     ? `<tr>
@@ -526,7 +530,37 @@ export function buildRentReceiptEmailHtml(params: {
       </tr>`
     : '';
 
+  const logoHtml = params.logoUrl
+    ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${params.logoUrl}" alt="${params.companyName || 'Logo'}" style="max-height: 55px; max-width: 200px; object-fit: contain;" /></div>`
+    : '';
+
+  let breakdownRows = '';
+  if (params.lineItems && params.lineItems.length > 0) {
+    const itemsHtml = params.lineItems
+      .map(
+        (item) => `
+        <tr>
+          <td style="padding: 4px 0; color: #6b7280; font-size: 13px;">${item.label}</td>
+          <td align="right" style="padding: 4px 0; color: #374151; font-size: 13px; font-weight: 500;">NGN ${Number(item.amount).toLocaleString()}</td>
+        </tr>`
+      )
+      .join('');
+
+    breakdownRows = `
+      <tr>
+        <td colspan="2" style="padding-top: 12px; border-top: 1px dashed #e5e7eb;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td colspan="2" style="font-weight: 600; font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 6px;">Payment Breakdown</td>
+            </tr>
+            ${itemsHtml}
+          </table>
+        </td>
+      </tr>`;
+  }
+
   const content = `
+    ${logoHtml}
     <p>Hi ${params.tenantName},</p>
     <p>Your rent payment was successful. Thank you!</p>
     
@@ -541,6 +575,7 @@ export function buildRentReceiptEmailHtml(params: {
           <td><strong>Amount Paid:</strong></td>
           <td align="right" style="color: #166534; font-weight: 700;">NGN ${params.amountPaid.toLocaleString()}</td>
         </tr>
+        ${breakdownRows}
         <tr>
           <td><strong>Property:</strong></td>
           <td align="right">${params.propertyAddress} (${params.unitName})</td>
@@ -555,6 +590,7 @@ export function buildRentReceiptEmailHtml(params: {
   return buildGlobalLayoutHtml({
     role: 'TENANT',
     title: 'Rent Payment Successful 🎉',
+    logoText: params.companyName || 'Upward',
     contentHtml: content,
     buttonText: 'View Full Receipt',
     buttonUrl: params.receiptUrl,

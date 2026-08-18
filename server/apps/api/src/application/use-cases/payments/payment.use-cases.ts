@@ -1634,6 +1634,10 @@ export class GenerateReceiptPdfUseCase {
         }
       }
 
+      if (!enriched.logoUrl && prop.company?.logoUrl) {
+        enriched.logoUrl = prop.company.logoUrl
+      }
+
       if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
         if (prop.company?.name && !prop.company.name.includes(':')) {
           enriched.landlordName = prop.company.name
