@@ -547,7 +547,10 @@ export function usePaymentFlow(
           'profile',
           'user-profile',
           'wallet',
-          'dashboard-counts'
+          'dashboard-counts',
+          'activeTenancy',
+          'rentalDetails',
+          'tenancies',
         ]
         keys.forEach(key => {
           queryClient.invalidateQueries({ queryKey: [key] })

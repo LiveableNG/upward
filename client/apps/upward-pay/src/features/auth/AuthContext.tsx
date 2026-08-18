@@ -53,14 +53,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[SSE] Event received:', data)
 
         if (data.type === 'payment.succeeded') {
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-          queryClient.invalidateQueries({ queryKey: ['scoreProfile'] })
-          queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          const keysToInvalidate = [
+            'dashboard',
+            'scoreProfile',
+            'score-profile',
+            'notifications',
+            'pendingPayments',
+            'pending-payments',
+            'transactions',
+            'profile',
+            'user-profile',
+            'wallet',
+            'dashboard-counts',
+            'activeTenancy',
+            'rentalDetails',
+            'tenancies',
+          ]
+          keysToInvalidate.forEach((key) => {
+            queryClient.invalidateQueries({ queryKey: [key] })
+          })
           
           window.dispatchEvent(new CustomEvent('upward:payment.succeeded', { detail: data }))
         } else if (data.type === 'payment.request.created' || data.type === 'payment.request.updated') {
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-          queryClient.invalidateQueries({ queryKey: ['notifications'] })
+          const keysToInvalidate = [
+            'dashboard',
+            'notifications',
+            'pendingPayments',
+            'pending-payments',
+            'dashboard-counts',
+            'activeTenancy',
+            'rentalDetails',
+          ]
+          keysToInvalidate.forEach((key) => {
+            queryClient.invalidateQueries({ queryKey: [key] })
+          })
           
           window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
         }
@@ -80,8 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.uuid, queryClient])
 
-  const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
-
   const refreshUser = async () => {
     try {
       const profile = await getMe()
@@ -90,8 +114,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem('upward_session_active', 'true')
       }
     } catch (err) {
-      // Call logout to clear any stale cookies and break potential redirect loops
-      await logout()
+      // Only clear session if backend explicitly rejected profile request (401)
+      setUser(null)
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('upward_session_active')
+      }
     } finally {
       setLoading(false)
     }
@@ -101,45 +128,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initSession = async () => {
       console.log('[Auth] Initializing session...')
       
-      const sessionActive = typeof window !== 'undefined' ? sessionStorage.getItem('upward_session_active') : null
-      
       if (Capacitor.isNativePlatform()) {
-        const launchUrl = await App.getLaunchUrl()
-        const isDeepLink = !!(launchUrl?.url && (
-          launchUrl.url.includes('/pay/') ||
-          launchUrl.url.includes('pay/') ||
-          launchUrl.url.includes('/invite/') ||
-          launchUrl.url.includes('invite/') ||
-          launchUrl.url.includes('/waitlist/') ||
-          launchUrl.url.includes('waitlist/') ||
-          launchUrl.url.includes('/welcome/')
-        )) || (
-          pathname?.startsWith('/waitlist/') ||
-          pathname?.startsWith('/pay/') ||
-          pathname?.startsWith('/invite/') ||
-          pathname?.startsWith('/welcome/')
-        )
-
-        if (!sessionActive && !isDeepLink) {
-          console.log('[Auth] Fresh app launch detected (no active session). Requiring login.')
-          setLoading(false)
-          await logout()
-          return
-        }
-
         await App.addListener('appStateChange', async (state) => {
-          if (!state.isActive) {
-            localStorage.setItem('app_backgrounded_at', Date.now().toString())
-          } else {
-            const backgroundedAt = localStorage.getItem('app_backgrounded_at')
-            if (backgroundedAt) {
-              const diff = Date.now() - parseInt(backgroundedAt)
-              if (diff > INACTIVITY_TIMEOUT) {
-                console.log('[Auth] Inactivity timeout (5m) reached. Logging out...')
-                await logout()
-              }
-              localStorage.removeItem('app_backgrounded_at')
-            }
+          if (state.isActive) {
+            console.log('[Auth] App resumed from background. Synchronizing user state...')
+            await refreshUser()
+            queryClient.invalidateQueries()
           }
         })
       }

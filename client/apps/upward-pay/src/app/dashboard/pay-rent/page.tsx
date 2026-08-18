@@ -110,22 +110,23 @@ export default function PayRentPage() {
   function enterPendingInvoiceFlow(pending: any, props: any[]) {
     if (isProofUnderReview(pending)) return
 
-    const remaining =
-      Number(pending.remainingBalance ?? pending.total_amount ?? pending.amount ?? 0) -
-      (pending.remainingBalance != null ? 0 : Number(pending.amountPaid || 0))
-    const amount = Math.max(
-      0,
-      pending.remainingBalance != null
-        ? Number(pending.remainingBalance)
-        : Number(pending.total_amount || pending.amount || 0) - Number(pending.amountPaid || 0),
-    )
+    const lineItemsRecords = pending?.lineItemRecords || []
+    const lineItemsSum = lineItemsRecords.reduce((sum: number, item: any) => {
+      const isFee = item.name === 'Processing Fee' || item.id === -2 || item.name === 'Transaction Fee' || item.id === -3 || item.name === 'Upward Benefits'
+      if (isFee) return sum
+      return sum + Number(item.totalAmount || item.amount || 0)
+    }, 0)
+
+    const fullInvoiceTotal = lineItemsSum > 0 ? lineItemsSum : Number(pending.total_amount || pending.amount || 0)
+    const amountPaid = Number(pending.amountPaid || 0)
+    const remaining = Math.max(0, fullInvoiceTotal - amountPaid)
 
     const prop = props.find((p: any) => p.uuid === pending.userPropertyUuid)
     setActivePaymentRequest(pending)
     setSelectedPropertyUuid(pending.userPropertyUuid || null)
-    setPayAmount(amount || remaining)
-    setRequestedAmount(Number(pending.total_amount || pending.amount || amount))
-    setTotalPaidAlready(Number(pending.amountPaid || 0))
+    setPayAmount(remaining)
+    setRequestedAmount(fullInvoiceTotal)
+    setTotalPaidAlready(amountPaid)
     setNarration(pending.description || 'Rent Payment')
     setpaymentType('Rent Payment')
     setLineItems(mapPendingLineItems(pending))
