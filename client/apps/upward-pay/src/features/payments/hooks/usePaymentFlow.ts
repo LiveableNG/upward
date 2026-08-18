@@ -118,6 +118,7 @@ export function usePaymentFlow(
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [amountInput, setAmountInput] = useState('')
+  const [lastConfirmedAmount, setLastConfirmedAmount] = useState<number>(0)
   const [manualAllocs, setManualAllocs] = useState<Record<number, number>>({})
   const [showBreakdown, setShowBreakdown] = useState(false)
   const [showRenewalModal, setShowRenewalModal] = useState(false)
@@ -230,8 +231,8 @@ export function usePaymentFlow(
           )
         }
 
-        if (res.data.payment.status === 'PAID' || due <= 0) {
-          setStep('already-paid')
+        if ((res.data.payment.status === 'PAID' || due <= 0) && step !== 'success') {
+          setStep(prev => (prev === 'success' ? 'success' : 'already-paid'))
         } else if (res.data.payment.status === 'CANCELLED') {
           setStep('cancelled')
         } else {
@@ -337,10 +338,14 @@ export function usePaymentFlow(
         console.log('[SSE Checkout] Event received:', data)
 
         if (data.type === 'payment.succeeded') {
-          toastInfo('Payment confirmed. Updating checkout...', 'Payment Success')
+          toastInfo('Payment confirmed!', 'Payment Success')
+          notifyPaymentConfirmed()
+          const paidVal = Number(data.amount) || parseFloat(amountInput) || totalOwed
+          if (paidVal > 0) {
+            setLastConfirmedAmount(paidVal)
+          }
           setStep(prev => {
             if (prev === 'invoice' || prev === 'checkout' || prev === 'processing') {
-              notifyPaymentConfirmed()
               return 'success'
             }
             return prev
@@ -521,6 +526,9 @@ export function usePaymentFlow(
 
   const handlePaymentSuccess = async (reference: string) => {
     setStep('processing')
+    if (parsedAmount > 0) {
+      setLastConfirmedAmount(parsedAmount)
+    }
     try {
       const res = await api.post(`/payment-request/${uuid}/confirm`, {
         reference,
@@ -624,6 +632,7 @@ export function usePaymentFlow(
     formData, setFormData,
     totalOwed,
     parsedAmount,
+    lastConfirmedAmount,
     minRequired,
     isBelowMin,
     isValidAmount,

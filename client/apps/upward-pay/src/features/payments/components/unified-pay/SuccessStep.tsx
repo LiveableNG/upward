@@ -21,12 +21,22 @@ export function SuccessStep({
   isManualReview,
   onDone
 }: SuccessStepProps) {
+  const [countdown, setCountdown] = React.useState(2)
+
   React.useEffect(() => {
     if (!isPendingRefund && !isManualReview) {
-      const timer = setTimeout(() => {
-        onDone()
-      }, 3000)
-      return () => clearTimeout(timer)
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval)
+            setTimeout(() => onDone(), 0)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(interval)
     }
   }, [isPendingRefund, isManualReview, onDone])
 
@@ -79,9 +89,9 @@ export function SuccessStep({
           <ChevronRight size={18} />
         </button>
 
-        {!isPendingRefund && (
+        {!isPendingRefund && !isManualReview && (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 16 }}>
-            Redirecting to dashboard automatically...
+            Redirecting to dashboard in {countdown} {countdown === 1 ? 'second' : 'seconds'}... or click button above
           </p>
         )}
       </div>

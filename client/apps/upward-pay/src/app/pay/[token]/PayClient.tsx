@@ -83,6 +83,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     formData, setFormData,
     totalOwed,
     parsedAmount,
+    lastConfirmedAmount,
     minRequired,
     isBelowMin,
     isValidAmount,
@@ -417,7 +418,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         currency={currency}
         companyName={paymentData.company?.name || 'Upward Platform'}
         description={paymentData.payment.description || 'Housing Invoice'}
-        onDashboard={() => router.push(authUser ? '/dashboard' : '/login')}
+        onDashboard={() => {
+          if (authUser) {
+            router.replace('/dashboard')
+          } else {
+            router.push('/login')
+          }
+        }}
         onOnboarding={() => setStep('onboarding')}
         isLoggedIn={!!authUser}
         hasAccount={paymentData.hasPassword}
@@ -428,11 +435,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   if (step === 'success') {
     return (
       <SuccessStep
-        finalAmount={parsedAmount}
+        finalAmount={lastConfirmedAmount || parsedAmount}
         currency={currency}
         companyName={paymentData.company.name}
         isPendingRefund={isPendingRefund}
-        onDone={() => router.push('/dashboard')}
+        onDone={() => {
+          if (authUser) {
+            router.replace('/dashboard')
+          } else {
+            window.location.href = '/dashboard'
+          }
+        }}
       />
     )
   }
