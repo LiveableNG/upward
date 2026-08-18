@@ -264,7 +264,7 @@ export class ReceiptService {
       if (data.type === 'RENT' && data.landlordName) {
         rows.push({ label: 'Recipient', value: data.landlordName })
       }
-      if (data.propertyAddress && !hasBreakdown) {
+      if (data.propertyAddress && !hasBreakdown && data.type !== 'RENT') {
         rows.push({ label: 'Address', value: data.propertyAddress })
       }
 
