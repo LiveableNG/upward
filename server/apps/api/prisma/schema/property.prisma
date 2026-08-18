@@ -80,6 +80,7 @@ model upward_company {
   uuid         String                 @unique @default(uuid())
   name         String
   address      String?
+  logoUrl      String?
   email        String?
   phone        String?
   emailHash    String?                @unique

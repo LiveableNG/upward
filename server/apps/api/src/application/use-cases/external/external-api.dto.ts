@@ -24,6 +24,14 @@ export class CompanyInfoDto {
   @IsOptional()
   @IsString()
   address?: string
+
+  @IsOptional()
+  @IsString()
+  logoUrl?: string
+
+  @IsOptional()
+  @IsString()
+  logo?: string
 }
 
 export class UserInfoDto {
