@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronDown } from 'lucide-react'
 import { Modal } from '@/components/common/Modal'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -168,47 +169,52 @@ export function GenerateVisitorForm({ isOpen, onClose, propertyUuid, onSuccess }
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <form className="my-home-form" onSubmit={handleSubmit}>
+    <Modal isOpen={isOpen} onClose={onClose} size="md" className="my-home-modal-sheet">
+      <form className="my-home-form my-home-form--sheet" onSubmit={handleSubmit}>
         <h3 className="my-home-detail__title">Generate Access</h3>
 
-        <label className="my-home-form__field">
-          <span className="my-home-form__label">Number of Visitors</span>
-          <select
-            name="numberOfVisitors"
-            className={`my-home-form__input${errors.numberOfVisitors ? ' my-home-form__input--error' : ''}`}
-            value={form.numberOfVisitors}
-            onChange={handleChange}
-            disabled={mutation.isPending}
-          >
-            {NUMBER_OF_VISITORS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.numberOfVisitors ? (
-            <span className="my-home-form__error">{errors.numberOfVisitors}</span>
-          ) : null}
-        </label>
+        <div className="my-home-form__body">
+          <label className="my-home-form__field">
+            <span className="my-home-form__label">Number of Visitors</span>
+            <span className="my-home-form__select">
+              <select
+                name="numberOfVisitors"
+                className={`my-home-form__input${errors.numberOfVisitors ? ' my-home-form__input--error' : ''}`}
+                value={form.numberOfVisitors}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+              >
+                {NUMBER_OF_VISITORS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="my-home-form__select-icon" aria-hidden />
+            </span>
+            {errors.numberOfVisitors ? (
+              <span className="my-home-form__error">{errors.numberOfVisitors}</span>
+            ) : null}
+          </label>
 
-        <div className="my-home-form__field" ref={searchFieldRef}>
-          <span className="my-home-form__label">Main Visitor&apos;s Name</span>
-          <div className="my-home-form__search">
-            <input
-              type="text"
-              name="name"
-              className={`my-home-form__input${errors.name ? ' my-home-form__input--error' : ''}`}
-              placeholder="Start typing to search previous visitors"
-              value={form.name}
-              onChange={handleChange}
-              onFocus={() => {
-                if (searchResults.length > 0) setShowSearchResults(true)
-              }}
-              disabled={mutation.isPending}
-              autoComplete="off"
-            />
-            {isSearching ? <span className="my-home-form__search-spinner" aria-hidden /> : null}
+          <div className="my-home-form__field" ref={searchFieldRef}>
+            <span className="my-home-form__label">Main Visitor&apos;s Name</span>
+            <div className="my-home-form__search">
+              <input
+                type="text"
+                name="name"
+                className={`my-home-form__input my-home-form__input--search${errors.name ? ' my-home-form__input--error' : ''}`}
+                placeholder="Start typing to search previous visitors"
+                value={form.name}
+                onChange={handleChange}
+                onFocus={() => {
+                  if (searchResults.length > 0) setShowSearchResults(true)
+                }}
+                disabled={mutation.isPending}
+                autoComplete="off"
+              />
+              {isSearching ? <span className="my-home-form__search-spinner" aria-hidden /> : null}
+            </div>
             {showSearchResults && searchResults.length > 0 ? (
               <ul className="my-home-form__search-results" role="listbox">
                 {searchResults.map((visitor) => (
@@ -230,76 +236,83 @@ export function GenerateVisitorForm({ isOpen, onClose, propertyUuid, onSuccess }
                 ))}
               </ul>
             ) : null}
+            {errors.name ? <span className="my-home-form__error">{errors.name}</span> : null}
           </div>
-          {errors.name ? <span className="my-home-form__error">{errors.name}</span> : null}
+
+          <label className="my-home-form__field">
+            <span className="my-home-form__label">Phone Number</span>
+            <input
+              type="tel"
+              name="phone"
+              className={`my-home-form__input${errors.phone ? ' my-home-form__input--error' : ''}`}
+              placeholder="0801 234 5678"
+              value={form.phone}
+              onChange={handleChange}
+              disabled={mutation.isPending}
+            />
+            {errors.phone ? <span className="my-home-form__error">{errors.phone}</span> : null}
+          </label>
+
+          <label className="my-home-form__field">
+            <span className="my-home-form__label">Visitor Type</span>
+            <span className="my-home-form__select">
+              <select
+                name="visitorType"
+                className={`my-home-form__input${errors.visitorType ? ' my-home-form__input--error' : ''}`}
+                value={form.visitorType}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+              >
+                <option value="" disabled>
+                  Select visitor type
+                </option>
+                {VISITOR_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="my-home-form__select-icon" aria-hidden />
+            </span>
+            {errors.visitorType ? (
+              <span className="my-home-form__error">{errors.visitorType}</span>
+            ) : null}
+          </label>
+
+          <label className="my-home-form__field">
+            <span className="my-home-form__label">Access Duration</span>
+            <span className="my-home-form__select">
+              <select
+                name="duration"
+                className="my-home-form__input"
+                value={form.duration}
+                onChange={handleChange}
+                disabled={mutation.isPending}
+              >
+                {VISITOR_DURATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="my-home-form__select-icon" aria-hidden />
+            </span>
+          </label>
+
+          <label className="my-home-form__field">
+            <span className="my-home-form__label">Additional Notes (Optional)</span>
+            <textarea
+              name="notes"
+              className="my-home-form__input my-home-form__input--area my-home-form__input--area-sm"
+              placeholder="Any special instructions or information"
+              value={form.notes}
+              onChange={handleChange}
+              rows={3}
+              maxLength={200}
+              disabled={mutation.isPending}
+            />
+          </label>
         </div>
-
-        <label className="my-home-form__field">
-          <span className="my-home-form__label">Phone Number</span>
-          <input
-            type="tel"
-            name="phone"
-            className={`my-home-form__input${errors.phone ? ' my-home-form__input--error' : ''}`}
-            value={form.phone}
-            onChange={handleChange}
-            disabled={mutation.isPending}
-          />
-          {errors.phone ? <span className="my-home-form__error">{errors.phone}</span> : null}
-        </label>
-
-        <label className="my-home-form__field">
-          <span className="my-home-form__label">Visitor Type</span>
-          <select
-            name="visitorType"
-            className={`my-home-form__input${errors.visitorType ? ' my-home-form__input--error' : ''}`}
-            value={form.visitorType}
-            onChange={handleChange}
-            disabled={mutation.isPending}
-          >
-            <option value="" disabled>
-              Select visitor type
-            </option>
-            {VISITOR_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.visitorType ? (
-            <span className="my-home-form__error">{errors.visitorType}</span>
-          ) : null}
-        </label>
-
-        <label className="my-home-form__field">
-          <span className="my-home-form__label">Access Duration</span>
-          <select
-            name="duration"
-            className="my-home-form__input"
-            value={form.duration}
-            onChange={handleChange}
-            disabled={mutation.isPending}
-          >
-            {VISITOR_DURATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="my-home-form__field">
-          <span className="my-home-form__label">Additional Notes (Optional)</span>
-          <textarea
-            name="notes"
-            className="my-home-form__input my-home-form__input--area"
-            placeholder="Any special instructions or information"
-            value={form.notes}
-            onChange={handleChange}
-            rows={3}
-            maxLength={200}
-            disabled={mutation.isPending}
-          />
-        </label>
 
         <button type="submit" className="my-home-detail__copy-btn" disabled={mutation.isPending}>
           {mutation.isPending ? 'Generating…' : 'Generate Access'}

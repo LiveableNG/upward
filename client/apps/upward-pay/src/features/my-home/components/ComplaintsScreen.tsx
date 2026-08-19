@@ -16,7 +16,10 @@ import { Modal } from '@/components/common/Modal'
 import { useComplaintDetail, useComplaintsInfinite } from '../hooks/useMyHome'
 import { useSelectedProperty } from '../context/MyHomePropertyContext'
 import { RaiseComplaintForm } from './RaiseComplaintForm'
+import { DisputeComplaintForm } from './DisputeComplaintForm'
+import { FeedbackComplaintForm } from './FeedbackComplaintForm'
 import { COMPLAINT_STATUS_FILTERS, type ComplaintStatusFilter } from '../constants'
+import type { Complaint } from '../types'
 
 /** Mirrors GT tenant-app's complaint status vocabulary (Pending/Ongoing/Completed/Disputed). */
 function badgeModifier(status: string) {
@@ -30,6 +33,10 @@ function badgeModifier(status: string) {
 
 function displayStatus(status: string) {
   return status.toLowerCase() === 'completed' ? 'Resolved' : status
+}
+
+function needsResolutionPrompt(complaint: Complaint) {
+  return complaint.status.toLowerCase() === 'completed' && !complaint.rating
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -190,6 +197,9 @@ export function ComplaintsScreen() {
   const [openComplaintId, setOpenComplaintId] = useState<string | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<ComplaintStatusFilter>('pending')
+  const [disputeComplaint, setDisputeComplaint] = useState<Complaint | null>(null)
+  const [feedbackPromptComplaint, setFeedbackPromptComplaint] = useState<Complaint | null>(null)
+  const [feedbackComplaint, setFeedbackComplaint] = useState<Complaint | null>(null)
 
   const query = useComplaintsInfinite(selectedUuid, statusFilter)
   const complaints = query.data?.pages.flatMap((page) => page.data) ?? []
@@ -251,7 +261,10 @@ export function ComplaintsScreen() {
         </div>
       ) : (
         <>
-          {complaints.map((complaint) => (
+          {complaints.map((complaint) => {
+            const showResolvePrompt = needsResolutionPrompt(complaint)
+
+            return (
             <div key={complaint.complaint_id} className="my-home-list__card">
               <div className="my-home-list__card-body">
                 <div className="my-home-list__card-head">
@@ -281,14 +294,37 @@ export function ComplaintsScreen() {
                 <p className="my-home-list__desc">{complaint.description}</p>
               </div>
 
-              <div
-                className="my-home-list__card-footer"
-                onClick={() => setOpenComplaintId(complaint.complaint_id)}
-              >
-                View Details
-              </div>
+              {showResolvePrompt ? (
+                <div className="my-home-list__resolve">
+                  <p className="my-home-list__resolve-copy">Has this issue been resolved?</p>
+                  <div className="my-home-list__resolve-actions">
+                    <button
+                      type="button"
+                      className="my-home-list__resolve-no"
+                      onClick={() => setDisputeComplaint(complaint)}
+                    >
+                      Not Yet
+                    </button>
+                    <button
+                      type="button"
+                      className="my-home-list__resolve-yes"
+                      onClick={() => setFeedbackPromptComplaint(complaint)}
+                    >
+                      Yes, Resolved
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="my-home-list__card-footer"
+                  onClick={() => setOpenComplaintId(complaint.complaint_id)}
+                >
+                  View Details
+                </div>
+              )}
             </div>
-          ))}
+            )
+          })}
 
           {query.hasNextPage ? (
             <button
@@ -315,6 +351,46 @@ export function ComplaintsScreen() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         propertyUuid={selectedUuid}
+      />
+      <DisputeComplaintForm
+        isOpen={!!disputeComplaint}
+        onClose={() => setDisputeComplaint(null)}
+        propertyUuid={selectedUuid}
+        complaint={disputeComplaint}
+      />
+      <Modal isOpen={!!feedbackPromptComplaint} onClose={() => setFeedbackPromptComplaint(null)} size="sm">
+        <div className="my-home-confirm">
+          <div className="my-home-confirm__icon">
+            <Star size={26} />
+          </div>
+          <h3 className="my-home-confirm__title">Would you like to give feedback?</h3>
+          <p className="my-home-confirm__text">Your feedback helps us improve complaint resolution.</p>
+          <div className="my-home-confirm__actions">
+            <button
+              type="button"
+              className="my-home-detail__secondary-btn"
+              onClick={() => setFeedbackPromptComplaint(null)}
+            >
+              Skip
+            </button>
+            <button
+              type="button"
+              className="my-home-detail__copy-btn"
+              onClick={() => {
+                setFeedbackComplaint(feedbackPromptComplaint)
+                setFeedbackPromptComplaint(null)
+              }}
+            >
+              Give Feedback
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <FeedbackComplaintForm
+        isOpen={!!feedbackComplaint}
+        onClose={() => setFeedbackComplaint(null)}
+        propertyUuid={selectedUuid}
+        complaint={feedbackComplaint}
       />
     </>
   )

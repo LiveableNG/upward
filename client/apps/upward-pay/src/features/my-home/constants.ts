@@ -79,3 +79,40 @@ export const DEFAULT_VISITOR_FORM = {
   visitorType: '',
   notes: '',
 }
+
+/** Copied from GoodTenant Tenant App FeedbackBottomSheet.tsx */
+export const COMPLAINT_FEEDBACK_QUESTIONS = [
+  {
+    key: 'promptness',
+    question: 'How promptly did the property manager respond?',
+    options: ['Immediately', 'On time', 'Delayed', 'Late', 'Very late'],
+  },
+  {
+    key: 'resolution',
+    question: 'How well did the property manager resolve your complaint?',
+    options: ['Excellent', 'Good', 'Satisfactory', 'Poor', 'Very Poor'],
+  },
+  {
+    key: 'communication',
+    question: 'How well did they communicate with you while solving the problem?',
+    options: ['Good', 'Fair', 'Not so well', 'Bad', 'Very Bad'],
+  },
+] as const
+
+export const COMPLAINT_VENDOR_FEEDBACK_QUESTIONS = [
+  {
+    key: 'vendorQuality',
+    question: 'How would you rate the quality of work done by the vendor?',
+    options: ['Excellent', 'Good', 'Satisfactory', 'Poor', 'Very Poor'],
+  },
+  {
+    key: 'vendorCommunication',
+    question: 'How well did the vendor communicate with you?',
+    options: ['Excellent', 'Good', 'Fair', 'Poor', 'Very Poor'],
+  },
+  {
+    key: 'vendorTimeliness',
+    question: "How timely was the vendor's service?",
+    options: ['Very timely', 'Timely', 'Somewhat delayed', 'Delayed', 'Very delayed'],
+  },
+] as const

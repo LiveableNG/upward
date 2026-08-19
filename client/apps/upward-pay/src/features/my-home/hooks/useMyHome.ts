@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useInfiniteQuery, useQuery, type UseQueryResult } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueries, useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
 import * as myHomeService from '../services/myHomeService'
-import type { PanelState } from '../types'
+import type { PanelState, PendingBill, GtTransaction } from '../types'
 import type { ComplaintStatusFilter } from '../constants'
 import { managerDisplayNameFromProperty, managerEmailFromProperty } from '../utils/propertyContact'
 
@@ -161,6 +161,94 @@ export function usePendingBills(propertyUuid: string | null) {
     staleTime: STALE_TIME,
     retry: false,
   })
+}
+
+export type GtActivityBill = PendingBill & {
+  propertyUuid: string
+  propertyLabel: string
+  unitName?: string
+}
+
+/** Pending GT bills across every linked My Home property — for dashboard alerts. */
+export function useAllPendingBills() {
+  const properties = useMyHomeProperties()
+
+  const queries = useQueries({
+    queries: properties.map((property) => ({
+      queryKey: ['my-home', 'transactions', 'pending', property.uuid],
+      queryFn: () => myHomeService.getPendingBills(property.uuid),
+      enabled: !!property.uuid,
+      staleTime: STALE_TIME,
+      retry: false,
+    })),
+  })
+
+  const bills = useMemo(() => {
+    const result: GtActivityBill[] = []
+
+    properties.forEach((property, index) => {
+      const rows = queries[index]?.data?.data ?? []
+      for (const bill of rows) {
+        result.push({
+          ...bill,
+          propertyUuid: property.uuid,
+          propertyLabel: property.label,
+          unitName: property.unitName,
+        })
+      }
+    })
+
+    return result
+  }, [properties, queries])
+
+  const isLoading = properties.length > 0 && queries.some((query) => query.isPending)
+
+  return { bills, isLoading }
+}
+
+export type GtHistoryRow = GtTransaction & {
+  propertyUuid: string
+  propertyLabel: string
+  unitName?: string
+}
+
+/** GT transaction history across every linked My Home property. */
+export function useAllGtTransactions() {
+  const properties = useMyHomeProperties()
+
+  const queries = useQueries({
+    queries: properties.map((property) => ({
+      queryKey: ['my-home', 'transactions', 'history', property.uuid],
+      queryFn: () => myHomeService.getTransactions(property.uuid, 1),
+      enabled: !!property.uuid,
+      staleTime: STALE_TIME,
+      retry: false,
+    })),
+  })
+
+  const transactions = useMemo(() => {
+    const result: GtHistoryRow[] = []
+
+    properties.forEach((property, index) => {
+      const grouped = queries[index]?.data?.data ?? {}
+      for (const rows of Object.values(grouped)) {
+        for (const row of rows) {
+          result.push({
+            ...row,
+            propertyUuid: property.uuid,
+            propertyLabel: property.label,
+            unitName: property.unitName,
+          })
+        }
+      }
+    })
+
+    return result
+  }, [properties, queries])
+
+  const isLoading = properties.length > 0 && queries.some((query) => query.isPending)
+
+  return { transactions, isLoading }
 }
 
 export function useTransactionsInfinite(propertyUuid: string | null) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -16,35 +16,128 @@ import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/compone
 import { Modal } from '@/components/common/Modal'
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency } from '@/lib/utils'
+import { useTransactions } from '@/features/dashboard/hooks/useDashboard'
+import type { CompletedPayment } from '@/features/dashboard/types'
 import * as myHomeService from '../services/myHomeService'
-import { usePendingBills, useTransactionsInfinite } from '../hooks/useMyHome'
+import { usePendingBills, useTransactionsInfinite, type MyHomeProperty } from '../hooks/useMyHome'
 import { useSelectedProperty } from '../context/MyHomePropertyContext'
 import type { GtTransaction, PendingBill, PendingPaymentInfo } from '../types'
+
+type HistorySource = 'gt' | 'upward'
+
+type HistoryRow = GtTransaction & {
+  source: HistorySource
+  receiptId?: string
+}
 
 function parseAmount(value: string) {
   return parseFloat(value.replace(/,/g, '')) || 0
 }
 
+function formatHistoryDate(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unknown date'
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function sortDateKeys(dates: string[]) {
+  return [...dates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+}
+
 function mergeTransactionPages(
   pages: Array<{ data: Record<string, GtTransaction[]> }>,
-): Record<string, GtTransaction[]> {
-  const merged: Record<string, GtTransaction[]> = {}
+): Record<string, HistoryRow[]> {
+  const merged: Record<string, HistoryRow[]> = {}
 
   for (const page of pages) {
     for (const [date, rows] of Object.entries(page.data)) {
-      merged[date] = merged[date] ? [...merged[date], ...rows] : rows
+      const tagged = rows.map((row) => ({ ...row, source: 'gt' as const }))
+      merged[date] = merged[date] ? [...merged[date], ...tagged] : tagged
     }
   }
 
   return merged
 }
 
-function TransactionRow({ transaction }: { transaction: GtTransaction }) {
+function tokensFromProperty(property: MyHomeProperty | null) {
+  return [property?.label, property?.unitName]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2)
+}
+
+function belongsToSelectedHome(tx: CompletedPayment, property: MyHomeProperty | null) {
+  if (!tx.property_address || !property) return true
+  const haystack = tx.property_address.toLowerCase()
+  const tokens = tokensFromProperty(property)
+  if (tokens.length === 0) return true
+  return tokens.some((token) => haystack.includes(token))
+}
+
+function upwardToHistoryRow(tx: CompletedPayment): HistoryRow {
+  const isCredit = tx.type === 'credit' || tx.transactionType === 'FUTURE_CREDIT'
+  return {
+    category: tx.company_name || 'Rent Payment',
+    additional_information: tx.property_address,
+    amount: String(tx.amount),
+    status: tx.status,
+    type: isCredit ? 'credit' : 'debit',
+    reference: tx.paystack_reference,
+    payment_method: tx.isManual ? 'Manual' : tx.channel || 'Paystack',
+    date: formatHistoryDate(tx.paid_at),
+    source: 'upward',
+    receiptId: tx.uuid,
+  }
+}
+
+function mergeUpwardIntoHistory(
+  grouped: Record<string, HistoryRow[]>,
+  upward: CompletedPayment[],
+  property: MyHomeProperty | null,
+): Record<string, HistoryRow[]> {
+  const matched = upward.filter((tx) => belongsToSelectedHome(tx, property))
+  const rows = (matched.length > 0 ? matched : upward).map(upwardToHistoryRow)
+  const next: Record<string, HistoryRow[]> = { ...grouped }
+
+  for (const row of rows) {
+    const date = row.date
+    next[date] = next[date] ? [...next[date], row] : [row]
+  }
+
+  return next
+}
+
+function TransactionRow({
+  transaction,
+  onOpen,
+}: {
+  transaction: HistoryRow
+  onOpen?: () => void
+}) {
   const isCredit = transaction.type === 'credit'
   const Icon = isCredit ? ArrowDownLeft : ArrowUpRight
+  const amount = formatCurrency(parseAmount(transaction.amount))
+  const clickable = Boolean(onOpen)
 
   return (
-    <div className="my-home-tx__row">
+    <div
+      className={`my-home-tx__row${clickable ? ' my-home-tx__row--clickable' : ''}`}
+      onClick={onOpen}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onOpen?.()
+              }
+            }
+          : undefined
+      }
+    >
       <div className={`my-home-tx__icon my-home-tx__icon--${isCredit ? 'credit' : 'debit'}`}>
         <Icon size={16} />
       </div>
@@ -60,7 +153,7 @@ function TransactionRow({ transaction }: { transaction: GtTransaction }) {
       <div className="my-home-tx__amount-col">
         <p className={`my-home-tx__amount my-home-tx__amount--${isCredit ? 'credit' : 'debit'}`}>
           {isCredit ? '+' : '-'}
-          {transaction.amount}
+          {amount}
         </p>
       </div>
     </div>
@@ -95,45 +188,6 @@ function PendingBillCard({
         {loading ? <Loader2 size={16} className="my-home-tx__spin" /> : 'Pay'}
       </button>
     </div>
-  )
-}
-
-function PendingBillsModal({
-  isOpen,
-  bills,
-  loadingBillId,
-  onClose,
-  onPay,
-}: {
-  isOpen: boolean
-  bills: PendingBill[]
-  loadingBillId: string | null
-  onClose: () => void
-  onPay: (bill: PendingBill) => void
-}) {
-  const total = bills.reduce((sum, bill) => sum + parseAmount(bill.amount), 0)
-  const currency = 'NGN'
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <div className="my-home-detail">
-        <h3 className="my-home-detail__title">Outstanding Bills</h3>
-        <p className="my-home-tx__bills-total">
-          Total due: <strong>{formatCurrency(total, currency)}</strong>
-        </p>
-
-        <div className="my-home-tx__bills-list">
-          {bills.map((bill) => (
-            <PendingBillCard
-              key={bill.id}
-              bill={bill}
-              onPay={onPay}
-              loading={loadingBillId === bill.id}
-            />
-          ))}
-        </div>
-      </div>
-    </Modal>
   )
 }
 
@@ -300,34 +354,31 @@ export function PaymentsScreen() {
 
   const pending = usePendingBills(selectedUuid)
   const history = useTransactionsInfinite(selectedUuid)
+  const upward = useTransactions()
 
-  const [billsSheetOpen, setBillsSheetOpen] = useState(false)
   const [bankModalOpen, setBankModalOpen] = useState(false)
   const [loadingBillId, setLoadingBillId] = useState<string | null>(null)
   const [paymentInfo, setPaymentInfo] = useState<PendingPaymentInfo | null>(null)
-  const [hasAutoOpened, setHasAutoOpened] = useState(false)
 
   const pendingBills = pending.data?.data ?? []
   const transactionsByDate = useMemo(
-    () => mergeTransactionPages(history.data?.pages ?? []),
-    [history.data?.pages],
+    () =>
+      mergeUpwardIntoHistory(
+        mergeTransactionPages(history.data?.pages ?? []),
+        upward.data ?? [],
+        selected,
+      ),
+    [history.data?.pages, selected, upward.data],
   )
-  const dateKeys = Object.keys(transactionsByDate)
-  const isHistoryEmpty = !history.isPending && dateKeys.length === 0
-
-  useEffect(() => {
-    if (pendingBills.length > 0 && !hasAutoOpened && !pending.isPending) {
-      setBillsSheetOpen(true)
-      setHasAutoOpened(true)
-    }
-  }, [hasAutoOpened, pending.isPending, pendingBills.length])
+  const dateKeys = sortDateKeys(Object.keys(transactionsByDate))
+  const isHistoryLoading = history.isPending || upward.isPending
+  const isHistoryEmpty = !isHistoryLoading && dateKeys.length === 0
 
   const refetchAll = useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['my-home', 'transactions', 'pending', selectedUuid] }),
       queryClient.invalidateQueries({ queryKey: ['my-home', 'transactions', 'history', 'infinite', selectedUuid] }),
     ])
-    setBillsSheetOpen(false)
     setBankModalOpen(false)
     setPaymentInfo(null)
   }, [queryClient, selectedUuid])
@@ -339,7 +390,6 @@ export function PaymentsScreen() {
       setLoadingBillId(bill.id)
       const response = await myHomeService.getPendingPaymentInfo(selectedUuid, bill.id)
       setPaymentInfo(response.data)
-      setBillsSheetOpen(false)
       setBankModalOpen(true)
     } catch (err) {
       const message =
@@ -352,13 +402,6 @@ export function PaymentsScreen() {
     }
   }
 
-  const footer =
-    pendingBills.length > 0 ? (
-      <PayFlowPrimaryButton onClick={() => setBillsSheetOpen(true)}>
-        Pay bills ({pendingBills.length})
-      </PayFlowPrimaryButton>
-    ) : undefined
-
   return (
     <>
       <PayPageShell
@@ -366,8 +409,6 @@ export function PaymentsScreen() {
         subtitle={selected?.unitName || undefined}
         showBack
         onBack={() => router.push('/dashboard/my-home')}
-        pinFooter={!!footer}
-        footer={footer}
       >
         {pendingBills.length > 0 ? (
           <div className="my-home-list__section">
@@ -390,7 +431,7 @@ export function PaymentsScreen() {
             <h2 className="my-home-list__section-title">Transaction history</h2>
           </div>
 
-          {history.isPending ? (
+          {isHistoryLoading ? (
             <div className="my-home-list__loading">
               <span className="my-home-list__spinner" />
             </div>
@@ -416,8 +457,13 @@ export function PaymentsScreen() {
                   <div className="my-home-tx__date-rows">
                     {transactionsByDate[date].map((transaction, index) => (
                       <TransactionRow
-                        key={`${date}-${transaction.reference || index}-${transaction.category}`}
+                        key={`${date}-${transaction.source}-${transaction.reference || index}-${transaction.category}`}
                         transaction={transaction}
+                        onOpen={
+                          transaction.source === 'upward' && transaction.receiptId
+                            ? () => router.push(`/dashboard/receipts?id=${transaction.receiptId}`)
+                            : () => toast.info('Receipts not available for this transaction.')
+                        }
                       />
                     ))}
                   </div>
@@ -440,14 +486,6 @@ export function PaymentsScreen() {
           )}
         </div>
       </PayPageShell>
-
-      <PendingBillsModal
-        isOpen={billsSheetOpen}
-        bills={pendingBills}
-        loadingBillId={loadingBillId}
-        onClose={() => setBillsSheetOpen(false)}
-        onPay={handlePayBill}
-      />
 
       {selectedUuid ? (
         <BankPaymentModal

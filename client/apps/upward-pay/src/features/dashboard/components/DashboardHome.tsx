@@ -15,7 +15,7 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import { useHasMyHome, useMyHomeProperties } from '@/features/my-home/hooks/useMyHome'
+import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
@@ -164,6 +164,7 @@ export function DashboardHome({
   const hasMyHome = useHasMyHome()
   const myHomeProperties = useMyHomeProperties()
   const myHomePreview = myHomeProperties[0]?.unitName || myHomeProperties[0]?.label
+  const { bills: gtBills } = useAllPendingBills()
 
   if (isLoading) {
     return (
@@ -188,9 +189,13 @@ export function DashboardHome({
 
   const showActivityCenter =
     pendingPayments.length > 0 ||
+    gtBills.length > 0 ||
     isNewUser ||
     propertyReminders.length > 0 ||
     (verificationOn && !isIdentityVerified)
+
+  const activityCritical =
+    anyOverdue || gtBills.some((bill) => bill.proof_status?.toLowerCase() === 'rejected')
 
   const nudgeTitle =
     streak >= 3
@@ -248,10 +253,10 @@ export function DashboardHome({
         </button>
       )}
       {showActivityCenter && (
-        <div className={`dash-home__activity-center activity-center ${anyOverdue ? 'activity-center--critical' : ''}`}>
+        <div className={`dash-home__activity-center activity-center ${activityCritical ? 'activity-center--critical' : ''}`}>
           <div className="activity-center__header">
             <h3 className="activity-center__title">
-              {anyOverdue ? 'CRITICAL ACTIONS' : 'Activity Center'}
+              {activityCritical ? 'CRITICAL ACTIONS' : 'Activity Center'}
             </h3>
             <button
               type="button"
@@ -263,6 +268,7 @@ export function DashboardHome({
           </div>
           <ActionCarousel
             pendingPayments={pendingPayments}
+            gtBills={gtBills}
             showKYC={isNewUser}
             rentReminders={propertyReminders}
             isIdentityVerified={!verificationOn || isIdentityVerified}

@@ -66,6 +66,42 @@ export class TenantAppController {
     )
   }
 
+  @Post('complaints/:complaintId/dispute')
+  disputeComplaint(
+    @Req() req: AuthenticatedRequest,
+    @Param('complaintId') complaintId: string,
+    @Query('propertyUuid') propertyUuid: string,
+    @Body()
+    body: {
+      reason: string
+      preferredResolution: string
+      impact?: string
+      file_ids?: string[]
+    },
+  ) {
+    return this.proxyTenantAppRead.executeWrite(
+      req.user.id,
+      propertyUuid,
+      `complaints/${complaintId}/dispute`,
+      body,
+    )
+  }
+
+  @Post('complaints/:complaintId/feedback')
+  submitComplaintFeedback(
+    @Req() req: AuthenticatedRequest,
+    @Param('complaintId') complaintId: string,
+    @Query('propertyUuid') propertyUuid: string,
+    @Body() body: { feedback: Array<{ question: string; answer?: string }> },
+  ) {
+    return this.proxyTenantAppRead.executeWrite(
+      req.user.id,
+      propertyUuid,
+      `complaints/${complaintId}/feedback`,
+      body,
+    )
+  }
+
   @Post('files')
   async uploadFile(
     @Req() req: AuthenticatedRequest,
@@ -191,6 +227,21 @@ export class TenantAppController {
       req.user.id,
       propertyUuid,
       'visitors/generate',
+      body,
+    )
+  }
+
+  @Post('visitors/:accessId/extend')
+  extendVisitor(
+    @Req() req: AuthenticatedRequest,
+    @Param('accessId') accessId: string,
+    @Query('propertyUuid') propertyUuid: string,
+    @Body() body: { duration: number },
+  ) {
+    return this.proxyTenantAppRead.executeWrite(
+      req.user.id,
+      propertyUuid,
+      `visitors/${accessId}/extend`,
       body,
     )
   }

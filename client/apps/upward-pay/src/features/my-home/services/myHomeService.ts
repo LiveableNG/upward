@@ -60,6 +60,46 @@ export async function createComplaint(propertyUuid: string, input: CreateComplai
   })
 }
 
+export type DisputeComplaintInput = {
+  reason: string
+  preferredResolution: string
+  impact?: string
+  file_ids?: string[]
+}
+
+export async function disputeComplaint(
+  propertyUuid: string,
+  complaintId: string,
+  input: DisputeComplaintInput,
+) {
+  return request<Envelope<Complaint>>(
+    withProperty(`/complaints/${complaintId}/dispute`, propertyUuid),
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  )
+}
+
+export type ComplaintFeedbackItem = {
+  question: string
+  answer: string
+}
+
+export async function submitComplaintFeedback(
+  propertyUuid: string,
+  complaintId: string,
+  feedback: ComplaintFeedbackItem[],
+) {
+  return request<Envelope<Complaint>>(
+    withProperty(`/complaints/${complaintId}/feedback`, propertyUuid),
+    {
+      method: 'POST',
+      body: JSON.stringify({ feedback }),
+    },
+  )
+}
+
 export async function uploadHomeFile(propertyUuid: string, file: File) {
   const form = new FormData()
   form.append('file_type', file.type.split('/')[0] || 'image')
@@ -106,6 +146,16 @@ export async function generateVisitor(propertyUuid: string, input: GenerateVisit
     method: 'POST',
     body: JSON.stringify(input),
   })
+}
+
+export async function extendVisitor(propertyUuid: string, accessId: string, duration: number) {
+  return request<Envelope<Visitor>>(
+    withProperty(`/visitors/${accessId}/extend`, propertyUuid),
+    {
+      method: 'POST',
+      body: JSON.stringify({ duration }),
+    },
+  )
 }
 
 export async function revokeVisitor(propertyUuid: string, accessId: string) {

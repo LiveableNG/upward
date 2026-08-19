@@ -14,6 +14,8 @@ import {
 import { TransactionSkeleton } from './TransactionSkeleton'
 import { TransactionsPageShell } from './TransactionsPageShell'
 import { useDashboard } from '../../hooks/useDashboard'
+import { useToast } from '@/components/common/Toast'
+import { useAllGtTransactions, type GtHistoryRow } from '@/features/my-home/hooks/useMyHome'
 import {
   formatCurrency,
   groupTransactionsByMonth,
@@ -22,13 +24,43 @@ import {
 } from '@/lib/utils'
 import { type CompletedPayment } from '../../types'
 
-function getTypeBadgeLabel(tx: CompletedPayment): string {
+type TxListItem = CompletedPayment & {
+  source?: 'gt' | 'upward'
+}
+
+function parseGtAmount(value: string) {
+  return parseFloat(value.replace(/,/g, '')) || 0
+}
+
+function gtPaidAt(date: string) {
+  const parsed = new Date(date)
+  if (Number.isNaN(parsed.getTime())) return date
+  return parsed.toISOString()
+}
+
+function gtToListItem(tx: GtHistoryRow): TxListItem {
+  return {
+    uuid: `gt-${tx.propertyUuid}-${tx.reference || tx.date}-${tx.category}-${tx.amount}`,
+    amount: parseGtAmount(tx.amount),
+    currency: 'NGN',
+    status: tx.status,
+    channel: tx.payment_method || tx.payment_gateway || '',
+    paid_at: gtPaidAt(tx.date),
+    paystack_reference: tx.reference || '',
+    company_name: tx.category,
+    type: tx.type,
+    property_address: tx.additional_information || tx.unitName || tx.propertyLabel,
+    source: 'gt',
+  }
+}
+
+function getTypeBadgeLabel(tx: TxListItem): string {
   if (tx.transactionType === 'FUTURE_CREDIT') return 'Future Credit'
   if (tx.isManual) return 'Manual'
   return tx.type || 'debit'
 }
 
-function getTypeBadgeClass(tx: CompletedPayment, isCredit: boolean): string {
+function getTypeBadgeClass(tx: TxListItem, isCredit: boolean): string {
   if (tx.transactionType === 'FUTURE_CREDIT') return 'tx-page__badge--future'
   if (tx.isManual) return 'tx-page__badge--manual'
   return isCredit ? 'tx-page__badge--credit' : 'tx-page__badge--debit'
@@ -40,17 +72,23 @@ function formatMonthLabel(monthKey: string): string {
 
 export function TransactionList() {
   const router = useRouter()
+  const toast = useToast()
   const { data, loading, error, reload } = useDashboard()
+  const { transactions: gtTransactions, isLoading: gtLoading } = useAllGtTransactions()
   const [filterDate, setFilterDate] = useState('')
   const [search, setSearch] = useState('')
 
   const handleBack = () => router.push('/dashboard')
 
-  const handleTxClick = (tx: CompletedPayment) => {
+  const handleTxClick = (tx: TxListItem) => {
+    if (tx.source === 'gt') {
+      toast.info('Receipts not available for this transaction.')
+      return
+    }
     router.push(`/dashboard/receipts?id=${tx.uuid}`)
   }
 
-  if (loading) return <TransactionSkeleton />
+  if (loading || gtLoading) return <TransactionSkeleton />
 
   if (error || !data) {
     return (
@@ -69,7 +107,10 @@ export function TransactionList() {
     )
   }
 
-  const transactions = data.completedPayments
+  const transactions: TxListItem[] = [
+    ...data.completedPayments.map((tx) => ({ ...tx, source: 'upward' as const })),
+    ...gtTransactions.map(gtToListItem),
+  ]
   const hasFilters = Boolean(search || filterDate)
 
   const filteredTransactions = transactions.filter((tx) => {
@@ -79,6 +120,7 @@ export function TransactionList() {
       ? tx.company_name?.toLowerCase().includes(q) ||
         tx.channel?.toLowerCase().includes(q) ||
         tx.paystack_reference?.toLowerCase().includes(q) ||
+        tx.property_address?.toLowerCase().includes(q) ||
         formatCurrency(tx.amount, tx.currency).toLowerCase().includes(q) ||
         ((tx.type || 'debit') as string).toLowerCase().includes(q)
       : true
@@ -209,7 +251,7 @@ export function TransactionList() {
                           <div className="tx-page__location">{tx.property_address}</div>
                         ) : null}
                         <div className="dash-home__activity-item-meta">
-                          {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} ·{' '}
+                          {tx.channel || (tx.source === 'gt' ? 'Recorded' : 'Paystack')} · {formatDate(tx.paid_at)} ·{' '}
                           {formatTime(tx.paid_at)}
                         </div>
                         <div className="tx-page__row-badges">

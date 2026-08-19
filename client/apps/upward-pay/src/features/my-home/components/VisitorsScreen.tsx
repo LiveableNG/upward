@@ -4,15 +4,16 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Capacitor } from '@capacitor/core'
-import { Copy, History, KeyRound, Share2, UserRound } from 'lucide-react'
+import { Ban, Clock, Copy, History, KeyRound, Share2, UserRound } from 'lucide-react'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 import { Modal } from '@/components/common/Modal'
 import { useToast } from '@/components/common/Toast'
 import { useActiveVisitors, useVisitorHistoryInfinite } from '../hooks/useMyHome'
 import { useSelectedProperty } from '../context/MyHomePropertyContext'
-import { revokeVisitor } from '../services/myHomeService'
+import { revokeVisitor, extendVisitor } from '../services/myHomeService'
 import type { Visitor } from '../types'
 import { GenerateVisitorForm } from './GenerateVisitorForm'
+import { VISITOR_DURATION_OPTIONS } from '../constants'
 
 function badgeModifier(status: string) {
   return status.toLowerCase()
@@ -21,6 +22,11 @@ function badgeModifier(status: string) {
 function canRevoke(status: string) {
   const normalized = status.toLowerCase()
   return normalized !== 'expired' && normalized !== 'revoked'
+}
+
+function canExtend(status: string) {
+  const normalized = status.toLowerCase()
+  return normalized === 'expired' || normalized === 'extended' || normalized === 'overstay'
 }
 
 function visitorInviteText(visitor: Visitor) {
@@ -79,17 +85,23 @@ function VisitorDetailModal({
   propertyUuid,
   onClose,
   onRevoked,
+  onExtended,
 }: {
   visitor: Visitor | null
   propertyUuid: string | null
   onClose: () => void
   onRevoked: () => void
+  onExtended: (visitor: Visitor) => void
 }) {
   const { success, error } = useToast()
   const [confirmRevoke, setConfirmRevoke] = useState(false)
+  const [confirmExtend, setConfirmExtend] = useState(false)
+  const [extendDuration, setExtendDuration] = useState('24')
 
   useEffect(() => {
     setConfirmRevoke(false)
+    setConfirmExtend(false)
+    setExtendDuration('24')
   }, [visitor?.id])
 
   const revokeMutation = useMutation({
@@ -101,6 +113,17 @@ function VisitorDetailModal({
     },
     onError: (err: { message?: string }) => {
       error(err?.message || 'Could not revoke visitor access')
+    },
+  })
+
+  const extendMutation = useMutation({
+    mutationFn: () => extendVisitor(propertyUuid as string, visitor!.id, Number(extendDuration)),
+    onSuccess: (response) => {
+      success('Visitor access extended.')
+      onExtended(response.data)
+    },
+    onError: (err: { message?: string }) => {
+      error(err?.message || 'Could not extend visitor access')
     },
   })
 
@@ -145,7 +168,8 @@ function VisitorDetailModal({
   }
 
   return (
-    <Modal isOpen={!!visitor} onClose={onClose} size="md">
+    <>
+    <Modal isOpen={!!visitor && !confirmRevoke && !confirmExtend} onClose={onClose} size="md">
       {visitor ? (
         <div className="my-home-detail">
           <h3 className="my-home-detail__title">Visitor Pass</h3>
@@ -178,56 +202,115 @@ function VisitorDetailModal({
             </div>
           ) : null}
 
-          {confirmRevoke ? (
-            <div className="my-home-detail__revoke">
-              <p className="my-home-detail__revoke-copy">
-                Are you sure you want to revoke this access code?
-              </p>
-              <div className="my-home-detail__revoke-actions">
-                <button
-                  type="button"
-                  className="my-home-detail__secondary-btn"
-                  onClick={() => setConfirmRevoke(false)}
-                  disabled={revokeMutation.isPending}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="my-home-detail__danger-btn"
-                  onClick={() => revokeMutation.mutate()}
-                  disabled={revokeMutation.isPending || !propertyUuid}
-                >
-                  {revokeMutation.isPending ? 'Revoking…' : 'Revoke'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="my-home-detail__pass-actions">
-                <button type="button" className="my-home-detail__copy-btn" onClick={handleShare}>
-                  <Share2 size={15} />
-                  <span>Share</span>
-                </button>
-                <button type="button" className="my-home-detail__secondary-btn" onClick={handleCopy}>
-                  <Copy size={15} />
-                  <span>Copy</span>
-                </button>
-              </div>
-              {canRevoke(visitor.status) ? (
-                <button
-                  type="button"
-                  className="my-home-detail__danger-btn my-home-detail__danger-btn--outline"
-                  onClick={() => setConfirmRevoke(true)}
-                >
-                  Revoke access
-                </button>
-              ) : null}
-            </>
-          )}
+          <div className="my-home-detail__pass-actions">
+            <button type="button" className="my-home-detail__copy-btn" onClick={handleShare}>
+              <Share2 size={15} />
+              <span>Share</span>
+            </button>
+            <button type="button" className="my-home-detail__secondary-btn" onClick={handleCopy}>
+              <Copy size={15} />
+              <span>Copy</span>
+            </button>
+          </div>
+          {canExtend(visitor.status) ? (
+            <button
+              type="button"
+              className="my-home-detail__copy-btn"
+              onClick={() => setConfirmExtend(true)}
+            >
+              Extend access
+            </button>
+          ) : null}
+          {canRevoke(visitor.status) ? (
+            <button
+              type="button"
+              className="my-home-detail__danger-btn my-home-detail__danger-btn--outline"
+              onClick={() => setConfirmRevoke(true)}
+            >
+              Revoke access
+            </button>
+          ) : null}
         </div>
       ) : null}
     </Modal>
+
+    <Modal isOpen={!!visitor && confirmRevoke} onClose={() => setConfirmRevoke(false)} size="sm">
+      <div className="my-home-confirm">
+        <div className="my-home-confirm__icon my-home-confirm__icon--danger">
+          <Ban size={26} />
+        </div>
+        <h3 className="my-home-confirm__title">Revoke this access?</h3>
+        <p className="my-home-confirm__text">
+          {visitor
+            ? `${visitor.visitor_name}'s code will stop working immediately.`
+            : 'This access code will stop working immediately.'}
+        </p>
+        <div className="my-home-confirm__actions">
+          <button
+            type="button"
+            className="my-home-detail__secondary-btn"
+            onClick={() => setConfirmRevoke(false)}
+            disabled={revokeMutation.isPending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="my-home-detail__danger-btn"
+            onClick={() => revokeMutation.mutate()}
+            disabled={revokeMutation.isPending || !propertyUuid}
+          >
+            {revokeMutation.isPending ? 'Revoking…' : 'Revoke'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    <Modal isOpen={!!visitor && confirmExtend} onClose={() => setConfirmExtend(false)} size="sm">
+      <div className="my-home-confirm">
+        <div className="my-home-confirm__icon">
+          <Clock size={26} />
+        </div>
+        <h3 className="my-home-confirm__title">Extend access</h3>
+        <p className="my-home-confirm__text">
+          A new code will be generated for this visitor. The current code will expire.
+        </p>
+        <label className="my-home-form__field my-home-confirm__field">
+          <span className="my-home-form__label">Access Duration</span>
+          <select
+            className="my-home-form__input"
+            value={extendDuration}
+            onChange={(event) => setExtendDuration(event.target.value)}
+            disabled={extendMutation.isPending}
+          >
+            {VISITOR_DURATION_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="my-home-confirm__actions">
+          <button
+            type="button"
+            className="my-home-detail__secondary-btn"
+            onClick={() => setConfirmExtend(false)}
+            disabled={extendMutation.isPending}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="my-home-detail__copy-btn"
+            onClick={() => extendMutation.mutate()}
+            disabled={extendMutation.isPending || !propertyUuid}
+          >
+            {extendMutation.isPending ? 'Extending…' : 'Extend'}
+          </button>
+        </div>
+      </div>
+    </Modal>
+    </>
   )
 }
 
@@ -322,6 +405,10 @@ export function VisitorsScreen() {
         onClose={() => setOpenVisitor(null)}
         onRevoked={() => {
           queryClient.invalidateQueries({ queryKey: ['my-home', 'visitors'] })
+        }}
+        onExtended={(visitor) => {
+          queryClient.invalidateQueries({ queryKey: ['my-home', 'visitors'] })
+          setOpenVisitor(visitor)
         }}
       />
     </PayPageShell>

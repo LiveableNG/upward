@@ -55,7 +55,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !!isHomeRequestRoute ||
     !!pathname?.startsWith('/dashboard/savings/deposit') ||
     !!pathname?.startsWith('/dashboard/notifications') ||
-    !!pathname?.startsWith('/dashboard/kyc')
+    !!pathname?.startsWith('/dashboard/kyc') ||
+    !!pathname?.startsWith('/dashboard/my-home/complaints') ||
+    !!pathname?.startsWith('/dashboard/my-home/visitors')
 
   return (
     <div
