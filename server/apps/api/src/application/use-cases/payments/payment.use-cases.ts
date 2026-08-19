@@ -630,17 +630,25 @@ export class RecordTransactionUseCase {
     if (isVerified && result.status === 'SUCCESS') {
       let userProperty: any = null
       if (pr && pr.userPropertyId) {
-        userProperty = await this.prisma.upward_user_property.findUnique({ where: { id: pr.userPropertyId } })
+        userProperty = await this.prisma.upward_user_property.findUnique({
+          where: { id: pr.userPropertyId },
+          include: { company: true }
+        })
       } else if (data.userPropertyUuid) {
-        userProperty = await this.prisma.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
+        userProperty = await this.prisma.upward_user_property.findUnique({
+          where: { uuid: data.userPropertyUuid },
+          include: { company: true }
+        })
       }
+
+      const effectivePlatformId = userProperty?.platformId || userProperty?.company?.platformId || undefined
 
       this.eventBus.publish(new PaymentSucceededEvent({
         transactionId: result.id,
         userId: user!.id!,
         propertyId: userProperty?.id,
         externalUnitId: userProperty?.externalUnitId,
-        platformId: userProperty?.platformId,
+        platformId: effectivePlatformId,
         amount: paymentAmount,
         rentPortion: rentPortion,
         paymentRequestId: pr?.id,
