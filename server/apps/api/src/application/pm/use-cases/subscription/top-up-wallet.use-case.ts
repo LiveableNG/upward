@@ -88,6 +88,32 @@ export class TopUpWalletUseCase {
         },
       });
 
+      const sub = await tx.upward_subscription.findUnique({
+        where: { pmId: pm.id },
+      });
+
+      const totalUnits = await tx.upward_pm_unit.count({
+        where: { property: { pmId: pm.id } },
+      });
+
+      const occupiedUnits = await tx.upward_pm_unit.count({
+        where: { property: { pmId: pm.id }, status: 'OCCUPIED' },
+      });
+
+      const billingMode = sub?.unitBillingMode ?? 'ALL';
+      const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+      const yearlyRate = sub?.tier === 'TIER_3' ? 2250 : 1500;
+      const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
+
+      const newBalance = wallet.balance + amount;
+
+      if (newBalance >= minRequiredDeposit && !(pm as any).isManuallyBlocked) {
+        await tx.upward_property_manager.update({
+          where: { id: pm.id },
+          data: { isBlocked: false },
+        });
+      }
+
       return w;
     });
 

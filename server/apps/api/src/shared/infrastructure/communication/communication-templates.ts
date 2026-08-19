@@ -266,6 +266,9 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         paymentDate: ctx.paymentDate || new Date().toLocaleDateString(),
         receiptUrl: ctx.receiptUrl || '',
         tenancyPeriod: ctx.tenancyPeriod,
+        companyName: ctx.companyName,
+        logoUrl: ctx.logoUrl,
+        lineItems: ctx.lineItems,
       }),
   },
 

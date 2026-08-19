@@ -33,6 +33,41 @@ export class PmAuthService extends BaseAuthService {
   }
 
   async generateFullAuthResponse(pm: PropertyManager): Promise<any> {
+    if (pm.isBlocked && !pm.isManuallyBlocked) {
+      const sub = await this.prisma.upward_subscription.findUnique({
+        where: { pmId: pm.id },
+      });
+      const wallet = await this.prisma.upward_pm_wallet.findUnique({
+        where: { pmId: pm.id },
+      });
+
+      if (sub && wallet) {
+        const totalUnits = await this.prisma.upward_pm_unit.count({
+          where: { property: { pmId: pm.id } },
+        });
+
+        const occupiedUnits = await this.prisma.upward_pm_unit.count({
+          where: {
+            property: { pmId: pm.id },
+            status: 'OCCUPIED',
+          },
+        });
+
+        const billingMode = sub.unitBillingMode;
+        const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+        const yearlyRate = sub.tier === 'TIER_3' ? 2250 : 1500;
+        const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
+
+        if (wallet.balance >= minRequiredDeposit) {
+          await this.prisma.upward_property_manager.update({
+            where: { id: pm.id },
+            data: { isBlocked: false },
+          });
+          pm.isBlocked = false;
+        }
+      }
+    }
+
     const payload = {
       sub: pm.uuid,
       email: pm.email,
@@ -326,6 +361,42 @@ export class PmAuthService extends BaseAuthService {
       id: uuid,
       uuid,
       ...profile
+    }
+
+    if (pm.isBlocked && !pm.isManuallyBlocked) {
+      const sub = await this.prisma.upward_subscription.findUnique({
+        where: { pmId: pm.id },
+      });
+      const wallet = await this.prisma.upward_pm_wallet.findUnique({
+        where: { pmId: pm.id },
+      });
+
+      if (sub && wallet) {
+        const totalUnits = await this.prisma.upward_pm_unit.count({
+          where: { property: { pmId: pm.id } },
+        });
+
+        const occupiedUnits = await this.prisma.upward_pm_unit.count({
+          where: {
+            property: { pmId: pm.id },
+            status: 'OCCUPIED',
+          },
+        });
+
+        const billingMode = sub.unitBillingMode;
+        const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+        const yearlyRate = sub.tier === 'TIER_3' ? 2250 : 1500;
+        const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
+
+        if (wallet.balance >= minRequiredDeposit) {
+          await this.prisma.upward_property_manager.update({
+            where: { id: pm.id },
+            data: { isBlocked: false },
+          });
+          pm.isBlocked = false;
+          clientProfile.isBlocked = false;
+        }
+      }
     }
 
     if (clientProfile.pmType === 'INDIVIDUAL_LANDLORD') {

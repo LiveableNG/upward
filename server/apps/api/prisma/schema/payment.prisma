@@ -1,33 +1,31 @@
 model upward_transaction {
-  id               Int                     @id @default(autoincrement())
-  uuid             String                  @unique @default(uuid())
-  userId           Int
-  type             String                  @default("RENT")
-  status           String                  @default("PENDING")
-  amount           Float
-  currency         String                  @default("NGN")
-  reference        String                  @unique
-  narration        String?
-  landlordId       String?
-  paymentType      String?
-  propertyAddress  String?
-  lineItems        Json?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  paymentRequestId Int?
-  isManual         Boolean                 @default(false)
-  transactionType  String                  @default("PAYMENT")
-  proof            upward_payment_proof?
-  overpayments     upward_overpayment[]
-  refundLogs       upward_refund_log[]
+  id                    Int                            @id @default(autoincrement())
+  uuid                  String                         @unique @default(uuid())
+  userId                Int
+  type                  String                         @default("RENT")
+  status                String                         @default("PENDING")
+  amount                Float
+  currency              String                         @default("NGN")
+  reference             String                         @unique
+  narration             String?
+  landlordId            String?
+  paymentType           String?
+  propertyAddress       String?
+  lineItems             Json?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  paymentRequestId      Int?
+  transactionType       String                         @default("PAYMENT")
+  isManual              Boolean                        @default(false)
+  settlementBatchId     Int?
+  settlementStatus      String                         @default("PENDING")
   benefitsSubscriptions upward_benefits_subscription[]
-  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
-  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Settlement Workflow
-  settlementStatus String                  @default("PENDING") // PENDING, VERIFIED, PENDING_REFUND, SETTLED, REFUNDED
-  settlementBatchId Int?
-  settlementBatch   upward_settlement_batch? @relation(fields: [settlementBatchId], references: [id])
+  overpayments          upward_overpayment[]
+  proof                 upward_payment_proof?
+  refundLogs            upward_refund_log[]
+  paymentRequest        upward_payment_request?        @relation(fields: [paymentRequestId], references: [id])
+  settlementBatch       upward_settlement_batch?       @relation(fields: [settlementBatchId], references: [id])
+  user                  upward_user                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([reference])
@@ -35,22 +33,22 @@ model upward_transaction {
 }
 
 model upward_benefits_subscription {
-  id                Int                    @id @default(autoincrement())
-  uuid              String                 @unique @default(uuid())
-  userId            Int
-  userPropertyId    Int?
-  status            String                 @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
-  startsAt          DateTime
-  endsAt            DateTime
-  amountPaid        Float
-  currency          String                 @default("NGN")
-  source            String                 // RENT_CHECKOUT | STANDALONE
+  id                  Int                   @id @default(autoincrement())
+  uuid                String                @unique @default(uuid())
+  userId              Int
+  userPropertyId      Int?
+  status              String                @default("ACTIVE")
+  startsAt            DateTime
+  endsAt              DateTime
+  amountPaid          Float
+  currency            String                @default("NGN")
+  source              String
   sourceTransactionId Int?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  user              upward_user            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userProperty      upward_user_property?  @relation(fields: [userPropertyId], references: [id])
-  sourceTransaction upward_transaction?    @relation(fields: [sourceTransactionId], references: [id])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  sourceTransaction   upward_transaction?   @relation(fields: [sourceTransactionId], references: [id])
+  user                upward_user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty        upward_user_property? @relation(fields: [userPropertyId], references: [id])
 
   @@index([userId])
   @@index([userPropertyId])
@@ -60,42 +58,42 @@ model upward_benefits_subscription {
 }
 
 model upward_payment_request {
-  id                Int                         @id @default(autoincrement())
-  uuid              String                      @unique @default(uuid())
-  userId            Int
-  userPropertyId    Int?
-  amount            Float
-  currency          String                      @default("NGN")
-  description       String?
-  dueDate           DateTime
-  status            String                      @default("PENDING")
-  paidAt            DateTime?
-  reference         String?                     @unique
-  subaccountId      Int?
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  allowPartial      Boolean                     @default(false)
-  amountPaid        Float                       @default(0)
-  minAmount         Float?
-  rentStartDate     DateTime?
-  rentEndDate       DateTime?
-  rentType          String?
-  isManual          Boolean                     @default(false)
-  reminderFrequency String                      @default("NONE")
-  nextReminderAt    DateTime?
-  reminderCount     Int                         @default(0)
-  scheduledAt       DateTime?
-  isRecurring       Boolean                     @default(false)
+  id                 Int                         @id @default(autoincrement())
+  uuid               String                      @unique @default(uuid())
+  userId             Int
+  userPropertyId     Int?
+  amount             Float
+  currency           String                      @default("NGN")
+  description        String?
+  dueDate            DateTime
+  status             String                      @default("PENDING")
+  paidAt             DateTime?
+  reference          String?                     @unique
+  subaccountId       Int?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  allowPartial       Boolean                     @default(false)
+  amountPaid         Float                       @default(0)
+  minAmount          Float?
+  isManual           Boolean                     @default(false)
+  rentEndDate        DateTime?
+  rentStartDate      DateTime?
+  rentType           String?
+  nextReminderAt     DateTime?
+  reminderCount      Int                         @default(0)
+  reminderFrequency  String                      @default("NONE")
+  isRecurring        Boolean                     @default(false)
   recurrenceInterval String?
-  overpayments      upward_overpayment[]
-  lineItemRecords   upward_payment_line_item[]
-  subaccount        upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
-  user              upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userProperty      upward_user_property?       @relation(fields: [userPropertyId], references: [id])
-  pmPaymentRequests upward_pm_payment_request[]
-  rentCycles        upward_rent_cycle[]
-  transactions      upward_transaction[]
-  paymentProofs     upward_payment_proof[]
+  scheduledAt        DateTime?
+  overpayments       upward_overpayment[]
+  lineItemRecords    upward_payment_line_item[]
+  paymentProofs      upward_payment_proof[]
+  subaccount         upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
+  user               upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty       upward_user_property?       @relation(fields: [userPropertyId], references: [id])
+  pmPaymentRequests  upward_pm_payment_request[]
+  rentCycles         upward_rent_cycle[]
+  transactions       upward_transaction[]
 
   @@index([userId])
   @@index([status])
@@ -199,103 +197,102 @@ model upward_saved_landlord {
 }
 
 model upward_dedicated_virtual_account {
-  id                 Int            @id @default(autoincrement())
-  uuid               String         @unique @default(uuid())
-  accountNumber      String         @unique
+  id                 Int                  @id @default(autoincrement())
+  uuid               String               @unique @default(uuid())
+  accountNumber      String               @unique
   accountName        String
   bankName           String
   bankCode           String
-  accountCode        String         @unique // Paystack assigned code
+  accountCode        String               @unique
   paystackCustomerId String
   metadata           Json?
-  userPropertyId     Int            @unique
+  userPropertyId     Int                  @unique
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
   userProperty       upward_user_property @relation(fields: [userPropertyId], references: [id])
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
 
   @@index([accountNumber])
   @@index([userPropertyId])
 }
+
 model upward_user_bank_details {
-  id            Int      @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  userId        Int      @unique
+  id            Int         @id @default(autoincrement())
+  uuid          String      @unique @default(uuid())
+  userId        Int         @unique
   accountNumber String
   accountName   String
   bankCode      String
   bankName      String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   user          upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model upward_settlement_batch {
-  id              Int                  @id @default(autoincrement())
-  uuid            String               @unique @default(uuid())
-  landlordId      String?              // Paystack Subaccount Code or Internal ID
-  totalAmount     Float
-  status          String               @default("PENDING") // PENDING, COMPLETED, FAILED
-  transferReference String?            @unique
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  transactions    upward_transaction[]
+  id                Int                  @id @default(autoincrement())
+  uuid              String               @unique @default(uuid())
+  landlordId        String?
+  totalAmount       Float
+  status            String               @default("PENDING")
+  transferReference String?              @unique
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  transactions      upward_transaction[]
 }
 
 model upward_refund_log {
-  id               Int                     @id @default(autoincrement())
-  uuid             String                  @unique @default(uuid())
-  transactionId    Int
-  userId           Int
-  pmId             Int?
-  amount           Float
-  currency         String                  @default("NGN")
-  reason           String                  // DUPLICATE_PAYMENT, UNDERPAYMENT_VIOLATION
-  status           String                  // FLAGGED, PENDING_DISPATCH, DISPATCHED, PM_ACCEPTED, FAILED
-  actionBy         String?                 // SYSTEM, PM_<pmId>, ADMIN_<adminId>
-  metadata         Json?
-  
-  flaggedAt        DateTime                @default(now())
-  resolvedAt       DateTime?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-
-  transaction      upward_transaction      @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            Int                @id @default(autoincrement())
+  uuid          String             @unique @default(uuid())
+  transactionId Int
+  userId        Int
+  pmId          Int?
+  amount        Float
+  currency      String             @default("NGN")
+  reason        String
+  status        String
+  actionBy      String?
+  metadata      Json?
+  flaggedAt     DateTime           @default(now())
+  resolvedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  transaction   upward_transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user          upward_user        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([transactionId])
   @@index([userId])
 }
 
 model upward_wallet {
-  id              Int                     @id @default(autoincrement())
-  uuid            String                  @unique @default(uuid())
-  userId          Int                     @unique
-  balance         Float                   @default(0)
-  currency        String                  @default("NGN")
-  isActive        Boolean                 @default(true)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  user            upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions    upward_wallet_transaction[]
+  id           Int                         @id @default(autoincrement())
+  uuid         String                      @unique @default(uuid())
+  userId       Int                         @unique
+  balance      Float                       @default(0)
+  currency     String                      @default("NGN")
+  isActive     Boolean                     @default(true)
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  user         upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions upward_wallet_transaction[]
 
   @@index([userId])
 }
 
 model upward_wallet_transaction {
-  id          Int           @id @default(autoincrement())
-  uuid        String        @unique @default(uuid())
-  walletId    Int
-  userId      Int
-  type        String
-  status      String        @default("SUCCESS")
-  amount      Float
-  reference   String?       @unique
-  narration   String?
-  metadata    Json?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  wallet      upward_wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user        upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int           @id @default(autoincrement())
+  uuid      String        @unique @default(uuid())
+  walletId  Int
+  userId    Int
+  type      String
+  status    String        @default("SUCCESS")
+  amount    Float
+  reference String?       @unique
+  narration String?
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet    upward_wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@index([walletId])
   @@index([userId])
@@ -320,8 +317,8 @@ model upward_savings_goal {
   updatedAt         DateTime    @updatedAt
   user              upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([userId, category])
+  @@index([userId])
 }
 
 model upward_savings_config {
@@ -334,43 +331,41 @@ model upward_savings_config {
 }
 
 model upward_fee_override {
-  id          Int      @id @default(autoincrement())
-  uuid        String   @unique @default(uuid())
-  targetType  String   // "USER", "PM", "COMPANY", "PLATFORM"
-  targetId    String   // The UUID of the target entity
-  fee         Float    // Custom flat fee in NGN
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid())
+  targetType String
+  targetId   String
+  fee        Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([targetType, targetId])
   @@index([targetType, targetId])
 }
 
 model upward_payment_proof {
-  id                Int                   @id @default(autoincrement())
-  uuid              String                @unique @default(uuid())
-  transactionId     Int?                  @unique
-  paymentRequestId  Int?
-  userPropertyId    Int?
-  amount            Float?
-  currency          String                @default("NGN")
-  fileUrl           String?
-  fileName          String?
-  senderName        String?
-  paymentDate       DateTime?
-  referenceNumber   String?
-  uploadedByUserId  Int?
-  status            String                @default("PENDING") // PENDING, APPROVED, REJECTED
-  remarks           String?
-  lineItems         Json?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  
-  transaction       upward_transaction?   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  paymentRequest    upward_payment_request? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
-  userProperty      upward_user_property?   @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  transactionId    Int?                    @unique
+  paymentRequestId Int?
+  fileUrl          String?
+  fileName         String?
+  uploadedByUserId Int?
+  status           String                  @default("PENDING")
+  remarks          String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  amount           Float?
+  currency         String                  @default("NGN")
+  userPropertyId   Int?
+  lineItems        Json?
+  paymentDate      DateTime?
+  referenceNumber  String?
+  senderName       String?
+  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  transaction      upward_transaction?     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  userProperty     upward_user_property?   @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
 
   @@index([paymentRequestId])
   @@index([userPropertyId])
 }
-

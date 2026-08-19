@@ -421,7 +421,7 @@ export function CreatePaymentRequestModal({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {!unit.isSynced && (
           <p style={{ fontSize: 11, color: 'var(--error)', marginTop: 4, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>⚠️</span> Unit must be synced to Upward Pay for this request to succeed.
+            <AlertCircle size={14} style={{ flexShrink: 0 }} /> Unit must be synced to Upward Pay for this request to succeed.
           </p>
         )}
 

@@ -1252,9 +1252,34 @@ export class ProcessPaymentWebhookUseCase {
       });
 
       const updatedBalance = (wallet.balance || 0) + amountPaid
+
       const pm = await this.prisma.upward_property_manager.findUnique({
         where: { id: pmDva.pmId },
       })
+
+      const sub = await this.prisma.upward_subscription.findUnique({
+        where: { pmId: pmDva.pmId },
+      });
+
+      const totalUnits = await this.prisma.upward_pm_unit.count({
+        where: { property: { pmId: pmDva.pmId } },
+      });
+
+      const occupiedUnits = await this.prisma.upward_pm_unit.count({
+        where: { property: { pmId: pmDva.pmId }, status: 'OCCUPIED' },
+      });
+
+      const billingMode = sub?.unitBillingMode ?? 'ALL';
+      const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+      const yearlyRate = sub?.tier === 'TIER_3' ? 2250 : 1500;
+      const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
+
+      if (updatedBalance >= minRequiredDeposit && pm && !(pm as any).isManuallyBlocked) {
+        await this.prisma.upward_property_manager.update({
+          where: { id: pmDva.pmId },
+          data: { isBlocked: false },
+        });
+      }
       const pmEmail = pm?.email ? this.encryption.decrypt(pm.email) : null
       const pmFirstName = pm?.firstName ? this.encryption.decrypt(pm.firstName) : ''
       const pmLastName = pm?.lastName ? this.encryption.decrypt(pm.lastName) : ''
@@ -1624,6 +1649,10 @@ export class GenerateReceiptPdfUseCase {
         if (pm.receiptSetting?.themeColor) {
           enriched.themeColor = pm.receiptSetting.themeColor
         }
+      }
+
+      if (!enriched.logoUrl && prop.company?.logoUrl) {
+        enriched.logoUrl = prop.company.logoUrl
       }
 
       if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
@@ -2041,6 +2070,22 @@ export class SimulateTransferUseCase {
     let dva = await this.prisma.upward_dedicated_virtual_account.findUnique({
       where: { accountNumber: data.beneficiaryAccount }
     })
+
+    if (!dva) {
+      const pmDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
+        where: { accountNumber: data.beneficiaryAccount }
+      })
+      if (pmDva) {
+        dva = {
+          id: pmDva.id,
+          accountNumber: pmDva.accountNumber,
+          accountName: pmDva.accountName,
+          bankName: pmDva.bankName,
+          bankCode: pmDva.bankCode,
+          paystackCustomerId: 'CUS_mock_dva_test',
+        } as any
+      }
+    }
 
     if (!dva) {
       this.logger.log(`Mock DVA not found in DB for account: ${data.beneficiaryAccount}. Linking automatically...`)

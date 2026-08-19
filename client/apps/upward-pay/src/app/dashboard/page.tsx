@@ -29,15 +29,11 @@ export default function DashboardPage() {
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   })
   
   const { data: benefitsStatus, isError: benefitsError } = useQuery({
     queryKey: ['benefits-status'],
     queryFn: () => api.getBenefitsStatus(),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
     retry: 1, // Don't retry endlessly if it 500s
   })
   

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, Lock } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 
@@ -101,8 +101,8 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
       }
     >
         {isPaystack && (
-          <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fecaca)', color: 'var(--error, #991b1b)', fontSize: 13, lineHeight: 1.4 }}>
-            🔒 <strong>Automated Payment Record:</strong> Payments recorded automatically via Upward Pay (Paystack) are verified online transactions and cannot be edited.
+          <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fecaca)', color: 'var(--error, #991b1b)', fontSize: 13, lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Lock size={15} style={{ flexShrink: 0 }} /> <span><strong>Automated Payment Record:</strong> Payments recorded automatically via Upward Pay (Paystack) are verified online transactions and cannot be edited.</span>
           </div>
         )}
 

@@ -167,6 +167,10 @@ export default function WalletPage() {
     return `Top up ₦${Math.round(deficit).toLocaleString()} to reach the recommended 6-month coverage balance.`;
   };
 
+  const minActivationDeposit = Math.max(50000, unitCount * yearlyRate);
+  const requiredDeficit = Math.max(0, minActivationDeposit - currentBalance);
+  const minRequiredTopUp = requiredDeficit > 0 ? requiredDeficit : 100;
+
   const handleCopy = () => {
     if (!dva?.accountNumber) return;
     navigator.clipboard.writeText(dva.accountNumber);
@@ -176,7 +180,15 @@ export default function WalletPage() {
 
   const handlePaystackTopUp = async () => {
     const amt = parseFloat(topUpAmount);
-    if (isNaN(amt) || amt <= 0 || paying) return;
+    if (isNaN(amt) || paying) return;
+    if (amt < minRequiredTopUp) {
+      error(
+        requiredDeficit > 0
+          ? `Minimum top-up amount required for subscription activation is ₦${requiredDeficit.toLocaleString()}`
+          : `Minimum top-up amount via Paystack is ₦100`
+      );
+      return;
+    }
     
     try {
       setPaying(true);
@@ -362,15 +374,20 @@ export default function WalletPage() {
               <input 
                 type="number" 
                 className="topup-input" 
-                placeholder="50000"
+                placeholder={requiredDeficit > 0 ? `${requiredDeficit}` : '50000'}
                 value={topUpAmount}
                 onChange={(e) => setTopUpAmount(e.target.value)}
               />
             </div>
+            <p style={{ fontSize: 11.5, color: '#8A857F', margin: '6px 0 0 0' }}>
+              {requiredDeficit > 0
+                ? `* Minimum top-up amount required for subscription activation via Paystack is ₦${requiredDeficit.toLocaleString()}. (Dedicated Virtual Account accepts any amount).`
+                : `* Minimum top-up amount via Paystack is ₦100. (Dedicated Virtual Account accepts any amount).`}
+            </p>
             <button 
               className="btn-checkout-primary"
               onClick={handlePaystackTopUp}
-              disabled={paying || !topUpAmount || parseFloat(topUpAmount) <= 0}
+              disabled={paying || !topUpAmount || parseFloat(topUpAmount) < minRequiredTopUp}
               style={{ marginTop: 12 }}
             >
               {paying ? 'Processing...' : 'Pay via Paystack'}

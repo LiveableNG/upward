@@ -44,6 +44,7 @@ const Feedback: React.FC<FeedbackProps> = ({ token }) => {
   // Filters
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
+  const [sourceFilter, setSourceFilter] = useState('ALL')
 
   // Modal details
   const [selectedLog, setSelectedLog] = useState<FeedbackLog | null>(null)
@@ -67,6 +68,7 @@ const Feedback: React.FC<FeedbackProps> = ({ token }) => {
     try {
       let url = `/admin/feedback?page=${pageNum}&limit=50`
       if (typeFilter !== 'ALL') url += `&type=${typeFilter}`
+      if (sourceFilter !== 'ALL') url += `&source=${sourceFilter}`
       if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`
 
       const response = await apiService.get(url, token)
@@ -87,7 +89,7 @@ const Feedback: React.FC<FeedbackProps> = ({ token }) => {
 
   useEffect(() => {
     fetchLogs(page)
-  }, [page, typeFilter])
+  }, [page, typeFilter, sourceFilter])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -154,10 +156,35 @@ const Feedback: React.FC<FeedbackProps> = ({ token }) => {
         <div>
           <div style={{ fontSize: '14px', fontWeight: 600 }}>{log.name || 'Anonymous'}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {log.email || 'No email'} {log.userId ? `(UID: ${log.userId})` : ''}
+            {log.email || 'No email'} {log.pm?.businessName ? `• ${log.pm.businessName}` : ''}
           </div>
         </div>
       ),
+    },
+    {
+      key: 'source',
+      label: 'App Source',
+      render: (log) => {
+        const isPm = log.source === 'UPWARD_PM' || !!log.pmId
+        const isPay = log.source === 'UPWARD_PAY' || !!log.userId
+        return (
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: isPm ? 'rgba(99, 102, 241, 0.12)' : isPay ? 'rgba(16, 185, 129, 0.12)' : 'rgba(156, 163, 175, 0.12)',
+              color: isPm ? '#6366f1' : isPay ? '#10b981' : '#6b7280',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {isPm ? 'Upward PM' : isPay ? 'Upward Pay' : 'Website Guest'}
+          </span>
+        )
+      },
     },
     {
       key: 'type',
@@ -436,10 +463,57 @@ const Feedback: React.FC<FeedbackProps> = ({ token }) => {
               alignItems: 'center',
               gap: '12px',
               flex: '0 1 auto',
-              minWidth: '180px',
+              flexWrap: 'wrap',
             }}
           >
-            <div style={{ position: 'relative', width: '100%' }}>
+            <div style={{ position: 'relative', minWidth: '170px' }}>
+              <Filter
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
+              <select
+                value={sourceFilter}
+                onChange={(e) => {
+                  setSourceFilter(e.target.value)
+                  setPage(1)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '11px 32px 11px 36px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  fontSize: '14px',
+                  appearance: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="ALL">All Platforms</option>
+                <option value="UPWARD_PM">Upward PM</option>
+                <option value="UPWARD_PAY">Upward Pay</option>
+                <option value="GUEST">Website / Guest</option>
+              </select>
+              <ChevronDown
+                size={14}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
+
+            <div style={{ position: 'relative', minWidth: '160px' }}>
               <Filter
                 size={16}
                 style={{

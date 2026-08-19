@@ -113,6 +113,8 @@ export class SingleInviteUseCase {
       ? await this.companyRepository.findByUuid(companyData.uuid)
       : (companyData.name ? await this.companyRepository.findByName(companyData.name) : null)
 
+    const incomingLogo = companyData.logoUrl || (companyData as any).logo
+
     if (!company) {
       if (!companyData.name) {
         throw new BadRequestException('Company name is required for new company')
@@ -121,6 +123,7 @@ export class SingleInviteUseCase {
         uuid: randomUUID(),
         name: companyData.name,
         address: companyData.address,
+        logoUrl: incomingLogo || null,
         platformId: platformId || null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -129,6 +132,7 @@ export class SingleInviteUseCase {
       const updateData: any = {}
       if (companyData.name && company.name !== companyData.name) updateData.name = companyData.name
       if (companyData.address && company.address !== companyData.address) updateData.address = companyData.address
+      if (incomingLogo && company.logoUrl !== incomingLogo) updateData.logoUrl = incomingLogo
 
       if (Object.keys(updateData).length > 0) {
         company = await this.companyRepository.update(company.id!, updateData)

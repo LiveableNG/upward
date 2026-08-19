@@ -48,29 +48,27 @@ model upward_whatsapp_rent_reminder_log {
 }
 
 model upward_whatsapp_sequence_log {
-  id             Int       @id @default(autoincrement())
-  uuid           String    @unique(map: "upward_whatsapp_sequence_log_uuid_unique") @default(uuid()) @db.Uuid
+  id             Int         @id @default(autoincrement())
+  uuid           String      @unique(map: "upward_whatsapp_sequence_log_uuid_unique") @default(uuid()) @db.Uuid
   userId         Int
   phoneEncrypted String?
   phoneHash      String?
-  stage          String    // 'WELCOME', 'DAY_2', 'DAY_5', 'DAY_9', 'DAY_14'
-  status         String    @default("PENDING") // PENDING, SENT, FAILED
-  scheduledFor   DateTime  @db.Timestamp(0)
-  sentAt         DateTime? @db.Timestamp(0)
-  errorReason    String?   @db.Text
-  templateName   String    @db.VarChar(255)
+  stage          String
+  status         String      @default("PENDING")
+  scheduledFor   DateTime    @db.Timestamp(0)
+  sentAt         DateTime?   @db.Timestamp(0)
+  errorReason    String?
+  templateName   String      @db.VarChar(255)
   templateData   Json?
-  metaMessageId  String?   @unique @db.VarChar(255)
-  isDelivered    Boolean   @default(false)
-  deliveredAt    DateTime? @db.Timestamp(0)
-  isRead         Boolean   @default(false)
-  readAt         DateTime? @db.Timestamp(0)
-  createdAt      DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt      DateTime  @default(now()) @db.Timestamp(0) // wait, usually @updatedAt but PM models might have it without @db.Timestamp(0). I will use default(now()) and @db.Timestamp(0) to match others.
-
+  createdAt      DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt      DateTime    @default(now()) @db.Timestamp(0)
+  metaMessageId  String?     @unique @db.VarChar(255)
+  isDelivered    Boolean     @default(false)
+  deliveredAt    DateTime?   @db.Timestamp(0)
+  isRead         Boolean     @default(false)
+  readAt         DateTime?   @db.Timestamp(0)
   user           upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "upward_whatsapp_sequence_log_userid_index")
   @@index([status, scheduledFor], map: "upward_whatsapp_sequence_log_status_scheduledfor_index")
 }
-
