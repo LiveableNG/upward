@@ -1,52 +1,50 @@
 model upward_pm_landlord {
-  id              Int                         @id @default(autoincrement())
-  uuid            String                      @unique @default(uuid())
+  id                 Int                               @id @default(autoincrement())
+  uuid               String                            @unique @default(uuid())
   /// @encrypted
-  email           String                      @unique
-  emailHash       String                      @unique
-  passwordHash    String
+  email              String                            @unique
+  emailHash          String                            @unique
+  passwordHash       String
   /// @encrypted
-  firstName       String?
+  firstName          String?
   /// @encrypted
-  lastName        String?
+  lastName           String?
   /// @encrypted
-  phone           String?
-  phoneHash       String?
-  mustChangePassword Boolean                  @default(true)
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
-
-  authSessions    upward_pm_landlord_auth_session[]
-  properties      upward_pm_property[]
-  pmRelations     upward_pm_landlord_relation[]
+  phone              String?
+  phoneHash          String?
+  mustChangePassword Boolean                           @default(true)
+  createdAt          DateTime                          @default(now())
+  updatedAt          DateTime                          @updatedAt
+  authSessions       upward_pm_landlord_auth_session[]
+  pmRelations        upward_pm_landlord_relation[]
+  properties         upward_pm_property[]
 }
 
 model upward_pm_landlord_auth_session {
-  id               String                  @id @default(uuid())
+  id               String             @id @default(uuid())
   landlordId       Int
-  refreshTokenHash String                  @unique
+  refreshTokenHash String             @unique
   userAgent        String?
   ipAddress        String?
   deviceId         String?
-  isRevoked        Boolean                 @default(false)
+  isRevoked        Boolean            @default(false)
   expiresAt        DateTime
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  landlord         upward_pm_landlord      @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  landlord         upward_pm_landlord @relation(fields: [landlordId], references: [id], onDelete: Cascade)
 
   @@index([landlordId])
 }
 
 model upward_pm_landlord_relation {
-  id          Int                     @id @default(autoincrement())
-  uuid        String                  @unique @default(uuid())
-  pmId        Int
-  landlordId  Int
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-
-  pm          upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
-  landlord    upward_pm_landlord      @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  id         Int                     @id @default(autoincrement())
+  uuid       String                  @unique @default(uuid())
+  pmId       Int
+  landlordId Int
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  landlord   upward_pm_landlord      @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  pm         upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 
   @@unique([pmId, landlordId])
   @@index([pmId])

@@ -27,6 +27,25 @@ export class GetOrCreateSubscriptionUseCase {
       });
     }
 
-    return sub;
+    const totalUnits = await this.prisma.upward_pm_unit.count({
+      where: { property: { pmId: pm.id } },
+    });
+
+    const occupiedUnits = await this.prisma.upward_pm_unit.count({
+      where: {
+        property: { pmId: pm.id },
+        status: 'OCCUPIED',
+      },
+    });
+
+    const billingMode = sub.unitBillingMode;
+    const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+    const yearlyRate = sub.tier === 'TIER_3' ? 2250 : 1500;
+    const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
+
+    return {
+      ...sub,
+      minRequiredDeposit,
+    };
   }
 }

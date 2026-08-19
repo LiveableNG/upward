@@ -132,6 +132,13 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ message: 'An error occurred' }))
+      
+      if (res.status === 403 && errorData.message === 'REVOKED_ACCESS') {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/dashboard'
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const error: any = new Error(errorData.message || 'Request failed')
       error.code = errorData.code

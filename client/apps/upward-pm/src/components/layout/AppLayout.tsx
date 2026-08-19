@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { PricingModal } from '@/features/pm/components/subscription/PricingModal'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { AccessSuspended } from '@/components/common/AccessSuspended'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -22,7 +23,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
 
-  const { isLoggedIn, loading } = useAuth()
+  const { isLoggedIn, loading, user } = useAuth()
   const router = useRouter()
   const { isOpen, closePricing } = usePricingModal()
   const { subscription } = useSubscription()
@@ -68,6 +69,10 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   if (loading || (!isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage)) {
     return null
+  }
+
+  if (user?.isBlocked || user?.isManuallyBlocked) {
+    return <AccessSuspended />
   }
 
   return (

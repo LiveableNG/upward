@@ -88,6 +88,13 @@ export class TopUpWalletUseCase {
         },
       });
 
+      if (wallet.balance + amount >= 50000 && !(pm as any).isManuallyBlocked) {
+        await tx.upward_property_manager.update({
+          where: { id: pm.id },
+          data: { isBlocked: false },
+        });
+      }
+
       return w;
     });
 

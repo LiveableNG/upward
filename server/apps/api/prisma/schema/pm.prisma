@@ -1,63 +1,63 @@
 model upward_property_manager {
-  id              Int                         @id @default(autoincrement())
-  uuid            String                      @unique @default(uuid())
-  email           String                      @unique
-  emailHash       String                      @unique
-  passwordHash    String
-  firstName       String
-  firstNameHash   String?
-  lastName        String
-  lastNameHash    String?
-  businessName    String?
-  pmType          String?
-  phone           String?
-  phoneHash       String?
-  profilePic      String?
-  country         String?
-  companyAddress  String?
-  cacNumber       String?
-  personalEmail   String?
-  personalPhone   String?
-  resetPasswordOTP String?
-  resetPasswordExpires DateTime?
-  bankName        String?
-  bankCode        String?
-  accountNumber   String?
-  accountName     String?
-  isVerified      Boolean                     @default(false)
-  isInternal      Boolean                     @default(false)
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
-  authSessions    upward_pm_auth_session[]
-  bulkInvites     upward_pm_bulk_invite[]
-  paymentRequests upward_pm_payment_request[]
-  properties      upward_pm_property[]
-  tenants         upward_pm_tenant[]
-  userProperties  upward_user_property[]
-  landlordReports upward_pm_landlord_report[]
-  sentDocuments   upward_pm_sent_document[]
-  documentTemplates upward_pm_document_template[]
-  verification    upward_pm_verification?
-  emailSetting    upward_pm_email_setting?
-  receiptSetting  upward_pm_receipt_setting?
-  letterheads     upward_pm_letterhead[]
-  signatures      upward_pm_signature[]
-  notifications   upward_pm_notification[]
-  landlordRelations upward_pm_landlord_relation[]
-  
-  teamOwner         upward_pm_team_collaboration[] @relation("OwnerTeam")
-  teamCollaborator  upward_pm_team_collaboration[] @relation("CollaboratorTeam")
-  propertyCollaborations upward_pm_property_collaboration[]
-  activityLogsPerformed upward_pm_activity_log[] @relation("ActivityPerformer")
-  activityLogsOwned     upward_pm_activity_log[] @relation("ActivityOwner")
-  bulkImportJobs        upward_pm_bulk_import_job[]
-
-  subscription          upward_subscription?
-  wallet                upward_pm_wallet?
+  id                      Int                                  @id @default(autoincrement())
+  uuid                    String                               @unique @default(uuid())
+  email                   String                               @unique
+  emailHash               String                               @unique
+  passwordHash            String
+  firstName               String
+  firstNameHash           String?
+  lastName                String
+  lastNameHash            String?
+  businessName            String?
+  phone                   String?
+  phoneHash               String?
+  profilePic              String?
+  bankName                String?
+  bankCode                String?
+  accountNumber           String?
+  accountName             String?
+  createdAt               DateTime                             @default(now())
+  updatedAt               DateTime                             @updatedAt
+  pmType                  String?
+  isVerified              Boolean                              @default(false)
+  cacNumber               String?
+  country                 String?
+  resetPasswordExpires    DateTime?
+  resetPasswordOTP        String?
+  isInternal              Boolean                              @default(false)
+  personalEmail           String?
+  personalPhone           String?
+  companyAddress          String?
+  isBlocked               Boolean                              @default(false)
+  isManuallyBlocked       Boolean                              @default(false)
+  activityLogsOwned       upward_pm_activity_log[]             @relation("ActivityOwner")
+  activityLogsPerformed   upward_pm_activity_log[]             @relation("ActivityPerformer")
+  authSessions            upward_pm_auth_session[]
+  bulkImportJobs          upward_pm_bulk_import_job[]
+  bulkInvites             upward_pm_bulk_invite[]
   dedicatedVirtualAccount upward_pm_dedicated_virtual_account?
-  walletTransactions    upward_pm_wallet_transaction[]
-  subscriptionInvoices  upward_subscription_invoice[]
-  subscriptionLogs      upward_subscription_log[]
+  documentTemplates       upward_pm_document_template[]
+  emailSetting            upward_pm_email_setting?
+  landlordRelations       upward_pm_landlord_relation[]
+  landlordReports         upward_pm_landlord_report[]
+  letterheads             upward_pm_letterhead[]
+  notifications           upward_pm_notification[]
+  paymentRequests         upward_pm_payment_request[]
+  properties              upward_pm_property[]
+  propertyCollaborations  upward_pm_property_collaboration[]
+  receiptSetting          upward_pm_receipt_setting?
+  sentDocuments           upward_pm_sent_document[]
+  signatures              upward_pm_signature[]
+  teamCollaborator        upward_pm_team_collaboration[]       @relation("CollaboratorTeam")
+  teamOwner               upward_pm_team_collaboration[]       @relation("OwnerTeam")
+  tenants                 upward_pm_tenant[]
+  verification            upward_pm_verification?
+  wallet                  upward_pm_wallet?
+  walletTransactions      upward_pm_wallet_transaction[]
+  subscription            upward_subscription?
+  subscriptionInvoices    upward_subscription_invoice[]
+  subscriptionLogs        upward_subscription_log[]
+  userProperties          upward_user_property[]
 
   @@index([email])
 }
@@ -96,66 +96,57 @@ model upward_pm_auth_session {
 }
 
 model upward_pm_property {
-  id                     Int                     @id @default(autoincrement())
-  uuid                   String                  @unique @default(uuid())
-  pmId                   Int
-  name                   String
-  address                String?
-  totalUnits             Int                     @default(0)
-  propertyType           String                  @default("Residential")
-  imageUrl               String?
-  country                String                  @default("Nigeria")
-  state                  String?
-  area                   String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-
-
-  landlordId             Int?
-  landlord               upward_pm_landlord?     @relation(fields: [landlordId], references: [id])
-
-  pm                     upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
-  units                  upward_pm_unit[]
-  collaborators          upward_pm_property_collaboration[]
-  manualAccount          upward_manual_account?
+  id            Int                                @id @default(autoincrement())
+  uuid          String                             @unique @default(uuid())
+  pmId          Int
+  name          String
+  address       String?
+  totalUnits    Int                                @default(0)
+  propertyType  String                             @default("Residential")
+  imageUrl      String?
+  country       String                             @default("Nigeria")
+  state         String?
+  area          String?
+  createdAt     DateTime                           @default(now())
+  updatedAt     DateTime                           @updatedAt
+  landlordId    Int?
+  manualAccount upward_manual_account?
+  landlord      upward_pm_landlord?                @relation(fields: [landlordId], references: [id])
+  pm            upward_property_manager            @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  collaborators upward_pm_property_collaboration[]
+  units         upward_pm_unit[]
 
   @@index([pmId])
 }
 
 model upward_pm_unit {
-  id               Int                         @id @default(autoincrement())
-  uuid             String                      @unique @default(uuid())
-  propertyId       Int
-  unitName         String
-  rentAmount       Float                       @default(0)
-  rentStartDate    DateTime?
-  rentDueDate      DateTime?
-  currency         String                      @default("NGN")
-  status           String                      @default("VACANT")
-  tenantId         Int?
-  isSynced         Boolean                     @default(false)
-  userPropertyUuid String?
-  createdAt        DateTime                    @default(now())
-  updatedAt        DateTime                    @updatedAt
-  managementFee    Float                       @default(0)
-  notes            String?
-  rentType         String                      @default("Monthly")
-  rentReminderEnabled    Boolean                     @default(false)
+  id                     Int                         @id @default(autoincrement())
+  uuid                   String                      @unique @default(uuid())
+  propertyId             Int
+  unitName               String
+  rentAmount             Float                       @default(0)
+  rentStartDate          DateTime?
+  rentDueDate            DateTime?
+  currency               String                      @default("NGN")
+  status                 String                      @default("VACANT")
+  tenantId               Int?
+  isSynced               Boolean                     @default(false)
+  userPropertyUuid       String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  managementFee          Float                       @default(0)
+  notes                  String?
+  rentType               String                      @default("Monthly")
+  unitType               String?
   rentReminderDaysBefore Int?                        @db.SmallInt
-
-  
-  // New fields for rich unit details
-  unitType              String?                     // e.g. Office Space, Apartment, Studio
-
-  // Stores remaining rent balance for deferred PR creation when tenant is not yet synced to Upward Pay
+  rentReminderEnabled    Boolean                     @default(false)
   pendingInitialPrAmount Float?
-
-  paymentRequests  upward_pm_payment_request[]
-  rentPayments     upward_pm_rent_payment[]
-  sentDocuments    upward_pm_sent_document[]
-  property         upward_pm_property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tenant           upward_pm_tenant?           @relation(fields: [tenantId], references: [id])
-  userProperties   upward_user_property[]
+  paymentRequests        upward_pm_payment_request[]
+  rentPayments           upward_pm_rent_payment[]
+  sentDocuments          upward_pm_sent_document[]
+  property               upward_pm_property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenant                 upward_pm_tenant?           @relation(fields: [tenantId], references: [id])
+  userProperties         upward_user_property[]
 
   @@index([propertyId])
   @@index([status])
@@ -163,49 +154,49 @@ model upward_pm_unit {
 }
 
 model upward_pm_tenant {
-  id                 Int                         @id @default(autoincrement())
-  uuid               String                      @unique @default(uuid())
-  pmId               Int
+  id                         Int                         @id @default(autoincrement())
+  uuid                       String                      @unique @default(uuid())
+  pmId                       Int
   /// @encrypted
-  commercialNameEncrypted String?
-  commercialNameSearch    String?
+  firstNameEncrypted         String?
+  firstNameSearch            String?
   /// @encrypted
-  firstNameEncrypted String?
-  firstNameSearch    String?
+  lastNameEncrypted          String?
+  lastNameSearch             String?
   /// @encrypted
-  lastNameEncrypted  String?
-  lastNameSearch     String?
+  emailEncrypted             String?
+  emailHash                  String?
   /// @encrypted
-  emailEncrypted     String?
-  emailHash          String?
+  phoneEncrypted             String?
+  phoneHash                  String?
+  inviteStatus               String                      @default("PENDING")
+  inviteSentAt               DateTime?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  emergencyContactEmail      String?
+  emergencyContactName       String?
+  emergencyContactPhone      String?
+  formerAddress              String?
+  guarantorEmail             String?
+  guarantorName              String?
+  guarantorPhone             String?
+  nextOfKinEmail             String?
+  nextOfKinName              String?
+  nextOfKinPhone             String?
   /// @encrypted
-  phoneEncrypted     String?
-  phoneHash          String?
+  commercialNameEncrypted    String?
+  commercialNameSearch       String?
   /// @encrypted
-  otherPhoneEncrypted String?
-  otherPhoneHash      String?
-  formerAddress      String?
-  nextOfKinName      String?
-  nextOfKinEmail     String?
-  nextOfKinPhone     String?
-  guarantorName      String?
-  guarantorEmail     String?
-  guarantorPhone     String?
-  emergencyContactName String?
-  emergencyContactEmail String?
-  emergencyContactPhone String?
-  inviteStatus       String                      @default("PENDING")
-  inviteSentAt       DateTime?
-  isInternal         Boolean                     @default(false)
-  channel            String?
+  otherPhoneEncrypted        String?
+  otherPhoneHash             String?
+  isInternal                 Boolean                     @default(false)
+  channel                    String?
   hasReceivedWelcomeTemplate Boolean                     @default(false)
-  createdAt          DateTime                    @default(now())
-  updatedAt          DateTime                    @updatedAt
-  paymentRequests    upward_pm_payment_request[]
-  rentPayments       upward_pm_rent_payment[]
-  sentDocuments      upward_pm_sent_document[]
-  pm                 upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
-  units              upward_pm_unit[]
+  paymentRequests            upward_pm_payment_request[]
+  rentPayments               upward_pm_rent_payment[]
+  sentDocuments              upward_pm_sent_document[]
+  pm                         upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  units                      upward_pm_unit[]
 
   @@index([pmId])
   @@index([emailHash])
@@ -216,8 +207,6 @@ model upward_pm_rent_payment {
   uuid                String            @unique @default(uuid())
   unitId              Int
   amount              Float
-  // rent due for this payment's period, snapshotted so later rent reviews don't rewrite past history
-  rentAmountAtPayment Float
   paymentDate         DateTime
   periodStart         DateTime?
   periodEnd           DateTime?
@@ -227,9 +216,10 @@ model upward_pm_rent_payment {
   notes               String?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  unit                upward_pm_unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
   tenantId            Int?
-  tenant              upward_pm_tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  rentAmountAtPayment Float
+  tenant              upward_pm_tenant? @relation(fields: [tenantId], references: [id])
+  unit                upward_pm_unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@index([unitId])
   @@index([tenantId])
@@ -237,35 +227,35 @@ model upward_pm_rent_payment {
 }
 
 model upward_pm_payment_request {
-  id               Int                     @id @default(autoincrement())
-  uuid             String                  @unique @default(uuid())
-  pmId             Int
-  unitId           Int
-  tenantId         Int?
-  paymentRequestId Int?
-  amount           Float
-  currency         String                  @default("NGN")
-  description      String?
-  dueDate          DateTime
-  status           String                  @default("PENDING")
-  amountPaid       Float                   @default(0)
-  allowPartial     Boolean                 @default(false)
-  minAmount        Float?
-  rentStartDate    DateTime?
-  rentEndDate      DateTime?
-  rentType         String?
-  reminderFrequency String                  @default("NONE") // NONE, DAILY, EVERY_2_DAYS, WEEKLY
-  nextReminderAt   DateTime?
-  reminderCount    Int                     @default(0)
-  scheduledAt      DateTime?               // Scheduled delivery/activation time
-  isRecurring      Boolean                 @default(false)
-  recurrenceInterval String?               // e.g. 'MONTHLY', 'QUARTERLY', 'YEARLY'
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  paymentRequest   upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
-  pm               upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
-  tenant           upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
-  unit             upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  id                 Int                     @id @default(autoincrement())
+  uuid               String                  @unique @default(uuid())
+  pmId               Int
+  unitId             Int
+  tenantId           Int?
+  paymentRequestId   Int?
+  amount             Float
+  currency           String                  @default("NGN")
+  description        String?
+  dueDate            DateTime
+  status             String                  @default("PENDING")
+  amountPaid         Float                   @default(0)
+  allowPartial       Boolean                 @default(false)
+  minAmount          Float?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  rentEndDate        DateTime?
+  rentStartDate      DateTime?
+  rentType           String?
+  nextReminderAt     DateTime?
+  reminderCount      Int                     @default(0)
+  reminderFrequency  String                  @default("NONE")
+  isRecurring        Boolean                 @default(false)
+  recurrenceInterval String?
+  scheduledAt        DateTime?
+  paymentRequest     upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
+  pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  tenant             upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
+  unit               upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
   @@index([unitId])
@@ -280,9 +270,9 @@ model upward_pm_bulk_invite {
   sentCount    Int                          @default(0)
   failedCount  Int                          @default(0)
   error        String?
-  channel      String?
   createdAt    DateTime                     @default(now())
   updatedAt    DateTime                     @updatedAt
+  channel      String?
   pm           upward_property_manager      @relation(fields: [pmId], references: [id], onDelete: Cascade)
   items        upward_pm_bulk_invite_item[]
 
@@ -306,77 +296,75 @@ model upward_pm_bulk_invite_item {
 }
 
 model upward_pm_landlord_report {
-  id              Int                     @id @default(autoincrement())
-  uuid            String                  @unique @default(uuid())
-  pmId            Int
-  landlordEmail   String
-  reportType      String
-  reportData      Json
-  createdAt       DateTime                @default(now())
-  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  id            Int                     @id @default(autoincrement())
+  uuid          String                  @unique @default(uuid())
+  pmId          Int
+  landlordEmail String
+  reportType    String
+  reportData    Json
+  createdAt     DateTime                @default(now())
+  pm            upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
   @@index([landlordEmail])
 }
 
 model upward_pm_verification {
-  id              Int                         @id @default(autoincrement())
-  pmId            Int                         @unique
-  idType          String                      // NIN, BVN, CAC
+  id              Int                     @id @default(autoincrement())
+  pmId            Int                     @unique
+  idType          String
   idNumber        String
   idImage         String?
-  status          String                      @default("PENDING") // PENDING, APPROVED, REJECTED
+  status          String                  @default("PENDING")
   rejectionReason String?
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
-  pm              upward_property_manager     @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  pm              upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 }
 
 model upward_pm_email_setting {
-  id                Int                     @id @default(autoincrement())
-  pmId              Int                     @unique
-  senderName        String?
-  senderEmail       String?
-  logoUrl           String?
-  footerAddress     String?
-  cc                String?                 // Comma-separated email addresses
-  bcc               String?                 // Comma-separated email addresses
-  closingStatement  String?
-  domain            String?
-  isVerified        Boolean                 @default(false)
-  
-  provider                  String?
-  office365Config           Json?
-  office365SecretExpiresAt  DateTime?
-  gmailOauthConfig          Json?
-  zohoConfig                Json?
-  smtpEmail                 String?
-  smtpPassword              String?
-  emailSignature            String?
-  useEmailSignature         Boolean                 @default(true)
-  defaultFontFamily         String?
-  defaultFontSize           String?
-  defaultLineHeight         String?
-  sendTestEmail             Boolean                 @default(false)
-  enableMailbox             Boolean                 @default(false)
-  enableReplyTo             Boolean                 @default(false)
-
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  pm                upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  id                       Int                     @id @default(autoincrement())
+  pmId                     Int                     @unique
+  senderName               String?
+  senderEmail              String?
+  logoUrl                  String?
+  footerAddress            String?
+  cc                       String?
+  bcc                      String?
+  closingStatement         String?
+  domain                   String?
+  isVerified               Boolean                 @default(false)
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  defaultFontFamily        String?
+  defaultFontSize          String?
+  defaultLineHeight        String?
+  emailSignature           String?
+  enableMailbox            Boolean                 @default(false)
+  enableReplyTo            Boolean                 @default(false)
+  gmailOauthConfig         Json?
+  office365Config          Json?
+  office365SecretExpiresAt DateTime?
+  provider                 String?
+  sendTestEmail            Boolean                 @default(false)
+  smtpEmail                String?
+  smtpPassword             String?
+  useEmailSignature        Boolean                 @default(true)
+  zohoConfig               Json?
+  pm                       upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
 }
 
 model upward_pm_receipt_setting {
-  id                Int                     @id @default(autoincrement())
-  pmId              Int                     @unique
-  logoUrl           String?
-  useEmailLogo      Boolean                 @default(true)
-  themeColor        String                  @default("#d97757")
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  pm                upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  id           Int                     @id @default(autoincrement())
+  pmId         Int                     @unique
+  logoUrl      String?
+  useEmailLogo Boolean                 @default(true)
+  themeColor   String                  @default("#d97757")
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  pm           upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
 }
@@ -386,9 +374,9 @@ model upward_pm_signature {
   uuid      String                  @unique @default(uuid())
   pmId      Int
   name      String
-  type      String                  // 'upload' | 'pad' | 'digital'
-  fileKey   String?                 // S3 Key for image/drawn signature files
-  content   String?                 // Plain text or stylized HTML for digital signatures
+  type      String
+  fileKey   String?
+  content   String?
   isDefault Boolean                 @default(false)
   createdAt DateTime                @default(now())
   updatedAt DateTime                @updatedAt
@@ -403,7 +391,7 @@ model upward_pm_notification {
   pmId      Int
   title     String
   message   String
-  type      String                  @default("SYSTEM") // PAYMENT_COMPLETED, PAYMENT_DUE, PAYMENT_OVERDUE, SYSTEM
+  type      String                  @default("SYSTEM")
   url       String?
   isRead    Boolean                 @default(false)
   isPopup   Boolean                 @default(false)

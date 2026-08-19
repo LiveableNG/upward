@@ -1,52 +1,48 @@
-
 model upward_pm_team_collaboration {
   id               Int                     @id @default(autoincrement())
   uuid             String                  @unique @default(uuid())
-  ownerPmId        Int                     // The PM who invited (the owner of the context)
-  collaboratorPmId Int                     // The invited PM
-  accessLevel      String                  @default("CUSTOM") // ALL, CUSTOM
-  status           String                  @default("ACCEPTED") // PENDING, ACCEPTED, REVOKED
+  ownerPmId        Int
+  collaboratorPmId Int
+  accessLevel      String                  @default("CUSTOM")
+  status           String                  @default("ACCEPTED")
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
-  
-  ownerPm          upward_property_manager @relation("OwnerTeam", fields: [ownerPmId], references: [id], onDelete: Cascade)
   collaboratorPm   upward_property_manager @relation("CollaboratorTeam", fields: [collaboratorPmId], references: [id], onDelete: Cascade)
+  ownerPm          upward_property_manager @relation("OwnerTeam", fields: [ownerPmId], references: [id], onDelete: Cascade)
 
+  @@unique([ownerPmId, collaboratorPmId])
   @@index([ownerPmId])
   @@index([collaboratorPmId])
-  @@unique([ownerPmId, collaboratorPmId])
 }
 
 model upward_pm_property_collaboration {
   id               Int                     @id @default(autoincrement())
   propertyId       Int
   collaboratorPmId Int
-  ownerPmId        Int                     // For easier filtering by owner
+  ownerPmId        Int
   createdAt        DateTime                @default(now())
-  
-  property         upward_pm_property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   collaboratorPm   upward_property_manager @relation(fields: [collaboratorPmId], references: [id], onDelete: Cascade)
+  property         upward_pm_property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
+  @@unique([propertyId, collaboratorPmId])
   @@index([propertyId])
   @@index([collaboratorPmId])
   @@index([ownerPmId])
-  @@unique([propertyId, collaboratorPmId])
 }
 
 model upward_pm_activity_log {
-  id               Int                     @id @default(autoincrement())
-  uuid             String                  @unique @default(uuid())
-  pmId             Int                     // The PM who performed the action
-  ownerPmId        Int                     // The owner of the property/context where action was taken
-  action           String                  // e.g. "CREATE_UNIT", "UPDATE_RENT", "SEND_INVOICE"
-  entityType       String                  // e.g. "PROPERTY", "UNIT", "TENANT", "PAYMENT"
-  entityId         String?                 // UUID or ID of the affected entity
-  description      String                  // Human readable description
-  metadata         Json?                   // Extra details (before/after changes)
-  createdAt        DateTime                @default(now())
-
-  pm               upward_property_manager @relation("ActivityPerformer", fields: [pmId], references: [id], onDelete: Cascade)
-  ownerPm          upward_property_manager @relation("ActivityOwner", fields: [ownerPmId], references: [id], onDelete: Cascade)
+  id          Int                     @id @default(autoincrement())
+  uuid        String                  @unique @default(uuid())
+  pmId        Int
+  ownerPmId   Int
+  action      String
+  entityType  String
+  entityId    String?
+  description String
+  metadata    Json?
+  createdAt   DateTime                @default(now())
+  ownerPm     upward_property_manager @relation("ActivityOwner", fields: [ownerPmId], references: [id], onDelete: Cascade)
+  pm          upward_property_manager @relation("ActivityPerformer", fields: [pmId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
   @@index([ownerPmId])

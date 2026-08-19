@@ -14,8 +14,6 @@ export function useProfile() {
   return useQuery({
     queryKey: ['profile'],
     queryFn: () => api.getProfile(),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -23,8 +21,6 @@ export function usePendingPayments() {
   return useQuery({
     queryKey: ['pendingPayments'],
     queryFn: getPendingPaymentsParsed,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -32,8 +28,6 @@ export function useTransactions() {
   return useQuery({
     queryKey: ['transactions'],
     queryFn: getTransactionsParsed,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -41,8 +35,6 @@ export function useSavedLandlords() {
   return useQuery({
     queryKey: ['savedLandlords'],
     queryFn: getSavedLandlordsParsed,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
   })
 }
 
@@ -57,8 +49,6 @@ export function useDashboard(): UseDashboardReturn {
   const { data, isLoading, error, refetch } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: getDashboardData,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
   })
 
   return {
