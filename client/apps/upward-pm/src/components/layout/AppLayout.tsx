@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Sidebar } from "@/components/layout/Sidebar"
 import { MobileHeader } from "@/components/layout/MobileHeader"
@@ -98,7 +99,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             gap: '12px',
             zIndex: 100
           }}>
-            <span>⚠️ Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              <span>Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.</span>
+            </div>
             <button
               onClick={() => router.push('/subscription/checkout')}
               style={{

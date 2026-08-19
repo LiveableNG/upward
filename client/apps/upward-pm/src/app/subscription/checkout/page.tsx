@@ -223,7 +223,7 @@ function CheckoutContent() {
         </div>
         <div className="checkout-navbar__security">
           <Lock size={14} />
-          <span>Secure payment protected by Upward 🔒</span>
+          <span>Secure payment protected by Upward</span>
         </div>
       </nav>
 

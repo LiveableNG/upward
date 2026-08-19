@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal/Modal';
+import { playSuccessChime, playActivationChime } from '@/lib/sound';
 
 interface SubscriptionSuccessModalProps {
   isOpen: boolean;
@@ -27,6 +28,15 @@ export function SubscriptionSuccessModal({
   isSelectingTier = false,
 }: SubscriptionSuccessModalProps) {
 
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isCheckout && isSufficient) {
+      playActivationChime();
+    } else {
+      playSuccessChime();
+    }
+  }, [isOpen, isCheckout, isSufficient]);
+
   // Auto-close simple deposit modal
   useEffect(() => {
     if (!isOpen || isCheckout) return;
@@ -40,7 +50,7 @@ export function SubscriptionSuccessModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Deposit Received! 🎉"
+      title="Deposit Received"
       maxWidth={440}
     >
       <style>{`
