@@ -118,6 +118,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
   let lineItemRepository: jest.Mocked<IPaymentLineItemRepository>
   let resolveDedicatedAccount: jest.Mocked<ResolveDedicatedAccountUseCase>
   let eventBus: jest.Mocked<EventBus>
+  let prisma: any
 
   const validBankDetails = {
     bankCode: '058',
@@ -125,6 +126,13 @@ describe('CreateExternalPaymentRequestUseCase', () => {
   }
 
   beforeEach(() => {
+    prisma = {
+      upward_payment_request: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      }
+    } as any
+
     singleInviteUseCase = {
       setupInviteContext: jest.fn(),
     }
@@ -203,6 +211,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       lineItemRepository,
       resolveDedicatedAccount,
       eventBus,
+      prisma,
     )
   })
 
@@ -483,6 +492,46 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       expect(result).toMatchObject({
         paymentUuid: 'pay-req-uuid-001',
       })
+    })
+  })
+
+  // ─── Single Active PR Constraint ──────────────────────────────────────────
+
+  describe('Single Active PR Constraint', () => {
+    beforeEach(() => {
+      propertyRepository.findByUuid.mockResolvedValue(makeProperty())
+      paymentRequestRepository.create.mockResolvedValue(makePaymentRequest())
+      userRepository.findById.mockResolvedValue(makeUser())
+      notificationRepository.createNotification.mockResolvedValue(makeNotification())
+    })
+
+    it('should throw BadRequestException if an active partially paid (PARTIAL) request exists', async () => {
+      prisma.upward_payment_request.findFirst.mockResolvedValue({ id: 99, status: 'PARTIAL' })
+
+      await expect(
+        useCase.execute(
+          { userPropertyUuid: 'property-uuid-001', dueDate: '2026-02-01', ...validBankDetails },
+          99,
+        )
+      ).rejects.toThrow(BadRequestException)
+
+      expect(prisma.upward_payment_request.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: { userPropertyId: 100, status: 'PARTIAL' }
+      }))
+    })
+
+    it('should cancel existing PENDING requests when creating a new request', async () => {
+      prisma.upward_payment_request.findFirst.mockResolvedValue(null)
+
+      await useCase.execute(
+        { userPropertyUuid: 'property-uuid-001', dueDate: '2026-02-01', ...validBankDetails },
+        99,
+      )
+
+      expect(prisma.upward_payment_request.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { userPropertyId: 100, status: 'PENDING' },
+        data: { status: 'CANCELLED' }
+      }))
     })
   })
 })

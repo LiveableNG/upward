@@ -110,6 +110,7 @@ export class CreateManualPaymentRequestUseCase {
     private readonly lineItemRepo: IPaymentLineItemRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
+    private readonly prisma: PrismaService,
   ) { }
 
   async execute(data: {
@@ -167,6 +168,17 @@ export class CreateManualPaymentRequestUseCase {
       const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
       if (prop) {
         userPropertyId = prop.id
+
+        const activePr = await this.prisma.upward_payment_request.findFirst({
+          where: {
+            userPropertyId: prop.id,
+            status: { in: ['PENDING', 'PARTIAL'] }
+          }
+        })
+        if (activePr) {
+          throw new BadRequestException('An active payment request already exists for this property.')
+        }
+
         let startD = prop.rentStartDate ? new Date(prop.rentStartDate) : null
         let endD = prop.rentEndDate ? new Date(prop.rentEndDate) : null
 
