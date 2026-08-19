@@ -98,7 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!sessionActive && !isDeepLink) {
           setLoading(false)
-          await logout()
           return
         }
 

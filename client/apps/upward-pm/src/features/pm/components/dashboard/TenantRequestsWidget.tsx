@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { UserPlus, CheckCircle2, X } from 'lucide-react';
+import { UserPlus, CheckCircle2, X, AlertCircle } from 'lucide-react';
 import { AddTenantModal } from '../tenants/modals/AddTenantModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 
@@ -97,8 +97,9 @@ export function TenantRequestsWidget() {
                   </div>
                 )}
                 {req.existingConnection && (
-                  <div className="mt-1.5 bg-[#EFF6FF] p-2 rounded text-[11px] text-[#1E3A8A] border border-[#BFDBFE] block w-fit">
-                    ⚠️ Sync Duplicate: Linked to <strong>{req.existingConnection.propertyName} - Unit {req.existingConnection.unitName}</strong>
+                  <div className="mt-1.5 bg-[#EFF6FF] p-2 rounded text-[11px] text-[#1E3A8A] border border-[#BFDBFE] flex items-center gap-1.5 w-fit">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-[#1E3A8A]" />
+                    <span>Sync Duplicate: Linked to <strong>{req.existingConnection.propertyName} - Unit {req.existingConnection.unitName}</strong></span>
                   </div>
                 )}
               </div>

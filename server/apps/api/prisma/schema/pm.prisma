@@ -38,6 +38,7 @@ model upward_property_manager {
   dedicatedVirtualAccount upward_pm_dedicated_virtual_account?
   documentTemplates       upward_pm_document_template[]
   emailSetting            upward_pm_email_setting?
+  feedback                upward_feedback[]
   landlordRelations       upward_pm_landlord_relation[]
   landlordReports         upward_pm_landlord_report[]
   letterheads             upward_pm_letterhead[]

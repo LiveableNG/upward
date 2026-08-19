@@ -318,15 +318,56 @@ export const SignupFormMobile = () => {
     if (verifyOtpMutation.isError) verifyOtpMutation.reset()
     if (otpLoginMutation.isError) otpLoginMutation.reset()
 
-    if (value.length > 1) value = value[0]
+    const digitsOnly = value.replace(/\D/g, '')
+
+    if (digitsOnly.length > 1) {
+      const newOtp = [...otp]
+      digitsOnly.split('').forEach((d, i) => {
+        if (index + i < 6) {
+          newOtp[index + i] = d
+        }
+      })
+      setOtp(newOtp)
+      const nextIndex = Math.min(index + digitsOnly.length, 5)
+      document.getElementById(`otp-${nextIndex}`)?.focus()
+      if (newOtp.every((digit) => digit !== '') && newOtp.length === 6) {
+        triggerVerification(newOtp)
+      }
+      return
+    }
 
     const newOtp = [...otp]
-    newOtp[index] = value
+    newOtp[index] = digitsOnly
     setOtp(newOtp)
 
-    if (value && index < 5) {
+    if (digitsOnly && index < 5) {
       document.getElementById(`otp-${index + 1}`)?.focus()
     }
+
+    if (newOtp.every((digit) => digit !== '') && newOtp.length === 6) {
+      triggerVerification(newOtp)
+    }
+  }
+
+  const handleOtpPaste = (e: React.ClipboardEvent, index: number) => {
+    e.preventDefault()
+    if (verifyOtpMutation.isError) verifyOtpMutation.reset()
+    if (otpLoginMutation.isError) otpLoginMutation.reset()
+
+    const pastedData = e.clipboardData.getData('text')
+    const digitsOnly = pastedData.replace(/\D/g, '').slice(0, 6)
+    if (!digitsOnly) return
+
+    const newOtp = [...otp]
+    digitsOnly.split('').forEach((d, i) => {
+      if (index + i < 6) {
+        newOtp[index + i] = d
+      }
+    })
+    setOtp(newOtp)
+
+    const nextIndex = Math.min(index + digitsOnly.length, 5)
+    document.getElementById(`otp-${nextIndex}`)?.focus()
 
     if (newOtp.every((digit) => digit !== '') && newOtp.length === 6) {
       triggerVerification(newOtp)
@@ -743,10 +784,14 @@ export const SignupFormMobile = () => {
                   key={i}
                   id={`otp-${i}`}
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   maxLength={1}
+                  autoComplete="one-time-code"
                   className="otp-input"
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onPaste={(e) => handleOtpPaste(e, i)}
                   onKeyDown={(e) => {
                     if (e.key === 'Backspace' && !digit && i > 0) {
                       document.getElementById(`otp-${i - 1}`)?.focus()

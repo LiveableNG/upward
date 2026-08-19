@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react'
+import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -1112,7 +1112,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               width: '100%',
               fontWeight: 600
             }}>
-              ⚠️ Failure to send the Welcome template will block any future payment requests to this tenant.
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={15} style={{ flexShrink: 0, color: '#d97706' }} />
+                <span>Failure to send the Welcome template will block any future payment requests to this tenant.</span>
+              </div>
             </div>
           </div>
         </Modal>

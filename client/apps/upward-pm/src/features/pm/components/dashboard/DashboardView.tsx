@@ -39,6 +39,7 @@ import { DocumentEditorView } from '../documents/DocumentEditorView'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 import { SuccessNotificationModal } from '../subscription/SuccessNotificationModal'
+import { playActivationChime } from '@/lib/sound'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
@@ -66,6 +67,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
     const subStatus = searchParams?.get('subscription')
     if (subStatus === 'activated') {
       setShowSubSuccessModal(true)
+      playActivationChime()
       const cleanUrl = window.location.pathname
       window.history.replaceState({}, '', cleanUrl)
     }
@@ -519,7 +521,7 @@ export function DashboardView({ initialData }: { initialData?: any }) {
       <SuccessNotificationModal
         isOpen={showSubSuccessModal}
         onClose={() => setShowSubSuccessModal(false)}
-        title="Subscription Activated! 🎉"
+        title="Subscription Activated!"
         message={
           <>
             Your professional plan subscription has been activated successfully.<br />

@@ -298,18 +298,21 @@ model upward_support_ticket {
 }
 
 model upward_feedback {
-  id        Int          @id @default(autoincrement())
-  uuid      String       @unique @default(uuid())
+  id        Int                     @id @default(autoincrement())
+  uuid      String                  @unique @default(uuid())
   userId    Int?
+  pmId      Int?
   email     String?
   name      String?
   type      String
   message   String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  user      upward_user? @relation(fields: [userId], references: [id])
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  user      upward_user?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  pm        upward_property_manager? @relation(fields: [pmId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([pmId])
   @@index([type])
   @@index([createdAt])
 }

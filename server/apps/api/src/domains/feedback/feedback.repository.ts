@@ -2,6 +2,7 @@ export interface Feedback {
   id: number
   uuid: string
   userId?: number | null
+  pmId?: number | null
   email?: string | null
   name?: string | null
   type: string
@@ -11,7 +12,7 @@ export interface Feedback {
 }
 
 export interface IFeedbackRepository {
-  create(data: Omit<Feedback, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>): Promise<Feedback>
+  create(data: Omit<Feedback, 'id' | 'uuid' | 'createdAt' | 'updatedAt'> & { pmUuid?: string | null }): Promise<Feedback>
   findAll(): Promise<Feedback[]>
 }
 

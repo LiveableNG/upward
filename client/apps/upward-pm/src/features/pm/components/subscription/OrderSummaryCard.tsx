@@ -124,6 +124,9 @@ export function OrderSummaryCard({
                 onChange={(e) => onCustomTopUpAmountChange(e.target.value)}
               />
             </div>
+            <p style={{ fontSize: 11, color: '#8A857F', margin: '4px 0 8px 0' }}>
+              * Minimum top-up amount required to activate subscription via Paystack is ₦{(deficit > 0 ? deficit : 100).toLocaleString()}.
+            </p>
 
             {isBalanceSufficient ? (
               <div className="wallet-status-banner wallet-status-banner--ok">
@@ -141,7 +144,7 @@ export function OrderSummaryCard({
               <button
                 className="btn-checkout-primary"
                 onClick={onPaystackTopUp}
-                disabled={paying || !customTopUpAmount || parseFloat(customTopUpAmount) <= 0}
+                disabled={paying || !customTopUpAmount || parseFloat(customTopUpAmount) < (deficit > 0 ? deficit : 100)}
               >
                 <Zap size={16} />
                 {paying ? 'Processing payment...' : `Pay ₦${parseFloat(customTopUpAmount || '0').toLocaleString()}`}
