@@ -34,6 +34,8 @@ interface UserDetailData {
   savingsWalletEnabled?: boolean
   isFromInvite: boolean
   isFromWaitlist: boolean
+  invitedAt?: string | null
+  joinedAt?: string | null
   createdAt: string
   updatedAt: string
   properties: any[]
@@ -365,17 +367,24 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 <Phone size={14} style={{ color: 'var(--text-muted)' }} />
                 <span>{user.phone || 'No phone set'}</span>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
-                <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
-              </div>
+              {user.invitedAt && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                  <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
+                  <span>Invited on {new Date(user.invitedAt).toLocaleDateString()}</span>
+                </div>
+              )}
+              {user.joinedAt && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                  <Calendar size={14} style={{ color: 'var(--success)' }} />
+                  <span>Joined on {new Date(user.joinedAt).toLocaleDateString()}</span>
+                </div>
+              )}
+              {!user.invitedAt && !user.joinedAt && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                  <Calendar size={14} style={{ color: 'var(--text-muted)' }} />
+                  <span>Member since {new Date(user.createdAt).toLocaleDateString()}</span>
+                </div>
+              )}
             </div>
           </div>
 

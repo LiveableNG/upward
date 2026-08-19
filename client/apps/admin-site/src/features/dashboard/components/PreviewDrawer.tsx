@@ -11,7 +11,9 @@ export type DrawerEntity = {
   phone?: string
   status: string
   type: string
-  joinedAt: string
+  invitedAt?: string | null
+  joinedAt?: string | null
+  createdAt?: string
   transactionCount?: number
   totalPaid?: number
   propertyCount?: number
@@ -173,7 +175,12 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
               )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                 <Calendar size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span>Joined {new Date(entity.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span>
+                  {entity.invitedAt && `Invited: ${new Date(entity.invitedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                  {entity.invitedAt && entity.joinedAt && ' • '}
+                  {entity.joinedAt && `Joined: ${new Date(entity.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                  {!entity.invitedAt && !entity.joinedAt && entity.createdAt && `Created: ${new Date(entity.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                </span>
               </div>
             </div>
 

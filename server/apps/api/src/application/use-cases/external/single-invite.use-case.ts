@@ -166,6 +166,7 @@ export class SingleInviteUseCase {
         phone: userData.phone,
         passwordHash: PASS_PLACEHOLDERS.INVITED,
         isFromInvite: true,
+        invitedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)

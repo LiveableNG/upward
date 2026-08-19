@@ -205,6 +205,7 @@ export class InviteController {
       firstName: data.firstName || user.firstName,
       lastName: data.lastName || user.lastName,
       email: data.email || user.email,
+      joinedAt: new Date(),
     })
     await this.userAuthService.syncTenantStatuses(user.email)
     this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification on invite accept', e))

@@ -44,6 +44,7 @@ export interface InvitedRecord {
   lastName: string
   phone: string
   createdAt: string
+  invitedAt?: string | null
   joinedAt?: string | null
   status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
   totalPaid: number

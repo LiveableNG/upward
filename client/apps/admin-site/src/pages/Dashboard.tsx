@@ -338,6 +338,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
+        invitedAt: i.invitedAt || i.createdAt,
         joinedAt: i.joinedAt, // Mapped from backend
         origin: i.origin || 'INVITED_EMAIL',
         hasPassword: i.hasPassword ?? false,
