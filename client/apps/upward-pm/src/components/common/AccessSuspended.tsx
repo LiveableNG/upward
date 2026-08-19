@@ -5,7 +5,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { request } from '@/lib/api-client'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useToast } from '@/components/common/Toast'
-import { ShieldAlert, Copy, Check, LogOut, Coins, CreditCard, RefreshCw, AlertCircle } from 'lucide-react'
+import { ShieldAlert, Copy, Check, LogOut, Coins, CreditCard, RefreshCw, AlertCircle, Mail } from 'lucide-react'
 
 interface DvaData {
   bankName: string
@@ -273,14 +273,36 @@ export function AccessSuspended() {
               <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 CUSTOMER SUPPORT EMAIL
               </div>
-              <a href="mailto:hello@goodtenants.africa" style={{
-                fontSize: '1.05rem',
-                fontWeight: 700,
-                color: 'var(--clay)',
-                textDecoration: 'none',
-                wordBreak: 'break-all'
-              }}>
-                hello@goodtenants.africa
+              <a 
+                href="mailto:accounts@goodtenants.africa" 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  color: 'var(--clay)',
+                  backgroundColor: 'rgba(202, 103, 2, 0.08)',
+                  padding: '8px 16px',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  border: '1px solid rgba(202, 103, 2, 0.2)',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '4px',
+                  wordBreak: 'break-all',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(202, 103, 2, 0.15)'
+                  e.currentTarget.style.borderColor = 'var(--clay)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(202, 103, 2, 0.08)'
+                  e.currentTarget.style.borderColor = 'rgba(202, 103, 2, 0.2)'
+                }}
+              >
+                <Mail size={16} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+                accounts@goodtenants.africa
               </a>
             </div>
 
