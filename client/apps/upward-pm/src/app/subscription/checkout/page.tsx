@@ -136,7 +136,12 @@ function CheckoutContent() {
 
   const handlePaystackTopUp = async () => {
     const amountToTopUp = customTopUpAmount ? parseFloat(customTopUpAmount) : deficit;
-    if (!amountToTopUp || amountToTopUp <= 0 || paying) return;
+    const minRequired = deficit > 0 ? deficit : 100;
+    if (isNaN(amountToTopUp) || paying) return;
+    if (amountToTopUp < minRequired) {
+      error(`Minimum top-up amount required to activate subscription is ₦${minRequired.toLocaleString()}`);
+      return;
+    }
 
     try {
       setPaying(true);

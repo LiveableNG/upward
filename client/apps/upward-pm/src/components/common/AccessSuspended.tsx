@@ -90,8 +90,9 @@ export function AccessSuspended() {
     const amountToTopUp = parseFloat(topUpAmount)
     if (!amountToTopUp || amountToTopUp <= 0 || paying) return
 
-    if (amountToTopUp < deficit) {
-      toastError(`Minimum amount required to top up is ₦${deficit.toLocaleString()}`)
+    const minRequired = Math.max(100, deficit > 0 ? deficit : 100)
+    if (amountToTopUp < minRequired) {
+      toastError(`Minimum amount required to top up via Paystack is ₦${minRequired.toLocaleString()}`)
       return
     }
 
@@ -455,9 +456,12 @@ export function AccessSuspended() {
                           }}
                         />
                       </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '2px 0 4px 0' }}>
+                        * Paystack online payments require a minimum deposit of ₦{Math.max(100, deficit > 0 ? deficit : 100).toLocaleString()}. (DVA bank transfer accepts any amount).
+                      </div>
                       <button
                         type="submit"
-                        disabled={paying || parseFloat(topUpAmount) <= 0}
+                        disabled={paying || !topUpAmount || parseFloat(topUpAmount) < Math.max(100, deficit > 0 ? deficit : 100)}
                         style={{
                           height: '38px',
                           padding: '0 16px',

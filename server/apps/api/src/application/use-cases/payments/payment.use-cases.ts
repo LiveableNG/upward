@@ -1257,7 +1257,24 @@ export class ProcessPaymentWebhookUseCase {
         where: { id: pmDva.pmId },
       })
 
-      if (updatedBalance >= 50000 && pm && !(pm as any).isManuallyBlocked) {
+      const sub = await this.prisma.upward_subscription.findUnique({
+        where: { pmId: pmDva.pmId },
+      });
+
+      const totalUnits = await this.prisma.upward_pm_unit.count({
+        where: { property: { pmId: pmDva.pmId } },
+      });
+
+      const occupiedUnits = await this.prisma.upward_pm_unit.count({
+        where: { property: { pmId: pmDva.pmId }, status: 'OCCUPIED' },
+      });
+
+      const billingMode = sub?.unitBillingMode ?? 'ALL';
+      const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+      const yearlyRate = sub?.tier === 'TIER_3' ? 2250 : 1500;
+      const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
+
+      if (updatedBalance >= minRequiredDeposit && pm && !(pm as any).isManuallyBlocked) {
         await this.prisma.upward_property_manager.update({
           where: { id: pmDva.pmId },
           data: { isBlocked: false },
