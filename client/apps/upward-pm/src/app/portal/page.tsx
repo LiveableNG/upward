@@ -29,7 +29,7 @@ import { CreatePaymentRequestModal } from '@/features/pm/components/payments/mod
 import { ManagedAddUnitModal } from '@/features/pm/components/properties/modals/ManagedAddUnitModal'
 import { ImportModeModal } from '@/features/pm/components/properties/modals/ImportModeModal'
 import { Property, Unit } from '@/features/pm/services/propertyService'
-import { SettlementSettings } from './components/SettlementSettings'
+import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
 import { ListSkeleton } from '@/components/skeletons'
 import { api } from '@/lib/api'
 import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
@@ -372,7 +372,7 @@ export default function LandlordDashboard() {
           </>
         )}
         {activeTab === 'settlement' && (
-          <SettlementSettings landlord={portfolio?.landlord} />
+          <BankInfoForm />
         )}
         {activeTab === 'requests' && (
           <div className="animate-fade-in">

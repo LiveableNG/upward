@@ -176,29 +176,53 @@ export class CreatePmPaymentRequestUseCase {
       nextReminderAt.setHours(9, 0, 0, 0); // 9 AM
     }
 
-    const pmPR = await this.pmPaymentRepo.create({
-      pmId: ownerPmId,
-      unitId: unit.id,
-      tenantId: unit.tenantId,
-      paymentRequestId: corePRId,
-      amount: data.amount,
-      currency: unit.currency || 'NGN',
-      description: data.description || null,
-      dueDate: new Date(data.rentEndDate || data.dueDate),
-      rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
-      rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
-      rentType: data.rentType || unit.rentType || null,
-      reminderFrequency: frequency,
-      nextReminderAt,
-      reminderCount: 0,
-      status: status,
-      amountPaid: 0,
-      allowPartial: data.allowPartial || false,
-      minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
-      scheduledAt: isScheduled ? new Date(data.scheduledAt!) : null,
-      isRecurring: isScheduled ? (data.isRecurring || false) : false,
-      recurrenceInterval: isScheduled && data.isRecurring ? (data.recurrenceInterval || null) : null,
-    });
+    let pmPR: any = null;
+    if (corePRId) {
+      const existingPmPR = await prisma.upward_pm_payment_request.findFirst({
+        where: { paymentRequestId: corePRId, unitId: unit.id }
+      });
+      if (existingPmPR) {
+        pmPR = await this.pmPaymentRepo.update(existingPmPR.uuid, {
+          amount: data.amount,
+          currency: unit.currency || 'NGN',
+          description: data.description || null,
+          dueDate: new Date(data.rentEndDate || data.dueDate),
+          rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
+          rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
+          rentType: data.rentType || unit.rentType || null,
+          reminderFrequency: frequency,
+          nextReminderAt,
+          allowPartial: data.allowPartial || false,
+          minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
+        });
+      }
+    }
+
+    if (!pmPR) {
+      pmPR = await this.pmPaymentRepo.create({
+        pmId: ownerPmId,
+        unitId: unit.id,
+        tenantId: unit.tenantId,
+        paymentRequestId: corePRId,
+        amount: data.amount,
+        currency: unit.currency || 'NGN',
+        description: data.description || null,
+        dueDate: new Date(data.rentEndDate || data.dueDate),
+        rentStartDate: data.rentStartDate ? new Date(data.rentStartDate) : null,
+        rentEndDate: data.rentEndDate ? new Date(data.rentEndDate) : null,
+        rentType: data.rentType || unit.rentType || null,
+        reminderFrequency: frequency,
+        nextReminderAt,
+        reminderCount: 0,
+        status: status,
+        amountPaid: 0,
+        allowPartial: data.allowPartial || false,
+        minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
+        scheduledAt: isScheduled ? new Date(data.scheduledAt!) : null,
+        isRecurring: isScheduled ? (data.isRecurring || false) : false,
+        recurrenceInterval: isScheduled && data.isRecurring ? (data.recurrenceInterval || null) : null,
+      });
+    }
 
     // Log Activity
     if (property) {

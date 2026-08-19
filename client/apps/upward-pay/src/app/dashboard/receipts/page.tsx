@@ -57,6 +57,12 @@ export default function ReceiptsPage() {
         const propInfo = tx.property || landlord?.properties?.[0]
         const propertyAddress = tx.propertyAddress || propInfo?.locationAddress || propInfo?.address || tx.paymentRequest?.propertyLocation || profile?.address || ''
 
+        const rentStartDate = tx.paymentRequest?.rentStartDate
+        const rentEndDate = tx.paymentRequest?.rentEndDate
+        const tenancyPeriod = (rentStartDate && rentEndDate)
+          ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : undefined
+
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
           uuid: tx.uuid,
@@ -83,6 +89,7 @@ export default function ReceiptsPage() {
                   category: item.category || 'Package',
                 }))
               : [],
+          tenancyPeriod,
         }
         setReceipt(data)
       }
@@ -235,6 +242,7 @@ export default function ReceiptsPage() {
       type: data.type === 'credit' ? 'SAVINGS' : 'RENT',
       status: data.status,
       lineItems: data.lineItems,
+      tenancyPeriod: data.tenancyPeriod,
     }
   }
 
