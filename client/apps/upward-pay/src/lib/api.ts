@@ -9,6 +9,7 @@ import * as financeService from '@/features/finance/services/financeService'
 import * as supportService from '@/features/support/services/supportService'
 import * as credibilityService from '@/features/dashboard/services/credibilityService'
 import * as locationService from '@/features/auth/services/locationService'
+import * as myHomeService from '@/features/my-home/services/myHomeService'
 
 export const api = {
   // Auth & Profile
@@ -81,6 +82,19 @@ export const api = {
   getCredibilityRequests: credibilityService.getCredibilityRequests,
   renewProperty: (uuid: string) =>
     request<any>(`/public/credibility/property/${uuid}/renew`, { method: 'POST' }),
+
+  // My Home (GT Tenant App reads, bridged by the Upward API)
+  getHomeComplaints: myHomeService.getComplaints,
+  getHomeComplaint: myHomeService.getComplaint,
+  createHomeComplaint: myHomeService.createComplaint,
+  getHomeActiveVisitors: myHomeService.getActiveVisitors,
+  getHomeVisitorHistory: myHomeService.getVisitorHistory,
+  searchHomeVisitors: myHomeService.searchVisitors,
+  generateHomeVisitor: myHomeService.generateVisitor,
+  revokeHomeVisitor: myHomeService.revokeVisitor,
+  getHomeDocuments: myHomeService.getDocuments,
+  getHomeCoTenants: myHomeService.getCoTenants,
+  getHomeLastInspection: myHomeService.getLastInspectionResult,
 
   // Public (Leaving as raw for now)
   getPublicProfile: (slug: string) =>
