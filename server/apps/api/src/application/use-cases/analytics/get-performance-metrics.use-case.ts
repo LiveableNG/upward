@@ -65,6 +65,7 @@ export class GetPerformanceMetricsUseCase {
           firstName: true,
           lastName: true,
           phone: true,
+          phoneHash: true,
           passwordHash: true,
           isFromWaitlist: true,
           isFromInvite: true,

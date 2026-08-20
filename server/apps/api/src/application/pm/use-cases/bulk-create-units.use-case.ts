@@ -6,6 +6,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case';
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 import { SyncUnitToUpwardUseCase } from './units/sync-unit.use-case';
+import { InviteTenantUseCase } from './tenants/invite-tenant.use-case';
 
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
@@ -32,6 +33,7 @@ export class BulkCreateUnitsUseCase {
     private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
     private readonly activityLog: ActivityLogService,
     private readonly syncUnitUseCase: SyncUnitToUpwardUseCase,
+    private readonly inviteTenantUseCase: InviteTenantUseCase,
   ) {}
 
   async execute(pmId: number, dto: BulkCreateUnitsDto) {
@@ -244,9 +246,25 @@ export class BulkCreateUnitsUseCase {
     });
 
     if (createdTenantUuids.length > 0) {
-      await this.bulkInviteUseCase.execute(pmId, {
-        tenantUuids: [...new Set(createdTenantUuids)]
-      });
+      if (dto.units.length === 1) {
+        for (const tenantUuid of createdTenantUuids) {
+          try {
+            const tenant = await this.tenantRepository.findByUuid(tenantUuid);
+            const channel = tenant?.email ? 'EMAIL' : 'SMS';
+            await this.inviteTenantUseCase.execute(pmId, tenantUuid, channel);
+          } catch (error) {
+            console.error(`Immediate invite failed for tenant ${tenantUuid}:`, error);
+            // Fallback to bulk invite queue if immediate invite fails
+            await this.bulkInviteUseCase.execute(pmId, {
+              tenantUuids: [tenantUuid]
+            });
+          }
+        }
+      } else {
+        await this.bulkInviteUseCase.execute(pmId, {
+          tenantUuids: [...new Set(createdTenantUuids)]
+        });
+      }
     }
 
     // Process auto-syncs
