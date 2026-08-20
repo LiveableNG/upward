@@ -993,6 +993,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     toggleSelectAllUsers={toggleSelectAllUsers}
                     toggleSelectUser={toggleSelectUser}
                     showFailureReason={usersSubtab === 'unsynced'}
+                    isGuestOrUnsynced={usersSubtab === 'guest' || usersSubtab === 'unsynced'}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
                   />

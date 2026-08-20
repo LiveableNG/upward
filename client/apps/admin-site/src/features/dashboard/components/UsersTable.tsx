@@ -42,6 +42,7 @@ interface UsersTableProps {
   toggleSelectAllUsers: () => void
   toggleSelectUser: (id: string, e?: React.MouseEvent) => void
   showFailureReason?: boolean
+  isGuestOrUnsynced?: boolean
   onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
 }
@@ -163,6 +164,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   toggleSelectAllUsers,
   toggleSelectUser,
   showFailureReason,
+  isGuestOrUnsynced,
   onPreview,
   onDeleteSelected,
 }) => {
@@ -304,66 +306,73 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     },
     {
       key: 'joinedAt',
-      label: 'Join Date',
+      label: isGuestOrUnsynced ? 'Invited Date' : 'Join Date',
       sortable: true,
-      render: (item) => (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
-          {item.joinedAt ? (
-            <>
-              <span
-                style={{
-                  cursor: 'pointer',
-                  borderBottom: '1px dashed var(--border)',
-                  paddingBottom: '1px',
-                }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setOpenJoinedId(openJoinedId === item.id ? null : item.id)
-                }}
-              >
-                {new Date(item.joinedAt).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </span>
-              {openJoinedId === item.id && (
-                <div
+      render: (item) => {
+        const displayDate = item.joinedAt || item.invitedAt || item.createdAt
+        const isJoined = !!item.joinedAt
+        return (
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
+            {displayDate ? (
+              <>
+                <span
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: '4px',
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    color: 'var(--text)',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    zIndex: 50,
-                    width: 'max-content',
-                    animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    cursor: 'pointer',
+                    borderBottom: '1px dashed var(--border)',
+                    paddingBottom: '1px',
                   }}
-                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setOpenJoinedId(openJoinedId === item.id ? null : item.id)
+                  }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Invited / Created On:</span>
-                  <br />
-                  {new Date(item.createdAt).toLocaleDateString('en-GB', {
+                  {new Date(displayDate).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',
                   })}
-                </div>
-              )}
-            </>
-          ) : (
-            <span style={{ opacity: 0.5 }}>—</span>
-          )}
-        </div>
-      ),
+                  {!isJoined && <span style={{ fontSize: '10px', marginLeft: '4px', fontStyle: 'italic', color: 'var(--accent)' }}>(Invited)</span>}
+                </span>
+                {openJoinedId === item.id && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginTop: '4px',
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                      color: 'var(--text)',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      zIndex: 50,
+                      width: 'max-content',
+                      animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {isJoined ? 'Invited / Created On:' : 'Created On:'}
+                    </span>
+                    <br />
+                    {new Date(item.createdAt).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span style={{ opacity: 0.5 }}>—</span>
+            )}
+          </div>
+        )
+      },
     },
     showFailureReason
       ? {
