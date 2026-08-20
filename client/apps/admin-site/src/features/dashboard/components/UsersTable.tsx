@@ -311,11 +311,78 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       label: isGuestOrUnsynced ? 'Invited Date' : 'Join Date',
       sortable: true,
       render: (item) => {
-        const displayDate = item.joinedAt || item.invitedAt || item.createdAt
-        const isJoined = !!item.joinedAt
+        const primaryDate = isGuestOrUnsynced
+          ? item.invitedAt || item.createdAt
+          : item.joinedAt || item.createdAt
+
+        if (!primaryDate) {
+          return <span style={{ opacity: 0.5 }}>—</span>
+        }
+
+        const primaryDateFormatted = new Date(primaryDate).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+
+        const popoverItems: { label: string; date: string }[] = []
+        if (isGuestOrUnsynced) {
+          if (item.joinedAt) {
+            popoverItems.push({
+              label: 'Joined On',
+              date: new Date(item.joinedAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+          if (
+            item.invitedAt &&
+            item.createdAt &&
+            new Date(item.invitedAt).toDateString() !== new Date(item.createdAt).toDateString()
+          ) {
+            popoverItems.push({
+              label: 'Created On',
+              date: new Date(item.createdAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+        } else {
+          if (item.invitedAt) {
+            popoverItems.push({
+              label: 'Invited On',
+              date: new Date(item.invitedAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+          if (
+            item.joinedAt &&
+            item.createdAt &&
+            new Date(item.joinedAt).toDateString() !== new Date(item.createdAt).toDateString()
+          ) {
+            popoverItems.push({
+              label: 'Created On',
+              date: new Date(item.createdAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+        }
+
+        const hasPopover = popoverItems.length > 0
+
         return (
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
-            {displayDate ? (
+            {hasPopover ? (
               <>
                 <span
                   style={{
@@ -328,12 +395,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                     setOpenJoinedId(openJoinedId === item.id ? null : item.id)
                   }}
                 >
-                  {new Date(displayDate).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                  {!isJoined && <span style={{ fontSize: '10px', marginLeft: '4px', fontStyle: 'italic', color: 'var(--accent)' }}>(Invited)</span>}
+                  {primaryDateFormatted}
+                  {!isGuestOrUnsynced && !item.joinedAt && (
+                    <span style={{ fontSize: '10px', marginLeft: '4px', fontStyle: 'italic', color: 'var(--accent)' }}>
+                      (Invited)
+                    </span>
+                  )}
                 </span>
                 {openJoinedId === item.id && (
                   <div
@@ -354,23 +421,30 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                       zIndex: 50,
                       width: 'max-content',
                       animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <span style={{ color: 'var(--text-muted)' }}>
-                      {isJoined ? 'Invited / Created On:' : 'Created On:'}
-                    </span>
-                    <br />
-                    {new Date(item.createdAt).toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
+                    {popoverItems.map((pi, idx) => (
+                      <div key={idx}>
+                        <span style={{ color: 'var(--text-muted)' }}>{pi.label}: </span>
+                        <strong>{pi.date}</strong>
+                      </div>
+                    ))}
                   </div>
                 )}
               </>
             ) : (
-              <span style={{ opacity: 0.5 }}>—</span>
+              <span>
+                {primaryDateFormatted}
+                {!isGuestOrUnsynced && !item.joinedAt && (
+                  <span style={{ fontSize: '10px', marginLeft: '4px', fontStyle: 'italic', color: 'var(--accent)' }}>
+                    (Invited)
+                  </span>
+                )}
+              </span>
             )}
           </div>
         )

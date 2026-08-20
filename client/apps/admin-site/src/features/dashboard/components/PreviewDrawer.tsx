@@ -175,15 +175,44 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                   <span>{entity.phone}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <Calendar size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span>
-                  {entity.invitedAt && `Invited: ${new Date(entity.invitedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                  {entity.invitedAt && entity.joinedAt && ' • '}
-                  {entity.joinedAt && `Joined: ${new Date(entity.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                  {!entity.invitedAt && !entity.joinedAt && entity.createdAt && `Created: ${new Date(entity.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                </span>
-              </div>
+              {entity.kind === 'pm' ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  <Calendar size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span>
+                    Joined at:{' '}
+                    <strong style={{ fontWeight: 600, color: 'var(--text)' }}>
+                      {entity.joinedAt || entity.createdAt
+                        ? new Date(entity.joinedAt || entity.createdAt!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : 'N/A'}
+                    </strong>
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <Calendar size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span>
+                      Invited at:{' '}
+                      <strong style={{ fontWeight: 600, color: entity.invitedAt ? 'var(--text)' : 'var(--text-muted)' }}>
+                        {entity.invitedAt
+                          ? new Date(entity.invitedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'N/A'}
+                      </strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <Calendar size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span>
+                      Joined at:{' '}
+                      <strong style={{ fontWeight: 600, color: entity.joinedAt ? 'var(--text)' : 'var(--text-muted)' }}>
+                        {entity.joinedAt
+                          ? new Date(entity.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'N/A'}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quick Stats */}
