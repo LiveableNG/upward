@@ -17,6 +17,7 @@ import { UnifiedCommunicationService } from '../../../../shared/infrastructure/c
 import * as crypto from 'crypto';
 
 
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
 import {
   EMPTY_PLACEHOLDER,
@@ -70,6 +71,7 @@ export class SendDocumentUseCase {
     private readonly smsService: SmsService,
     private readonly whatsappService: WhatsappService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly encryption: EncryptionService,
   ) {}
 
   async execute(actorPmId: number, data: SendDocumentDto) {
@@ -110,6 +112,34 @@ export class SendDocumentUseCase {
         if (tenant.units && tenant.units.length > 0) {
           unit = tenant.units[0] || null;
           unitId = unit?.id || null;
+        }
+
+        const isDummyEmail = (email: string) => {
+          if (!email) return true;
+          const normalized = email.toLowerCase();
+          return (
+            normalized.includes('@upward.local') ||
+            normalized.includes('@upward.com') ||
+            normalized.startsWith('guest-') ||
+            normalized.includes('dummy')
+          );
+        };
+
+        if (isDummyEmail(tenant.email || '') && data.recipientEmail && !isDummyEmail(data.recipientEmail)) {
+          const newEmailHash = crypto.createHash('sha256').update(data.recipientEmail.toLowerCase().trim()).digest('hex');
+          const newEmailEncrypted = this.encryption.encrypt(data.recipientEmail);
+
+          // Update PM Tenant record in database
+          await this.prisma.upward_pm_tenant.update({
+            where: { id: tenant.id },
+            data: {
+              emailEncrypted: newEmailEncrypted,
+              emailHash: newEmailHash,
+            }
+          });
+
+          tenant.email = data.recipientEmail;
+          tenant.emailHash = newEmailHash;
         }
       }
     }
