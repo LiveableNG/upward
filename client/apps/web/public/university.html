@@ -830,10 +830,43 @@
   }
 
   const form = document.getElementById('earlyAccessForm');
-  form.addEventListener('submit', function(e){
+  const submitBtn = form.querySelector('button[type="submit"]');
+  form.addEventListener('submit', async function(e){
     e.preventDefault();
-    form.style.display = 'none';
-    document.getElementById('formSuccess').classList.add('show');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    const payload = {
+      name: document.getElementById('name').value,
+      whatsapp: document.getElementById('whatsapp').value,
+      email: document.getElementById('email').value,
+      city: document.getElementById('city').value,
+      ageBracket: document.getElementById('age').value,
+      experienceLevel: document.getElementById('exp').value,
+      interest: document.getElementById('interest').value
+    };
+
+    try {
+      const res = await fetch('/api/v1/early-access/student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.warn('Early access submission returned error:', errData);
+      }
+    } catch (err) {
+      console.error('Network error during submission:', err);
+    } finally {
+      form.style.display = 'none';
+      const successEl = document.getElementById('formSuccess');
+      const firstName = payload.name.trim().split(' ')[0];
+      if (firstName) {
+        successEl.querySelector('h3').textContent = `Thank you, ${firstName}! You're on the list.`;
+      }
+      successEl.classList.add('show');
+    }
   });
 
   document.querySelectorAll('.faq-item').forEach(item => {

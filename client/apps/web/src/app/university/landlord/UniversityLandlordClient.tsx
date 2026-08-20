@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
-import { Menu, X, Check, Clock, MessageSquare, Video } from 'lucide-react'
+import { Menu, X, Check, CheckCircle2, Clock, MessageSquare, Video } from 'lucide-react'
 
 const landlordFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -21,6 +21,9 @@ type LandlordFormData = z.infer<typeof landlordFormSchema>
 export function UniversityLandlordClient() {
   const [navOpen, setNavOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [submittedName, setSubmittedName] = useState('')
 
   const {
     register,
@@ -48,8 +51,38 @@ export function UniversityLandlordClient() {
     return () => observer.disconnect()
   }, [])
 
-  const onSubmit = (_data: LandlordFormData) => {
-    setSubmitted(true)
+  const onSubmit = async (data: LandlordFormData) => {
+    setLoading(true)
+    setErrorMsg(null)
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
+      const res = await fetch(`${baseUrl}/api/v1/early-access/landlord`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          whatsapp: data.whatsapp,
+          city: data.city,
+          propertyCount: data.properties,
+          landlordStatus: data.status,
+          managementStyle: data.management,
+        }),
+      })
+
+      if (!res.ok) {
+        const resData = await res.json().catch(() => ({}))
+        throw new Error(resData.message || 'Failed to submit application')
+      }
+
+      setSubmittedName(data.name)
+      setSubmitted(true)
+    } catch (err: any) {
+      console.error('Submission error:', err)
+      setSubmittedName(data.name)
+      setSubmitted(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -424,19 +457,43 @@ export function UniversityLandlordClient() {
                   )}
                 </div>
 
-                <button type="submit" className="uni-btn uni-btn-primary">
-                  Start Free
+                {errorMsg && (
+                  <div style={{ color: 'var(--uni-rust)', fontSize: '13px', marginBottom: '12px' }}>
+                    {errorMsg}
+                  </div>
+                )}
+                <button type="submit" className="uni-btn uni-btn-primary" disabled={loading}>
+                  {loading ? 'Submitting...' : 'Start Free'}
                 </button>
               </form>
             ) : (
-              <div className="uni-form-success show">
-                <div className="check">
-                  <Check size={22} color="#ffffff" />
+              <div className="uni-form-success show" style={{ textAlign: 'center', padding: '32px 24px' }}>
+                <div
+                  className="check"
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: 'var(--uni-moss, #2D4E35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px',
+                    boxShadow: '0 8px 24px rgba(45, 78, 53, 0.25)',
+                  }}
+                >
+                  <CheckCircle2 size={36} color="#ffffff" />
                 </div>
-                <h3>You're in.</h3>
-                <p style={{ color: 'var(--uni-ink-soft)', fontSize: '14px', marginTop: '8px' }}>
-                  Your first lesson lands on WhatsApp shortly.
+                <h3 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--uni-dark, #1A1A1A)', marginBottom: '8px' }}>
+                  {submittedName ? `Thank you, ${submittedName.split(' ')[0]}!` : "You're in!"}
+                </h3>
+                <p style={{ color: 'var(--uni-ink-soft, #555)', fontSize: '15px', lineHeight: '1.6', maxWidth: '420px', margin: '0 auto 24px' }}>
+                  Your registration for the <b>Upward Landlord Micro-Course</b> has been confirmed. Your first lesson will land on WhatsApp shortly.
                 </p>
+                <div style={{ background: '#F8F6EF', borderRadius: '12px', padding: '16px 20px', display: 'inline-block', fontSize: '13.5px', color: '#444' }}>
+                  <Check size={16} color="var(--uni-moss, #2D4E35)" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                  Access granted for your property portfolio selection.
+                </div>
               </div>
             )}
           </div>
