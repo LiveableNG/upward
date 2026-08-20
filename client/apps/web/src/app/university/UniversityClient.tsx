@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Link from 'next/link'
 import {
   Briefcase,
   Building,
@@ -116,7 +117,6 @@ function LiveCountdown({ label = "Applications Open In", centered = false }: { l
 
 export function UniversityClient() {
   const [navOpen, setNavOpen] = useState(false)
-  const [expandedPress, setExpandedPress] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [submitted, setSubmitted] = useState(false)
 
@@ -190,9 +190,9 @@ export function UniversityClient() {
             <a href="#faq" onClick={() => setNavOpen(false)}>
               FAQ
             </a>
-            <a href="/for-landlord.html" onClick={() => setNavOpen(false)}>
+            <Link href="/university/landlord" onClick={() => setNavOpen(false)}>
               Free Landlord Course
-            </a>
+            </Link>
           </div>
 
           <div className="uni-nav-right">
@@ -242,45 +242,12 @@ export function UniversityClient() {
             <LiveCountdown />
           </div>
 
-          <div className="uni-cert-card">
-            <div className="uni-cert-top">
-              <div>
-                <div className="uni-cert-label">Upward University</div>
-                <div className="uni-cert-name">Business Executive</div>
-                <div className="uni-cert-role">Upward Certified · Real Estate Professional</div>
-              </div>
-              <div className="uni-seal-mini">
-                <span className="dot">
-                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M5 13l4 4L19 7"
-                      stroke="#15162B"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
-                Verified
-              </div>
-            </div>
-            <div className="uni-cert-rule"></div>
-            <div className="uni-cert-stats">
-              <div className="uni-cert-stat">
-                <div className="num">200</div>
-                <div className="lbl">Seats, 4 cities</div>
-              </div>
-              <div className="uni-cert-stat">
-                <div className="num">
-                  <em>₦10m+</em>
-                </div>
-                <div className="lbl">Annual income you build toward</div>
-              </div>
-              <div className="uni-cert-stat">
-                <div className="num">Certified</div>
-                <div className="lbl">Assessment-based, not attendance</div>
-              </div>
-            </div>
+          <div className="uni-hero-image-card">
+            <img
+              src="/university-logos/student.png"
+              alt="Upward University Student"
+              className="uni-hero-student-img"
+            />
           </div>
         </div>
       </section>
@@ -378,8 +345,8 @@ export function UniversityClient() {
                   <a href="https://www.instagram.com/p/DQ649WSjCf9/" target="_blank" rel="noopener noreferrer" title="Abuja Real Estate Fest">
                     <img src="/university-logos/Abuja Real Estate Fest.png" alt="Abuja Real Estate Fest" />
                   </a>
-                  <a href="https://www.instagram.com/p/DPrHzpHgg7v/" target="_blank" rel="noopener noreferrer">
-                    NIESV Summit
+                  <a href="https://www.instagram.com/p/DPrHzpHgg7v/" target="_blank" rel="noopener noreferrer" title="NIESV Summit">
+                    <img src="/university-logos/NIESV logo.png" alt="NIESV Summit" />
                   </a>
                   <a href="https://www.reda2026.thinkmint.eu/" target="_blank" rel="noopener noreferrer">
                     REDA 2026

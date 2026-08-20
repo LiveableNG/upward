@@ -467,6 +467,9 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/university') {
     return NextResponse.rewrite(new URL('/university.html', request.url))
   }
+  if (pathname === '/university/landlord') {
+    return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
+  }
 
   return NextResponse.next()
 }
@@ -477,6 +480,7 @@ export const config = {
     '/for-pm',
     '/for-landlord',
     '/university',
+    '/university/landlord',
     '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',
