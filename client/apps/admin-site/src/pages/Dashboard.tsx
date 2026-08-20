@@ -996,6 +996,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     isGuestOrUnsynced={usersSubtab === 'guest' || usersSubtab === 'unsynced'}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
+                    token={token}
                   />
                 )}
 

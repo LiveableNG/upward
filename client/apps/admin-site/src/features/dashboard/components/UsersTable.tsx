@@ -45,6 +45,7 @@ interface UsersTableProps {
   isGuestOrUnsynced?: boolean
   onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
+  token?: string
 }
 
 const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
@@ -167,6 +168,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   isGuestOrUnsynced,
   onPreview,
   onDeleteSelected,
+  token,
 }) => {
   const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
@@ -492,7 +494,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             await apiService.post(
               `/admin/users/sync-tenant/${item.uuid}`,
               {},
-              localStorage.getItem('upward_token') || '',
+              token || localStorage.getItem('upward_token') || '',
             )
             window.location.reload()
           } catch (err) {
