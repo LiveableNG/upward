@@ -26,7 +26,6 @@ credentials-json.json
 # Editor
 .vscode/
 .idea/
-.claude/
 *.swp
 *.swo
 
