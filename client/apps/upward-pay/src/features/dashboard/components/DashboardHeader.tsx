@@ -138,12 +138,18 @@ export function DashboardHeader({
               const isDashboardHome = pathname === '/dashboard' || pathname === '/dashboard/'
               const isMyHomeRoute =
                 pathname === '/dashboard/my-home' || !!pathname?.startsWith('/dashboard/my-home/')
+              const isPayRentRoute =
+                pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
+              const isTransactionsRoute =
+                pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
+              const isProfileRoute =
+                pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
               return (
                 <>
                   {!isDashboardHome ? (
                     <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
                   ) : null}
-                  {hasMyHome && !isMyHomeRoute ? (
+                  {hasMyHome && !isMyHomeRoute && !isPayRentRoute && !isTransactionsRoute && !isProfileRoute ? (
                     <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
                   ) : null}
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
