@@ -108,7 +108,6 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     if (!res.ok) {
       const error: any = new Error(data.message || 'Request failed')
       error.code = data.code
-      error.status = res.status
       error.data = data
       throw error
     }

@@ -38,14 +38,6 @@
   padding-bottom: 0;
 }
 
-.dashboard-layout--no-bottom-nav .dashboard-layout__content {
-  padding-bottom: 0;
-}
-
-.dashboard-layout--no-bottom-nav .dashboard--nav-offset {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
 .dashboard-layout--blocker .mobile-header-sticky {
   visibility: hidden;
 }
