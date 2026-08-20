@@ -50,7 +50,6 @@ export class PrismaUserRepository implements UserRepository {
         isVerified: !!p.isVerified || !!p.company?.platformId,
         isPmVerified: p.pm ? !!p.pm.isVerified : false,
         isPlatformLinked: !!p.company?.platformId,
-        externalUnitId: p.externalUnitId ?? undefined,
         isPastTenancy: p.isPastTenancy,
         verificationStatus: p.verificationStatus,
         rejectionReason: p.rejectionReason,

@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowDownRight,
   ArrowUpRight,
-  Building2,
   ChevronRight,
   Flame,
   History,
@@ -15,7 +14,6 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
@@ -161,10 +159,6 @@ export function DashboardHome({
 }: DashboardHomeProps) {
   const router = useRouter()
   const savingsEnabled = isSavingsWalletEnabled(user)
-  const hasMyHome = useHasMyHome()
-  const myHomeProperties = useMyHomeProperties()
-  const myHomePreview = myHomeProperties[0]?.unitName || myHomeProperties[0]?.label
-  const { bills: gtBills } = useAllPendingBills()
 
   if (isLoading) {
     return (
@@ -189,13 +183,9 @@ export function DashboardHome({
 
   const showActivityCenter =
     pendingPayments.length > 0 ||
-    gtBills.length > 0 ||
     isNewUser ||
     propertyReminders.length > 0 ||
     (verificationOn && !isIdentityVerified)
-
-  const activityCritical =
-    anyOverdue || gtBills.some((bill) => bill.proof_status?.toLowerCase() === 'rejected')
 
   const nudgeTitle =
     streak >= 3
@@ -232,31 +222,11 @@ export function DashboardHome({
         </span>
         <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
       </button>
-      {hasMyHome && (
-        <button
-          type="button"
-          className="dash-home__benefits-card dash-home__benefits-card--tenancy"
-          onClick={() => router.push('/dashboard/my-home')}
-        >
-          <span className="dash-home__benefits-card-icon">
-            <Building2 size={18} />
-          </span>
-          <span className="dash-home__benefits-card-body">
-            <span className="dash-home__benefits-card-title">My Home</span>
-            <span className="dash-home__benefits-card-desc">
-              {myHomePreview
-                ? `${myHomePreview} · Complaints, visitors, bills & documents`
-                : 'Complaints, visitors, bills, and documents for your tenancy'}
-            </span>
-          </span>
-          <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
-        </button>
-      )}
       {showActivityCenter && (
-        <div className={`dash-home__activity-center activity-center ${activityCritical ? 'activity-center--critical' : ''}`}>
+        <div className={`dash-home__activity-center activity-center ${anyOverdue ? 'activity-center--critical' : ''}`}>
           <div className="activity-center__header">
             <h3 className="activity-center__title">
-              {activityCritical ? 'CRITICAL ACTIONS' : 'Activity Center'}
+              {anyOverdue ? 'CRITICAL ACTIONS' : 'Activity Center'}
             </h3>
             <button
               type="button"
@@ -268,7 +238,6 @@ export function DashboardHome({
           </div>
           <ActionCarousel
             pendingPayments={pendingPayments}
-            gtBills={gtBills}
             showKYC={isNewUser}
             rentReminders={propertyReminders}
             isIdentityVerified={!verificationOn || isIdentityVerified}
