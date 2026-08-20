@@ -166,6 +166,7 @@ export class SingleInviteUseCase {
         phone: userData.phone,
         passwordHash: PASS_PLACEHOLDERS.INVITED,
         isFromInvite: true,
+        invitedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
@@ -283,6 +284,12 @@ export class SingleInviteUseCase {
         }
       }
 
+      const isFirstRent = rentData.isFirstRent !== undefined ? rentData.isFirstRent : true
+      const initialAmountPaid = rentData.initialAmountPaid ?? 0
+      const leaseYears = rentData.leaseYears ?? 1
+      const rentType = rentData.rentType || 'Annually'
+      const amountRemaining = Math.max(0, rentData.rentAmount - initialAmountPaid)
+
       if (property) {
         property = await this.propertyRepository.update(property.id!, {
           rentAmount: rentData.rentAmount,
@@ -290,7 +297,12 @@ export class SingleInviteUseCase {
           rentEndDate: new Date(rentData.rentEndDate),
           rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate,
           subaccountId: property.subaccountId,
-          amountRemaining: rentData.rentAmount,
+          amountPaid: initialAmountPaid,
+          amountRemaining,
+          isFirstRent,
+          initialAmountPaid,
+          leaseYears,
+          rentType,
           isVerified: true,
           platformId: platformId ?? property.platformId,
           externalUnitId: propData.externalUnitId ?? property.externalUnitId,
@@ -311,11 +323,40 @@ export class SingleInviteUseCase {
           externalUnitId: propData.externalUnitId,
           externalPropertyId: propData.externalPropertyId,
           subaccountId: undefined,
-          amountRemaining: rentData.rentAmount,
+          amountPaid: initialAmountPaid,
+          amountRemaining,
+          isFirstRent,
+          initialAmountPaid,
+          leaseYears,
+          rentType,
           isVerified: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         } as any)
+      }
+
+      if (initialAmountPaid > 0 && property.id) {
+        const periodStart = property.rentStartDate ? new Date(property.rentStartDate) : new Date()
+        const periodEnd = property.rentEndDate ? new Date(property.rentEndDate) : undefined
+
+        const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
+          where: { userPropertyId: property.id, notes: 'Initial Onboarding Payment' }
+        })
+        if (!existingRecord) {
+          await this.prisma.upward_platform_rent_payment.create({
+            data: {
+              userPropertyId: property.id,
+              amount: initialAmountPaid,
+              rentAmountAtPayment: rentData.rentAmount,
+              paymentDate: new Date(),
+              method: 'INITIAL_ONBOARDING',
+              status: 'SUCCESS',
+              notes: 'Initial Onboarding Payment',
+              periodStart,
+              periodEnd,
+            }
+          })
+        }
       }
 
 

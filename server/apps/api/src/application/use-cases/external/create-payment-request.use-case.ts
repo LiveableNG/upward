@@ -15,6 +15,7 @@ import { PaymentRequestCreatedEvent } from '../../events/definition/payment-requ
 import { PaymentRequestUpdatedEvent } from '../../events/definition/payment-request-updated.event'
 
 import { ExternalPaymentRequestPayloadDto as ExternalPaymentRequestPayload } from './external-api.dto'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 const frontendUrl = process.env['FRONTEND_URL']
 const urls = frontendUrl
@@ -35,6 +36,7 @@ export class CreateExternalPaymentRequestUseCase {
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
+    private readonly prisma: PrismaService,
   ) { }
 
   async execute(payload: ExternalPaymentRequestPayload, platformId: number): Promise<any> {
@@ -160,6 +162,26 @@ export class CreateExternalPaymentRequestUseCase {
         ))
       }
     } else {
+      // Check if there is an existing request that is already PARTIAL (partially paid)
+      const partialPR = await this.prisma.upward_payment_request.findFirst({
+        where: {
+          userPropertyId: property.id,
+          status: 'PARTIAL'
+        }
+      });
+      if (partialPR) {
+        throw new BadRequestException('An active payment request already has partial payments on it. Cannot override.');
+      }
+
+      await this.prisma.upward_payment_request.updateMany({
+        where: {
+          userPropertyId: property.id,
+          status: 'PENDING'
+        },
+        data: { status: 'CANCELLED' }
+      });
+      this.logger.log(`Cancelled any existing pending payment requests for userPropertyId ${property.id}`)
+
       paymentRequest = await this.paymentRequestRepository.create({
         userId: property.userId,
         userPropertyId: property.id,

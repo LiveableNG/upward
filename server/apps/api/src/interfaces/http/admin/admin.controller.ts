@@ -181,7 +181,7 @@ export class AdminController {
   }
 
   @Patch('pms/:uuid')
-  @Roles(AdminRole.DEVELOPER)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async updatePmDetail(
     @Param('uuid') uuid: string,
     @Body() data: any,

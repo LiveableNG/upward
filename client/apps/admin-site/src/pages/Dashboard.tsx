@@ -258,16 +258,24 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       }
     }
 
+    const invitedAt = item.invitedAt !== undefined ? item.invitedAt : item.rawRecord?.invitedAt || null
+    const joinedAt = item.joinedAt !== undefined ? item.joinedAt : item.rawRecord?.joinedAt || null
+    const createdAt = item.createdAt || item.rawRecord?.createdAt
+
     setDrawerEntity({
       kind: 'user',
       uuid: item.uuid,
-      name: `${item.firstName} ${item.lastName}`,
+      name: item.name || `${item.firstName || ''} ${item.lastName || ''}`.trim(),
       email: item.email,
       phone: item.phone,
       status: userStatus,
       type: userType,
-      joinedAt: item.createdAt,
+      invitedAt,
+      joinedAt,
+      createdAt,
       totalPaid: item.totalPaid,
+      transactions: item.transactions || [],
+      paymentRequests: item.paymentRequests || [],
     })
   }
 
@@ -338,6 +346,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
+        invitedAt: i.invitedAt || i.createdAt,
         joinedAt: i.joinedAt, // Mapped from backend
         origin: i.origin || 'INVITED_EMAIL',
         hasPassword: i.hasPassword ?? false,
@@ -990,8 +999,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     toggleSelectAllUsers={toggleSelectAllUsers}
                     toggleSelectUser={toggleSelectUser}
                     showFailureReason={usersSubtab === 'unsynced'}
+                    isGuestOrUnsynced={usersSubtab === 'guest' || usersSubtab === 'unsynced'}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
+                    token={token}
                   />
                 )}
 

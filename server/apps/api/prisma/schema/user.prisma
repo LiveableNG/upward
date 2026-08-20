@@ -16,6 +16,8 @@ model upward_user {
   dateOfBirth           String?
   isFromWaitlist        Boolean                          @default(false)
   isFromInvite          Boolean                          @default(false)
+  invitedAt             DateTime?
+  joinedAt              DateTime?
   profileSlug           String?                          @unique
   bio                   String?
   profilePic            String?

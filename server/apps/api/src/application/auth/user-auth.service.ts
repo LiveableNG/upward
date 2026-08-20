@@ -143,7 +143,11 @@ export class UserAuthService extends BaseAuthService {
     if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
       throw new Error('Phone number must be in format +2348000000000');
     }
-    const existing = await this.userRepository.findByEmail(dto.email)
+    let existing = await this.userRepository.findByEmail(dto.email)
+
+    if (!existing && dto.phone) {
+      existing = await this.userRepository.findByPhone(dto.phone)
+    }
 
     if (existing) {
       const isShadow = existing.passwordHash === PASS_PLACEHOLDERS.INVITED || 
@@ -152,8 +156,13 @@ export class UserAuthService extends BaseAuthService {
 
       if (isShadow || !existing.passwordHash) {
         const passwordHash = await bcrypt.hash(dto.password, 10)
+        const oldEmailHash = existing.emailHash
+        const newEmailHash = (this.userRepository as any).encryption.hash(dto.email)
+
         await this.userRepository.update(existing.id!, {
           passwordHash,
+          email: dto.email,
+          emailHash: newEmailHash,
           firstName: dto.firstName,
           lastName: dto.lastName,
           phone: dto.phone,
@@ -162,6 +171,17 @@ export class UserAuthService extends BaseAuthService {
           lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
           phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
         })
+
+        if (oldEmailHash && oldEmailHash !== newEmailHash) {
+          await this.prisma.upward_pm_tenant.updateMany({
+            where: { emailHash: oldEmailHash },
+            data: {
+              emailEncrypted: (this.userRepository as any).encryption.encrypt(dto.email),
+              emailHash: newEmailHash,
+            }
+          })
+        }
+
         const user = await this.userRepository.findByEmail(dto.email)
         if (!user) throw new Error('Failed to update user after invite conversion')
         

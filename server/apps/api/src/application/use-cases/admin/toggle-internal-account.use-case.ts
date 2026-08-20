@@ -23,13 +23,34 @@ export class ToggleInternalAccountUseCase {
         data: { isInternal },
       })
     } else if (type === 'guest') {
-      const guest = await this.prisma.upward_pm_tenant.findUnique({ where: { uuid } })
-      if (!guest) throw new NotFoundException('Guest not found')
+      const pmTenant = await this.prisma.upward_pm_tenant.findUnique({ where: { uuid } })
+      if (pmTenant) {
+        await this.prisma.upward_pm_tenant.update({
+          where: { uuid },
+          data: { isInternal },
+        })
+        return { success: true }
+      }
 
-      await this.prisma.upward_pm_tenant.update({
-        where: { uuid },
-        data: { isInternal },
-      })
+      const user = await this.prisma.upward_user.findUnique({ where: { uuid } })
+      if (user) {
+        await this.prisma.upward_user.update({
+          where: { uuid },
+          data: { isInternal },
+        })
+        return { success: true }
+      }
+
+      const waitlist = await this.prisma.upward_waitlist.findUnique({ where: { uuid } })
+      if (waitlist) {
+        await this.prisma.upward_waitlist.update({
+          where: { uuid },
+          data: { isInternal },
+        })
+        return { success: true }
+      }
+
+      throw new NotFoundException('Guest not found')
     } else if (type === 'company') {
       const company = await this.prisma.upward_company.findUnique({ where: { uuid } })
       if (!company) throw new NotFoundException('Company not found')

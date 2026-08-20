@@ -65,6 +65,7 @@ export class GetPerformanceMetricsUseCase {
           firstName: true,
           lastName: true,
           phone: true,
+          phoneHash: true,
           passwordHash: true,
           isFromWaitlist: true,
           isFromInvite: true,
@@ -76,18 +77,35 @@ export class GetPerformanceMetricsUseCase {
             select: { createdAt: true },
           },
           transactions: {
-            where: {
-              status: 'SUCCESS',
-              ...(startDate || endDate
-                ? {
-                    createdAt: {
-                      ...(startDate && { gte: new Date(startDate) }),
-                      ...(endDate && { lte: new Date(endDate) }),
-                    },
-                  }
-                : {}),
+            select: {
+              id: true,
+              uuid: true,
+              amount: true,
+              status: true,
+              reference: true,
+              lineItems: true,
+              createdAt: true,
             },
-            select: { amount: true, lineItems: true },
+          },
+          paymentRequests: {
+            select: {
+              id: true,
+              uuid: true,
+              amount: true,
+              amountPaid: true,
+              status: true,
+              dueDate: true,
+              createdAt: true,
+              lineItemRecords: {
+                select: {
+                  id: true,
+                  name: true,
+                  totalAmount: true,
+                  amountPaid: true,
+                  status: true,
+                },
+              },
+            },
           },
           properties: {
             select: {
@@ -366,21 +384,18 @@ export class GetPerformanceMetricsUseCase {
     const emailLogsInTimeframe = _results[8] as any[]
     const activityLogsCountInTimeframe = _results[9] as number
 
-    const waitlistEmails = new Set(allWaitlistEntries.map((w) => w.email.toLowerCase()))
-    const allUserEmailHashes = new Set(allUsers.map((u) => u.emailHash))
+    const isDummyEmail = (email: string) => {
+      if (!email) return true
+      const normalized = email.toLowerCase()
+      return (
+        normalized.includes('@upward.local') ||
+        normalized.includes('@upward.com') ||
+        normalized.startsWith('guest-') ||
+        normalized.includes('dummy')
+      )
+    }
 
-    const inviteChannelMap = new Map<string, 'EMAIL' | 'SMS' | 'WHATSAPP'>()
-    inviteLogs.forEach((log) => {
-      if (log.recipient) {
-        inviteChannelMap.set(log.recipient.toLowerCase(), log.channel as any)
-      }
-      if (log.email) {
-        inviteChannelMap.set(log.email.toLowerCase(), log.channel as any)
-      }
-    })
-
-    const userMap = new Map<string, any>()
-    allUsers.forEach((u) => {
+    const decryptedUsers = allUsers.map((u) => {
       let email = ''
       let firstName = ''
       let lastName = ''
@@ -398,20 +413,63 @@ export class GetPerformanceMetricsUseCase {
         phone = u.phone || ''
       }
 
-      userMap.set(u.emailHash, {
+      return {
         ...u,
         decryptedEmail: email,
         decryptedFirstName: firstName,
         decryptedLastName: lastName,
         decryptedPhone: phone,
-      })
+      }
+    })
+
+    const realUsersByPhone = new Map<string, any>()
+    decryptedUsers.forEach((u) => {
+      if (u.decryptedPhone && !isDummyEmail(u.decryptedEmail)) {
+        const cleanPhone = u.decryptedPhone.replace(/\D/g, '')
+        if (cleanPhone) {
+          realUsersByPhone.set(cleanPhone, u)
+        }
+      }
+    })
+
+    const mergedUsers: any[] = []
+    decryptedUsers.forEach((u) => {
+      if (isDummyEmail(u.decryptedEmail) && u.decryptedPhone) {
+        const cleanPhone = u.decryptedPhone.replace(/\D/g, '')
+        const realUser = realUsersByPhone.get(cleanPhone)
+        if (realUser && realUser.id !== u.id) {
+          realUser.transactions = [...(realUser.transactions || []), ...(u.transactions || [])]
+          realUser.properties = [...(realUser.properties || []), ...(u.properties || [])]
+          realUser.paymentRequests = [...(realUser.paymentRequests || []), ...(u.paymentRequests || [])]
+          return
+        }
+      }
+      mergedUsers.push(u)
+    })
+
+    const waitlistEmails = new Set(allWaitlistEntries.map((w) => w.email.toLowerCase()))
+    const allUserEmailHashes = new Set(mergedUsers.map((u) => u.emailHash))
+
+    const inviteChannelMap = new Map<string, 'EMAIL' | 'SMS' | 'WHATSAPP'>()
+    inviteLogs.forEach((log) => {
+      if (log.recipient) {
+        inviteChannelMap.set(log.recipient.toLowerCase(), log.channel as any)
+      }
+      if (log.email) {
+        inviteChannelMap.set(log.email.toLowerCase(), log.channel as any)
+      }
+    })
+
+    const userMap = new Map<string, any>()
+    mergedUsers.forEach((u) => {
+      userMap.set(u.emailHash, u)
     })
 
     const revenueMetrics = this.getRevenueMetrics.execute(successTransactions)
-    const waitlistMetrics = this.getWaitlistMetrics.execute(allUsers, allWaitlistEntries, userMap, allUserEmailHashes)
-    const signedUpMetrics = this.getSignedUpMetrics.execute(allUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap)
-    const invitedMetrics = this.getInvitedMetrics.execute(allUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap)
-    const pmMetrics = this.getPmMetrics.execute(allPms, allCompanies, successTransactions, allUsers)
+    const waitlistMetrics = this.getWaitlistMetrics.execute(mergedUsers, allWaitlistEntries, userMap, allUserEmailHashes)
+    const signedUpMetrics = this.getSignedUpMetrics.execute(mergedUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap)
+    const invitedMetrics = this.getInvitedMetrics.execute(mergedUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap)
+    const pmMetrics = this.getPmMetrics.execute(allPms, allCompanies, successTransactions, mergedUsers)
 
     const filterList = (list: any[]) => {
       if (!search) return list
