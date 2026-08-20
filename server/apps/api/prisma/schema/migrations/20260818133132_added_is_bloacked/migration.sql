@@ -10,12 +10,12 @@
 
 */
 -- AlterTable
--- ALTER TABLE "upward_pm_property" DROP COLUMN "landlordEmailEncrypted",
--- DROP COLUMN "landlordEmailHash",
--- DROP COLUMN "landlordNameEncrypted",
--- DROP COLUMN "landlordNameSearch",
--- DROP COLUMN "landlordPhoneEncrypted",
--- DROP COLUMN "landlordPhoneHash";
+ALTER TABLE "upward_pm_property" DROP COLUMN "landlordEmailEncrypted",
+DROP COLUMN "landlordEmailHash",
+DROP COLUMN "landlordNameEncrypted",
+DROP COLUMN "landlordNameSearch",
+DROP COLUMN "landlordPhoneEncrypted",
+DROP COLUMN "landlordPhoneHash";
 
 -- AlterTable
 ALTER TABLE "upward_property_manager" ADD COLUMN     "isBlocked" BOOLEAN NOT NULL DEFAULT false;

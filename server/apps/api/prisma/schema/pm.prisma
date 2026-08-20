@@ -108,12 +108,6 @@ model upward_pm_property {
   country       String                             @default("Nigeria")
   state         String?
   area          String?
-  landlordNameEncrypted  String?
-  landlordNameSearch     String?
-  landlordEmailEncrypted String?
-  landlordEmailHash      String?
-  landlordPhoneEncrypted String?
-  landlordPhoneHash      String?
   createdAt     DateTime                           @default(now())
   updatedAt     DateTime                           @updatedAt
   landlordId    Int?

@@ -26,11 +26,15 @@ model upward_user_property {
   externalPropertyId     String?
   externalUnitId         String?
   platformId             Int?
+  isFirstRent            Boolean                           @default(false)
+  initialAmountPaid      Float                             @default(0)
+  leaseYears             Int?                              @default(1)
   benefitsSubscriptions  upward_benefits_subscription[]
   dedicatedAccount       upward_dedicated_virtual_account?
   manualAccount          upward_manual_account?
   paymentProofs          upward_payment_proof[]
   paymentRequests        upward_payment_request[]
+  platformRentPayments   upward_platform_rent_payment[]
   infractions            upward_property_infraction[]
   inspections            upward_property_inspection[]
   rentCycles             upward_rent_cycle[]
@@ -45,6 +49,24 @@ model upward_user_property {
 
   @@unique([platformId, externalUnitId])
   @@index([platformId, externalPropertyId])
+}
+
+model upward_platform_rent_payment {
+  id                  Int                  @id @default(autoincrement())
+  uuid                String               @unique @default(uuid())
+  userPropertyId      Int
+  amount              Float
+  rentAmountAtPayment Float                @default(0)
+  paymentDate         DateTime             @default(now())
+  method              String               @default("PAYSTACK")
+  status              String               @default("SUCCESS")
+  notes               String?
+  periodStart         DateTime?
+  periodEnd           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  userProperty        upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
 }
 
 model upward_manual_account {
