@@ -22,15 +22,24 @@ export class GetSignedUpMetricsUseCase {
 
         let totalPaid = 0
         let benefitsPaid = 0
+        let lastPaidAt: Date | null = null
         u.transactions.forEach((tx: any) => {
-          totalPaid += tx.amount
-          if (tx.lineItems && Array.isArray(tx.lineItems)) {
-            tx.lineItems.forEach((item: any) => {
-              const name = item.name || item.label || ''
-              if (name === 'Upward Benefits') {
-                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+          if (tx.status === 'SUCCESS') {
+            totalPaid += tx.amount
+            if (tx.lineItems && Array.isArray(tx.lineItems)) {
+              tx.lineItems.forEach((item: any) => {
+                const name = item.name || item.label || ''
+                if (name === 'Upward Benefits') {
+                  benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                }
+              })
+            }
+            if (tx.createdAt) {
+              const txDate = new Date(tx.createdAt)
+              if (!lastPaidAt || txDate > lastPaidAt) {
+                lastPaidAt = txDate
               }
-            })
+            }
           }
         })
         const pmsMap = new Map<string, { uuid: string; name: string; propertyAddress?: string }>()
@@ -120,12 +129,15 @@ export class GetSignedUpMetricsUseCase {
           originType: origin,
           origin,
           hasPassword,
+          lastPaidAt: lastPaidAt ? (lastPaidAt as Date).toISOString() : null,
+          transactions: u.transactions || [],
+          paymentRequests: u.paymentRequests || [],
         }
       })
 
     const signedUpTotalCount = allUsers.length
     const allUsersPayments = allUsers.map((u) => {
-      const totalPaid = u.transactions.reduce((sum: number, tx: any) => sum + tx.amount, 0)
+      const totalPaid = u.transactions.reduce((sum: number, tx: any) => sum + (tx.status === 'SUCCESS' ? tx.amount : 0), 0)
       return { totalPaid, hasPaid: totalPaid > 0 }
     })
     const signedUpPayingCount = allUsersPayments.filter((u) => u.hasPaid).length

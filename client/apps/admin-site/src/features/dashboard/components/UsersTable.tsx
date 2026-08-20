@@ -12,6 +12,7 @@ export interface UnifiedUserRecord {
   phone: string
   createdAt: string
   joinedAt?: string | null
+  invitedAt?: string | null
   origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   hasPassword: boolean
   isExWaitlist: boolean

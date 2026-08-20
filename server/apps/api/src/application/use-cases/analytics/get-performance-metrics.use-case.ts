@@ -76,18 +76,35 @@ export class GetPerformanceMetricsUseCase {
             select: { createdAt: true },
           },
           transactions: {
-            where: {
-              status: 'SUCCESS',
-              ...(startDate || endDate
-                ? {
-                    createdAt: {
-                      ...(startDate && { gte: new Date(startDate) }),
-                      ...(endDate && { lte: new Date(endDate) }),
-                    },
-                  }
-                : {}),
+            select: {
+              id: true,
+              uuid: true,
+              amount: true,
+              status: true,
+              reference: true,
+              lineItems: true,
+              createdAt: true,
             },
-            select: { amount: true, lineItems: true },
+          },
+          paymentRequests: {
+            select: {
+              id: true,
+              uuid: true,
+              amount: true,
+              amountPaid: true,
+              status: true,
+              dueDate: true,
+              createdAt: true,
+              lineItemRecords: {
+                select: {
+                  id: true,
+                  name: true,
+                  totalAmount: true,
+                  amountPaid: true,
+                  status: true,
+                },
+              },
+            },
           },
           properties: {
             select: {

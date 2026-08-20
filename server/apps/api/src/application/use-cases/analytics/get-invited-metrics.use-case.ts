@@ -22,15 +22,24 @@ export class GetInvitedMetricsUseCase {
 
         let totalPaid = 0
         let benefitsPaid = 0
+        let lastPaidAt: Date | null = null
         u.transactions.forEach((tx: any) => {
-          totalPaid += tx.amount
-          if (tx.lineItems && Array.isArray(tx.lineItems)) {
-            tx.lineItems.forEach((item: any) => {
-              const name = item.name || item.label || ''
-              if (name === 'Upward Benefits') {
-                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+          if (tx.status === 'SUCCESS') {
+            totalPaid += tx.amount
+            if (tx.lineItems && Array.isArray(tx.lineItems)) {
+              tx.lineItems.forEach((item: any) => {
+                const name = item.name || item.label || ''
+                if (name === 'Upward Benefits') {
+                  benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                }
+              })
+            }
+            if (tx.createdAt) {
+              const txDate = new Date(tx.createdAt)
+              if (!lastPaidAt || txDate > lastPaidAt) {
+                lastPaidAt = txDate
               }
-            })
+            }
           }
         })
 
@@ -141,6 +150,9 @@ export class GetInvitedMetricsUseCase {
           origin,
           hasPassword,
           isSynced: true,
+          lastPaidAt: lastPaidAt ? (lastPaidAt as Date).toISOString() : null,
+          transactions: u.transactions || [],
+          paymentRequests: u.paymentRequests || [],
         }
       })
 

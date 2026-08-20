@@ -34,6 +34,9 @@ export interface SignedUpRecord {
   origin?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   hasPassword?: boolean
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
+  lastPaidAt?: string | null
+  transactions?: any[]
+  paymentRequests?: any[]
 }
 
 export interface InvitedRecord {
@@ -58,6 +61,9 @@ export interface InvitedRecord {
   benefitsPaid?: number
   hasPaidBenefits?: boolean
   failureReason?: string
+  lastPaidAt?: string | null
+  transactions?: any[]
+  paymentRequests?: any[]
 }
 
 export interface PmRecord {

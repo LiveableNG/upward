@@ -17,6 +17,8 @@ export type DrawerEntity = {
   transactionCount?: number
   totalPaid?: number
   propertyCount?: number
+  transactions?: any[]
+  paymentRequests?: any[]
 }
 
 interface PreviewDrawerProps {
@@ -226,6 +228,77 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                 </div>
               </div>
             </div>
+
+            {/* Payments & Transactions Breakdown */}
+            {entity.kind === 'user' && entity.transactions && entity.transactions.length > 0 && (
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+                <span className="section-label" style={{ display: 'block', marginBottom: '14px', fontWeight: 600, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Payments & Line Items Breakdown
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {entity.transactions.map((tx: any) => {
+                    const parsedLineItems = Array.isArray(tx.lineItems)
+                      ? tx.lineItems
+                      : typeof tx.lineItems === 'string'
+                      ? JSON.parse(tx.lineItems)
+                      : []
+                    return (
+                      <div key={tx.id} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', background: 'var(--surface-hover)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            {new Date(tx.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          <span style={{
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: tx.status === 'SUCCESS' ? 'var(--success-faint)' : tx.status === 'PENDING' ? 'var(--warning-faint)' : 'var(--danger-faint)',
+                            color: tx.status === 'SUCCESS' ? 'var(--success)' : tx.status === 'PENDING' ? 'var(--warning)' : 'var(--danger)'
+                          }}>
+                            {tx.status}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px dashed var(--border)', paddingBottom: '6px', marginBottom: '6px' }}>
+                          <span style={{ fontWeight: 600, fontSize: '13px' }}>₦{tx.amount.toLocaleString()}</span>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>Ref: {tx.reference}</span>
+                        </div>
+                        {parsedLineItems.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {parsedLineItems.map((item: any, idx: number) => {
+                              const name = item.name || item.label || 'Line Item'
+                              const amount = Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                              return (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+                                  <span style={{ color: 'var(--text-secondary)' }}>• {name}</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontWeight: 500 }}>₦{amount.toLocaleString()}</span>
+                                    <span style={{
+                                      fontSize: '9px',
+                                      fontWeight: 700,
+                                      padding: '1px 4px',
+                                      borderRadius: '3px',
+                                      background: tx.status === 'SUCCESS' ? 'var(--success-faint)' : 'var(--warning-faint)',
+                                      color: tx.status === 'SUCCESS' ? 'var(--success)' : 'var(--warning)'
+                                    }}>
+                                      {tx.status === 'SUCCESS' ? 'Paid in Full' : 'Pending'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            No line item details
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Footer CTA */}
             <div style={{ padding: '20px 24px', marginTop: 'auto' }}>
