@@ -61,6 +61,10 @@ import { GetWaitlistByEmailUseCase } from './use-cases/waitlist/get-waitlist-by-
 import { UnsubscribeWaitlistUseCase } from './use-cases/waitlist/unsubscribe-waitlist.use-case'
 import { SubmitStudentEarlyAccessUseCase } from './use-cases/early-access/submit-student-early-access.use-case'
 import { SubmitLandlordEarlyAccessUseCase } from './use-cases/early-access/submit-landlord-early-access.use-case'
+import {
+  GetEarlyAccessStatsUseCase,
+  GetEarlyAccessEntriesUseCase,
+} from './use-cases/early-access/get-early-access-admin.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
 import { CreateSessionUseCase } from './use-cases/sessions/create-session.use-case'
@@ -698,6 +702,8 @@ const UseCases = [
   GetSequenceLogsUseCase,
   SubmitStudentEarlyAccessUseCase,
   SubmitLandlordEarlyAccessUseCase,
+  GetEarlyAccessStatsUseCase,
+  GetEarlyAccessEntriesUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
   QueueDailySequencesUseCase,

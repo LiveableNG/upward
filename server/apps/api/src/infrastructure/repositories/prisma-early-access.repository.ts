@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
-import { IEarlyAccessRepository } from '../../domains/early-access/early-access.repository'
+import { IEarlyAccessRepository, EarlyAccessStats } from '../../domains/early-access/early-access.repository'
 import {
   EarlyAccessEntry,
   EarlyAccessProps,
@@ -59,15 +59,67 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
     return EarlyAccessEntry.restore(record as EarlyAccessProps)
   }
 
-  async findAll(params?: { type?: string }): Promise<EarlyAccessEntry[]> {
-    const where = params?.type ? { type: params.type } : {}
+  async findAll(params?: { type?: string; search?: string; limit?: number; offset?: number }): Promise<{ entries: EarlyAccessEntry[]; total: number }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const records = await (this.prisma as any).upward_early_access.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    })
+    const where: any = {}
+
+    if (params?.type && params.type !== 'ALL') {
+      where.type = params.type.toUpperCase()
+    }
+
+    if (params?.search && params.search.trim().length > 0) {
+      const query = params.search.trim()
+      where.OR = [
+        { name: { contains: query, mode: 'insensitive' } },
+        { email: { contains: query, mode: 'insensitive' } },
+        { whatsapp: { contains: query, mode: 'insensitive' } },
+        { city: { contains: query, mode: 'insensitive' } },
+      ]
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return records.map((record: any) => EarlyAccessEntry.restore(record as EarlyAccessProps))
+    const [records, total] = await Promise.all([
+      (this.prisma as any).upward_early_access.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: params?.limit || 50,
+        skip: params?.offset || 0,
+      }),
+      (this.prisma as any).upward_early_access.count({ where }),
+    ])
+
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      entries: records.map((record: any) => EarlyAccessEntry.restore(record as EarlyAccessProps)),
+      total,
+    }
+  }
+
+  async getStats(): Promise<EarlyAccessStats> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [totalSubmissions, studentCount, landlordCount, cityGroups] = await Promise.all([
+      (this.prisma as any).upward_early_access.count(),
+      (this.prisma as any).upward_early_access.count({ where: { type: 'STUDENT' } }),
+      (this.prisma as any).upward_early_access.count({ where: { type: 'LANDLORD' } }),
+      (this.prisma as any).upward_early_access.groupBy({
+        by: ['city'],
+        _count: { city: true },
+        orderBy: { _count: { city: 'desc' } },
+        take: 10,
+      }),
+    ])
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cityBreakdown = cityGroups.map((g: any) => ({
+      city: g.city || 'Unknown',
+      count: g._count.city,
+    }))
+
+    return {
+      totalSubmissions,
+      studentCount,
+      landlordCount,
+      cityBreakdown,
+    }
   }
 }
