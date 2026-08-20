@@ -516,7 +516,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       ).rejects.toThrow(BadRequestException)
 
       expect(prisma.upward_payment_request.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-        where: { userPropertyId: 100, status: 'PARTIAL' }
+        where: { userPropertyId: 30, status: 'PARTIAL' }
       }))
     })
 
@@ -529,7 +529,7 @@ describe('CreateExternalPaymentRequestUseCase', () => {
       )
 
       expect(prisma.upward_payment_request.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { userPropertyId: 100, status: 'PENDING' },
+        where: { userPropertyId: 30, status: 'PENDING' },
         data: { status: 'CANCELLED' }
       }))
     })
