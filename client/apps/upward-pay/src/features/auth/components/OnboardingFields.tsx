@@ -66,14 +66,13 @@ export function OnboardingFields({ formData, setFormData, disabled = false }: On
             </div>
           </div>
           <div className="auth-form__field auth-u-mt-4">
-            <label>Email Address</label>
+            <label>Email Address <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>(Optional)</span></label>
             <div className="input-with-icon">
               <Mail size={17} />
               <input
                 type="email"
                 value={formData.email && (formData.email.endsWith('@upward.com') || formData.email.includes('@upward.local')) ? '' : formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
-                required
                 disabled={disabled}
                 placeholder="your@email.com"
               />
