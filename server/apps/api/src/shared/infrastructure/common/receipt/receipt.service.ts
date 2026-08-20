@@ -262,7 +262,6 @@ export class ReceiptService {
         .fillColor('white')
         .text(dateStr, 0, 202, { width: W, align: 'center' })
 
-      const SCALLOP_R = 13
       const numScallops = Math.floor(W / (SCALLOP_R * 2))
       const scallopsW = numScallops * SCALLOP_R * 2
       const scallopsStartX = (W - scallopsW) / 2
