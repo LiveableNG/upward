@@ -42,7 +42,7 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
@@ -139,10 +139,32 @@
         .roi-ring::before {
             content: '';
             position: absolute;
-            inset: 14px;
-            background: #f0fdf4;
+            inset: 12px;
             border-radius: 50%;
+            background: #fff;
         }
+
+        /* Upward University Mobile Popup Modal */
+        .uni-modal-overlay { position:fixed; inset:0; z-index:9998; background:rgba(15,23,42,0.45); backdrop-filter:blur(4px); opacity:0; visibility:hidden; transition:opacity 0.25s ease, visibility 0.25s ease; }
+        .uni-modal-overlay.is-open { opacity:1; visibility:visible; }
+        .uni-modal { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top-left-radius:24px; border-top-right-radius:24px; padding:24px 20px 32px; z-index:9999; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.16,1,0.3,1); box-shadow:0 -10px 40px rgba(0,0,0,0.15); max-width:500px; margin:0 auto; box-sizing:border-box; }
+        @media(min-width:640px){
+            .uni-modal { bottom:auto; top:50%; left:50%; right:auto; transform:translate(-50%,-45%) scale(0.95); border-radius:24px; width:90%; opacity:0; visibility:hidden; transition:transform 0.25s ease, opacity 0.25s ease, visibility 0.25s ease; }
+            .uni-modal.is-open { transform:translate(-50%,-50%) scale(1); opacity:1; visibility:visible; }
+        }
+        @media(max-width:639px){ .uni-modal.is-open { transform:translateY(0); } }
+        .uni-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+        .uni-modal-title { font-weight:700; font-size:18px; color:#0f172a; margin:0; }
+        .uni-modal-close { background:#f1f5f9; border:none; width:32px; height:32px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:14px; cursor:pointer; }
+        .uni-modal-close:hover { background:#e2e8f0; color:#0f172a; }
+        .uni-modal-subtitle { font-size:13.5px; color:#64748b; margin:0 0 16px 0; }
+        .uni-modal-text-item { display:block; padding:14px 0; border-top:1px solid #f1f5f9; text-decoration:none; }
+        .uni-modal-text-item:first-child { border-top:none; padding-top:4px; }
+        .uni-modal-text-title { display:flex; align-items:center; justify-content:space-between; font-weight:700; font-size:15px; color:#0f172a; margin-bottom:4px; transition:color 0.15s ease; }
+        .uni-modal-text-title i { font-size:12px; color:#64748b; transition:transform 0.15s ease, color 0.15s ease; }
+        .uni-modal-text-item:hover .uni-modal-text-title { color:#166534; }
+        .uni-modal-text-item:hover .uni-modal-text-title i { color:#166534; transform:translateX(3px); }
+        .uni-modal-text-desc { font-size:13px; color:#64748b; line-height:1.45; margin:0; font-weight:400; }
 
         .roi-ring-label {
             position: relative;
@@ -417,6 +439,21 @@
                 </a>
                 <div class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
                     <a href="/request-a-home" class="hover:text-forest-600 transition-colors">Request a Home</a>
+                    <div class="relative group py-2">
+                        <a href="/university" class="uni-nav-trigger hover:text-forest-600 transition-colors flex items-center gap-1.5 font-bold text-forest-600">
+                            Upward University <span class="bg-forest-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none">NEW</span> <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                        </a>
+                        <div class="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-72 bg-white rounded-2xl p-2.5 shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 before:absolute before:-top-4 before:left-0 before:right-0 before:h-4">
+                            <a href="/university" class="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors no-underline">
+                                <b class="block text-slate-900 font-bold text-sm mb-0.5">Real Estate Executive Business Course</b>
+                                <span class="block text-xs text-slate-500 font-normal leading-relaxed">Learn Property Management + Brokerage, get Upward Certified, and build a business or career.</span>
+                            </a>
+                            <a href="/university/landlord" class="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors no-underline">
+                                <b class="block text-slate-900 font-bold text-sm mb-0.5">Free Landlord Programme</b>
+                                <span class="block text-xs text-slate-500 font-normal leading-relaxed">Protect your income and property with free, practical training for landlords.</span>
+                            </a>
+                        </div>
+                    </div>
                     <a href="/for-landlord" class="text-forest-600 font-bold">Landlords</a>
                     <a href="/for-pm" class="hover:text-forest-600 transition-colors">Property Managers</a>
                     <a href="/blog" class="hover:text-forest-600 transition-colors">Blog</a>
@@ -456,6 +493,10 @@
         </div>
         <nav class="flex flex-col gap-6 text-lg font-semibold text-slate-800">
             <a href="/request-a-home" class="hover:text-forest-600 transition-colors">Request a Home</a>
+            <button type="button" class="uni-nav-trigger flex items-center justify-between w-full hover:text-forest-600 transition-colors text-left font-semibold text-slate-800 border-none bg-transparent p-0">
+                <span>Upward University <span class="bg-forest-600 text-white text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider leading-none ml-1">NEW</span></span>
+                <i class="fa-solid fa-chevron-right text-sm text-slate-400"></i>
+            </button>
             <a href="/for-landlord" class="text-forest-600 font-bold">Landlords</a>
             <a href="/for-pm" class="hover:text-forest-600 transition-colors">Property Managers</a>
             <a href="/blog" class="hover:text-forest-600 transition-colors">Blog</a>
@@ -668,50 +709,68 @@
     </main>
 
     <!-- Universal Footer -->
-    <footer id="footer" class="bg-slate-950 text-slate-400 py-16 px-4">
-        <div class="max-w-3xl mx-auto text-center space-y-6">
-            <div class="flex items-center justify-center gap-2 text-white">
-                <div class="w-8 h-8 bg-forest-50 rounded-lg flex items-center justify-center">
-                    <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain" />
+    <footer id="footer" class="bg-white text-slate-500 py-14 px-6 sm:px-12 border-t border-slate-200">
+        <div class="max-w-[1440px] mx-auto">
+            <div class="flex flex-col lg:flex-row justify-between gap-12 mb-10">
+                <div class="max-w-xs">
+                    <div class="flex items-center gap-2 text-slate-900 mb-3">
+                        <div class="w-8 h-8 bg-forest-50 rounded-lg flex items-center justify-center border border-forest-100">
+                            <img src="/favicon.svg" alt="Upward" class="w-[70%] h-[70%] object-contain" />
+                        </div>
+                        <span class="text-xl font-extrabold tracking-tight text-slate-900">UPWARD</span>
+                    </div>
+                    <p class="text-sm leading-relaxed text-slate-500 mb-4">Africa's first credit-building platform dedicated to making housing
+                        affordable and accessible for the next generation of homeowners.</p>
+                    <div class="flex items-center gap-4 text-base">
+                        <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer"
+                            aria-label="X (formerly Twitter)" class="text-slate-500 hover:text-forest-600 transition-colors">
+                            <i class="fa-brands fa-x-twitter"></i>
+                        </a>
+                        <a href="https://www.tiktok.com/@useupward" target="_blank" rel="noopener noreferrer"
+                            aria-label="TikTok" class="text-slate-500 hover:text-forest-600 transition-colors">
+                            <i class="fa-brands fa-tiktok"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer"
+                            aria-label="LinkedIn" class="text-slate-500 hover:text-forest-600 transition-colors">
+                            <i class="fa-brands fa-linkedin-in"></i>
+                        </a>
+                    </div>
                 </div>
-                <span class="text-xl font-bold tracking-tight">UPWARD</span>
+
+                <div class="flex flex-wrap gap-12 sm:gap-16">
+                    <div>
+                        <b class="block text-slate-900 text-xs font-bold uppercase tracking-wider mb-3.5">Product</b>
+                        <div class="flex flex-col gap-2.5 text-sm">
+                            <a href="/request-a-home" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Request a Home</a>
+                            <a href="/for-landlord" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Landlords</a>
+                            <a href="/for-pm" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Property Managers</a>
+                            <a href="/blog" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Blog</a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <b class="block text-slate-900 text-xs font-bold uppercase tracking-wider mb-3.5">Legal</b>
+                        <div class="flex flex-col gap-2.5 text-sm">
+                            <a href="/legal/privacy" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Privacy Policy</a>
+                            <a href="/legal/terms" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Terms of Use</a>
+                            <a href="/legal/cookies" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Cookie Policy</a>
+                            <a href="/legal/notice" class="text-slate-500 hover:text-forest-600 transition-colors no-underline">Legal Notice</a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <b class="block text-slate-900 text-xs font-bold uppercase tracking-wider mb-3.5">Contact</b>
+                        <div class="flex flex-col gap-2.5 text-sm">
+                            <a href="mailto:hello@goodtenants.africa" class="text-slate-500 hover:text-forest-600 transition-colors no-underline"><i class="fa-solid fa-envelope mr-1.5"></i> hello@goodtenants.africa</a>
+                            <a href="tel:09040969943" class="text-slate-500 hover:text-forest-600 transition-colors no-underline"><i class="fa-solid fa-phone mr-1.5"></i> 09040969943</a>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <p class="text-sm leading-relaxed">Africa's first credit-building platform dedicated to making housing
-                affordable and accessible for the next generation of homeowners.</p>
-            <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-                <a href="mailto:hello@goodtenants.africa"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">hello@goodtenants.africa</a>
-                <a href="tel:09040969943"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">09040969943</a>
-            </div>
-            <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-                <a href="https://x.com/useupward" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
-                    <i class="fa-brands fa-x-twitter"></i> Twitter
-                </a>
-                <a href="https://www.tiktok.com/@useupward" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
-                    <i class="fa-brands fa-tiktok"></i> TikTok
-                </a>
-                <a href="https://www.linkedin.com/company/useupward/" target="_blank" rel="noopener noreferrer"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline flex items-center gap-2">
-                    <i class="fa-brands fa-linkedin-in"></i> LinkedIn
-                </a>
-            </div>
-            <nav aria-label="Legal" class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
-                <a href="/blog"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Blog</a>
-                <a href="/legal/privacy"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Privacy Policy</a>
-                <a href="/legal/terms"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Terms of Use</a>
-                <a href="/legal/cookies"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Cookie Policy</a>
-                <a href="/legal/notice"
-                    class="text-slate-400 hover:text-forest-400 transition-colors no-underline">Legal Notice</a>
-            </nav>
-            <div class="pt-6 border-t border-slate-900 text-xs">
-                <p>© 2026 Upward by GoodTenants. All rights reserved. Registered in Nigeria.</p>
+
+            <div class="pt-6 border-t border-slate-200 flex flex-col sm:flex-row justify-between gap-4 text-xs text-slate-500">
+                <div>© 2026 Upward by GoodTenants. All rights reserved. Registered in Nigeria.</div>
+                <div>Built for Nigerian renters, landlords &amp; property managers.</div>
             </div>
         </div>
     </footer>
@@ -770,10 +829,39 @@
         </button>
     </div>
 
+    <!-- Upward University Mobile Popup Modal -->
+    <div id="uni-modal-overlay" class="uni-modal-overlay" aria-hidden="true"></div>
+    <div id="uni-modal" class="uni-modal" role="dialog" aria-modal="true" aria-labelledby="uni-modal-title" aria-hidden="true">
+        <div class="uni-modal-header">
+            <h3 id="uni-modal-title" class="uni-modal-title">Upward University</h3>
+            <button type="button" id="uni-modal-close" class="uni-modal-close" aria-label="Close modal">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <p class="uni-modal-subtitle">Select a programme to explore:</p>
+        <div class="uni-modal-options">
+            <a href="/university" class="uni-modal-text-item">
+                <div class="uni-modal-text-title">
+                    <span>Real Estate Executive Business Course</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+                <p class="uni-modal-text-desc">Learn Property Management + Brokerage, get Upward Certified, and build a business or career.</p>
+            </a>
+            <a href="/university/landlord" class="uni-modal-text-item">
+                <div class="uni-modal-text-title">
+                    <span>Free Landlord Programme</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+                <p class="uni-modal-text-desc">Protect your income and property with free, practical training for landlords.</p>
+            </a>
+        </div>
+    </div>
+
     <script>
         const mobileMenu = document.getElementById('mobile-menu');
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const mobileMenuClose = document.getElementById('mobile-menu-close');
+
         function setMenuOpen(open) {
             if (!mobileMenu || !mobileMenuToggle) return;
             mobileMenu.classList.toggle('is-open', open);
@@ -783,6 +871,38 @@
         }
         mobileMenuToggle?.addEventListener('click', () => setMenuOpen(true));
         mobileMenuClose?.addEventListener('click', () => setMenuOpen(false));
+
+        // Upward University Mobile Modal Trigger
+        const uniTriggers = document.querySelectorAll('.uni-nav-trigger');
+        const uniModal = document.getElementById('uni-modal');
+        const uniOverlay = document.getElementById('uni-modal-overlay');
+        const uniClose = document.getElementById('uni-modal-close');
+
+        function setUniModalOpen(open) {
+            if (!uniModal || !uniOverlay) return;
+            uniModal.classList.toggle('is-open', open);
+            uniOverlay.classList.toggle('is-open', open);
+            if (open) {
+                if (mobileMenu && mobileMenu.classList.contains('is-open')) {
+                    setMenuOpen(false);
+                }
+                document.body.style.overflow = 'hidden';
+            } else {
+                updateBodyScrollLock();
+            }
+        }
+
+        uniTriggers.forEach(trig => {
+            trig.addEventListener('click', (e) => {
+                if (window.innerWidth <= 1080) {
+                    e.preventDefault();
+                    setUniModalOpen(true);
+                }
+            });
+        });
+
+        uniClose?.addEventListener('click', () => setUniModalOpen(false));
+        uniOverlay?.addEventListener('click', () => setUniModalOpen(false));
 
         const contactUsBtn = document.getElementById('contact-us-btn');
         const contactDrawer = document.getElementById('contact-drawer');

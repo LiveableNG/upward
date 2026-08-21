@@ -129,6 +129,41 @@
   color: var(--landing-terracotta-600);
 }
 
+.marketing-header__dropdown-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #1e293b;
+  transition: background-color 0.15s ease;
+}
+
+.marketing-header__dropdown-item:hover,
+.marketing-header__dropdown-item:focus-visible {
+  background-color: var(--landing-terracotta-50, #fdf8f6);
+  outline: none;
+}
+
+.marketing-header__dropdown-title {
+  display: block;
+  font-size: 13.5px;
+  color: #0f172a;
+  margin-bottom: 2px;
+  transition: color 0.15s ease;
+}
+
+.marketing-header__dropdown-item:hover .marketing-header__dropdown-title {
+  color: #d97757;
+}
+
+.marketing-header__dropdown-desc {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 400;
+  line-height: 1.35;
+  display: block;
+}
+
 .marketing-header__actions {
   display: flex;
   align-items: center;
@@ -284,32 +319,44 @@
 
 /* Footer */
 .marketing-footer {
-  background: var(--landing-slate-950);
-  color: var(--landing-slate-400);
-  padding: 4rem 1rem;
+  background: #ffffff;
+  color: var(--landing-slate-600, #475569);
+  border-top: 1px solid var(--landing-sand, #e2e8f0);
+  padding: 3.5rem 1.5rem 2.25rem;
+  font-size: 0.84375rem;
 }
 
-.marketing-footer__inner {
-  max-width: 48rem;
+.marketing-footer__container {
+  max-width: 72rem;
   margin: 0 auto;
-  text-align: center;
+}
+
+.marketing-footer__top {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.25rem;
+}
+
+.marketing-footer__brand-col {
+  max-width: 20rem;
 }
 
 .marketing-footer__brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 0.5rem;
-  color: #fff;
+  color: #0f172a;
+  text-decoration: none;
+  margin-bottom: 0.75rem;
 }
 
 .marketing-footer__logo {
   width: 2rem;
   height: 2rem;
-  background: var(--landing-terracotta-50);
+  background: #fff5f2;
+  border: 1px solid #fed7aa;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -324,51 +371,72 @@
 
 .marketing-footer__name {
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.025em;
+  color: #0f172a;
 }
 
 .marketing-footer__tagline {
-  font-size: 0.875rem;
+  font-size: 0.84375rem;
   line-height: 1.6;
+  color: #64748b;
+  margin-bottom: 1.125rem;
 }
 
-.marketing-footer__contact,
-.marketing-footer__socials,
-.marketing-footer__legal {
+.marketing-footer__socials {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem 1.5rem;
-  font-size: 0.875rem;
-}
-
-.marketing-footer__contact a,
-.marketing-footer__socials a,
-.marketing-footer__legal a {
-  color: var(--landing-slate-400);
-  text-decoration: none;
-  transition: color 0.2s;
+  gap: 1rem;
 }
 
 .marketing-footer__socials a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
+  color: #64748b;
+  transition: color 0.15s ease;
+  font-size: 1rem;
+  text-decoration: none;
 }
 
-.marketing-footer__contact a:hover,
-.marketing-footer__socials a:hover,
-.marketing-footer__legal a:hover,
-.marketing-footer__legal a.is-active {
-  color: var(--landing-terracotta-400);
+.marketing-footer__socials a:hover {
+  color: var(--landing-terracotta-600, #d97757);
 }
 
-.marketing-footer__copy {
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--landing-slate-900);
+.marketing-footer__cols {
+  display: flex;
+  gap: 3.75rem;
+  flex-wrap: wrap;
+}
+
+.marketing-footer__col b {
+  display: block;
+  color: #0f172a;
   font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.875rem;
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 700;
+}
+
+.marketing-footer__col a {
+  display: block;
+  color: #64748b;
+  text-decoration: none;
+  margin-bottom: 0.625rem;
+  transition: color 0.15s ease;
+}
+
+.marketing-footer__col a:hover {
+  color: var(--landing-terracotta-600, #d97757);
+}
+
+.marketing-footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+  font-size: 0.78125rem;
+  color: #64748b;
 }
 
 /* Page typography */
