@@ -6,6 +6,8 @@ import {
 import { EarlyAccessEntry } from '../../../domains/early-access/early-access.entity'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { buildGlobalLayoutHtml } from '../../../shared/infrastructure/email/email.helper'
+import { SmsService } from '../../../shared/infrastructure/sms/sms.service'
+import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service'
 
 export interface SubmitLandlordEarlyAccessCommand {
   name: string
@@ -25,6 +27,8 @@ export class SubmitLandlordEarlyAccessUseCase {
     @Inject(EARLY_ACCESS_REPOSITORY)
     private readonly earlyAccessRepo: IEarlyAccessRepository,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
+    private readonly whatsappService: WhatsappService,
   ) {}
 
   async execute(command: SubmitLandlordEarlyAccessCommand): Promise<EarlyAccessEntry> {
@@ -41,48 +45,41 @@ export class SubmitLandlordEarlyAccessUseCase {
 
     const saved = await this.earlyAccessRepo.save(entry)
 
-    // 1. Send applicant confirmation email
-    if (command.email) {
+    const firstName = command.name.trim().split(' ')[0] || 'Landlord'
+
+    if (command.whatsapp) {
       try {
-        const firstName = command.name.trim().split(' ')[0] || 'Landlord'
-        const contentHtml = `
-          <p style="margin-top: 0;">Dear <strong>${firstName}</strong>,</p>
-          <p>Thank you for registering for the <strong>Upward Landlord Micro-Course & Management Programme</strong> in <strong>${command.city}</strong>.</p>
-          <div style="background-color: #fdfcfb; border-left: 4px solid #0d4d2b; padding: 16px 20px; margin: 20px 0; border-radius: 4px; border: 1px solid #e8e6e1;">
-            <p style="margin: 0 0 8px 0; font-weight: 600; color: #0d4d2b;">Your Registration Summary:</p>
-            <ul style="margin: 0; padding-left: 20px; color: #334155;">
-              <li><strong>Status:</strong> ${command.landlordStatus}</li>
-              <li><strong>Property Portfolio:</strong> ${command.propertyCount} properties</li>
-              <li><strong>Management Style:</strong> ${command.managementStyle}</li>
-              <li><strong>City:</strong> ${command.city}</li>
-            </ul>
-          </div>
-          <p>Your micro-course lessons will be delivered directly to your WhatsApp inbox (<code>${command.whatsapp}</code>). You will learn how to optimize rental yields, assure consistent tenant payments, and leverage Upward Certified property managers.</p>
-          <p style="margin-bottom: 0;">Sincerely,<br><strong>The Upward Landlord Programme Team</strong></p>
-        `
-
-        const html = buildGlobalLayoutHtml({
-          role: 'LANDLORD',
-          title: 'Welcome to the Upward Landlord Programme',
-          contentHtml,
-          logoText: 'UPWARD',
-          logoSub: 'LANDLORD PROGRAMME',
-          buttonText: 'View Landlord Programme Details',
-          buttonUrl: 'https://upward.goodtenants.io/university/landlord',
-        })
-
-        await this.emailService.sendEmailWithRetry({
-          email: command.email,
-          subject: 'Upward Landlord Programme – Early Access Confirmed 🏠',
-          html,
-          type: 'LANDLORD_EARLY_ACCESS',
+        await this.whatsappService.sendMessage({
+          to: command.whatsapp,
+          template: {
+            name: 'upward_university_waitlist',
+            languageCode: 'en_US',
+            components: [
+              {
+                type: 'body',
+                parameters: [
+                  { type: 'text', text: firstName },
+                ],
+              },
+            ],
+          },
         })
       } catch (err) {
-        this.logger.error(`Failed to send landlord early access email to ${command.email}`, err)
+        this.logger.error(`Failed to send WhatsApp template to landlord ${command.whatsapp}`, err)
+      }
+
+      try {
+        const smsMessage = `Hi ${firstName}, welcome to the Upward Landlord Waitlist! Your spot is reserved. We'll send updates on WhatsApp shortly.`
+
+        await this.smsService.sendSms({
+          to: command.whatsapp,
+          message: smsMessage,
+        })
+      } catch (err) {
+        this.logger.error(`Failed to send SMS message to landlord ${command.whatsapp}`, err)
       }
     }
 
-    // 2. Send Admin System Notification
     try {
       const adminMessage = `
         <div style="font-family: sans-serif; line-height: 1.6; color: #333;">

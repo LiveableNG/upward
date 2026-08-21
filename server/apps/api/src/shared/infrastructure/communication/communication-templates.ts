@@ -226,6 +226,15 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       }),
   },
 
+  STUDENT_WAITLIST_CONFIRMATION: {
+    recipientRole: 'TENANT',
+    subjectTemplate: "You're on the list — here's what happens next",
+    plainTextTemplate:
+      'Hi {{firstName}}, welcome to the Upward University Waitlist! Thank you for signing up and taking the first step toward building a ₦10M+ property management business.',
+    whatsappTemplateName: 'upward_university_waitlist',
+    whatsappParams: ['firstName'],
+  },
+
   DATA_DELETION_REQUEST: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Confirm your data deletion request',

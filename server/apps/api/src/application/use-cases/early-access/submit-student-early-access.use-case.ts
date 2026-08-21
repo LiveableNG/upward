@@ -47,22 +47,19 @@ export class SubmitStudentEarlyAccessUseCase {
         const firstName = command.name.trim().split(' ')[0] || 'there'
         const contentHtml = `
           <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
-          <p>Thank you for registering for early access to the <strong>Upward University Founding Cohort 2026</strong> in <strong>${command.city}</strong>.</p>
-          <div style="background-color: #f9fafb; border-left: 4px solid #d97757; padding: 16px 20px; margin: 20px 0; border-radius: 4px;">
-            <p style="margin: 0 0 8px 0; font-weight: 600; color: #111827;">Cohort Application Highlights:</p>
-            <ul style="margin: 0; padding-left: 20px; color: #4b5563;">
-              <li><strong>Track:</strong> Property Management + Real Estate Brokerage (Dual Specialization)</li>
-              <li><strong>City:</strong> ${command.city} (Hybrid Practical Onsite Training)</li>
-              <li><strong>Applications Open:</strong> August 28, 2026</li>
-            </ul>
-          </div>
-          <p>We have reserved a priority position for you in the <strong>${command.city}</strong> cohort. As soon as applications go live on August 28, we will send direct notifications to your WhatsApp (<code>${command.whatsapp}</code>) and this email address.</p>
-          <p style="margin-bottom: 0;">Warm regards,<br><strong>The Upward University Team</strong></p>
+          <p><strong>Welcome to the Upward University Waitlist!</strong></p>
+          <p>Thank you for signing up and taking the first step toward building a ₦10M+ property management business.</p>
+          <p>Upward helps responsible tenants build a verifiable rental reputation by tracking rent payments and other relevant rental information. This can help tenants access benefits such as rent financing, rewards, discounts, and exclusive homes.</p>
+          <p>For landlords and property managers, Upward provides reliable tenant information, including tenant verification, rental history, payment behaviour, and Tenant Scores to help them make smarter rental decisions.</p>
+          <p>We have a record of supported reputable firms, including <strong>Diya Fatimilehin & Co.</strong>, <strong>Estatelinks</strong>, and many others, with their property management operations.</p>
+          <p>We’re excited to have you on the waitlist. Stay tuned as we share more information about the programme, what to expect, and how you can begin your journey toward building a ₦10M+ property management business.</p>
+          <p><strong>Welcome to Upward University.</strong></p>
+          <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Team</strong></p>
         `
 
         const html = buildGlobalLayoutHtml({
           role: 'TENANT',
-          title: "You're on the Early Access List for Upward University",
+          title: 'Welcome to the Upward University Waitlist',
           contentHtml,
           logoText: 'UPWARD',
           logoSub: 'UNIVERSITY',
@@ -72,7 +69,7 @@ export class SubmitStudentEarlyAccessUseCase {
 
         await this.emailService.sendEmailWithRetry({
           email: command.email,
-          subject: 'Welcome to Upward University – Early Access Confirmed 🚀',
+          subject: "You're on the list — here's what happens next",
           html,
           type: 'STUDENT_EARLY_ACCESS',
         })
