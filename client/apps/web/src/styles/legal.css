@@ -129,6 +129,41 @@
   color: var(--landing-terracotta-600);
 }
 
+.marketing-header__dropdown-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #1e293b;
+  transition: background-color 0.15s ease;
+}
+
+.marketing-header__dropdown-item:hover,
+.marketing-header__dropdown-item:focus-visible {
+  background-color: var(--landing-terracotta-50, #fdf8f6);
+  outline: none;
+}
+
+.marketing-header__dropdown-title {
+  display: block;
+  font-size: 13.5px;
+  color: #0f172a;
+  margin-bottom: 2px;
+  transition: color 0.15s ease;
+}
+
+.marketing-header__dropdown-item:hover .marketing-header__dropdown-title {
+  color: #d97757;
+}
+
+.marketing-header__dropdown-desc {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 400;
+  line-height: 1.35;
+  display: block;
+}
+
 .marketing-header__actions {
   display: flex;
   align-items: center;

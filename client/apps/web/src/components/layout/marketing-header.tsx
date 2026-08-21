@@ -1,13 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 
 export function MarketingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [uniDropdownOpen, setUniDropdownOpen] = useState(false)
   const [uniModalOpen, setUniModalOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const showBlog = 'true'
 
   useEffect(() => {
@@ -16,20 +15,6 @@ export function MarketingHeader() {
       document.body.style.overflow = ''
     }
   }, [mobileMenuOpen, uniModalOpen])
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setUniDropdownOpen(false)
-      }
-    }
-    if (uniDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [uniDropdownOpen])
 
   return (
     <>
@@ -47,13 +32,18 @@ export function MarketingHeader() {
               <Link href="/request-a-home">Request a Home</Link>
               
               <div
-                ref={dropdownRef}
                 className="marketing-header__dropdown-container"
                 style={{
                   position: 'relative',
                   display: 'inline-flex',
                   alignItems: 'center',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  marginTop: '-8px',
+                  marginBottom: '-8px',
                 }}
+                onMouseEnter={() => setUniDropdownOpen(true)}
+                onMouseLeave={() => setUniDropdownOpen(false)}
               >
                 <button
                   type="button"
@@ -116,35 +106,23 @@ export function MarketingHeader() {
                     />
                     <Link
                       href="/university"
-                      style={{
-                        display: 'block',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        textDecoration: 'none',
-                        color: '#1e293b',
-                      }}
+                      className="marketing-header__dropdown-item"
                     >
-                      <strong style={{ display: 'block', fontSize: '13.5px', color: '#0f172a', marginBottom: '2px' }}>
+                      <strong className="marketing-header__dropdown-title">
                         Real Estate Executive Business Course
                       </strong>
-                      <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 400, lineHeight: 1.35, display: 'block' }}>
+                      <span className="marketing-header__dropdown-desc">
                         Learn Property Management + Brokerage, get Upward Certified, and build a business or career.
                       </span>
                     </Link>
                     <Link
                       href="/university/landlord"
-                      style={{
-                        display: 'block',
-                        padding: '10px 12px',
-                        borderRadius: '10px',
-                        textDecoration: 'none',
-                        color: '#1e293b',
-                      }}
+                      className="marketing-header__dropdown-item"
                     >
-                      <strong style={{ display: 'block', fontSize: '13.5px', color: '#0f172a', marginBottom: '2px' }}>
+                      <strong className="marketing-header__dropdown-title">
                         Free Landlord Programme
                       </strong>
-                      <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 400, lineHeight: 1.35, display: 'block' }}>
+                      <span className="marketing-header__dropdown-desc">
                         Protect your income and property with free, practical training for landlords.
                       </span>
                     </Link>
