@@ -91,15 +91,12 @@ export function UniversityLandlordClient() {
       <header className="uni-header">
         <nav className="uni-wrap uni-nav">
           <Link href="/university" className="uni-logo">
-            <span className="uni-logo-mark">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 3L4 10v11h5v-6h6v6h5V10L12 3z"
-                  stroke="#FDFBF5"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <span className="mark">
+              <img
+                src="/university-logos/upward_university_logo.jpeg"
+                alt="Upward University Logo"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '7px' }}
+              />
             </span>
             <div>
               UPWARD

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.jpeg">
 <style>
   :root{
     --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
@@ -250,12 +251,12 @@
 
   .featured-on{ margin-top:30px; padding-top:26px; border-top:1px solid var(--sand); }
   .featured-on .fo-label{ font-family:var(--mono); font-size:10.5px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; color:var(--rust); margin-bottom:16px; }
-  .fo-items{ display:flex; gap:22px; flex-wrap:wrap; align-items:center; }
-  .fo-items a, .fo-items span{ font-size:14px; font-weight:700; color:var(--ink-soft); text-decoration:none; display:inline-flex; align-items:center; }
-  .fo-items a:not(:has(img)){ color:var(--ink); border-bottom:1.5px solid var(--rust-light); padding-bottom:1px; transition:opacity .15s ease; }
-  .fo-items a:not(:has(img)):hover{ opacity:0.7; }
-  .fo-items img{ height:32px; width:auto; max-width:140px; object-fit:contain; filter:none !important; opacity:1 !important; transition:transform .2s ease, opacity .2s ease; }
+  .fo-items{ display:flex; gap:20px 24px; flex-wrap:wrap; align-items:flex-end; }
+  .fo-items a, .fo-items span{ font-size:14px; font-weight:700; color:var(--ink-soft); text-decoration:none; display:inline-flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
+  .fo-items .fo-name{ font-family:var(--mono); font-size:9.5px; font-weight:600; letter-spacing:0.04em; color:var(--ink-soft); text-transform:uppercase; max-width:110px; line-height:1.2; }
+  .fo-items img{ height:32px; width:auto; max-width:120px; object-fit:contain; filter:none !important; opacity:1 !important; transition:transform .2s ease; }
   .fo-items a:hover img, .fo-items span:hover img{ transform:translateY(-2px); }
+  .fo-items a:hover .fo-name{ color:var(--rust); }
   @media (max-width:700px){ .featured-on{ text-align:center; } .fo-items{ justify-content:center; } }
 
   .faculty-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-top:10px; }
@@ -333,7 +334,7 @@
 <header>
   <nav class="wrap">
     <div class="logo">
-      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 10v11h5v-6h6v6h5V10L12 3z" stroke="#FDFBF5" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+      <span class="mark"><img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;border-radius:7px;"></span>
       <div>UPWARD<br><small>University</small></div>
     </div>
     <div class="nav-links" id="navLinks">
@@ -435,7 +436,9 @@
       <h2>Built by people who build.</h2>
     </div>
     <div class="founder-card">
-      <div class="founder-avatar">AJ</div>
+      <div class="founder-avatar" style="overflow:hidden; padding:0;">
+        <img src="/university-logos/kunle.png" alt="Adekunle Jinadu" style="width:100%; height:100%; object-fit:cover;" />
+      </div>
       <div>
         <div class="founder-name">Adekunle Jinadu</div>
         <div class="founder-role">Founder, Upward &amp; GoodTenants</div>
@@ -448,32 +451,18 @@
         <div class="featured-on">
           <div class="fo-label">As Featured On / Spoken At</div>
           <div class="fo-items" id="foItems">
-            <a href="https://www.instagram.com/p/DQ649WSjCf9/" target="_blank" rel="noopener" title="Abuja Real Estate Fest"><img src="/university-logos/Abuja Real Estate Fest.png" alt="Abuja Real Estate Fest"></a>
-            <a href="https://www.instagram.com/p/DPrHzpHgg7v/" target="_blank" rel="noopener" title="NIESV Summit"><img src="/university-logos/NIESV logo.png" alt="NIESV Summit"></a>
-            <a href="https://www.reda2026.thinkmint.eu/" target="_blank" rel="noopener">REDA 2026</a>
-            <a href="https://www.youtube.com/watch?v=KL4pg73NOG0" target="_blank" rel="noopener" title="Channels TV"><img src="/university-logos/Channels-Logo-650-350.jpg" alt="Channels TV"></a>
-            <a href="https://nahfis.com/wp-content/uploads/2025/11/2025-AHFIS-AGENDA-3.pdf" target="_blank" rel="noopener" title="NAHFIS 2025"><img src="/university-logos/AHFIS.png" alt="NAHFIS 2025"></a>
-            <a href="https://harscoglobal.com/2024/12/16/experts-highlight-technology-and-infrastructure-as-key-to-transforming-nigerias-property-sector/" target="_blank" rel="noopener" title="Harsco Global"><img src="/university-logos/HARSCO.jpg" alt="Harsco Global"></a>
-            <a href="https://www.linkedin.com/posts/queenesohe_innovationexchangeprogram-axamansard-demoday-ugcPost-7404143170999013376-omb4/" target="_blank" rel="noopener" title="AXA Mansard Innovation Exchange"><img src="/university-logos/AXA.png" alt="AXA Mansard"></a>
-            <a href="https://www.instagram.com/p/DODuYjijPCC/" target="_blank" rel="noopener" title="Real Estate Today · Ubosi Eleh"><img src="/university-logos/Real Estate Today.jpg" alt="Real Estate Today"></a>
-            <span title="AfRES / IRES 24th Annual Conference"><img src="/university-logos/AfRES Logo.jpg" alt="AfRES Conference"></span>
+            <a href="https://www.instagram.com/p/DQ649WSjCf9/" target="_blank" rel="noopener" title="Abuja Real Estate Fest"><img src="/university-logos/Abuja Real Estate Fest.png" alt="Abuja Real Estate Fest"><span class="fo-name">Abuja RE Fest</span></a>
+            <a href="https://www.instagram.com/p/DPrHzpHgg7v/" target="_blank" rel="noopener" title="NIESV Summit"><img src="/university-logos/NIESV logo.png" alt="NIESV Summit"><span class="fo-name">NIESV Summit</span></a>
+            <a href="https://www.reda2026.thinkmint.eu/" target="_blank" rel="noopener" title="REDA 2026"><img src="/university-logos/REDA Awards.png" alt="REDA 2026"><span class="fo-name">REDA 2026</span></a>
+            <a href="https://www.youtube.com/watch?v=KL4pg73NOG0" target="_blank" rel="noopener" title="Channels TV"><img src="/university-logos/Channels-Logo-650-350.jpg" alt="Channels TV"><span class="fo-name">Channels TV</span></a>
+            <a href="https://nahfis.com/wp-content/uploads/2025/11/2025-AHFIS-AGENDA-3.pdf" target="_blank" rel="noopener" title="NAHFIS 2025"><img src="/university-logos/AHFIS.png" alt="NAHFIS 2025"><span class="fo-name">NAHFIS 2025</span></a>
+            <a href="https://harscoglobal.com/2024/12/16/experts-highlight-technology-and-infrastructure-as-key-to-transforming-nigerias-property-sector/" target="_blank" rel="noopener" title="Harsco Global"><img src="/university-logos/HARSCO.jpg" alt="Harsco Global"><span class="fo-name">Harsco Global</span></a>
+            <a href="https://www.linkedin.com/posts/queenesohe_innovationexchangeprogram-axamansard-demoday-ugcPost-7404143170999013376-omb4/" target="_blank" rel="noopener" title="AXA Mansard Innovation Exchange"><img src="/university-logos/AXA.png" alt="AXA Mansard"><span class="fo-name">AXA Mansard</span></a>
+            <a href="https://www.instagram.com/p/DODuYjijPCC/" target="_blank" rel="noopener" title="Real Estate Today · Ubosi Eleh"><img src="/university-logos/Real Estate Today.jpg" alt="Real Estate Today"><span class="fo-name">Real Estate Today</span></a>
+            <span title="AfRES / IRES 24th Annual Conference"><img src="/university-logos/AfRES Logo.jpg" alt="AfRES Conference"><span class="fo-name">AfRES Conference</span></span>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</section>
-
-<section data-reveal>
-  <div class="wrap">
-    <div class="sec-head center">
-      <span class="eyebrow">Faculty &amp; Practitioners</span>
-      <h2>Learn from people<br>who actually do the work.</h2>
-    </div>
-    <div class="faculty-grid">
-      <div class="faculty-card"><div class="faculty-avatar"></div><div class="faculty-name">Faculty profile 1</div><div class="faculty-role">Title / Company</div><div class="faculty-credline">One strong credibility line</div><p class="faculty-placeholder-note">Add once instructor participation is confirmed.</p></div>
-      <div class="faculty-card"><div class="faculty-avatar"></div><div class="faculty-name">Faculty profile 2</div><div class="faculty-role">Title / Company</div><div class="faculty-credline">One strong credibility line</div><p class="faculty-placeholder-note">Add once instructor participation is confirmed.</p></div>
-      <div class="faculty-card"><div class="faculty-avatar"></div><div class="faculty-name">Faculty profile 3</div><div class="faculty-role">Title / Company</div><div class="faculty-credline">One strong credibility line</div><p class="faculty-placeholder-note">Add once instructor participation is confirmed.</p></div>
     </div>
   </div>
 </section>
@@ -718,7 +707,7 @@
         <p style="margin-top:10px; color:var(--ink-soft); font-size:14.5px;">A free practical programme for landlords who want better returns, better protection, and better property management.</p>
       </div>
       <div style="text-align:right;">
-        <a href="/for-landlord.html" class="btn btn-outline">Learn for Free</a>
+        <a href="/university/landlord" class="btn btn-outline">Learn for Free</a>
       </div>
     </div>
   </div>
