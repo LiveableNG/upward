@@ -5,7 +5,7 @@ import { UniversityClient } from './UniversityClient'
 export const metadata: Metadata = {
   title: 'Upward University — Build Your Future in Real Estate',
   description:
-    'Become a Tech-driven Real Estate. Build towards ₦10m+ a year in income with Property Management + Brokerage training built for the Nigerian market.',
+    'Become a Tech-driven Real Estate Business Executive. Build towards ₦10m+ a year in income with Property Management + Brokerage training built for the Nigerian market.',
   alternates: {
     canonical: '/university',
   },
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Upward University — Build Your Future in Real Estate',
     description:
-      'Become a Tech-driven Real Estate. Build towards ₦10m+ a year in income with Property Management + Brokerage training.',
+      'Become a Tech-driven Real Estate Business Executive. Build towards ₦10m+ a year in income with Property Management + Brokerage training.',
     url: '/university',
   },
 }

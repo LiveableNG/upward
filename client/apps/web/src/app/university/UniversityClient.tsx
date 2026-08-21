@@ -259,7 +259,7 @@ export function UniversityClient() {
               Founding Cohort 2026 · Lagos · Abuja · Port Harcourt · Oyo
             </span>
             <h1>
-              Become a <em className="accent">Tech-driven Real Estate.</em>
+              Become a <em className="accent">Tech-driven Real Estate Business Executive.</em>
             </h1>
             <p className="uni-startgrow">
               Build towards ₦10m+ a year in income. Start part-time. Grow full-time.
