@@ -33,7 +33,15 @@ export function MarketingHeader() {
               
               <div
                 className="marketing-header__dropdown-container"
-                style={{ position: 'relative' }}
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  marginTop: '-8px',
+                  marginBottom: '-8px',
+                }}
                 onMouseEnter={() => setUniDropdownOpen(true)}
                 onMouseLeave={() => setUniDropdownOpen(false)}
               >
@@ -77,7 +85,7 @@ export function MarketingHeader() {
                       top: '100%',
                       left: '50%',
                       transform: 'translateX(-50%)',
-                      marginTop: '8px',
+                      marginTop: '4px',
                       width: '280px',
                       background: '#ffffff',
                       borderRadius: '16px',
@@ -87,6 +95,15 @@ export function MarketingHeader() {
                       zIndex: 100,
                     }}
                   >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-16px',
+                        left: 0,
+                        right: 0,
+                        height: '16px',
+                      }}
+                    />
                     <Link
                       href="/university"
                       style={{

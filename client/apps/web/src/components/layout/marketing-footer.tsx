@@ -79,7 +79,6 @@ export function MarketingFooter() {
             <div className="marketing-footer__col">
               <b>Product</b>
               <Link href="/request-a-home">Request a Home</Link>
-              <Link href="/university">Upward University</Link>
               <Link href="/for-landlord">Landlords</Link>
               <Link href="/for-pm">Property Managers</Link>
               <Link href="/blog">Blog</Link>

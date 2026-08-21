@@ -187,6 +187,15 @@
             z-index: 70;
         }
 
+        .dropdown::before {
+            content: '';
+            position: absolute;
+            top: -24px;
+            left: 0;
+            right: 0;
+            height: 24px;
+        }
+
         .nav-item:hover .dropdown,
         .nav-item.open .dropdown {
             opacity: 1;
