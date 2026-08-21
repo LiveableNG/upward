@@ -196,14 +196,11 @@ export function UniversityClient() {
         <nav className="uni-wrap uni-nav">
           <a href="/university" className="uni-logo">
             <span className="mark">
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 3L4 10v11h5v-6h6v6h5V10L12 3z"
-                  stroke="#FDFBF5"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <img
+                src="/university-logos/upward_university_logo.jpeg"
+                alt="Upward University Logo"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '7px' }}
+              />
             </span>
             <div>
               UPWARD
@@ -360,7 +357,13 @@ export function UniversityClient() {
             <h2>Built by people who build.</h2>
           </div>
           <div className="uni-founder-card">
-            <div className="uni-founder-avatar">AJ</div>
+            <div className="uni-founder-avatar" style={{ overflow: 'hidden', padding: 0 }}>
+              <img
+                src="/university-logos/kunle.png"
+                alt="Adekunle Jinadu"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
             <div>
               <div className="uni-founder-name">Adekunle Jinadu</div>
               <div className="uni-founder-role">Founder, Upward &amp; GoodTenants</div>
@@ -379,30 +382,39 @@ export function UniversityClient() {
                 <div className="uni-fo-items">
                   <a href="https://www.instagram.com/p/DQ649WSjCf9/" target="_blank" rel="noopener noreferrer" title="Abuja Real Estate Fest">
                     <img src="/university-logos/Abuja Real Estate Fest.png" alt="Abuja Real Estate Fest" />
+                    <span className="uni-fo-name">Abuja RE Fest</span>
                   </a>
                   <a href="https://www.instagram.com/p/DPrHzpHgg7v/" target="_blank" rel="noopener noreferrer" title="NIESV Summit">
                     <img src="/university-logos/NIESV logo.png" alt="NIESV Summit" />
+                    <span className="uni-fo-name">NIESV Summit</span>
                   </a>
-                  <a href="https://www.reda2026.thinkmint.eu/" target="_blank" rel="noopener noreferrer">
-                    REDA 2026
+                  <a href="https://www.reda2026.thinkmint.eu/" target="_blank" rel="noopener noreferrer" title="REDA 2026">
+                    <img src="/university-logos/REDA Awards.png" alt="REDA 2026" />
+                    <span className="uni-fo-name">REDA 2026</span>
                   </a>
                   <a href="https://www.youtube.com/watch?v=KL4pg73NOG0" target="_blank" rel="noopener noreferrer" title="Channels TV">
                     <img src="/university-logos/Channels-Logo-650-350.jpg" alt="Channels TV" />
+                    <span className="uni-fo-name">Channels TV</span>
                   </a>
                   <a href="https://nahfis.com/wp-content/uploads/2025/11/2025-AHFIS-AGENDA-3.pdf" target="_blank" rel="noopener noreferrer" title="NAHFIS 2025">
                     <img src="/university-logos/AHFIS.png" alt="NAHFIS 2025" />
+                    <span className="uni-fo-name">NAHFIS 2025</span>
                   </a>
                   <a href="https://harscoglobal.com/2024/12/16/experts-highlight-technology-and-infrastructure-as-key-to-transforming-nigerias-property-sector/" target="_blank" rel="noopener noreferrer" title="Harsco Global">
                     <img src="/university-logos/HARSCO.jpg" alt="Harsco Global" />
+                    <span className="uni-fo-name">Harsco Global</span>
                   </a>
                   <a href="https://www.linkedin.com/posts/queenesohe_innovationexchangeprogram-axamansard-demoday-ugcPost-7404143170999013376-omb4/" target="_blank" rel="noopener noreferrer" title="AXA Mansard Innovation Exchange">
                     <img src="/university-logos/AXA.png" alt="AXA Mansard" />
+                    <span className="uni-fo-name">AXA Mansard</span>
                   </a>
                   <a href="https://www.instagram.com/p/DODuYjijPCC/" target="_blank" rel="noopener noreferrer" title="Real Estate Today · Ubosi Eleh">
                     <img src="/university-logos/Real Estate Today.jpg" alt="Real Estate Today" />
+                    <span className="uni-fo-name">Real Estate Today</span>
                   </a>
                   <span title="AfRES / IRES 24th Annual Conference">
                     <img src="/university-logos/AfRES Logo.jpg" alt="AfRES Conference" />
+                    <span className="uni-fo-name">AfRES Conference</span>
                   </span>
                 </div>
               </div>

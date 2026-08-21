@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/university/landlord',
   },
+  icons: {
+    icon: '/university-logos/upward_university_logo.jpeg',
+    shortcut: '/university-logos/upward_university_logo.jpeg',
+    apple: '/university-logos/upward_university_logo.jpeg',
+  },
   openGraph: {
     title: 'Upward Landlord Programme — Protect Your Income & Property',
     description:
