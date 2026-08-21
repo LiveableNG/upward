@@ -13,7 +13,7 @@ type LocationMultiSelectProps = {
   value: RequestHomeLocation[]
   onChange: (locations: RequestHomeLocation[]) => void
 }
-
+  
 export function LocationMultiSelect({ value, onChange }: LocationMultiSelectProps) {
   const listId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
