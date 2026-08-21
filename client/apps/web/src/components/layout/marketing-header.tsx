@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export function MarketingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [uniDropdownOpen, setUniDropdownOpen] = useState(false)
   const [uniModalOpen, setUniModalOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const showBlog = 'true'
 
   useEffect(() => {
@@ -15,6 +16,20 @@ export function MarketingHeader() {
       document.body.style.overflow = ''
     }
   }, [mobileMenuOpen, uniModalOpen])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUniDropdownOpen(false)
+      }
+    }
+    if (uniDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [uniDropdownOpen])
 
   return (
     <>
@@ -32,18 +47,13 @@ export function MarketingHeader() {
               <Link href="/request-a-home">Request a Home</Link>
               
               <div
+                ref={dropdownRef}
                 className="marketing-header__dropdown-container"
                 style={{
                   position: 'relative',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  paddingTop: '8px',
-                  paddingBottom: '8px',
-                  marginTop: '-8px',
-                  marginBottom: '-8px',
                 }}
-                onMouseEnter={() => setUniDropdownOpen(true)}
-                onMouseLeave={() => setUniDropdownOpen(false)}
               >
                 <button
                   type="button"
