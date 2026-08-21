@@ -18,6 +18,8 @@ export interface User {
   savingsWalletEnabled?: boolean
   isFromWaitlist: boolean
   isFromInvite: boolean
+  invitedAt?: Date | null
+  joinedAt?: Date | null
   profilePic?: string | null
   profileSlug?: string | null
   bio?: string | null

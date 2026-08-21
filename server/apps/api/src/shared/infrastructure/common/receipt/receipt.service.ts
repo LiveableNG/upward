@@ -82,8 +82,50 @@ export class ReceiptService {
 
   private renderReceiptPdf(data: ReceiptPdfData, logoBuffer?: Buffer): Promise<Buffer> {
     return new Promise((resolve, reject) => {
+      const W = 595.28
+      const HERO_H = 295
+      const SCALLOP_R = 13
+      const ROW_H = 58
+      const BREAKDOWN_ROW_H = 32
+
+      const rows: { label: string; value: string; bold?: boolean }[] = [
+        { label: 'Tenant', value: data.tenantName },
+        { label: 'Receipt No.', value: data.receiptNumber },
+        { label: 'Channel', value: data.channel },
+      ]
+
+      const hasBreakdown = data.lineItems && data.lineItems.length > 0
+      const breakdownDesc = hasBreakdown
+        ? `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
+        : data.propertyName || data.propertyAddress || ''
+
+      if (data.type === 'RENT') {
+        rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
+        if (data.tenancyPeriod) {
+          rows.push({ label: 'Tenancy Period', value: data.tenancyPeriod })
+        }
+      }
+      if (data.type === 'RENT' && data.landlordName) {
+        rows.push({ label: 'Recipient', value: data.landlordName })
+      }
+      if (data.propertyAddress && !hasBreakdown && data.type !== 'RENT') {
+        rows.push({ label: 'Address', value: data.propertyAddress })
+      }
+
+      rows.push({
+        label: 'Paystack Reference',
+        value: data.reference,
+        bold: true,
+      })
+
+      const CARD_H =
+        rows.length * ROW_H + (hasBreakdown ? data.lineItems!.length * BREAKDOWN_ROW_H + 50 : 16)
+
+      const dynamicH = HERO_H + SCALLOP_R + 4 + CARD_H + 40
+      const H = dynamicH
+
       const doc = new PDFDocument({
-        size: 'A4',
+        size: [W, dynamicH],
         margin: 0,
         info: { Title: `Receipt ${data.receiptNumber}` },
       })
@@ -93,9 +135,6 @@ export class ReceiptService {
       doc.on('end', () => resolve(Buffer.concat(buffers)))
       doc.on('error', reject)
 
-      const W = 595.28
-      const H = 841.89
-
       const clay = data.themeColor || '#d97757'
       const dark = '#0a0a0f'
       const textSecondary = '#4a4642'
@@ -104,10 +143,7 @@ export class ReceiptService {
       const borderSolid = '#e2ddd7'
       const white = '#ffffff'
 
-
       doc.rect(0, 0, W, H).fill(oat)
-
-      const HERO_H = 295
       doc.rect(0, 0, W, HERO_H).fill(clay)
 
       doc.save()
@@ -226,7 +262,6 @@ export class ReceiptService {
         .fillColor('white')
         .text(dateStr, 0, 202, { width: W, align: 'center' })
 
-      const SCALLOP_R = 13
       const numScallops = Math.floor(W / (SCALLOP_R * 2))
       const scallopsW = numScallops * SCALLOP_R * 2
       const scallopsStartX = (W - scallopsW) / 2
@@ -242,42 +277,6 @@ export class ReceiptService {
       const CARD_X = 36
       const CARD_Y = HERO_H + SCALLOP_R + 4
       const CARD_W = W - 72
-
-      const rows: { label: string; value: string; bold?: boolean }[] = [
-        { label: 'Tenant', value: data.tenantName },
-        { label: 'Receipt No.', value: data.receiptNumber },
-        { label: 'Channel', value: data.channel },
-      ]
-
-      const hasBreakdown = data.lineItems && data.lineItems.length > 0
-      const breakdownDesc = hasBreakdown
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
-        : data.propertyName || data.propertyAddress || ''
-
-      if (data.type === 'RENT') {
-        rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
-        if (data.tenancyPeriod) {
-          rows.push({ label: 'Tenancy Period', value: data.tenancyPeriod })
-        }
-      }
-      if (data.type === 'RENT' && data.landlordName) {
-        rows.push({ label: 'Recipient', value: data.landlordName })
-      }
-      if (data.propertyAddress && !hasBreakdown && data.type !== 'RENT') {
-        rows.push({ label: 'Address', value: data.propertyAddress })
-      }
-
-      rows.push({
-        label: 'Paystack Reference',
-        value: data.reference,
-        bold: true,
-      })
-
-      const ROW_H = 58
-      const BREAKDOWN_ROW_H = 32
-      const CARD_H =
-        rows.length * ROW_H + (hasBreakdown ? data.lineItems!.length * BREAKDOWN_ROW_H + 50 : 16)
 
       doc.roundedRect(CARD_X, CARD_Y, CARD_W, CARD_H, 14).fill(white)
 

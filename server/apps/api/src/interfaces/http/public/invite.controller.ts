@@ -199,14 +199,30 @@ export class InviteController {
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10)
+    const oldEmailHash = user.emailHash
+    const newEmail = data.email || user.email
+    const newEmailHash = (this.userRepository as any).encryption.hash(newEmail)
 
     await this.userRepository.update(user.id!, {
       passwordHash,
       firstName: data.firstName || user.firstName,
       lastName: data.lastName || user.lastName,
-      email: data.email || user.email,
+      email: newEmail,
+      emailHash: newEmailHash,
+      joinedAt: new Date(),
     })
-    await this.userAuthService.syncTenantStatuses(user.email)
+
+    if (data.email && oldEmailHash && oldEmailHash !== newEmailHash) {
+      await this.prisma.upward_pm_tenant.updateMany({
+        where: { emailHash: oldEmailHash },
+        data: {
+          emailEncrypted: (this.userRepository as any).encryption.encrypt(newEmail),
+          emailHash: newEmailHash,
+        }
+      })
+    }
+
+    await this.userAuthService.syncTenantStatuses(newEmail)
     this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification on invite accept', e))
 
     const updatedUser = await this.userRepository.findById(user.id!)

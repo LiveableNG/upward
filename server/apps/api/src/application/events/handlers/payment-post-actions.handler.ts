@@ -135,7 +135,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
              }
           }
  
-          if (data.platformId && data.externalUnitId) {
+          if (data.platformId) {
              await this.publishWebhookEvent(data)
           }
  

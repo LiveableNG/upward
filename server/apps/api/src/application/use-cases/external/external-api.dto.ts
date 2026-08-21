@@ -87,6 +87,22 @@ export class RentInfoDto {
 
   @IsDateString()
   rentEndDate!: string
+
+  @IsOptional()
+  @IsBoolean()
+  isFirstRent?: boolean
+
+  @IsOptional()
+  @IsNumber()
+  initialAmountPaid?: number
+
+  @IsOptional()
+  @IsNumber()
+  leaseYears?: number
+
+  @IsOptional()
+  @IsString()
+  rentType?: string
 }
 
 export class ManagerInfoDto {

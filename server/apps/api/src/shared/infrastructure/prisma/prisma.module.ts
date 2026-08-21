@@ -41,7 +41,10 @@ import { PrismaPmLetterheadRepository } from './repositories/prisma-pm-letterhea
 import { PrismaPmSignatureRepository } from './repositories/prisma-pm-signature.repository'
 import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whatsapp-sequence.repository'
 
+import { PrismaEarlyAccessRepository } from '../../../infrastructure/repositories/prisma-early-access.repository'
+
 import { PaystackGateway } from '../payments/paystack.gateway'
+import { EARLY_ACCESS_REPOSITORY } from '../../../domains/early-access/early-access.repository'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {
@@ -239,6 +242,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: BULK_IMPORT_JOB_REPOSITORY,
       useClass: PrismaBulkImportJobRepository,
     },
+    {
+      provide: EARLY_ACCESS_REPOSITORY,
+      useClass: PrismaEarlyAccessRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -280,6 +287,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     EMAIL_SEQUENCE_REPOSITORY,
     WHATSAPP_SEQUENCE_REPOSITORY,
     BULK_IMPORT_JOB_REPOSITORY,
+    EARLY_ACCESS_REPOSITORY,
   ],
 })
 export class PrismaModule {}

@@ -126,6 +126,10 @@ export class PrismaPropertyRepository implements PropertyRepository {
       platformId: property.platformId,
       externalUnitId: property.externalUnitId,
       externalPropertyId: property.externalPropertyId,
+      isFirstRent: property.isFirstRent,
+      initialAmountPaid: property.initialAmountPaid,
+      leaseYears: property.leaseYears,
+      rentType: property.rentType,
     }
     if (property.subaccountId !== undefined) {
       data.subaccountId = property.subaccountId

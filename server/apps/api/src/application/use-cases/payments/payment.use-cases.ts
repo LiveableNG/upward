@@ -110,6 +110,7 @@ export class CreateManualPaymentRequestUseCase {
     private readonly lineItemRepo: IPaymentLineItemRepository,
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
+    private readonly prisma: PrismaService,
   ) { }
 
   async execute(data: {
@@ -167,6 +168,17 @@ export class CreateManualPaymentRequestUseCase {
       const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
       if (prop) {
         userPropertyId = prop.id
+
+        const activePr = await this.prisma.upward_payment_request.findFirst({
+          where: {
+            userPropertyId: prop.id,
+            status: { in: ['PENDING', 'PARTIAL'] }
+          }
+        })
+        if (activePr) {
+          throw new BadRequestException('An active payment request already exists for this property.')
+        }
+
         let startD = prop.rentStartDate ? new Date(prop.rentStartDate) : null
         let endD = prop.rentEndDate ? new Date(prop.rentEndDate) : null
 
@@ -630,17 +642,25 @@ export class RecordTransactionUseCase {
     if (isVerified && result.status === 'SUCCESS') {
       let userProperty: any = null
       if (pr && pr.userPropertyId) {
-        userProperty = await this.prisma.upward_user_property.findUnique({ where: { id: pr.userPropertyId } })
+        userProperty = await this.prisma.upward_user_property.findUnique({
+          where: { id: pr.userPropertyId },
+          include: { company: true }
+        })
       } else if (data.userPropertyUuid) {
-        userProperty = await this.prisma.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
+        userProperty = await this.prisma.upward_user_property.findUnique({
+          where: { uuid: data.userPropertyUuid },
+          include: { company: true }
+        })
       }
+
+      const effectivePlatformId = userProperty?.platformId || userProperty?.company?.platformId || undefined
 
       this.eventBus.publish(new PaymentSucceededEvent({
         transactionId: result.id,
         userId: user!.id!,
         propertyId: userProperty?.id,
         externalUnitId: userProperty?.externalUnitId,
-        platformId: userProperty?.platformId,
+        platformId: effectivePlatformId,
         amount: paymentAmount,
         rentPortion: rentPortion,
         paymentRequestId: pr?.id,

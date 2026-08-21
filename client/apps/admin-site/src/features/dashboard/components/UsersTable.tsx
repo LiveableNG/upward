@@ -12,6 +12,7 @@ export interface UnifiedUserRecord {
   phone: string
   createdAt: string
   joinedAt?: string | null
+  invitedAt?: string | null
   origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   hasPassword: boolean
   isExWaitlist: boolean
@@ -41,8 +42,10 @@ interface UsersTableProps {
   toggleSelectAllUsers: () => void
   toggleSelectUser: (id: string, e?: React.MouseEvent) => void
   showFailureReason?: boolean
+  isGuestOrUnsynced?: boolean
   onPreview?: (item: UnifiedUserRecord) => void
   onDeleteSelected?: () => void
+  token?: string
 }
 
 const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
@@ -162,8 +165,10 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   toggleSelectAllUsers,
   toggleSelectUser,
   showFailureReason,
+  isGuestOrUnsynced,
   onPreview,
   onDeleteSelected,
+  token,
 }) => {
   const navigate = useNavigate()
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
@@ -303,66 +308,147 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     },
     {
       key: 'joinedAt',
-      label: 'Join Date',
+      label: isGuestOrUnsynced ? 'Invited Date' : 'Join Date',
       sortable: true,
-      render: (item) => (
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
-          {item.joinedAt ? (
-            <>
-              <span
-                style={{
-                  cursor: 'pointer',
-                  borderBottom: '1px dashed var(--border)',
-                  paddingBottom: '1px',
-                }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setOpenJoinedId(openJoinedId === item.id ? null : item.id)
-                }}
-              >
-                {new Date(item.joinedAt).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </span>
-              {openJoinedId === item.id && (
-                <div
+      render: (item) => {
+        const primaryDate = isGuestOrUnsynced
+          ? item.invitedAt || item.createdAt
+          : item.joinedAt || item.createdAt
+
+        if (!primaryDate) {
+          return <span style={{ opacity: 0.5 }}>—</span>
+        }
+
+        const primaryDateFormatted = new Date(primaryDate).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+
+        const popoverItems: { label: string; date: string }[] = []
+        if (isGuestOrUnsynced) {
+          if (item.joinedAt) {
+            popoverItems.push({
+              label: 'Joined On',
+              date: new Date(item.joinedAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+          if (
+            item.invitedAt &&
+            item.createdAt &&
+            new Date(item.invitedAt).toDateString() !== new Date(item.createdAt).toDateString()
+          ) {
+            popoverItems.push({
+              label: 'Created On',
+              date: new Date(item.createdAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+        } else {
+          if (item.invitedAt) {
+            popoverItems.push({
+              label: 'Invited On',
+              date: new Date(item.invitedAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+          if (
+            item.joinedAt &&
+            item.createdAt &&
+            new Date(item.joinedAt).toDateString() !== new Date(item.createdAt).toDateString()
+          ) {
+            popoverItems.push({
+              label: 'Created On',
+              date: new Date(item.createdAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+            })
+          }
+        }
+
+        const hasPopover = popoverItems.length > 0
+
+        return (
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', position: 'relative' }}>
+            {hasPopover ? (
+              <>
+                <span
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    marginTop: '4px',
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    color: 'var(--text)',
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    zIndex: 50,
-                    width: 'max-content',
-                    animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                    cursor: 'pointer',
+                    borderBottom: '1px dashed var(--border)',
+                    paddingBottom: '1px',
                   }}
-                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setOpenJoinedId(openJoinedId === item.id ? null : item.id)
+                  }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Invited / Created On:</span>
-                  <br />
-                  {new Date(item.createdAt).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </div>
-              )}
-            </>
-          ) : (
-            <span style={{ opacity: 0.5 }}>—</span>
-          )}
-        </div>
-      ),
+                  {primaryDateFormatted}
+                  {!isGuestOrUnsynced && !item.joinedAt && (
+                    <span style={{ fontSize: '10px', marginLeft: '4px', fontStyle: 'italic', color: 'var(--accent)' }}>
+                      (Invited)
+                    </span>
+                  )}
+                </span>
+                {openJoinedId === item.id && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginTop: '4px',
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                      color: 'var(--text)',
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      zIndex: 50,
+                      width: 'max-content',
+                      animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    {popoverItems.map((pi, idx) => (
+                      <div key={idx}>
+                        <span style={{ color: 'var(--text-muted)' }}>{pi.label}: </span>
+                        <strong>{pi.date}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span>
+                {primaryDateFormatted}
+                {!isGuestOrUnsynced && !item.joinedAt && (
+                  <span style={{ fontSize: '10px', marginLeft: '4px', fontStyle: 'italic', color: 'var(--accent)' }}>
+                    (Invited)
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+        )
+      },
     },
     showFailureReason
       ? {
@@ -482,7 +568,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             await apiService.post(
               `/admin/users/sync-tenant/${item.uuid}`,
               {},
-              localStorage.getItem('upward_token') || '',
+              token || localStorage.getItem('upward_token') || '',
             )
             window.location.reload()
           } catch (err) {
