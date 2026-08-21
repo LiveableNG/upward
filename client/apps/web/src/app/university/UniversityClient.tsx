@@ -199,7 +199,7 @@ export function UniversityClient() {
               <img
                 src="/university-logos/upward_university_logo.jpeg"
                 alt="Upward University Logo"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '7px' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
               />
             </span>
             <div>

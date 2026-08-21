@@ -140,9 +140,9 @@
 }
 
 .uni-logo .mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
   background: var(--uni-ink);
   display: flex;
   align-items: center;

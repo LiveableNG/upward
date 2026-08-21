@@ -83,7 +83,7 @@
         }
 
         nav {
-            height: 74px;
+            height: 64px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -118,6 +118,7 @@
         .navlinks {
             display: flex;
             gap: 26px;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             font-weight: 600;
             font-size: 14px;
             align-items: center;
@@ -130,13 +131,32 @@
         .nav-item>a {
             display: flex;
             align-items: center;
-            gap: 5px;
-            padding: 8px 0;
-            color: var(--ink-soft);
+            gap: 6px;
+            padding: 6px 14px;
+            color: var(--clay);
+            background: var(--clay-faint);
+            border: 1px solid rgba(217, 119, 87, 0.25);
+            border-radius: 999px;
+            font-weight: 700;
+            transition: all 0.2s ease;
         }
 
         .nav-item>a:hover {
+            background: rgba(217, 119, 87, 0.15);
+            border-color: var(--clay);
             color: var(--clay);
+        }
+
+        .nav-badge {
+            font-size: 10px;
+            font-weight: 800;
+            background: var(--clay);
+            color: #ffffff;
+            padding: 2px 6px;
+            border-radius: 99px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            line-height: 1;
         }
 
         .nav-item>a svg,
@@ -229,6 +249,10 @@
             color: var(--clay);
         }
 
+        .nav-mobile-signin {
+            display: none;
+        }
+
         .nav-right {
             display: flex;
             align-items: center;
@@ -237,12 +261,52 @@
 
         .signin {
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 500;
             color: var(--ink-soft);
+            white-space: nowrap;
         }
 
         .signin:hover {
             color: var(--ink);
+        }
+
+        @media(max-width: 600px) {
+            .signin {
+                display: none;
+            }
+
+            .nav-mobile-signin {
+                display: block !important;
+                font-weight: 700;
+                color: var(--clay) !important;
+            }
+
+            .nav-right {
+                gap: 8px;
+            }
+
+            .nav-right .btn.primary {
+                padding: 8px 14px !important;
+                font-size: 12.5px !important;
+                white-space: nowrap;
+            }
+        }
+
+        @media(max-width: 360px) {
+            .logo {
+                font-size: 16px;
+                gap: 5px;
+            }
+
+            .logo .mark {
+                width: 28px;
+                height: 28px;
+            }
+
+            .nav-right .btn.primary {
+                padding: 7px 10px !important;
+                font-size: 11.5px !important;
+            }
         }
 
         .nav-toggle {
@@ -344,15 +408,15 @@
         /* Hero Section */
         .hero {
             background: #ffffff;
-            padding-bottom: 70px;
+            padding-bottom: 40px;
         }
 
         .hero-grid {
             display: grid;
             grid-template-columns: 1.02fr .98fr;
-            gap: 60px;
+            gap: 40px;
             align-items: center;
-            padding: 64px 0 30px;
+            padding: 32px 0 20px;
         }
 
         .eyebrow {
@@ -361,27 +425,28 @@
             letter-spacing: .12em;
             color: var(--clay);
             text-transform: uppercase;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             display: inline-block;
             background: #ffffff;
-            padding: 6px 14px;
+            padding: 5px 13px;
             border-radius: 999px;
             border: 1px solid var(--sand);
         }
 
         h1 {
-            font-size: clamp(40px, 5.4vw, 66px);
-            line-height: 1.02;
+            font-size: clamp(38px, 4.8vw, 60px);
+            line-height: 1.04;
             letter-spacing: -.03em;
-            margin: 0 0 20px;
-            max-width: 12ch;
+            margin: 0 0 16px;
+            max-width: 13ch;
         }
 
         .hero-copy {
-            font-size: 17.5px;
+            font-size: 16.5px;
             color: var(--ink-soft);
             max-width: 540px;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
+            line-height: 1.5;
         }
 
         .buttons {
@@ -395,10 +460,35 @@
             position: relative;
             background: #ffffff;
             border-radius: 32px;
-            min-height: 500px;
+            min-height: 440px;
             overflow: hidden;
             box-shadow: var(--shadow);
             border: 1px solid var(--sand);
+        }
+
+        @media(max-height: 820px) and (min-width: 1024px) {
+            .hero-grid {
+                padding: 16px 0 16px;
+                gap: 30px;
+            }
+
+            .eyebrow {
+                margin-bottom: 8px;
+            }
+
+            h1 {
+                font-size: clamp(32px, 4vw, 50px);
+                margin-bottom: 12px;
+            }
+
+            .hero-copy {
+                font-size: 15.5px;
+                margin-bottom: 18px;
+            }
+
+            .hero-card {
+                min-height: 390px;
+            }
         }
 
         .portrait {
@@ -1294,7 +1384,7 @@
                     <a href="#benefits">Benefits</a>
 
                     <div class="nav-item" id="uniNavItem">
-                        <a href="#" id="uniNavTrigger">Upward University <i class="fa-solid fa-chevron-down"></i></a>
+                        <a href="#" id="uniNavTrigger">Upward University <span class="nav-badge">NEW</span> <i class="fa-solid fa-chevron-down"></i></a>
                         <div class="dropdown">
                             <a href="/university">
                                 <b>Train as a Property Professional</b>
@@ -1311,6 +1401,7 @@
 
                     <a href="/for-landlord">Landlord</a>
                     <a href="/blog">Blog</a>
+                    <a href="/login" class="nav-mobile-signin">Sign In</a>
                 </div>
 
                 <div class="nav-right">
