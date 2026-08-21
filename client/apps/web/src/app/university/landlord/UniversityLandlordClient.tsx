@@ -20,6 +20,7 @@ type LandlordFormData = z.infer<typeof landlordFormSchema>
 
 export function UniversityLandlordClient() {
   const [navOpen, setNavOpen] = useState(false)
+  const [isContactOpen, setIsContactOpen] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -90,7 +91,7 @@ export function UniversityLandlordClient() {
       {/* Header */}
       <header className="uni-header">
         <nav className="uni-wrap uni-nav">
-          <Link href="/university" className="uni-logo">
+          <Link href="/university/landlord" className="uni-logo">
             <span className="mark">
               <img
                 src="/university-logos/upward_university_logo.jpeg"
@@ -106,6 +107,9 @@ export function UniversityLandlordClient() {
           </Link>
 
           <div className={`uni-nav-links ${navOpen ? 'open' : ''}`}>
+            <Link href="/" className="uni-nav-home" onClick={() => setNavOpen(false)}>
+              ← Upward Home
+            </Link>
             <a href="#roi" onClick={() => setNavOpen(false)}>
               Assure Income
             </a>
@@ -499,30 +503,109 @@ export function UniversityLandlordClient() {
 
       {/* Footer */}
       <footer className="uni-footer">
-        <div className="uni-wrap">
-          <div className="uni-flogo">
-            <span className="mark" style={{ width: '24px', height: '24px' }}>
-              <svg viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 3L4 10v11h5v-6h6v6h5V10L12 3z"
-                  stroke="#FDFBF5"
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            UPWARD
+        <div className="uni-wrap" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
+          <div>
+            <div className="flogo">
+              <span className="mark" style={{ width: '24px', height: '24px', borderRadius: '6px', overflow: 'hidden', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}>
+                <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </span>
+              UPWARD
+            </div>
+            <p style={{ marginTop: '6px' }}>
+              Part of the Upward housing ecosystem, alongside GoodTenants and Upward University. Registered in Nigeria.
+            </p>
+            <p style={{ marginTop: '8px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <Link className="back" href="/university">
+                ← Back to Student Programme
+              </Link>
+              <Link className="back" href="/" style={{ color: 'var(--uni-rust, #8A4A2A)', fontWeight: 700 }}>
+                ← Back to Upward Home
+              </Link>
+            </p>
           </div>
-          <p>
-            Part of the Upward housing ecosystem, alongside GoodTenants and Upward University. Registered in Nigeria.
-          </p>
-          <p>
-            <Link className="back" href="/university">
-              ← Back to the Student Programme
-            </Link>
-          </p>
+          <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.1em', color: 'var(--uni-rust, #8A4A2A)' }}>Contact Us</span>
+            <a href="mailto:hello@goodtenants.africa" className="contact-link"><span style={{ marginRight: '6px' }}>✉️</span> hello@goodtenants.africa</a>
+            <a href="tel:09040969943" className="contact-link"><span style={{ marginRight: '6px' }}>📞</span> 09040969943</a>
+          </div>
         </div>
       </footer>
+
+      {/* Floating Contact Drawer Component */}
+      <div
+        id="contact-drawer-overlay"
+        className={`contact-drawer-overlay ${isContactOpen ? 'is-open' : ''}`}
+        aria-hidden={!isContactOpen}
+        onClick={() => setIsContactOpen(false)}
+      />
+      <div className="contact-us-widget">
+        <div
+          id="contact-drawer"
+          className={`contact-drawer ${isContactOpen ? 'is-open' : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="contact-drawer-title"
+          aria-hidden={!isContactOpen}
+        >
+          <div className="contact-drawer-header">
+            <h2 id="contact-drawer-title" className="contact-drawer-title">Contact Us</h2>
+            <button
+              type="button"
+              id="contact-drawer-close"
+              className="contact-drawer-close"
+              aria-label="Close contact options"
+              onClick={() => setIsContactOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
+          <p className="contact-drawer-subtitle">Choose how you'd like to reach us.</p>
+          <div className="contact-drawer-options">
+            <a
+              href="https://wa.me/2349040969943?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
+              className="contact-drawer-option"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="contact-drawer-option-icon contact-drawer-option-icon--whatsapp">
+                💬
+              </span>
+              <span className="contact-drawer-option-text">
+                <span className="contact-drawer-option-label">Chat on WhatsApp</span>
+                <span className="contact-drawer-option-detail">Message us anytime</span>
+              </span>
+            </a>
+            <a href="tel:09040969943" className="contact-drawer-option">
+              <span className="contact-drawer-option-icon">
+                📞
+              </span>
+              <span className="contact-drawer-option-text">
+                <span className="contact-drawer-option-label">Call us</span>
+                <span className="contact-drawer-option-detail">09040969943</span>
+              </span>
+            </a>
+            <a href="mailto:hello@goodtenants.africa?subject=Upward%20Inquiry" className="contact-drawer-option">
+              <span className="contact-drawer-option-icon">
+                ✉️
+              </span>
+              <span className="contact-drawer-option-text">
+                <span className="contact-drawer-option-label">Send us an email</span>
+                <span className="contact-drawer-option-detail">hello@goodtenants.africa</span>
+              </span>
+            </a>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          id="contact-us-btn"
+          className="contact-us-float"
+          aria-label="Contact Us"
+          onClick={() => setIsContactOpen(true)}
+        >
+          💬 Contact Us
+        </button>
+      </div>
     </div>
   )
 }

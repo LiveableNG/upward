@@ -1363,6 +1363,22 @@
             font-size: 12px;
             color: #64748b;
         }
+
+        .contact-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--ink-soft);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .contact-link:hover {
+            color: var(--clay) !important;
+            text-decoration: underline;
+            transform: translateX(3px);
+        }
     </style>
 </head>
 
@@ -1732,8 +1748,8 @@
                     </div>
                     <div class="foot-col">
                         <b>Contact</b>
-                        <a href="mailto:hello@goodtenants.africa">hello@goodtenants.africa</a>
-                        <a href="tel:09040969943">09040969943</a>
+                        <a href="mailto:hello@goodtenants.africa" class="contact-link"><i class="fa-solid fa-envelope"></i> hello@goodtenants.africa</a>
+                        <a href="tel:09040969943" class="contact-link"><i class="fa-solid fa-phone"></i> 09040969943</a>
                     </div>
                 </div>
             </div>
