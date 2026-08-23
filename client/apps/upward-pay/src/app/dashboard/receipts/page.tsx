@@ -300,7 +300,13 @@ export default function ReceiptsPage() {
   return (
     <ReceiptTemplate
       receipt={receipt}
-      onClose={() => router.push('/dashboard/transactions')}
+      onClose={() => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+          router.back()
+          return
+        }
+        router.push('/dashboard/transactions')
+      }}
       onDownload={Capacitor.isNativePlatform() ? undefined : handleDownload}
       onShare={handleShare}
     />

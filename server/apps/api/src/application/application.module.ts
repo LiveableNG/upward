@@ -382,6 +382,8 @@ import { GetContractUploadUrlUseCase } from './use-cases/contracts/get-contract-
 import { GetContractsUseCase } from './use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from './use-cases/contracts/delete-contract.use-case'
 import { DownloadContractUseCase } from './use-cases/contracts/download-contract.use-case'
+import { ProxyTenantAppReadUseCase } from './use-cases/tenant-app/proxy-tenant-app-read.use-case'
+import { GoodTenantTenantAppClient } from '../shared/infrastructure/goodtenant/goodtenant-tenant-app.client'
 
 import { CreateSupportTicketUseCase } from './use-cases/support/create-support-ticket.use-case'
 import { GetUserTicketsUseCase } from './use-cases/support/get-user-tickets.use-case'
@@ -555,6 +557,7 @@ const UseCases = [
   GetContractsUseCase,
   DeleteContractUseCase,
   DownloadContractUseCase,
+  ProxyTenantAppReadUseCase,
 
   CreateSupportTicketUseCase,
   GetUserTicketsUseCase,
@@ -755,6 +758,7 @@ import { SubscriptionModule } from '../domains/subscription/subscription.module'
     PaymentWebhookHandler,
     CredibilityWebhookHandler,
     WebhookService,
+    GoodTenantTenantAppClient,
     BulkInviteService,
     PmPaymentNotificationHandler,
     UnderpaymentNotificationHandler,
@@ -775,6 +779,7 @@ import { SubscriptionModule } from '../domains/subscription/subscription.module'
   ],
   exports: [
     WebhookService,
+    GoodTenantTenantAppClient,
     BulkInviteService,
     EncryptionService,
     PushNotificationService,
