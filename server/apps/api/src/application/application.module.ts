@@ -220,6 +220,7 @@ import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use-case'
+import { AcceptPmTermsUseCase } from './pm/use-cases/accept-pm-terms.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
@@ -509,6 +510,7 @@ const UseCases = [
   GenerateReceiptPdfUseCase,
   CheckSlugAvailabilityUseCase,
   AcceptTermsUseCase,
+  AcceptPmTermsUseCase,
   MarkNotificationReadUseCase,
 
   CreateAnnouncementUseCase,

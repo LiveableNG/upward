@@ -14,6 +14,7 @@ import { PricingModal } from '@/features/pm/components/subscription/PricingModal
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
 import { AccessSuspended } from '@/components/common/AccessSuspended'
+import { PmTermsAcceptanceModal } from '@/features/auth/components/PmTermsAcceptanceModal'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -76,8 +77,13 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <AccessSuspended />
   }
 
+  const showTermsGate = user && !user.termsAcceptedAt
+
   return (
     <div className={cn("layout", isSidebarCollapsed && "layout--collapsed")}>
+      {showTermsGate && (
+        <PmTermsAcceptanceModal onAccepted={() => window.location.reload()} />
+      )}
       <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
@@ -128,7 +134,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             {children}
           </PullToRefresh>
         </main>
-        <PricingModal isOpen={isOpen} onClose={closePricing} />
+        <PricingModal isOpen={isOpen && !showTermsGate} onClose={closePricing} />
       </div>
     </div>
   )

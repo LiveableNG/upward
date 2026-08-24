@@ -95,6 +95,7 @@ export const SignupFormMobile = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
   const [phoneCountryCode, setPhoneCountryCode] = useState('Nigeria')
 
   const signupMutation = useSignup()
@@ -746,6 +747,28 @@ export const SignupFormMobile = () => {
                   </div>
                   {fieldErrors.confirmPassword && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.confirmPassword}</p>}
                 </div>
+
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    <input
+                      type="checkbox"
+                      checked={termsAgreed}
+                      onChange={(e) => setTermsAgreed(e.target.checked)}
+                      required
+                      style={{ accentColor: 'var(--forest)', marginTop: '2px', width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span>
+                      I agree to the{' '}
+                      <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)', fontWeight: 700 }}>
+                        Terms of Use
+                      </a>{' '}
+                      and{' '}
+                      <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)', fontWeight: 700 }}>
+                        Privacy Policy
+                      </a>
+                    </span>
+                  </label>
+                </div>
               </div>
             )}
 
@@ -760,7 +783,7 @@ export const SignupFormMobile = () => {
               type="button"
               className="auth-btn auth-btn--primary auth-btn--large"
               onClick={handleNextStep}
-              disabled={loading || (step === 2 && emailExists) || isCheckingEmail}
+              disabled={loading || (step === 2 && emailExists) || isCheckingEmail || (step === 3 && !termsAgreed)}
               style={{ marginTop: 'auto' }}
             >
               <span>{loading ? 'Please wait...' : 'Continue'}</span>

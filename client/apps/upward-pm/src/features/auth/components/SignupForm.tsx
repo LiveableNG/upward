@@ -92,6 +92,7 @@ export const SignupForm = () => {
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const signupMutation = useSignup()
   const requestOtpMutation = useRequestOTP()
@@ -845,10 +846,32 @@ export const SignupForm = () => {
             </div>
           </div>
 
+          <div className="form-group" style={{ marginTop: '16px', marginBottom: 0 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <input
+                type="checkbox"
+                checked={termsAgreed}
+                onChange={(e) => setTermsAgreed(e.target.checked)}
+                required
+                style={{ accentColor: 'var(--forest)', marginTop: '2px', width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <span>
+                I agree to the{' '}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)', fontWeight: 700 }}>
+                  Terms of Use
+                </a>{' '}
+                and{' '}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)', fontWeight: 700 }}>
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
             className="auth-btn auth-btn--primary auth-btn--large"
-            disabled={loading || emailExists || isCheckingEmail || isInvited}
+            disabled={loading || emailExists || isCheckingEmail || isInvited || !termsAgreed}
             style={{ marginTop: '10px' }}
           >
             <span>{loading ? 'Please wait...' : 'Create account'}</span>
