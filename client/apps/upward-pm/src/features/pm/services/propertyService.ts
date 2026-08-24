@@ -55,7 +55,6 @@ export interface Unit {
   leaseYears?: number;
   unitType?: string;
   rentAmountPaid?: number;
-  isFullyPaid?: boolean;
   rentReminderEnabled: boolean;
   rentReminderDaysBefore?: number;
 

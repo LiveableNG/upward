@@ -216,7 +216,7 @@ export const LoginForm = () => {
           onClick={() => setLoginMethod('code')}
         >
           <ShieldCheck size={15} />
-          <span>Email Code</span>
+          <span>Verification Code</span>
         </button>
       </div>
 

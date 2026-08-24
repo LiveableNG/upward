@@ -280,23 +280,23 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
     if (showLeaseFields && assignMode === 'create') {
       if (!selectedPropertyId) {
-        toast.error('Please select or create a property')
+        alert('Please select or create a property')
         return
       }
       if (selectedPropertyId === 'NEW' && !newPropertyName.trim()) {
-        toast.error('Please enter a property name')
+        alert('Please enter a property name')
         return
       }
       if (!newUnitName.trim()) {
-        toast.error('Please enter a unit name')
+        alert('Please enter a unit name')
         return
       }
       if (!rentAmount || parseFloat(rentAmount) <= 0) {
-        toast.error('Rent amount is required and must be greater than 0')
+        alert('Rent amount is required and must be greater than 0')
         return
       }
       if (!rentStartDate || !rentEndDate) {
-        toast.error('Rent start and end dates are required')
+        alert('Rent start and end dates are required')
         return
       }
 
@@ -324,9 +324,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           propertyUuid,
           units: [{
             unitName: newUnitName.trim(),
-            rentAmount: parseFloat(rentAmount) || 0,
-            rentAmountPaid: isFullyPaid ? (parseFloat(rentAmount) || 0) : (parseFloat(rentAmountPaid || '0') || 0),
-            isFullyPaid: !!isFullyPaid,
+            rentAmount: parseFloat(rentAmount),
             rentType: rentType || 'Annually',
             leaseYears: rentType === 'Lease' ? Math.max(1, parseInt(String(leaseYears || '1'), 10) || 1) : undefined,
             rentStartDate,
@@ -345,28 +343,22 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             assignTenant.mutate({
               tenantUuid: tenant.uuid,
               unitUuid: createdUnit.uuid,
-              rentAmount: parseFloat(rentAmount) || 0,
+              rentAmount: parseFloat(rentAmount),
               rentType: rentType || 'Annually',
               rentStartDate,
               rentDueDate: rentEndDate,
-              rentAmountPaid: isFullyPaid ? (parseFloat(rentAmount) || 0) : (parseFloat(rentAmountPaid || '0') || 0),
-              isFullyPaid: !!isFullyPaid
+              rentAmountPaid: parseFloat(rentAmountPaid || '0'),
+              isFullyPaid
             }, {
               onSuccess: () => {
                 reset()
                 setSuccessData({ tenantUuid: tenant.uuid, unitUuid: createdUnit.uuid })
-              },
-              onError: (err: any) => {
-                toast.error(err?.message || 'Failed to assign tenant to unit')
               }
             })
-          },
-          onError: (err: any) => {
-            toast.error(err?.message || 'Failed to create tenant profile')
           }
         })
       } catch (err: any) {
-        toast.error(err.message || 'Failed to create unit and assign tenant')
+        alert(err.message || 'Failed to create unit and assign tenant')
       } finally {
         setIsCreatingUnit(false)
       }
@@ -377,28 +369,22 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             assignTenant.mutate({
               tenantUuid: tenant.uuid,
               unitUuid,
-              rentAmount: parseFloat(rentAmount) || 0,
+              rentAmount: parseFloat(rentAmount),
               rentType,
               rentStartDate,
               rentDueDate: rentEndDate,
-              rentAmountPaid: isFullyPaid ? (parseFloat(rentAmount) || 0) : (parseFloat(rentAmountPaid || '0') || 0),
-              isFullyPaid: !!isFullyPaid
+              rentAmountPaid: parseFloat(rentAmountPaid || '0'),
+              isFullyPaid
             }, {
               onSuccess: () => {
                 reset()
                 setSuccessData({ tenantUuid: tenant.uuid, unitUuid })
-              },
-              onError: (err: any) => {
-                toast.error(err?.message || 'Failed to assign tenant to unit')
               }
             })
           } else {
             reset()
             setSuccessData({ tenantUuid: tenant.uuid })
           }
-        },
-        onError: (err: any) => {
-          toast.error(err?.message || 'Failed to create tenant profile')
         }
       })
     }
@@ -497,15 +483,15 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           <div className="form-section">
             {/* Tenant Type Selector */}
             {!isJoinRequest && (
-              <div className="form-group" style={{ marginBottom: 16 }}>
+              <div className="form-group" style={{ marginBottom: 20 }}>
                 <label className="form-label">Tenant Type</label>
-                <div style={{ display: 'flex', gap: 6, background: 'var(--ivory-dim)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', gap: 12, background: 'var(--ivory-dim)', padding: 4, borderRadius: 12, border: '1px solid var(--border)' }}>
                   <button
                     type="button"
                     onClick={() => setValue('tenantType', 'individual')}
                     style={{
                       flex: 1,
-                      padding: '9px 12px',
+                      padding: '8px 16px',
                       borderRadius: 10,
                       border: 'none',
                       fontSize: 13,
@@ -514,18 +500,17 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       background: tenantType === 'individual' ? 'white' : 'transparent',
                       color: tenantType === 'individual' ? 'var(--dark)' : 'var(--text-muted)',
                       boxShadow: tenantType === 'individual' ? 'var(--shadow-sm)' : 'none',
-                      transition: 'all 0.2s',
-                      whiteSpace: 'nowrap'
+                      transition: 'all 0.2s'
                     }}
                   >
-                    Individual
+                    Individual Tenant
                   </button>
                   <button
                     type="button"
                     onClick={() => setValue('tenantType', 'commercial')}
                     style={{
                       flex: 1,
-                      padding: '9px 12px',
+                      padding: '8px 16px',
                       borderRadius: 10,
                       border: 'none',
                       fontSize: 13,
@@ -534,11 +519,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       background: tenantType === 'commercial' ? 'white' : 'transparent',
                       color: tenantType === 'commercial' ? 'var(--dark)' : 'var(--text-muted)',
                       boxShadow: tenantType === 'commercial' ? 'var(--shadow-sm)' : 'none',
-                      transition: 'all 0.2s',
-                      whiteSpace: 'nowrap'
+                      transition: 'all 0.2s'
                     }}
                   >
-                    Commercial
+                    Commercial Tenant
                   </button>
                 </div>
               </div>
@@ -556,7 +540,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                 {errors.commercialName && <span className="form-error-text">{errors.commercialName.message}</span>}
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="form-group">
                   <label className="form-label">First Name</label>
                   <input
@@ -582,7 +566,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginTop: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
               <div className="form-group">
                 <label className="form-label">Email Address</label>
                 <input
@@ -610,7 +594,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginTop: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
               <div>
                 <Controller
                   name="otherPhone"
@@ -628,9 +612,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               <div />
             </div>
 
-            <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: 16 }}>
               <label className="form-label" style={{ marginBottom: 8 }}>Preferred Invite Delivery Method</label>
-              <div className="delivery-options-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8 }}>
+              <div className="delivery-options-container">
                 {!(watch('email') || '').endsWith('@upward.com') && (watch('email') || '').trim() !== '' && (
                   <label 
                     className={cn("delivery-option", watch('deliveryChannel') === 'EMAIL' && "delivery-option--active")}
@@ -681,34 +665,34 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           </div>
 
           {/* ── Unit Assignment ── */}
-          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+          <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
             <div
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
               onClick={() => setShowLeaseFields(!showLeaseFields)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div className="icon-box" style={{ background: 'var(--forest-faint)', color: 'var(--forest)', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="icon-box" style={{ background: 'var(--forest-faint)', color: 'var(--forest)' }}>
                   <Building2 size={20} />
                 </div>
-                <div style={{ minWidth: 0 }}>
+                <div>
                   <h3 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>
                     {isJoinRequest ? 'Assign to Unit' : 'Assign to Unit'}
                   </h3>
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.35 }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
                     {isJoinRequest
-                      ? 'Match tenant to a vacant unit to approve.'
+                      ? 'Match this tenant to one of your vacant units to approve the connection.'
                       : 'Link this tenant to a specific property and unit.'}
                   </p>
                 </div>
               </div>
-              <ChevronDown size={20} style={{ transform: showLeaseFields ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+              <ChevronDown size={20} style={{ transform: showLeaseFields ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
             </div>
 
             {showLeaseFields && (
-              <div className="animate-fade-in" style={{ marginTop: 16 }}>
+              <div className="animate-fade-in" style={{ marginTop: 20 }}>
                 {/* Mode Selector */}
                 {vacantUnits.length > 0 && (
-                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16, paddingBottom: 14, borderBottom: '1px dashed var(--border)' }}>
+                  <div style={{ display: 'flex', gap: 20, marginBottom: 20, paddingBottom: 16, borderBottom: '1px dashed var(--border)' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}>
                       <input
                         type="radio"
@@ -757,7 +741,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                 )}
 
                 {assignMode === 'create' && (
-                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div className="form-group">
                       <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <Building2 size={14} /> Select Property
@@ -774,7 +758,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                     </div>
 
                     {selectedPropertyId === 'NEW' && (
-                      <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
+                      <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                         <div className="form-group">
                           <label className="form-label">Property Name</label>
                           <input
@@ -813,9 +797,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
 
                 {(assignMode === 'create' || (assignMode === 'existing' && vacantUnits.length > 0)) && (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 12, marginTop: 14 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: rentType === 'Lease' ? '1fr 1fr 1fr' : '1fr 1fr', gap: 16, marginTop: 16 }}>
                       <div className="form-group">
-                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <CreditCard size={14} /> Rent Amount (₦)
                         </label>
                         <input
@@ -847,7 +831,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       </div>
                       {rentType === 'Lease' && (
                         <div className="form-group animate-fade-in">
-                          <label className="form-label">Lease (Years)</label>
+                          <label className="form-label">Lease Duration (Years)</label>
                           <input
                             type="number"
                             min="1"
@@ -860,9 +844,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       )}
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12, marginTop: 12 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
                       <div className="form-group">
-                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Calendar size={14} /> Start Date
                         </label>
                         <input
@@ -873,7 +857,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                         {errors.rentStartDate && <span className="form-error-text">{errors.rentStartDate.message}</span>}
                       </div>
                       <div className="form-group">
-                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <Calendar size={14} /> End Date
                         </label>
                         <input
@@ -885,13 +869,13 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: watch('isFullyPaid') ? 0 : 10 }}>
-                        <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                    <div style={{ marginTop: 16, padding: 12, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: watch('isFullyPaid') ? 0 : 12 }}>
+                        <div>
                           <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
-                          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.35 }}>Toggle off if the tenant is making a partial payment initially.</p>
+                          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Toggle off if the tenant is making a partial payment initially.</p>
                         </div>
-                        <label className="toggle-switch" style={{ flexShrink: 0 }}>
+                        <label className="toggle-switch">
                           <input 
                             type="checkbox" 
                             {...register('isFullyPaid')}

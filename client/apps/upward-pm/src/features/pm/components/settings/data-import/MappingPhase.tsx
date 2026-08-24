@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { ChevronDown, Plus, X, CalendarDays, Upload } from 'lucide-react'
-import { FormSelect, SelectOption } from '@/components/ui/Select/FormSelect'
 import { ColumnDef, ColumnMapping, SplitConfig } from './types'
 import { extractForField, scrub, splitPersonName, inferDateOrder, countDatesIn, type DateOrder } from './utils'
 
@@ -147,39 +146,38 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
     return short ? `${col} — ${short}` : col
   }
 
-  const userColumnOptions: SelectOption[] = useMemo(() => [
-    ...userColumns.map(c => ({
-      label: optionLabel(c),
-      shortLabel: c,
-      value: c
-    })),
-    { label: "My sheet doesn't have this", value: NONE }
-  ], [userColumns, rawByColumn])
+  const selectStyle = (filled: boolean): React.CSSProperties => ({
+    width: '100%',
+    height: 44,
+    borderRadius: 10,
+    border: `1px solid ${filled ? 'var(--forest)' : 'var(--border-strong)'}`,
+    background: filled ? 'var(--forest-faint)' : 'var(--surface)',
+    padding: '0 12px',
+    fontSize: 14,
+    fontWeight: 600,
+    color: filled ? 'var(--forest-hover)' : 'var(--text-secondary)',
+    cursor: 'pointer',
+  })
 
+  // A plain render function, not a nested component — keeps the select mounted between renders
   const columnSelect = (
     value: string | null,
     onChange: (col: string | null) => void,
     placeholder: string,
     label: string,
   ) => (
-    <FormSelect
-      label={label}
+    <select
+      aria-label={label}
       value={value || ''}
-      options={userColumnOptions}
-      onChange={val => onChange(val === NONE || val === '' ? null : val)}
-      placeholder={placeholder}
-      searchable={userColumns.length > 5}
-      portalOnDesktop
-      triggerStyle={{
-        height: 44,
-        borderRadius: 10,
-        border: `1px solid ${value ? 'var(--forest)' : 'var(--border-strong)'}`,
-        background: value ? 'var(--forest-faint)' : 'var(--surface)',
-        fontSize: 14,
-        fontWeight: 600,
-        color: value ? 'var(--forest-hover)' : 'var(--text-secondary)',
-      }}
-    />
+      onChange={e => onChange(e.target.value === NONE || e.target.value === '' ? null : e.target.value)}
+      style={selectStyle(!!value)}
+    >
+      <option value="">{placeholder}</option>
+      {userColumns.map(c => (
+        <option key={c} value={c}>{optionLabel(c)}</option>
+      ))}
+      <option value={NONE}>My sheet doesn&apos;t have this</option>
+    </select>
   )
 
   const rowStyle: React.CSSProperties = {
@@ -244,28 +242,17 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
           )}
 
           {nameColumns.length < 3 && (
-            <FormSelect
-              label="Tenant's Name Column"
+            <select
+              aria-label="Add a column holding part of the tenant's name"
               value=""
-              options={userColumns.filter(c => !nameColumns.includes(c)).map(c => ({
-                label: optionLabel(c),
-                shortLabel: c,
-                value: c
-              }))}
-              onChange={val => { if (val) addFieldColumn?.(activeSheet, 'tenantFirstName', 'tenant', val) }}
-              placeholder={nameColumns.length === 0 ? 'Choose a column…' : 'Add another name column…'}
-              searchable={userColumns.length > 5}
-              portalOnDesktop
-              triggerStyle={{
-                height: 44,
-                borderRadius: 10,
-                border: '1px solid var(--border-strong)',
-                background: 'var(--surface)',
-                fontSize: 14,
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-              }}
-            />
+              onChange={e => { if (e.target.value) addFieldColumn?.(activeSheet, 'tenantFirstName', 'tenant', e.target.value) }}
+              style={selectStyle(false)}
+            >
+              <option value="">{nameColumns.length === 0 ? 'Choose a column…' : 'Add another name column…'}</option>
+              {userColumns.filter(c => !nameColumns.includes(c)).map(c => (
+                <option key={c} value={c}>{optionLabel(c)}</option>
+              ))}
+            </select>
           )}
 
           {preview && (
@@ -378,28 +365,17 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 {field.type === 'number' ? 'We will add them together' : 'We will join them together'}
               </div>
-              <FormSelect
-                label={`Another column for ${askFor(field)}`}
+              <select
+                aria-label={`Another column for ${askFor(field)}`}
                 value=""
-                options={userColumns.filter(c => !allColumns.includes(c)).map(c => ({
-                  label: optionLabel(c),
-                  shortLabel: c,
-                  value: c
-                }))}
-                onChange={val => { if (val) addColumn(field, val) }}
-                placeholder="Choose another column…"
-                searchable={userColumns.length > 5}
-                portalOnDesktop
-                triggerStyle={{
-                  height: 44,
-                  borderRadius: 10,
-                  border: '1px solid var(--border-strong)',
-                  background: 'var(--surface)',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                }}
-              />
+                onChange={e => { if (e.target.value) addColumn(field, e.target.value) }}
+                style={selectStyle(false)}
+              >
+                <option value="">Choose another column…</option>
+                {userColumns.filter(c => !allColumns.includes(c)).map(c => (
+                  <option key={c} value={c}>{optionLabel(c)}</option>
+                ))}
+              </select>
               <button
                 onClick={() => setAddingTo(null)}
                 style={{ marginTop: 6, background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
@@ -496,15 +472,12 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
 
       <button
         onClick={() => setShowOptional(v => !v)}
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', cursor: 'pointer', marginTop: 18 }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px', cursor: 'pointer', marginTop: 18 }}
       >
-        <div style={{ textAlign: 'left', minWidth: 0, flex: 1 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', display: 'block' }}>Optional Columns</span>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Landlord, Unit Name, Notes, etc.</span>
-        </div>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Bring more over — landlord, unit name, notes</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-muted)' }}>
           {optional.filter(c => columnFor(c.key)).length} of {optional.length}
-          <ChevronDown size={16} style={{ transform: showOptional ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          <ChevronDown size={15} style={{ transform: showOptional ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
         </span>
       </button>
 

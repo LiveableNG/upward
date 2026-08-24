@@ -135,16 +135,16 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               style={{ background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginRight: 16 }}
               onClick={() => setPhase('mapping')}
             >
-              <ArrowLeft size={16} /> <span className="desktop-only">Back to matching</span><span className="mobile-only">Back</span>
+              <ArrowLeft size={16} /> Back to matching
             </button>
           )}
           {phase === 'mapping' && (!reviewJob || isSelfDraft) && (
-            <div className="import-overlay__action-buttons">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {handleSaveDraft && (
                 <button
                   type="button"
                   className="btn btn--secondary"
-                  style={{ borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' }}
+                  style={{ borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   onClick={() => {
                     if (missingRequired.length > 0) {
                       const firstMissing = missingRequired[0].label
@@ -155,37 +155,37 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
                   }}
                   disabled={isSavingDraft || isPending}
                 >
-                  <Save size={16} /> <span className="desktop-only">Save Draft &amp; Exit</span><span className="mobile-only">Save Draft</span>
+                  <Save size={16} /> Save Draft &amp; Exit
                 </button>
               )}
               <button 
                 type="button"
                 className="btn btn--primary" 
-                style={{ borderRadius: 10, height: 40, cursor: 'pointer', flex: 1, justifyContent: 'center' }}
+                style={{ borderRadius: 10, height: 40, cursor: 'pointer' }}
                 onClick={handlePreviewClick}
               >
-                Continue <ArrowRight size={16} style={{ marginLeft: 6 }}/>
+                Continue <ArrowRight size={16} style={{ marginLeft: 8 }}/>
               </button>
             </div>
           )}
 
           {phase === 'preview' && !reviewJob && (
-            <div className="import-overlay__action-buttons">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {handleSaveDraft && (
                 <button
                   type="button"
                   className="btn btn--secondary"
-                  style={{ borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' }}
+                  style={{ borderRadius: 10, height: 40, display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   onClick={() => setShowDraftConfirm(true)}
                   disabled={isSavingDraft || isPending}
                 >
-                  <Save size={16} /> <span className="desktop-only">Save Draft &amp; Exit</span><span className="mobile-only">Save Draft</span>
+                  <Save size={16} /> Save Draft &amp; Exit
                 </button>
               )}
               <button 
                 type="button"
                 className="btn btn--primary" 
-                style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer', flex: 1, justifyContent: 'center' }}
+                style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer' }}
                 onClick={() => {
                   if (Object.keys(validationErrors).length > 0) {
                     const firstErrorKey = Object.keys(validationErrors)[0]

@@ -86,25 +86,6 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
         .pgp-input:focus { border-color: var(--clay); }
         .pgp-input--error { border-color: var(--error) !important; background: #fef2f2; box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important; }
 
-        /* Mobile & Touch Devices — Always show pencil icon since hover is unavailable */
-        @media (max-width: 768px) {
-          .pgp-cell-editable .pgp-pencil {
-            opacity: 0.6 !important;
-          }
-          .pgp-table th:first-child,
-          .pgp-table td:first-child {
-            position: sticky;
-            left: 0;
-            background: white;
-            z-index: 6;
-            box-shadow: 2px 0 4px rgba(0,0,0,0.06);
-          }
-          .pgp-table th:first-child {
-            background: #f1f5f9;
-            z-index: 7;
-          }
-        }
-
         /* Table overrides for this phase */
         .pgp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .pgp-table th {
@@ -154,21 +135,21 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
       `}</style>
 
       {/* ── Static top section ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flexShrink: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
 
         {/* Title + description row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ textAlign: 'left', minWidth: 0, flex: 1 }}>
-            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--dark)', margin: '0 0 4px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div style={{ textAlign: 'left' }}>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--dark)', margin: '0 0 5px 0' }}>
               Your data is ready to import.
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
               We've prepared your spreadsheet for import.{' '}
-              <span style={{ color: 'var(--dark)', fontWeight: 600 }}>Click or tap any cell to edit</span>{' '}
+              <span style={{ color: 'var(--dark)', fontWeight: 600 }}>Click any cell to edit it</span>{' '}
               before completing the import.
               {errorCount > 0 && (
                 <span
-                  style={{ marginLeft: 10, color: '#dc2626', fontWeight: 700, cursor: 'pointer', display: 'inline-block', marginTop: 4 }}
+                  style={{ marginLeft: 10, color: '#dc2626', fontWeight: 700, cursor: 'pointer' }}
                   onClick={() => {
                     const firstKey = Object.keys(validationErrors)[0]
                     if (firstKey) {
@@ -189,14 +170,14 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
         </div>
 
         {/* Table section heading */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <div>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Imported Data</span>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>
               Review and edit any information before importing.
             </span>
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
             <span style={{ color: 'var(--error)' }}>*</span> Required fields
           </span>
         </div>
@@ -212,7 +193,6 @@ export const PreviewGridPhase: React.FC<PreviewGridPhaseProps> = ({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          WebkitOverflowScrolling: 'touch'
         }}
       >
         <div style={{ flex: 1, overflow: 'auto' }}>

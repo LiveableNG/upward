@@ -163,151 +163,30 @@ export function TeamTab() {
     }
   ];
 
-  const renderMobileCard = (collab: any) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div style={{ 
-            width: 38, 
-            height: 38, 
-            borderRadius: 12, 
-            background: 'var(--dark)', 
-            color: 'white', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            fontSize: 14,
-            fontWeight: 700,
-            flexShrink: 0
-          }}>
-            {collab.member.firstName.charAt(0)}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {collab.member.firstName} {collab.member.lastName}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {collab.member.email}
-            </div>
-          </div>
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: 4, 
-          padding: '4px 8px', 
-          borderRadius: 100, 
-          fontSize: 11, 
-          fontWeight: 700,
-          background: collab.status === 'ACCEPTED' ? 'var(--forest-faint)' : 'var(--bg)',
-          color: collab.status === 'ACCEPTED' ? 'var(--forest)' : 'var(--text-muted)',
-          flexShrink: 0
-        }}>
-          {collab.status === 'ACCEPTED' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-          {collab.status === 'ACCEPTED' ? 'Active' : 'Pending'}
-        </div>
-      </div>
-
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        padding: '8px 12px', 
-        background: 'var(--bg)', 
-        borderRadius: 8, 
-        fontSize: 12, 
-        color: 'var(--text-secondary)' 
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-          <Shield size={14} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Building2 size={14} />
-          {collab.accessLevel === 'ALL' ? 'Everything' : collab.properties.length === 0 ? 'None assigned' : `${collab.properties.length} Props`}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 4 }}>
-        <button 
-          className="btn-icon" 
-          onClick={(e) => {
-            e.stopPropagation()
-            setSelectedCollab(collab)
-            setShowActivityModal(true)
-          }}
-          title="View Activity"
-        >
-          <History size={16} />
-        </button>
-        {collab.accessLevel === 'CUSTOM' && collab.status === 'ACCEPTED' && (
-          <button
-            className="btn-icon"
-            onClick={(e) => {
-              e.stopPropagation()
-              setTransferTarget(collab)
-              setShowTransferModal(true)
-            }}
-            title="Transfer Properties"
-          >
-            <ArrowRightLeft size={16} />
-          </button>
-        )}
-        <button 
-          className="btn-icon" 
-          onClick={(e) => {
-            e.stopPropagation()
-            setSelectedCollab(collab)
-            setShowPermissionsModal(true)
-          }}
-          title="Edit Permissions"
-        >
-          <Settings2 size={16} />
-        </button>
-        <button 
-          className="btn-icon" 
-          onClick={(e) => {
-            e.stopPropagation()
-            setRevokeTarget({
-              uuid: collab.uuid,
-              name: `${collab.member.firstName} ${collab.member.lastName}`.trim(),
-            })
-          }}
-          style={{ color: 'var(--error)' }}
-          title="Remove Member"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    </div>
-  )
-
   return (
-    <section className="settings__section animate-fade-in" style={{ padding: 'clamp(14px, 3.5vw, 24px)', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-      <div className="settings__section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
-        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+    <section className="settings__section animate-fade-in">
+      <div className="settings__section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
           <h2 className="settings__section-title">Team Management</h2>
-          <p className="settings__section-subtitle" style={{ margin: '4px 0 0', lineHeight: 1.4 }}>
-            Invite other managers to collaborate on your properties.
-          </p>
+          <p className="settings__section-subtitle">Invite other managers to collaborate on your properties.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }} className="team-header-actions">
+        <div style={{ display: 'flex', gap: 10 }}>
           <button
             className="btn btn--secondary"
             onClick={() => {
               setTransferTarget(null)
               setShowTransferModal(true)
             }}
-            style={{ borderRadius: 12, height: 42, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, flex: '1 1 auto', justifyContent: 'center', whiteSpace: 'nowrap' }}
+            style={{ borderRadius: 12, height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <ArrowRightLeft size={16} /> Transfer Properties
+            <ArrowRightLeft size={18} /> Transfer Properties
           </button>
           <button 
-            className="btn btn--primary" 
-            onClick={() => setShowInviteModal(true)}
-            style={{ borderRadius: 12, height: 42, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, flex: '1 1 auto', justifyContent: 'center', whiteSpace: 'nowrap' }}
+              className="btn btn--primary" 
+              onClick={() => setShowInviteModal(true)}
+              style={{ borderRadius: 12, height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <UserPlus size={16} /> Invite Member
+              <UserPlus size={18} /> Invite Member
           </button>
         </div>
       </div>
@@ -315,27 +194,22 @@ export function TeamTab() {
       <div className="team-info-card" style={{ 
           background: 'var(--bg)', 
           border: '1px solid var(--border)', 
-          borderRadius: 14, 
-          padding: 'clamp(14px, 3vw, 18px)', 
-          marginBottom: 24,
+          borderRadius: 16, 
+          padding: 20, 
+          marginBottom: 32,
           display: 'flex',
-          gap: 12,
-          alignItems: 'flex-start',
-          width: '100%',
-          boxSizing: 'border-box'
+          gap: 16
       }}>
-        <div style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }}>
-          <Info size={18} />
+        <div style={{ color: 'var(--accent)', marginTop: 2 }}>
+            <Info size={20} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 4px', color: 'var(--dark)' }}>How Collaboration Works</h4>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0, maxWidth: 800 }}>
-            You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests.
-            Choose <strong>Admin</strong> for access to all properties (including ones added later), or <strong>Manager</strong> for assigned properties only (you can invite first and assign later).
-          </p>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '8px 0 0' }}>
-            <strong>Privacy Note:</strong> If an invited manager creates a new property of their own, you will not have access to it unless they invite you back. Access is strictly per-property.
-          </p>
+        <div>
+            <h4 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>How Collaboration Works</h4>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, maxWidth: 800 }}>
+                You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests.
+                Choose <strong>Admin</strong> for access to all properties (including ones added later), or <strong>Manager</strong> for assigned properties only (you can invite first and assign later).
+                <strong> Privacy Note:</strong> If an invited manager creates a new property of their own, you will not have access to it unless they invite you back. Access is strictly per-property.
+            </p>
         </div>
       </div>
 
@@ -345,7 +219,6 @@ export function TeamTab() {
         isLoading={isLoading}
         emptyMessage="Start collaborating by inviting other property managers to your team."
         pageSize={10}
-        renderMobileCard={renderMobileCard}
       />
 
       {showInviteModal && (
@@ -415,12 +288,6 @@ export function TeamTab() {
         .btn-icon:hover {
             background: var(--bg);
             border-color: var(--text-muted);
-        }
-        @media (max-width: 600px) {
-          .team-header-actions {
-            max-width: 100% !important;
-            width: 100% !important;
-          }
         }
       `}</style>
     </section>
