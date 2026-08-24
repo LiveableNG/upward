@@ -31,6 +31,8 @@ model upward_user {
   providerId            String?                          @unique
   isInternal            Boolean                          @default(false)
   savingsWalletEnabled  Boolean                          @default(false)
+  termsAcceptedAt       DateTime?
+  termsVersion          String?                          @default("2026-08-24")
   authSessions          upward_auth_session[]
   benefitsSubscriptions upward_benefits_subscription[]
   communicationLogs     upward_communication_log[]

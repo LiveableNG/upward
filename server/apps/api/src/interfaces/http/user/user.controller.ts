@@ -23,6 +23,7 @@ import { GenerateKYCReportPdfUseCase } from '../../../application/use-cases/user
 import { VerifyBvnUseCase } from '../../../application/use-cases/user/verify-bvn.use-case'
 
 import { CheckSlugAvailabilityUseCase } from '../../../application/use-cases/user/check-slug-availability.use-case'
+import { AcceptTermsUseCase } from '../../../application/use-cases/user/accept-terms.use-case'
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
   clearCookie(name: string, options?: Record<string, unknown>): FastifyReply
@@ -101,6 +102,7 @@ export class UserController {
     private readonly generateKYCPdf: GenerateKYCReportPdfUseCase,
     private readonly checkSlugAvailability: CheckSlugAvailabilityUseCase,
     private readonly verifyBvnUseCase: VerifyBvnUseCase,
+    private readonly acceptTermsUseCase: AcceptTermsUseCase,
   ) { }
 
   @Post('signup')
@@ -414,4 +416,13 @@ export class UserController {
     const slug = req.params.slug;
     return this.checkSlugAvailability.execute(slug);
   }
+
+  @Post('accept-terms')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async acceptTerms(@Req() req: FastifyRequest, @Body() body: { version?: string }) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request');
+    return this.acceptTermsUseCase.execute(req.user.id, body?.version);
+  }
 }
+

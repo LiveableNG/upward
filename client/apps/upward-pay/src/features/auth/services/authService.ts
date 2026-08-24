@@ -61,6 +61,13 @@ export async function updateProfile(data: Partial<UserProfile>) {
   })
 }
 
+export async function acceptTerms(version: string = '2026-08-24') {
+  return request<{ success: boolean; termsAcceptedAt: string; termsVersion: string }>('/user/auth/accept-terms', {
+    method: 'POST',
+    body: JSON.stringify({ version }),
+  })
+}
+
 export async function getAvatarUploadUrl(contentType: string, filename: string) {
   return request<{ key: string; uploadUrl: string; publicUrl: string }>('/user/auth/avatar-upload-url', {
     method: 'POST',
