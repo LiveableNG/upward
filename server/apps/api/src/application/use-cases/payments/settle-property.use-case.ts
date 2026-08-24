@@ -124,6 +124,17 @@ export class SettlePropertyBalanceUseCase {
           }
         })
 
+        if (paymentRequestId && effectivePeriodStart && effectivePeriodEnd) {
+          await txClient.upward_payment_request.update({
+            where: { id: paymentRequestId },
+            data: {
+              rentStartDate: effectivePeriodStart,
+              rentEndDate: effectivePeriodEnd,
+              dueDate: effectivePeriodEnd,
+            }
+          })
+        }
+
         const allPayments = await txClient.upward_platform_rent_payment.findMany({
           where: { userPropertyId: prop.id, status: 'SUCCESS' }
         })
