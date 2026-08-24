@@ -247,6 +247,27 @@ export class EmailService {
     const trackingPixelUrl = `${apiUrl}/api/v1/email-tracking/open?t=${emailTrackingToken}`
     const trackingPixelRegex = /\/api\/v1\/email-tracking\/open\?t=[^"'>\s]+/
 
+    const trackedLinks: Array<{ id: string; originalUrl: string }> = []
+    if (brandedHtml) {
+      brandedHtml = brandedHtml.replace(
+        /<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["']([^>]*)>/gi,
+        (match, href, rest) => {
+          if (
+            !href.match(/^https?:\/\//i) ||
+            href.includes('/email-tracking/') ||
+            href.includes('/emails/') ||
+            href.includes('/unsubscribe')
+          ) {
+            return match
+          }
+          const linkId = randomUUID()
+          trackedLinks.push({ id: linkId, originalUrl: href })
+          const trackingUrl = `${apiUrl}/emails/${linkId}`
+          return match.replace(`href="${href}"`, `href="${trackingUrl}"`).replace(`href='${href}'`, `href='${trackingUrl}'`)
+        },
+      )
+    }
+
     if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {
       brandedHtml += `\n<img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display:none!important;visibility:hidden!important;max-height:1px;max-width:1px;border:0;outline:none;text-decoration:none;" />`
     }
@@ -356,6 +377,7 @@ export class EmailService {
         brandedHtml,
         params.emailSequenceLogId,
         emailTrackingToken,
+        trackedLinks,
       ),
     )
 

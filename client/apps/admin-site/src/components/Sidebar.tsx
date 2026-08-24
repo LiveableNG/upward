@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Activity,
   MapPin,
+  MousePointer,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -80,6 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     title: 'Communications',
     items: [
       { name: 'Emailing', path: '/emails', icon: Mail },
+      { name: 'Email Click Tracking', path: '/email-tracking', icon: MousePointer },
       { name: 'WhatsApp Sequences', path: '/whatsapp-sequences', icon: Megaphone },
       { name: 'Email Sequences', path: '/email-sequences', icon: Mail },
       { name: 'Announcements', path: '/announcements', icon: Megaphone },
