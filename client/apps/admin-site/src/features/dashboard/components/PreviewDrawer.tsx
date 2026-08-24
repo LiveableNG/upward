@@ -11,6 +11,12 @@ export type DrawerEntity = {
   phone?: string
   status: string
   type: string
+  upwardScore?: {
+    score: number
+    maxScore: number
+    band: string
+    color: string
+  }
   invitedAt?: string | null
   joinedAt?: string | null
   createdAt?: string
@@ -219,6 +225,19 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
               <span className="section-label" style={{ display: 'block', marginBottom: '14px' }}>Quick Stats</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {entity.upwardScore && (
+                  <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff', borderRadius: '10px', padding: '14px', textAlign: 'center', gridColumn: 'span 2' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '4px' }}>
+                      Upward Credibility Score
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '24px', fontWeight: 800, color: '#fff' }}>{entity.upwardScore.score}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', backgroundColor: `${entity.upwardScore.color}33`, color: entity.upwardScore.color }}>
+                        {entity.upwardScore.band}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {entity.transactionCount !== undefined && (
                   <div style={{ background: 'var(--surface-hover)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: 'var(--accent)' }}>

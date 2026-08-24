@@ -22,15 +22,23 @@ export class GetSignedUpMetricsUseCase {
 
         let totalPaid = 0
         let benefitsPaid = 0
+        let feePaid = 0
         let lastPaidAt: Date | null = null
         u.transactions.forEach((tx: any) => {
           if (tx.status === 'SUCCESS') {
             totalPaid += tx.amount
+            if (tx.fee || tx.platformFee) {
+              feePaid += Number(tx.fee || tx.platformFee || 0)
+            }
             if (tx.lineItems && Array.isArray(tx.lineItems)) {
               tx.lineItems.forEach((item: any) => {
                 const name = item.name || item.label || ''
-                if (name === 'Upward Benefits') {
+                if (name === 'Upward Benefits' || name.toLowerCase().includes('benefit')) {
                   benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                } else if (name.toLowerCase().includes('fee') || name.toLowerCase().includes('processing')) {
+                  if (!tx.fee && !tx.platformFee) {
+                    feePaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                  }
                 }
               })
             }
@@ -124,6 +132,9 @@ export class GetSignedUpMetricsUseCase {
           hasPaid: totalPaid > 0,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
+          feePaid,
+          platformRevenue: feePaid + benefitsPaid,
+          hasPlatformRevenue: feePaid + benefitsPaid > 0,
           pms: pmsList,
           rentExpiryDate,
           originType: origin,

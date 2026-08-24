@@ -879,7 +879,7 @@ export const SignupForm = () => {
           <button
             type="submit"
             className="auth-btn auth-btn--primary auth-btn--large"
-            disabled={loading || emailExists || isCheckingEmail || isInvited}
+            disabled={loading || emailExists || isCheckingEmail || isInvited || !termsAgreed}
             style={{ marginTop: '10px' }}
           >
             <span>{loading ? 'Please wait...' : 'Create account'}</span>

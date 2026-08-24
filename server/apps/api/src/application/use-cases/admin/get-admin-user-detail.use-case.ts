@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { CalculateRentScoreUseCase } from '../user/calculate-rent-score.use-case'
 
 @Injectable()
 export class GetAdminUserDetailUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly calculateRentScore: CalculateRentScoreUseCase,
   ) {}
 
   private decryptUser(u: any) {
@@ -64,6 +66,37 @@ export class GetAdminUserDetailUseCase {
     if (u) {
       const decryptedUser = this.decryptUser(u)
 
+      // Calculate Upward Rent Score
+      let rentScore = 500
+      let scoreBand = 'Fair'
+      try {
+        const scoreRes: any = await this.calculateRentScore.execute(u.uuid)
+        if (scoreRes && scoreRes.success && scoreRes.data) {
+          rentScore = scoreRes.data.score || 500
+          scoreBand = scoreRes.data.band || 'Fair'
+        }
+      } catch (err) {
+        rentScore = 500
+      }
+
+      let bandColor = '#4f46e5'
+      if (rentScore >= 750) {
+        bandColor = '#16a34a'
+      } else if (rentScore >= 650) {
+        bandColor = '#0284c7'
+      } else if (rentScore >= 550) {
+        bandColor = '#4f46e5'
+      } else {
+        bandColor = '#dc2626'
+      }
+
+      const upwardScore = {
+        score: rentScore,
+        maxScore: 900,
+        band: scoreBand,
+        color: bandColor,
+      }
+
       // Fetch user's activity logs
       const activityLogs = await this.prisma.upward_app_activity_log.findMany({
         where: {
@@ -101,8 +134,12 @@ export class GetAdminUserDetailUseCase {
             }
           : null
         return {
-          ...p,
-          location: loc || null,
+          id: p.id,
+          name: p.name,
+          address: p.address,
+          city: loc?.area || p.city,
+          state: loc?.state || p.state,
+          rentAmount: p.rentAmount,
           company,
           pm,
           pmUnit: p.pmUnit,
@@ -111,12 +148,13 @@ export class GetAdminUserDetailUseCase {
 
       return {
         type: 'TENANT',
-        id: u.id.toString(),
+        id: u.id,
         uuid: u.uuid,
         email: decryptedUser.email,
         firstName: decryptedUser.firstName,
         lastName: decryptedUser.lastName,
         phone: decryptedUser.phone,
+        upwardScore,
         savingsWalletEnabled: u.savingsWalletEnabled,
         isFromInvite: u.isFromInvite,
         isFromWaitlist: u.isFromWaitlist,

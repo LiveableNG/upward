@@ -31,6 +31,12 @@ interface UserDetailData {
   firstName: string
   lastName: string
   phone: string
+  upwardScore?: {
+    score: number
+    maxScore: number
+    band: string
+    color: string
+  }
   savingsWalletEnabled?: boolean
   isFromInvite: boolean
   isFromWaitlist: boolean
@@ -296,6 +302,60 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             alignSelf: 'start',
           }}
         >
+          {/* Upward Score Widget */}
+          {user.upwardScore && (
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                color: '#fff',
+                borderRadius: '16px',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94a3b8' }}>
+                  Upward Rent Credibility Score
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: `${user.upwardScore.color}22`,
+                    color: user.upwardScore.color,
+                    border: `1px solid ${user.upwardScore.color}44`,
+                  }}
+                >
+                  {user.upwardScore.band}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span style={{ fontSize: '38px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+                  {user.upwardScore.score}
+                </span>
+                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>
+                  / {user.upwardScore.maxScore}
+                </span>
+              </div>
+
+              <div style={{ width: '100%', height: '6px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.1)', marginTop: '12px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${Math.min(100, Math.max(0, ((user.upwardScore.score - 300) / 600) * 100))}%`,
+                    height: '100%',
+                    backgroundColor: user.upwardScore.color,
+                    borderRadius: '4px',
+                    transition: 'width 0.5s ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Identity Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
             <div
