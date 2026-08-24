@@ -566,7 +566,7 @@ export const DataImportTab: React.FC = () => {
         onDeleteJob={handleDeleteJob}
       />
 
-      <section style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 24, marginBottom: 20 }}>
+      <section style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 'clamp(14px, 3.5vw, 24px)', marginBottom: 20, width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>
             How to name your Excel columns
@@ -576,15 +576,15 @@ export const DataImportTab: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24, width: '100%' }}>
           {/* Left Column: Required */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, background: 'rgba(22, 101, 52, 0.02)', border: '1px solid rgba(22, 101, 52, 0.08)', borderRadius: 12, padding: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, background: 'rgba(22, 101, 52, 0.02)', border: '1px solid rgba(22, 101, 52, 0.08)', borderRadius: 12, padding: 'clamp(12px, 3vw, 18px)', minWidth: 0, boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)', flexShrink: 0 }} />
                 Required Columns
               </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--forest)', background: 'var(--forest-faint)', padding: '2px 8px', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--forest)', background: 'var(--forest-faint)', padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>
                 Must Have ({compulsory.length})
               </span>
             </div>
@@ -601,12 +601,12 @@ export const DataImportTab: React.FC = () => {
                 else if (c.key === 'unitRentType') example = 'Annually';
 
                 return (
-                  <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', background: 'var(--surface)', border: '1px solid rgba(22, 101, 52, 0.12)', borderRadius: 10, boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>{c.label}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Example: <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontWeight: 500 }}>{example}</span></span>
+                  <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px clamp(10px, 2.5vw, 14px)', background: 'var(--surface)', border: '1px solid rgba(22, 101, 52, 0.12)', borderRadius: 10, boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Example: <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontWeight: 500 }}>{example}</span></span>
                     </div>
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'var(--forest-faint)', color: 'var(--forest)' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'var(--forest-faint)', color: 'var(--forest)', flexShrink: 0 }}>
                       <Check size={12} strokeWidth={3} />
                     </span>
                   </div>
@@ -616,13 +616,13 @@ export const DataImportTab: React.FC = () => {
           </div>
 
           {/* Right Column: Optional */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: 'clamp(12px, 3vw, 18px)', minWidth: 0, boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)' }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-muted)', flexShrink: 0 }} />
                 Optional Columns
               </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--border)', padding: '2px 8px', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--border)', padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>
                 Nice to Have ({optional.length})
               </span>
             </div>
@@ -632,12 +632,12 @@ export const DataImportTab: React.FC = () => {
                 const example = OPTIONAL_EXAMPLES[c.key] || 'Optional';
 
                 return (
-                  <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 1px 2px rgba(0, 0, 0, 0.01)' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>{c.label}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Example: <span style={{ fontStyle: 'italic' }}>{example}</span></span>
+                  <div key={c.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px clamp(10px, 2.5vw, 14px)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 1px 2px rgba(0, 0, 0, 0.01)', minWidth: 0, boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Example: <span style={{ fontStyle: 'italic' }}>{example}</span></span>
                     </div>
-                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 14 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 14, flexShrink: 0 }}>
                       +
                     </span>
                   </div>
