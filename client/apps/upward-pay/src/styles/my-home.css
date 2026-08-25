@@ -1649,6 +1649,31 @@
   white-space: nowrap;
 }
 
+.my-home-tx__proof-file-remove {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--shell-muted, #a9a096);
+  cursor: pointer;
+}
+
+.my-home-tx__proof-file-remove:hover:not(:disabled) {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.my-home-tx__proof-file-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .my-home-tx__proof-file--busy {
   color: var(--text-muted);
 }
