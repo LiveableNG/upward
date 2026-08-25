@@ -492,7 +492,7 @@ function ProofUploadModal({
             <span>{file.caption}</span>
             <button
               type="button"
-              className="my-home-form__media-remove"
+              className="my-home-tx__proof-file-remove"
               onClick={() => setFile(null)}
               disabled={isSubmitting}
               aria-label="Remove file"
@@ -582,6 +582,7 @@ export function PaymentsScreen() {
   const handleUploadProof = (bill: PendingBill) => {
     setProofBill(bill)
     setBankModalOpen(false)
+    setPaymentInfo(null)
     setProofModalOpen(true)
   }
 
