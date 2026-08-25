@@ -102,7 +102,9 @@ export async function submitComplaintFeedback(
 
 export async function uploadHomeFile(propertyUuid: string, file: File) {
   const form = new FormData()
-  form.append('file_type', file.type.split('/')[0] || 'image')
+  const mimeRoot = file.type.split('/')[0] || 'image'
+  const fileType = file.type === 'application/pdf' ? 'pdf' : mimeRoot
+  form.append('file_type', fileType)
   form.append('caption', file.name)
   form.append('file', file)
 
@@ -189,6 +191,20 @@ export async function checkTransactionStatus(propertyUuid: string, topupRequestI
     withProperty('/transactions/check-status', propertyUuid, { topup_request_id: topupRequestId }),
     { method: 'GET' },
   )
+}
+
+export async function submitProofOfPayment(
+  propertyUuid: string,
+  topupRequestId: string,
+  proofFile: string,
+) {
+  return request<Envelope<null>>(withProperty('/transactions/proof-of-payment', propertyUuid), {
+    method: 'POST',
+    body: JSON.stringify({
+      topup_request_id: topupRequestId,
+      proof_file: proofFile,
+    }),
+  })
 }
 
 export async function getDocuments(propertyUuid: string, page = 1) {

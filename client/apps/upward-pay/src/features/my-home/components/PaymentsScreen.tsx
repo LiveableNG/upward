@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -9,8 +9,11 @@ import {
   Check,
   Clock,
   Copy,
+  FileText,
   Loader2,
+  Upload,
   Wallet,
+  X,
 } from 'lucide-react'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 import { Modal } from '@/components/common/Modal'
@@ -21,7 +24,7 @@ import type { CompletedPayment } from '@/features/dashboard/types'
 import * as myHomeService from '../services/myHomeService'
 import { usePendingBills, useTransactionsInfinite, type MyHomeProperty } from '../hooks/useMyHome'
 import { useSelectedProperty } from '../context/MyHomePropertyContext'
-import type { GtTransaction, PendingBill, PendingPaymentInfo } from '../types'
+import type { GtTransaction, PendingBill, PendingPaymentInfo, UploadedHomeFile } from '../types'
 
 type HistorySource = 'gt' | 'upward'
 
@@ -160,15 +163,32 @@ function TransactionRow({
   )
 }
 
+function proofStatusLabel(bill: PendingBill) {
+  if (!bill.proof_file) return null
+  if (bill.proof_status === 'rejected') return 'Proof rejected — please re-upload'
+  if (bill.proof_status === 'approved') return 'Proof approved'
+  return 'Proof uploaded — pending review'
+}
+
 function PendingBillCard({
   bill,
   onPay,
+  onProof,
   loading,
 }: {
   bill: PendingBill
   onPay: (bill: PendingBill) => void
+  onProof: (bill: PendingBill) => void
   loading: boolean
 }) {
+  const proofLabel = proofStatusLabel(bill)
+  const proofModifier =
+    bill.proof_status === 'rejected'
+      ? 'rejected'
+      : bill.proof_status === 'approved'
+        ? 'approved'
+        : 'pending'
+
   return (
     <div className="my-home-tx__bill">
       <div className="my-home-tx__bill-body">
@@ -178,15 +198,29 @@ function PendingBillCard({
           <Clock size={13} />
           {bill.created_at}
         </span>
+        {proofLabel ? (
+          <span className={`my-home-tx__proof-badge my-home-tx__proof-badge--${proofModifier}`}>
+            {proofLabel}
+          </span>
+        ) : null}
       </div>
-      <button
-        type="button"
-        className="my-home-tx__bill-pay"
-        onClick={() => onPay(bill)}
-        disabled={loading}
-      >
-        {loading ? <Loader2 size={16} className="my-home-tx__spin" /> : 'Pay'}
-      </button>
+      <div className="my-home-tx__bill-actions">
+        <button
+          type="button"
+          className="my-home-tx__bill-pay"
+          onClick={() => onPay(bill)}
+          disabled={loading}
+        >
+          {loading ? <Loader2 size={16} className="my-home-tx__spin" /> : 'Pay'}
+        </button>
+        <button
+          type="button"
+          className="my-home-tx__bill-pay my-home-tx__bill-pay--ghost"
+          onClick={() => onProof(bill)}
+        >
+          Proof
+        </button>
+      </div>
     </div>
   )
 }
@@ -197,12 +231,14 @@ function BankPaymentModal({
   onClose,
   propertyUuid,
   onPaid,
+  onUploadProof,
 }: {
   isOpen: boolean
   paymentInfo: PendingPaymentInfo | null
   onClose: () => void
   propertyUuid: string
   onPaid: () => void
+  onUploadProof: () => void
 }) {
   const toast = useToast()
   const [copiedField, setCopiedField] = useState<string | null>(null)
@@ -339,8 +375,146 @@ function BankPaymentModal({
             <PayFlowPrimaryButton onClick={() => void pollForConfirmation()}>
               I&apos;ve paid
             </PayFlowPrimaryButton>
+            <button type="button" className="my-home-tx__proof-link" onClick={onUploadProof}>
+              <Upload size={15} />
+              Upload proof of payment
+            </button>
           </>
         )}
+      </div>
+    </Modal>
+  )
+}
+
+function ProofUploadModal({
+  isOpen,
+  bill,
+  propertyUuid,
+  onClose,
+  onSubmitted,
+}: {
+  isOpen: boolean
+  bill: PendingBill | null
+  propertyUuid: string
+  onClose: () => void
+  onSubmitted: () => void
+}) {
+  const toast = useToast()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [file, setFile] = useState<UploadedHomeFile | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) {
+      setFile(null)
+      setIsUploading(false)
+      setIsSubmitting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }, [isOpen])
+
+  if (!bill) return null
+
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0]
+    event.target.value = ''
+    if (!selected) return
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']
+    if (!allowed.includes(selected.type)) {
+      toast.error('Use a JPG, PNG, GIF, or PDF')
+      return
+    }
+    if (selected.size > 20 * 1024 * 1024) {
+      toast.error('File must be 20MB or smaller')
+      return
+    }
+
+    setIsUploading(true)
+    try {
+      const response = await myHomeService.uploadHomeFile(propertyUuid, selected)
+      setFile(response.data)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not upload file'
+      toast.error(message)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!file) {
+      toast.error('Please upload a proof of payment')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await myHomeService.submitProofOfPayment(propertyUuid, bill.id, file.source)
+      toast.success('Proof of payment submitted')
+      onSubmitted()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not submit proof of payment'
+      toast.error(message)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <div className="my-home-form">
+        <h3 className="my-home-detail__title">Upload proof of payment</h3>
+        <p className="my-home-form__hint">
+          {bill.reason} · {bill.amount}. Upload a screenshot or receipt (JPG, PNG, PDF · max 20MB).
+        </p>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/gif,application/pdf"
+          className="my-home-form__file-input"
+          onChange={handleFileSelected}
+          disabled={isUploading || isSubmitting}
+        />
+        <button
+          type="button"
+          className="my-home-form__upload-btn"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading || isSubmitting}
+        >
+          <Upload size={16} />
+          {file ? 'Replace file' : 'Choose file'}
+        </button>
+
+        {isUploading ? (
+          <div className="my-home-tx__proof-file my-home-tx__proof-file--busy">Uploading…</div>
+        ) : null}
+
+        {file ? (
+          <div className="my-home-tx__proof-file">
+            {file.type === 'pdf' || file.source.toLowerCase().endsWith('.pdf') ? (
+              <FileText size={18} />
+            ) : (
+              <img src={file.source} alt={file.caption} />
+            )}
+            <span>{file.caption}</span>
+            <button
+              type="button"
+              className="my-home-form__media-remove"
+              onClick={() => setFile(null)}
+              disabled={isSubmitting}
+              aria-label="Remove file"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : null}
+
+        <PayFlowPrimaryButton onClick={() => void handleSubmit()} disabled={!file || isUploading} loading={isSubmitting}>
+          Submit proof
+        </PayFlowPrimaryButton>
       </div>
     </Modal>
   )
@@ -357,6 +531,8 @@ export function PaymentsScreen() {
   const upward = useTransactions()
 
   const [bankModalOpen, setBankModalOpen] = useState(false)
+  const [proofModalOpen, setProofModalOpen] = useState(false)
+  const [proofBill, setProofBill] = useState<PendingBill | null>(null)
   const [loadingBillId, setLoadingBillId] = useState<string | null>(null)
   const [paymentInfo, setPaymentInfo] = useState<PendingPaymentInfo | null>(null)
 
@@ -381,6 +557,8 @@ export function PaymentsScreen() {
     ])
     setBankModalOpen(false)
     setPaymentInfo(null)
+    setProofModalOpen(false)
+    setProofBill(null)
   }, [queryClient, selectedUuid])
 
   const handlePayBill = async (bill: PendingBill) => {
@@ -402,6 +580,12 @@ export function PaymentsScreen() {
     }
   }
 
+  const handleUploadProof = (bill: PendingBill) => {
+    setProofBill(bill)
+    setBankModalOpen(false)
+    setProofModalOpen(true)
+  }
+
   return (
     <>
       <PayPageShell
@@ -420,6 +604,7 @@ export function PaymentsScreen() {
                 key={bill.id}
                 bill={bill}
                 onPay={handlePayBill}
+                onProof={handleUploadProof}
                 loading={loadingBillId === bill.id}
               />
             ))}
@@ -498,6 +683,30 @@ export function PaymentsScreen() {
           propertyUuid={selectedUuid}
           onPaid={() => {
             toast.success('Payment received')
+            void refetchAll()
+          }}
+          onUploadProof={() => {
+            const bill = pendingBills.find((item) => item.id === paymentInfo?.id) ?? {
+              id: paymentInfo?.id || '',
+              amount: '',
+              reason: 'Service charge',
+              created_at: '',
+            }
+            handleUploadProof(bill)
+          }}
+        />
+      ) : null}
+
+      {selectedUuid ? (
+        <ProofUploadModal
+          isOpen={proofModalOpen}
+          bill={proofBill}
+          propertyUuid={selectedUuid}
+          onClose={() => {
+            setProofModalOpen(false)
+            setProofBill(null)
+          }}
+          onSubmitted={() => {
             void refetchAll()
           }}
         />

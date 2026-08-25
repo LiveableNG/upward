@@ -183,6 +183,20 @@ export class TenantAppController {
     })
   }
 
+  @Post('transactions/proof-of-payment')
+  submitProofOfPayment(
+    @Req() req: AuthenticatedRequest,
+    @Query('propertyUuid') propertyUuid: string,
+    @Body() body: { topup_request_id: string; proof_file: string },
+  ) {
+    return this.proxyTenantAppRead.executeWrite(
+      req.user.id,
+      propertyUuid,
+      'transactions/proof-of-payment',
+      body,
+    )
+  }
+
   @Get('visitors/active')
   listActiveVisitors(
     @Req() req: AuthenticatedRequest,
