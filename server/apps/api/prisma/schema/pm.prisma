@@ -32,6 +32,7 @@ model upward_property_manager {
   companyAddress          String?
   isBlocked               Boolean                              @default(false)
   isManuallyBlocked       Boolean                              @default(false)
+  disabledAt              DateTime?
   activityLogsOwned       upward_pm_activity_log[]             @relation("ActivityOwner")
   activityLogsPerformed   upward_pm_activity_log[]             @relation("ActivityPerformer")
   authSessions            upward_pm_auth_session[]

@@ -9,6 +9,7 @@ import { ProcessHourlySettlementsUseCase } from '../application/use-cases/paymen
 import { SendHomeRequestDigestUseCase } from '../application/use-cases/home-request/send-home-request-digest.use-case'
 import { QueueDailySequencesUseCase } from '../application/use-cases/sequence/queue-daily-sequences.use-case'
 import { ApplyDailySavingsInterestUseCase } from '../application/use-cases/payments/wallet.use-cases'
+import { NotifyEligibleDeletionAccountsUseCase } from '../application/use-cases/admin/notify-eligible-deletion-accounts.use-case'
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import { S3Service } from '../shared/infrastructure/common/s3/s3.service'
@@ -31,6 +32,7 @@ export class ScheduleService implements OnModuleInit {
     private readonly sendHomeRequestDigestUseCase: SendHomeRequestDigestUseCase,
     private readonly queueDailySequencesUseCase: QueueDailySequencesUseCase,
     private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
+    private readonly notifyEligibleDeletionAccountsUseCase: NotifyEligibleDeletionAccountsUseCase,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
   ) {
@@ -96,6 +98,13 @@ export class ScheduleService implements OnModuleInit {
       .dailyAt('00:00')
       .withoutOverlapping()
       .description('Apply daily savings interest')
+
+    s.call('deletionDigest', async () => {
+      await this.notifyEligibleDeletionAccountsUseCase.execute()
+    })
+      .dailyAt('09:00')
+      .withoutOverlapping()
+      .description('Daily digest to admins listing 10, 20, and 30+ day disabled accounts pending deletion')
 
     s.call('cleanupDevEmails', async () => {
       this.logger.log('Starting daily dev-emails S3 and database cleanup task...')

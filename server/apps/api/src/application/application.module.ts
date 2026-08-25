@@ -29,6 +29,9 @@ import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-
 import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
 import { SendAdminNotificationUseCase } from './use-cases/admin/send-admin-notification.use-case'
 import { ManagePmSubscriptionUseCase } from './use-cases/admin/manage-pm-subscription.use-case'
+import { GetEligibleDeletionUsersUseCase } from './use-cases/admin/get-eligible-deletion-users.use-case'
+import { DeleteUserDataUseCase } from './use-cases/admin/delete-user-data.use-case'
+import { NotifyEligibleDeletionAccountsUseCase } from './use-cases/admin/notify-eligible-deletion-accounts.use-case'
 import {
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -423,6 +426,9 @@ const UseCases = [
   UpdateAdminDetailsUseCase,
   SendAdminNotificationUseCase,
   ManagePmSubscriptionUseCase,
+  GetEligibleDeletionUsersUseCase,
+  DeleteUserDataUseCase,
+  NotifyEligibleDeletionAccountsUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
