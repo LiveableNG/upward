@@ -15,7 +15,10 @@ import {
   Wallet,
   X,
 } from 'lucide-react'
-import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
+import {
+  PayPageShell,
+  PayFlowPrimaryButton,
+} from '@/features/dashboard/components/payment/PayPageShell'
 import { Modal } from '@/components/common/Modal'
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency } from '@/lib/utils'
@@ -112,13 +115,7 @@ function mergeUpwardIntoHistory(
   return next
 }
 
-function TransactionRow({
-  transaction,
-  onOpen,
-}: {
-  transaction: HistoryRow
-  onOpen?: () => void
-}) {
+function TransactionRow({ transaction, onOpen }: { transaction: HistoryRow; onOpen?: () => void }) {
   const isCredit = transaction.type === 'credit'
   const Icon = isCredit ? ArrowDownLeft : ArrowUpRight
   const amount = formatCurrency(parseAmount(transaction.amount))
@@ -212,13 +209,6 @@ function PendingBillCard({
           disabled={loading}
         >
           {loading ? <Loader2 size={16} className="my-home-tx__spin" /> : 'Pay'}
-        </button>
-        <button
-          type="button"
-          className="my-home-tx__bill-pay my-home-tx__bill-pay--ghost"
-          onClick={() => onProof(bill)}
-        >
-          Proof
         </button>
       </div>
     </div>
@@ -512,7 +502,11 @@ function ProofUploadModal({
           </div>
         ) : null}
 
-        <PayFlowPrimaryButton onClick={() => void handleSubmit()} disabled={!file || isUploading} loading={isSubmitting}>
+        <PayFlowPrimaryButton
+          onClick={() => void handleSubmit()}
+          disabled={!file || isUploading}
+          loading={isSubmitting}
+        >
           Submit proof
         </PayFlowPrimaryButton>
       </div>
@@ -547,13 +541,18 @@ export function PaymentsScreen() {
     [history.data?.pages, selected, upward.data],
   )
   const dateKeys = sortDateKeys(Object.keys(transactionsByDate))
-  const isHistoryLoading = history.isPending || upward.isPending
+  // Only wait on GT history — Upward rent rows merge in when ready (don't block the spinner).
+  const isHistoryLoading = history.isPending
   const isHistoryEmpty = !isHistoryLoading && dateKeys.length === 0
 
   const refetchAll = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['my-home', 'transactions', 'pending', selectedUuid] }),
-      queryClient.invalidateQueries({ queryKey: ['my-home', 'transactions', 'history', 'infinite', selectedUuid] }),
+      queryClient.invalidateQueries({
+        queryKey: ['my-home', 'transactions', 'pending', selectedUuid],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['my-home', 'transactions', 'history', 'infinite', selectedUuid],
+      }),
     ])
     setBankModalOpen(false)
     setPaymentInfo(null)
