@@ -3,10 +3,14 @@ import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 import { AdminJwtPayload } from '@upward/shared-types'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -40,12 +44,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: AdminJwtPayload) {
+    let isBlocked = false
+    let isManuallyBlocked = false
+    if ((payload.role as string) === 'PM') {
+      const pm = await this.prisma.upward_property_manager.findUnique({
+        where: { uuid: payload.sub },
+        select: { isBlocked: true, isManuallyBlocked: true } as any,
+      })
+      isBlocked = (pm as any)?.isBlocked ?? false
+      isManuallyBlocked = (pm as any)?.isManuallyBlocked ?? false
+    }
+
     return {
       id: payload.sub,
       sub: payload.sub,
       email: payload.email,
       role: payload.role,
       mustChangePassword: payload.mustChangePassword,
+      isBlocked,
+      isManuallyBlocked,
     }
   }
 }

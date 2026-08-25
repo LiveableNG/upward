@@ -18,6 +18,8 @@ export interface PropertyManagerProfile {
   country?: string;
   companyAddress?: string;
   cacNumber?: string;
+  isBlocked?: boolean;
+  isManuallyBlocked?: boolean;
   /** False for employee-only team collaborators — company settings tabs are hidden. */
   canManageCompanySettings?: boolean;
 }

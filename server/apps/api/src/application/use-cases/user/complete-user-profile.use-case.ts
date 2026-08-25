@@ -76,6 +76,7 @@ export class CompleteUserProfileUseCase {
       profilePic: dto.profilePic || '',
       isFromWaitlist: !!waitlistEntry,
       isFromInvite: false,
+      joinedAt: new Date(),
     }
 
     if (!user?.profileSlug) {

@@ -226,6 +226,15 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       }),
   },
 
+  STUDENT_WAITLIST_CONFIRMATION: {
+    recipientRole: 'TENANT',
+    subjectTemplate: "You're on the list — here's what happens next",
+    plainTextTemplate:
+      'Hi {{firstName}}, welcome to the Upward University Waitlist! Thank you for signing up and taking the first step toward building a ₦10M+ property management business.',
+    whatsappTemplateName: 'upward_university_waitlist',
+    whatsappParams: ['firstName'],
+  },
+
   DATA_DELETION_REQUEST: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Confirm your data deletion request',
@@ -249,13 +258,26 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     buildHtml: (ctx) =>
       buildRentReceiptEmailHtml({
         tenantName: ctx.tenantName || 'Tenant',
-        amountPaid: Number(ctx.amountPaid || ctx.amount || 0),
+        amountPaid: (() => {
+          const val = ctx.amountPaid ?? ctx.amount ?? 0;
+          if (typeof val === 'number') return val;
+          if (typeof val === 'string') {
+            const cleaned = val.replace(/[^0-9.]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
+          }
+          return 0;
+        })(),
         balance: Number(ctx.balance || 0),
         propertyAddress: ctx.propertyAddress || 'Property',
         unitName: ctx.unitName || 'Unit',
         receiptNumber: ctx.receiptNumber || '',
         paymentDate: ctx.paymentDate || new Date().toLocaleDateString(),
         receiptUrl: ctx.receiptUrl || '',
+        tenancyPeriod: ctx.tenancyPeriod,
+        companyName: ctx.companyName,
+        logoUrl: ctx.logoUrl,
+        lineItems: ctx.lineItems,
       }),
   },
 

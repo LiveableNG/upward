@@ -105,6 +105,13 @@ export class SelectSubscriptionTierUseCase {
       data: updateData,
     });
 
+    if (wallet.balance >= minDeposit && !(pm as any).isManuallyBlocked) {
+      await this.prisma.upward_property_manager.update({
+        where: { id: pm.id },
+        data: { isBlocked: false },
+      });
+    }
+
     return sub;
   }
 }

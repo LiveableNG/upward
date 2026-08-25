@@ -76,10 +76,21 @@ export class DevEmailAdminController {
     if (email.attachments && Array.isArray(email.attachments)) {
       const resolvedAttachments = []
       for (const att of email.attachments as any[]) {
-        const signedUrl = att.s3Key ? await this.s3Service.getDownloadUrl(att.s3Key) : ''
+        let url = att.url || ''
+        if (!url && att.s3Key) {
+          try {
+            url = await this.s3Service.getDownloadUrl(att.s3Key)
+          } catch {
+            url = ''
+          }
+        }
+        if (!url && att.content) {
+          const mime = att.contentType || 'application/pdf'
+          url = att.content.startsWith('data:') ? att.content : `data:${mime};base64,${att.content}`
+        }
         resolvedAttachments.push({
           filename: att.filename,
-          url: signedUrl,
+          url,
         })
       }
       ;(email as any).attachments = resolvedAttachments

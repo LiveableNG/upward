@@ -1,28 +1,28 @@
 model upward_waitlist {
-  id                       String              @id @default(uuid())
-  uuid                     String              @unique @default(uuid())
-  email                    String              @unique
+  id                       String                     @id @default(uuid())
+  email                    String                     @unique
   firstName                String?
   lastName                 String?
   phone                    String?
   role                     String?
   benefits                 String[]
-  acceptTerms              Boolean             @default(false)
-  wantsAmbassador          Boolean             @default(false)
+  acceptTerms              Boolean                    @default(false)
+  wantsAmbassador          Boolean                    @default(false)
   country                  String?
   city                     String?
   selectedSession          String?
-  isInternal               Boolean             @default(false)
-  createdAt                DateTime            @default(now())
-  updatedAt                DateTime            @updatedAt
-  confirmationSent         Boolean             @default(false)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  confirmationSent         Boolean                    @default(false)
   abVariant                String?
   confirmationEmailError   String?
-  confirmationEmailRetries Int                 @default(0)
+  confirmationEmailRetries Int                        @default(0)
   confirmationEmailStatus  String?
-  campaignWeekSent         Int                 @default(0)
-  unsubscribed             Boolean             @default(false)
+  campaignWeekSent         Int                        @default(0)
+  unsubscribed             Boolean                    @default(false)
   unsubscribedAt           DateTime?
+  uuid                     String                     @unique @default(uuid())
+  isInternal               Boolean                    @default(false)
   attendances              upward_attendance[]
   communicationLogs        upward_communication_log[]
 
@@ -32,14 +32,14 @@ model upward_waitlist {
 }
 
 model upward_session {
-  id             String              @id @default(uuid())
-  name           String
-  googleMeetLink String
-  startTime      DateTime
-  endTime        DateTime
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  attendances    upward_attendance[]
+  id                String                     @id @default(uuid())
+  name              String
+  googleMeetLink    String
+  startTime         DateTime
+  endTime           DateTime
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  attendances       upward_attendance[]
   communicationLogs upward_communication_log[]
 
   @@index([startTime])
@@ -59,35 +59,34 @@ model upward_attendance {
 }
 
 model upward_communication_log {
-  id               String           @id @default(uuid())
-  userId           String?
-  registeredUserId Int?
-  sessionId        String?
-  subject          String
-  sentAt           DateTime?
-  status           String
-  createdAt        DateTime         @default(now())
-  email            String?
-  lastError        String?
-  mailgunId        String?
-  type             String           @default("GENERIC")
-  channel          String           @default("EMAIL")
-  recipient        String?
-  updatedAt        DateTime         @updatedAt
-  retries          Int              @default(0)
-  body             String?
+  id                 String                     @id @default(uuid())
+  userId             String?
+  sessionId          String?
+  subject            String
+  sentAt             DateTime?
+  status             String
+  createdAt          DateTime                   @default(now())
+  email              String?
+  lastError          String?
+  mailgunId          String?
+  type               String                     @default("GENERIC")
+  updatedAt          DateTime                   @updatedAt
+  retries            Int                        @default(0)
+  body               String?
+  registeredUserId   Int?
+  channel            String                     @default("EMAIL")
+  recipient          String?
   emailSequenceLogId Int?
-  session          upward_session?  @relation(fields: [sessionId], references: [id])
-  user             upward_waitlist? @relation(fields: [userId], references: [id], onDelete: Cascade)
-  registeredUser   upward_user?     @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
-  emailSequenceLog upward_email_sequence_log? @relation(fields: [emailSequenceLogId], references: [id], onDelete: SetNull)
-  emailTrackingToken String? @unique
-  isOpened Boolean @default(false)
-  openedAt DateTime?
-  openCount Int @default(0)
-  userAgent String? @db.Text
+  emailTrackingToken String?                    @unique
+  isOpened           Boolean                    @default(false)
+  openCount          Int                        @default(0)
+  openedAt           DateTime?
+  userAgent          String?
+  emailSequenceLog   upward_email_sequence_log? @relation(fields: [emailSequenceLogId], references: [id])
+  registeredUser     upward_user?               @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
+  session            upward_session?            @relation(fields: [sessionId], references: [id])
+  user               upward_waitlist?           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("upward_communication_log")
   @@index([userId])
   @@index([registeredUserId])
   @@index([sessionId])
@@ -95,6 +94,7 @@ model upward_communication_log {
   @@index([type])
   @@index([channel])
   @@index([emailSequenceLogId])
+  @@map("upward_communication_log")
 }
 
 model upward_interaction {
@@ -232,9 +232,9 @@ model upward_webhook_log {
   errorMessage String?
   retries      Int              @default(0)
   lastTriedAt  DateTime?
-  direction    String           @default("OUTGOING")
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  direction    String           @default("OUTGOING")
   platform     upward_platform? @relation(fields: [platformId], references: [id], onDelete: Cascade)
 
   @@index([platformId])
@@ -298,42 +298,44 @@ model upward_support_ticket {
 }
 
 model upward_feedback {
-  id        Int          @id @default(autoincrement())
-  uuid      String       @unique @default(uuid())
+  id        Int                     @id @default(autoincrement())
+  uuid      String                  @unique @default(uuid())
   userId    Int?
+  pmId      Int?
   email     String?
   name      String?
-  type      String       // BUG, SUGGESTION, DIFFICULTY, OTHER
+  type      String
   message   String
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  user      upward_user? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  user      upward_user?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  pm        upward_property_manager? @relation(fields: [pmId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([pmId])
   @@index([type])
   @@index([createdAt])
 }
 
 /// Public website apartment briefs (request-a-home). Contact fields are for outreach.
 model upward_home_request {
-  id            Int      @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
-  email         String
-  phone         String
-  fullName      String?
-  locations     Json // [{ state, area, subArea? }]
-  budgetMin     Float
-  budgetMax     Float
-  propertyType  Json     // string[] — e.g. ["apartment","duplex"]
-  beds          Int
-  moveInDate    DateTime?
-  amenities     Json     @default("[]") // string[]
-  notes         String?
-  source        String   @default("website")
-  status        String   @default("submitted") // submitted | contacted | assigned | closed
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  id             Int                                  @id @default(autoincrement())
+  uuid           String                               @unique @default(uuid())
+  email          String
+  phone          String
+  fullName       String?
+  locations      Json
+  budgetMin      Float
+  budgetMax      Float
+  propertyType   Json
+  beds           Int
+  moveInDate     DateTime?
+  amenities      Json                                 @default("[]")
+  notes          String?
+  source         String                               @default("website")
+  status         String                               @default("submitted")
+  createdAt      DateTime                             @default(now())
+  updatedAt      DateTime                             @updatedAt
   contactReveals upward_home_request_contact_reveal[]
 
   @@index([email])
@@ -344,13 +346,12 @@ model upward_home_request {
 
 /// Logs each PM who revealed prospect contact (intent to reach out).
 model upward_home_request_contact_reveal {
-  id            Int      @id @default(autoincrement())
-  uuid          String   @unique @default(uuid())
+  id            Int                 @id @default(autoincrement())
+  uuid          String              @unique @default(uuid())
   homeRequestId Int
   pmId          Int
-  createdAt     DateTime @default(now())
-
-  homeRequest upward_home_request @relation(fields: [homeRequestId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  homeRequest   upward_home_request @relation(fields: [homeRequestId], references: [id], onDelete: Cascade)
 
   @@unique([homeRequestId, pmId])
   @@index([pmId])
@@ -379,21 +380,21 @@ model upward_area_price_guide {
 }
 
 model upward_app_activity_log {
-  id           Int      @id @default(autoincrement())
-  uuid         String   @unique @default(uuid())
-  app          String   // "upward-pay" or "upward-pm"
-  userId       Int?     // Numeric ID of upward_user (if tenant)
-  pmId         Int?     // Numeric ID of upward_property_manager (if PM)
-  userRole     String   // "TENANT", "PM", "ADMIN", "SYSTEM", "GUEST"
-  userEmail    String?
-  action       String   // "CREATE", "UPDATE", "DELETE", "LOGIN", "LOGOUT", "SIGNUP", etc.
-  entityType   String?  // e.g. "PROPERTY", "UNIT", "TENANT", "PAYMENT", "PROFILE"
-  entityId     String?  // ID/UUID of the entity
-  description  String   // Human-readable description
-  metadata     Json?    // Request payload or additional info
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  app         String
+  userId      Int?
+  pmId        Int?
+  userRole    String
+  userEmail   String?
+  action      String
+  entityType  String?
+  entityId    String?
+  description String
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
 
   @@index([app])
   @@index([userId])
@@ -406,33 +407,33 @@ model upward_app_activity_log {
 model upward_dev_email_preview {
   id          Int      @id @default(autoincrement())
   uuid        String   @unique @default(uuid())
-  from        String?
   to          String
-  cc          String?
-  bcc         String?
   subject     String
   html        String
   text        String?
-  attachments Json?
   createdAt   DateTime @default(now())
+  attachments Json?
+  bcc         String?
+  cc          String?
+  from        String?
 
   @@index([to])
   @@index([createdAt])
 }
 
 model upward_blog_post {
-  id           Int      @id @default(autoincrement())
-  uuid         String   @unique @default(uuid())
-  title        String
-  slug         String   @unique
-  excerpt      String
-  contentHtml  String
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid())
+  title         String
+  slug          String    @unique
+  excerpt       String
+  contentHtml   String
   coverImageUrl String?
-  authorName   String
-  status       String   @default("DRAFT")
-  publishedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  authorName    String
+  status        String    @default("DRAFT")
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([slug])
   @@index([status])
@@ -455,3 +456,26 @@ model upward_demo_request {
   @@index([email])
   @@index([status])
 }
+
+model upward_early_access {
+  id              String   @id @default(uuid())
+  type            String   // STUDENT | LANDLORD
+  name            String
+  whatsapp        String
+  email           String?
+  city            String
+  ageBracket      String?  // Student specific
+  experienceLevel String?  // Student specific
+  interest        String?  // Student specific
+  propertyCount   String?  // Landlord specific
+  landlordStatus  String?  // Landlord specific
+  managementStyle String?  // Landlord specific
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([type])
+  @@index([email])
+  @@index([whatsapp])
+  @@index([createdAt])
+}
+

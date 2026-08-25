@@ -1,57 +1,59 @@
 model upward_user {
-  id                   Int                              @id @default(autoincrement())
-  uuid                 String                           @unique @default(uuid())
-  passwordHash         String
-  authProvider         String                           @default("email")
-  providerId           String?                          @unique
-  email                String
-  firstName            String
-  lastName             String
-  phone                String?
-  emailHash            String                           @unique
-  firstNameHash        String
-  lastNameHash         String
-  phoneHash            String?
-  createdAt            DateTime                         @default(now())
-  updatedAt            DateTime                         @updatedAt
-  gender               String?
-  dateOfBirth          String?
-  isFromWaitlist       Boolean                          @default(false)
-  isIdentityVerified   Boolean                          @default(false)
-  isFromInvite         Boolean                          @default(false)
-  isInternal           Boolean                          @default(false)
-  profileSlug          String?                          @unique
-  bio                  String?
-  profilePic           String?
-  resetPasswordOTP     String?
-  resetPasswordExpires DateTime?
-  authSessions         upward_auth_session[]
-  companyUsers         upward_company_user[]
-  credibilityRequests  upward_credibility_request[]
-  deviceTokens         upward_device_token[]
-  notifications        upward_notification[]
-  overpayments         upward_overpayment[]
-  paymentRequests      upward_payment_request[]
-  rentCycles           upward_rent_cycle[]
-  supportTickets       upward_support_ticket[]
-  announcementStates   upward_user_announcement_state[]
-  contracts            upward_user_contract[]
-  properties           upward_user_property[]
-  feedback             upward_feedback[]
-  bankDetails          upward_user_bank_details?
-  transactions         upward_transaction[]
-  refundLogs           upward_refund_log[]
+  id                    Int                              @id @default(autoincrement())
+  uuid                  String                           @unique @default(uuid())
+  passwordHash          String
+  email                 String
+  firstName             String
+  lastName              String
+  phone                 String?
+  emailHash             String                           @unique
+  firstNameHash         String
+  lastNameHash          String
+  phoneHash             String?
+  createdAt             DateTime                         @default(now())
+  updatedAt             DateTime                         @updatedAt
+  gender                String?
+  dateOfBirth           String?
+  isFromWaitlist        Boolean                          @default(false)
+  isFromInvite          Boolean                          @default(false)
+  invitedAt             DateTime?
+  joinedAt              DateTime?
+  profileSlug           String?                          @unique
+  bio                   String?
+  profilePic            String?
+  resetPasswordOTP      String?
+  resetPasswordExpires  DateTime?
+  campaignWeekSent      Int                              @default(0)
+  unsubscribed          Boolean                          @default(false)
+  unsubscribedAt        DateTime?
+  isIdentityVerified    Boolean                          @default(false)
+  authProvider          String                           @default("email")
+  providerId            String?                          @unique
+  isInternal            Boolean                          @default(false)
+  savingsWalletEnabled  Boolean                          @default(false)
+  authSessions          upward_auth_session[]
   benefitsSubscriptions upward_benefits_subscription[]
-  wallet               upward_wallet?
-  walletTransactions   upward_wallet_transaction[]
-  savingsGoals         upward_savings_goal[]
-  campaignWeekSent     Int                              @default(0)
-  unsubscribed         Boolean                          @default(false)
-  unsubscribedAt       DateTime?
-  savingsWalletEnabled Boolean                          @default(false)
-  communicationLogs    upward_communication_log[]
-  whatsappSequenceLogs upward_whatsapp_sequence_log[]
-  emailSequenceLogs    upward_email_sequence_log[]
+  communicationLogs     upward_communication_log[]
+  companyUsers          upward_company_user[]
+  credibilityRequests   upward_credibility_request[]
+  deviceTokens          upward_device_token[]
+  emailSequenceLogs     upward_email_sequence_log[]
+  feedback              upward_feedback[]
+  notifications         upward_notification[]
+  overpayments          upward_overpayment[]
+  paymentRequests       upward_payment_request[]
+  refundLogs            upward_refund_log[]
+  rentCycles            upward_rent_cycle[]
+  savingsGoals          upward_savings_goal[]
+  supportTickets        upward_support_ticket[]
+  transactions          upward_transaction[]
+  announcementStates    upward_user_announcement_state[]
+  bankDetails           upward_user_bank_details?
+  contracts             upward_user_contract[]
+  properties            upward_user_property[]
+  wallet                upward_wallet?
+  walletTransactions    upward_wallet_transaction[]
+  whatsappSequenceLogs  upward_whatsapp_sequence_log[]
 
   @@index([email])
   @@index([createdAt])
@@ -63,13 +65,13 @@ model upward_auth_session {
   refreshTokenHash String      @unique
   userAgent        String?
   ipAddress        String?
-  country          String?
-  city             String?
   deviceId         String?
   isRevoked        Boolean     @default(false)
   expiresAt        DateTime
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  city             String?
+  country          String?
   user             upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -107,15 +109,15 @@ model upward_device_token {
 }
 
 model upward_admin {
-  id                   String             @id @default(uuid())
-  email                String             @unique
-  phone                String?            @unique
+  id                   String                      @id @default(uuid())
+  email                String                      @unique
   passwordHash         String
-  role                 String             @default("ADMIN")
-  receivesSystemAlerts Boolean            @default(false)
-  mustChangePassword   Boolean            @default(true)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  role                 String                      @default("ADMIN")
+  mustChangePassword   Boolean                     @default(true)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  phone                String?                     @unique
+  receivesSystemAlerts Boolean                     @default(false)
   logs                 upward_admin_log[]
   bulkImportJobs       upward_pm_bulk_import_job[]
   subscriptionLogs     upward_subscription_log[]
@@ -139,26 +141,25 @@ model upward_admin_log {
 }
 
 model upward_email_sequence_log {
-  id             Int       @id @default(autoincrement())
-  uuid           String    @unique @default(uuid())
-  userId         Int
-  email          String
-  stage          String    // 'WELCOME', 'DAY_2', 'DAY_5', 'DAY_9', 'DAY_14'
-  status         String    @default("PENDING") // PENDING, SENT, FAILED
-  scheduledFor   DateTime
-  sentAt         DateTime?
-  errorReason    String?   @db.Text
-  templateName   String
-  templateData   Json?
-  isOpened       Boolean   @default(false)
-  openedAt       DateTime?
-  openCount      Int       @default(0)
-  userAgent      String?   @db.Text
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  user               upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
-  communicationLogs  upward_communication_log[]
+  id                Int                        @id @default(autoincrement())
+  uuid              String                     @unique @default(uuid())
+  userId            Int
+  email             String
+  stage             String
+  status            String                     @default("PENDING")
+  scheduledFor      DateTime
+  sentAt            DateTime?
+  errorReason       String?
+  templateName      String
+  templateData      Json?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  isOpened          Boolean                    @default(false)
+  openCount         Int                        @default(0)
+  openedAt          DateTime?
+  userAgent         String?
+  communicationLogs upward_communication_log[]
+  user              upward_user                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status, scheduledFor])

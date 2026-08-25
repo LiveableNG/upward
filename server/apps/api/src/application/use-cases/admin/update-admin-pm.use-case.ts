@@ -20,7 +20,10 @@ export class UpdateAdminPmUseCase {
       personalPhone?: string
       businessName?: string
       isVerified?: boolean
+      isBlocked?: boolean
+      isManuallyBlocked?: boolean
     },
+    adminId?: string,
   ) {
     const pm = await this.prisma.upward_property_manager.findUnique({
       where: { uuid },
@@ -59,6 +62,12 @@ export class UpdateAdminPmUseCase {
     if (data.isVerified !== undefined) {
       updateData.isVerified = data.isVerified
     }
+    if (data.isBlocked !== undefined) {
+      updateData.isBlocked = data.isBlocked
+    }
+    if (data.isManuallyBlocked !== undefined) {
+      updateData.isManuallyBlocked = data.isManuallyBlocked
+    }
 
     const updatedPm = await this.prisma.upward_property_manager.update({
       where: { uuid },
@@ -81,6 +90,29 @@ export class UpdateAdminPmUseCase {
           verificationStatus: 'UNVERIFIED'
         }
       })
+    }
+
+    if (data.isBlocked !== undefined || data.isManuallyBlocked !== undefined) {
+      if (adminId) {
+        let logAction = 'PM_UPDATE'
+        let logDetails = `Updated PM profile details`
+        
+        if (data.isBlocked !== undefined) {
+          logAction = data.isBlocked ? 'PM_SUBSCRIPTION_SUSPENDED' : 'PM_SUBSCRIPTION_ACTIVATED'
+          logDetails = `${data.isBlocked ? 'Suspended' : 'Activated'} PM subscription for PM: ${pm.email ? this.encryption.decrypt(pm.email) : pm.uuid}`
+        } else if (data.isManuallyBlocked !== undefined) {
+          logAction = data.isManuallyBlocked ? 'PM_BANNED' : 'PM_UNBANNED'
+          logDetails = `${data.isManuallyBlocked ? 'Banned' : 'Unbanned'} PM account for PM: ${pm.email ? this.encryption.decrypt(pm.email) : pm.uuid}`
+        }
+
+        await this.prisma.upward_admin_log.create({
+          data: {
+            adminId,
+            action: logAction,
+            details: logDetails,
+          }
+        })
+      }
     }
 
     return updatedPm

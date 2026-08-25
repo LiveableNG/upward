@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { IPaymentGateway, PAYMENT_GATEWAY, TRANSACTION_REPOSITORY, ITransactionRepository, PAYMENT_REQUEST_REPOSITORY, IPaymentRequestRepository } from '../../../../domains/payments/payment.repository';
 import { PaymentConfigurationService } from '../../../../shared/infrastructure/common/payment-config.service';
@@ -7,6 +7,7 @@ import { DistributePaymentAllocationsUseCase } from '../../../use-cases/payments
 import { SyncPmPaymentStatusUseCase } from '../../../use-cases/payments/sync-pm-status.use-case';
 import { SettlePropertyBalanceUseCase } from '../../../use-cases/payments/settle-property.use-case';
 import { HandlePaymentOverpaymentUseCase } from '../../../use-cases/payments/handle-overpayment.use-case';
+import { SendRentReceiptEmailUseCase } from '../../../use-cases/payments/send-rent-receipt-email.use-case';
 
 export enum RefundResolutionAction {
   REFUND = 'REFUND',
@@ -31,6 +32,7 @@ export class ResolvePendingRefundUseCase {
     private readonly syncPmStatus: SyncPmPaymentStatusUseCase,
     private readonly settleProperty: SettlePropertyBalanceUseCase,
     private readonly handleOverpayment: HandlePaymentOverpaymentUseCase,
+    private readonly sendRentReceiptEmail: SendRentReceiptEmailUseCase,
   ) {}
 
   async execute(pmId: number, transactionUuid: string, action: RefundResolutionAction) {
@@ -51,18 +53,21 @@ export class ResolvePendingRefundUseCase {
 
     if (!tx) throw new NotFoundException('Transaction not found');
     
-    // Verify that this transaction belongs to a property managed by this PM
     const propertyId = tx.paymentRequest?.userPropertyId;
     if (!propertyId) {
-       // If no direct link, check if we can resolve it via subaccount or other means
-       // For now, let's assume it must be linked to a PR managed by this PM
        const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
          where: { paymentRequestId: tx.paymentRequestId, pmId }
        });
-       if (!pmPR) throw new UnauthorizedException('Unauthorized to resolve this transaction');
+       if (!pmPR) throw new ForbiddenException('Unauthorized to resolve this transaction');
     } else {
-      const prop = await this.prisma.upward_user_property.findUnique({ where: { id: propertyId } });
-      if (!prop || prop.pmId !== pmId) throw new UnauthorizedException('Unauthorized to resolve this transaction');
+      const prop = await this.prisma.upward_user_property.findUnique({
+        where: { id: propertyId },
+        include: { pmUnit: { include: { property: true } } }
+      });
+      const resolvedPmId = prop?.pmId || prop?.pmUnit?.property?.pmId;
+      if (!prop || resolvedPmId !== pmId) {
+        throw new ForbiddenException('Unauthorized to resolve this transaction');
+      }
     }
 
     if (tx.settlementStatus !== 'PENDING_REFUND') {
@@ -218,10 +223,12 @@ export class ResolvePendingRefundUseCase {
           const settlementPortion = Math.max(0, paymentAmount - upwardFeeAmount);
           const newAmountPaid = (pr.amountPaid || 0) + settlementPortion;
           const totalRentOwed = prItems.reduce((sum: number, i: any) => i.name === 'Upward Benefits' ? sum : sum + i.totalAmount, 0);
-          const newStatus = newAmountPaid >= totalRentOwed ? 'PAID' : 'PARTIAL';
+          const isPaidOff = (totalRentOwed - newAmountPaid) <= 1;
+          const finalAmountPaid = isPaidOff ? totalRentOwed : Math.min(newAmountPaid, totalRentOwed);
+          const newStatus = isPaidOff ? 'PAID' : 'PARTIAL';
 
           await this.paymentRequestRepo.update(pr.id!, {
-            amountPaid: Math.min(newAmountPaid, totalRentOwed),
+            amountPaid: finalAmountPaid,
             status: newStatus,
             paidAt: newStatus === 'PAID' ? new Date() : undefined,
           }, txClient);
@@ -290,6 +297,11 @@ export class ResolvePendingRefundUseCase {
         entityId: tx.uuid,
         description: `Manually accepted underpayment of ₦${tx.amount} for transaction ${tx.reference}`,
         metadata: { reference: tx.reference, amount: tx.amount, action: 'ACCEPT' }
+      });
+
+      // Send the official rent receipt email to tenant now that transaction is ACCEPTED and VERIFIED
+      await this.sendRentReceiptEmail.execute({ transactionId: tx.id, propertyId: propertyId || undefined }).catch(err => {
+        this.logger.error(`Failed to send receipt email after PM accepted transaction ${tx.id}:`, err);
       });
 
       return { success: true, message: 'Payment accepted and queued for settlement' };

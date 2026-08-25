@@ -32,6 +32,8 @@ export class PrismaUserRepository implements UserRepository {
       savingsWalletEnabled: model.savingsWalletEnabled,
       isFromWaitlist: model.isFromWaitlist,
       isFromInvite: model.isFromInvite,
+      invitedAt: model.invitedAt,
+      joinedAt: model.joinedAt,
       profilePic: model.profilePic,
       profileSlug: model.profileSlug,
       bio: model.bio,
@@ -389,6 +391,8 @@ export class PrismaUserRepository implements UserRepository {
         isIdentityVerified: user.isIdentityVerified,
         isFromWaitlist: user.isFromWaitlist,
         isFromInvite: user.isFromInvite,
+        invitedAt: user.invitedAt ?? (user.isFromInvite ? new Date() : null),
+        joinedAt: user.joinedAt ?? (user.isFromInvite ? null : new Date()),
         profilePic: user.profilePic,
         profileSlug: user.profileSlug,
         bio: user.bio,
@@ -406,7 +410,7 @@ export class PrismaUserRepository implements UserRepository {
     // Pick direct scalar fields
     const scalarFields = [
       'passwordHash', 'authProvider', 'providerId', 'gender', 'dateOfBirth', 'isIdentityVerified',
-      'isFromWaitlist', 'isFromInvite', 'profilePic', 'profileSlug', 
+      'isFromWaitlist', 'isFromInvite', 'invitedAt', 'joinedAt', 'profilePic', 'profileSlug', 
       'bio', 'resetPasswordOTP', 'resetPasswordExpires'
     ]
 

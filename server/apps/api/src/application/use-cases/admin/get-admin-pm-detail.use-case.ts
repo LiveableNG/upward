@@ -305,6 +305,8 @@ export class GetAdminPmDetailUseCase {
       personalEmail: this.decryptOptional(pm.personalEmail),
       personalPhone: this.decryptOptional(pm.personalPhone),
       isVerified: pm.isVerified,
+      isBlocked: pm.isBlocked,
+      isManuallyBlocked: (pm as any).isManuallyBlocked,
       createdAt: pm.createdAt,
       updatedAt: pm.updatedAt,
       properties: decryptedProperties,

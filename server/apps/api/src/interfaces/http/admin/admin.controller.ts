@@ -181,9 +181,13 @@ export class AdminController {
   }
 
   @Patch('pms/:uuid')
-  @Roles(AdminRole.DEVELOPER)
-  async updatePmDetail(@Param('uuid') uuid: string, @Body() data: any) {
-    return { data: await this.updateAdminPmUseCase.execute(uuid, data) }
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async updatePmDetail(
+    @Param('uuid') uuid: string,
+    @Body() data: any,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return { data: await (this.updateAdminPmUseCase as any).execute(uuid, data, req.user.id) }
   }
 
   @Post('pms/:uuid/subscription/manage')

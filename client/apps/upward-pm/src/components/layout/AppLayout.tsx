@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Sidebar } from "@/components/layout/Sidebar"
 import { MobileHeader } from "@/components/layout/MobileHeader"
@@ -12,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { PricingModal } from '@/features/pm/components/subscription/PricingModal'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { AccessSuspended } from '@/components/common/AccessSuspended'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -22,7 +24,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
 
-  const { isLoggedIn, loading } = useAuth()
+  const { isLoggedIn, loading, user } = useAuth()
   const router = useRouter()
   const { isOpen, closePricing } = usePricingModal()
   const { subscription } = useSubscription()
@@ -70,6 +72,10 @@ export function AppLayout({ children }: AppLayoutProps) {
     return null
   }
 
+  if (user?.isBlocked || user?.isManuallyBlocked) {
+    return <AccessSuspended />
+  }
+
   return (
     <div className={cn("layout", isSidebarCollapsed && "layout--collapsed")}>
       <Sidebar 
@@ -93,7 +99,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             gap: '12px',
             zIndex: 100
           }}>
-            <span>⚠️ Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              <span>Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.</span>
+            </div>
             <button
               onClick={() => router.push('/subscription/checkout')}
               style={{

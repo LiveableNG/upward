@@ -29,6 +29,9 @@ export interface Property {
   platformId?: number
   externalUnitId?: string
   externalPropertyId?: string
+  isFirstRent?: boolean
+  initialAmountPaid?: number
+  leaseYears?: number
 }
 
 export interface Location {

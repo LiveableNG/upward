@@ -4,6 +4,7 @@ export interface Company {
   name: string
   nameHash?: string | null
   address?: string | null
+  logoUrl?: string | null
   email?: string | null
   emailHash?: string | null
   phone?: string | null

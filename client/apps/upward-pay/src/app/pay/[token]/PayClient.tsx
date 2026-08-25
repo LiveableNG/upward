@@ -83,6 +83,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     formData, setFormData,
     totalOwed,
     parsedAmount,
+    lastConfirmedAmount,
     minRequired,
     isBelowMin,
     isValidAmount,
@@ -243,12 +244,12 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'checkout') {
     return (
-      <div className="checkout-view flex items-center justify-center min-h-screen bg-[var(--bg)] relative overflow-hidden">
+      <div className="checkout-view flex items-center justify-center min-h-screen bg-[var(--bg)] relative overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-[var(--clay-faint)] rounded-full blur-[120px] opacity-50 pointer-events-none" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-[var(--clay-faint)] rounded-full blur-[120px] opacity-50 pointer-events-none" />
 
-        <div className="w-full max-w-[540px] px-4 py-8 z-10">
-          <div className="bg-white rounded-[40px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.1)] border border-[var(--border-solid)] animate-in zoom-in-95 fade-in duration-500">
+        <div className="w-full max-w-[540px] my-auto z-10">
+          <div className="bg-white rounded-[40px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.1)] border border-[var(--border-solid)] animate-in zoom-in-95 fade-in duration-500 max-h-[calc(100vh-32px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <PaystackEmbeddedCheckout
               email={paymentData.user.email}
               amount={parsedAmount}
@@ -417,7 +418,13 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
         currency={currency}
         companyName={paymentData.company?.name || 'Upward Platform'}
         description={paymentData.payment.description || 'Housing Invoice'}
-        onDashboard={() => router.push(authUser ? '/dashboard' : '/login')}
+        onDashboard={() => {
+          if (authUser) {
+            router.replace('/dashboard')
+          } else {
+            router.push('/login')
+          }
+        }}
         onOnboarding={() => setStep('onboarding')}
         isLoggedIn={!!authUser}
         hasAccount={paymentData.hasPassword}
@@ -428,11 +435,17 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   if (step === 'success') {
     return (
       <SuccessStep
-        finalAmount={parsedAmount}
+        finalAmount={lastConfirmedAmount || parsedAmount}
         currency={currency}
         companyName={paymentData.company.name}
         isPendingRefund={isPendingRefund}
-        onDone={() => router.push('/dashboard')}
+        onDone={() => {
+          if (authUser) {
+            router.replace('/dashboard')
+          } else {
+            window.location.href = '/dashboard'
+          }
+        }}
       />
     )
   }

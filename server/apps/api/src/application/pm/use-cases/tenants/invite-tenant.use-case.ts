@@ -178,6 +178,13 @@ export class InviteTenantUseCase {
             isSynced: true,
             userPropertyUuid: syncedProp.uuid
           });
+          await this.prisma.upward_user_property.update({
+            where: { uuid: syncedProp.uuid },
+            data: { 
+              pmUnitId: unit.id,
+              pmId: pmId,
+            }
+          });
         }
       }
     }

@@ -237,9 +237,9 @@ export const InvitedTable: React.FC<InvitedTableProps> = ({ paginatedItems, navi
                 <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '13px' }}>
                   {item.totalPaid > 0 ? `₦${item.totalPaid.toLocaleString()}` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }} title={item.joinedAt ? `Joined: ${new Date(item.joinedAt).toLocaleString('en-GB')}` : 'Not joined yet'}>
+                <td style={{ padding: '14px 16px', fontSize: '12px', color: 'var(--text-muted)' }} title={item.joinedAt ? `Joined: ${new Date(item.joinedAt).toLocaleString('en-GB')}` : 'Invited / Pending'}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span>{new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    <span>Invited: {new Date(item.invitedAt || item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     {item.joinedAt && (
                       <span style={{ fontSize: '11px', color: 'var(--success)', fontWeight: 500 }}>
                         Joined: {new Date(item.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

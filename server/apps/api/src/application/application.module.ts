@@ -59,6 +59,12 @@ import { GetWaitlistFilterOptionsUseCase } from './use-cases/waitlist/get-waitli
 import { GetWaitlistCountUseCase } from './use-cases/waitlist/get-waitlist-count.use-case'
 import { GetWaitlistByEmailUseCase } from './use-cases/waitlist/get-waitlist-by-email.use-case'
 import { UnsubscribeWaitlistUseCase } from './use-cases/waitlist/unsubscribe-waitlist.use-case'
+import { SubmitStudentEarlyAccessUseCase } from './use-cases/early-access/submit-student-early-access.use-case'
+import { SubmitLandlordEarlyAccessUseCase } from './use-cases/early-access/submit-landlord-early-access.use-case'
+import {
+  GetEarlyAccessStatsUseCase,
+  GetEarlyAccessEntriesUseCase,
+} from './use-cases/early-access/get-early-access-admin.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
 import { CreateSessionUseCase } from './use-cases/sessions/create-session.use-case'
@@ -390,6 +396,7 @@ import {
 } from './use-cases/push/push.use-cases'
 import { PushNotificationService } from '../shared/infrastructure/common/push-notification.service'
 import { PmPaymentNotificationHandler } from './events/handlers/pm-payment-notification.handler'
+import { UnderpaymentNotificationHandler } from './events/handlers/underpayment-notification.handler'
 import { TenantSyncHandler } from './events/handlers/tenant-sync.handler'
 import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/repositories/prisma-device-token.repository'
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
@@ -696,6 +703,10 @@ const UseCases = [
   ProcessPendingSequencesUseCase,
   RetrySequenceUseCase,
   GetSequenceLogsUseCase,
+  SubmitStudentEarlyAccessUseCase,
+  SubmitLandlordEarlyAccessUseCase,
+  GetEarlyAccessStatsUseCase,
+  GetEarlyAccessEntriesUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
   QueueDailySequencesUseCase,
@@ -750,6 +761,7 @@ import { SubscriptionModule } from '../domains/subscription/subscription.module'
     GoodTenantTenantAppClient,
     BulkInviteService,
     PmPaymentNotificationHandler,
+    UnderpaymentNotificationHandler,
     TenantSyncHandler,
     PaymentPostActionsHandler,
 

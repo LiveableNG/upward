@@ -24,6 +24,14 @@ export class CompanyInfoDto {
   @IsOptional()
   @IsString()
   address?: string
+
+  @IsOptional()
+  @IsString()
+  logoUrl?: string
+
+  @IsOptional()
+  @IsString()
+  logo?: string
 }
 
 export class UserInfoDto {
@@ -79,6 +87,22 @@ export class RentInfoDto {
 
   @IsDateString()
   rentEndDate!: string
+
+  @IsOptional()
+  @IsBoolean()
+  isFirstRent?: boolean
+
+  @IsOptional()
+  @IsNumber()
+  initialAmountPaid?: number
+
+  @IsOptional()
+  @IsNumber()
+  leaseYears?: number
+
+  @IsOptional()
+  @IsString()
+  rentType?: string
 }
 
 export class ManagerInfoDto {

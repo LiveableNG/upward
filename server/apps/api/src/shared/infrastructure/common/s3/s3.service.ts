@@ -187,7 +187,7 @@ export class S3Service {
   async deleteObjectsWithPrefix(prefix: string): Promise<void> {
     try {
       const { ListObjectsV2Command, DeleteObjectsCommand } = await import('@aws-sdk/client-s3')
-      
+
       let continuationToken: string | undefined
       do {
         const listCommand = new ListObjectsV2Command({
@@ -196,7 +196,7 @@ export class S3Service {
           ContinuationToken: continuationToken,
         })
         const listResponse = await this.s3Client.send(listCommand)
-        
+
         if (listResponse.Contents && listResponse.Contents.length > 0) {
           const deleteKeys = listResponse.Contents
             .map((item) => item.Key)
@@ -211,7 +211,7 @@ export class S3Service {
           })
           await this.s3Client.send(deleteCommand)
         }
-        
+
         continuationToken = listResponse.NextContinuationToken
       } while (continuationToken)
     } catch (error) {

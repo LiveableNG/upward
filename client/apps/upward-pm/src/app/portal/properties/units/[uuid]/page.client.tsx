@@ -158,7 +158,8 @@ function UnitDetailContent() {
       const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
       const isFullyPaid = totalPaidForPeriod >= (row.rentAmountAtPayment || 0);
       const isLatestForPeriod = row.uuid === samePeriodPayments[0]?.uuid;
-      const statusLabel = (isFullyPaid && isLatestForPeriod) ? 'Paid' : 'Part-Payment';
+      const isSinglePaymentFull = row.amount >= (row.rentAmountAtPayment || unit?.rentAmount || 0);
+      const statusLabel = (isSinglePaymentFull || (isFullyPaid && isLatestForPeriod)) ? 'Paid' : 'Part-Payment';
 
       const computedBalance = (!isFullyPaid && isLatestForPeriod) ? Math.max(0, (row.rentAmountAtPayment || 0) - totalPaidForPeriod) : 0;
 

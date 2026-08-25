@@ -21,7 +21,7 @@ export function FeedbackTab() {
     setSubmitting(true)
     try {
       await api.post('/public/feedback', {
-        userId: user?.id,
+        pmUuid: user?.id,
         email: user?.email,
         name: user ? `${user.firstName} ${user.lastName}`.trim() : 'Guest',
         type,

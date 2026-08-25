@@ -279,12 +279,14 @@ const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
       kind: 'user',
       uuid: item.uuid,
       name:
-        item.firstName && item.lastName ? `${item.firstName} ${item.lastName}` : 'Tenant Profile',
+        item.firstName && item.lastName ? `${item.firstName} ${item.lastName}` : item.name || 'Tenant Profile',
       email: item.email,
       phone: item.phone || '',
       status: item.totalPaid > 0 ? 'TENANT' : 'PENDING_TENANT',
       type: item.totalPaid > 0 ? 'TENANT' : 'PENDING_TENANT',
-      joinedAt: item.createdAt,
+      invitedAt: item.invitedAt || item.rawRecord?.invitedAt || null,
+      joinedAt: item.joinedAt !== undefined ? item.joinedAt : item.rawRecord?.joinedAt || null,
+      createdAt: item.createdAt || item.rawRecord?.createdAt,
       totalPaid: item.totalPaid || 0,
     })
   }

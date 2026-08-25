@@ -4,6 +4,7 @@ import { StructuredData } from '@/components/layout/structured-data'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ToastProvider } from '@/components/common/Toast'
 import './globals.css'
+import '@/styles/legal.css'
 
 export const viewport: Viewport = {
   themeColor: [

@@ -22,15 +22,24 @@ export class GetInvitedMetricsUseCase {
 
         let totalPaid = 0
         let benefitsPaid = 0
+        let lastPaidAt: Date | null = null
         u.transactions.forEach((tx: any) => {
-          totalPaid += tx.amount
-          if (tx.lineItems && Array.isArray(tx.lineItems)) {
-            tx.lineItems.forEach((item: any) => {
-              const name = item.name || item.label || ''
-              if (name === 'Upward Benefits') {
-                benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+          if (tx.status === 'SUCCESS') {
+            totalPaid += tx.amount
+            if (tx.lineItems && Array.isArray(tx.lineItems)) {
+              tx.lineItems.forEach((item: any) => {
+                const name = item.name || item.label || ''
+                if (name === 'Upward Benefits') {
+                  benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                }
+              })
+            }
+            if (tx.createdAt) {
+              const txDate = new Date(tx.createdAt)
+              if (!lastPaidAt || txDate > lastPaidAt) {
+                lastPaidAt = txDate
               }
-            })
+            }
           }
         })
 
@@ -129,7 +138,8 @@ export class GetInvitedMetricsUseCase {
           lastName: decrypted.decryptedLastName,
           phone: decrypted.decryptedPhone,
           createdAt: u.createdAt,
-          joinedAt: u.authSessions?.[0]?.createdAt || null,
+          invitedAt: u.invitedAt || u.createdAt,
+          joinedAt: u.joinedAt || u.authSessions?.[0]?.createdAt || (hasPassword ? u.createdAt : null),
           status,
           totalPaid,
           pms: pmsList,
@@ -140,6 +150,9 @@ export class GetInvitedMetricsUseCase {
           origin,
           hasPassword,
           isSynced: true,
+          lastPaidAt: lastPaidAt ? (lastPaidAt as Date).toISOString() : null,
+          transactions: u.transactions || [],
+          paymentRequests: u.paymentRequests || [],
         }
       })
 
@@ -209,6 +222,7 @@ export class GetInvitedMetricsUseCase {
           lastName,
           phone,
           createdAt: t.createdAt,
+          invitedAt: t.inviteSentAt || t.createdAt,
           joinedAt: null,
           status: 'INVITED_PENDING' as const,
           totalPaid: 0,

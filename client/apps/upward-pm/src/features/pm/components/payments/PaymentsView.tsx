@@ -215,7 +215,7 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
             const priorityB = statusPriority[b.status] ?? 4
             
             if (priorityA !== priorityB) return priorityA - priorityB
-            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           })}
           onRowClick={(req) => {
             const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')

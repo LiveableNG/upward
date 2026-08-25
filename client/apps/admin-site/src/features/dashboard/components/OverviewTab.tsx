@@ -546,6 +546,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       totalPaid: number
       benefitsPaid: number
       createdAt: string
+      lastPaidAt: string | null
+      transactions: any[]
+      paymentRequests: any[]
       rawRecord: any
     }[] = []
 
@@ -560,6 +563,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           totalPaid: u.totalPaid,
           benefitsPaid: u.benefitsPaid ?? 0,
           createdAt: u.createdAt,
+          lastPaidAt: u.lastPaidAt || null,
+          transactions: u.transactions || [],
+          paymentRequests: u.paymentRequests || [],
           rawRecord: u,
         })
       }
@@ -576,12 +582,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           totalPaid: u.totalPaid,
           benefitsPaid: u.benefitsPaid ?? 0,
           createdAt: u.createdAt,
+          lastPaidAt: u.lastPaidAt || null,
+          transactions: u.transactions || [],
+          paymentRequests: u.paymentRequests || [],
           rawRecord: u,
         })
       }
     })
 
-    return list.sort((a, b) => b.totalPaid - a.totalPaid)
+    return list.sort((a, b) => {
+      const dateA = new Date(a.lastPaidAt || a.createdAt).getTime()
+      const dateB = new Date(b.lastPaidAt || b.createdAt).getTime()
+      return dateB - dateA
+    })
   }, [signedUpList, invitedList])
 
   // Filter paying users based on search query and payment type filter
@@ -719,7 +732,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       'Benefits Paid (₦)': u.benefitsPaid > 0 ? u.benefitsPaid : 0,
       'Rent Paid (₦)': u.totalPaid - u.benefitsPaid,
       'Total Paid (₦)': u.totalPaid,
-      'Registration Date': new Date(u.createdAt).toLocaleDateString('en-GB'),
+      'Date Paid': new Date(u.lastPaidAt || u.createdAt).toLocaleDateString('en-GB'),
     }))
 
     const wsPaying = XLSX.utils.json_to_sheet(payingUsersRows)
@@ -1711,7 +1724,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Type</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Benefits Paid</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Paid</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Date</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Last Paid</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1780,7 +1793,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                             {u.benefitsPaid > 0 ? `₦${u.benefitsPaid.toLocaleString()}` : '—'}
                           </td>
                           <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>₦{u.totalPaid.toLocaleString()}</td>
-                          <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
+                            {u.lastPaidAt ? new Date(u.lastPaidAt).toLocaleDateString() : new Date(u.createdAt).toLocaleDateString()}
+                          </td>
                         </tr>
                       ))
                     ) : (

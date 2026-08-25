@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { RefreshCcw, Clock, LayoutDashboard } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { RefreshCcw, Clock, LayoutDashboard, GraduationCap } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -258,16 +259,24 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       }
     }
 
+    const invitedAt = item.invitedAt !== undefined ? item.invitedAt : item.rawRecord?.invitedAt || null
+    const joinedAt = item.joinedAt !== undefined ? item.joinedAt : item.rawRecord?.joinedAt || null
+    const createdAt = item.createdAt || item.rawRecord?.createdAt
+
     setDrawerEntity({
       kind: 'user',
       uuid: item.uuid,
-      name: `${item.firstName} ${item.lastName}`,
+      name: item.name || `${item.firstName || ''} ${item.lastName || ''}`.trim(),
       email: item.email,
       phone: item.phone,
       status: userStatus,
       type: userType,
-      joinedAt: item.createdAt,
+      invitedAt,
+      joinedAt,
+      createdAt,
       totalPaid: item.totalPaid,
+      transactions: item.transactions || [],
+      paymentRequests: item.paymentRequests || [],
     })
   }
 
@@ -338,6 +347,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         email: i.email,
         phone: i.phone,
         createdAt: i.createdAt,
+        invitedAt: i.invitedAt || i.createdAt,
         joinedAt: i.joinedAt, // Mapped from backend
         origin: i.origin || 'INVITED_EMAIL',
         hasPassword: i.hasPassword ?? false,
@@ -580,9 +590,31 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             <LayoutDashboard size={24} />
           </div>
           <div>
-            <h1 className="section-title" style={{ margin: 0 }}>
-              Ecosystem Dashboard
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h1 className="section-title" style={{ margin: 0 }}>
+                Ecosystem Dashboard
+              </h1>
+              <Link
+                to="/university-early-access"
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#fbf1ed',
+                  color: '#d97757',
+                  border: '1px solid rgba(217, 119, 87, 0.3)',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <GraduationCap size={15} />
+                Upward University
+              </Link>
+            </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
               Multi-team performance metrics, tenant directories, and platform health insights.
             </p>
@@ -990,8 +1022,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     toggleSelectAllUsers={toggleSelectAllUsers}
                     toggleSelectUser={toggleSelectUser}
                     showFailureReason={usersSubtab === 'unsynced'}
+                    isGuestOrUnsynced={usersSubtab === 'guest' || usersSubtab === 'unsynced'}
                     onPreview={(item) => openDrawerForUser(item)}
                     onDeleteSelected={triggerBulkDelete}
+                    token={token}
                   />
                 )}
 
