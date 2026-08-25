@@ -5,11 +5,9 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
 import { isSelfInitiatedPayment } from './payment/paymentOrigin'
-import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
 
 interface ActionCarouselProps {
   pendingPayments: PendingPayment[]
-  gtBills?: GtActivityBill[]
   showKYC: boolean
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rentReminders: any[]
@@ -36,10 +34,6 @@ function formatShortDue(date: string | Date | undefined): string {
   const d = new Date(date)
   if (isNaN(d.getTime())) return ''
   return d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
-}
-
-function parseGtBillAmount(value: string) {
-  return parseFloat(value.replace(/,/g, '')) || 0
 }
 
 function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta' | 'urgency'> {
@@ -117,7 +111,6 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
 
 export function ActionCarousel({
   pendingPayments,
-  gtBills = [],
   showKYC,
   rentReminders,
   isIdentityVerified,
@@ -180,27 +173,6 @@ export function ActionCarousel({
         },
       })
     }
-  })
-
-  gtBills.forEach((bill) => {
-    const propertyHint = bill.unitName || bill.propertyLabel
-    const amount = formatCurrency(parseGtBillAmount(bill.amount), 'NGN')
-    const proofRejected = bill.proof_status?.toLowerCase() === 'rejected'
-    const proofPending = bill.proof_status?.toLowerCase() === 'pending'
-
-    items.push({
-      type: 'gt_bill',
-      id: `gt-${bill.propertyUuid}-${bill.id}`,
-      title: proofRejected ? 'Proof Rejected' : bill.reason || 'Bill from Manager',
-      meta: proofRejected
-        ? `Action needed on ${amount}${propertyHint ? ` · ${propertyHint}` : ''}`
-        : proofPending
-          ? `${amount} in review${propertyHint ? ` · ${propertyHint}` : ''}`
-          : `${amount} requested${propertyHint ? ` · ${propertyHint}` : ''}`,
-      actionLabel: proofPending ? 'View status' : proofRejected ? 'Retry payment' : 'Pay Now',
-      action: () => router.push('/dashboard/my-home/payments'),
-      urgency: proofRejected ? 'critical' : 'pending',
-    })
   })
 
   rentReminders

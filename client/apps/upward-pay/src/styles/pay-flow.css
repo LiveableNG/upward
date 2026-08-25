@@ -2318,42 +2318,16 @@
 
 /* Pinned footer — public checkout pay CTA */
 .pay-flow--pin-footer {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
 }
 
 .pay-flow--pin-footer .pay-flow__shell {
-  min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  overflow: hidden;
-}
-
-.pay-flow--pin-footer .pay-flow__header {
-  flex: none;
-  background: var(--shell-page-bg, #faf8f5);
+  min-height: 100dvh;
 }
 
 .pay-flow--pin-footer .pay-flow__scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 1;
   padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-}
-
-@media (min-width: 1024px) {
-  .pay-flow--pin-footer.dashboard--nav-offset {
-    height: calc(100dvh - 72px);
-    max-height: calc(100dvh - 72px);
-    min-height: 0;
-    align-items: stretch;
-    padding-bottom: 16px;
-  }
-
-  .pay-flow--pin-footer .pay-flow__header {
-    background: #fff;
-  }
 }
 
 .pay-flow__footer--pinned {

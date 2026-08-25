@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -21,6 +20,7 @@ export function Modal({
   showClose = true,
   className = '',
 }: ModalProps) {
+  // Disable body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -32,6 +32,7 @@ export function Modal({
     }
   }, [isOpen])
 
+  // Handle escape key to close
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -46,16 +47,16 @@ export function Modal({
     }
   }, [isOpen, onClose])
 
-  if (!isOpen || typeof document === 'undefined') return null
+  if (!isOpen) return null
 
-  return createPortal(
+  return (
     <div
       className="upward-modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div className={`upward-modal-card upward-modal-card--${size} ${className}`}>
+      <div className={`upward-modal-card upward-modal-card--${size} ${className} animate-in zoom-in-95 duration-200`}>
         {showClose && (
           <button className="upward-modal-close" onClick={onClose} aria-label="Close modal">
             <X size={16} />
@@ -64,14 +65,14 @@ export function Modal({
         {children}
       </div>
 
-      <style jsx global>{`
+      <style jsx>{`
         .upward-modal-overlay {
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.45);
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
-          z-index: 4000;
+          z-index: 2000;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -84,12 +85,11 @@ export function Modal({
           border-radius: 28px;
           padding: 36px 24px 24px;
           width: 100%;
-          max-height: calc(100dvh - 40px);
           position: relative;
           box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
           display: flex;
           flex-direction: column;
-          overflow: auto;
+          overflow: hidden;
         }
 
         .upward-modal-card--sm {
@@ -118,10 +118,16 @@ export function Modal({
           align-items: center;
           justify-content: center;
           cursor: pointer;
+          transition: all 0.2s ease;
           z-index: 10;
         }
+
+        .upward-modal-close:hover {
+          background: var(--border-solid);
+          color: var(--text);
+          transform: scale(1.05);
+        }
       `}</style>
-    </div>,
-    document.body,
+    </div>
   )
 }
