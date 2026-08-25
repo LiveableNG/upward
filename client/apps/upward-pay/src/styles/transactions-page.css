@@ -110,7 +110,9 @@
   border-radius: 12px;
   border: 1px solid #ece4d9;
   background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .tx-page__search-wrap:focus-within {
@@ -272,6 +274,31 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/*
+ * Transactions reuses dash-home activity row classes, but the dashboard home
+ * desktop skin turns those into a 3-column grid. Keep one item per row here.
+ */
+.tx-page .dash-home__activity-card {
+  display: block;
+  grid-template-columns: none;
+}
+
+.tx-page .dash-home__activity-item {
+  flex-direction: row;
+  align-items: center;
+  height: auto;
+  border-right: none;
+  padding: 14px 16px;
+}
+
+.tx-page .dash-home__activity-item + .dash-home__activity-item {
+  border-top: 1px solid #f4eee5;
+}
+
+.tx-page .dash-home__activity-item:last-child {
+  border-right: none;
 }
 
 /* Footer & empty */
