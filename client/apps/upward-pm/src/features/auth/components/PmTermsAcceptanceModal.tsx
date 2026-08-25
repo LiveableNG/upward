@@ -281,6 +281,13 @@ export function PmTermsAcceptanceModal({ onAccepted }: PmTermsAcceptanceModalPro
           margin-top: 2px;
           cursor: pointer;
         }
+        .pm-terms-modal :global(.auth-btn:disabled) {
+          opacity: 0.5;
+          cursor: not-allowed;
+          pointer-events: none;
+          background: #94a3b8 !important;
+          border-color: #94a3b8 !important;
+        }
       `}</style>
     </div>,
     document.body

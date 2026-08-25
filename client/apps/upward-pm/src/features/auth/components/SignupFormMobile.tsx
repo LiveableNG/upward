@@ -198,11 +198,14 @@ export const SignupFormMobile = () => {
       } else if (formData.password !== formData.confirmPassword) {
         nextErrors.confirmPassword = 'Passwords do not match'
       }
+      if (!termsAgreed) {
+        nextErrors.termsAgreed = 'You must accept the Terms of Use & Privacy Policy to continue'
+      }
     }
 
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors)
-      toastError('Please fill in the highlighted fields before continuing.', 'Missing required fields')
+      toastError('Please fill in the highlighted fields and accept the terms before continuing.', 'Missing required fields')
       return
     }
 
@@ -753,7 +756,10 @@ export const SignupFormMobile = () => {
                     <input
                       type="checkbox"
                       checked={termsAgreed}
-                      onChange={(e) => setTermsAgreed(e.target.checked)}
+                      onChange={(e) => {
+                        clearFieldError('termsAgreed')
+                        setTermsAgreed(e.target.checked)
+                      }}
                       required
                       style={{ accentColor: 'var(--forest)', marginTop: '2px', width: '16px', height: '16px', cursor: 'pointer' }}
                     />
@@ -768,6 +774,7 @@ export const SignupFormMobile = () => {
                       </a>
                     </span>
                   </label>
+                  {fieldErrors.termsAgreed && <p style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.termsAgreed}</p>}
                 </div>
               </div>
             )}
@@ -783,7 +790,7 @@ export const SignupFormMobile = () => {
               type="button"
               className="auth-btn auth-btn--primary auth-btn--large"
               onClick={handleNextStep}
-              disabled={loading || (step === 2 && emailExists) || isCheckingEmail || (step === 3 && !termsAgreed)}
+              disabled={loading || (step === 2 && emailExists) || isCheckingEmail}
               style={{ marginTop: 'auto' }}
             >
               <span>{loading ? 'Please wait...' : 'Continue'}</span>

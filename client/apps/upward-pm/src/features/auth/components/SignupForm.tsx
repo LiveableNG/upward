@@ -205,9 +205,13 @@ export const SignupForm = () => {
       nextErrors.confirmPassword = 'Passwords do not match'
     }
 
+    if (!termsAgreed) {
+      nextErrors.termsAgreed = 'You must accept the Terms of Use & Privacy Policy to continue'
+    }
+
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors)
-      toastError('Please fill in the highlighted fields before continuing.', 'Missing required fields')
+      toastError('Please fill in the highlighted fields and accept the terms before continuing.', 'Missing required fields')
       return
     }
 
@@ -851,7 +855,10 @@ export const SignupForm = () => {
               <input
                 type="checkbox"
                 checked={termsAgreed}
-                onChange={(e) => setTermsAgreed(e.target.checked)}
+                onChange={(e) => {
+                  clearFieldError('termsAgreed')
+                  setTermsAgreed(e.target.checked)
+                }}
                 required
                 style={{ accentColor: 'var(--forest)', marginTop: '2px', width: '16px', height: '16px', cursor: 'pointer' }}
               />
@@ -866,12 +873,13 @@ export const SignupForm = () => {
                 </a>
               </span>
             </label>
+            {fieldErrors.termsAgreed && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.termsAgreed}</p>}
           </div>
 
           <button
             type="submit"
             className="auth-btn auth-btn--primary auth-btn--large"
-            disabled={loading || emailExists || isCheckingEmail || isInvited || !termsAgreed}
+            disabled={loading || emailExists || isCheckingEmail || isInvited}
             style={{ marginTop: '10px' }}
           >
             <span>{loading ? 'Please wait...' : 'Create account'}</span>
