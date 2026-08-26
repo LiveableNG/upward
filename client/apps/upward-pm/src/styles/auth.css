@@ -316,6 +316,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .auth-role-toggle__btn:hover:not(.auth-role-toggle__btn--active) {
@@ -353,6 +354,16 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 380px) {
+  .auth-role-toggle__btn,
+  .auth-method-toggle__option {
+    padding: 9px 6px;
+    font-size: 12.5px;
+    gap: 6px;
+  }
 }
 
 .auth-method-toggle__option:hover:not(.is-active) {

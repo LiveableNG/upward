@@ -117,7 +117,7 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
           <div className="form-group">
             <label className="form-label">Country</label>
             <FormSelect 
@@ -163,32 +163,32 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
 
         {!isLandlordPortal && (
           <>
-            <div style={{ marginTop: 24, padding: 16, background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Users size={16} color="var(--forest)" />
-                    <h4 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Landlord Assignment</h4>
+            <div style={{ marginTop: 20, padding: 14, background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 140px', minWidth: 0 }}>
+                    <Users size={16} color="var(--forest)" style={{ flexShrink: 0 }} />
+                    <h4 style={{ fontSize: 13, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>Landlord Assignment</h4>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }}>
                     <button 
                         className={cn("btn btn--sm", landlordMode === 'NEW' ? "btn--primary" : "btn--secondary")}
-                        style={{ fontSize: 11, padding: '6px 12px' }}
+                        style={{ fontSize: 11, padding: '6px 10px', whiteSpace: 'nowrap' }}
                         onClick={() => handleToggleLandlordMode('NEW')}
                     >
-                        <UserPlus size={14} /> New Landlord
+                        <UserPlus size={13} /> New Landlord
                     </button>
                     <button 
                         className={cn("btn btn--sm", landlordMode === 'EXISTING' ? "btn--primary" : "btn--secondary")}
-                        style={{ fontSize: 11, padding: '6px 12px' }}
+                        style={{ fontSize: 11, padding: '6px 10px', whiteSpace: 'nowrap' }}
                         onClick={() => handleToggleLandlordMode('EXISTING')}
                     >
-                        <Users size={14} /> Existing
+                        <Users size={13} /> Existing
                     </button>
                 </div>
               </div>
 
               {landlordMode === 'NONE' && (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '10px 0', margin: 0 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '6px 0', margin: 0 }}>
                     Optional: Link a landlord to this property.
                 </p>
               )}
@@ -227,7 +227,7 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
                           onChange={e => setFormData({ ...formData, landlordName: e.target.value })}
                         />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12 }}>
                         <div className="form-group">
                           <label className="form-label" style={{ fontSize: 11 }}>Email Address</label>
                           <input 
@@ -256,11 +256,11 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
             </div>
 
             {/* Collaboration Section */}
-            <div style={{ marginTop: 24, padding: 16, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Users size={18} color="var(--forest)" />
-                    <h4 style={{ fontSize: 13, fontWeight: 700 }}>Enable Collaboration</h4>
+            <div style={{ marginTop: 20, padding: 14, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <Users size={18} color="var(--forest)" style={{ flexShrink: 0 }} />
+                    <h4 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Enable Collaboration</h4>
                 </div>
                 <label className="switch" style={{ cursor: 'pointer' }}>
                   <input 
