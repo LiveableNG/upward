@@ -72,11 +72,11 @@ class ApiService {
     return this.handleResponse(response)
   }
 
-  async delete(endpoint: string, token?: string) {
+  async delete(endpoint: string, token?: string, body?: unknown) {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders(token),
-      body: JSON.stringify({}),
+      body: body ? JSON.stringify(body) : JSON.stringify({}),
       credentials: 'include',
     })
     return this.handleResponse(response)

@@ -46,6 +46,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
@@ -480,6 +481,28 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             )}
           </div>
 
+          <div className="auth-form__field" style={{ marginTop: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              <input
+                type="checkbox"
+                checked={termsAgreed}
+                onChange={(e) => setTermsAgreed(e.target.checked)}
+                required
+                style={{ accentColor: 'var(--clay)', marginTop: '2px', width: '15px', height: '15px', cursor: 'pointer' }}
+              />
+              <span>
+                I agree to the{' '}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--clay)', fontWeight: 600 }}>
+                  Terms of Use
+                </a>{' '}
+                and{' '}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--clay)', fontWeight: 600 }}>
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
+          </div>
+
           <button
             id="signup-submit"
             className="btn btn--primary btn--full btn--pay auth-form__mt-8"
@@ -495,7 +518,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               !password ||
               !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
               !confirmPassword ||
-              password !== confirmPassword
+              password !== confirmPassword ||
+              !termsAgreed
             }
 
           >

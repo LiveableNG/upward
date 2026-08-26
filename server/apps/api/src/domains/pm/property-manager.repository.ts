@@ -27,6 +27,8 @@ export interface PropertyManager {
   isVerified?: boolean
   isBlocked?: boolean
   isManuallyBlocked?: boolean
+  termsAcceptedAt?: Date | null
+  termsVersion?: string | null
   resetPasswordOTP?: string | null
   resetPasswordExpires?: Date | null
   createdAt: Date

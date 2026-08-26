@@ -30,7 +30,12 @@ model upward_user {
   authProvider          String                           @default("email")
   providerId            String?                          @unique
   isInternal            Boolean                          @default(false)
+  isBlocked             Boolean                          @default(false)
+  isManuallyBlocked     Boolean                          @default(false)
+  disabledAt            DateTime?
   savingsWalletEnabled  Boolean                          @default(false)
+  termsAcceptedAt       DateTime?
+  termsVersion          String?                          @default("2026-08-24")
   authSessions          upward_auth_session[]
   benefitsSubscriptions upward_benefits_subscription[]
   communicationLogs     upward_communication_log[]

@@ -29,6 +29,9 @@ import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-
 import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
 import { SendAdminNotificationUseCase } from './use-cases/admin/send-admin-notification.use-case'
 import { ManagePmSubscriptionUseCase } from './use-cases/admin/manage-pm-subscription.use-case'
+import { GetEligibleDeletionUsersUseCase } from './use-cases/admin/get-eligible-deletion-users.use-case'
+import { DeleteUserDataUseCase } from './use-cases/admin/delete-user-data.use-case'
+import { NotifyEligibleDeletionAccountsUseCase } from './use-cases/admin/notify-eligible-deletion-accounts.use-case'
 import {
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -128,6 +131,7 @@ import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credi
 import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
 import { CheckSlugAvailabilityUseCase } from './use-cases/user/check-slug-availability.use-case'
 import { VerifyBvnUseCase } from './use-cases/user/verify-bvn.use-case'
+import { AcceptTermsUseCase } from './use-cases/user/accept-terms.use-case'
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
@@ -219,6 +223,7 @@ import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use-case'
+import { AcceptPmTermsUseCase } from './pm/use-cases/accept-pm-terms.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
@@ -423,6 +428,9 @@ const UseCases = [
   UpdateAdminDetailsUseCase,
   SendAdminNotificationUseCase,
   ManagePmSubscriptionUseCase,
+  GetEligibleDeletionUsersUseCase,
+  DeleteUserDataUseCase,
+  NotifyEligibleDeletionAccountsUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
@@ -509,6 +517,8 @@ const UseCases = [
   GenerateKYCReportPdfUseCase,
   GenerateReceiptPdfUseCase,
   CheckSlugAvailabilityUseCase,
+  AcceptTermsUseCase,
+  AcceptPmTermsUseCase,
   MarkNotificationReadUseCase,
 
   CreateAnnouncementUseCase,

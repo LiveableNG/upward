@@ -23,6 +23,8 @@ export interface User {
   profilePic?: string | null
   profileSlug?: string | null
   bio?: string | null
+  termsAcceptedAt?: Date | null
+  termsVersion?: string | null
   
   properties?: any[] // Joined properties
   companyUsers?: any[] // Joined company associations

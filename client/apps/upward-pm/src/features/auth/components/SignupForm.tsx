@@ -92,6 +92,7 @@ export const SignupForm = () => {
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const signupMutation = useSignup()
   const requestOtpMutation = useRequestOTP()
@@ -204,9 +205,13 @@ export const SignupForm = () => {
       nextErrors.confirmPassword = 'Passwords do not match'
     }
 
+    if (!termsAgreed) {
+      nextErrors.termsAgreed = 'You must accept the Terms of Use & Privacy Policy to continue'
+    }
+
     if (Object.keys(nextErrors).length > 0) {
       setFieldErrors(nextErrors)
-      toastError('Please fill in the highlighted fields before continuing.', 'Missing required fields')
+      toastError('Please fill in the highlighted fields and accept the terms before continuing.', 'Missing required fields')
       return
     }
 
@@ -843,6 +848,32 @@ export const SignupForm = () => {
               </div>
               {fieldErrors.confirmPassword && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.confirmPassword}</p>}
             </div>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '16px', marginBottom: 0 }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              <input
+                type="checkbox"
+                checked={termsAgreed}
+                onChange={(e) => {
+                  clearFieldError('termsAgreed')
+                  setTermsAgreed(e.target.checked)
+                }}
+                required
+                style={{ accentColor: 'var(--forest)', marginTop: '2px', width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              <span>
+                I agree to the{' '}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)', fontWeight: 700 }}>
+                  Terms of Use
+                </a>{' '}
+                and{' '}
+                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--forest)', fontWeight: 700 }}>
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
+            {fieldErrors.termsAgreed && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.termsAgreed}</p>}
           </div>
 
           <button

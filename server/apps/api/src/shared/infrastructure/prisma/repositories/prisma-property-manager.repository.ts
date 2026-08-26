@@ -39,6 +39,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       isVerified: model.isVerified,
       isBlocked: model.isBlocked,
       isManuallyBlocked: model.isManuallyBlocked,
+      termsAcceptedAt: model.termsAcceptedAt,
+      termsVersion: model.termsVersion,
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
       createdAt: model.createdAt,
@@ -106,6 +108,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         isVerified: pm.isVerified ?? false,
         isBlocked: pm.isBlocked ?? false,
         isManuallyBlocked: pm.isManuallyBlocked ?? false,
+        termsAcceptedAt: pm.termsAcceptedAt ?? new Date(),
+        termsVersion: pm.termsVersion ?? '2026-08-24',
         resetPasswordOTP: pm.resetPasswordOTP,
         resetPasswordExpires: pm.resetPasswordExpires,
       },
@@ -117,6 +121,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
   async update(id: number, data: Partial<PropertyManager>): Promise<PropertyManager> {
     const updateData: any = {}
     
+    if (data.termsAcceptedAt !== undefined) updateData.termsAcceptedAt = data.termsAcceptedAt
+    if (data.termsVersion !== undefined) updateData.termsVersion = data.termsVersion
     if (data.passwordHash !== undefined) updateData.passwordHash = data.passwordHash
 
     if (data.email) {

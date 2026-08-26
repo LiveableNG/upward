@@ -51,6 +51,13 @@ export const getMe = async () => {
   return request<any>('/pm/auth/me', { method: 'GET' })
 }
 
+export const acceptTerms = async (version: string = '2026-08-24') => {
+  return request<{ success: boolean; termsAcceptedAt: string; termsVersion: string }>('/pm/auth/accept-terms', {
+    method: 'POST',
+    body: JSON.stringify({ version }),
+  })
+}
+
 export const checkEmail = async (email: string) => {
   return request<{ exists: boolean; isInvited?: boolean; inviteToken?: string }>('/pm/auth/check-email', {
     method: 'POST',

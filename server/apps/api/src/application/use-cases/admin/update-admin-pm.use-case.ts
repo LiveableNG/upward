@@ -69,6 +69,17 @@ export class UpdateAdminPmUseCase {
       updateData.isManuallyBlocked = data.isManuallyBlocked
     }
 
+    const nextIsBlocked = data.isBlocked !== undefined ? data.isBlocked : pm.isBlocked
+    const nextIsManuallyBlocked = data.isManuallyBlocked !== undefined ? data.isManuallyBlocked : pm.isManuallyBlocked
+    const willBeDisabled = nextIsBlocked || nextIsManuallyBlocked
+    const currentlyDisabled = pm.isBlocked || pm.isManuallyBlocked
+
+    if (willBeDisabled && !currentlyDisabled) {
+      updateData.disabledAt = new Date()
+    } else if (!willBeDisabled && currentlyDisabled) {
+      updateData.disabledAt = null
+    }
+
     const updatedPm = await this.prisma.upward_property_manager.update({
       where: { uuid },
       data: updateData,

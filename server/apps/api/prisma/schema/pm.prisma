@@ -22,6 +22,8 @@ model upward_property_manager {
   isVerified              Boolean                              @default(false)
   cacNumber               String?
   country                 String?
+  termsAcceptedAt         DateTime?
+  termsVersion            String?                              @default("2026-08-24")
   resetPasswordExpires    DateTime?
   resetPasswordOTP        String?
   isInternal              Boolean                              @default(false)
@@ -30,6 +32,7 @@ model upward_property_manager {
   companyAddress          String?
   isBlocked               Boolean                              @default(false)
   isManuallyBlocked       Boolean                              @default(false)
+  disabledAt              DateTime?
   activityLogsOwned       upward_pm_activity_log[]             @relation("ActivityOwner")
   activityLogsPerformed   upward_pm_activity_log[]             @relation("ActivityPerformer")
   authSessions            upward_pm_auth_session[]

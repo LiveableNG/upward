@@ -1,0 +1,16 @@
+model upward_deletion_audit_log {
+  id           String   @id @default(uuid())
+  adminId      String
+  adminEmail   String
+  targetUserId String
+  targetEmail  String
+  targetRole   String   // 'USER' | 'PROPERTY_MANAGER'
+  disabledAt   DateTime
+  daysDisabled Int
+  deletedAt    DateTime @default(now())
+  reason       String?
+
+  @@index([adminId])
+  @@index([targetUserId])
+  @@index([deletedAt])
+}
