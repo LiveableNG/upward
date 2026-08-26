@@ -35,6 +35,7 @@ export interface UserProfile {
     isVerified?: boolean;
     isPmVerified?: boolean;
     isPlatformLinked?: boolean;
+    externalUnitId?: string;
     managerName?: string;
     managerPhone?: string;
     managerEmail?: string;
