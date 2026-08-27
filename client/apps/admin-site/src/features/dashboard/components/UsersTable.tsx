@@ -18,10 +18,6 @@ export interface UnifiedUserRecord {
   isExWaitlist: boolean
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   totalPaid: number
-  feePaid?: number
-  benefitsPaid?: number
-  platformRevenue?: number
-  hasPlatformRevenue?: boolean
   rentExpiryDate?: string
   failureReason?: string
   rawRecord: any
@@ -298,7 +294,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     },
     {
       key: 'totalPaid',
-      label: 'Gross Rent',
+      label: 'Paid',
       sortable: true,
       render: (item) => (
         <span style={{ fontWeight: 700, fontSize: '13px' }}>
@@ -309,39 +305,6 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           )}
         </span>
       ),
-    },
-    {
-      key: 'feePaid',
-      label: 'Tx Fee',
-      sortable: true,
-      render: (item) => (
-        <span style={{ fontWeight: 600, fontSize: '12px', color: item.feePaid ? '#10b981' : 'var(--text-muted)' }}>
-          {item.feePaid && item.feePaid > 0 ? `₦${item.feePaid.toLocaleString()}` : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'benefitsPaid',
-      label: 'Benefits',
-      sortable: true,
-      render: (item) => (
-        <span style={{ fontWeight: 600, fontSize: '12px', color: item.benefitsPaid ? '#6366f1' : 'var(--text-muted)' }}>
-          {item.benefitsPaid && item.benefitsPaid > 0 ? `₦${item.benefitsPaid.toLocaleString()}` : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'platformRevenue',
-      label: 'Platform Rev',
-      sortable: true,
-      render: (item) => {
-        const rev = (item.feePaid || 0) + (item.benefitsPaid || 0) || item.platformRevenue || 0
-        return (
-          <span style={{ fontWeight: 700, fontSize: '13px', color: rev > 0 ? '#10b981' : 'var(--text-muted)' }}>
-            {rev > 0 ? `₦${rev.toLocaleString()}` : '—'}
-          </span>
-        )
-      },
     },
     {
       key: 'joinedAt',

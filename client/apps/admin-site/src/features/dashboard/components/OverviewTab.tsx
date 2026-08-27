@@ -400,15 +400,13 @@ interface HealthCardProps {
   sparkData?: number[]
   accentColor: string
   icon: React.ReactNode
-  onClick?: () => void
 }
 
-const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, tooltip, change, sparkData, accentColor, icon, onClick }) => {
+const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, tooltip, change, sparkData, accentColor, icon }) => {
   const isPositive = change !== undefined ? change >= 0 : true
   return (
     <div
       className="card"
-      onClick={onClick}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -417,8 +415,6 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
         borderTop: `3px solid ${accentColor}`,
         position: 'relative',
         overflow: 'hidden',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -486,7 +482,6 @@ interface OverviewTabProps {
   invitedList: InvitedRecord[]
   onPreview: (item: any) => void
   token: string
-  onNavigateToRevenueUsers?: () => void
 }
 
 // Fake trend data seeded from metrics totals to give realistic sparklines
@@ -507,7 +502,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   invitedList,
   onPreview,
   token,
-  onNavigateToRevenueUsers,
 }) => {
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')
   const [searchQuery, setSearchQuery] = useState('')
@@ -863,8 +857,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 }
                 accentColor="#10b981"
                 icon={<TrendingUp size={16} />}
-                onClick={onNavigateToRevenueUsers}
-                tooltip={`Total revenue earned by the platform (Click to view breakdown of contributing users).\nThis includes both transaction fees (from processing rent payments) and benefits fees (from optional Upward protection packages).`}
+                tooltip={`Total revenue earned by the platform.\nThis includes both transaction fees (from processing rent payments) and benefits fees (from optional Upward protection packages).`}
               />
               <HealthCard
                 label="Login Sessions (Timeframe)"

@@ -109,7 +109,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [contactFilter, setContactFilter] = useState<
     'all' | 'emailOnly' | 'phoneOnly' | 'both' | 'neither'
   >('all')
-  const [paymentFilter, setPaymentFilter] = useState<'all' | 'paying' | 'revenue'>('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -294,7 +293,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       phone: item.phone,
       status: userStatus,
       type: userType,
-      upwardScore: item.upwardScore || item.rawRecord?.upwardScore,
       invitedAt,
       joinedAt,
       createdAt,
@@ -486,16 +484,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
       }
 
-      // 3. Payment / Revenue Filter
-      if (paymentFilter === 'paying' && u.totalPaid <= 0) return false
-      if (paymentFilter === 'revenue') {
-        const rev = (u.feePaid || 0) + (u.benefitsPaid || 0) || u.totalPaid || 0
-        if (rev <= 0) return false
-      }
-
       return true
     })
-  }, [usersFilteredByPm, originFilter, contactFilter, paymentFilter])
+  }, [usersFilteredByPm, originFilter, contactFilter])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -909,94 +900,61 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 </button>
               </div>
 
-              {/* Contact & Revenue Filters */}
+              {/* Contact Filters with Counts */}
               {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
-                <>
-                  <div
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                  }}
+                >
+                  <span
                     style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
                       display: 'flex',
-                      gap: '6px',
-                      flexWrap: 'wrap',
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: '12px',
+                      alignItems: 'center',
+                      paddingRight: '8px',
+                      fontWeight: 600,
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        color: 'var(--text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        paddingRight: '8px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Contact Info:
-                    </span>
-                    <button
-                      onClick={() => setContactFilter('all')}
-                      className={`date-chip ${contactFilter === 'all' ? 'active' : ''}`}
-                    >
-                      All (
-                      {originCounts.waitlist + originCounts.invited + originCounts.selfRegistered})
-                    </button>
-                    <button
-                      onClick={() => setContactFilter('emailOnly')}
-                      className={`date-chip ${contactFilter === 'emailOnly' ? 'active' : ''}`}
-                    >
-                      Email Only ({contactCounts.emailOnly})
-                    </button>
-                    <button
-                      onClick={() => setContactFilter('phoneOnly')}
-                      className={`date-chip ${contactFilter === 'phoneOnly' ? 'active' : ''}`}
-                    >
-                      Phone Only ({contactCounts.phoneOnly})
-                    </button>
-                    <button
-                      onClick={() => setContactFilter('both')}
-                      className={`date-chip ${contactFilter === 'both' ? 'active' : ''}`}
-                    >
-                      Both ({contactCounts.both})
-                    </button>
-                    <button
-                      onClick={() => setContactFilter('neither')}
-                      className={`date-chip ${contactFilter === 'neither' ? 'active' : ''}`}
-                    >
-                      No Contact ({contactCounts.neither})
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        color: 'var(--text-muted)',
-                        paddingRight: '8px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Revenue Filter:
-                    </span>
-                    <button
-                      onClick={() => setPaymentFilter('all')}
-                      className={`date-chip ${paymentFilter === 'all' ? 'active' : ''}`}
-                    >
-                      All Accounts
-                    </button>
-                    <button
-                      onClick={() => setPaymentFilter('paying')}
-                      className={`date-chip ${paymentFilter === 'paying' ? 'active' : ''}`}
-                    >
-                      Paid Gross Rent
-                    </button>
-                    <button
-                      onClick={() => setPaymentFilter('revenue')}
-                      className={`date-chip ${paymentFilter === 'revenue' ? 'active' : ''}`}
-                    >
-                      Platform Revenue Contributed
-                    </button>
-                  </div>
-                </>
+                    Contact Info:
+                  </span>
+                  <button
+                    onClick={() => setContactFilter('all')}
+                    className={`date-chip ${contactFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All (
+                    {originCounts.waitlist + originCounts.invited + originCounts.selfRegistered})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('emailOnly')}
+                    className={`date-chip ${contactFilter === 'emailOnly' ? 'active' : ''}`}
+                  >
+                    Email Only ({contactCounts.emailOnly})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('phoneOnly')}
+                    className={`date-chip ${contactFilter === 'phoneOnly' ? 'active' : ''}`}
+                  >
+                    Phone Only ({contactCounts.phoneOnly})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('both')}
+                    className={`date-chip ${contactFilter === 'both' ? 'active' : ''}`}
+                  >
+                    Both ({contactCounts.both})
+                  </button>
+                  <button
+                    onClick={() => setContactFilter('neither')}
+                    className={`date-chip ${contactFilter === 'neither' ? 'active' : ''}`}
+                  >
+                    No Contact ({contactCounts.neither})
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -1060,10 +1018,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             invitedList={invitedList}
             onPreview={openDrawerForUser}
             token={token}
-            onNavigateToRevenueUsers={() => {
-              setActiveTab('users')
-              setPaymentFilter('revenue')
-            }}
           />
         ))}
 
