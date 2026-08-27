@@ -27,6 +27,9 @@ export interface SignedUpRecord {
   hasPaid: boolean
   benefitsPaid?: number
   hasPaidBenefits?: boolean
+  feePaid?: number
+  platformRevenue?: number
+  hasPlatformRevenue?: boolean
   pmName?: string
   pmUuid?: string | string[]
   rentExpiryDate?: string
@@ -60,6 +63,9 @@ export interface InvitedRecord {
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   benefitsPaid?: number
   hasPaidBenefits?: boolean
+  feePaid?: number
+  platformRevenue?: number
+  hasPlatformRevenue?: boolean
   failureReason?: string
   lastPaidAt?: string | null
   transactions?: any[]

@@ -226,13 +226,13 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
               <span className="section-label" style={{ display: 'block', marginBottom: '14px' }}>Quick Stats</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 {entity.upwardScore && (
-                  <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff', borderRadius: '10px', padding: '14px', textAlign: 'center', gridColumn: 'span 2' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#94a3b8', marginBottom: '4px' }}>
+                  <div style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px 14px', textAlign: 'center', gridColumn: 'span 2' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                       Upward Credibility Score
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '24px', fontWeight: 800, color: '#fff' }}>{entity.upwardScore.score}</span>
-                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', backgroundColor: `${entity.upwardScore.color}33`, color: entity.upwardScore.color }}>
+                      <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>{entity.upwardScore.score}</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px', backgroundColor: `${entity.upwardScore.color}15`, color: entity.upwardScore.color, border: `1px solid ${entity.upwardScore.color}30` }}>
                         {entity.upwardScore.band}
                       </span>
                     </div>

@@ -24,6 +24,7 @@ import { ChangeAdminRoleUseCase } from './use-cases/admin/change-admin-role.use-
 import { ChangeAdminPasswordUseCase } from './use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from './use-cases/admin/search-users.use-case'
 import { GetAdminUserDetailUseCase } from './use-cases/admin/get-admin-user-detail.use-case'
+import { GetAdminRentHistoryRequestsUseCase } from './use-cases/admin/get-admin-rent-history-requests.use-case'
 import { GetAdminPmDetailUseCase } from './use-cases/admin/get-admin-pm-detail.use-case'
 import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
@@ -418,6 +419,7 @@ const UseCases = [
   ChangeAdminPasswordUseCase,
   SearchUsersUseCase,
   GetAdminUserDetailUseCase,
+  GetAdminRentHistoryRequestsUseCase,
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
   GetInternalAccountsUseCase,

@@ -293,6 +293,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       phone: item.phone,
       status: userStatus,
       type: userType,
+      upwardScore: item.upwardScore || item.rawRecord?.upwardScore,
       invitedAt,
       joinedAt,
       createdAt,
