@@ -140,8 +140,8 @@ export class UserAuthService extends BaseAuthService {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
-    if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
-      throw new Error('Phone number must be in format +2348000000000');
+    if (dto.phone && !/^\+?\d{7,15}$/.test(dto.phone.replace(/[\s\-\(\)]/g, ''))) {
+      throw new Error('Phone number must be a valid international phone number');
     }
     let existing = await this.userRepository.findByEmail(dto.email)
 
@@ -538,8 +538,8 @@ export class UserAuthService extends BaseAuthService {
     const user = await this.userRepository.findByUuid(userUuid)
     if (!user) throw new UnauthorizedException('User not found')
 
-    if (data.phone && !/^\+234\d{10}$/.test(data.phone)) {
-      throw new Error('Phone number must be in format +2348000000000');
+    if (data.phone && !/^\+?\d{7,15}$/.test(data.phone.replace(/[\s\-\(\)]/g, ''))) {
+      throw new Error('Phone number must be a valid international phone number');
     }
 
     await this.userRepository.update(user.id!, data as any)

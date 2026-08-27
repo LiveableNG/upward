@@ -338,13 +338,16 @@ export class PrismaTransactionRepository implements ITransactionRepository {
     let mappedPr = null
 
     if (pr) {
+      const companyNameRaw = pr.userProperty?.company?.name || pr.companyName || pr.subaccount?.businessName
+      const companyName = companyNameRaw
+        ? (companyNameRaw.includes(':') ? this.encryption.decrypt(companyNameRaw) : companyNameRaw)
+        : undefined
+
       mappedPr = {
         ...pr,
         description: pr.description ? (pr.description.includes(':') ? this.encryption.decrypt(pr.description) : pr.description) : pr.description,
         userPropertyUuid: pr.userProperty?.uuid,
-        companyName: pr.userProperty?.company?.name
-          ? (pr.userProperty.company.name.includes(':') ? this.encryption.decrypt(pr.userProperty.company.name) : pr.userProperty.company.name)
-          : pr.subaccount?.businessName,
+        companyName,
         propertyLocation: pr.userProperty?.location
           ? [
             pr.userProperty.location.address,
@@ -386,6 +389,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
           },
           location: true,
           manager: true,
+          pm: true,
         },
       },
     }
@@ -393,6 +397,32 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
 
   private mapPaymentRequest(res: any): PaymentRequest {
     if (!res) return null as any
+
+    const companyNameRaw = res.userProperty?.company?.name || res.companyName || res.subaccount?.businessName || res.userProperty?.pm?.businessName
+    const companyName = companyNameRaw
+      ? (companyNameRaw.includes(':') ? this.encryption.decrypt(companyNameRaw) : companyNameRaw)
+      : undefined
+
+    const platformNameRaw = res.userProperty?.company?.platform?.name
+    const platformName = platformNameRaw
+      ? (platformNameRaw.includes(':') ? this.encryption.decrypt(platformNameRaw) : platformNameRaw)
+      : undefined
+
+    let managerName: string | undefined = undefined
+    if (res.userProperty?.manager) {
+      const first = res.userProperty.manager.firstName
+      const last = res.userProperty.manager.lastName
+      const decFirst = first ? (first.includes(':') ? this.encryption.decrypt(first) : first) : ''
+      const decLast = last ? (last.includes(':') ? this.encryption.decrypt(last) : last) : ''
+      managerName = `${decFirst} ${decLast}`.trim() || undefined
+    } else if (res.userProperty?.pm) {
+      const first = res.userProperty.pm.firstName
+      const last = res.userProperty.pm.lastName
+      const decFirst = first ? (first.includes(':') ? this.encryption.decrypt(first) : first) : ''
+      const decLast = last ? (last.includes(':') ? this.encryption.decrypt(last) : last) : ''
+      managerName = `${decFirst} ${decLast}`.trim() || undefined
+    }
+
     return {
       ...res,
       minAmount: res.minAmount ?? undefined,
@@ -402,16 +432,10 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
       platformId: res.userProperty?.company?.platform?.id || res.userProperty?.company?.platformId,
-      platformName: res.userProperty?.company?.platform?.name,
+      platformName,
       userPropertyUuid: res.userProperty?.uuid,
-      companyName: res.userProperty?.company?.name
-        ? (res.userProperty.company.name.includes(':') ? this.encryption.decrypt(res.userProperty.company.name) : res.userProperty.company.name)
-        : undefined,
-      managerName: res.userProperty?.manager
-        ? (this.encryption.decrypt(res.userProperty.manager.firstName) +
-          ' ' +
-          this.encryption.decrypt(res.userProperty.manager.lastName))
-        : undefined,
+      companyName,
+      managerName,
       propertyLocation: res.userProperty?.location
         ? [
           res.userProperty.location.address,

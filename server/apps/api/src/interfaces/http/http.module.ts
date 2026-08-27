@@ -60,6 +60,8 @@ import { TenantPmConnectionController } from './user/tenant-pm-connection.contro
 import { TenantAppController } from './user/tenant-app.controller'
 import { PublicTrackingController } from './public/public-tracking.controller'
 import { EmailTrackingController } from './public/email-tracking.controller'
+import { EmailClickTrackingController } from './public/email-click-tracking.controller'
+import { AdminEmailTrackingController } from './admin/admin-email-tracking.controller'
 import { WhatsappWebhookController } from './public/whatsapp-webhook.controller'
 import { AppActivityLogController } from './admin/app-activity-log.controller'
 import { FeedbackAdminController } from './admin/feedback-admin.controller'
@@ -145,6 +147,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     TenantAppController,
     PublicTrackingController,
     EmailTrackingController,
+    EmailClickTrackingController,
+    AdminEmailTrackingController,
     WhatsappWebhookController,
     AppActivityLogController,
     FeedbackAdminController,
