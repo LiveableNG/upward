@@ -65,6 +65,7 @@ import { ResolveErrorUseCase } from '../../../application/use-cases/system/resol
 import { ClearErrorLogsUseCase } from '../../../application/use-cases/system/clear-error-logs.use-case'
 
 import { GetAdminUserDetailUseCase } from '../../../application/use-cases/admin/get-admin-user-detail.use-case'
+import { GetAdminRentHistoryRequestsUseCase } from '../../../application/use-cases/admin/get-admin-rent-history-requests.use-case'
 import { GetAdminPmDetailUseCase } from '../../../application/use-cases/admin/get-admin-pm-detail.use-case'
 import { UpdateAdminUserUseCase } from '../../../application/use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from '../../../application/use-cases/admin/update-admin-pm.use-case'
@@ -122,6 +123,7 @@ export class AdminController {
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
     private readonly searchUsersUseCase: SearchUsersUseCase,
     private readonly getAdminUserDetailUseCase: GetAdminUserDetailUseCase,
+    private readonly getAdminRentHistoryRequestsUseCase: GetAdminRentHistoryRequestsUseCase,
     private readonly getAdminPmDetailUseCase: GetAdminPmDetailUseCase,
     private readonly updateAdminUserUseCase: UpdateAdminUserUseCase,
     private readonly updateAdminPmUseCase: UpdateAdminPmUseCase,
@@ -137,6 +139,11 @@ export class AdminController {
   @Get('users/search')
   async searchUsers(@Query('q') query: string) {
     return { data: await this.searchUsersUseCase.execute(query) }
+  }
+
+  @Get('rent-history-requests')
+  async getRentHistoryRequests() {
+    return { data: await this.getAdminRentHistoryRequestsUseCase.execute() }
   }
 
   @Get('users')

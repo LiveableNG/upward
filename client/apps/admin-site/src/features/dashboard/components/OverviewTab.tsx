@@ -22,6 +22,7 @@ import {
   Tablet,
   X,
   Clock,
+  Check,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
@@ -407,7 +408,7 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
   const isPositive = change !== undefined ? change >= 0 : true
   return (
     <div
-      className="card"
+      className={`card ${onClick ? 'table-row-hover' : ''}`}
       onClick={onClick}
       style={{
         display: 'flex',
@@ -418,7 +419,7 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
         position: 'relative',
         overflow: 'hidden',
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+        transition: 'all 0.15s ease',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -486,7 +487,6 @@ interface OverviewTabProps {
   invitedList: InvitedRecord[]
   onPreview: (item: any) => void
   token: string
-  onNavigateToRevenueUsers?: () => void
 }
 
 // Fake trend data seeded from metrics totals to give realistic sparklines
@@ -507,11 +507,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   invitedList,
   onPreview,
   token,
-  onNavigateToRevenueUsers,
 }) => {
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')
   const [searchQuery, setSearchQuery] = useState('')
-  const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'benefits' | 'rent_only'>('all')
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'benefits' | 'fee' | 'benefits_and_fee' | 'rent_only'>('all')
+  const [filterBenefits, setFilterBenefits] = useState(false)
+  const [filterFee, setFilterFee] = useState(false)
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
 
   const [gaStats, setGaStats] = useState<any>(null)
@@ -522,7 +523,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   // Reset selected users when switching filters or subviews
   useEffect(() => {
     setSelectedUserIds(new Set())
-  }, [subView, searchQuery, paymentTypeFilter])
+  }, [subView, searchQuery, paymentTypeFilter, filterBenefits, filterFee])
 
   const fetchGaStats = async () => {
     setLoadingGaStats(true)
@@ -543,6 +544,56 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   }, [token])
 
   // Compute paying users list from both SignedUp (self/waitlist) and Invited lists
+  const extractFees = (u: any) => {
+    let benefits = Number(u.benefitsPaid || 0)
+    let fee = Number(u.feePaid || 0)
+
+    const txs = u.transactions || u.rawRecord?.transactions || []
+    if (Array.isArray(txs) && txs.length > 0) {
+      txs.forEach((tx: any) => {
+        if (tx.status === 'SUCCESS' || tx.status === 'PAID') {
+          if (!u.feePaid && (tx.fee || tx.platformFee)) {
+            fee += Number(tx.fee || tx.platformFee || 0)
+          }
+          if (tx.lineItems && Array.isArray(tx.lineItems)) {
+            tx.lineItems.forEach((item: any) => {
+              const name = item.name || item.label || ''
+              const amt = Number(item.amountPaid || item.amount || item.totalAmount || 0)
+              const lower = name.toLowerCase().trim()
+
+              if (lower.includes('benefit') && !u.benefitsPaid) {
+                benefits += amt
+              } else if (
+                !lower.includes('service charge') &&
+                !lower.includes('maintenance') &&
+                !lower.includes('management') &&
+                !lower.includes('security') &&
+                !lower.includes('caution') &&
+                !lower.includes('legal') &&
+                !lower.includes('agency') &&
+                (
+                  lower === 'processing fee' ||
+                  lower === 'transaction fee' ||
+                  lower.includes('upward') ||
+                  lower.includes('processing fee') ||
+                  lower.includes('transaction fee') ||
+                  lower.includes('paystack') ||
+                  lower.includes('gateway fee')
+                )
+              ) {
+                if (!tx.fee && !tx.platformFee && !u.feePaid) {
+                  fee += amt
+                }
+              }
+            })
+          }
+        }
+      })
+    }
+
+    return { benefitsPaid: benefits, feePaid: fee }
+  }
+
   const payingUsers = useMemo(() => {
     const list: {
       id: string
@@ -551,6 +602,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       source: 'Waitlist Converted' | 'Self Signed Up' | 'Invited Tenant' | 'Guest Invited'
       totalPaid: number
       benefitsPaid: number
+      feePaid: number
       createdAt: string
       lastPaidAt: string | null
       transactions: any[]
@@ -561,13 +613,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     // 1. From Signed Up List (Self-registrations and Waitlist conversions)
     signedUpList.forEach((u) => {
       if (u.totalPaid > 0) {
+        const { benefitsPaid, feePaid } = extractFees(u)
         list.push({
           id: u.id,
           name: `${u.firstName} ${u.lastName}`.trim() || 'N/A',
           email: u.email,
           source: u.isWaitlist ? 'Waitlist Converted' : 'Self Signed Up',
           totalPaid: u.totalPaid,
-          benefitsPaid: u.benefitsPaid ?? 0,
+          benefitsPaid,
+          feePaid,
           createdAt: u.createdAt,
           lastPaidAt: u.lastPaidAt || null,
           transactions: u.transactions || [],
@@ -580,13 +634,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     // 2. From Invited List (Invited users who have paid, or Guest payments)
     invitedList.forEach((u) => {
       if (u.totalPaid > 0) {
+        const { benefitsPaid, feePaid } = extractFees(u)
         list.push({
           id: u.id,
           name: `${u.firstName} ${u.lastName}`.trim() || 'N/A',
           email: u.email,
           source: u.status === 'GUEST_PAID' ? 'Guest Invited' : 'Invited Tenant',
           totalPaid: u.totalPaid,
-          benefitsPaid: u.benefitsPaid ?? 0,
+          benefitsPaid,
+          feePaid,
           createdAt: u.createdAt,
           lastPaidAt: u.lastPaidAt || null,
           transactions: u.transactions || [],
@@ -603,27 +659,35 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     })
   }, [signedUpList, invitedList])
 
-  // Filter paying users based on search query and payment type filter
+  // Filter paying users based on search query, payment type filter, and tick buttons
   const filteredPayingUsers = useMemo(() => {
     let result = payingUsers
 
-    // Filter by payment type
-    if (paymentTypeFilter === 'benefits') {
+    const isBenefitsActive = filterBenefits || paymentTypeFilter === 'benefits' || paymentTypeFilter === 'benefits_and_fee'
+    const isFeeActive = filterFee || paymentTypeFilter === 'fee' || paymentTypeFilter === 'benefits_and_fee'
+
+    if (isBenefitsActive && isFeeActive) {
+      result = result.filter((u) => u.benefitsPaid > 0 && u.feePaid > 0)
+    } else if (isBenefitsActive) {
       result = result.filter((u) => u.benefitsPaid > 0)
+    } else if (isFeeActive) {
+      result = result.filter((u) => u.feePaid > 0)
     } else if (paymentTypeFilter === 'rent_only') {
-      result = result.filter((u) => u.benefitsPaid === 0)
+      result = result.filter((u) => u.benefitsPaid === 0 && u.feePaid === 0)
     }
 
-    // Filter by text search query
-    if (!searchQuery) return result
-    const q = searchQuery.toLowerCase()
-    return result.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        u.source.toLowerCase().includes(q)
-    )
-  }, [payingUsers, searchQuery, paymentTypeFilter])
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          u.source.toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [payingUsers, searchQuery, paymentTypeFilter, filterBenefits, filterFee])
 
   const totalPaidSum = useMemo(() => {
     return payingUsers.reduce((sum, u) => sum + u.totalPaid, 0)
@@ -849,7 +913,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 sparkData={revenueSpark}
                 accentColor="var(--success)"
                 icon={<CreditCard size={16} />}
-                tooltip={`Total gross value of all successful rent payments processed through the Upward platform.\nThis is the combined sum before deducting transaction fees and benefits.`}
+                onClick={() => setSubView('paying')}
+                tooltip={`Total gross value of all successful rent payments processed through the Upward platform.\nClick to view active paying tenants.`}
               />
               <HealthCard
                 label="Platform Revenue"
@@ -863,8 +928,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 }
                 accentColor="#10b981"
                 icon={<TrendingUp size={16} />}
-                onClick={onNavigateToRevenueUsers}
-                tooltip={`Total revenue earned by the platform (Click to view breakdown of contributing users).\nThis includes both transaction fees (from processing rent payments) and benefits fees (from optional Upward protection packages).`}
+                onClick={() => {
+                  setSubView('paying')
+                  setFilterBenefits(true)
+                  setFilterFee(true)
+                  setPaymentTypeFilter('benefits_and_fee')
+                }}
+                tooltip={`Total revenue earned by the platform.\nClick to view paying tenants filtered by Benefits & Tx Fees.`}
               />
               <HealthCard
                 label="Login Sessions (Timeframe)"
@@ -1612,6 +1682,83 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     }}
                   />
                 </div>
+                {/* Interactive Tick / Checkbox Toggle Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFilterBenefits((prev) => !prev)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: filterBenefits ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      backgroundColor: filterBenefits ? 'var(--accent-faint)' : 'var(--bg)',
+                      color: filterBenefits ? 'var(--accent)' : 'var(--text-muted)',
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '3px',
+                        border: filterBenefits ? 'none' : '1px solid var(--border)',
+                        backgroundColor: filterBenefits ? 'var(--accent)' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                      }}
+                    >
+                      {filterBenefits && <Check size={10} strokeWidth={3} />}
+                    </div>
+                    <span>Has Benefits</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFilterFee((prev) => !prev)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: filterFee ? '1px solid #10b981' : '1px solid var(--border)',
+                      backgroundColor: filterFee ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg)',
+                      color: filterFee ? '#10b981' : 'var(--text-muted)',
+                      transition: 'all 0.15s ease',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '3px',
+                        border: filterFee ? 'none' : '1px solid var(--border)',
+                        backgroundColor: filterFee ? '#10b981' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                      }}
+                    >
+                      {filterFee && <Check size={10} strokeWidth={3} />}
+                    </div>
+                    <span>Has Tx Fee</span>
+                  </button>
+                </div>
+
                 <select
                   value={paymentTypeFilter}
                   onChange={(e) => setPaymentTypeFilter(e.target.value as any)}
@@ -1627,7 +1774,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                   }}
                 >
                   <option value="all">All Paying Users</option>
-                  <option value="benefits">Paid Benefits Fee</option>
+                  <option value="benefits">Has Benefits Fee</option>
+                  <option value="fee">Has Tx Fee</option>
+                  <option value="benefits_and_fee">Has Both (Benefits + Tx Fee)</option>
                   <option value="rent_only">Paid Rent Only</option>
                 </select>
               </div>
@@ -1729,6 +1878,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Tenant Name</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Email Address</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Type</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Tx Fee</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Benefits Paid</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Paid</th>
                       <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Last Paid</th>
@@ -1796,6 +1946,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                               {u.source}
                             </span>
                           </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: u.feePaid > 0 ? '#10b981' : 'var(--text-muted)', textAlign: 'right' }}>
+                            {u.feePaid > 0 ? `₦${u.feePaid.toLocaleString()}` : '—'}
+                          </td>
                           <td style={{ padding: '12px 16px', fontWeight: 600, color: u.benefitsPaid > 0 ? 'var(--success)' : 'var(--text-muted)', textAlign: 'right' }}>
                             {u.benefitsPaid > 0 ? `₦${u.benefitsPaid.toLocaleString()}` : '—'}
                           </td>
@@ -1807,7 +1960,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
                           No paying users match the search filter.
                         </td>
                       </tr>

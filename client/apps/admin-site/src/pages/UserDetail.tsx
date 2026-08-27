@@ -12,6 +12,9 @@ import {
   Edit2,
   ShieldAlert,
   User,
+  FileText,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -36,7 +39,45 @@ interface UserDetailData {
     maxScore: number
     band: string
     color: string
+    metrics?: {
+      ptPercentage: number
+      longestStreak: number
+      currentStreak: number
+      totalCycles: number
+      historyYears: number
+      discipline: number
+      savingsBonus: number
+      avgDaysLeadTime: number
+    }
+    cycles?: any[]
   }
+  credibilityRequests?: Array<{
+    id: number
+    uuid: string
+    propertyUuid: string
+    propertyAddress: string
+    pmDetails: {
+      companyName?: string | null
+      managerName?: string | null
+      email?: string | null
+      phone?: string | null
+    }
+    status: string
+    sentToPmAt: string
+    fulfilledAt?: string | null
+    yearsOfHistory: number
+    submittedRecordsCount: number
+    submittedRecords: Array<{
+      id: number
+      uuid: string
+      amountOwed: number
+      amountPaid: number
+      dueDate: string
+      paidAt?: string | null
+      status: string
+      source: string
+    }>
+  }>
   savingsWalletEnabled?: boolean
   isFromInvite: boolean
   isFromWaitlist: boolean
@@ -56,6 +97,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
   const isDeveloper = auth?.user?.role === 'DEVELOPER'
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserDetailData | null>(null)
+  const [expandedReqId, setExpandedReqId] = useState<number | null>(null)
 
   // Notification Form State
   const [notifTitle, setNotifTitle] = useState('')
@@ -281,6 +323,45 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             </p>
           </div>
         </div>
+
+        {/* Header Score Badge */}
+        {user.upwardScore && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: 'var(--surface)',
+              border: '1px solid var(--border)',
+              padding: '8px 14px',
+              borderRadius: '12px',
+              boxShadow: 'var(--shadow-xs)',
+            }}
+          >
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                Credibility Score
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', justifyContent: 'flex-end', marginTop: '1px' }}>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>{user.upwardScore.score}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {user.upwardScore.maxScore}</span>
+              </div>
+            </div>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 10px',
+                borderRadius: '10px',
+                backgroundColor: `${user.upwardScore.color}15`,
+                color: user.upwardScore.color,
+                border: `1px solid ${user.upwardScore.color}30`,
+              }}
+            >
+              {user.upwardScore.band}
+            </span>
+          </div>
+        )}
       </div>
 
       <div
@@ -302,60 +383,6 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             alignSelf: 'start',
           }}
         >
-          {/* Upward Score Widget */}
-          {user.upwardScore && (
-            <div
-              className="card"
-              style={{
-                padding: '20px',
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                color: '#fff',
-                borderRadius: '16px',
-                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#94a3b8' }}>
-                  Upward Rent Credibility Score
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    backgroundColor: `${user.upwardScore.color}22`,
-                    color: user.upwardScore.color,
-                    border: `1px solid ${user.upwardScore.color}44`,
-                  }}
-                >
-                  {user.upwardScore.band}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span style={{ fontSize: '38px', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
-                  {user.upwardScore.score}
-                </span>
-                <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>
-                  / {user.upwardScore.maxScore}
-                </span>
-              </div>
-
-              <div style={{ width: '100%', height: '6px', borderRadius: '4px', backgroundColor: 'rgba(255,255,255,0.1)', marginTop: '12px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${Math.min(100, Math.max(0, ((user.upwardScore.score - 300) / 600) * 100))}%`,
-                    height: '100%',
-                    backgroundColor: user.upwardScore.color,
-                    borderRadius: '4px',
-                    transition: 'width 0.5s ease',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
           {/* Identity Card */}
           <div className="card" style={{ padding: '24px', textAlign: 'center' }}>
             <div
@@ -393,6 +420,58 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             >
               {user.type === 'TENANT' ? 'Onboarded Tenant' : 'Shadow / Guest'}
             </span>
+
+            {/* Clean Score Card inside Identity block */}
+            {user.upwardScore && (
+              <div
+                style={{
+                  marginTop: '20px',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  backgroundColor: 'var(--surface-hover)',
+                  border: '1px solid var(--border)',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Credibility Score
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '2px 7px',
+                      borderRadius: '8px',
+                      backgroundColor: `${user.upwardScore.color}15`,
+                      color: user.upwardScore.color,
+                      border: `1px solid ${user.upwardScore.color}30`,
+                    }}
+                  >
+                    {user.upwardScore.band}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                    {user.upwardScore.score}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    / {user.upwardScore.maxScore}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: '5px', borderRadius: '4px', backgroundColor: 'var(--border)', marginTop: '8px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${Math.min(100, Math.max(0, ((user.upwardScore.score - 300) / 600) * 100))}%`,
+                      height: '100%',
+                      backgroundColor: user.upwardScore.color,
+                      borderRadius: '4px',
+                      transition: 'width 0.5s ease',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Profile Contact info list */}
             <div
@@ -655,6 +734,271 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
               </form>
             </div>
           )}
+
+          {/* Rent History Requests & Credibility Impact */}
+          <div className="card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <FileText size={16} style={{ color: 'var(--accent)' }} /> Rent History Requests &amp; Score Impact
+              </h4>
+              {user.upwardScore?.metrics && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: 'var(--success)',
+                  }}
+                >
+                  {user.upwardScore.metrics.historyYears} Yrs History Included
+                </span>
+              )}
+            </div>
+
+            {/* Rent Score Breakdown Metrics Grid */}
+            {user.upwardScore?.metrics && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '10px',
+                  marginBottom: '20px',
+                  padding: '12px',
+                  backgroundColor: 'var(--surface-hover)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    History Length
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px' }}>
+                    {user.upwardScore.metrics.historyYears} yrs
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    On-Time Rate
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px', color: 'var(--success)' }}>
+                    {user.upwardScore.metrics.ptPercentage.toFixed(0)}%
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Longest Streak
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px' }}>
+                    {user.upwardScore.metrics.longestStreak} cycles
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Discipline
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '2px' }}>
+                    {user.upwardScore.metrics.discipline.toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* List of Requests */}
+            {user.credibilityRequests && user.credibilityRequests.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {user.credibilityRequests.map((req) => {
+                  const isExpanded = expandedReqId === req.id
+                  return (
+                    <div
+                      key={req.id}
+                      style={{
+                        padding: '16px',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-xs)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
+                              {req.pmDetails.companyName || req.pmDetails.managerName || 'Property Manager / Landlord'}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                textTransform: 'uppercase',
+                                backgroundColor:
+                                  req.status === 'COMPLETED'
+                                    ? 'var(--success-faint)'
+                                    : req.status === 'REJECTED'
+                                    ? 'var(--danger-faint)'
+                                    : 'var(--warning-faint)',
+                                color:
+                                  req.status === 'COMPLETED'
+                                    ? 'var(--success)'
+                                    : req.status === 'REJECTED'
+                                    ? 'var(--danger)'
+                                    : 'var(--warning)',
+                              }}
+                            >
+                              {req.status === 'COMPLETED' ? 'Fulfilled' : req.status}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                            Property: <strong>{req.propertyAddress}</strong>
+                          </div>
+                          {req.pmDetails.email && (
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              PM Email: {req.pmDetails.email} {req.pmDetails.phone && `• Phone: ${req.pmDetails.phone}`}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              color: req.status === 'COMPLETED' ? 'var(--success)' : 'var(--text-muted)',
+                              display: 'block',
+                            }}
+                          >
+                            {req.yearsOfHistory} Yrs Received
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                            {req.submittedRecordsCount} records
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Timestamps */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '16px',
+                          marginTop: '12px',
+                          paddingTop: '10px',
+                          borderTop: '1px dashed var(--border)',
+                          fontSize: '11px',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <div>
+                          Sent to PM:{' '}
+                          <strong style={{ color: 'var(--text)', fontWeight: 600 }}>
+                            {new Date(req.sentToPmAt).toLocaleString()}
+                          </strong>
+                        </div>
+                        <div>
+                          Fulfilled:{' '}
+                          <strong style={{ color: req.fulfilledAt ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
+                            {req.fulfilledAt ? new Date(req.fulfilledAt).toLocaleString() : 'Pending Response'}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {/* Submitted Records Expandable */}
+                      {req.submittedRecords && req.submittedRecords.length > 0 && (
+                        <div style={{ marginTop: '10px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReqId(isExpanded ? null : req.id)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--accent)',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: 0,
+                            }}
+                          >
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            {isExpanded ? 'Hide Submitted Rent Records' : `View ${req.submittedRecords.length} Submitted Rent Records`}
+                          </button>
+
+                          {isExpanded && (
+                            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {req.submittedRecords.map((cycle) => (
+                                <div
+                                  key={cycle.id}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    fontSize: '12px',
+                                    padding: '8px 12px',
+                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--surface-hover)',
+                                    border: '1px solid var(--border)',
+                                  }}
+                                >
+                                  <div>
+                                    <span style={{ fontWeight: 600 }}>₦{cycle.amountOwed.toLocaleString()}</span>
+                                    <span style={{ color: 'var(--text-muted)', marginLeft: '8px' }}>
+                                      Due: {new Date(cycle.dueDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {cycle.paidAt && (
+                                      <span style={{ color: 'var(--text-secondary)' }}>
+                                        Paid: {new Date(cycle.paidAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                    <span
+                                      style={{
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor:
+                                          cycle.status.includes('ON_TIME') || cycle.status === 'PAID'
+                                            ? 'var(--success-faint)'
+                                            : 'var(--warning-faint)',
+                                        color:
+                                          cycle.status.includes('ON_TIME') || cycle.status === 'PAID'
+                                            ? 'var(--success)'
+                                            : 'var(--warning)',
+                                      }}
+                                    >
+                                      {cycle.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+                No rent history requests have been initiated by this tenant yet.
+              </p>
+            )}
+          </div>
 
           {/* Properties section */}
           <div className="card" style={{ padding: '24px' }}>

@@ -33,9 +33,27 @@ export class GetSignedUpMetricsUseCase {
             if (tx.lineItems && Array.isArray(tx.lineItems)) {
               tx.lineItems.forEach((item: any) => {
                 const name = item.name || item.label || ''
-                if (name === 'Upward Benefits' || name.toLowerCase().includes('benefit')) {
+                const lower = name.toLowerCase().trim()
+                if (lower.includes('benefit')) {
                   benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
-                } else if (name.toLowerCase().includes('fee') || name.toLowerCase().includes('processing')) {
+                } else if (
+                  !lower.includes('service charge') &&
+                  !lower.includes('maintenance') &&
+                  !lower.includes('management') &&
+                  !lower.includes('security') &&
+                  !lower.includes('caution') &&
+                  !lower.includes('legal') &&
+                  !lower.includes('agency') &&
+                  (
+                    lower === 'processing fee' ||
+                    lower === 'transaction fee' ||
+                    lower.includes('upward') ||
+                    lower.includes('processing fee') ||
+                    lower.includes('transaction fee') ||
+                    lower.includes('paystack') ||
+                    lower.includes('gateway fee')
+                  )
+                ) {
                   if (!tx.fee && !tx.platformFee) {
                     feePaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
                   }
