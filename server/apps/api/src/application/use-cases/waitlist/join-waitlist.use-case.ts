@@ -27,8 +27,8 @@ export class JoinWaitlistUseCase {
   ) {}
 
   async execute(dto: JoinWaitlistDto) {
-    if (dto.phone && !/^\+234\d{10}$/.test(dto.phone)) {
-      throw new Error('Phone number must be in format +2348000000000');
+    if (dto.phone && !/^\+?\d{7,15}$/.test(dto.phone.replace(/[\s\-\(\)]/g, ''))) {
+      throw new Error('Phone number must be a valid international phone number');
     }
     let entry = await this.waitlistRepo.findByEmail(dto.email)
     const alreadyExists = !!entry

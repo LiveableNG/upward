@@ -41,22 +41,28 @@ export function PhoneSetupScreen() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const trimmed = phone.trim()
-      if (!PHONE_REGEX.test(trimmed)) {
-        throw new Error('Enter a valid phone number in +234XXXXXXXXXX format.')
+      let cleaned = phone.trim().replace(/[\s\-\(\)]/g, '')
+      if (cleaned.startsWith('0') && cleaned.length === 11) {
+        cleaned = '+234' + cleaned.slice(1)
+      } else if (cleaned.length >= 7 && !cleaned.startsWith('+')) {
+        cleaned = '+' + cleaned
+      }
+
+      if (!PHONE_REGEX.test(cleaned)) {
+        throw new Error('Enter a valid phone number in international format (e.g. +2348030000000).')
       }
       if (showDobField && !dateOfBirth) {
         throw new Error('Please enter your date of birth.')
       }
 
-      const phoneChanged = !user?.phone || user.phone !== trimmed
+      const phoneChanged = !user?.phone || user.phone !== cleaned
       const dobToSave = user?.dateOfBirth || dateOfBirth
       const dobChanged = showDobField && (!user?.dateOfBirth || user.dateOfBirth !== dateOfBirth)
 
       if (phoneChanged && !showDobField) {
-        await submitPhone(trimmed)
+        await submitPhone(cleaned)
       } else if (phoneChanged || dobChanged) {
-        await submitContactDetails(trimmed, dobToSave)
+        await submitContactDetails(cleaned, dobToSave)
       }
     },
     onSuccess: async () => {
@@ -77,8 +83,15 @@ export function PhoneSetupScreen() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!PHONE_REGEX.test(phone.trim())) {
-      toast.error('Enter a valid phone number in +234XXXXXXXXXX format.', 'Invalid Phone')
+    let cleaned = phone.trim().replace(/[\s\-\(\)]/g, '')
+    if (cleaned.startsWith('0') && cleaned.length === 11) {
+      cleaned = '+234' + cleaned.slice(1)
+    } else if (cleaned.length >= 7 && !cleaned.startsWith('+')) {
+      cleaned = '+' + cleaned
+    }
+
+    if (!PHONE_REGEX.test(cleaned)) {
+      toast.error('Enter a valid phone number in international format (e.g. +2348030000000).', 'Invalid Phone')
       return
     }
     if (showDobField && !dateOfBirth) {
