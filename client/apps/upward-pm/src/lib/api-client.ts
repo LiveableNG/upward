@@ -1,9 +1,10 @@
 import { getAccessToken, setAccessToken } from './auth-token'
 import { Capacitor } from '@capacitor/core'
 
-const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
-  ? '/api/v1' 
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1')
+const API_BASE =
+  typeof window !== 'undefined' && !Capacitor.isNativePlatform()
+    ? '/api/v1'
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
@@ -21,11 +22,11 @@ async function runRefresh(isPortal: boolean): Promise<string | null> {
       credentials: 'include',
       signal: controller.signal,
     })
-    
+
     clearTimeout(timeoutId)
-    
+
     if (!response.ok) throw new Error('Refresh failed')
-    
+
     const data = await response.json()
     if (data.accessToken) {
       setAccessToken(data.accessToken)
@@ -42,17 +43,17 @@ async function runRefresh(isPortal: boolean): Promise<string | null> {
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  let finalPath = path;
+  let finalPath = path
 
   // Path translation for Landlord Portal
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')) {
     if (path.startsWith('/pm/')) {
-      finalPath = path.replace('/pm/', '/landlords/management/');
+      finalPath = path.replace('/pm/', '/landlords/management/')
     }
   }
 
   const url = finalPath.startsWith('http') ? finalPath : `${API_BASE}${finalPath}`
-  
+
   const makeRequest = async (token: string | null): Promise<T> => {
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {}),
@@ -73,7 +74,8 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     const controller = new AbortController()
-    const timeoutMs = options.body instanceof FormData ? 120000 : 15000
+    const timeoutMs =
+      options.body instanceof FormData || path.includes('/ai-document/') ? 120000 : 15000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     const fetchOptions: RequestInit = {
@@ -86,17 +88,18 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     const res = await fetch(url, fetchOptions)
     clearTimeout(timeoutId)
-    
+
     const isPublicAuthRoute = path.includes('/auth/') && !path.includes('/auth/me')
 
     if (res.status === 401 && !isPublicAuthRoute) {
       if (!isRefreshing) {
         isRefreshing = true
-        const isPortal = path.startsWith('/landlords') || 
-                         (typeof window !== 'undefined' && window.location.pathname.startsWith('/portal'))
+        const isPortal =
+          path.startsWith('/landlords') ||
+          (typeof window !== 'undefined' && window.location.pathname.startsWith('/portal'))
         refreshPromise = runRefresh(isPortal)
       }
-      
+
       const newToken = await refreshPromise
       if (newToken) {
         return makeRequest(newToken)
@@ -108,17 +111,20 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
             sessionStorage.removeItem('upward_session_active')
             const isPortal = window.location.pathname.startsWith('/portal')
             const loginPath = isPortal ? '/portal/login' : '/pm-login'
-            const isPublicPage = window.location.pathname === '/' ||
-                                 window.location.pathname === '/welcome' ||
-                                 window.location.pathname === '/login' || 
-                                 window.location.pathname === '/signup' ||
-                                 window.location.pathname === '/pm-login' || 
-                                 window.location.pathname === '/pm-signup' ||
-                                 window.location.pathname === '/forgot-password' ||
-                                 window.location.pathname === '/pm-forgot-password' ||
-                                 window.location.pathname.startsWith('/invite') ||
-                                 window.location.pathname.startsWith('/reset-password') ||
-                                 (isPortal && (window.location.pathname === '/portal/login' || window.location.pathname === '/portal/signup'))
+            const isPublicPage =
+              window.location.pathname === '/' ||
+              window.location.pathname === '/welcome' ||
+              window.location.pathname === '/login' ||
+              window.location.pathname === '/signup' ||
+              window.location.pathname === '/pm-login' ||
+              window.location.pathname === '/pm-signup' ||
+              window.location.pathname === '/forgot-password' ||
+              window.location.pathname === '/pm-forgot-password' ||
+              window.location.pathname.startsWith('/invite') ||
+              window.location.pathname.startsWith('/reset-password') ||
+              (isPortal &&
+                (window.location.pathname === '/portal/login' ||
+                  window.location.pathname === '/portal/signup'))
 
             if (!isPublicPage) {
               window.location.href = `${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`
@@ -132,7 +138,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ message: 'An error occurred' }))
-      
+
       if (res.status === 403 && errorData.message === 'REVOKED_ACCESS') {
         if (typeof window !== 'undefined') {
           window.location.href = '/dashboard'

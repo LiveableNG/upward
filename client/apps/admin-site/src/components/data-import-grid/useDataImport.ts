@@ -1,11 +1,22 @@
 import { useState, useCallback, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import type { ColumnMapping, SplitConfig, ColumnDef, ImportMode } from './types'
-import { suggestMapping, formatPhoneNumberByCountry, validateCell, parseDateString, calculateRentEndDateAndWarning } from './utils'
+import {
+  suggestMapping,
+  formatPhoneNumberByCountry,
+  validateCell,
+  parseDateString,
+  calculateRentEndDateAndWarning,
+} from './utils'
 import { showToast } from '@upward/client-core'
+import { apiService } from '../../services/api.service'
 
-export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties: any[], targetPropertyUuid: string) => {
-
+export const useDataImport = (
+  columns: ColumnDef[],
+  mode: ImportMode,
+  properties: any[],
+  targetPropertyUuid: string,
+) => {
   // Overlay states
   const [isOverlayOpen, setIsOverlayOpen] = useState(false)
   const [phase, setPhase] = useState<'mapping' | 'preview'>('mapping')
@@ -14,15 +25,18 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   const [userColumns, setUserColumns] = useState<string[]>([])
   const [mappings, setMappings] = useState<{ [sheet: string]: ColumnMapping[] }>({})
   const [splitConfigs, setSplitConfigs] = useState<{ [sheet: string]: SplitConfig[] }>({})
-  
+
   // Data table states
   const [previewRows, setPreviewRows] = useState<any[]>([])
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [amberWarnings, setAmberWarnings] = useState<Record<string, string>>({})
-  const [editingCell, setEditingCell] = useState<{ rowId: string, field: string } | null>(null)
-  
+  const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null)
+  const [isAiParsing, setIsAiParsing] = useState(false)
+
   // Template states
-  const [savedTemplates, setSavedTemplates] = useState<{id: string, name: string, data: any}[]>([])
+  const [savedTemplates, setSavedTemplates] = useState<{ id: string; name: string; data: any }[]>(
+    [],
+  )
 
   useEffect(() => {
     try {
@@ -34,11 +48,11 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   const saveTemplate = () => {
     const name = prompt('Enter a name for this mapping template:')
     if (!name) return
-    
+
     const newTemplate = {
       id: Date.now().toString(),
       name,
-      data: { mappings, splitConfigs }
+      data: { mappings, splitConfigs },
     }
     const updated = [...savedTemplates, newTemplate]
     setSavedTemplates(updated)
@@ -47,7 +61,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   }
 
   const applyTemplate = (templateId: string) => {
-    const template = savedTemplates.find(t => t.id === templateId)
+    const template = savedTemplates.find((t) => t.id === templateId)
     if (template) {
       setMappings(template.data.mappings)
       setSplitConfigs(template.data.splitConfigs)
@@ -55,7 +69,10 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     }
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fileInputRef: React.RefObject<HTMLInputElement | null>) => {
+  const handleFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fileInputRef: React.RefObject<HTMLInputElement | null>,
+  ) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -65,7 +82,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
         const newWorkbook = XLSX.read(data, { type: 'array' })
 
-        const validSheets = newWorkbook.SheetNames.filter(sheetName => {
+        const validSheets = newWorkbook.SheetNames.filter((sheetName) => {
           const worksheet = newWorkbook.Sheets[sheetName]
           if (!worksheet) return false
           const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
@@ -78,14 +95,16 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         }
 
         setWorkbook(newWorkbook)
-        
+
         const initialMappings: { [sheet: string]: ColumnMapping[] } = {}
-        validSheets.forEach(sheetName => {
+        validSheets.forEach((sheetName) => {
           const worksheet = newWorkbook.Sheets[sheetName]
           const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' })
-          const headers = (sheetData[0] as any[]).map((h: any) => String(h || '').trim()).filter(h => h)
-          
-          initialMappings[sheetName] = headers.map(column => {
+          const headers = (sheetData[0] as any[])
+            .map((h: any) => String(h || '').trim())
+            .filter((h) => h)
+
+          initialMappings[sheetName] = headers.map((column) => {
             const suggestion = suggestMapping(column, columns)
             return {
               userColumn: column,
@@ -98,10 +117,12 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         setMappings(initialMappings)
         setSplitConfigs({})
         setActiveSheet(validSheets[0])
-        
+
         const firstSheetWs = newWorkbook.Sheets[validSheets[0]]
         const firstSheetData = XLSX.utils.sheet_to_json(firstSheetWs, { header: 1, defval: '' })
-        const firstSheetHeaders = (firstSheetData[0] as any[]).map((h: any) => String(h || '').trim()).filter(h => h)
+        const firstSheetHeaders = (firstSheetData[0] as any[])
+          .map((h: any) => String(h || '').trim())
+          .filter((h) => h)
         setUserColumns(firstSheetHeaders)
 
         setIsOverlayOpen(true)
@@ -110,19 +131,19 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         const sheetMappings = initialMappings[validSheets[0]] || []
         const mappedFieldKeys = new Set(
           sheetMappings
-            .filter(m => m.systemField && m.entityType !== 'skip')
-            .map(m => m.systemField as string)
+            .filter((m) => m.systemField && m.entityType !== 'skip')
+            .map((m) => m.systemField as string),
         )
-        const missingRequiredKeys = columns.filter(c => c.required && !mappedFieldKeys.has(c.key))
+        const missingRequiredKeys = columns.filter((c) => c.required && !mappedFieldKeys.has(c.key))
 
         // Check for duplicate field mappings
         const fieldCounts: Record<string, number> = {}
-        sheetMappings.forEach(m => {
+        sheetMappings.forEach((m) => {
           if (m.systemField && m.entityType !== 'skip') {
             fieldCounts[m.systemField] = (fieldCounts[m.systemField] || 0) + 1
           }
         })
-        const hasDuplicates = Object.values(fieldCounts).some(count => count > 1)
+        const hasDuplicates = Object.values(fieldCounts).some((count) => count > 1)
 
         if (missingRequiredKeys.length === 0 && !hasDuplicates) {
           // Auto-advance to preview data grid stage
@@ -131,12 +152,12 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
             const rawRows = firstSheetData.slice(1) as any[][]
 
             rawRows.forEach((row, index) => {
-              if (!row || row.every(cell => !cell || String(cell).trim() === '')) return
+              if (!row || row.every((cell) => !cell || String(cell).trim() === '')) return
 
               const mappedRow: any = { id: `row-${Date.now()}-${index}` }
-              columns.forEach(col => mappedRow[col.key] = col.type === 'number' ? '' : '')
+              columns.forEach((col) => (mappedRow[col.key] = col.type === 'number' ? '' : ''))
 
-              sheetMappings.forEach(mapping => {
+              sheetMappings.forEach((mapping) => {
                 if (mapping.systemField && mapping.entityType !== 'skip') {
                   const colIndex = firstSheetHeaders.indexOf(mapping.userColumn)
                   if (colIndex !== -1 && row[colIndex] !== undefined) {
@@ -145,7 +166,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
                 }
               })
 
-              columns.forEach(col => {
+              columns.forEach((col) => {
                 if (col.type === 'number' && mappedRow[col.key]) {
                   const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
                   mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
@@ -154,18 +175,41 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
                 }
               })
 
-              const hasTenantName = !!(String(mappedRow.tenantFirstName || '').trim() || String(mappedRow.tenantLastName || '').trim())
-              const hasCommercialName = !!(String(mappedRow.tenantCommercialName || '').trim())
-              if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || String(mappedRow.tenantEmail || '').trim() === '')) {
+              const hasTenantName = !!(
+                String(mappedRow.tenantFirstName || '').trim() ||
+                String(mappedRow.tenantLastName || '').trim()
+              )
+              const hasCommercialName = !!String(mappedRow.tenantCommercialName || '').trim()
+              if (
+                (hasTenantName || hasCommercialName) &&
+                (!mappedRow.tenantEmail || String(mappedRow.tenantEmail || '').trim() === '')
+              ) {
                 const cleanName = hasCommercialName
-                  ? String(mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-                  : `${String(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${String(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
+                  ? String(mappedRow.tenantCommercialName || '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]/g, '')
+                  : `${String(mappedRow.tenantFirstName || '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]/g, '')}-${String(mappedRow.tenantLastName || '')
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]/g, '')}`
                 mappedRow.tenantEmail = `guest-${cleanName}-${Math.random().toString(36).substring(2, 8)}@upward.com`
               }
 
-              const rowCountry = mode === 'full' ? (mappedRow.propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
-              if (mappedRow.tenantPhone) mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
-              if (mappedRow.landlordPhone) mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
+              const rowCountry =
+                mode === 'full'
+                  ? mappedRow.propertyCountry || 'Nigeria'
+                  : properties.find((p) => p.uuid === targetPropertyUuid)?.country || 'Nigeria'
+              if (mappedRow.tenantPhone)
+                mappedRow.tenantPhone = formatPhoneNumberByCountry(
+                  mappedRow.tenantPhone,
+                  rowCountry,
+                )
+              if (mappedRow.landlordPhone)
+                mappedRow.landlordPhone = formatPhoneNumberByCountry(
+                  mappedRow.landlordPhone,
+                  rowCountry,
+                )
 
               newRows.push(mappedRow)
             })
@@ -173,7 +217,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
             const newErrors: Record<string, string> = {}
             const newWarnings: Record<string, string> = {}
 
-            newRows.forEach(row => {
+            newRows.forEach((row) => {
               const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
               const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
               const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
@@ -183,22 +227,36 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
               const leaseYearsVal = row.leaseYears
 
               if (startDateVal) {
-                const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
+                const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(
+                  startDateVal,
+                  rentTypeVal,
+                  leaseYearsVal,
+                )
                 row[dueDateField] = fixedEndDate
                 if (warningMessage) {
                   newWarnings[`${row.id}-${dueDateField}`] = warningMessage
                 }
               }
 
-              columns.forEach(col => {
-                validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, (val) => {
-                  if (typeof val === 'function') {
-                    const next = val(newErrors)
-                    Object.assign(newErrors, next)
-                  } else {
-                    Object.assign(newErrors, val)
-                  }
-                }, true)
+              columns.forEach((col) => {
+                validateCell(
+                  row.id,
+                  col.key,
+                  row[col.key],
+                  col,
+                  columns,
+                  row,
+                  newRows,
+                  (val) => {
+                    if (typeof val === 'function') {
+                      const next = val(newErrors)
+                      Object.assign(newErrors, next)
+                    } else {
+                      Object.assign(newErrors, val)
+                    }
+                  },
+                  true,
+                )
               })
             })
 
@@ -222,41 +280,58 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-
-  const updateMapping = (sheetName: string, userColumn: string, systemField: string | null, entityType: string | null) => {
-    setMappings(prev => {
+  const updateMapping = (
+    sheetName: string,
+    userColumn: string,
+    systemField: string | null,
+    entityType: string | null,
+  ) => {
+    setMappings((prev) => {
       const sheetMappings = prev[sheetName] || []
-      const updated = sheetMappings.map(m => m.userColumn === userColumn ? { ...m, systemField, entityType } : m)
+      const updated = sheetMappings.map((m) =>
+        m.userColumn === userColumn ? { ...m, systemField, entityType } : m,
+      )
       return { ...prev, [sheetName]: updated }
     })
   }
 
   const toggleSplit = (userColumn: string) => {
-    setSplitConfigs(prev => {
+    setSplitConfigs((prev) => {
       const currentSheetSplits = prev[activeSheet] || []
-      const isSplit = currentSheetSplits.some(s => s.userColumn === userColumn)
+      const isSplit = currentSheetSplits.some((s) => s.userColumn === userColumn)
 
       if (isSplit) {
-        return { ...prev, [activeSheet]: currentSheetSplits.filter(s => s.userColumn !== userColumn) }
+        return {
+          ...prev,
+          [activeSheet]: currentSheetSplits.filter((s) => s.userColumn !== userColumn),
+        }
       } else {
         return {
           ...prev,
           [activeSheet]: [
             ...currentSheetSplits,
-            { userColumn, delimiter: ' ', parts: [
-              { index: 0, systemField: null, entityType: null },
-              { index: 1, systemField: null, entityType: null }
-            ]}
-          ]
+            {
+              userColumn,
+              delimiter: ' ',
+              parts: [
+                { index: 0, systemField: null, entityType: null },
+                { index: 1, systemField: null, entityType: null },
+              ],
+            },
+          ],
         }
       }
     })
 
-    setMappings(prev => {
+    setMappings((prev) => {
       const sheetMappings = prev[activeSheet] || []
-      const isCurrentlySplit = (splitConfigs[activeSheet] || []).some(s => s.userColumn === userColumn)
+      const isCurrentlySplit = (splitConfigs[activeSheet] || []).some(
+        (s) => s.userColumn === userColumn,
+      )
       if (!isCurrentlySplit) {
-        const updated = sheetMappings.map(m => m.userColumn === userColumn ? { ...m, systemField: null, entityType: null } : m)
+        const updated = sheetMappings.map((m) =>
+          m.userColumn === userColumn ? { ...m, systemField: null, entityType: null } : m,
+        )
         return { ...prev, [activeSheet]: updated }
       }
       return prev
@@ -264,21 +339,33 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   }
 
   const updateSplitConfig = (userColumn: string, updates: Partial<SplitConfig>) => {
-    setSplitConfigs(prev => {
+    setSplitConfigs((prev) => {
       const currentSheetSplits = prev[activeSheet] || []
-      const updated = currentSheetSplits.map(s => s.userColumn === userColumn ? { ...s, ...updates } : s)
+      const updated = currentSheetSplits.map((s) =>
+        s.userColumn === userColumn ? { ...s, ...updates } : s,
+      )
       return { ...prev, [activeSheet]: updated }
     })
   }
 
-  const updateSplitPart = (userColumn: string, partIndex: number, field: string | null, entityType: string | null) => {
-    setSplitConfigs(prev => {
+  const updateSplitPart = (
+    userColumn: string,
+    partIndex: number,
+    field: string | null,
+    entityType: string | null,
+  ) => {
+    setSplitConfigs((prev) => {
       const currentSheetSplits = prev[activeSheet] || []
-      const updated = currentSheetSplits.map(s => {
+      const updated = currentSheetSplits.map((s) => {
         if (s.userColumn === userColumn) {
           const newParts = [...s.parts]
-          const partIndexInArray = newParts.findIndex(p => p.index === partIndex)
-          if (partIndexInArray >= 0) newParts[partIndexInArray] = { ...newParts[partIndexInArray], systemField: field, entityType }
+          const partIndexInArray = newParts.findIndex((p) => p.index === partIndex)
+          if (partIndexInArray >= 0)
+            newParts[partIndexInArray] = {
+              ...newParts[partIndexInArray],
+              systemField: field,
+              entityType,
+            }
           return { ...s, parts: newParts }
         }
         return s
@@ -288,12 +375,15 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   }
 
   const addSplitPart = (userColumn: string) => {
-    setSplitConfigs(prev => {
+    setSplitConfigs((prev) => {
       const currentSheetSplits = prev[activeSheet] || []
-      const updated = currentSheetSplits.map(s => {
+      const updated = currentSheetSplits.map((s) => {
         if (s.userColumn === userColumn) {
-          const newIndex = s.parts.length > 0 ? Math.max(...s.parts.map(p => p.index)) + 1 : 0
-          return { ...s, parts: [...s.parts, { index: newIndex, systemField: null, entityType: null }] }
+          const newIndex = s.parts.length > 0 ? Math.max(...s.parts.map((p) => p.index)) + 1 : 0
+          return {
+            ...s,
+            parts: [...s.parts, { index: newIndex, systemField: null, entityType: null }],
+          }
         }
         return s
       })
@@ -302,10 +392,11 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   }
 
   const removeSplitPart = (userColumn: string, partIndex: number) => {
-    setSplitConfigs(prev => {
+    setSplitConfigs((prev) => {
       const currentSheetSplits = prev[activeSheet] || []
-      const updated = currentSheetSplits.map(s => {
-        if (s.userColumn === userColumn) return { ...s, parts: s.parts.filter(p => p.index !== partIndex) }
+      const updated = currentSheetSplits.map((s) => {
+        if (s.userColumn === userColumn)
+          return { ...s, parts: s.parts.filter((p) => p.index !== partIndex) }
         return s
       })
       return { ...prev, [activeSheet]: updated }
@@ -313,12 +404,15 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   }
 
   const revalidateDuplicates = (rows: any[]) => {
-    const unitMap = new Map<string, number[]>() 
-    
+    const unitMap = new Map<string, number[]>()
+
     rows.forEach((row, idx) => {
-      const propertyKey = mode === 'full' ? (row.propertyName || '').trim().toLowerCase() : (properties.find(p => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
+      const propertyKey =
+        mode === 'full'
+          ? (row.propertyName || '').trim().toLowerCase()
+          : (properties.find((p) => p.uuid === targetPropertyUuid)?.name || '').trim().toLowerCase()
       const unitKey = (row.unitName || '').trim().toLowerCase()
-      
+
       if (unitKey) {
         const fullKey = `${propertyKey}|${unitKey}`
         if (!unitMap.has(fullKey)) unitMap.set(fullKey, [])
@@ -326,23 +420,28 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
       }
     })
 
-    setValidationErrors(prev => {
+    setValidationErrors((prev) => {
       const next = { ...prev }
-      Object.keys(next).forEach(key => {
-        if (key.endsWith('-unitName') && (next[key] === 'Duplicate unit' || next[key] === 'Unit already exists in system')) {
+      Object.keys(next).forEach((key) => {
+        if (
+          key.endsWith('-unitName') &&
+          (next[key] === 'Duplicate unit' || next[key] === 'Unit already exists in system')
+        ) {
           delete next[key]
         }
       })
 
       unitMap.forEach((indexes, fullKey) => {
         if (indexes.length > 1) {
-          indexes.forEach(idx => next[`${rows[idx].id}-unitName`] = 'Duplicate unit')
+          indexes.forEach((idx) => (next[`${rows[idx].id}-unitName`] = 'Duplicate unit'))
         } else {
           const idx = indexes[0]
           const row = rows[idx]
           const [propertyKey, unitKey] = fullKey.split('|')
-          const existingProp = properties.find(p => p.name.trim().toLowerCase() === propertyKey)
-          const unitExists = existingProp?.units?.some((u: any) => u.unitName.trim().toLowerCase() === unitKey)
+          const existingProp = properties.find((p) => p.name.trim().toLowerCase() === propertyKey)
+          const unitExists = existingProp?.units?.some(
+            (u: any) => u.unitName.trim().toLowerCase() === unitKey,
+          )
           if (unitExists) next[`${row.id}-unitName`] = 'Unit already exists in system'
         }
       })
@@ -364,13 +463,13 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     const sheetSplits = splitConfigs[sheetName] || []
 
     rows.forEach((row, index) => {
-      if (!row || row.every(cell => !cell || String(cell).trim() === '')) return
+      if (!row || row.every((cell) => !cell || String(cell).trim() === '')) return
 
       const mappedRow: any = { id: `row-${Date.now()}-${index}` }
 
-      columns.forEach(col => mappedRow[col.key] = col.type === 'number' ? '' : '')
+      columns.forEach((col) => (mappedRow[col.key] = col.type === 'number' ? '' : ''))
 
-      sheetMappings.forEach(mapping => {
+      sheetMappings.forEach((mapping) => {
         if (mapping.systemField && mapping.entityType !== 'skip') {
           const colIndex = headers.indexOf(mapping.userColumn)
           if (colIndex !== -1 && row[colIndex] !== undefined) {
@@ -379,13 +478,13 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         }
       })
 
-      sheetSplits.forEach(split => {
+      sheetSplits.forEach((split) => {
         const colIndex = headers.indexOf(split.userColumn)
         if (colIndex !== -1 && row[colIndex] !== undefined) {
           const val = String(row[colIndex]).trim()
           const parts = val.split(split.delimiter)
-          
-          split.parts.forEach(part => {
+
+          split.parts.forEach((part) => {
             if (part.systemField && part.entityType !== 'skip' && part.index < parts.length) {
               if (part.index === split.parts.length - 1 && parts.length > split.parts.length) {
                 mappedRow[part.systemField] = parts.slice(part.index).join(split.delimiter).trim()
@@ -397,7 +496,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         }
       })
 
-      columns.forEach(col => {
+      columns.forEach((col) => {
         if (col.type === 'number' && mappedRow[col.key]) {
           const numValue = parseFloat(String(mappedRow[col.key]).replace(/[^0-9.-]/g, ''))
           mappedRow[col.key] = isNaN(numValue) ? 0 : numValue
@@ -406,18 +505,35 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         }
       })
 
-      const hasTenantName = !!(String(mappedRow.tenantFirstName || '').trim() || String(mappedRow.tenantLastName || '').trim())
-      const hasCommercialName = !!(String(mappedRow.tenantCommercialName || '').trim())
-      if ((hasTenantName || hasCommercialName) && (!mappedRow.tenantEmail || String(mappedRow.tenantEmail || '').trim() === '')) {
+      const hasTenantName = !!(
+        String(mappedRow.tenantFirstName || '').trim() ||
+        String(mappedRow.tenantLastName || '').trim()
+      )
+      const hasCommercialName = !!String(mappedRow.tenantCommercialName || '').trim()
+      if (
+        (hasTenantName || hasCommercialName) &&
+        (!mappedRow.tenantEmail || String(mappedRow.tenantEmail || '').trim() === '')
+      ) {
         const cleanName = hasCommercialName
-          ? String(mappedRow.tenantCommercialName || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-          : `${String(mappedRow.tenantFirstName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}-${String(mappedRow.tenantLastName || '').toLowerCase().replace(/[^a-z0-9]/g, '')}`
+          ? String(mappedRow.tenantCommercialName || '')
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '')
+          : `${String(mappedRow.tenantFirstName || '')
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '')}-${String(mappedRow.tenantLastName || '')
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '')}`
         mappedRow.tenantEmail = `guest-${cleanName}-${Math.random().toString(36).substring(2, 8)}@upward.com`
       }
 
-      const rowCountry = mode === 'full' ? (mappedRow.propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
-      if (mappedRow.tenantPhone) mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
-      if (mappedRow.landlordPhone) mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
+      const rowCountry =
+        mode === 'full'
+          ? mappedRow.propertyCountry || 'Nigeria'
+          : properties.find((p) => p.uuid === targetPropertyUuid)?.country || 'Nigeria'
+      if (mappedRow.tenantPhone)
+        mappedRow.tenantPhone = formatPhoneNumberByCountry(mappedRow.tenantPhone, rowCountry)
+      if (mappedRow.landlordPhone)
+        mappedRow.landlordPhone = formatPhoneNumberByCountry(mappedRow.landlordPhone, rowCountry)
 
       newRows.push(mappedRow)
     })
@@ -425,7 +541,7 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     const newErrors: Record<string, string> = {}
     const newWarnings: Record<string, string> = {}
 
-    newRows.forEach(row => {
+    newRows.forEach((row) => {
       const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
       const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
       const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
@@ -435,22 +551,36 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
       const leaseYearsVal = row.leaseYears
 
       if (startDateVal) {
-        const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(startDateVal, rentTypeVal, leaseYearsVal)
+        const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(
+          startDateVal,
+          rentTypeVal,
+          leaseYearsVal,
+        )
         row[dueDateField] = fixedEndDate
         if (warningMessage) {
           newWarnings[`${row.id}-${dueDateField}`] = warningMessage
         }
       }
 
-      columns.forEach(col => {
-        validateCell(row.id, col.key, row[col.key], col, columns, row, newRows, (val) => {
-          if (typeof val === 'function') {
-            const next = val(newErrors)
-            Object.assign(newErrors, next)
-          } else {
-            Object.assign(newErrors, val)
-          }
-        }, true)
+      columns.forEach((col) => {
+        validateCell(
+          row.id,
+          col.key,
+          row[col.key],
+          col,
+          columns,
+          row,
+          newRows,
+          (val) => {
+            if (typeof val === 'function') {
+              const next = val(newErrors)
+              Object.assign(newErrors, next)
+            } else {
+              Object.assign(newErrors, val)
+            }
+          },
+          true,
+        )
       })
     })
 
@@ -463,16 +593,19 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
   }, [workbook, activeSheet, mappings, splitConfigs, columns, mode, properties, targetPropertyUuid])
 
   const updateRowField = (rowId: string, field: string, value: any) => {
-    const rowIndex = previewRows.findIndex(r => r.id === rowId)
+    const rowIndex = previewRows.findIndex((r) => r.id === rowId)
     if (rowIndex === -1) return
 
     const updated = [...previewRows]
     let formattedValue = value
-    
+
     if (field === 'tenantPhone' || field === 'landlordPhone') {
-      const rowCountry = mode === 'full' ? (updated[rowIndex].propertyCountry || 'Nigeria') : (properties.find(p => p.uuid === targetPropertyUuid)?.country || 'Nigeria')
+      const rowCountry =
+        mode === 'full'
+          ? updated[rowIndex].propertyCountry || 'Nigeria'
+          : properties.find((p) => p.uuid === targetPropertyUuid)?.country || 'Nigeria'
       formattedValue = formatPhoneNumberByCountry(value, rowCountry)
-    } else if (columns.find(c => c.key === field)?.type === 'date') {
+    } else if (columns.find((c) => c.key === field)?.type === 'date') {
       formattedValue = parseDateString(value)
     }
 
@@ -492,11 +625,11 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
         const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(
           startDateVal,
           rentTypeVal,
-          leaseYearsVal
+          leaseYearsVal,
         )
         row[dueDateField] = fixedEndDate
 
-        setAmberWarnings(prev => {
+        setAmberWarnings((prev) => {
           const next = { ...prev }
           const key = `${rowId}-${dueDateField}`
           if (warningMessage) {
@@ -510,16 +643,170 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     }
 
     setPreviewRows(updated)
-    validateCell(rowId, field, formattedValue, undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
+    validateCell(
+      rowId,
+      field,
+      formattedValue,
+      undefined,
+      columns,
+      updated[rowIndex],
+      updated,
+      setValidationErrors,
+      false,
+    )
     if (field === rentTypeField || field === 'leaseYears') {
-      validateCell(rowId, 'leaseYears', updated[rowIndex].leaseYears, undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
-      validateCell(rowId, rentTypeField, updated[rowIndex][rentTypeField], undefined, columns, updated[rowIndex], updated, setValidationErrors, false)
+      validateCell(
+        rowId,
+        'leaseYears',
+        updated[rowIndex].leaseYears,
+        undefined,
+        columns,
+        updated[rowIndex],
+        updated,
+        setValidationErrors,
+        false,
+      )
+      validateCell(
+        rowId,
+        rentTypeField,
+        updated[rowIndex][rentTypeField],
+        undefined,
+        columns,
+        updated[rowIndex],
+        updated,
+        setValidationErrors,
+        false,
+      )
     }
 
-    
     if (field === 'unitName' || field === 'propertyName') {
       revalidateDuplicates(updated)
     }
+  }
+
+  const handleAiFileUpload = async (file: File, token: string) => {
+    setIsAiParsing(true)
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const base64Data = (e.target?.result as string).split(',')[1]
+        const responseRows = (await apiService.post(
+          '/pm/ai-document/parse',
+          {
+            base64Data,
+            contentType: file.type || 'application/octet-stream',
+            fileName: file.name,
+            mode,
+            targetPropertyUuid,
+          },
+          token,
+        )) as any[]
+
+        const formattedRows = responseRows.map((r: any, idx: number) => ({
+          id: `row-ai-${Date.now()}-${idx}`,
+          ...r,
+        }))
+
+        const newErrors: Record<string, string> = {}
+        const newWarnings: Record<string, string> = {}
+
+        formattedRows.forEach((row) => {
+          const startDateField = mode === 'full' ? 'unitRentStartDate' : 'rentStartDate'
+          const rentTypeField = mode === 'full' ? 'unitRentType' : 'rentType'
+          const dueDateField = mode === 'full' ? 'unitRentDueDate' : 'rentDueDate'
+
+          const startDateVal = row[startDateField]
+          const endDateVal = row[dueDateField]
+          if (startDateVal && endDateVal && new Date(endDateVal) < new Date(startDateVal)) {
+            newErrors[`${row.id}-${dueDateField}`] = 'The end date is before the start date'
+          }
+          const rentTypeVal = row[rentTypeField] || 'Annually'
+          const leaseYearsVal = row.leaseYears
+
+          if (startDateVal && !endDateVal) {
+            const { fixedEndDate, warningMessage } = calculateRentEndDateAndWarning(
+              startDateVal,
+              rentTypeVal,
+              leaseYearsVal,
+            )
+            row[dueDateField] = fixedEndDate
+            if (warningMessage) {
+              newWarnings[`${row.id}-${dueDateField}`] = warningMessage
+            }
+          }
+
+          columns.forEach((col) => {
+            const err = validateCell(
+              row.id,
+              col.key,
+              row[col.key],
+              col,
+              columns,
+              row,
+              formattedRows,
+              () => {},
+              true,
+            )
+            if (err) {
+              newErrors[`${row.id}-${col.key}`] = err
+            }
+          })
+        })
+
+        setPreviewRows(formattedRows)
+        setValidationErrors(newErrors)
+        setAmberWarnings(newWarnings)
+
+        // Run duplicate detection
+        const unitMap = new Map<string, number[]>()
+        formattedRows.forEach((row, idx) => {
+          const propertyKey =
+            mode === 'full'
+              ? (row.propertyName || '').trim().toLowerCase()
+              : (properties.find((p) => p.uuid === targetPropertyUuid)?.name || '')
+                  .trim()
+                  .toLowerCase()
+          const unitKey = (row.unitName || '').trim().toLowerCase()
+
+          if (unitKey) {
+            const fullKey = `${propertyKey}|${unitKey}`
+            if (!unitMap.has(fullKey)) unitMap.set(fullKey, [])
+            unitMap.get(fullKey)!.push(idx)
+          }
+        })
+        unitMap.forEach((indexes, fullKey) => {
+          if (indexes.length > 1) {
+            indexes.forEach(
+              (idx) => (newErrors[`${formattedRows[idx].id}-unitName`] = 'Duplicate unit'),
+            )
+          } else {
+            const idx = indexes[0]
+            const row = formattedRows[idx]
+            const [propertyKey, unitKey] = fullKey.split('|')
+            const existingProp = properties.find((p) => p.name.trim().toLowerCase() === propertyKey)
+            const unitExists = existingProp?.units?.some(
+              (u: any) => u.unitName.trim().toLowerCase() === unitKey,
+            )
+            if (unitExists) newErrors[`${row.id}-unitName`] = 'Unit already exists in system'
+          }
+        })
+
+        setValidationErrors(newErrors)
+        setPhase('preview')
+        setIsOverlayOpen(true)
+        showToast('AI parsing complete! Review the extracted rows below.')
+      } catch (err: any) {
+        console.error(err)
+        showToast(err?.message || 'Failed to parse document via AI. Please try again.', true)
+      } finally {
+        setIsAiParsing(false)
+      }
+    }
+    reader.onerror = () => {
+      showToast('Failed to read file.', true)
+      setIsAiParsing(false)
+    }
+    reader.readAsDataURL(file)
   }
 
   const closeOverlay = () => {
@@ -530,24 +817,44 @@ export const useDataImport = (columns: ColumnDef[], mode: ImportMode, properties
     setAmberWarnings({})
   }
 
-
   return {
-    isOverlayOpen, setIsOverlayOpen,
-    phase, setPhase,
-    workbook, setWorkbook,
-    activeSheet, setActiveSheet,
-    userColumns, setUserColumns,
-    mappings, setMappings,
-    splitConfigs, setSplitConfigs,
-    previewRows, setPreviewRows,
-    validationErrors, setValidationErrors,
-    amberWarnings, setAmberWarnings,
-    editingCell, setEditingCell,
+    isOverlayOpen,
+    setIsOverlayOpen,
+    phase,
+    setPhase,
+    isAiParsing,
+    handleAiFileUpload,
+    workbook,
+    setWorkbook,
+    activeSheet,
+    setActiveSheet,
+    userColumns,
+    setUserColumns,
+    mappings,
+    setMappings,
+    splitConfigs,
+    setSplitConfigs,
+    previewRows,
+    setPreviewRows,
+    validationErrors,
+    setValidationErrors,
+    amberWarnings,
+    setAmberWarnings,
+    editingCell,
+    setEditingCell,
     savedTemplates,
-    saveTemplate, applyTemplate,
+    saveTemplate,
+    applyTemplate,
     handleFileUpload,
-    updateMapping, toggleSplit, updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
-    transformData, updateRowField, closeOverlay, revalidateDuplicates
+    updateMapping,
+    toggleSplit,
+    updateSplitConfig,
+    updateSplitPart,
+    addSplitPart,
+    removeSplitPart,
+    transformData,
+    updateRowField,
+    closeOverlay,
+    revalidateDuplicates,
   }
 }
-
