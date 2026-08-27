@@ -3,7 +3,7 @@ import * as nodemailer from 'nodemailer'
 import { ConfigService } from '@nestjs/config'
 import Mailgun from 'mailgun.js'
 import FormData from 'form-data'
-import { randomUUID } from 'crypto'
+import { randomUUID, createHmac } from 'crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { BugsnagService } from '../../../shared/infrastructure/common/bugsnag/bugsnag.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
@@ -262,7 +262,8 @@ export class EmailService {
           }
           const linkId = randomUUID()
           trackedLinks.push({ id: linkId, originalUrl: href })
-          const trackingUrl = `${apiUrl}/emails/${linkId}`
+          const token = this.createTrackingToken(href, linkId)
+          const trackingUrl = `${apiUrl}/l/${token}`
           return match.replace(`href="${href}"`, `href="${trackingUrl}"`).replace(`href='${href}'`, `href='${trackingUrl}'`)
         },
       )
@@ -742,5 +743,12 @@ export class EmailService {
 
     const info = await transporter.sendMail(mailOptions)
     return info.messageId || `oauth-${Date.now()}`
+  }
+
+  private createTrackingToken(originalUrl: string, linkId: string): string {
+    const secret = this.configService.get<string>('JWT_SECRET') || 'upward-email-tracking-secret'
+    const payload = Buffer.from(JSON.stringify({ u: originalUrl, l: linkId })).toString('base64url')
+    const sig = createHmac('sha256', secret).update(payload).digest('base64url').slice(0, 10)
+    return `${payload}.${sig}`
   }
 }

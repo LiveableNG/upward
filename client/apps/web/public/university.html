@@ -9,6 +9,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.jpeg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Facebook Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1079928187833425');
+fbq('track', 'PageView');
+fbq('track', 'ViewContent', {
+  content_name: 'Upward University Student Program',
+  content_category: 'Education / Real Estate'
+});
+</script>
+<noscript>
+<img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
+</noscript>
+<!-- End Facebook Pixel Code -->
 <style>
   :root{
     --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
@@ -1121,6 +1143,10 @@
     } catch (err) {
       console.error('Network error during submission:', err);
     } finally {
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'SubmitApplication', { content_name: 'Student Application' });
+        window.fbq('track', 'Lead', { content_name: 'Student Early Access Lead' });
+      }
       form.style.display = 'none';
       const successEl = document.getElementById('formSuccess');
       const firstName = payload.name.trim().split(' ')[0];
@@ -1170,7 +1196,7 @@
   }
   initCountdown();
 
-  // Contact Drawer Toggle
+  // Contact Drawer & Meta Pixel Tracking
   const contactUsBtn = document.getElementById('contact-us-btn');
   const contactDrawer = document.getElementById('contact-drawer');
   const contactDrawerOverlay = document.getElementById('contact-drawer-overlay');
@@ -1184,9 +1210,23 @@
       contactDrawerOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
   }
 
-  contactUsBtn?.addEventListener('click', () => setContactDrawerOpen(true));
+  contactUsBtn?.addEventListener('click', () => {
+    setContactDrawerOpen(true);
+    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+      window.fbq('track', 'Contact', { content_name: 'WhatsApp Contact Drawer' });
+    }
+  });
   contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
   contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
+
+  // Track InitiateCheckout on Early Access CTA buttons
+  document.querySelectorAll('a[href="#apply"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'InitiateCheckout', { content_name: 'Early Access CTA Click' });
+      }
+    });
+  });
 </script>
 
 </body>
