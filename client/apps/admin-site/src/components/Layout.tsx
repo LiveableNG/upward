@@ -14,6 +14,7 @@ interface LayoutProps {
 const pathMetadata: Record<string, { name: string; category?: string }> = {
   '/dashboard': { name: 'Dashboard' },
   '/emails': { name: 'Email Composer', category: 'Communications' },
+  '/email-tracking': { name: 'Email Click Tracking', category: 'Communications' },
   '/email-logs': { name: 'Communication Logs', category: 'Communications' },
   '/campaigns': { name: 'Campaigns', category: 'Overview' },
   '/whatsapp-sequences': { name: 'WhatsApp Sequences', category: 'Communications' },

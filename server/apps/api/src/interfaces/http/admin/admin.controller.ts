@@ -65,6 +65,7 @@ import { ResolveErrorUseCase } from '../../../application/use-cases/system/resol
 import { ClearErrorLogsUseCase } from '../../../application/use-cases/system/clear-error-logs.use-case'
 
 import { GetAdminUserDetailUseCase } from '../../../application/use-cases/admin/get-admin-user-detail.use-case'
+import { GetAdminRentHistoryRequestsUseCase } from '../../../application/use-cases/admin/get-admin-rent-history-requests.use-case'
 import { GetAdminPmDetailUseCase } from '../../../application/use-cases/admin/get-admin-pm-detail.use-case'
 import { UpdateAdminUserUseCase } from '../../../application/use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from '../../../application/use-cases/admin/update-admin-pm.use-case'
@@ -74,11 +75,15 @@ import { ToggleInternalAccountUseCase } from '../../../application/use-cases/adm
 import { SyncTenantUseCase } from '../../../application/use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from '../../../application/use-cases/admin/get-invitation-tracker.use-case'
 import { ManagePmSubscriptionUseCase, ManagePmSubscriptionDto } from '../../../application/use-cases/admin/manage-pm-subscription.use-case'
+import { GetEligibleDeletionUsersUseCase } from '../../../application/use-cases/admin/get-eligible-deletion-users.use-case'
+import { DeleteUserDataUseCase } from '../../../application/use-cases/admin/delete-user-data.use-case'
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 export class AdminController {
   constructor(
+    private readonly getEligibleDeletionUsersUseCase: GetEligibleDeletionUsersUseCase,
+    private readonly deleteUserDataUseCase: DeleteUserDataUseCase,
     private readonly getAdminsUseCase: GetAdminsUseCase,
     private readonly createAdminUseCase: CreateAdminUseCase,
     private readonly deleteAdminUseCase: DeleteAdminUseCase,
@@ -118,6 +123,7 @@ export class AdminController {
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
     private readonly searchUsersUseCase: SearchUsersUseCase,
     private readonly getAdminUserDetailUseCase: GetAdminUserDetailUseCase,
+    private readonly getAdminRentHistoryRequestsUseCase: GetAdminRentHistoryRequestsUseCase,
     private readonly getAdminPmDetailUseCase: GetAdminPmDetailUseCase,
     private readonly updateAdminUserUseCase: UpdateAdminUserUseCase,
     private readonly updateAdminPmUseCase: UpdateAdminPmUseCase,
@@ -133,6 +139,11 @@ export class AdminController {
   @Get('users/search')
   async searchUsers(@Query('q') query: string) {
     return { data: await this.searchUsersUseCase.execute(query) }
+  }
+
+  @Get('rent-history-requests')
+  async getRentHistoryRequests() {
+    return { data: await this.getAdminRentHistoryRequestsUseCase.execute() }
   }
 
   @Get('users')
@@ -563,5 +574,30 @@ export class AdminController {
   @Get('invitation-tracker')
   async getInvitationTracker() {
     return this.getInvitationTrackerUseCase.execute()
+  }
+
+  @Get('users/eligible-for-deletion')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getEligibleDeletionUsers() {
+    return this.getEligibleDeletionUsersUseCase.execute()
+  }
+
+  @Delete('users/:id/permanent-delete')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async deleteUserData(
+    @Param('id') id: string,
+    @Body() body: { role: 'PROPERTY_MANAGER' | 'USER'; reason?: string },
+    @Req() req: AuthenticatedRequest
+  ) {
+    if (!body.role || !['PROPERTY_MANAGER', 'USER'].includes(body.role)) {
+      throw new BadRequestException('Role must be PROPERTY_MANAGER or USER')
+    }
+    return this.deleteUserDataUseCase.execute({
+      targetId: id,
+      role: body.role,
+      reason: body.reason,
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+    })
   }
 }

@@ -440,7 +440,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
                 className={`auth-role-toggle__btn ${loginType === 'OTP' ? 'auth-role-toggle__btn--active' : ''}`}
                 onClick={() => setLoginType('OTP')}
               >
-                Verification Code
+                Email Code
               </button>
             </div>
 

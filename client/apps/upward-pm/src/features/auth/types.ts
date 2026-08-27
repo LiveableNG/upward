@@ -20,6 +20,8 @@ export interface PropertyManagerProfile {
   cacNumber?: string;
   isBlocked?: boolean;
   isManuallyBlocked?: boolean;
+  termsAcceptedAt?: string | null;
+  termsVersion?: string | null;
   /** False for employee-only team collaborators — company settings tabs are hidden. */
   canManageCompanySettings?: boolean;
 }

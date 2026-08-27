@@ -17,8 +17,8 @@ export class DeleteAdminUseCase {
     ip?: string,
     ua?: string,
   ): Promise<void> {
-    if (requesterRole !== 'SUPERADMIN') {
-      throw new ForbiddenException('Only superadmins can delete admin accounts')
+    if (requesterRole !== 'SUPERADMIN' && requesterRole !== 'DEVELOPER') {
+      throw new ForbiddenException('Only superadmins and developers can delete admin accounts')
     }
 
     if (targetAdminId === requesterAdminId) {

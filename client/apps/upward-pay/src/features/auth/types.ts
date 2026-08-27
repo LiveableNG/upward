@@ -22,6 +22,8 @@ export interface UserProfile {
   profilePic?: string
   profileSlug?: string | null
   bio?: string | null
+  termsAcceptedAt?: string | null
+  termsVersion?: string | null
   properties?: Array<{
     id: number;
     uuid?: string;

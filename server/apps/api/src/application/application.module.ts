@@ -24,11 +24,15 @@ import { ChangeAdminRoleUseCase } from './use-cases/admin/change-admin-role.use-
 import { ChangeAdminPasswordUseCase } from './use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from './use-cases/admin/search-users.use-case'
 import { GetAdminUserDetailUseCase } from './use-cases/admin/get-admin-user-detail.use-case'
+import { GetAdminRentHistoryRequestsUseCase } from './use-cases/admin/get-admin-rent-history-requests.use-case'
 import { GetAdminPmDetailUseCase } from './use-cases/admin/get-admin-pm-detail.use-case'
 import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-case'
 import { UpdateAdminPmUseCase } from './use-cases/admin/update-admin-pm.use-case'
 import { SendAdminNotificationUseCase } from './use-cases/admin/send-admin-notification.use-case'
 import { ManagePmSubscriptionUseCase } from './use-cases/admin/manage-pm-subscription.use-case'
+import { GetEligibleDeletionUsersUseCase } from './use-cases/admin/get-eligible-deletion-users.use-case'
+import { DeleteUserDataUseCase } from './use-cases/admin/delete-user-data.use-case'
+import { NotifyEligibleDeletionAccountsUseCase } from './use-cases/admin/notify-eligible-deletion-accounts.use-case'
 import {
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
@@ -49,6 +53,7 @@ import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-
 import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from './use-cases/admin/get-invitation-tracker.use-case'
 import { UpdateAdminDetailsUseCase } from './use-cases/admin/update-admin-details.use-case'
+import { GetEmailClickTrackingStatsUseCase } from './use-cases/admin/get-email-click-tracking-stats.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
@@ -128,6 +133,7 @@ import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credi
 import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
 import { CheckSlugAvailabilityUseCase } from './use-cases/user/check-slug-availability.use-case'
 import { VerifyBvnUseCase } from './use-cases/user/verify-bvn.use-case'
+import { AcceptTermsUseCase } from './use-cases/user/accept-terms.use-case'
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
@@ -219,6 +225,7 @@ import { GetLandlordReportUseCase } from './pm/use-cases/get-landlord-report.use
 import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.use-case'
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use-case'
+import { AcceptPmTermsUseCase } from './pm/use-cases/accept-pm-terms.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
@@ -412,6 +419,7 @@ const UseCases = [
   ChangeAdminPasswordUseCase,
   SearchUsersUseCase,
   GetAdminUserDetailUseCase,
+  GetAdminRentHistoryRequestsUseCase,
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
   GetInternalAccountsUseCase,
@@ -421,8 +429,12 @@ const UseCases = [
   UpdateAdminUserUseCase,
   UpdateAdminPmUseCase,
   UpdateAdminDetailsUseCase,
+  GetEmailClickTrackingStatsUseCase,
   SendAdminNotificationUseCase,
   ManagePmSubscriptionUseCase,
+  GetEligibleDeletionUsersUseCase,
+  DeleteUserDataUseCase,
+  NotifyEligibleDeletionAccountsUseCase,
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
@@ -509,6 +521,8 @@ const UseCases = [
   GenerateKYCReportPdfUseCase,
   GenerateReceiptPdfUseCase,
   CheckSlugAvailabilityUseCase,
+  AcceptTermsUseCase,
+  AcceptPmTermsUseCase,
   MarkNotificationReadUseCase,
 
   CreateAnnouncementUseCase,

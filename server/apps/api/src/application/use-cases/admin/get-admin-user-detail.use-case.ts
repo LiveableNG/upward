@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { CalculateRentScoreUseCase } from '../user/calculate-rent-score.use-case'
 
 @Injectable()
 export class GetAdminUserDetailUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly calculateRentScore: CalculateRentScoreUseCase,
   ) {}
 
   private decryptUser(u: any) {
@@ -64,6 +66,123 @@ export class GetAdminUserDetailUseCase {
     if (u) {
       const decryptedUser = this.decryptUser(u)
 
+        // Calculate Upward Rent Score
+      let rentScore = 500
+      let scoreBand = 'Fair'
+      let scoreMetrics: any = null
+      let scoreCycles: any[] = []
+      try {
+        const scoreRes: any = await this.calculateRentScore.execute(u.uuid)
+        if (scoreRes && scoreRes.success && scoreRes.data) {
+          rentScore = scoreRes.data.score || 500
+          scoreBand = scoreRes.data.band || 'Fair'
+          scoreMetrics = scoreRes.data.metrics || null
+          scoreCycles = scoreRes.data.cycles || []
+        }
+      } catch (err) {
+        rentScore = 500
+      }
+
+      let bandColor = '#4f46e5'
+      if (rentScore >= 750) {
+        bandColor = '#16a34a'
+      } else if (rentScore >= 650) {
+        bandColor = '#0284c7'
+      } else if (rentScore >= 550) {
+        bandColor = '#4f46e5'
+      } else {
+        bandColor = '#dc2626'
+      }
+
+      const upwardScore = {
+        score: rentScore,
+        maxScore: 900,
+        band: scoreBand,
+        color: bandColor,
+        metrics: scoreMetrics,
+        cycles: scoreCycles,
+      }
+
+      // Fetch user credibility / rent history requests
+      const rawCredibilityReqs = await this.prisma.upward_credibility_request.findMany({
+        where: { userId: u.id },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const credibilityRequests = await Promise.all(
+        rawCredibilityReqs.map(async (req) => {
+          const prop = u.properties.find((p: any) => p.uuid === req.propertyUuid)
+          const propAddress =
+            (prop as any)?.pmUnit?.property?.address ||
+            (prop as any)?.location?.address ||
+            (prop as any)?.location?.area ||
+            'Property'
+
+          const pastCycles = await this.prisma.upward_rent_cycle.findMany({
+            where: {
+              userId: u.id,
+              userPropertyId: prop?.id,
+            },
+            orderBy: { dueDate: 'asc' },
+          })
+
+          let yearsOfHistory = 0
+          const firstCycle = pastCycles[0]
+          const lastCycle = pastCycles[pastCycles.length - 1]
+          if (firstCycle && lastCycle) {
+            const firstDate = new Date(firstCycle.dueDate).getTime()
+            const lastDate = new Date(lastCycle.dueDate).getTime()
+            const diffMs = Math.max(0, lastDate - firstDate)
+            yearsOfHistory = parseFloat((diffMs / (1000 * 60 * 60 * 24 * 365.25)).toFixed(1))
+          }
+
+          let companyName = null
+          let managerName = null
+          let pmEmail = null
+          let pmPhone = null
+
+          try {
+            companyName = req.companyName ? this.encryption.decrypt(req.companyName) : null
+            managerName = req.managerName ? this.encryption.decrypt(req.managerName) : null
+            pmEmail = req.email ? this.encryption.decrypt(req.email) : null
+            pmPhone = req.phone ? this.encryption.decrypt(req.phone) : null
+          } catch (e) {
+            companyName = req.companyName
+            managerName = req.managerName
+            pmEmail = req.email
+            pmPhone = req.phone
+          }
+
+          return {
+            id: req.id,
+            uuid: req.uuid,
+            propertyUuid: req.propertyUuid,
+            propertyAddress: propAddress,
+            pmDetails: {
+              companyName,
+              managerName,
+              email: pmEmail,
+              phone: pmPhone,
+            },
+            status: req.status,
+            sentToPmAt: req.createdAt,
+            fulfilledAt: req.status === 'COMPLETED' ? req.updatedAt : null,
+            yearsOfHistory,
+            submittedRecordsCount: pastCycles.length,
+            submittedRecords: pastCycles.map((c) => ({
+              id: c.id,
+              uuid: c.uuid,
+              amountOwed: c.amountOwed,
+              amountPaid: c.amountPaid,
+              dueDate: c.dueDate,
+              paidAt: c.paidAt,
+              status: c.status,
+              source: c.source,
+            })),
+          }
+        })
+      )
+
       // Fetch user's activity logs
       const activityLogs = await this.prisma.upward_app_activity_log.findMany({
         where: {
@@ -101,8 +220,12 @@ export class GetAdminUserDetailUseCase {
             }
           : null
         return {
-          ...p,
-          location: loc || null,
+          id: p.id,
+          name: p.name,
+          address: p.address,
+          city: loc?.area || p.city,
+          state: loc?.state || p.state,
+          rentAmount: p.rentAmount,
           company,
           pm,
           pmUnit: p.pmUnit,
@@ -111,12 +234,14 @@ export class GetAdminUserDetailUseCase {
 
       return {
         type: 'TENANT',
-        id: u.id.toString(),
+        id: u.id,
         uuid: u.uuid,
         email: decryptedUser.email,
         firstName: decryptedUser.firstName,
         lastName: decryptedUser.lastName,
         phone: decryptedUser.phone,
+        upwardScore,
+        credibilityRequests,
         savingsWalletEnabled: u.savingsWalletEnabled,
         isFromInvite: u.isFromInvite,
         isFromWaitlist: u.isFromWaitlist,

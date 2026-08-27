@@ -704,6 +704,41 @@ const templates = [
   },
 
   {
+    name: 'upward_sample_image_template',
+    category: 'UTILITY',
+    language: 'en_US',
+    components: [
+      {
+        type: 'HEADER',
+        format: 'IMAGE',
+        example: {
+          header_handle: [] // Will be populated dynamically if family.png exists
+        }
+      },
+      {
+        type: 'BODY',
+        text: "Hi {{1}},\n\nWelcome to Upward! We are delighted to share our vision of rewarding rent payments with your family and home.\n\n*The Upward Team*",
+        example: {
+          body_text: [['John']]
+        }
+      },
+      {
+        type: 'FOOTER',
+        text: 'Upward By GoodTenants'
+      },
+      {
+        type: 'BUTTONS',
+        buttons: [
+          {
+            type: 'URL',
+            text: 'Explore Upward',
+            url: 'https://upward.goodtenants.io'
+          }
+        ]
+      }
+    ]
+  },
+  {
     name: 'upward_system_alert',
     category: 'UTILITY',
     language: 'en_US',
@@ -738,11 +773,81 @@ if (!token || !wabaId) {
   process.exit(1);
 }
 
+/**
+ * Helper to upload local sample image to Meta Resumable Upload API to get a header_handle for template creation.
+ */
+async function getMediaHeaderHandle(filePath) {
+  if (!fs.existsSync(filePath)) {
+    console.warn(`⚠️ Warning: Image path ${filePath} does not exist.`);
+    return null;
+  }
+
+  const fileStats = fs.statSync(filePath);
+  const fileSize = fileStats.size;
+  const mimeType = 'image/png';
+
+  console.log(`📤 Creating upload session for sample image (${(fileSize / 1024).toFixed(1)} KB)...`);
+  
+  // Step 1: Create Upload Session
+  const initUrl = `https://graph.facebook.com/v25.0/app/uploads?file_length=${fileSize}&file_type=${mimeType}&access_token=${token}`;
+  const initRes = await fetch(initUrl, { method: 'POST' });
+  const initData = await initRes.json();
+
+  if (!initRes.ok || !initData.id) {
+    console.error('❌ Failed to create Meta upload session:', initData);
+    return null;
+  }
+
+  const uploadSessionId = initData.id;
+  console.log(`Uploading file chunks to session ${uploadSessionId}...`);
+
+  // Step 2: Upload file contents
+  const fileBuffer = fs.readFileSync(filePath);
+  const uploadUrl = `https://graph.facebook.com/v25.0/${uploadSessionId}`;
+  const uploadRes = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': `OAuth ${token}`,
+      'file_offset': '0',
+    },
+    body: fileBuffer,
+  });
+
+  const uploadData = await uploadRes.json();
+  if (!uploadRes.ok || !uploadData.h) {
+    console.error('❌ Failed to upload image file to Meta:', uploadData);
+    return null;
+  }
+
+  console.log(`✅ Obtained Meta sample header handle: ${uploadData.h}`);
+  return uploadData.h;
+}
+
 // Automatically create templates
 async function createTemplates() {
   console.log('🚀 Attempting to create templates automatically via Meta API...\n');
 
+  // Check if family.png exists to populate header handle for upward_sample_image_template
+  const sampleImagePath = path.resolve(process.cwd(), 'client/apps/web/public/attachments/family.png');
+  let headerHandle = null;
+
   for (const template of templates) {
+    // If template requires header_handle, acquire it
+    const imageHeaderComponent = template.components.find(c => c.type === 'HEADER' && c.format === 'IMAGE');
+    if (imageHeaderComponent) {
+      if (!headerHandle) {
+        headerHandle = await getMediaHeaderHandle(sampleImagePath);
+      }
+      if (headerHandle) {
+        imageHeaderComponent.example = {
+          header_handle: [headerHandle]
+        };
+      } else {
+        console.warn(`⚠️ Skipping creation of ${template.name} because header_handle could not be generated.`);
+        continue;
+      }
+    }
+
     const url = `https://graph.facebook.com/v25.0/${wabaId}/message_templates`;
 
     try {
@@ -771,3 +876,4 @@ async function createTemplates() {
 }
 
 createTemplates();
+

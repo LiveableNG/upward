@@ -18,6 +18,7 @@ export interface UnifiedUserRecord {
   isExWaitlist: boolean
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   totalPaid: number
+  upwardScore?: { score: number; band?: string; color?: string }
   rentExpiryDate?: string
   failureReason?: string
   rawRecord: any
@@ -305,6 +306,35 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           )}
         </span>
       ),
+    },
+    {
+      key: 'upwardScore',
+      label: 'Upward Score',
+      sortable: true,
+      render: (item) => {
+        const scoreObj = item.upwardScore || item.rawRecord?.upwardScore
+        if (!scoreObj || !scoreObj.score) {
+          return <span style={{ color: 'var(--text-muted)' }}>—</span>
+        }
+        return (
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: '10px',
+              backgroundColor: scoreObj.color ? `${scoreObj.color}22` : 'rgba(99, 102, 241, 0.1)',
+              color: scoreObj.color || '#6366f1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <span style={{ fontSize: '12px', fontWeight: 800 }}>{scoreObj.score}</span>
+            {scoreObj.band && <span style={{ fontSize: '10px', opacity: 0.85 }}>({scoreObj.band})</span>}
+          </span>
+        )
+      },
     },
     {
       key: 'joinedAt',

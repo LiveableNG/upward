@@ -378,28 +378,28 @@ export function EmailOnboardingPipeline() {
   const hasConfigured = settings && settings.provider
   if (hasConfigured && !isEditing) {
     return (
-      <div className="branding-defaults__section animate-fade-in" style={{ padding: '24px', background: '#fff' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 16, marginBottom: 20 }}>
-          <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Email Outbound Status</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0 0' }}>Your outbound custom mail server is active and verified.</p>
+      <div className="branding-defaults__section animate-fade-in" style={{ padding: 'clamp(14px, 3.5vw, 24px)', background: '#fff', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14, borderBottom: '1px solid var(--border)', paddingBottom: 16, marginBottom: 20 }}>
+          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Email Outbound Status</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '4px 0 0 0', lineHeight: 1.4 }}>Your outbound custom mail server is active and verified.</p>
           </div>
           <button
             className="btn btn--primary"
             onClick={() => setIsEditing(true)}
-            style={{ padding: '8px 20px', borderRadius: 20, fontSize: 13 }}
+            style={{ padding: '8px 20px', borderRadius: 20, fontSize: 13, whiteSpace: 'nowrap', height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
           >
             Reconfigure Settings
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, width: '100%' }}>
           {/* Left Block: Connection details */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0, boxSizing: 'border-box' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Outbound Provider</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#13B26B' }} />
-              <span style={{ fontSize: 13, fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#13B26B', flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, wordBreak: 'break-word' }}>
                 {PROVIDER_OPTIONS.find(p => p.id === settings.provider)?.name || settings.provider}
               </span>
             </div>
@@ -409,9 +409,9 @@ export function EmailOnboardingPipeline() {
           </div>
 
           {/* Right Block: Identity details */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0, boxSizing: 'border-box' }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: 'var(--text)' }}>Sender Identity</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, minWidth: 0, wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
               <div><strong>Name:</strong> {settings.senderName || 'Not Set'}</div>
               <div><strong>Email:</strong> {settings.senderEmail || 'Not Set'}</div>
               {settings.cc && <div><strong>CC:</strong> {settings.cc}</div>}
@@ -421,7 +421,7 @@ export function EmailOnboardingPipeline() {
         </div>
 
         {/* Branding & signature block */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginTop: 20 }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginTop: 20, minWidth: 0, boxSizing: 'border-box' }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--text)' }}>Active Signature / Footer</h3>
           {settings.useEmailSignature ? (
             <div>
@@ -430,12 +430,12 @@ export function EmailOnboardingPipeline() {
                 dangerouslySetInnerHTML={{ __html: settings.emailSignature || '<em>No signature content</em>' }}
                 style={{
                   padding: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10,
-                  fontSize: 13, color: 'var(--text)'
+                  fontSize: 13, color: 'var(--text)', wordBreak: 'break-word'
                 }}
               />
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
               <div>
                 <span style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 6, color: 'var(--text-muted)' }}>Physical Footer Address:</span>
                 <div style={{ padding: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }}>
@@ -456,7 +456,7 @@ export function EmailOnboardingPipeline() {
   }
 
   return (
-    <div className="branding-defaults__section animate-fade-in" style={{ padding: '24px', background: '#fff', position: 'relative' }}>
+    <div className="branding-defaults__section animate-fade-in" style={{ padding: 'clamp(14px, 3.5vw, 24px)', background: '#fff', position: 'relative', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
       
       {/* Compact Stepper Header */}
       <div style={{ marginBottom: 24 }}>
@@ -493,8 +493,9 @@ export function EmailOnboardingPipeline() {
               }}
               style={{
                 background: 'var(--bg)', border: '1px solid var(--border)',
-                borderRadius: 12, padding: 16, maxHeight: 240, overflowY: 'auto',
-                fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 16
+                borderRadius: 12, padding: 14, maxHeight: 220, overflowY: 'auto',
+                fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 16,
+                WebkitOverflowScrolling: 'touch'
               }}
             >
               <p style={{ marginBottom: 10 }}>
@@ -528,14 +529,14 @@ export function EmailOnboardingPipeline() {
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 20 }}>
               <input
                 type="checkbox"
                 id="accept-terms"
                 checked={termsAccepted}
                 disabled={!hasReadTerms}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                style={{ width: 16, height: 16, cursor: hasReadTerms ? 'pointer' : 'not-allowed', marginTop: 2 }}
+                style={{ width: 18, height: 18, cursor: hasReadTerms ? 'pointer' : 'not-allowed', marginTop: 2, flexShrink: 0 }}
               />
               <label htmlFor="accept-terms" style={{ fontSize: 13, color: hasReadTerms ? 'var(--text)' : 'var(--text-muted)', cursor: hasReadTerms ? 'pointer' : 'not-allowed', fontWeight: 600, lineHeight: 1.4 }}>
                 {hasReadTerms
@@ -554,7 +555,7 @@ export function EmailOnboardingPipeline() {
               Choose the delivery method that best matches your corporate infrastructure.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12 }}>
               {PROVIDER_OPTIONS.map((opt) => {
                 const isSelected = selectedProvider === opt.id
                 return (
@@ -565,14 +566,14 @@ export function EmailOnboardingPipeline() {
                       padding: '16px', borderRadius: 12, border: `2.5px solid ${isSelected ? 'var(--forest)' : 'var(--border)'}`,
                       background: isSelected ? 'var(--forest-faint)' : '#fff',
                       cursor: 'pointer', transition: 'all 0.15s ease',
-                      display: 'flex', flexDirection: 'column', gap: 4
+                      display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, boxSizing: 'border-box'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: 13 }}>{opt.name}</span>
                       <div style={{
                         width: 16, height: 16, borderRadius: '50%', border: '1.5px solid var(--border)',
-                        background: isSelected ? 'var(--forest)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        background: isSelected ? 'var(--forest)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
                       }}>
                         {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
                       </div>
@@ -1034,7 +1035,7 @@ export function EmailOnboardingPipeline() {
               {/* Font Preferences */}
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Document Font Settings</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12, marginBottom: 12 }}>
                   <div className="form-group">
                     <label className="form-label">Font Family</label>
                     <select className="form-input" value={defaultFontFamily} onChange={(e) => setDefaultFontFamily(e.target.value)}>
@@ -1077,7 +1078,7 @@ export function EmailOnboardingPipeline() {
                   padding: 16, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16
                 }}>
                   <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Signature Method</h4>
-                  <div style={{ display: 'flex', gap: 24 }}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                       <input
                         type="radio"
@@ -1148,7 +1149,7 @@ export function EmailOnboardingPipeline() {
                     </small>
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
                     <div className="form-group">
                       <label className="form-label">Footer Physical Address</label>
                       <textarea

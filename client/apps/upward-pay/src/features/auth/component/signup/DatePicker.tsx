@@ -86,7 +86,7 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
   return (
     <div className="dob-picker" id={id}>
       {/* Day */}
-      <div className="dob-picker__field">
+      <div className="dob-picker__field dob-picker__field--day">
         <div className="dob-select-wrap">
           <select
             className={`dob-select ${localDay ? 'has-value' : ''}`}
@@ -105,7 +105,7 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
       </div>
 
       {/* Month */}
-      <div className="dob-picker__field" style={{ flex: 1.6 }}>
+      <div className="dob-picker__field dob-picker__field--month">
         <div className="dob-select-wrap">
           <select
             className={`dob-select ${localMonth ? 'has-value' : ''}`}
@@ -124,7 +124,7 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
       </div>
 
       {/* Year */}
-      <div className="dob-picker__field">
+      <div className="dob-picker__field dob-picker__field--year">
         <div className="dob-select-wrap">
           <select
             className={`dob-select ${localYear ? 'has-value' : ''}`}
@@ -149,20 +149,31 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           width: 100%;
         }
         .dob-picker__field {
-          flex: 1;
           display: flex;
           flex-direction: column;
           gap: 4px;
+          min-width: 0;
+        }
+        .dob-picker__field--day {
+          flex: 1;
+        }
+        .dob-picker__field--month {
+          flex: 1.35;
+        }
+        .dob-picker__field--year {
+          flex: 1.25;
         }
         .dob-select-wrap {
           position: relative;
           display: flex;
           align-items: center;
+          width: 100%;
+          min-width: 0;
         }
         .dob-select {
           width: 100%;
           height: 48px;
-          padding: 0 32px 0 14px;
+          padding: 0 24px 0 10px;
           border: 1.5px solid var(--border-solid);
           border-radius: 12px;
           background: var(--surface);
@@ -171,9 +182,14 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           font-family: inherit;
           font-weight: 500;
           appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
           cursor: pointer;
           outline: none;
           transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          overflow: hidden;
         }
         .dob-select.has-value {
           color: var(--text);
@@ -187,10 +203,22 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
         }
         .dob-select__chevron {
           position: absolute;
-          right: 10px;
+          right: 8px;
           color: var(--text-muted);
           pointer-events: none;
           flex-shrink: 0;
+        }
+        @media (max-width: 380px) {
+          .dob-picker {
+            gap: 6px;
+          }
+          .dob-select {
+            padding: 0 20px 0 8px;
+            font-size: 13px;
+          }
+          .dob-select__chevron {
+            right: 6px;
+          }
         }
       `}</style>
     </div>

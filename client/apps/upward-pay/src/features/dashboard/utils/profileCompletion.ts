@@ -1,7 +1,7 @@
 import { type UserProfile } from '@/features/auth/types'
 import { SETUP_PATHS } from '../setup/setupPaths'
 
-export const PHONE_REGEX = /^\+234\d{10}$/
+export const PHONE_REGEX = /^\+?\d{7,15}$/
 
 export function hasRentalInfo(user: UserProfile | null | undefined): boolean {
   if (!user) return false
@@ -19,7 +19,7 @@ export function hasRentalInfo(user: UserProfile | null | undefined): boolean {
 }
 
 export function hasPhone(user: UserProfile | null | undefined): boolean {
-  return !!(user?.phone && PHONE_REGEX.test(user.phone))
+  return !!(user?.phone && PHONE_REGEX.test(user.phone.replace(/[\s\-\(\)]/g, '')))
 }
 
 export function hasDateOfBirth(user: UserProfile | null | undefined): boolean {

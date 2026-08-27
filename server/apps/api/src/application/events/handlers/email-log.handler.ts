@@ -75,6 +75,15 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
             openedAt: null,
             openCount: 0,
             userAgent: null,
+            emailLinks:
+              event.trackedLinks && event.trackedLinks.length > 0
+                ? {
+                    create: event.trackedLinks.map((link) => ({
+                      id: link.id,
+                      originalUrl: link.originalUrl,
+                    })),
+                  }
+                : undefined,
           },
         })
       } catch (error) {

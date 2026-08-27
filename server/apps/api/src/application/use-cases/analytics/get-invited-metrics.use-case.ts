@@ -22,15 +22,41 @@ export class GetInvitedMetricsUseCase {
 
         let totalPaid = 0
         let benefitsPaid = 0
+        let feePaid = 0
         let lastPaidAt: Date | null = null
         u.transactions.forEach((tx: any) => {
           if (tx.status === 'SUCCESS') {
             totalPaid += tx.amount
+            if (tx.fee || tx.platformFee) {
+              feePaid += Number(tx.fee || tx.platformFee || 0)
+            }
             if (tx.lineItems && Array.isArray(tx.lineItems)) {
               tx.lineItems.forEach((item: any) => {
                 const name = item.name || item.label || ''
-                if (name === 'Upward Benefits') {
+                const lower = name.toLowerCase().trim()
+                if (lower.includes('benefit')) {
                   benefitsPaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                } else if (
+                  !lower.includes('service charge') &&
+                  !lower.includes('maintenance') &&
+                  !lower.includes('management') &&
+                  !lower.includes('security') &&
+                  !lower.includes('caution') &&
+                  !lower.includes('legal') &&
+                  !lower.includes('agency') &&
+                  (
+                    lower === 'processing fee' ||
+                    lower === 'transaction fee' ||
+                    lower.includes('upward') ||
+                    lower.includes('processing fee') ||
+                    lower.includes('transaction fee') ||
+                    lower.includes('paystack') ||
+                    lower.includes('gateway fee')
+                  )
+                ) {
+                  if (!tx.fee && !tx.platformFee) {
+                    feePaid += Number(item.amountPaid || item.amount || item.totalAmount || 0)
+                  }
                 }
               })
             }
@@ -106,20 +132,17 @@ export class GetInvitedMetricsUseCase {
             }
           }
         })
+        if (!rentExpiryDate && pmMatch?.units && pmMatch.units.length > 0) {
+          const unit = pmMatch.units[0]
+          const latestPayment = unit.rentPayments?.[0]
+          rentExpiryDate = latestPayment?.periodEnd ? latestPayment.periodEnd : unit.rentDueDate
+        }
 
         const pmsList = Array.from(pmsMap.values())
 
-        let resolvedChannel: 'EMAIL' | 'SMS' | 'WHATSAPP' | null = null
-        if (decryptedEmail && inviteChannelMap.has(decryptedEmail.toLowerCase())) {
-          resolvedChannel = inviteChannelMap.get(decryptedEmail.toLowerCase()) as any
-        } else if (decryptedPhone && inviteChannelMap.has(decryptedPhone.toLowerCase())) {
-          resolvedChannel = inviteChannelMap.get(decryptedPhone.toLowerCase()) as any
-        }
-
         let origin: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE' = 'INVITED_EMAIL'
-        if (resolvedChannel === 'EMAIL') {
-          origin = 'INVITED_EMAIL'
-        } else if (resolvedChannel === 'SMS' || resolvedChannel === 'WHATSAPP') {
+        const resolvedChannel = inviteChannelMap.get(u.emailHash)
+        if (resolvedChannel === 'SMS' || resolvedChannel === 'WHATSAPP') {
           origin = 'INVITED_PHONE'
         } else {
           // Fallback heuristics
@@ -145,6 +168,9 @@ export class GetInvitedMetricsUseCase {
           pms: pmsList,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
+          feePaid,
+          platformRevenue: feePaid + benefitsPaid,
+          hasPlatformRevenue: feePaid + benefitsPaid > 0,
           rentExpiryDate,
           originType: origin,
           origin,

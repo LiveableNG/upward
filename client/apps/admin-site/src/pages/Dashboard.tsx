@@ -17,6 +17,9 @@ import SkeletonStyles, {
   TableSkeleton,
 } from '../features/dashboard/components/Skeletons'
 
+import { DataDeletionSection } from '../features/dashboard/components/DataDeletionSection'
+import type { EligibleAccount } from '../features/dashboard/components/PermanentDeleteUserModal'
+
 // Feature Types
 import type {
   WaitlistRecord,
@@ -27,7 +30,7 @@ import type {
 } from '../features/dashboard/types'
 import { flattenMetrics } from '../features/dashboard/types'
 
-type ActiveTab = 'overview' | 'users' | 'pms' | 'sessions'
+type ActiveTab = 'overview' | 'users' | 'pms' | 'sessions' | 'data-deletion'
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50]
 
@@ -174,6 +177,25 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }
 
+  const [eligibleAccounts, setEligibleAccounts] = useState<EligibleAccount[]>([])
+  const [eligibleLoading, setEligibleLoading] = useState(false)
+
+  const fetchEligibleAccounts = async () => {
+    try {
+      setEligibleLoading(true)
+      const res = await apiService.get('/admin/users/eligible-for-deletion', token)
+      setEligibleAccounts(res)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setEligibleLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchEligibleAccounts()
+  }, [])
+
   useEffect(() => {
     const handler = setTimeout(() => {
       fetchDashboardData()
@@ -271,6 +293,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       phone: item.phone,
       status: userStatus,
       type: userType,
+      upwardScore: item.upwardScore || item.rawRecord?.upwardScore,
       invitedAt,
       joinedAt,
       createdAt,
@@ -548,14 +571,17 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     { key: 'users', label: (c) => `Users (${c.users})` },
     { key: 'pms', label: (c) => `PMs & Platforms (${c.pms})` },
     { key: 'sessions', label: () => 'Login Sessions' },
+    { key: 'data-deletion', label: (c) => `Data Deletion (${c.deletion})` },
   ]
 
   const tabCounts = {
     users: unifiedUsers.length,
     pms: pmList.length,
+    deletion: eligibleAccounts.length,
   }
 
-  const showDirectoryControls = activeTab !== 'overview' && activeTab !== 'sessions'
+  const showDirectoryControls =
+    activeTab !== 'overview' && activeTab !== 'sessions' && activeTab !== 'data-deletion'
 
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
@@ -1112,6 +1138,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
             </div>
           )}
         </>
+      )}
+
+      {activeTab === 'data-deletion' && (
+        <DataDeletionSection
+          eligibleAccounts={eligibleAccounts}
+          loading={eligibleLoading}
+          token={token}
+          onRefresh={fetchEligibleAccounts}
+        />
       )}
 
       {/* ── Preview Drawer ── */}

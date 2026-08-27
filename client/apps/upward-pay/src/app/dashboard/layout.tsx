@@ -14,6 +14,7 @@ import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 const AnnouncementManager = dynamic(() => import('@/features/dashboard/components/AnnouncementManager').then(mod => mod.AnnouncementManager), { ssr: false })
 const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
 const ProfileSetupBlocker = dynamic(() => import('@/features/dashboard/components/ProfileSetupBlocker').then(mod => mod.ProfileSetupBlocker), { ssr: false })
+const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/TermsAcceptanceModal').then(mod => mod.TermsAcceptanceModal), { ssr: false })
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -44,7 +45,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDashboardHome = pathname === '/dashboard'
   const isSetupRoute = pathname?.startsWith('/dashboard/setup')
   const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
+  const showTermsGate = user && !user.termsAcceptedAt
   const showProfileBlocker =
+    !showTermsGate &&
     isDashboardHome &&
     user &&
     !isProfileSetupComplete(user) &&
@@ -60,9 +63,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !!pathname?.startsWith('/dashboard/my-home/visitors')
 
   return (
-    <div
-      className={`dashboard-layout${showProfileBlocker ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}
-    >
+    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}`}>
+      {showTermsGate && (
+        <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
+      )}
       {showProfileBlocker && user && (
         <ProfileSetupBlocker
           user={user}

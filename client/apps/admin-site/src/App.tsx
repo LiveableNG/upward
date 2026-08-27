@@ -15,6 +15,7 @@ import DevEmails from './pages/DevEmails'
 import FairnessStories from './pages/FairnessStories'
 import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
+import { EmailTrackingDashboard } from './pages/EmailTrackingDashboard'
 import Announcements from './pages/Announcements'
 import SupportTickets from './pages/SupportTickets'
 import Verifications from './pages/Verifications'
@@ -85,6 +86,7 @@ function AppRoutes() {
             element={<EmailComposer token={auth.token} adminEmail={auth.user.email} />}
           />
           <Route path="/email-logs" element={<EmailLogs token={auth.token} />} />
+          <Route path="/email-tracking" element={<EmailTrackingDashboard token={auth.token} />} />
           <Route path="/invitation-tracker" element={<InvitationTracker token={auth.token} />} />
           <Route path="/sessions" element={<Navigate to="/" replace />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />

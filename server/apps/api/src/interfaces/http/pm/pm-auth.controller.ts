@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common'
 import { PmAuthService } from '../../../application/auth/pm-auth.service'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { AcceptPmTermsUseCase } from '../../../application/pm/use-cases/accept-pm-terms.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -80,7 +81,10 @@ function clearPmAuthCookies(reply: FastifyReply) {
 
 @Controller('pm/auth')
 export class PmAuthController {
-  constructor(private readonly pmAuthService: PmAuthService) {}
+  constructor(
+    private readonly pmAuthService: PmAuthService,
+    private readonly acceptPmTermsUseCase: AcceptPmTermsUseCase,
+  ) {}
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
@@ -224,4 +228,13 @@ export class PmAuthController {
   async verifyResetOTP(@Body() body: { email: string; otp: string }) {
     return this.pmAuthService.verifyResetOTP(body.email, body.otp)
   }
+
+  @Post('accept-terms')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async acceptTerms(@Req() req: FastifyRequest, @Body() body: { version?: string }) {
+    if (!req.user?.sub) throw new UnauthorizedException('No user in request')
+    return this.acceptPmTermsUseCase.execute(req.user.sub, body?.version)
+  }
 }
+
