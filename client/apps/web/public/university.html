@@ -464,6 +464,18 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   .reveal{ opacity:0; transform:translateY(16px); transition:.7s ease; }
   .reveal.in{ opacity:1; transform:none; }
   @media(prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; } html{ scroll-behavior:auto; } }
+
+  /* Early Access / Info Request Modal Drawer */
+  .ea-overlay { position:fixed; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:100; opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .ea-overlay.is-open { opacity:1; pointer-events:auto; }
+  .ea-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-45%) scale(0.96); width:90%; max-width:540px; background:#fff; border-radius:24px; border:1px solid var(--sand); padding:36px; z-index:110; opacity:0; pointer-events:none; transition:all .3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow:0 25px 60px -15px rgba(21,22,43,0.3); max-height:90vh; overflow-y:auto; }
+  .ea-modal.is-open { transform:translate(-50%,-50%) scale(1); opacity:1; pointer-events:auto; }
+  .ea-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .ea-title { font-size:22px; font-weight:800; color:var(--ink); }
+  .ea-close { background:var(--paper-dim); border:none; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:16px; transition:all .18s ease; }
+  .ea-close:hover { background:var(--sand); color:var(--ink); }
+  .ea-sub { font-size:13.5px; color:var(--ink-soft); margin-bottom:20px; line-height:1.45; }
+
 </style>
 </head>
 <body>
@@ -501,8 +513,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         <div class="income-num">₦10m<span>+</span></div>
         <div class="income-text"><strong>Build toward a ₦10m+ a year property business</strong>— or a strong industry career.</div>
       </div>
-      <div class="hero-apply">
+      <div class="hero-apply" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
         <a class="btn btn-primary" href="/university/apply">Apply for the 2026 Cohort →</a>
+        <button type="button" class="btn btn-outline" id="openEaModalBtn"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Request Info / Stay Updated</button>
       </div>
     </div>
     <div class="hero-image-card">
@@ -882,7 +895,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     <span class="eyebrow">Ready?</span>
     <h2 style="font-size:clamp(30px,4vw,46px); margin-top:14px;">Don't just learn real estate.<br><em class="accent">Start building your way in.</em></h2>
     <p style="color:var(--ink-soft); margin:14px auto 22px; max-width:600px; line-height:1.5;">Apply today. The ₦5,000 application fee is credited if admitted and refunded if you do not qualify.</p>
-    <a href="/university/apply" class="btn btn-primary">Start Your Application →</a>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; align-items:center;">
+      <a href="/university/apply" class="btn btn-primary">Start Your Application →</a>
+      <button type="button" class="btn btn-outline openEaModalSecondary"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Stay Updated / Request Info</button>
+    </div>
   </div>
 </section>
 
@@ -953,6 +969,69 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     </button>
 </div>
 
+<!-- Early Access / Information Request Modal Drawer -->
+<div id="ea-modal-overlay" class="ea-overlay" aria-hidden="true"></div>
+<div id="ea-modal" class="ea-modal" role="dialog" aria-modal="true" aria-labelledby="ea-modal-title" aria-hidden="true">
+  <div class="ea-header">
+    <div>
+      <span class="eyebrow" style="font-size:10px; padding:5px 12px;">Stay Updated</span>
+      <h2 id="ea-modal-title" class="ea-title" style="margin-top:8px;">Request Information</h2>
+    </div>
+    <button type="button" id="ea-modal-close" class="ea-close" aria-label="Close form">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+  <p class="ea-sub">Not ready to apply just yet? Leave your details below and we'll send you cohort updates, course details, and announcement notices.</p>
+
+  <form id="earlyAccessForm">
+    <div class="form-row">
+      <div class="field"><label for="ea_name">Full name</label><input id="ea_name" type="text" required placeholder="Your name"></div>
+      <div class="field"><label for="ea_whatsapp">WhatsApp number</label><input id="ea_whatsapp" type="tel" required placeholder="+234"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label for="ea_email">Email</label><input id="ea_email" type="email" required placeholder="you@email.com"></div>
+      <div class="field"><label for="ea_city">City</label>
+        <select id="ea_city" required>
+          <option value="">Select city</option>
+          <option>Lagos</option>
+          <option>Abuja</option>
+          <option>Port Harcourt</option>
+          <option>Oyo</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label for="ea_age">Age bracket</label>
+        <select id="ea_age" required>
+          <option value="">Select</option>
+          <option>18–24</option>
+          <option>25–30</option>
+          <option>31–40</option>
+          <option>41+</option>
+        </select>
+      </div>
+      <div class="field"><label for="ea_exp">Real estate experience</label>
+        <select id="ea_exp" required>
+          <option value="">Select</option>
+          <option>Beginner</option>
+          <option>Already active in real estate</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label for="ea_interest">What interests you most about Upward University? (optional)</label><input id="ea_interest" type="text" placeholder="Tell us in a sentence"></div>
+    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px; justify-content:center;">Submit Information Request →</button>
+  </form>
+
+  <div class="form-success" id="eaFormSuccess">
+    <div class="check" style="width:48px;height:48px;border-radius:50%;background:var(--forest);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:#fff;font-size:20px;">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h3 style="font-size:20px;">Information Request Received!</h3>
+    <p style="font-size:14px; color:var(--ink-soft); margin-top:8px;">Thank you for your interest. We will keep you updated via WhatsApp with cohort details and news.</p>
+  </div>
+</div>
+
 <script>
   const navToggle = document.getElementById('navToggle');
   const navLinks = document.getElementById('navLinks');
@@ -967,22 +1046,42 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     }));
   }
 
-  const form = document.getElementById('earlyAccessForm');
-  if(form) {
-    const submitBtn = form.querySelector('button[type="submit"]');
-    form.addEventListener('submit', async function(e){
+  // Early Access / Info Request Modal Drawer Logic
+  const eaModalOverlay = document.getElementById('ea-modal-overlay');
+  const eaModal = document.getElementById('ea-modal');
+  const eaModalClose = document.getElementById('ea-modal-close');
+  const openEaModalBtn = document.getElementById('openEaModalBtn');
+  const openEaModalSecondary = document.querySelector('.openEaModalSecondary');
+
+  function setEaModalOpen(open) {
+    if (!eaModal || !eaModalOverlay) return;
+    eaModal.classList.toggle('is-open', open);
+    eaModalOverlay.classList.toggle('is-open', open);
+    eaModal.setAttribute('aria-hidden', open ? 'false' : 'true');
+    eaModalOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+
+  openEaModalBtn?.addEventListener('click', () => setEaModalOpen(true));
+  openEaModalSecondary?.addEventListener('click', () => setEaModalOpen(true));
+  eaModalClose?.addEventListener('click', () => setEaModalOpen(false));
+  eaModalOverlay?.addEventListener('click', () => setEaModalOpen(false));
+
+  const eaForm = document.getElementById('earlyAccessForm');
+  if(eaForm) {
+    const submitBtn = eaForm.querySelector('button[type="submit"]');
+    eaForm.addEventListener('submit', async function(e){
       e.preventDefault();
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting...';
 
       const payload = {
-        name: document.getElementById('name').value,
-        whatsapp: document.getElementById('whatsapp').value,
-        email: document.getElementById('email').value,
-        city: document.getElementById('city').value,
-        ageBracket: document.getElementById('age').value,
-        experienceLevel: document.getElementById('exp').value,
-        interest: document.getElementById('interest').value
+        name: document.getElementById('ea_name').value,
+        whatsapp: document.getElementById('ea_whatsapp').value,
+        email: document.getElementById('ea_email').value,
+        city: document.getElementById('ea_city').value,
+        ageBracket: document.getElementById('ea_age').value,
+        experienceLevel: document.getElementById('ea_exp').value,
+        interest: document.getElementById('ea_interest').value
       };
 
       try {
@@ -993,20 +1092,20 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         });
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          console.warn('Application submission returned error:', errData);
+          console.warn('Early access submission returned error:', errData);
         }
       } catch (err) {
-        console.error('Network error during submission:', err);
+        console.error('Network error during early access submission:', err);
       } finally {
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('track', 'SubmitApplication', { content_name: 'Student Application' });
-          window.fbq('track', 'Lead', { content_name: 'Student Application Lead' });
+          window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
+          window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
         }
-        form.style.display = 'none';
-        const successEl = document.getElementById('formSuccess');
+        eaForm.style.display = 'none';
+        const successEl = document.getElementById('eaFormSuccess');
         const firstName = payload.name.trim().split(' ')[0];
         if (firstName) {
-          successEl.querySelector('h3').textContent = `Thank you, ${firstName}! Application received.`;
+          successEl.querySelector('h3').textContent = `Thank you, ${firstName}!`;
         }
         successEl.classList.add('show');
       }
