@@ -521,6 +521,8 @@ model upward_university_application {
   commitment      String
   why             String
   timing          String?
+  isScholarship   Boolean  @default(false)
+  scholarshipVideoUrl String?
   status          String   @default("SUBMITTED") // SUBMITTED | REVIEWED | ADMITTED | REJECTED | FEE_PAID | REFUNDED
   applicationFee  Float    @default(5000.0)
   feeStatus       String   @default("PENDING") // PENDING | PAID | REFUNDED

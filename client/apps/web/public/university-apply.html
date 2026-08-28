@@ -152,6 +152,35 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     .apply-submit-btn { font-size: 15px; padding: 15px 14px; }
   }
 
+  /* SCHOLARSHIP SECTION STYLES */
+  .scholarship-section-box {
+    background: var(--paper-dim);
+    border: 1.5px solid var(--sand);
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin: 24px 0 28px;
+  }
+  @media(max-width:600px){ .scholarship-section-box { padding: 18px 14px; border-radius: 14px; } }
+  .scholarship-badge { display: inline-flex; align-items: center; gap: 6px; font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--rust); background: var(--rust-wash); border: 1px solid rgba(138,74,42,0.2); padding: 4px 10px; border-radius: 999px; margin-bottom: 8px; }
+  .scholarship-header h3 { font-size: 16.5px; margin-bottom: 4px; color: var(--ink); font-weight: 800; }
+  .scholarship-header p { font-size: 13px; color: var(--ink-soft); line-height: 1.4; }
+  
+  .scholarship-toggle-group { display: flex; gap: 12px; margin: 16px 0 8px; }
+  @media(max-width:550px){ .scholarship-toggle-group { flex-direction: column; gap: 8px; } }
+  .scholarship-option { flex: 1; display: flex; align-items: center; gap: 10px; background: var(--white); border: 1.5px solid var(--sand); border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease; }
+  .scholarship-option:hover { border-color: var(--rust); }
+  .scholarship-option.selected { border-color: var(--rust); background: #fffdfb; }
+  .scholarship-option input[type="radio"] { width: 18px; height: 18px; accent-color: var(--rust); cursor: pointer; flex-shrink: 0; }
+  .scholarship-option .option-label { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+
+  .scholarship-video-container { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--sand); }
+  .video-instruction-box { background: var(--white); border: 1px solid var(--sand); border-radius: 12px; padding: 14px 16px; margin: 8px 0 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.45; }
+  .instruction-title { font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .video-instruction-box ul { margin: 0; padding-left: 18px; }
+  .video-instruction-box li { margin-bottom: 6px; }
+  .video-instruction-box li:last-child { margin-bottom: 0; }
+  .privacy-alert { color: #d97706; font-weight: 700; }
+
   @keyframes shake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-4px); }
@@ -470,6 +499,42 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           <textarea id="timing" placeholder="Tell us why this timing works for you"></textarea>
         </div>
 
+        <!-- Program Scholarship Section -->
+        <div class="scholarship-section-box" id="scholarshipBox">
+          <div class="scholarship-header">
+            <span class="scholarship-badge"><i class="fa-solid fa-award"></i> Program Scholarship</span>
+            <h3>Are you applying for a Program Scholarship?</h3>
+            <p>We offer partial and full scholarships for ambitious candidates based on drive and potential.</p>
+          </div>
+
+          <div class="scholarship-toggle-group">
+            <label class="scholarship-option selected" id="opt-scholarshipNo">
+              <input type="radio" name="scholarshipOption" value="no" checked id="scholarshipNo">
+              <span class="option-label">No, proceed normally</span>
+            </label>
+            <label class="scholarship-option" id="opt-scholarshipYes">
+              <input type="radio" name="scholarshipOption" value="yes" id="scholarshipYes">
+              <span class="option-label">Yes, I'm applying for a scholarship</span>
+            </label>
+          </div>
+
+          <div class="field scholarship-video-container" id="field-scholarshipVideo" style="display:none;">
+            <label for="scholarshipVideo">
+              Scholarship Video Link <span class="req-asterisk">*</span>
+            </label>
+            <div class="video-instruction-box">
+              <div class="instruction-title"><i class="fa-solid fa-circle-info" style="color:var(--rust)"></i> Scholarship Video Instructions:</div>
+              <ul>
+                <li>Record a <strong>1–2 minute video</strong> explaining why you should be considered for the program scholarship.</li>
+                <li>Share a link from <strong>Loom, Google Drive, YouTube, Vimeo, TikTok</strong>, or similar platforms.</li>
+                <li><strong class="privacy-alert"><i class="fa-solid fa-lock-open"></i> Important:</strong> Ensure your video file/link access permissions are set to <strong>PUBLIC</strong> (e.g. <em>"Anyone with the link can view"</em>) so our team can review your submission.</li>
+              </ul>
+            </div>
+            <input id="scholarshipVideo" type="url" placeholder="https://loom.com/share/... or Google Drive public link">
+            <div class="error-text">Please provide a valid public video link for your scholarship review</div>
+          </div>
+        </div>
+
         <div class="checkbox-field" id="field-terms">
           <div class="checkbox-field-inner">
             <input type="checkbox" id="termsCheck" required>
@@ -584,6 +649,33 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       { id: 'termsCheck', fieldId: 'field-terms', isCheckbox: true, validate: (val, el) => el.checked }
     ];
 
+    // Scholarship toggle handling
+    const scholarshipYes = document.getElementById('scholarshipYes');
+    const scholarshipNo = document.getElementById('scholarshipNo');
+    const scholarshipVideoContainer = document.getElementById('field-scholarshipVideo');
+    const scholarshipVideoInput = document.getElementById('scholarshipVideo');
+    const optScholarshipYes = document.getElementById('opt-scholarshipYes');
+    const optScholarshipNo = document.getElementById('opt-scholarshipNo');
+
+    function updateScholarshipToggle() {
+      const isYes = scholarshipYes && scholarshipYes.checked;
+      if (isYes) {
+        scholarshipVideoContainer.style.display = 'block';
+        if (optScholarshipYes) optScholarshipYes.classList.add('selected');
+        if (optScholarshipNo) optScholarshipNo.classList.remove('selected');
+      } else {
+        scholarshipVideoContainer.style.display = 'none';
+        scholarshipVideoContainer.classList.remove('has-error');
+        if (optScholarshipNo) optScholarshipNo.classList.add('selected');
+        if (optScholarshipYes) optScholarshipYes.classList.remove('selected');
+      }
+    }
+
+    if (scholarshipYes && scholarshipNo) {
+      scholarshipYes.addEventListener('change', updateScholarshipToggle);
+      scholarshipNo.addEventListener('change', updateScholarshipToggle);
+    }
+
     // Clear error style on input/change
     requiredFieldConfigs.forEach(cfg => {
       const el = document.getElementById(cfg.id);
@@ -594,6 +686,11 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         el.addEventListener('change', clearErr);
       }
     });
+    if (scholarshipVideoInput && scholarshipVideoContainer) {
+      const clearVideoErr = () => scholarshipVideoContainer.classList.remove('has-error');
+      scholarshipVideoInput.addEventListener('input', clearVideoErr);
+      scholarshipVideoInput.addEventListener('change', clearVideoErr);
+    }
 
     const submitBtn = form.querySelector('button[type="submit"]');
     form.addEventListener('submit', async function(e){
@@ -616,6 +713,20 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           }
         }
       });
+
+      // Scholarship video link validation when toggle is YES
+      const isScholarship = scholarshipYes && scholarshipYes.checked;
+      if (isScholarship) {
+        const videoVal = scholarshipVideoInput ? scholarshipVideoInput.value.trim() : '';
+        const isValidUrl = videoVal.length > 0 && /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i.test(videoVal);
+        if (!isValidUrl) {
+          hasError = true;
+          scholarshipVideoContainer.classList.add('has-error');
+          if (!firstErrorEl) firstErrorEl = scholarshipVideoContainer;
+        } else {
+          scholarshipVideoContainer.classList.remove('has-error');
+        }
+      }
 
       if (hasError) {
         if (firstErrorEl) {
@@ -641,7 +752,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         goals: document.getElementById('goals').value,
         commitment: document.getElementById('commitment').value,
         why: document.getElementById('why').value,
-        timing: document.getElementById('timing').value
+        timing: document.getElementById('timing').value,
+        isScholarshipApplicant: isScholarship,
+        scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : ''
       };
 
       try {

@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator'
+import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator'
 
 export class CreateUniversityApplicationDto {
   @IsNotEmpty({ message: 'Full name is required' })
@@ -46,6 +46,18 @@ export class CreateUniversityApplicationDto {
   @IsOptional()
   @IsString()
   timing?: string
+
+  @IsOptional()
+  @IsBoolean()
+  isScholarship?: boolean
+
+  @IsOptional()
+  @IsBoolean()
+  isScholarshipApplicant?: boolean
+
+  @IsOptional()
+  @IsString()
+  scholarshipVideoUrl?: string
 
   @IsOptional()
   @IsString()

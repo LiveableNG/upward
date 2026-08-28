@@ -10,6 +10,9 @@ import {
   Eye,
   ArrowLeft,
   Phone,
+  Video,
+  Award,
+  ExternalLink,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -47,6 +50,8 @@ interface UniversityApplicationRecord {
   commitment: string
   why: string
   timing?: string | null
+  isScholarship?: boolean
+  scholarshipVideoUrl?: string | null
   status: 'SUBMITTED' | 'REVIEWED' | 'ADMITTED' | 'REJECTED' | 'FEE_PAID' | 'REFUNDED'
   applicationFee: number
   feeStatus: 'PENDING' | 'PAID' | 'REFUNDED'
@@ -227,6 +232,26 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
         <div>
           <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.email}</div>
+          {(row.isScholarship || row.scholarshipVideoUrl) && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginTop: '4px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: '#fef3c7',
+                color: '#b45309',
+                border: '1px solid #fde68a',
+              }}
+            >
+              <Award size={11} />
+              SCHOLARSHIP CANDIDATE
+            </span>
+          )}
         </div>
       ),
     },
@@ -612,116 +637,214 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
           marginBottom: '24px',
         }}
       >
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            borderRadius: '14px',
-            background: 'var(--card-bg, #fff)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
-              TOTAL APPLICATIONS
-            </span>
-            <Users size={20} color="var(--accent)" />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
-            {loadingStats ? '...' : stats?.totalSubmissions || 0}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Combined roster applications
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            borderRadius: '14px',
-            background: 'var(--card-bg, #fff)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: '#d97757', fontWeight: 600 }}>
-              STUDENT COHORT
-            </span>
-            <GraduationCap size={20} color="#d97757" />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
-            {loadingStats ? '...' : stats?.studentCount || 0}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            {stats && stats.totalSubmissions > 0
-              ? `${Math.round((stats.studentCount / stats.totalSubmissions) * 100)}% of total applications`
-              : 'Founding Cohort 2026'}
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            borderRadius: '14px',
-            background: 'var(--card-bg, #fff)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: '#166534', fontWeight: 600 }}>
-              LANDLORD PROGRAMME
-            </span>
-            <Building size={20} color="#166534" />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
-            {loadingStats ? '...' : stats?.landlordCount || 0}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            {stats && stats.totalSubmissions > 0
-              ? `${Math.round((stats.landlordCount / stats.totalSubmissions) * 100)}% of total applications`
-              : 'Micro-course registrations'}
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            padding: '20px',
-            borderRadius: '14px',
-            background: 'var(--card-bg, #fff)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
-              TOP ACTIVE CITIES
-            </span>
-            <MapPin size={20} color="var(--accent)" />
-          </div>
-          <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {stats?.cityBreakdown && stats.cityBreakdown.length > 0 ? (
-              stats.cityBreakdown.slice(0, 4).map((c) => (
-                <span
-                  key={c.city}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: '12px',
-                    background: 'var(--bg-secondary, #f3f4f6)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {c.city}: <b>{c.count}</b>
+        {activeTab === 'APPLICATIONS' ? (
+          <>
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#8A4A2A', fontWeight: 700 }}>
+                  TOTAL COHORT APPS
                 </span>
-              ))
-            ) : (
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No city data yet</span>
-            )}
-          </div>
-        </div>
+                <GraduationCap size={20} color="#8A4A2A" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
+                {loadingApps ? '...' : appStats?.totalApplications ?? applications.length}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Full application submissions
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#15803d', fontWeight: 700 }}>
+                  PAID FEES (₦5,000)
+                </span>
+                <Building size={20} color="#15803d" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#166534' }}>
+                {loadingApps ? '...' : (appStats?.feePaidCount ?? applications.filter(a => a.feeStatus === 'PAID').length)}
+              </div>
+              <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px', fontWeight: 500 }}>
+                Verified paid ₦5,000 application fee
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#fffbf5',
+                border: '1px solid #fde68a',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 700 }}>
+                  SCHOLARSHIP CANDIDATES
+                </span>
+                <Award size={20} color="#b45309" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#92400e' }}>
+                {loadingApps ? '...' : applications.filter(a => a.isScholarship || a.scholarshipVideoUrl).length}
+              </div>
+              <div style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', fontWeight: 500 }}>
+                Submitted video link for scholarship
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  ADMITTED COHORT
+                </span>
+                <Users size={20} color="var(--accent)" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
+                {loadingApps ? '...' : (appStats?.admittedCount ?? applications.filter(a => a.status === 'ADMITTED').length)}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Admitted into Founding Cohort
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  TOTAL LEADS
+                </span>
+                <Users size={20} color="var(--accent)" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
+                {loadingStats ? '...' : stats?.totalSubmissions || 0}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Combined roster leads
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#d97757', fontWeight: 600 }}>
+                  STUDENT COHORT LEADS
+                </span>
+                <GraduationCap size={20} color="#d97757" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
+                {loadingStats ? '...' : stats?.studentCount || 0}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {stats && stats.totalSubmissions > 0
+                  ? `${Math.round((stats.studentCount / stats.totalSubmissions) * 100)}% of total leads`
+                  : 'Founding Cohort 2026'}
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#166534', fontWeight: 600 }}>
+                  LANDLORD PROGRAMME LEADS
+                </span>
+                <Building size={20} color="#166534" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
+                {loadingStats ? '...' : stats?.landlordCount || 0}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {stats && stats.totalSubmissions > 0
+                  ? `${Math.round((stats.landlordCount / stats.totalSubmissions) * 100)}% of total leads`
+                  : 'Micro-course registrations'}
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  TOP ACTIVE CITIES
+                </span>
+                <MapPin size={20} color="var(--accent)" />
+              </div>
+              <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {stats?.cityBreakdown && stats.cityBreakdown.length > 0 ? (
+                  stats.cityBreakdown.slice(0, 4).map((c) => (
+                    <span
+                      key={c.city}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: 'var(--bg-secondary, #f3f4f6)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      {c.city}: <b>{c.count}</b>
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No city data yet</span>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {activeTab === 'APPLICATIONS' ? (
@@ -1250,6 +1373,81 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                   <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
                     {selectedApp.timing}
                   </div>
+                </div>
+              )}
+
+              {/* ── Program Scholarship & Video Link Card ── */}
+              {(selectedApp.isScholarship || selectedApp.scholarshipVideoUrl) && (
+                <div
+                  style={{
+                    background: '#fffbf5',
+                    border: '1.5px solid #fde68a',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    margin: '16px 0',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        color: '#b45309',
+                        background: '#fef3c7',
+                        padding: '3px 10px',
+                        borderRadius: '999px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      <Award size={13} />
+                      Program Scholarship Candidate
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#92400e', fontWeight: 600 }}>
+                    This applicant applied for a Program Scholarship and submitted a 1–2 minute video link.
+                  </p>
+
+                  {selectedApp.scholarshipVideoUrl ? (
+                    <div style={{ background: '#ffffff', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 14px' }}>
+                      <div style={{ fontSize: '11px', color: '#b45309', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>
+                        Submitted Video URL:
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b', wordBreak: 'break-all', flex: 1 }}>
+                          {selectedApp.scholarshipVideoUrl}
+                        </span>
+                        <a
+                          href={selectedApp.scholarshipVideoUrl.startsWith('http') ? selectedApp.scholarshipVideoUrl : `https://${selectedApp.scholarshipVideoUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '12.5px',
+                            padding: '7px 14px',
+                            borderRadius: '8px',
+                            background: '#8A4A2A',
+                            color: '#fff',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Video size={14} />
+                          Watch Video <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12.5px', color: '#b45309', fontStyle: 'italic' }}>
+                      No video link provided.
+                    </div>
+                  )}
                 </div>
               )}
             </div>

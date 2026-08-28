@@ -16,6 +16,8 @@ export interface UniversityApplicationProps {
   commitment: string
   why: string
   timing?: string | null
+  isScholarship?: boolean
+  scholarshipVideoUrl?: string | null
   status?: ApplicationStatus
   applicationFee?: number
   feeStatus?: FeeStatus

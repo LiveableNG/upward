@@ -19,6 +19,8 @@ export interface SubmitUniversityApplicationCommand {
   commitment: string
   why: string
   timing?: string
+  isScholarship?: boolean
+  scholarshipVideoUrl?: string
   feeStatus?: string
   paymentRef?: string
   sendEmail?: boolean
@@ -71,6 +73,8 @@ export class SubmitUniversityApplicationUseCase {
         commitment: command.commitment,
         why: command.why,
         timing: command.timing ?? existingProps.timing,
+        isScholarship: command.isScholarship ?? existingProps.isScholarship,
+        scholarshipVideoUrl: command.scholarshipVideoUrl ?? existingProps.scholarshipVideoUrl,
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
         updatedAt: new Date(),
@@ -88,6 +92,8 @@ export class SubmitUniversityApplicationUseCase {
         commitment: command.commitment,
         why: command.why,
         timing: command.timing,
+        isScholarship: command.isScholarship,
+        scholarshipVideoUrl: command.scholarshipVideoUrl,
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
       })

@@ -33,6 +33,8 @@ export class PrismaUniversityApplicationRepository
         commitment: rawData.commitment,
         why: rawData.why,
         timing: rawData.timing ?? null,
+        isScholarship: rawData.isScholarship ?? false,
+        scholarshipVideoUrl: rawData.scholarshipVideoUrl ?? null,
         status: rawData.status || 'SUBMITTED',
         applicationFee: rawData.applicationFee ?? 5000,
         feeStatus: rawData.feeStatus || 'PENDING',
@@ -40,6 +42,8 @@ export class PrismaUniversityApplicationRepository
         notes: rawData.notes ?? null,
       },
       update: {
+        isScholarship: rawData.isScholarship,
+        scholarshipVideoUrl: rawData.scholarshipVideoUrl ?? null,
         status: rawData.status,
         feeStatus: rawData.feeStatus,
         paymentRef: rawData.paymentRef ?? null,
