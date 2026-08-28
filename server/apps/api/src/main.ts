@@ -7,7 +7,7 @@ Number.prototype.toLocaleString = function (locales, options) {
 import { NestFactory } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
-import { ValidationPipe } from '@nestjs/common'
+import { ValidationPipe, RequestMethod } from '@nestjs/common'
 import { AppModule } from './app.module'
 import fastifyCookie from '@fastify/cookie'
 import fastifyMultipart from '@fastify/multipart'
@@ -34,7 +34,11 @@ async function bootstrap() {
   })
 
   app.setGlobalPrefix('api/v1', {
-    exclude: ['l/(.*)'],
+    exclude: [
+      { path: 'l/{*path}', method: RequestMethod.GET },
+      { path: 'l/*', method: RequestMethod.GET },
+      { path: 'l', method: RequestMethod.GET },
+    ],
   })
 
   app.useGlobalPipes(
