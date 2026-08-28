@@ -60,7 +60,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   :focus-visible{ outline:2.5px solid var(--rust); outline-offset:2px; }
 
   header{ position:sticky; top:0; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
-  nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:15px 24px; }
+  nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:8px 24px; }
   .logo{ display:flex; align-items:center; gap:10px; font-family:'Inter Tight'; font-weight:800; font-size:16px; letter-spacing:-0.01em; }
   .logo .mark{ width:48px; height:48px; border-radius:12px; background:var(--rust); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
   .logo small{ display:block; font-family:'Inter'; font-weight:600; letter-spacing:0.13em; font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; }
@@ -68,7 +68,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   .nav-links a{ text-decoration:none; transition:color .18s ease; }
   .nav-links a:hover{ color:var(--ink); }
   .nav-right{ display:flex; align-items:center; gap:14px; }
-  .nav-toggle{ display:none; width:38px; height:38px; border-radius:9px; border:1.5px solid var(--sand); background:#fff; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .nav-toggle{ display:none; width:38px; height:38px; border-radius:99px; border:1.5px solid var(--sand); background:#fff; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
   .nav-toggle svg{ width:18px; height:18px; }
 
   .nav-home {
@@ -102,26 +102,39 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     .nav-toggle{ display:flex; }
   }
   @media(max-width:600px){
-    nav.wrap{ padding:10px 16px; }
-    .logo .mark{ width:38px; height:38px; border-radius:9px; }
-    .nav-right .btn{ padding:9px 14px; font-size:12.5px; }
+    nav.wrap{ padding:6px 12px; }
+    .logo{ font-size:13.5px; gap:6px; }
+    .logo .mark{ width:36px; height:36px; border-radius:8px; }
+    .nav-right .btn{ padding:6px 12px; font-size:11.5px; }
+    .eyebrow{ padding:5px 12px; font-size:10px; margin-bottom:8px; }
   }
 
   section{ padding:82px 0; }
-  @media(max-width:720px){ section{ padding:56px 0; } }
+  @media(max-width:720px){ section{ padding:40px 0; } }
 
   /* HERO */
-  .hero{ padding:58px 0 62px; }
-  .hero-grid{ display:grid; grid-template-columns:1.08fr .92fr; gap:60px; align-items:center; }
-  @media(max-width:900px){ .hero-grid{ grid-template-columns:1fr; gap:38px; } }
-  .hero h1{ font-size:clamp(36px, 5.2vw, 60px); line-height:1.02; max-width:14ch; margin:17px 0 15px; }
-  .hero-sub{ font-size:17.5px; font-weight:600; color:var(--ink-soft); max-width:570px; line-height:1.45; }
-  .income-callout{ display:flex; align-items:center; gap:14px; background:#fff; border:1.5px solid var(--sand); border-radius:16px; padding:14px 18px; margin-top:20px; max-width:480px; box-shadow:var(--shadow); }
+  .hero{ padding:16px 0 28px; }
+  @media(max-width:768px){ .hero{ padding-top:24px; padding-bottom:20px; } }
+  .hero-grid{ display:grid; grid-template-columns:1.08fr .92fr; gap:40px; align-items:center; }
+  @media(max-width:900px){ .hero-grid{ grid-template-columns:1fr; gap:16px; } }
+  .hero h1{ font-size:clamp(26px, 5.2vw, 56px); line-height:1.04; max-width:14ch; margin:6px 0 6px; }
+  .hero-sub{ font-size:16px; font-weight:600; color:var(--ink-soft); max-width:570px; line-height:1.4; }
+  @media(max-width:600px){
+    .hero h1{ font-size: 26px; line-height:1.08; }
+    .hero-sub{ font-size:13.5px; line-height:1.35; }
+  }
+  .income-callout{ display:flex; align-items:center; gap:14px; background:#fff; border:1.5px solid var(--sand); border-radius:16px; padding:8px 14px; margin-top:10px; max-width:480px; box-shadow:var(--shadow); }
+  @media(max-width:600px){
+    .income-callout{ padding:8px 12px; margin-top:8px; gap:10px; }
+    .income-num{ font-size:20px; }
+    .income-text{ font-size:11.5px; }
+    .income-text strong{ font-size:12px; }
+  }
   .income-num{ font:800 26px 'Inter Tight'; color:var(--rust); white-space:nowrap; }
   .income-num span{ font-family:'Fraunces',serif; font-style:italic; font-weight:500; }
   .income-text{ font-size:12.5px; color:var(--ink-soft); line-height:1.4; }
   .income-text strong{ display:block; color:var(--ink); font-size:13.5px; font-weight:700; }
-  .hero-apply{ margin-top:24px; }
+  .hero-apply{ margin-top:10px; }
 
   .hero-image-card{ display:flex; align-items:center; justify-content:center; width:100%; }
   .hero-student-img{ width:100%; max-width:100%; height:auto; border-radius:var(--radius-lg); border:1px solid var(--sand); box-shadow:var(--shadow); display:block; object-fit:cover; transition:transform .3s ease, box-shadow .3s ease; }
@@ -194,7 +207,13 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   .programme-band .lead{ color:var(--ink-soft); }
   .steps{ display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-top:32px; }
   @media(max-width:900px){ .steps{ grid-template-columns:repeat(3,1fr); } }
-  @media(max-width:550px){ .steps{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:550px){
+    .steps{ grid-template-columns:1fr; gap:10px; }
+    .step{ display:flex; align-items:flex-start; gap:14px; padding:14px 16px; text-align:left; }
+    .step b{ margin-bottom:0; flex-shrink:0; width:32px; height:32px; font-size:13px; }
+    .step h3{ font-size:15.5px; margin:0; }
+    .step p{ font-size:12.5px; margin-top:2px; }
+  }
   .step{ padding:18px 13px; border:1px solid var(--sand); border-radius:14px; background:var(--white); box-shadow:0 4px 16px -8px rgba(21,22,43,0.04); }
   .step b{ display:grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--rust-wash); border:1px solid rgba(138,74,42,0.25); color:var(--rust); font-size:12px; font-weight:800; margin-bottom:13px; }
   .step h3{ font-size:15px; color:var(--ink); }
@@ -688,12 +707,12 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         <p class="lead">The programme is designed to move you from learning into action early — so you are building, testing and improving while you learn.</p>
       </div>
       <div class="steps">
-        <div class="step"><b>1</b><h3>Learn</h3><p>Practitioner-led real estate skills.</p></div>
-        <div class="step"><b>2</b><h3>Build</h3><p>Your professional or business foundation.</p></div>
-        <div class="step"><b>3</b><h3>Launch</h3><p>Take your offer into the market.</p></div>
-        <div class="step"><b>4</b><h3>Acquire</h3><p>Start pursuing clients and opportunities.</p></div>
-        <div class="step"><b>5</b><h3>Earn</h3><p>Turn activity into commercial opportunity.</p></div>
-        <div class="step"><b>6</b><h3>Grow</h3><p>Build toward a career or business.</p></div>
+        <div class="step"><b>1</b><div><h3>Learn</h3><p>Practitioner-led real estate skills.</p></div></div>
+        <div class="step"><b>2</b><div><h3>Build</h3><p>Your professional or business foundation.</p></div></div>
+        <div class="step"><b>3</b><div><h3>Launch</h3><p>Take your offer into the market.</p></div></div>
+        <div class="step"><b>4</b><div><h3>Acquire</h3><p>Start pursuing clients and opportunities.</p></div></div>
+        <div class="step"><b>5</b><div><h3>Earn</h3><p>Turn activity into commercial opportunity.</p></div></div>
+        <div class="step"><b>6</b><div><h3>Grow</h3><p>Build toward a career or business.</p></div></div>
       </div>
       <div class="week4"><span>WEEK 4</span> — Your professional identity/business should be ready to take into the market.</div>
     </div>

@@ -42,9 +42,11 @@ import { PrismaPmSignatureRepository } from './repositories/prisma-pm-signature.
 import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whatsapp-sequence.repository'
 
 import { PrismaEarlyAccessRepository } from '../../../infrastructure/repositories/prisma-early-access.repository'
+import { PrismaUniversityApplicationRepository } from '../../../infrastructure/repositories/prisma-university-application.repository'
 
 import { PaystackGateway } from '../payments/paystack.gateway'
 import { EARLY_ACCESS_REPOSITORY } from '../../../domains/early-access/early-access.repository'
+import { UNIVERSITY_APPLICATION_REPOSITORY } from '../../../domains/university-application/university-application.repository'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {
@@ -246,6 +248,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: EARLY_ACCESS_REPOSITORY,
       useClass: PrismaEarlyAccessRepository,
     },
+    {
+      provide: UNIVERSITY_APPLICATION_REPOSITORY,
+      useClass: PrismaUniversityApplicationRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -288,6 +294,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     WHATSAPP_SEQUENCE_REPOSITORY,
     BULK_IMPORT_JOB_REPOSITORY,
     EARLY_ACCESS_REPOSITORY,
+    UNIVERSITY_APPLICATION_REPOSITORY,
   ],
 })
 export class PrismaModule {}

@@ -13,6 +13,8 @@ import { FairnessStoryController } from './public/fairness-story.controller'
 import { WaitlistController } from './public/waitlist.controller'
 import { EarlyAccessController } from './public/early-access.controller'
 import { EarlyAccessAdminController } from './admin/early-access-admin.controller'
+import { UniversityApplicationController } from './public/university-application.controller'
+import { UniversityApplicationAdminController } from './admin/university-application-admin.controller'
 import { LocationsController } from './public/locations.controller'
 import { UserController } from './user/user.controller'
 import { WalletController } from './user/wallet.controller'
@@ -109,6 +111,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     WaitlistController,
     EarlyAccessController,
     EarlyAccessAdminController,
+    UniversityApplicationController,
+    UniversityApplicationAdminController,
     LocationsController,
     UserController,
     WalletController,

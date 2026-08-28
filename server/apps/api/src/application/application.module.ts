@@ -70,6 +70,12 @@ import {
   GetEarlyAccessStatsUseCase,
   GetEarlyAccessEntriesUseCase,
 } from './use-cases/early-access/get-early-access-admin.use-case'
+import { SubmitUniversityApplicationUseCase } from './use-cases/university-application/submit-university-application.use-case'
+import {
+  GetUniversityApplicationStatsUseCase,
+  GetUniversityApplicationsUseCase,
+  UpdateUniversityApplicationStatusUseCase,
+} from './use-cases/university-application/get-university-applications-admin.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
 import { CreateSessionUseCase } from './use-cases/sessions/create-session.use-case'
@@ -721,6 +727,10 @@ const UseCases: any[] = [
   SubmitLandlordEarlyAccessUseCase,
   GetEarlyAccessStatsUseCase,
   GetEarlyAccessEntriesUseCase,
+  SubmitUniversityApplicationUseCase,
+  GetUniversityApplicationStatsUseCase,
+  GetUniversityApplicationsUseCase,
+  UpdateUniversityApplicationStatusUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
   QueueDailySequencesUseCase,
@@ -774,8 +784,11 @@ import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
 import { SubscriptionModule } from '../domains/subscription/subscription.module'
 
+import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
+
 @Module({
   imports: [
+    PrismaModule,
     S3Module,
     ReceiptModule,
     KYCModule,
