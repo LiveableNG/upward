@@ -17,13 +17,19 @@ export class EmailClickTrackingController {
     this.secret = this.configService.get<string>('JWT_SECRET') || 'upward-email-tracking-secret'
   }
 
-  @Get(':token')
+  @Get('*')
   async trackClick(
-    @Param('token') token: string,
     @Req() req: FastifyRequest,
     @Res() res: FastifyReply,
   ) {
-    return this.handleRedirect(token, req, res)
+    const params = (req.params as Record<string, string | undefined>) || {}
+    const rawToken =
+      params['*'] ||
+      params['token'] ||
+      (req.url ? req.url.replace(/^\/l\/?/, '').split('?')[0] : '') ||
+      ''
+
+    return this.handleRedirect(rawToken, req, res)
   }
 
   private async handleRedirect(

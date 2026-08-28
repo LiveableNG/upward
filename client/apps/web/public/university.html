@@ -141,12 +141,23 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   .hero-student-img:hover{ transform:translateY(-4px); box-shadow:0 26px 60px -20px rgba(21,22,43,0.3); }
 
   /* STRIP */
-  .strip{ border-top:1px solid var(--sand); border-bottom:1px solid var(--sand); padding:20px 0; }
+  .strip{ border-top:1px solid var(--sand); border-bottom:1px solid var(--sand); padding:22px 0; background:rgba(253,251,245,0.6); }
   .strip-inner{ display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; }
-  .strip-label{ font:600 11px var(--mono); text-transform:uppercase; letter-spacing:.08em; color:var(--rust); }
-  .strip-items{ display:flex; gap:20px; flex-wrap:wrap; font-size:13.5px; font-weight:700; color:var(--ink-soft); align-items:center; }
-  .strip-link{ color:var(--ink); text-decoration:none; transition:color .18s ease; display:inline-flex; align-items:center; gap:4px; }
-  .strip-link:hover{ color:var(--rust); }
+  .strip-label{ display:inline-flex; align-items:center; gap:8px; font:600 11px var(--mono); text-transform:uppercase; letter-spacing:.1em; color:var(--rust); white-space:nowrap; }
+  .strip-items{ display:flex; gap:12px; flex-wrap:wrap; font-size:13.5px; font-weight:700; color:var(--ink-soft); align-items:center; }
+  .kicker-card{ display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; font-size:13.5px; font-weight:700; text-decoration:none; transition:all .2s ease; cursor:pointer; }
+  .kicker-card--upward{ background:var(--rust-wash); color:var(--rust); border:1px solid rgba(138,74,42,0.25); }
+  .kicker-card--upward:hover{ background:var(--rust); color:#fff; border-color:var(--rust); transform:translateY(-2px); box-shadow:0 8px 20px -8px rgba(138,74,42,0.4); }
+  .kicker-card--goodtenants{ background:#1e293b; color:#fff; border:1px solid #334155; }
+  .kicker-card--goodtenants:hover{ background:#0f172a; border-color:#ff5500; color:#ff8547; transform:translateY(-2px); box-shadow:0 8px 20px -8px rgba(255,85,0,0.35); }
+  .kicker-card--tag{ background:var(--paper-dim); color:var(--ink-soft); border:1px solid var(--sand); cursor:default; font-weight:600; }
+  .kicker-card__icon{ display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .kicker-card__arrow{ opacity:0.5; transition:transform .2s ease, opacity .2s ease; font-size:11px; margin-left:2px; }
+  .kicker-card:hover .kicker-card__arrow{ opacity:1; transform:translate(2px, -2px); }
+  @media(max-width:768px){
+    .strip-inner{ flex-direction:column; align-items:flex-start; gap:14px; }
+    .strip-items{ width:100%; }
+  }
 
   /* SECTION HEADINGS */
   .sec-head{ max-width:690px; margin-bottom:38px; }
@@ -547,10 +558,16 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   <div class="wrap strip-inner">
     <span class="strip-label">Part of the Upward housing ecosystem</span>
     <div class="strip-items">
-      <a href="/" class="strip-link">Upward</a>
-      <a href="https://www.goodtenants.io/" target="_blank" rel="noopener noreferrer" class="strip-link">GoodTenants</a>
-      <span>Industry practitioners</span>
-      <span>Supporting businesses</span>
+      <a href="/" class="kicker-card kicker-card--upward">
+        <span class="kicker-card__icon"><i class="fa-solid fa-house"></i></span>
+        <span>Upward — Rent Passport™</span>
+        <i class="fa-solid fa-arrow-up-right-from-square kicker-card__arrow"></i>
+      </a>
+      <a href="https://www.goodtenants.io/" target="_blank" rel="noopener noreferrer" class="kicker-card kicker-card--goodtenants">
+        <span class="kicker-card__icon"><i class="fa-solid fa-circle-check"></i></span>
+        <span>GoodTenants</span>
+        <i class="fa-solid fa-arrow-up-right-from-square kicker-card__arrow"></i>
+      </a>
     </div>
   </div>
 </div>
