@@ -34,6 +34,28 @@ interface EarlyAccessRecord {
   updatedAt: string
 }
 
+interface UniversityApplicationRecord {
+  id: string
+  name: string
+  whatsapp: string
+  email: string
+  city: string
+  ageBracket: string
+  occupation?: string | null
+  experienceLevel?: string | null
+  goals?: string | null
+  commitment: string
+  why: string
+  timing?: string | null
+  status: 'SUBMITTED' | 'REVIEWED' | 'ADMITTED' | 'REJECTED' | 'FEE_PAID' | 'REFUNDED'
+  applicationFee: number
+  feeStatus: 'PENDING' | 'PAID' | 'REFUNDED'
+  paymentRef?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 interface EarlyAccessStats {
   totalSubmissions: number
   studentCount: number
@@ -41,11 +63,30 @@ interface EarlyAccessStats {
   cityBreakdown: Array<{ city: string; count: number }>
 }
 
+interface ApplicationStats {
+  totalApplications: number
+  pendingReviewCount: number
+  admittedCount: number
+  feePaidCount: number
+}
+
 interface UpwardUniversityProps {
   token: string
 }
 
 export default function UpwardUniversity({ token }: UpwardUniversityProps) {
+  const [activeTab, setActiveTab] = useState<'APPLICATIONS' | 'EARLY_ACCESS'>('APPLICATIONS')
+
+  // Applications State
+  const [applications, setApplications] = useState<UniversityApplicationRecord[]>([])
+  const [appStats, setAppStats] = useState<ApplicationStats | null>(null)
+  const [loadingApps, setLoadingApps] = useState(true)
+  const [appPage, setAppPage] = useState(1)
+  const [appTotalPages, setAppTotalPages] = useState(1)
+  const [appSearch, setAppSearch] = useState('')
+  const [selectedApp, setSelectedApp] = useState<UniversityApplicationRecord | null>(null)
+
+  // Early Access State
   const [records, setRecords] = useState<EarlyAccessRecord[]>([])
   const [stats, setStats] = useState<EarlyAccessStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -59,6 +100,36 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
 
   // Detail Modal State
   const [selectedRecord, setSelectedRecord] = useState<EarlyAccessRecord | null>(null)
+
+  const fetchAppStats = async () => {
+    try {
+      const response = await apiService.get('/admin/university/applications/stats', token)
+      if (response && response.data) {
+        setAppStats(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch university application stats:', error)
+    }
+  }
+
+  const fetchApplications = async (pageNum = appPage) => {
+    setLoadingApps(true)
+    try {
+      let url = `/admin/university/applications?page=${pageNum}&limit=50`
+      if (appSearch.trim()) url += `&search=${encodeURIComponent(appSearch.trim())}`
+
+      const response = await apiService.get(url, token)
+      if (response && response.data) {
+        setApplications(response.data)
+        setAppTotalPages(response.meta?.totalPages || 1)
+      }
+    } catch (error) {
+      console.error('Failed to fetch university applications:', error)
+      showToast('Failed to load full applications', true)
+    } finally {
+      setLoadingApps(false)
+    }
+  }
 
   const fetchStats = async () => {
     setLoadingStats(true)
@@ -95,12 +166,23 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
   }
 
   useEffect(() => {
+    fetchAppStats()
     fetchStats()
   }, [])
 
   useEffect(() => {
-    fetchRecords(page)
-  }, [page, typeFilter])
+    if (activeTab === 'APPLICATIONS') {
+      fetchApplications(appPage)
+    } else {
+      fetchRecords(page)
+    }
+  }, [activeTab, appPage, page, typeFilter])
+
+  const handleAppSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setAppPage(1)
+    fetchApplications(1)
+  }
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,10 +191,130 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
   }
 
   const handleRefresh = () => {
+    fetchAppStats()
     fetchStats()
-    fetchRecords(page)
-    showToast('Early access records refreshed')
+    if (activeTab === 'APPLICATIONS') {
+      fetchApplications(appPage)
+    } else {
+      fetchRecords(page)
+    }
+    showToast('Records refreshed')
   }
+
+  // Column definitions for University Applications DataTable
+  const appColumns: ColumnDef<UniversityApplicationRecord>[] = [
+    {
+      key: 'applicant',
+      label: 'Applicant Name & Email',
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.email}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'contact',
+      label: 'WhatsApp',
+      render: (row) => {
+        const rawPhone = row.whatsapp || ''
+        const cleanPhone = rawPhone.replace(/[^0-9+]/g, '')
+        return (
+          <a
+            href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#25D366',
+              fontWeight: 500,
+              fontSize: '13px',
+              textDecoration: 'none',
+            }}
+            onClick={(e) => {
+              if (!cleanPhone) e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
+            <Phone size={14} />
+            {rawPhone || 'N/A'}
+          </a>
+        )
+      },
+    },
+    {
+      key: 'city',
+      label: 'City & Age',
+      render: (row) => (
+        <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <MapPin size={13} color="var(--accent)" />
+            <b>{row.city}</b>
+          </span>
+          <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span>
+          <span>{row.ageBracket}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'occupation',
+      label: 'Occupation & Exp',
+      render: (row) => (
+        <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+          <div><b>{row.occupation || 'Not specified'}</b></div>
+          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{row.experienceLevel || 'Beginner'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => (
+        <span
+          style={{
+            padding: '4px 10px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: 600,
+            background: row.status === 'SUBMITTED' ? '#fff7ed' : row.status === 'ADMITTED' ? '#f0f7f2' : '#f3f4f6',
+            color: row.status === 'SUBMITTED' ? '#c2410c' : row.status === 'ADMITTED' ? '#166534' : '#4b5563',
+            border: `1px solid ${row.status === 'SUBMITTED' ? '#ffedd5' : row.status === 'ADMITTED' ? '#bbf7d0' : '#e5e7eb'}`,
+          }}
+        >
+          {row.status}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'Applied Date',
+      render: (row) => (
+        <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+          {new Date(row.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      render: (row) => (
+        <button
+          onClick={() => setSelectedApp(row)}
+          className="btn btn-secondary btn-sm"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
+        >
+          <Eye size={14} />
+          View Application
+        </button>
+      ),
+    },
+  ]
 
   // Column definitions for DataTable
   const columns: ColumnDef<EarlyAccessRecord>[] = [
@@ -162,10 +364,11 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
       key: 'contact',
       label: 'WhatsApp / Contact',
       render: (row) => {
-        const cleanPhone = row.whatsapp.replace(/[^0-9+]/g, '')
+        const rawPhone = row.whatsapp || ''
+        const cleanPhone = rawPhone.replace(/[^0-9+]/g, '')
         return (
           <a
-            href={`https://wa.me/${cleanPhone}`}
+            href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -177,10 +380,13 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
               fontSize: '13px',
               textDecoration: 'none',
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              if (!cleanPhone) e.preventDefault()
+              e.stopPropagation()
+            }}
           >
             <Phone size={14} />
-            {row.whatsapp}
+            {rawPhone || 'N/A'}
           </a>
         )
       },
@@ -295,10 +501,10 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
           </Link>
           <div>
             <h1 className="section-title" style={{ margin: 0 }}>
-              Upward University Early Access
+              Upward University Management
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-              Student Founding Cohort 2026 & Landlord Programme registrations
+              Review cohort applications, applicant profiles, and early access leads
             </p>
           </div>
         </div>
@@ -310,6 +516,50 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
         >
           <RefreshCcw size={16} />
           Refresh
+        </button>
+      </div>
+
+      {/* ── Main Section Tabs ── */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+        <button
+          onClick={() => setActiveTab('APPLICATIONS')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'APPLICATIONS' ? '#8A4A2A' : 'transparent',
+            color: activeTab === 'APPLICATIONS' ? '#fff' : 'var(--text-secondary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <GraduationCap size={16} />
+          Full Student Applications ({appStats?.totalApplications || 0})
+        </button>
+        <button
+          onClick={() => setActiveTab('EARLY_ACCESS')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'EARLY_ACCESS' ? '#8A4A2A' : 'transparent',
+            color: activeTab === 'EARLY_ACCESS' ? '#fff' : 'var(--text-secondary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Users size={16} />
+          Early Access & Info Leads ({stats?.totalSubmissions || 0})
         </button>
       </div>
 
@@ -434,126 +684,192 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
         </div>
       </div>
 
-      {/* ── Type Tabs & Search Controls ── */}
-      <div
-        className="card"
-        style={{
-          padding: '16px',
-          borderRadius: '14px',
-          marginBottom: '20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}
-      >
-        {/* Type Filter Pills */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => {
-              setTypeFilter('ALL')
-              setPage(1)
-            }}
+      {activeTab === 'APPLICATIONS' ? (
+        <>
+          {/* ── Applications Search Controls ── */}
+          <div
+            className="card"
             style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: typeFilter === 'ALL' ? '1px solid var(--accent)' : '1px solid var(--border)',
-              background: typeFilter === 'ALL' ? 'var(--accent)' : 'transparent',
-              color: typeFilter === 'ALL' ? '#fff' : 'var(--text-secondary)',
-              transition: 'all 0.15s ease',
+              padding: '16px',
+              borderRadius: '14px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
             }}
           >
-            All Submissions ({stats?.totalSubmissions || 0})
-          </button>
-          <button
-            onClick={() => {
-              setTypeFilter('STUDENT')
-              setPage(1)
-            }}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: typeFilter === 'STUDENT' ? '1px solid #d97757' : '1px solid var(--border)',
-              background: typeFilter === 'STUDENT' ? '#d97757' : 'transparent',
-              color: typeFilter === 'STUDENT' ? '#fff' : 'var(--text-secondary)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Students ({stats?.studentCount || 0})
-          </button>
-          <button
-            onClick={() => {
-              setTypeFilter('LANDLORD')
-              setPage(1)
-            }}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: typeFilter === 'LANDLORD' ? '1px solid #166534' : '1px solid var(--border)',
-              background: typeFilter === 'LANDLORD' ? '#166534' : 'transparent',
-              color: typeFilter === 'LANDLORD' ? '#fff' : 'var(--text-secondary)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            Landlords ({stats?.landlordCount || 0})
-          </button>
-        </div>
-
-        {/* Search Input */}
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
-          <div style={{ position: 'relative' }}>
-            <Search
-              size={16}
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-muted)',
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Search by name, whatsapp, email, city..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                paddingLeft: '36px',
-                paddingRight: '12px',
-                height: '38px',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                fontSize: '13px',
-                width: '280px',
-              }}
-            />
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Full Cohort Applications ({appStats?.totalApplications || 0})
+            </div>
+            <form onSubmit={handleAppSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ position: 'relative' }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search applications..."
+                  value={appSearch}
+                  onChange={(e) => setAppSearch(e.target.value)}
+                  style={{
+                    paddingLeft: '36px',
+                    paddingRight: '12px',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    width: '280px',
+                  }}
+                />
+              </div>
+              <button type="submit" className="btn btn-secondary" style={{ height: '38px' }}>
+                Search
+              </button>
+            </form>
           </div>
-          <button type="submit" className="btn btn-secondary" style={{ height: '38px' }}>
-            Search
-          </button>
-        </form>
-      </div>
 
-      {/* ── Table Component ── */}
-      <DataTable<EarlyAccessRecord>
-        data={records}
-        columns={columns}
-        keyExtractor={(item) => item.id}
-        isLoading={loading}
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
+          <DataTable<UniversityApplicationRecord>
+            data={applications}
+            columns={appColumns}
+            keyExtractor={(item) => item.id}
+            isLoading={loadingApps}
+            currentPage={appPage}
+            totalPages={appTotalPages}
+            onPageChange={setAppPage}
+          />
+        </>
+      ) : (
+        <>
+          {/* ── Early Access Type Tabs & Search Controls ── */}
+          <div
+            className="card"
+            style={{
+              padding: '16px',
+              borderRadius: '14px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
+            {/* Type Filter Pills */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  setTypeFilter('ALL')
+                  setPage(1)
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: typeFilter === 'ALL' ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  background: typeFilter === 'ALL' ? 'var(--accent)' : 'transparent',
+                  color: typeFilter === 'ALL' ? '#fff' : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                All Submissions ({stats?.totalSubmissions || 0})
+              </button>
+              <button
+                onClick={() => {
+                  setTypeFilter('STUDENT')
+                  setPage(1)
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: typeFilter === 'STUDENT' ? '1px solid #d97757' : '1px solid var(--border)',
+                  background: typeFilter === 'STUDENT' ? '#d97757' : 'transparent',
+                  color: typeFilter === 'STUDENT' ? '#fff' : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Students ({stats?.studentCount || 0})
+              </button>
+              <button
+                onClick={() => {
+                  setTypeFilter('LANDLORD')
+                  setPage(1)
+                }}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: typeFilter === 'LANDLORD' ? '1px solid #166534' : '1px solid var(--border)',
+                  background: typeFilter === 'LANDLORD' ? '#166534' : 'transparent',
+                  color: typeFilter === 'LANDLORD' ? '#fff' : 'var(--text-secondary)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Landlords ({stats?.landlordCount || 0})
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ position: 'relative' }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search by name, whatsapp, email, city..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    paddingLeft: '36px',
+                    paddingRight: '12px',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    width: '280px',
+                  }}
+                />
+              </div>
+              <button type="submit" className="btn btn-secondary" style={{ height: '38px' }}>
+                Search
+              </button>
+            </form>
+          </div>
+
+          <DataTable<EarlyAccessRecord>
+            data={records}
+            columns={columns}
+            keyExtractor={(item) => item.id}
+            isLoading={loading}
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </>
+      )}
 
       {/* ── Detail Modal ── */}
       <Modal
@@ -753,6 +1069,142 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Full Application Detail Modal ── */}
+      <Modal
+        isOpen={!!selectedApp}
+        onClose={() => setSelectedApp(null)}
+        title={selectedApp?.name || 'Full Cohort Application'}
+        description={
+          selectedApp ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '4px',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: '#fff7ed',
+                color: '#c2410c',
+              }}
+            >
+              Founding Cohort 2026 • Applied {new Date(selectedApp.createdAt).toLocaleDateString()}
+            </span>
+          ) : undefined
+        }
+        icon={<GraduationCap size={20} />}
+        maxWidth="640px"
+        footerActions={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <button className="btn btn-secondary" onClick={() => setSelectedApp(null)}>
+              Close
+            </button>
+          </div>
+        }
+      >
+        {selectedApp && (
+          <div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr',
+                gap: '12px',
+                marginBottom: '20px',
+              }}
+            >
+              <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  WhatsApp Contact
+                </div>
+                <div style={{ fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
+                  {selectedApp.whatsapp}
+                </div>
+              </div>
+              <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Email Address
+                </div>
+                <div style={{ fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                  {selectedApp.email}
+                </div>
+              </div>
+              <div style={{ background: '#f9fafb', padding: '12px', borderRadius: '8px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  City & Age
+                </div>
+                <div style={{ fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
+                  {selectedApp.city} ({selectedApp.ageBracket})
+                </div>
+              </div>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#8A4A2A' }}>
+                Application Questionnaire Responses
+              </h4>
+
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Occupation:
+                </span>
+                <div style={{ fontWeight: 600, fontSize: '13px', marginTop: '2px' }}>
+                  {selectedApp.occupation || 'Not specified'}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Real Estate Experience:
+                </span>
+                <div style={{ fontWeight: 600, fontSize: '13px', marginTop: '2px' }}>
+                  {selectedApp.experienceLevel || 'Beginner'}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Goals / Desired Outcomes:
+                </span>
+                <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
+                  {selectedApp.goals || 'N/A'}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Can commit 6–8 hours/week?
+                </span>
+                <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
+                  {selectedApp.commitment}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Why Upward University?
+                </span>
+                <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
+                  {selectedApp.why}
+                </div>
+              </div>
+
+              {selectedApp.timing && (
+                <div style={{ marginBottom: '14px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Why is now the right time?
+                  </span>
+                  <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
+                    {selectedApp.timing}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Modal>
