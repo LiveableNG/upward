@@ -18,8 +18,9 @@ export class PrismaUniversityApplicationRepository
   async save(application: UniversityApplication): Promise<UniversityApplication> {
     const rawData = application.toObject()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const created = await (this.prisma as any).upward_university_application.create({
-      data: {
+    const created = await (this.prisma as any).upward_university_application.upsert({
+      where: { id: rawData.id },
+      create: {
         id: rawData.id,
         name: rawData.name,
         whatsapp: rawData.whatsapp,
@@ -35,6 +36,12 @@ export class PrismaUniversityApplicationRepository
         status: rawData.status || 'SUBMITTED',
         applicationFee: rawData.applicationFee ?? 5000,
         feeStatus: rawData.feeStatus || 'PENDING',
+        paymentRef: rawData.paymentRef ?? null,
+        notes: rawData.notes ?? null,
+      },
+      update: {
+        status: rawData.status,
+        feeStatus: rawData.feeStatus,
         paymentRef: rawData.paymentRef ?? null,
         notes: rawData.notes ?? null,
       },

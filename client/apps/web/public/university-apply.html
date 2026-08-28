@@ -126,16 +126,30 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   /* FORM STYLES */
   .apply-form-box { background: var(--white); border: 1px solid var(--sand); border-radius: var(--radius-lg); padding: 40px; box-shadow: var(--shadow); }
   @media(max-width:600px){ .apply-form-box { padding: 24px; } }
-  .field { margin-bottom: 20px; }
+  .field { margin-bottom: 20px; position: relative; }
   .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 7px; color: var(--ink); }
-  .field input, .field select, .field textarea { width: 100%; padding: 13px 15px; border-radius: 10px; border: 1.5px solid var(--sand); font-family: 'Inter', sans-serif; font-size: 14.5px; background: var(--paper); color: var(--ink); transition: border-color .18s ease; }
+  .field label .req-asterisk { color: #dc2626; margin-left: 3px; font-weight: 800; }
+  .field input, .field select, .field textarea { width: 100%; padding: 13px 15px; border-radius: 10px; border: 1.5px solid var(--sand); font-family: 'Inter', sans-serif; font-size: 14.5px; background: var(--paper); color: var(--ink); transition: all .18s ease; }
   .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--rust); background: var(--white); }
+  .field.has-error input, .field.has-error select, .field.has-error textarea { border-color: #dc2626 !important; background: #fff5f5; }
+  .error-text { display: none; color: #dc2626; font-size: 12px; font-weight: 600; margin-top: 5px; animation: fadeIn .2s ease-in; }
+  .field.has-error .error-text { display: block; }
   .field textarea { min-height: 95px; resize: vertical; line-height: 1.45; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media(max-width:580px){ .form-row { grid-template-columns: 1fr; } }
-  .checkbox-field { display: flex; align-items: flex-start; gap: 10px; margin: 24px 0; }
+  .checkbox-field { display: flex; flex-direction: column; gap: 6px; margin: 24px 0; }
+  .checkbox-field-inner { display: flex; align-items: flex-start; gap: 10px; }
   .checkbox-field input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--rust); flex-shrink: 0; cursor: pointer; }
   .checkbox-field label { font-size: 13.5px; font-weight: 600; color: var(--ink-soft); line-height: 1.45; cursor: pointer; }
+  .checkbox-field.has-error label { color: #dc2626; }
+  .checkbox-field.has-error .error-text { display: block; margin-left: 28px; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+  }
+  .shake-target { animation: shake 0.4s ease-in-out; }
 
   .form-success { display: none; text-align: center; padding: 36px 0; }
   .form-success.show { display: block; }
@@ -370,32 +384,36 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     </div>
 
     <div class="apply-form-box">
-      <form id="universityApplyForm">
+      <form id="universityApplyForm" novalidate>
         <div class="form-row">
-          <div class="field">
-            <label for="name">Full name</label>
+          <div class="field" id="field-name">
+            <label for="name">Full name <span class="req-asterisk">*</span></label>
             <input id="name" type="text" required placeholder="Your full name">
+            <div class="error-text">Please enter your full name</div>
           </div>
-          <div class="field">
-            <label for="whatsapp">WhatsApp number</label>
+          <div class="field" id="field-whatsapp">
+            <label for="whatsapp">WhatsApp number <span class="req-asterisk">*</span></label>
             <input id="whatsapp" type="tel" required placeholder="+234">
+            <div class="error-text">Please enter a valid WhatsApp phone number</div>
           </div>
         </div>
 
         <div class="form-row">
-          <div class="field">
-            <label for="email">Email address</label>
+          <div class="field" id="field-email">
+            <label for="email">Email address <span class="req-asterisk">*</span></label>
             <input id="email" type="email" required placeholder="you@email.com">
+            <div class="error-text">Please enter a valid email address</div>
           </div>
-          <div class="field">
-            <label for="city">City</label>
+          <div class="field" id="field-city">
+            <label for="city">City <span class="req-asterisk">*</span></label>
             <input id="city" type="text" required placeholder="e.g. Lagos, Abuja, Port Harcourt">
+            <div class="error-text">Please enter your city</div>
           </div>
         </div>
 
         <div class="form-row">
-          <div class="field">
-            <label for="age">Age bracket</label>
+          <div class="field" id="field-age">
+            <label for="age">Age bracket <span class="req-asterisk">*</span></label>
             <select id="age" required>
               <option value="">Select age bracket</option>
               <option>18–20</option>
@@ -404,46 +422,52 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
               <option>31–40</option>
               <option>41+</option>
             </select>
+            <div class="error-text">Please select your age bracket</div>
           </div>
-          <div class="field">
+          <div class="field" id="field-occupation">
             <label for="occupation">Current occupation</label>
             <input id="occupation" type="text" placeholder="Student, Freelancer, Employed...">
           </div>
         </div>
 
-        <div class="field">
+        <div class="field" id="field-exp">
           <label for="exp">Real estate experience</label>
           <textarea id="exp" placeholder="Describe any previous experience in real estate or property (optional)"></textarea>
         </div>
 
-        <div class="field">
+        <div class="field" id="field-goals">
           <label for="goals">What do you want to achieve?</label>
           <textarea id="goals" placeholder="Employment, property management business, brokerage business, part-time start, existing career/business, exploration..."></textarea>
         </div>
 
-        <div class="field">
-          <label for="commitment">Can you commit 6–8 hours every week?</label>
+        <div class="field" id="field-commitment">
+          <label for="commitment">Can you commit 6–8 hours every week? <span class="req-asterisk">*</span></label>
           <select id="commitment" required>
             <option value="">Select option</option>
             <option>Yes</option>
             <option>Not sure</option>
             <option>No</option>
           </select>
+          <div class="error-text">Please select your weekly commitment</div>
         </div>
 
-        <div class="field">
-          <label for="why">Why do you want to join Upward University?</label>
+        <div class="field" id="field-why">
+          <label for="why">Why do you want to join Upward University? <span class="req-asterisk">*</span></label>
           <textarea id="why" required placeholder="Tell us what motivates you to join this cohort"></textarea>
+          <div class="error-text">Please tell us why you want to join</div>
         </div>
 
-        <div class="field">
+        <div class="field" id="field-timing">
           <label for="timing">What makes now the right time?</label>
           <textarea id="timing" placeholder="Tell us why this timing works for you"></textarea>
         </div>
 
-        <div class="checkbox-field">
-          <input type="checkbox" id="termsCheck" required>
-          <label for="termsCheck">I understand the ₦5,000 application fee is credited if admitted and refunded if I do not qualify.</label>
+        <div class="checkbox-field" id="field-terms">
+          <div class="checkbox-field-inner">
+            <input type="checkbox" id="termsCheck" required>
+            <label for="termsCheck">I understand the ₦5,000 application fee is credited if admitted and refunded if I do not qualify. <span class="req-asterisk">*</span></label>
+          </div>
+          <div class="error-text">You must confirm your understanding of the application fee</div>
         </div>
 
         <button type="submit" class="btn btn-primary" style="width:100%; font-size:16px; padding:16px;">Continue to ₦5,000 Application Payment →</button>
@@ -541,9 +565,60 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 
   const form = document.getElementById('universityApplyForm');
   if(form) {
+    const requiredFieldConfigs = [
+      { id: 'name', fieldId: 'field-name', validate: val => val.trim().length > 0 },
+      { id: 'whatsapp', fieldId: 'field-whatsapp', validate: val => val.trim().length >= 6 },
+      { id: 'email', fieldId: 'field-email', validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) },
+      { id: 'city', fieldId: 'field-city', validate: val => val.trim().length > 0 },
+      { id: 'age', fieldId: 'field-age', validate: val => val !== '' },
+      { id: 'commitment', fieldId: 'field-commitment', validate: val => val !== '' },
+      { id: 'why', fieldId: 'field-why', validate: val => val.trim().length > 0 },
+      { id: 'termsCheck', fieldId: 'field-terms', isCheckbox: true, validate: (val, el) => el.checked }
+    ];
+
+    // Clear error style on input/change
+    requiredFieldConfigs.forEach(cfg => {
+      const el = document.getElementById(cfg.id);
+      const container = document.getElementById(cfg.fieldId);
+      if (el && container) {
+        const clearErr = () => container.classList.remove('has-error');
+        el.addEventListener('input', clearErr);
+        el.addEventListener('change', clearErr);
+      }
+    });
+
     const submitBtn = form.querySelector('button[type="submit"]');
     form.addEventListener('submit', async function(e){
       e.preventDefault();
+
+      let hasError = false;
+      let firstErrorEl = null;
+
+      requiredFieldConfigs.forEach(cfg => {
+        const el = document.getElementById(cfg.id);
+        const container = document.getElementById(cfg.fieldId);
+        if (el && container) {
+          const isValid = cfg.validate(el.value, el);
+          if (!isValid) {
+            hasError = true;
+            container.classList.add('has-error');
+            if (!firstErrorEl) firstErrorEl = container;
+          } else {
+            container.classList.remove('has-error');
+          }
+        }
+      });
+
+      if (hasError) {
+        if (firstErrorEl) {
+          firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstErrorEl.classList.remove('shake-target');
+          void firstErrorEl.offsetWidth; // trigger reflow
+          firstErrorEl.classList.add('shake-target');
+        }
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting...';
 
@@ -567,24 +642,148 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          console.warn('Application submission returned error:', errData);
-        }
-      } catch (err) {
-        console.error('Network error during submission:', err);
-      } finally {
+        
+        const serverData = await res.json().catch(() => ({}));
+
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
           window.fbq('track', 'SubmitApplication', { content_name: 'Detailed Student Application' });
           window.fbq('track', 'Lead', { content_name: 'Detailed Application Lead' });
         }
-        form.style.display = 'none';
-        const successEl = document.getElementById('formSuccess');
-        const firstName = payload.name.trim().split(' ')[0];
-        if (firstName) {
-          successEl.querySelector('h3').textContent = `Thank you, ${firstName}! Application received.`;
+
+        // If applicant has ALREADY paid (verified via backend), skip Paystack checkout & show immediate success
+        if (serverData && serverData.isAlreadyPaid) {
+          form.style.display = 'none';
+          const successEl = document.getElementById('formSuccess');
+          const firstName = payload.name.trim().split(' ')[0];
+          if (firstName) {
+            successEl.querySelector('h3').textContent = `Welcome back, ${firstName}! Application & Fee Verified.`;
+          }
+          successEl.querySelector('p').textContent = `Your application details have been updated and your ₦5,000 application fee is already fully paid & verified. Our admissions team will contact you shortly via WhatsApp.`;
+          successEl.classList.add('show');
+          return;
         }
-        successEl.classList.add('show');
+
+        // Fetch live Paystack Public Key dynamically from backend config
+        let paystackKey = window.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
+        if (!paystackKey) {
+          try {
+            const configRes = await fetch('/api/v1/university/application/config');
+            const configData = await configRes.json();
+            if (configData && configData.paystackPublicKey) {
+              paystackKey = configData.paystackPublicKey;
+            }
+          } catch (err) {
+            console.warn('Could not fetch paystack config from server', err);
+          }
+        }
+        if (!paystackKey) {
+          paystackKey = 'pk_test_94085bb9372f06603b4ed07b88a69383e4206f3c';
+        }
+
+        const startPaystackPayment = () => {
+          if (typeof window.PaystackPop !== 'undefined') {
+            const handler = new window.PaystackPop();
+            handler.newTransaction({
+              key: paystackKey,
+              email: payload.email,
+              amount: 5000 * 100, // ₦5,000 in kobo
+              currency: 'NGN',
+              ref: 'UPW_APP_' + Math.floor((Math.random() * 1000000000) + 1),
+              metadata: {
+                custom_fields: [
+                  { display_name: "Applicant Name", variable_name: "applicant_name", value: payload.name },
+                  { display_name: "WhatsApp Number", variable_name: "whatsapp_number", value: payload.whatsapp },
+                  { display_name: "City", variable_name: "city", value: payload.city }
+                ]
+              },
+              onSuccess: async function(response) {
+                // Sync payment verification to backend
+                try {
+                  await fetch('/api/v1/university/application', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      ...payload,
+                      feeStatus: 'PAID',
+                      paymentRef: response.reference
+                    })
+                  });
+                } catch (e) {
+                  console.error('Failed to sync payment status to server', e);
+                }
+
+                form.style.display = 'none';
+                const successEl = document.getElementById('formSuccess');
+                const firstName = payload.name.trim().split(' ')[0];
+                if (firstName) {
+                  successEl.querySelector('h3').textContent = `Thank you, ${firstName}! Application & Fee Payment Received.`;
+                }
+                successEl.querySelector('p').textContent = `Your ₦5,000 application fee payment (Ref: ${response.reference}) was verified successfully! Our admissions team will reach out via WhatsApp with next steps.`;
+                successEl.classList.add('show');
+              },
+              onCancel: async function() {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Continue to ₦5,000 Application Payment →';
+                
+                // Trigger email notification for exited/canceled checkout
+                try {
+                  await fetch('/api/v1/university/application', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      ...payload,
+                      sendEmail: true
+                    })
+                  });
+                } catch (e) {
+                  console.warn('Failed to send exit email trigger', e);
+                }
+
+                form.style.display = 'none';
+                const successEl = document.getElementById('formSuccess');
+                const firstName = payload.name.trim().split(' ')[0];
+                if (firstName) {
+                  successEl.querySelector('h3').textContent = `Application Saved, ${firstName}!`;
+                }
+                successEl.querySelector('p').textContent = `Your application profile has been saved. Please check your email inbox (${payload.email}) or WhatsApp for instructions to complete your ₦5,000 application fee payment.`;
+                successEl.classList.add('show');
+              }
+            });
+          } else {
+            // Trigger email notification for script fallback
+            fetch('/api/v1/university/application', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...payload, sendEmail: true })
+            }).catch(() => {});
+
+            form.style.display = 'none';
+            const successEl = document.getElementById('formSuccess');
+            const firstName = payload.name.trim().split(' ')[0];
+            if (firstName) {
+              successEl.querySelector('h3').textContent = `Application Saved, ${firstName}!`;
+            }
+            successEl.querySelector('p').textContent = `Your application profile has been saved. Please check your email inbox (${payload.email}) to complete your ₦5,000 application fee payment when ready.`;
+            successEl.classList.add('show');
+          }
+        };
+
+        if (typeof window.PaystackPop === 'undefined') {
+          const script = document.createElement('script');
+          script.src = 'https://js.paystack.co/v2/inline.js';
+          script.onload = startPaystackPayment;
+          script.onerror = () => {
+            console.warn('Failed to load Paystack inline JS script');
+            startPaystackPayment();
+          };
+          document.body.appendChild(script);
+        } else {
+          startPaystackPayment();
+        }
+      } catch (err) {
+        console.error('Network error during submission:', err);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Continue to ₦5,000 Application Payment →';
       }
     });
   }

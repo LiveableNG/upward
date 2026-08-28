@@ -131,6 +131,23 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
     }
   }
 
+  const handleUpdateAppStatus = async (id: string, updates: { status?: string; feeStatus?: string; notes?: string }) => {
+    try {
+      const res = await apiService.patch(`/admin/university/applications/${id}`, updates, token)
+      if (res && res.success) {
+        showToast('Application updated successfully')
+        if (selectedApp && selectedApp.id === id) {
+          setSelectedApp(res.data)
+        }
+        fetchApplications(appPage)
+        fetchAppStats()
+      }
+    } catch (err) {
+      console.error('Failed to update application status:', err)
+      showToast('Failed to update application status', true)
+    }
+  }
+
   const fetchStats = async () => {
     setLoadingStats(true)
     try {
@@ -269,8 +286,31 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
       ),
     },
     {
+      key: 'feeStatus',
+      label: 'App Fee (₦5,000)',
+      render: (row) => {
+        const isPaid = row.feeStatus === 'PAID'
+        const isRefunded = row.feeStatus === 'REFUNDED'
+        return (
+          <span
+            style={{
+              padding: '4px 10px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 700,
+              background: isPaid ? '#dcfce7' : isRefunded ? '#fef2f2' : '#fef9c3',
+              color: isPaid ? '#15803d' : isRefunded ? '#991b1b' : '#a16207',
+              border: `1px solid ${isPaid ? '#bbf7d0' : isRefunded ? '#fecaca' : '#fef08a'}`,
+            }}
+          >
+            {isPaid ? '✓ PAID' : isRefunded ? 'REFUNDED' : 'PENDING'}
+          </span>
+        )
+      },
+    },
+    {
       key: 'status',
-      label: 'Status',
+      label: 'Application Status',
       render: (row) => (
         <span
           style={{
@@ -1113,7 +1153,7 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
                 gap: '12px',
                 marginBottom: '20px',
               }}
@@ -1140,6 +1180,14 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 </div>
                 <div style={{ fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
                   {selectedApp.city} ({selectedApp.ageBracket})
+                </div>
+              </div>
+              <div style={{ background: selectedApp.feeStatus === 'PAID' ? '#dcfce7' : '#fef9c3', padding: '12px', borderRadius: '8px', border: `1px solid ${selectedApp.feeStatus === 'PAID' ? '#bbf7d0' : '#fef08a'}` }}>
+                <div style={{ fontSize: '11px', color: selectedApp.feeStatus === 'PAID' ? '#15803d' : '#a16207', textTransform: 'uppercase', fontWeight: 700 }}>
+                  Fee Payment Status
+                </div>
+                <div style={{ fontWeight: 700, marginTop: '2px', color: selectedApp.feeStatus === 'PAID' ? '#15803d' : '#a16207' }}>
+                  {selectedApp.feeStatus === 'PAID' ? '✓ PAID (₦5,000)' : 'PENDING'}
                 </div>
               </div>
             </div>
@@ -1204,6 +1252,64 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* ── Admin Audit & Status Controls ── */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--text-primary)' }}>
+                Admin Audit & Status Management
+              </h4>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>
+                    Application Fee Status (₦5,000)
+                  </label>
+                  <select
+                    value={selectedApp.feeStatus || 'PENDING'}
+                    onChange={(e) => handleUpdateAppStatus(selectedApp.id, { feeStatus: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: selectedApp.feeStatus === 'PAID' ? '#dcfce7' : '#fff',
+                      color: selectedApp.feeStatus === 'PAID' ? '#15803d' : '#0f172a',
+                    }}
+                  >
+                    <option value="PENDING">PENDING (Unpaid)</option>
+                    <option value="PAID">✓ PAID (Offline/Bank/Manual/Paystack)</option>
+                    <option value="REFUNDED">REFUNDED</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>
+                    Cohort Admission Status
+                  </label>
+                  <select
+                    value={selectedApp.status || 'SUBMITTED'}
+                    onChange={(e) => handleUpdateAppStatus(selectedApp.id, { status: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: selectedApp.status === 'ADMITTED' ? '#f0f7f2' : selectedApp.status === 'REJECTED' ? '#fef2f2' : '#fff',
+                      color: selectedApp.status === 'ADMITTED' ? '#166534' : selectedApp.status === 'REJECTED' ? '#991b1b' : '#0f172a',
+                    }}
+                  >
+                    <option value="SUBMITTED">SUBMITTED (Under Review)</option>
+                    <option value="REVIEWED">REVIEWED</option>
+                    <option value="ADMITTED">✓ ADMITTED</option>
+                    <option value="REJECTED">✗ REJECTED</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         )}

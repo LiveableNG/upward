@@ -74,6 +74,7 @@ import { SubmitUniversityApplicationUseCase } from './use-cases/university-appli
 import {
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
+  UpdateUniversityApplicationStatusUseCase,
 } from './use-cases/university-application/get-university-applications-admin.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
@@ -729,6 +730,7 @@ const UseCases: any[] = [
   SubmitUniversityApplicationUseCase,
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
+  UpdateUniversityApplicationStatusUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
   QueueDailySequencesUseCase,

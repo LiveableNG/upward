@@ -1,6 +1,9 @@
 import {
   Controller,
   Get,
+  Patch,
+  Param,
+  Body,
   Query,
   UseGuards,
 } from '@nestjs/common'
@@ -11,6 +14,7 @@ import { AdminRole } from '@upward/shared-types'
 import {
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
+  UpdateUniversityApplicationStatusUseCase,
 } from '../../../application/use-cases/university-application/get-university-applications-admin.use-case'
 
 @Controller('admin/university/applications')
@@ -19,6 +23,7 @@ export class UniversityApplicationAdminController {
   constructor(
     private readonly getStatsUseCase: GetUniversityApplicationStatsUseCase,
     private readonly getApplicationsUseCase: GetUniversityApplicationsUseCase,
+    private readonly updateStatusUseCase: UpdateUniversityApplicationStatusUseCase,
   ) {}
 
   @Get('stats')
@@ -55,6 +60,27 @@ export class UniversityApplicationAdminController {
       success: true,
       data: result.data.map(app => app.toObject()),
       meta: result.meta,
+    }
+  }
+
+  @Patch(':id')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status?: string; feeStatus?: string; paymentRef?: string; notes?: string },
+  ) {
+    const updated = await this.updateStatusUseCase.execute({
+      id,
+      status: body.status,
+      feeStatus: body.feeStatus,
+      paymentRef: body.paymentRef,
+      notes: body.notes,
+    })
+
+    return {
+      success: true,
+      message: 'Application status updated successfully',
+      data: updated.toObject(),
     }
   }
 }

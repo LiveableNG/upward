@@ -60,3 +60,39 @@ export class GetUniversityApplicationsUseCase {
     }
   }
 }
+
+export interface UpdateUniversityApplicationStatusCommand {
+  id: string
+  status?: any
+  feeStatus?: any
+  paymentRef?: string
+  notes?: string
+}
+
+@Injectable()
+export class UpdateUniversityApplicationStatusUseCase {
+  constructor(
+    @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
+    private readonly applicationRepo: IUniversityApplicationRepository,
+  ) {}
+
+  async execute(command: UpdateUniversityApplicationStatusCommand): Promise<UniversityApplication> {
+    const existing = await this.applicationRepo.findById(command.id)
+    if (!existing) {
+      throw new Error(`University application with ID ${command.id} not found`)
+    }
+
+    const currentProps = existing.toObject()
+
+    const updated = UniversityApplication.restore({
+      ...currentProps,
+      status: command.status !== undefined ? command.status : currentProps.status,
+      feeStatus: command.feeStatus !== undefined ? command.feeStatus : currentProps.feeStatus,
+      paymentRef: command.paymentRef !== undefined ? command.paymentRef : currentProps.paymentRef,
+      notes: command.notes !== undefined ? command.notes : currentProps.notes,
+      updatedAt: new Date(),
+    })
+
+    return this.applicationRepo.save(updated)
+  }
+}

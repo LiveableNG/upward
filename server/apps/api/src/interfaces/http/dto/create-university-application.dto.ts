@@ -46,4 +46,15 @@ export class CreateUniversityApplicationDto {
   @IsOptional()
   @IsString()
   timing?: string
+
+  @IsOptional()
+  @IsString()
+  feeStatus?: string
+
+  @IsOptional()
+  @IsString()
+  paymentRef?: string
+
+  @IsOptional()
+  sendEmail?: boolean
 }
