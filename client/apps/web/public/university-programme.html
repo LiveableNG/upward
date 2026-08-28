@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programme — Upward University</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.jpeg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Facebook Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1079928187833425');
+fbq('track', 'PageView');
+fbq('track', 'ViewContent', {
+  content_name: 'Upward University Programme Overview',
+  content_category: 'Education / Real Estate'
+});
+</script>
+<noscript>
+<img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
+</noscript>
+<!-- End Facebook Pixel Code -->
+<style>
+  :root{
+    --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
+    --rust:#8A4A2A; --rust-light:#C97B4A; --rust-wash:#F4E4D8; --sand:#E7E0D2;
+    --forest:#2F7A4F; --white:#FFFFFF;
+    --shadow: 0 20px 50px -20px rgba(21,22,43,0.25);
+    --radius-lg:28px; --radius-md:18px; --maxw:1180px;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter', system-ui, sans-serif; -webkit-font-smoothing:antialiased; line-height:1.5; }
+  h1,h2,h3,h4{ font-family:'Inter Tight','Inter',sans-serif; font-weight:800; letter-spacing:-0.025em; margin:0; color:var(--ink); }
+  em.accent{ font-family:'Fraunces', serif; font-style:italic; font-weight:500; color:var(--rust); }
+  p{margin:0;} a{color:inherit;} img{max-width:100%;display:block;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
+  .eyebrow{ display:inline-flex; align-items:center; font:500 11px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--rust); background:var(--rust-wash); border:1px solid rgba(138,74,42,.18); padding:7px 14px; border-radius:999px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 25px; border-radius:999px; font-weight:800; font-size:14.5px; text-decoration:none; cursor:pointer; border:0; transition:.18s ease; font-family:'Inter', sans-serif; }
+  .btn-primary{ background:var(--rust); color:var(--white); box-shadow:0 10px 24px -10px rgba(138,74,42,0.45); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 16px 30px -12px rgba(138,74,42,0.55); background:#723B20; }
+  .btn-outline{ background:transparent; color:var(--ink); border:1.5px solid var(--sand); }
+  .btn-outline:hover{ border-color:var(--rust); color:var(--rust); }
+
+  header{ position:sticky; top:0; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
+  nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:15px 24px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Inter Tight'; font-weight:800; font-size:16px; letter-spacing:-0.01em; text-decoration:none; color:var(--ink); }
+  .logo .mark{ width:48px; height:48px; border-radius:12px; background:var(--rust); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+  .logo small{ display:block; font-family:'Inter'; font-weight:600; letter-spacing:0.13em; font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; }
+  .nav-links{ display:flex; gap:28px; font-size:13.5px; font-weight:700; color:var(--ink-soft); }
+  .nav-links a{ text-decoration:none; transition:color .18s ease; }
+  .nav-links a:hover, .nav-links a.active{ color:var(--ink); }
+  .nav-right{ display:flex; align-items:center; gap:14px; }
+  .nav-toggle{ display:none; width:38px; height:38px; border-radius:99px; border:1.5px solid var(--sand); background:#fff; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+
+  .nav-home {
+    color: #d97757;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 18px;
+    border-right: 1px solid var(--sand);
+    margin-right: 4px;
+    transition: color 0.2s ease;
+  }
+  .nav-home:hover {
+    color: #c46648;
+    text-decoration: underline;
+  }
+
+  @media(max-width:900px){
+    .nav-links{
+      display:flex; flex-direction:column; gap:0; position:absolute; top:100%; left:0; right:0;
+      background:var(--paper); border-bottom:1px solid var(--sand); padding:6px 24px 14px;
+      max-height:0; overflow:hidden; transition:max-height .25s ease;
+    }
+    .nav-links.open{ max-height:400px; }
+    .nav-links a{ padding:12px 0; border-top:1px solid var(--sand); }
+    .nav-links a:first-child{ border-top:none; }
+    .nav-home{ border-right:none; margin-right:0; padding-right:0; }
+    .nav-toggle{ display:flex; }
+  }
+
+  /* PROGRAMME PAGE STYLING */
+  main{ padding: 50px 0 90px; }
+  section{ padding: 50px 0; }
+  @media(max-width:720px){ section{ padding: 36px 0; } }
+
+  h1{ font-size:clamp(38px,6vw,62px); line-height:1.03; margin:16px 0 18px; max-width:16ch; }
+  .hero-lead{ font-size:18px; color:var(--ink-soft); max-width:640px; line-height:1.5; }
+
+  .sec-head{ max-width:700px; margin-bottom:30px; }
+  .sec-head h2{ font-size:clamp(28px,3.7vw,42px); line-height:1.1; margin-top:12px; }
+  .lead{ font-size:16.5px; color:var(--ink-soft); margin-top:14px; max-width:640px; line-height:1.55; }
+
+  .box{ background:var(--paper-dim); border:1px solid var(--sand); border-radius:var(--radius-lg); padding:44px; margin:0; }
+  @media(max-width:700px){ .box{ padding:30px 20px; } }
+  .box h2{ font-size:clamp(26px,3.2vw,34px); }
+
+  .grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:28px; }
+  @media(max-width:900px){ .grid{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:560px){ .grid{ grid-template-columns:1fr; } }
+  .card{ background:#fff; border:1px solid var(--sand); border-radius:18px; padding:24px; box-shadow:0 4px 16px -8px rgba(21,22,43,0.04); }
+  .card.highlight{ border-color:var(--rust); background:var(--white); box-shadow:0 8px 24px -10px rgba(138,74,42,0.18); }
+  .step-label{ font:500 10.5px var(--mono); color:var(--rust); letter-spacing:.08em; text-transform:uppercase; }
+  .card h3{ font-size:17px; margin:9px 0 6px; }
+  .card p{ font-size:13.5px; color:var(--ink-soft); margin:0; line-height:1.45; }
+
+  .skills-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:28px; }
+  @media(max-width:800px){ .skills-grid{ grid-template-columns:1fr; } }
+  .skill{ background:#fff; border:1px solid var(--sand); border-radius:var(--radius-md); padding:26px; box-shadow:0 4px 16px -8px rgba(21,22,43,0.04); }
+  .skill h3{ font-size:19px; margin-bottom:8px; }
+  .skill p{ font-size:14px; color:var(--ink-soft); line-height:1.45; }
+
+  .value-list{ list-style:none; padding:0; margin:0; display:grid; grid-template-columns:1fr 1fr; gap:12px 24px; }
+  @media(max-width:700px){ .value-list{ grid-template-columns:1fr; } }
+  .value-list li{ font-size:14.5px; display:flex; gap:10px; align-items:flex-start; color:var(--ink); }
+  .tick{ color:var(--rust); font-weight:900; flex-shrink:0; }
+
+  .week-list{ border-top:1px solid var(--sand); margin-top:8px; }
+  .week-item{ border-bottom:1px solid var(--sand); }
+  .week-q{ width:100%; display:flex; align-items:center; gap:18px; padding:20px 0; background:none; border:none; text-align:left; cursor:pointer; font-family:'Inter Tight', sans-serif; }
+  .week-tag{ font:800 11px var(--mono); color:var(--rust); background:var(--rust-wash); border:1px solid rgba(138,74,42,0.2); border-radius:999px; padding:6px 14px; flex-shrink:0; white-space:nowrap; }
+  .week-title{ font-size:16px; font-weight:700; color:var(--ink); flex:1; }
+  .week-plus{ width:26px; height:26px; border:1.5px solid var(--sand); border-radius:50%; position:relative; flex-shrink:0; transition:transform .25s ease, border-color .2s ease; }
+  .week-plus:before,.week-plus:after{ content:''; position:absolute; background:var(--rust); top:50%; left:50%; transform:translate(-50%,-50%); }
+  .week-plus:before{ width:10px; height:1.5px; }
+  .week-plus:after{ width:1.5px; height:10px; transition:opacity .2s ease; }
+  .week-item.open .week-plus{ transform:rotate(180deg); border-color:var(--rust); }
+  .week-item.open .week-plus:after{ opacity:0; }
+  .week-a{ max-height:0; overflow:hidden; transition:max-height .35s ease; }
+  .week-a-inner{ padding:0 0 26px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media(max-width:760px){ .week-a-inner{ grid-template-columns:1fr; } }
+  .week-block .wb-label{ font:500 10px var(--mono); text-transform:uppercase; letter-spacing:.09em; color:var(--rust); margin-bottom:8px; }
+  .week-block h4{ font-size:15px; margin-bottom:6px; }
+  .week-block p{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; white-space:pre-line; }
+  .speaker-badge{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--rust); background:var(--rust-wash); padding:6px 12px; border-radius:999px; margin-top:12px; }
+
+  .fieldwork-grid{ display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+  .fieldwork-grid span{ font-size:12.5px; font-weight:700; background:#fff; border:1px solid var(--sand); padding:9px 14px; border-radius:999px; color:var(--ink-soft); box-shadow:0 2px 8px -4px rgba(21,22,43,0.04); }
+
+  .commitment-card{ background:var(--paper-dim); color:var(--ink); border:1px solid var(--sand); border-radius:var(--radius-lg); padding:44px; }
+  @media(max-width:700px){ .commitment-card{ padding:30px 20px; } }
+
+  footer{ border-top:1px solid var(--sand); padding:44px 0 32px; color:var(--ink-soft); font-size:12.5px; }
+  .flogo{ display:inline-flex; align-items:center; gap:8px; font-family:'Inter Tight'; font-weight:800; font-size:15px; color:var(--ink); }
+
+  /* Floating Contact Widget */
+  .contact-us-float {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #25D366;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 20px;
+    border-radius: 9999px;
+    box-shadow: 0 10px 25px -5px rgba(37, 211, 102, 0.4);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none;
+  }
+  .contact-us-float:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px -5px rgba(37, 211, 102, 0.5);
+    color: #ffffff;
+  }
+  .contact-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .contact-drawer-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .contact-drawer {
+    position: fixed;
+    bottom: 0;
+    right: 24px;
+    width: 100%;
+    max-width: 380px;
+    background: #ffffff;
+    border-radius: 24px;
+    margin-bottom: 80px;
+    padding: 24px;
+    z-index: 70;
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    color: #0f172a;
+    text-align: left;
+  }
+  @media (max-width: 640px) {
+    .contact-drawer {
+      right: 0;
+      margin-bottom: 0;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+  .contact-drawer.is-open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .contact-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .contact-drawer-title {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: #0f172a;
+    margin: 0;
+  }
+  .contact-drawer-close {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .contact-drawer-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  .contact-drawer-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 20px;
+  }
+  .contact-drawer-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .contact-drawer-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .contact-drawer-option:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  .contact-drawer-option-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #e2e8f0;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .contact-drawer-option-icon--whatsapp {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+  .contact-drawer-option-text {
+    display: flex;
+    flex-direction: column;
+  }
+  .contact-drawer-option-label {
+    font-weight: 700;
+    font-size: 14px;
+    color: #0f172a;
+  }
+  .contact-drawer-option-detail {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .contact-link:hover {
+    color: var(--rust) !important;
+    text-decoration: underline;
+    transform: translateX(3px);
+  }
+
+  .reveal{ opacity:0; transform:translateY(16px); transition:.7s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+  @media(prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; } html{ scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a href="/university" class="logo">
+      <span class="mark"><img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;"></span>
+      <div>UPWARD<br><small>University</small></div>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="/" class="nav-home">← Upward Home</a>
+      <a href="/university">Overview</a>
+      <a href="/university/programme" class="active">Full Curriculum</a>
+      <a href="/university/landlord">Free Landlord Course</a>
+    </div>
+    <div class="nav-right">
+      <a class="btn btn-primary" href="/university/apply">Apply</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="#15162B" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<main class="wrap">
+  <div style="height:24px;"></div>
+
+  <span class="eyebrow">The 10-Week Experience</span>
+  <h1>Learn. Build. <em class="accent">Launch.</em> Then grow.</h1>
+  <p class="hero-lead">A practical programme built around doing the work — not sitting through lectures and waiting for a certificate. Property Management, Brokerage and the business skills to turn both into a career or a business.</p>
+
+  <section class="reveal">
+    <div class="box">
+      <span class="eyebrow">Programme Outcome</span>
+      <h2 style="margin-top:14px">Don't just learn. Launch.</h2>
+      <p style="margin-top:10px">Upward University moves students from learning into the market — fast. By Week 4, your professional identity, offer and initial market activity should be ready to launch.</p>
+      <div class="grid">
+        <div class="card"><div class="step-label">Weeks 1–2</div><h3>Design</h3><p>Choose your market, customer, offer and business model.</p></div>
+        <div class="card"><div class="step-label">Week 3</div><h3>Build</h3><p>Business identity, WhatsApp Business, landing page, proposal and pricing.</p></div>
+        <div class="card highlight"><div class="step-label">Week 4</div><h3>Launch</h3><p>Go commercially live and begin outreach to real prospects.</p></div>
+        <div class="card"><div class="step-label">Weeks 5–10</div><h3>Acquire → Earn → Grow</h3><p>Win clients, deliver, earn and build your portfolio.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head"><span class="eyebrow">What You Learn</span><h2>Three skills that work together.</h2></div>
+    <div class="skills-grid">
+      <div class="skill"><h3>Property Management</h3><p>Landlord relationships, rent collection, maintenance, tenant relations and portfolio growth.</p></div>
+      <div class="skill"><h3>Brokerage</h3><p>Finding clients, sourcing opportunities, marketing, viewings, negotiation and closing.</p></div>
+      <div class="skill"><h3>Business</h3><p>Positioning, pricing, prospecting, client acquisition and building a sustainable professional identity.</p></div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head"><span class="eyebrow">By The End</span><h2>What you'll be able to do.</h2><p class="lead">Ten concrete outcomes the programme is built around — not just topics covered, but things you can actually do.</p></div>
+    <ul class="value-list">
+      <li><span class="tick">✓</span> Manage properties professionally.</li>
+      <li><span class="tick">✓</span> Acquire and retain landlords and tenants.</li>
+      <li><span class="tick">✓</span> Market and let properties.</li>
+      <li><span class="tick">✓</span> Handle rent collection, inspections, and maintenance.</li>
+      <li><span class="tick">✓</span> Use technology to improve property operations.</li>
+      <li><span class="tick">✓</span> Communicate and negotiate professionally.</li>
+      <li><span class="tick">✓</span> Understand the legal and regulatory environment.</li>
+      <li><span class="tick">✓</span> Build a professional network and personal brand.</li>
+      <li><span class="tick">✓</span> Generate commercial opportunities — have at least one landlord in your portfolio.</li>
+      <li><span class="tick">✓</span> Eventually, build a property management or brokerage practice.</li>
+    </ul>
+  </section>
+
+  <section class="reveal" id="curriculum">
+    <div class="sec-head"><span class="eyebrow">Full Curriculum</span><h2>Week by week.</h2><p class="lead">Every week pairs a Property Management &amp; Brokerage topic with a business-building lesson or activity, so you're never just learning theory in isolation.</p></div>
+    <div class="week-list" id="weekList">
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Orientation</span><span class="week-title">Program Orientation</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Program Orientation</h4><p>Excellence mindset; possibilities; dreaming big; program expectations; dos and don'ts; code of conduct; professionalism; participation and commitment.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Standing Out as a Business or Career Professional in 2026</h4><p>Panel session with Q&amp;A.
+
+Business activity: start lead generation with 20 potential clients.</p><div class="speaker-badge">Speaker: Azubuike Ezenwoke</div></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week One</span><span class="week-title">Property Management &amp; Brokerage Fundamentals</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Property Management &amp; Brokerage Fundamentals</h4><p>Property management vs. brokerage; understanding the problems landlords have; role of property managers and real estate agents; Nigerian real estate industry; types of property; property lifecycle; brokerage models; agency relationships; income and commission structures; career paths; PM and brokerage fundamentals.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Business Model Canvas</h4><p>Choose a target market, define the type of property/landlord to serve, select a business model, define the service offer, and draft a simple business proposal.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Two</span><span class="week-title">Landlord Acquisition, Onboarding &amp; Property Sourcing</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Landlord Acquisition, Onboarding &amp; Property Sourcing</h4><p>Winning and prospecting landlords; property sourcing; prospecting property owners; landlord qualification; off-market opportunities; property verification; onboarding; property documentation; building inventory; setting expectations; management agreements; landlord communication; client relationship management.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Personal Branding &amp; Business Credibility</h4><p>Professional identity; LinkedIn; social media; credibility; thought leadership; reputation management.
+
+Business activity: choose a business brand name. Build a credible public profile, publish useful property-management content and improve the landlord-facing brochure and proposal.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Three</span><span class="week-title">Client &amp; Tenant Acquisition, Qualification &amp; Screening</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Client &amp; Tenant Acquisition, Qualification &amp; Screening</h4><p>Prospecting; lead generation; finding tenants and clients; buyer/tenant profiling; client needs analysis; lead and tenant qualification; KYC; tenant screening; rental applications; tenant risk assessment; client and tenant communication; tenant onboarding; CRM.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Professional Communication &amp; Business Foundation</h4><p>Email etiquette; WhatsApp communication; professional writing; client conversations; active listening.
+
+Business activity: finalise service packages and pricing, prepare a proposal/management agreement, review prospect list, register a business name and set up social presence.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Four</span><span class="week-title">Property Marketing, Letting &amp; Lead Management</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Property Marketing, Letting &amp; Lead Management</h4><p>Property listings; listing creation; property photography; listing descriptions; pricing; social media and listing platforms; digital marketing; lead generation; viewing coordination; enquiry and lead management; prospect qualification; property viewings; converting enquiries into tenants.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Go To Market: Digital Marketing, Referrals &amp; Brokerage Growth</h4><p>WhatsApp and social media marketing; content creation; creating an online reputation.
+
+Business activity: create a content plan, and develop partnerships with relevant property professionals and service providers.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Five</span><span class="week-title">Tenancy, Rent Management, Negotiation &amp; Closing</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Tenancy, Rent Management, Negotiation &amp; Closing</h4><p>Rental structures in Nigeria; rent collection; agency and management fees; rent reminders; tenancy agreements; renewals; arrears management; notices; rent payment tracking; dispute management; rent and price negotiation; commission negotiation; objection handling; closing techniques.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Setting Up Your Back Office</h4><p>Client reporting templates, core SOPs, compliance/documentation checklists, and a simple operating dashboard for the business.
+
+Visit / pitch to your first 10 leads.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Six</span><span class="week-title">Property Inspections, Viewings &amp; Client Experience</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Property Inspections, Viewings &amp; Client Experience</h4><p>Move-in and move-out inspections; property condition assessment; condition reports; inventory; identifying defects; preventive inspections; inspection documentation and reporting; scheduling and conducting viewings; site etiquette; client qualification; follow-up; converting viewings into tenants.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Financial Management &amp; Business Operations</h4><p>Personal finance for professionals; property cash flow; management fees; commissions; budgeting; basic financial reporting.
+
+Business activity and field work: set up financial tracking and sign up your first client.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Seven</span><span class="week-title">Add-on Partner Services — Valuation, Maintenance &amp; Facilities Management</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Add-on Partner Services — Valuation, Maintenance &amp; Facilities Management</h4><p>Property valuation; maintenance requests; emergency response; work orders; contractor management; preventive maintenance; service charges; budgeting; property preservation; landlord/tenant maintenance responsibilities.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Introduction to Valuation</h4><p>Panel session with NIESV representatives.
+
+Build referral partnership(s) for valuation and facility management. Optional: develop a basic FM value offering.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Eight</span><span class="week-title">Reporting, Documentation, Transaction Management &amp; Compliance</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Reporting, Documentation, Transaction Management &amp; Compliance</h4><p>Property records; offer letters; tenancy documentation; agreements; transaction records; receipts; due diligence; financial reports; inspection and incident reports; document management; audit trails; data management; client reporting; privacy and confidentiality.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Business Advisory Session</h4><p>Review client acquisition progress, review your value proposition, and pitch your next 10 potential clients — with advisors in the room.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Nine</span><span class="week-title">Building a Tech-Driven Property Management Business</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Building a Tech-Driven Property Management Business</h4><p>PropTech fundamentals; digital rent collection; property management software; digital maintenance; automated communication; dashboards; property data; tenant data; AI and automation; PM business models; management fees; acquiring portfolios; service design; client retention; team structure; portfolio growth; profitability; building a PM brand.</p></div>
+          <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Legal, Ethical Practice &amp; Business Growth</h4><p>Professional ethics; client protection; fraud prevention; regulatory awareness; conflicts of interest; professional conduct.
+
+Business activity: integrate technology, legal/ethical controls, and growth systems into the business; review portfolio and revenue; define 90-day growth targets; and present a final Property Management Business Growth Plan.</p></div>
+        </div></div>
+      </div>
+
+      <div class="week-item">
+        <button class="week-q"><span class="week-tag">Week Ten</span><span class="week-title">Case Studies — Critical Thinking, Problem Solving &amp; Offer Design</span><span class="week-plus"></span></button>
+        <div class="week-a"><div class="week-a-inner">
+          <div class="week-block" style="grid-column:1/-1"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Case Studies — Critical Thinking, Problem Solving &amp; Offer Design</h4><p>Spotting discrepancies; analysing property issues; risk assessment; decision-making; landlord/tenant conflicts; maintenance emergencies.</p></div>
+        </div></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="sec-head"><span class="eyebrow">Practical Fieldwork</span><h2>What you'll actually produce.</h2><p class="lead">Real deliverables, not just notes — the kind of work you can show a landlord or an employer.</p></div>
+    <div class="fieldwork-grid">
+      <span>Property inspection report</span><span>Property listing</span><span>Landlord onboarding form</span><span>Tenant screening exercise</span><span>Rent collection/reporting exercise</span><span>Maintenance/work-order exercise</span><span>Professional landlord email</span><span>Tenant notice</span><span>Property marketing campaign</span><span>Landlord acquisition pitch</span><span>Negotiation role-play</span><span>Upward practical exercise</span><span>Property management case study</span>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <div class="commitment-card">
+      <span class="eyebrow">The Commitment</span>
+      <h2 style="margin-top:14px">6–8 hours every week.</h2>
+      <p style="margin-top:10px; color:var(--ink-soft); font-size:15px; max-width:600px;">That includes live learning, practical work, building your assets and market activity. It's designed to fit around work or studies, but it is not passive.</p>
+    </div>
+  </section>
+
+  <section class="reveal" style="text-align:center; padding:30px 0 20px;">
+    <a href="/university/apply" class="btn btn-primary" style="padding:16px 32px; font-size:16px;">Apply for the Cohort →</a>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:24px; align-items:center;">
+    <div>
+      <div class="flogo"><span class="mark" style="width:24px;height:24px;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;"><img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;"></span>UPWARD UNIVERSITY</div>
+      <p style="margin-top:6px;">Part of the Upward housing ecosystem, alongside GoodTenants. Registered in Nigeria.</p>
+      <p style="margin-top:8px;"><a class="back" href="/" style="font-size:13px; color:var(--rust); font-weight:700; text-decoration:none;">← Back to Upward Home</a></p>
+    </div>
+    <div style="font-size:14px; font-weight:600; display:flex; flex-direction:column; gap:8px;">
+      <span style="text-transform:uppercase; font-size:11px; letter-spacing:0.1em; color:var(--rust);">Contact Us</span>
+      <a href="mailto:hello@goodtenants.africa" class="contact-link"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> hello@goodtenants.africa</a>
+      <a href="tel:09040969943" class="contact-link"><i class="fa-solid fa-phone" style="font-size:12px; color:var(--rust);"></i> 09040969943</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Contact Floating Drawer Component -->
+<div id="contact-drawer-overlay" class="contact-drawer-overlay" aria-hidden="true"></div>
+<div class="contact-us-widget">
+    <div id="contact-drawer" class="contact-drawer" role="dialog" aria-modal="true"
+        aria-labelledby="contact-drawer-title" aria-hidden="true">
+        <div class="contact-drawer-header">
+            <h2 id="contact-drawer-title" class="contact-drawer-title">Contact Us</h2>
+            <button type="button" id="contact-drawer-close" class="contact-drawer-close"
+                aria-label="Close contact options">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <p class="contact-drawer-subtitle">Choose how you'd like to reach us.</p>
+        <div class="contact-drawer-options">
+            <a href="https://wa.me/2349040969943?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
+                class="contact-drawer-option" target="_blank" rel="noopener noreferrer">
+                <span class="contact-drawer-option-icon contact-drawer-option-icon--whatsapp" aria-hidden="true">
+                    <i class="fa-brands fa-whatsapp"></i>
+                </span>
+                <span class="contact-drawer-option-text">
+                    <span class="contact-drawer-option-label">Chat on WhatsApp</span>
+                    <span class="contact-drawer-option-detail">Message us anytime</span>
+                </span>
+            </a>
+            <a href="tel:09040969943" class="contact-drawer-option">
+                <span class="contact-drawer-option-icon" aria-hidden="true">
+                    <i class="fa-solid fa-phone"></i>
+                </span>
+                <span class="contact-drawer-option-text">
+                    <span class="contact-drawer-option-label">Call us</span>
+                    <span class="contact-drawer-option-detail">09040969943</span>
+                </span>
+            </a>
+            <a href="mailto:hello@goodtenants.africa?subject=Upward%20Inquiry" class="contact-drawer-option">
+                <span class="contact-drawer-option-icon" aria-hidden="true">
+                    <i class="fa-solid fa-envelope"></i>
+                </span>
+                <span class="contact-drawer-option-text">
+                    <span class="contact-drawer-option-label">Send us an email</span>
+                    <span class="contact-drawer-option-detail">hello@goodtenants.africa</span>
+                </span>
+            </a>
+        </div>
+    </div>
+
+    <button type="button" id="contact-us-btn" class="contact-us-float" aria-label="Contact Us" aria-expanded="false"
+        aria-controls="contact-drawer">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        Contact Us
+    </button>
+</div>
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  if(navToggle && navLinks){
+    navToggle.addEventListener('click', function(){
+      const open = navLinks.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    }));
+  }
+
+  document.querySelectorAll('.week-item').forEach(item => {
+    const q = item.querySelector('.week-q'), a = item.querySelector('.week-a');
+    q.addEventListener('click', () => {
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.week-item').forEach(o => {
+        o.classList.remove('open');
+        o.querySelector('.week-a').style.maxHeight = null;
+      });
+      if(!isOpen) {
+        item.classList.add('open');
+        a.style.maxHeight = a.scrollHeight + 'px';
+      }
+    });
+  });
+
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver(entries => entries.forEach(e => {
+    if(e.isIntersecting) {
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    }
+  }), { threshold: .08 });
+  els.forEach(e => io.observe(e));
+
+  // Contact Drawer Tracking
+  const contactUsBtn = document.getElementById('contact-us-btn');
+  const contactDrawer = document.getElementById('contact-drawer');
+  const contactDrawerOverlay = document.getElementById('contact-drawer-overlay');
+  const contactDrawerClose = document.getElementById('contact-drawer-close');
+
+  function setContactDrawerOpen(open) {
+      if (!contactDrawer || !contactDrawerOverlay) return;
+      contactDrawer.classList.toggle('is-open', open);
+      contactDrawerOverlay.classList.toggle('is-open', open);
+  }
+
+  contactUsBtn?.addEventListener('click', () => setContactDrawerOpen(true));
+  contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
+  contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
+</script>
+
+</body>
+</html>

@@ -28,6 +28,7 @@ const pathMetadata: Record<string, { name: string; category?: string }> = {
   '/app-activity': { name: 'App Activity Logs', category: 'Developer & Security' },
   '/feedback': { name: 'User Feedback', category: 'Developer & Security' },
   '/dev-emails': { name: 'Dev Email Sandbox', category: 'Developer & Security' },
+  '/dev-document-ai': { name: 'Dev Document AI Sandbox', category: 'Developer & Security' },
   '/webhooks': { name: 'Webhook Logs', category: 'Developer & Security' },
   '/logs': { name: 'System Logs', category: 'Developer & Security' },
   '/settings': { name: 'Settings', category: 'Administration' },

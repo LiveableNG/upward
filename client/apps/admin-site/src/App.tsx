@@ -12,6 +12,7 @@ import Logs from './pages/Logs'
 import AppActivity from './pages/AppActivity'
 import Feedback from './pages/Feedback'
 import DevEmails from './pages/DevEmails'
+import DevDocumentAi from './pages/DevDocumentAi'
 import FairnessStories from './pages/FairnessStories'
 import WaitlistCampaigns from './pages/WaitlistCampaigns'
 import EmailLogs from './pages/EmailLogs'
@@ -107,7 +108,10 @@ function AppRoutes() {
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           <Route path="/demo-requests" element={<DemoRequests token={auth.token} />} />
-          <Route path="/university-early-access" element={<UpwardUniversity token={auth.token} />} />
+          <Route
+            path="/university-early-access"
+            element={<UpwardUniversity token={auth.token} />}
+          />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}
@@ -121,7 +125,10 @@ function AppRoutes() {
               <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
               <Route path="/feedback" element={<Feedback token={auth.token} />} />
               {showSandboxTools && (
-                <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />
+                <>
+                  <Route path="/dev-emails" element={<DevEmails token={auth.token} />} />
+                  <Route path="/dev-document-ai" element={<DevDocumentAi token={auth.token} />} />
+                </>
               )}
               <Route path="/webhooks" element={<Webhooks token={auth.token} />} />
               <Route path="/internal-accounts" element={<InternalAccounts token={auth.token} />} />
