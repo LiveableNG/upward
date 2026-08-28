@@ -13,6 +13,8 @@ import { FairnessStoryController } from './public/fairness-story.controller'
 import { WaitlistController } from './public/waitlist.controller'
 import { EarlyAccessController } from './public/early-access.controller'
 import { EarlyAccessAdminController } from './admin/early-access-admin.controller'
+import { UniversityApplicationController } from './public/university-application.controller'
+import { UniversityApplicationAdminController } from './admin/university-application-admin.controller'
 import { LocationsController } from './public/locations.controller'
 import { UserController } from './user/user.controller'
 import { WalletController } from './user/wallet.controller'
@@ -79,6 +81,7 @@ import {
   PmBulkImportController,
   AdminBulkImportController,
 } from './controllers/bulk-import.controller'
+import { PmAiDocumentController } from './controllers/pm-ai-document.controller'
 import { DemoRequestController } from './public/demo-request.controller'
 import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
 
@@ -86,9 +89,17 @@ import { SubscriptionModule } from '../../domains/subscription/subscription.modu
 import { NotificationsGateway } from '../websockets/notifications.gateway'
 
 @Module({
-  imports: [ApplicationModule, AuthModule, AdminLogModule, S3Module, SchedulingModule, SubscriptionModule],
+  imports: [
+    ApplicationModule,
+    AuthModule,
+    AdminLogModule,
+    S3Module,
+    SchedulingModule,
+    SubscriptionModule,
+  ],
   providers: [NotificationsGateway],
   controllers: [
+    PmAiDocumentController,
     SubscriptionController,
     ManualPaymentsController,
     AdminAuthController,
@@ -100,6 +111,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     WaitlistController,
     EarlyAccessController,
     EarlyAccessAdminController,
+    UniversityApplicationController,
+    UniversityApplicationAdminController,
     LocationsController,
     UserController,
     WalletController,

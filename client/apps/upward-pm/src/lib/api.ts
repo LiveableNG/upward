@@ -73,7 +73,8 @@ export const api = {
   bulkAddRentHistory: propertyService.bulkAddRentHistory,
   getPropertyImageUploadUrl: propertyService.getPropertyImageUploadUrl,
   uploadPropertyImage: propertyService.uploadPropertyImage,
-  
+  parseDocumentWithAi: propertyService.parseDocumentWithAi,
+
   // Payments
   getPaymentRequests: paymentService.getPaymentRequests,
   getPaymentRequest: paymentService.getPaymentRequest,
@@ -86,7 +87,6 @@ export const api = {
   getUnresolvedTransactions: paymentService.getUnresolvedTransactions,
   resolveTransaction: paymentService.resolveTransaction,
 
-  
   // Team Collaboration
   inviteTeamMember: pmService.inviteTeamMember,
   getTeamMembers: pmService.getTeamMembers,
@@ -107,8 +107,8 @@ export const api = {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : undefined,
     }),
-  delete: <T = any>(url: string) => 
-    request<T>(url, { 
-      method: 'DELETE' 
+  delete: <T = any>(url: string) =>
+    request<T>(url, {
+      method: 'DELETE',
     }),
 }

@@ -356,7 +356,7 @@
 
 .uni-hero-seats__badge {
   background: var(--uni-paper-dim);
-  border: 1px solid var(--uni-sand);
+  border: 1px solid var(--sand);
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 500;

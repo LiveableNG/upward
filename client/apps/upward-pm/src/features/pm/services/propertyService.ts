@@ -1,86 +1,85 @@
 import { request } from '@/lib/api-client'
 
 export interface Property {
-  id: number;
-  uuid: string;
-  name: string;
-  address: string;
-  totalUnits: number;
-  propertyType: string;
-  imageUrl?: string;
-  country?: string;
-  state?: string;
-  area?: string;
-  landlordName?: string;
-  landlordEmail?: string;
-  landlordPhone?: string;
-  units?: Unit[];
+  id: number
+  uuid: string
+  name: string
+  address: string
+  totalUnits: number
+  propertyType: string
+  imageUrl?: string
+  country?: string
+  state?: string
+  area?: string
+  landlordName?: string
+  landlordEmail?: string
+  landlordPhone?: string
+  units?: Unit[]
 }
 
 export interface Tenant {
-  id: number;
-  uuid: string;
-  commercialName?: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  otherPhone?: string | null;
-  inviteStatus?: string;
-  inviteSentAt?: string;
-  hasReceivedWelcomeTemplate?: boolean;
+  id: number
+  uuid: string
+  commercialName?: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  otherPhone?: string | null
+  inviteStatus?: string
+  inviteSentAt?: string
+  hasReceivedWelcomeTemplate?: boolean
 }
 
 export interface Unit {
-  id: number;
-  uuid: string;
-  propertyId: number;
-  property?: Property;
-  unitName: string;
-  tenantId?: number;
-  tenant?: Tenant; 
-  tenantUuid?: string;
-  tenantFirstName?: string;
-  tenantLastName?: string;
-  tenantEmail?: string;
-  tenantPhone?: string;
-  rentAmount: number;
-  rentStartDate?: string;
-  rentDueDate?: string;
-  rentType: string;
-  managementFee: number;
-  notes?: string;
-  status: string;
-  currency: string;
-  leaseYears?: number;
-  unitType?: string;
-  rentAmountPaid?: number;
-  isFullyPaid?: boolean;
-  rentReminderEnabled: boolean;
-  rentReminderDaysBefore?: number;
+  id: number
+  uuid: string
+  propertyId: number
+  property?: Property
+  unitName: string
+  tenantId?: number
+  tenant?: Tenant
+  tenantUuid?: string
+  tenantFirstName?: string
+  tenantLastName?: string
+  tenantEmail?: string
+  tenantPhone?: string
+  rentAmount: number
+  rentStartDate?: string
+  rentDueDate?: string
+  rentType: string
+  managementFee: number
+  notes?: string
+  status: string
+  currency: string
+  leaseYears?: number
+  unitType?: string
+  rentAmountPaid?: number
+  isFullyPaid?: boolean
+  rentReminderEnabled: boolean
+  rentReminderDaysBefore?: number
 
-
-  isSynced: boolean;
-  userPropertyUuid: string | null;
+  isSynced: boolean
+  userPropertyUuid: string | null
 }
 
 export interface RentPayment {
-  id: number;
-  uuid: string;
-  unitId: number;
-  tenantId?: number;
-  amount: number;
-  rentAmountAtPayment: number;
-  paymentDate: string;
-  periodStart: string | null;
-  periodEnd: string | null;
-  method: string;
-  status: string;
-  notes: string | null;
+  id: number
+  uuid: string
+  unitId: number
+  tenantId?: number
+  amount: number
+  rentAmountAtPayment: number
+  paymentDate: string
+  periodStart: string | null
+  periodEnd: string | null
+  method: string
+  status: string
+  notes: string | null
   tenant?: {
-    firstName: string;
-    lastName: string;
-  };
+    firstName: string
+    lastName: string
+  }
 }
 
 export const getProperties = () => {
@@ -94,20 +93,20 @@ export const getProperty = (uuid: string) => {
 export const createProperty = (data: Partial<Property>) => {
   return request<Property>('/pm/properties', {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
 }
 
 export const updateProperty = (uuid: string, data: Partial<Property>) => {
   return request<Property>(`/pm/properties/${uuid}`, {
     method: 'PATCH',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
 }
 
 export const deleteProperty = (uuid: string) => {
   return request<{ success: boolean }>(`/pm/properties/${uuid}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -123,13 +122,13 @@ export const getUnit = (uuid: string) => {
 export const updateUnit = (uuid: string, data: Partial<Unit>) => {
   return request<Unit>(`/pm/units/${uuid}`, {
     method: 'PATCH',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
 }
 
 export const deleteUnit = (uuid: string) => {
   return request<{ success: boolean }>(`/pm/units/${uuid}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
@@ -140,71 +139,104 @@ export const getUnitPayments = (unitUuid: string) => {
 export const addUnitPayment = (unitUuid: string, data: any) => {
   return request<any>(`/pm/units/${unitUuid}/payments`, {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
 }
 
 export const updateUnitPayment = (unitUuid: string, paymentUuid: string, data: any) => {
   return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
     method: 'PATCH',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
 }
 
 export const deleteUnitPayment = (unitUuid: string, paymentUuid: string) => {
   return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
-    method: 'DELETE'
+    method: 'DELETE',
   })
 }
 
 export const bulkCreateUnits = (propertyUuid: string, units: Partial<Unit>[]) => {
   return request<{ success: boolean; count: number }>('/pm/units/bulk', {
     method: 'POST',
-    body: JSON.stringify({ propertyUuid, units })
+    body: JSON.stringify({ propertyUuid, units }),
   })
 }
 
 export const getPropertyImageUploadUrl = (contentType: string, filename: string) => {
-  return request<{ uploadUrl: string, publicUrl: string, key: string }>('/pm/properties/image-upload-url', {
-    method: 'POST',
-    body: JSON.stringify({ contentType, filename })
-  })
+  return request<{ uploadUrl: string; publicUrl: string; key: string }>(
+    '/pm/properties/image-upload-url',
+    {
+      method: 'POST',
+      body: JSON.stringify({ contentType, filename }),
+    },
+  )
 }
 
-export const uploadPropertyImage = async (params: { base64Data: string, contentType: string, filename?: string }) => {
-  return request<{ publicUrl: string, key: string }>('/pm/properties/image-upload', {
+export const uploadPropertyImage = async (params: {
+  base64Data: string
+  contentType: string
+  filename?: string
+}) => {
+  return request<{ publicUrl: string; key: string }>('/pm/properties/image-upload', {
     method: 'POST',
-    body: JSON.stringify(params)
+    body: JSON.stringify(params),
   })
 }
 
 export const syncToUpward = (unitUuid: string) => {
   return request<void>(`/pm/units/${unitUuid}/sync-to-upward`, {
-    method: 'POST'
+    method: 'POST',
   })
 }
 
 export const bulkFullImport = (data: { rows: any[] }) => {
-  return request<{ success: boolean; propertiesCreated: number; unitsCreated: number; bulkInviteId: string | null }>('/pm/import/bulk', {
+  return request<{
+    success: boolean
+    propertiesCreated: number
+    unitsCreated: number
+    bulkInviteId: string | null
+  }>('/pm/import/bulk', {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   })
 }
 
 export const bulkAddRentHistory = (unitUuid: string, rows: any[]) => {
   return request<any>(`/pm/units/${unitUuid}/payments/bulk`, {
     method: 'POST',
-    body: JSON.stringify({ rows })
+    body: JSON.stringify({ rows }),
   })
 }
 
 export const getLandlords = () => {
-  return request<{ id: number, uuid: string, name: string; email: string; phone: string }[]>('/pm/landlords')
+  return request<{ id: number; uuid: string; name: string; email: string; phone: string }[]>(
+    '/pm/landlords',
+  )
 }
 
-export const createLandlord = (data: { name: string; email: string; phone?: string; company?: string }) => {
+export const createLandlord = (data: {
+  name: string
+  email: string
+  phone?: string
+  company?: string
+}) => {
   return request<any>('/pm/landlords', {
     method: 'POST',
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
+  })
+}
+
+export const parseDocumentWithAi = (params: {
+  base64Data: string
+  contentType: string
+  fileName: string
+  mode: 'full' | 'units'
+  targetPropertyUuid?: string
+  contextHint?: string
+}) => {
+  return request<any[]>('/pm/ai-document/parse', {
+    method: 'POST',
+    body: JSON.stringify(params),
   })
 }
