@@ -123,6 +123,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ToastProvider>
         </ThemeProvider>
 
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-aw-18414957187" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'AW-18414957187');
+          `}
+        </Script>
+
         {GA_ID && (
           <>
             <Script
