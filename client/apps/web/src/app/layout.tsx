@@ -82,6 +82,8 @@ export const metadata: Metadata = {
 }
 
 const GA_ID = process.env['NEXT_PUBLIC_GA_ID']
+// Only enable Google Ads in production (when NEXT_PUBLIC_GA_ID is present)
+const GADS_ID = GA_ID ? (process.env['NEXT_PUBLIC_GADS_ID'] || 'AW-18414957187') : undefined
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -100,15 +102,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 try {
                   // Default to light mode (dark mode support is temporarily disabled)
                   document.documentElement.classList.add('theme--light');
-                  /*
-                  const theme = localStorage.getItem('upward-theme');
-                  const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
-                  if (theme === 'dark' || (theme === 'system' && supportDarkMode) || (!theme && supportDarkMode)) {
-                    document.documentElement.classList.add('theme--dark');
-                  } else {
-                    document.documentElement.classList.add('theme--light');
-                  }
-                  */
                 } catch (e) {}
               })();
             `,
@@ -123,10 +116,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ToastProvider>
         </ThemeProvider>
 
-        {GA_ID && (
+        {(GA_ID || GADS_ID) && (
           <>
             <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID || GADS_ID}`}
               strategy="afterInteractive"
             />
             <Script id="ga-init" strategy="afterInteractive">
@@ -134,7 +127,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                gtag('config', '${GA_ID}', { page_path: window.location.pathname });
+                ${GA_ID ? `gtag('config', '${GA_ID}', { page_path: window.location.pathname });` : ''}
+                ${GADS_ID ? `gtag('config', '${GADS_ID}');` : ''}
               `}
             </Script>
           </>

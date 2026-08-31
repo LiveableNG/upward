@@ -727,6 +727,7 @@
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
           window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Landlord Early Access Lead' });
+          window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
         }
         form.style.display = 'none';
         const successEl = document.getElementById('landlordSuccess');
