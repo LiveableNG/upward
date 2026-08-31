@@ -777,16 +777,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
         }
 
-        // If applicant has ALREADY paid (verified via backend), skip Paystack checkout & show immediate success
+        // If applicant has ALREADY paid (verified via backend), skip Paystack checkout & redirect to thank you page
         if (serverData && serverData.isAlreadyPaid) {
-          form.style.display = 'none';
-          const successEl = document.getElementById('formSuccess');
-          const firstName = payload.name.trim().split(' ')[0];
-          if (firstName) {
-            successEl.querySelector('h3').textContent = `Welcome back, ${firstName}! Application & Fee Verified.`;
-          }
-          successEl.querySelector('p').textContent = `Your application details have been updated and your ₦5,000 application fee is already fully paid & verified. Our admissions team will contact you shortly via WhatsApp.`;
-          successEl.classList.add('show');
+          const firstName = encodeURIComponent(payload.name.trim().split(' ')[0] || '');
+          window.location.href = `/university/thank-you?ref=VERIFIED_PAID&name=${firstName}`;
           return;
         }
 
@@ -839,14 +833,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
                   console.error('Failed to sync payment status to server', e);
                 }
 
-                form.style.display = 'none';
-                const successEl = document.getElementById('formSuccess');
-                const firstName = payload.name.trim().split(' ')[0];
-                if (firstName) {
-                  successEl.querySelector('h3').textContent = `Thank you, ${firstName}! Application & Fee Payment Received.`;
-                }
-                successEl.querySelector('p').textContent = `Your ₦5,000 application fee payment (Ref: ${response.reference}) was verified successfully! Our admissions team will reach out via WhatsApp with next steps.`;
-                successEl.classList.add('show');
+                // Redirect to dedicated Thank You URL for Meta Purchase & Google Ads conversion tracking
+                const firstName = encodeURIComponent(payload.name.trim().split(' ')[0] || '');
+                const ref = encodeURIComponent(response.reference || '');
+                window.location.href = `/university/thank-you?ref=${ref}&name=${firstName}`;
               },
               onCancel: async function() {
                 submitBtn.disabled = false;

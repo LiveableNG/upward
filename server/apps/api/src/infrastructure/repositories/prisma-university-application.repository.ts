@@ -77,6 +77,18 @@ export class PrismaUniversityApplicationRepository
     return UniversityApplication.restore(record as UniversityApplicationProps)
   }
 
+  async findByPaymentRef(paymentRef: string): Promise<UniversityApplication | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const record = await (this.prisma as any).upward_university_application.findFirst({
+      where: { paymentRef },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!record) return null
+
+    return UniversityApplication.restore(record as UniversityApplicationProps)
+  }
+
   async findAll(params?: {
     status?: string
     feeStatus?: string

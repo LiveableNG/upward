@@ -13,6 +13,7 @@ export interface IUniversityApplicationRepository {
   save(application: UniversityApplication): Promise<UniversityApplication>
   findById(id: string): Promise<UniversityApplication | null>
   findByEmail(email: string): Promise<UniversityApplication | null>
+  findByPaymentRef(paymentRef: string): Promise<UniversityApplication | null>
   findAll(params?: {
     status?: string
     feeStatus?: string
