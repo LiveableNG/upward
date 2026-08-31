@@ -121,21 +121,26 @@ function proxyAssetRewrite(
 
 function landingAnalyticsScript(): NextResponse {
   const gaId = process.env.NEXT_PUBLIC_GA_ID
+  // Only enable Google Ads in production (when NEXT_PUBLIC_GA_ID is present)
+  const gadsId = gaId ? (process.env.NEXT_PUBLIC_GADS_ID || 'AW-18414957187') : undefined
+
   if (!gaId) {
-    return new NextResponse('// Google Analytics disabled (NEXT_PUBLIC_GA_ID not set)', {
+    return new NextResponse('// Analytics and Google Ads disabled (NEXT_PUBLIC_GA_ID not set)', {
       headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
     })
   }
 
+  const primaryId = gaId
   const body = `window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 (function () {
   var s = document.createElement('script');
   s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=${gaId}';
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=${primaryId}';
   document.head.appendChild(s);
   gtag('js', new Date());
-  gtag('config', '${gaId}', { page_path: window.location.pathname });
+  ${gaId ? `gtag('config', '${gaId}', { page_path: window.location.pathname });` : ''}
+  ${gadsId ? `gtag('config', '${gadsId}');` : ''}
 })();`
 
   return new NextResponse(body, {
