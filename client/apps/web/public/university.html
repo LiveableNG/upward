@@ -1137,6 +1137,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
           window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
         }
+        if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Student Info Request' });
+        }
         eaForm.style.display = 'none';
         const successEl = document.getElementById('eaFormSuccess');
         const firstName = payload.name.trim().split(' ')[0];
@@ -1173,6 +1176,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
       window.fbq('track', 'Contact', { content_name: 'WhatsApp Contact Drawer' });
     }
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      window.gtag('event', 'contact', { event_category: 'Contact', event_label: 'WhatsApp Contact Drawer' });
+    }
   });
   contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
   contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
@@ -1182,6 +1188,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     btn.addEventListener('click', () => {
       if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
         window.fbq('track', 'InitiateCheckout', { content_name: 'Apply CTA Click' });
+      }
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'begin_checkout', { event_category: 'CTA', event_label: 'Apply CTA Click' });
       }
     });
   });

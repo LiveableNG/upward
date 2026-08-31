@@ -725,6 +725,9 @@
           window.fbq('track', 'SubmitApplication', { content_name: 'Landlord Application' });
           window.fbq('track', 'Lead', { content_name: 'Landlord Early Access Lead' });
         }
+        if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Landlord Early Access Lead' });
+        }
         form.style.display = 'none';
         const successEl = document.getElementById('landlordSuccess');
         const firstName = payload.name.trim().split(' ')[0];
@@ -759,6 +762,9 @@
       if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
         window.fbq('track', 'Contact', { content_name: 'WhatsApp Contact Drawer (Landlord)' });
       }
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'contact', { event_category: 'Contact', event_label: 'WhatsApp Contact Drawer (Landlord)' });
+      }
     });
     contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
     contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
@@ -768,6 +774,9 @@
       btn.addEventListener('click', () => {
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
           window.fbq('track', 'InitiateCheckout', { content_name: 'Landlord Early Access CTA Click' });
+        }
+        if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+          window.gtag('event', 'begin_checkout', { event_category: 'CTA', event_label: 'Landlord Early Access CTA Click' });
         }
       });
     });
