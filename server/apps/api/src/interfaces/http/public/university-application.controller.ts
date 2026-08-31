@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Body,
+  Query,
+  Inject,
   HttpCode,
   HttpStatus,
   UsePipes,
@@ -11,12 +13,18 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { SubmitUniversityApplicationUseCase } from '../../../application/use-cases/university-application/submit-university-application.use-case'
 import { CreateUniversityApplicationDto } from '../dto/create-university-application.dto'
+import {
+  UNIVERSITY_APPLICATION_REPOSITORY,
+  IUniversityApplicationRepository,
+} from '../../../domains/university-application/university-application.repository'
 
 @Controller('university/application')
 export class UniversityApplicationController {
   constructor(
     private readonly submitUniversityApplicationUseCase: SubmitUniversityApplicationUseCase,
     private readonly configService: ConfigService,
+    @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
+    private readonly applicationRepo: IUniversityApplicationRepository,
   ) {}
 
   @Get('config')
@@ -27,6 +35,28 @@ export class UniversityApplicationController {
     return {
       success: true,
       paystackPublicKey: key,
+    }
+  }
+
+  @Get('verify-payment')
+  async verifyPayment(@Query('ref') ref?: string) {
+    if (!ref || ref.trim().length === 0) {
+      return { success: false, verified: false, message: 'Reference missing' }
+    }
+
+    const application = await this.applicationRepo.findByPaymentRef(ref.trim())
+    if (!application) {
+      return { success: false, verified: false, message: 'Application reference not found' }
+    }
+
+    const obj = application.toObject()
+    const isPaid = obj.feeStatus === 'PAID'
+
+    return {
+      success: isPaid,
+      verified: isPaid,
+      name: obj.name,
+      paymentRef: obj.paymentRef,
     }
   }
 

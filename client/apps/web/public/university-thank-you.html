@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application Confirmed — Upward University</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.jpeg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Facebook Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1079928187833425');
+fbq('track', 'PageView');
+
+// Only track Purchase event if payment reference param exists in URL
+(function() {
+  var ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref && typeof fbq === 'function') {
+    fbq('track', 'Purchase', {
+      value: 5000,
+      currency: 'NGN',
+      content_name: 'Upward University Application Fee',
+      content_category: 'Education / Real Estate'
+    });
+  }
+})();
+</script>
+<noscript>
+<img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
+</noscript>
+<!-- End Facebook Pixel Code -->
+
+<style>
+  :root{
+    --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
+    --rust:#8A4A2A; --rust-light:#C97B4A; --rust-wash:#F4E4D8; --sand:#E7E0D2;
+    --forest:#2F7A4F; --white:#FFFFFF;
+    --shadow: 0 20px 50px -20px rgba(21,22,43,0.25);
+    --radius-lg:28px; --radius-md:18px; --maxw:1180px;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter', system-ui, sans-serif; -webkit-font-smoothing:antialiased; line-height:1.5; min-height:100vh; display:flex; flex-direction:column; }
+  h1,h2,h3{ font-family:'Inter Tight','Inter',sans-serif; font-weight:800; letter-spacing:-0.025em; margin:0; color:var(--ink); }
+  em.accent{ font-family:'Fraunces', serif; font-style:italic; font-weight:500; color:var(--rust); }
+  p{margin:0;} a{color:inherit;} img{max-width:100%;display:block;}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px; width:100%;}
+  .eyebrow{ display:inline-flex; align-items:center; font:500 11px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--forest); background:rgba(47,122,79,0.1); border:1px solid rgba(47,122,79,0.2); padding:7px 14px; border-radius:999px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 25px; border-radius:999px; font-weight:800; font-size:14.5px; text-decoration:none; cursor:pointer; border:0; transition:.18s ease; font-family:'Inter', sans-serif; }
+  .btn-primary{ background:var(--rust); color:var(--white); box-shadow:0 10px 24px -10px rgba(138,74,42,0.45); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 16px 30px -12px rgba(138,74,42,0.55); background:#723B20; }
+  .btn-outline{ background:transparent; color:var(--ink); border:1.5px solid var(--sand); }
+  .btn-outline:hover{ border-color:var(--rust); color:var(--rust); }
+
+  header{ position:sticky; top:0; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
+  nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:15px 24px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Inter Tight'; font-weight:800; font-size:16px; letter-spacing:-0.01em; text-decoration:none; color:var(--ink); }
+  .logo .mark{ width:48px; height:48px; border-radius:12px; background:var(--rust); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+  .logo small{ display:block; font-family:'Inter'; font-weight:600; letter-spacing:0.13em; font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; }
+
+  main{ flex:1; display:flex; align-items:center; justify-content:center; padding:60px 24px; }
+  .card{ background:#fff; border:1px solid var(--sand); border-radius:var(--radius-lg); box-shadow:var(--shadow); max-width:640px; width:100%; padding:48px 36px; text-align:center; }
+  .icon-wrap{ width:80px; height:80px; border-radius:50%; background:rgba(47,122,79,0.1); color:var(--forest); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 24px auto; border:2px solid rgba(47,122,79,0.25); }
+  .title{ font-size:30px; line-height:1.2; margin-bottom:14px; }
+  .desc{ font-size:16px; color:var(--ink-soft); line-height:1.6; margin-bottom:32px; }
+  .ref-badge{ display:inline-block; font-family:var(--mono); font-size:13px; font-weight:500; background:var(--paper-dim); color:var(--ink); padding:8px 16px; border-radius:8px; border:1px solid var(--sand); margin-top:8px; }
+  .actions{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; }
+
+  footer{ border-top:1px solid var(--sand); padding:24px; text-align:center; font-size:13px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a href="/university" class="logo">
+      <div class="mark">
+        <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;">
+      </div>
+      <div>
+        Upward University
+        <small>Real Estate & Wealth Institute</small>
+      </div>
+    </a>
+  </nav>
+</header>
+
+<main>
+  <div class="card">
+    <div class="icon-wrap">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+
+    <div class="eyebrow" style="margin-bottom:16px;">
+      <i class="fa-solid fa-shield-halved" style="margin-right:6px;"></i> Payment Confirmed
+    </div>
+
+    <h1 class="title">Application & Fee Payment Received!</h1>
+
+    <p class="desc" id="thankYouMsg" style="margin-bottom: 32px;">
+      Thank you! Your ₦5,000 application fee payment has been successfully verified. Our admissions team will reach out via WhatsApp with your next steps.
+    </p>
+
+    <div class="actions">
+      <a href="/university" class="btn btn-primary">
+        Return to Home
+      </a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    &copy; 2026 Upward University & GoodTenants. All rights reserved.
+  </div>
+</footer>
+
+<script>
+  (async function() {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    const nameFromUrl = params.get('name');
+
+    if (!ref) {
+      window.location.replace('/university/apply');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/v1/university/application/verify-payment?ref=${encodeURIComponent(ref)}`);
+      const data = await res.json().catch(() => ({}));
+
+      // If backend verification fails or feeStatus is not PAID, redirect user away
+      if (!data || !data.verified) {
+        window.location.replace('/university/apply');
+        return;
+      }
+
+      const applicantName = data.name || nameFromUrl;
+      const firstName = applicantName ? applicantName.trim().split(' ')[0] : '';
+      const msgEl = document.getElementById('thankYouMsg');
+
+      if (msgEl && firstName) {
+        msgEl.textContent = `Thank you, ${firstName}! Your ₦5,000 application fee payment was successfully verified. Our admissions team will reach out via WhatsApp with your next steps.`;
+      }
+
+      // Fire Meta Pixel Purchase event ONLY on backend-verified payment
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'Purchase', {
+          value: 5000,
+          currency: 'NGN',
+          content_name: 'Upward University Application Fee',
+          content_category: 'Education / Real Estate'
+        });
+      }
+
+      // Fire Google Ads conversion tracking event ONLY on backend-verified payment
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'conversion', {
+          'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE',
+          'value': 5000.0,
+          'currency': 'NGN',
+          'transaction_id': ref
+        });
+      }
+    } catch (err) {
+      console.warn('Backend payment verification fallback:', err);
+    }
+  })();
+</script>
+
+<script src="/landing-analytics.js" defer></script>
+</body>
+</html>
