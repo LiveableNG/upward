@@ -14,7 +14,8 @@ import {
   MessageCircle,
   Check,
   PanelLeft,
-  Info
+  Info,
+  Sparkles
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -26,6 +27,7 @@ import { useTenants, useTenantActions } from '../../hooks/useTenants'
 import { useDocuments, useVaultActions } from '../../hooks/useDocuments'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useUserLookup } from '../../hooks/useUserLookup'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { RecipientSelectModal } from './RecipientSelectModal'
 import { useCreatePaymentRequest } from '../../hooks/usePayments'
@@ -122,6 +124,7 @@ export function DocumentEditorView({
   const { mutateAsync: createPaymentRequest } = useCreatePaymentRequest()
   const { updateTenant } = useTenantActions()
   const selectedTenant = tenants.find(t => t.uuid === selectedTenantUuid)
+  const { foundUser } = useUserLookup(undefined, selectedTenant?.phone || undefined)
   const contextUnitUuid =
     unitUuid ||
     selectedTenant?.units?.find((u: any) => u.uuid === unitUuid)?.uuid ||
@@ -913,6 +916,43 @@ export function DocumentEditorView({
                 value={tempEmail}
                 onChange={(e) => setTempEmail(e.target.value)}
               />
+
+              {foundUser && foundUser.email && !foundUser.email.endsWith('@upward.com') && (
+                <div style={{
+                  marginTop: 6,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  background: 'rgba(217, 119, 6, 0.08)',
+                  border: '1px solid rgba(217, 119, 6, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  fontSize: 12
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#92400e' }}>
+                    <Sparkles size={14} style={{ flexShrink: 0, color: '#d97706' }} />
+                    <span>Autofill registered email <strong>{foundUser.email}</strong>?</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTempEmail(foundUser.email)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      background: '#d97706',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 600,
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Autofill
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

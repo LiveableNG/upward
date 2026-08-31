@@ -1,9 +1,10 @@
 "use client"
 import React from 'react'
-import { UserPlus, Users, Home, Calendar, CreditCard, ClipboardList } from 'lucide-react'
+import { UserPlus, Users, Home, Calendar, CreditCard, ClipboardList, Sparkles } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { Property } from '../../../services/propertyService'
 import { useTenants } from '../../../hooks/useTenants'
+import { useUserLookup } from '../../../hooks/useUserLookup'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { isValidPhoneNumber } from 'libphonenumber-js'
@@ -89,6 +90,8 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
   React.useEffect(() => {
     if (!isOpen) setAttemptedSave(false)
   }, [isOpen])
+
+  const { foundUser } = useUserLookup(formData.tenantEmail, formData.tenantPhone)
 
   if (!isOpen) return null;
 
@@ -310,52 +313,111 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                     triggerStyle={controlStyle}
                   />
                 </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11 }}>First Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
+              ) : tenantMode === 'NEW' ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: 11 }}>First Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={controlStyle}
+                        placeholder="John"
+                        value={formData.tenantFirstName}
+                        onChange={e => setFormData({ ...formData, tenantFirstName: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: 11 }}>Last Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={controlStyle}
+                        placeholder="Doe"
+                        value={formData.tenantLastName}
+                        onChange={e => setFormData({ ...formData, tenantLastName: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: 11 }}>Email Address</label>
+                      <input
+                        type="email"
+                        className="form-input"
+                        style={controlStyle}
+                        placeholder="john@example.com"
+                        value={formData.tenantEmail}
+                        onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
+                      />
+                      {emailError && <p style={{ color: 'var(--error)', fontSize: 10, marginTop: 4 }}>{emailError}</p>}
+                    </div>
+                    <PhoneInput
+                      label="Phone Number"
+                      value={formData.tenantPhone}
+                      onValueChange={(val) => setFormData({ ...formData, tenantPhone: val })}
+                      placeholder="e.g. +234..."
+                      error={phoneError}
                       style={controlStyle}
-                      placeholder="John"
-                      value={formData.tenantFirstName}
-                      onChange={e => setFormData({ ...formData, tenantFirstName: e.target.value })}
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11 }}>Last Name</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      style={controlStyle}
-                      placeholder="Doe"
-                      value={formData.tenantLastName}
-                      onChange={e => setFormData({ ...formData, tenantLastName: e.target.value })}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: 11 }}>Email Address</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      style={controlStyle}
-                      placeholder="john@example.com"
-                      value={formData.tenantEmail}
-                      onChange={e => setFormData({ ...formData, tenantEmail: e.target.value })}
-                    />
-                    {emailError && <p style={{ color: 'var(--error)', fontSize: 10, marginTop: 4 }}>{emailError}</p>}
-                  </div>
-                  <PhoneInput
-                    label="Phone Number"
-                    value={formData.tenantPhone}
-                    onValueChange={(val) => setFormData({ ...formData, tenantPhone: val })}
-                    placeholder="e.g. +234..."
-                    error={phoneError}
-                    style={controlStyle}
-                  />
-                </div>
-              )}
+
+                  {foundUser && ((!formData.tenantEmail && foundUser.email) || (!formData.tenantPhone && foundUser.phone) || (!formData.tenantFirstName && foundUser.firstName) || (!formData.tenantLastName && foundUser.lastName)) && (
+                    <div style={{
+                      marginTop: 12,
+                      padding: '12px 14px',
+                      borderRadius: 12,
+                      background: 'rgba(217, 119, 6, 0.08)',
+                      border: '1px solid rgba(217, 119, 6, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      fontSize: 13
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400e' }}>
+                        <Sparkles size={16} style={{ flexShrink: 0, color: '#d97706' }} />
+                        <span>
+                          Existing Upward account found for <strong>{foundUser.firstName} {foundUser.lastName}</strong>!
+                          {formData.tenantEmail && foundUser.phone && !formData.tenantPhone && ' Autofill their registered phone number?'}
+                          {formData.tenantPhone && foundUser.email && !formData.tenantEmail && ' Autofill their registered email address?'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = { ...formData }
+                          if (foundUser.phone && !formData.tenantPhone) {
+                            updated.tenantPhone = foundUser.phone
+                          }
+                          if (foundUser.email && !formData.tenantEmail) {
+                            updated.tenantEmail = foundUser.email
+                          }
+                          if (foundUser.firstName && !formData.tenantFirstName) {
+                            updated.tenantFirstName = foundUser.firstName
+                          }
+                          if (foundUser.lastName && !formData.tenantLastName) {
+                            updated.tenantLastName = foundUser.lastName
+                          }
+                          setFormData(updated)
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          background: '#d97706',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontWeight: 600,
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        Autofill Details
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : null}
 
               <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
                 <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>

@@ -47,9 +47,17 @@ export class BulkCreateTenantRecordsUseCase {
     const emailLower = input.email.toLowerCase().trim();
     const emailHash = this.encryption.hash(emailLower);
 
-    // 1. Handle Core Shadow User (for notifications & rent cycles)
+    const phoneHash = input.phone ? this.encryption.hash(input.phone) : null;
+
+    // 1. Handle Core Shadow User (preventing duplicate records by checking email or phone)
     let user = await this.prisma.upward_user.findFirst({
-      where: { emailHash }
+      where: {
+        OR: [
+          { emailHash },
+          ...(phoneHash ? [{ phoneHash }] : [])
+        ]
+      },
+      orderBy: { id: 'desc' }
     });
 
     let isNewUser = false;
@@ -64,7 +72,7 @@ export class BulkCreateTenantRecordsUseCase {
           firstNameHash: this.encryption.hash(input.firstName || ''),
           lastNameHash: this.encryption.hash(input.lastName || ''),
           emailHash: emailHash,
-          phoneHash: input.phone ? this.encryption.hash(input.phone) : null,
+          phoneHash: phoneHash,
           passwordHash: PASS_PLACEHOLDERS.SHADOW,
         }
       });

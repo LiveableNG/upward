@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { useTenantActions } from '../../../hooks/useTenants'
+import { useUserLookup } from '../../../hooks/useUserLookup'
 import { useUnits, useProperties, useCreateProperty, useBulkCreateUnits } from '../../../hooks/useProperties'
 import { Property } from '../../../services/propertyService'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
@@ -188,6 +189,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   const rentStartDate = watch('rentStartDate')
   const rentType = watch('rentType')
   const tenantType = watch('tenantType')
+  const typedEmail = watch('email')
+  const typedPhone = watch('phone')
+  const { foundUser } = useUserLookup(typedEmail, typedPhone)
 
   // Auto-fill unit based on address if possible (only for existing mode)
   useEffect(() => {
@@ -609,6 +613,62 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                 />
               </div>
             </div>
+
+            {/* Silent Search & Smart Suggestion Banner */}
+            {foundUser && ((!typedEmail && foundUser.email) || (!typedPhone && foundUser.phone) || (!watch('firstName') && foundUser.firstName) || (!watch('lastName') && foundUser.lastName)) && (
+              <div style={{
+                marginTop: 12,
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: 'rgba(217, 119, 6, 0.08)',
+                border: '1px solid rgba(217, 119, 6, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                fontSize: 13
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400e' }}>
+                  <Sparkles size={16} style={{ flexShrink: 0, color: '#d97706' }} />
+                  <span>
+                    Existing Upward account found for <strong>{foundUser.firstName} {foundUser.lastName}</strong>!
+                    {typedEmail && foundUser.phone && !typedPhone && ' Autofill their registered phone number?'}
+                    {typedPhone && foundUser.email && !typedEmail && ' Autofill their registered email address?'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (foundUser.phone && !typedPhone) {
+                      setValue('phone', foundUser.phone, { shouldValidate: true })
+                    }
+                    if (foundUser.email && !typedEmail) {
+                      setValue('email', foundUser.email, { shouldValidate: true })
+                    }
+                    if (foundUser.firstName && (!watch('firstName') || watch('firstName')?.trim() === '')) {
+                      setValue('firstName', foundUser.firstName, { shouldValidate: true })
+                    }
+                    if (foundUser.lastName && (!watch('lastName') || watch('lastName')?.trim() === '')) {
+                      setValue('lastName', foundUser.lastName, { shouldValidate: true })
+                    }
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: '#d97706',
+                    color: '#ffffff',
+                    border: 'none',
+                    fontWeight: 600,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  Autofill Details
+                </button>
+              </div>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginTop: 12 }}>
               <div>
