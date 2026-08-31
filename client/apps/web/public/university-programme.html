@@ -693,7 +693,12 @@ Business activity: integrate technology, legal/ethical controls, and growth syst
       contactDrawerOverlay.classList.toggle('is-open', open);
   }
 
-  contactUsBtn?.addEventListener('click', () => setContactDrawerOpen(true));
+  contactUsBtn?.addEventListener('click', () => {
+    setContactDrawerOpen(true);
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      window.gtag('event', 'contact', { event_category: 'Contact', event_label: 'WhatsApp Contact Drawer' });
+    }
+  });
   contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
   contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
 </script>
