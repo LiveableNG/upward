@@ -53,6 +53,7 @@ export function middleware(request: NextRequest) {
     pathname === '/forgot-password' ||
     pathname === '/pm-forgot-password' ||
     pathname.startsWith('/invite') ||
+    pathname.startsWith('/pm-invite') ||
     pathname.startsWith('/reset-password')
 
   const isPublicRequestPath = pathname.startsWith('/public/requests/')
