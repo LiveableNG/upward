@@ -12,7 +12,7 @@ export class GetTeamMembersUseCase {
 
   async execute(ownerPmId: number) {
     const collaborations = await (this.prisma as any).upward_pm_team_collaboration.findMany({
-      where: { ownerPmId, status: 'ACCEPTED' },
+      where: { ownerPmId, status: { in: ['ACCEPTED', 'PENDING'] } },
       include: {
         collaboratorPm: {
           select: {
@@ -20,7 +20,8 @@ export class GetTeamMembersUseCase {
             firstName: true,
             lastName: true,
             email: true,
-            profilePic: true
+            profilePic: true,
+            passwordHash: true,
           }
         }
       }
@@ -49,16 +50,20 @@ export class GetTeamMembersUseCase {
 
         const member = collab.collaboratorPm;
         const decryptedMember = {
-            ...member,
+            uuid: member.uuid,
+            profilePic: member.profilePic,
             firstName: this.encryption.decrypt(member.firstName),
             lastName: this.encryption.decrypt(member.lastName),
             email: this.encryption.decrypt(member.email)
         };
 
+        const isPendingInvite = member.passwordHash === 'PENDING_INVITE' || collab.status === 'PENDING';
+        const status = isPendingInvite ? 'PENDING' : 'ACCEPTED';
+
         return {
             uuid: collab.uuid,
             accessLevel: collab.accessLevel,
-            status: collab.status,
+            status,
             createdAt: collab.createdAt,
             member: decryptedMember,
             properties

@@ -95,6 +95,12 @@ export const inviteTeamMember = async (data: any) => {
   })
 }
 
+export const resendTeamInvite = async (uuid: string) => {
+  return request<{ success: boolean; message: string }>(`/pm/team/${uuid}/resend-invite`, {
+    method: 'POST'
+  })
+}
+
 export const getTeamMembers = async () => {
   return request<any[]>('/pm/team', {
     method: 'GET'

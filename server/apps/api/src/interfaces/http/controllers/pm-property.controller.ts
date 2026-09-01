@@ -34,6 +34,7 @@ import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto, BulkFullImpor
 import { SendLandlordReportDto } from '../../../application/pm/dtos/landlord.dto';
 import { InviteTeamMemberDto, UpdateTeamMemberPermissionsDto, TransferTeamPropertiesDto } from '../../../application/pm/dtos/team.dto';
 import { InviteTeamMemberUseCase } from '../../../application/pm/use-cases/team/invite-team-member.use-case';
+import { ResendTeamInviteUseCase } from '../../../application/pm/use-cases/team/resend-team-invite.use-case';
 import { GetTeamMembersUseCase } from '../../../application/pm/use-cases/team/get-team-members.use-case';
 import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-cases/team/update-team-member-permissions.use-case';
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
@@ -82,6 +83,7 @@ export class PmPropertyController {
     private readonly getLandlordReportUseCase: GetLandlordReportUseCase,
     private readonly pmBulkRentReminderUseCase: PmBulkRentReminderUseCase,
     private readonly inviteTeamMemberUseCase: InviteTeamMemberUseCase,
+    private readonly resendTeamInviteUseCase: ResendTeamInviteUseCase,
     private readonly getTeamMembersUseCase: GetTeamMembersUseCase,
     private readonly updateTeamMemberPermissionsUseCase: UpdateTeamMemberPermissionsUseCase,
     private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
@@ -335,6 +337,12 @@ export class PmPropertyController {
   async inviteTeamMember(@Req() req: any, @Body() dto: InviteTeamMemberDto) {
     const pmId = await this.getPmId(req);
     return this.inviteTeamMemberUseCase.execute(pmId, dto);
+  }
+
+  @Post('team/:uuid/resend-invite')
+  async resendTeamInvite(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.resendTeamInviteUseCase.execute(pmId, uuid);
   }
 
   @Get('team')

@@ -26,6 +26,22 @@ export function useInviteMember() {
   })
 }
 
+export function useResendTeamInvite() {
+  const queryClient = useQueryClient()
+  const { success, error } = useToast()
+
+  return useMutation({
+    mutationFn: (uuid: string) => api.resendTeamInvite(uuid),
+    onSuccess: (data) => {
+      success(data.message || 'Invitation resent successfully')
+      queryClient.invalidateQueries({ queryKey: ['pm-team'] })
+    },
+    onError: (err: any) => {
+      error(err.message || 'Failed to resend invitation')
+    }
+  })
+}
+
 export function useUpdateMemberPermissions() {
   const queryClient = useQueryClient()
   const { success, error } = useToast()

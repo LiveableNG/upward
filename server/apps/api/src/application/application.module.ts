@@ -221,6 +221,7 @@ import { DismissJoinRequestUseCase } from './pm/use-cases/tenants/dismiss-join-r
 import { ResolveDuplicateJoinRequestUseCase } from './pm/use-cases/tenants/resolve-duplicate-join-request.use-case'
 import { BulkFullImportUseCase } from './pm/use-cases/bulk-full-import.use-case'
 import { InviteTeamMemberUseCase } from './pm/use-cases/team/invite-team-member.use-case'
+import { ResendTeamInviteUseCase } from './pm/use-cases/team/resend-team-invite.use-case'
 import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-case'
 import { TransferTeamPropertiesUseCase } from './pm/use-cases/team/transfer-team-properties.use-case'
 import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case'
@@ -663,6 +664,7 @@ const UseCases: any[] = [
   GetPmHomeRequestUseCase,
   RevealPmHomeRequestContactUseCase,
   InviteTeamMemberUseCase,
+  ResendTeamInviteUseCase,
   GetTeamMembersUseCase,
   UpdateTeamMemberPermissionsUseCase,
   RevokeTeamMemberUseCase,

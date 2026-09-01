@@ -89,6 +89,7 @@ export const api = {
 
   // Team Collaboration
   inviteTeamMember: pmService.inviteTeamMember,
+  resendTeamInvite: pmService.resendTeamInvite,
   getTeamMembers: pmService.getTeamMembers,
   updateTeamMemberPermissions: pmService.updateTeamMemberPermissions,
   revokeTeamMember: pmService.revokeTeamMember,
