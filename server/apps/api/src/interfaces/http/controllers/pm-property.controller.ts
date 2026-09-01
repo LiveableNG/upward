@@ -135,9 +135,9 @@ export class PmPropertyController {
   }
 
   @Get('dashboard/summary')
-  async getDashboardSummary(@Req() req: any) {
+  async getDashboardSummary(@Req() req: any, @Query() query: any) {
     const pmId = await this.getPmId(req);
-    return this.getPmDashboardSummaryUseCase.execute(pmId);
+    return this.getPmDashboardSummaryUseCase.execute(pmId, query);
   }
 
   @Get('properties')

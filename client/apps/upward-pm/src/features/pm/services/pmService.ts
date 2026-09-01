@@ -310,8 +310,17 @@ export const uploadSignature = async (params: { base64Data: string, contentType:
   })
 }
 
-export const getDashboardSummary = async () => {
-  return request<any>('/pm/dashboard/summary', {
+export const getDashboardSummary = async (params?: Record<string, any>) => {
+  const query = new URLSearchParams()
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.append(key, String(value))
+      }
+    })
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : ''
+  return request<any>(`/pm/dashboard/summary${queryString}`, {
     method: 'GET'
   })
 }
