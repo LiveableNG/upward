@@ -1,5 +1,6 @@
 import { Inject, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
+import { IApprovalRequestRepository, PM_APPROVAL_REQUEST_REPOSITORY } from '../../../domains/pm/IApprovalRequestRepository';
 import { UpdatePropertyDto } from '../dtos/property.dto';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { LandlordService } from '../services/landlord.service';
@@ -10,6 +11,8 @@ export class UpdatePropertyUseCase {
   constructor(
     @Inject(PM_PROPERTY_REPOSITORY)
     private readonly propertyRepository: IPropertyRepository,
+    @Inject(PM_APPROVAL_REQUEST_REPOSITORY)
+    private readonly approvalRepository: IApprovalRequestRepository,
     private readonly s3Service: S3Service,
     private readonly landlordService: LandlordService,
     private readonly prisma: PrismaService,
@@ -23,7 +26,38 @@ export class UpdatePropertyUseCase {
     }
 
     if (property.pmId !== pmId) {
-      throw new ForbiddenException('You do not have access to update this property');
+      // Check if user is a team collaborator with access to this property
+      const teamCollab = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
+        where: { collaboratorPmId: pmId, ownerPmId: property.pmId, status: 'ACCEPTED' }
+      });
+
+      if (!teamCollab) {
+        throw new ForbiddenException('You do not have access to update this property');
+      }
+
+      // Manager collaborator: Queue edit request in upward_pm_approval_request
+      const approval = await this.approvalRepository.create({
+        requesterPmId: pmId,
+        ownerPmId: property.pmId,
+        type: 'EDIT_PROPERTY',
+        propertyUuid,
+        propertyName: property.name,
+        payload: {
+          currentData: {
+            name: property.name,
+            address: property.address,
+            propertyType: property.propertyType,
+            totalUnits: property.totalUnits,
+          },
+          proposedData: dto
+        }
+      });
+
+      return {
+        requiresApproval: true,
+        approvalUuid: approval.uuid,
+        message: 'Your property edit request has been submitted to the Admin for approval.'
+      };
     }
 
     let landlordId: number | undefined = undefined;

@@ -87,7 +87,7 @@ export const api = {
   getUnresolvedTransactions: paymentService.getUnresolvedTransactions,
   resolveTransaction: paymentService.resolveTransaction,
 
-  // Team Collaboration
+  // Team Collaboration & Approvals
   inviteTeamMember: pmService.inviteTeamMember,
   resendTeamInvite: pmService.resendTeamInvite,
   getTeamMembers: pmService.getTeamMembers,
@@ -95,6 +95,8 @@ export const api = {
   revokeTeamMember: pmService.revokeTeamMember,
   transferTeamProperties: pmService.transferTeamProperties,
   getCollaboratorActivities: pmService.getCollaboratorActivities,
+  getApprovalRequests: pmService.getApprovalRequests,
+  resolveApprovalRequest: pmService.resolveApprovalRequest,
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),

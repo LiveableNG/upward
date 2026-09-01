@@ -101,6 +101,17 @@ export const resendTeamInvite = async (uuid: string) => {
   })
 }
 
+export const getApprovalRequests = async () => {
+  return request<any[]>('/pm/approval-requests', { method: 'GET' })
+}
+
+export const resolveApprovalRequest = async (uuid: string, action: 'APPROVE' | 'REJECT', rejectionReason?: string) => {
+  return request<{ success: boolean; message: string }>(`/pm/approval-requests/${uuid}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejectionReason })
+  })
+}
+
 export const getTeamMembers = async () => {
   return request<any[]>('/pm/team', {
     method: 'GET'

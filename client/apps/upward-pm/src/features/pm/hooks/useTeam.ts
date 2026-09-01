@@ -99,3 +99,30 @@ export function useCollaboratorActivities(uuid: string) {
     enabled: !!uuid
   })
 }
+
+export function useApprovalRequests() {
+  return useQuery({
+    queryKey: ['pm-approval-requests'],
+    queryFn: () => api.getApprovalRequests(),
+    staleTime: 1 * 60 * 1000,
+  })
+}
+
+export function useResolveApprovalRequest() {
+  const queryClient = useQueryClient()
+  const { success, error } = useToast()
+
+  return useMutation({
+    mutationFn: ({ uuid, action, rejectionReason }: { uuid: string; action: 'APPROVE' | 'REJECT'; rejectionReason?: string }) =>
+      api.resolveApprovalRequest(uuid, action, rejectionReason),
+    onSuccess: (data: any) => {
+      success(data.message || 'Action resolved successfully')
+      queryClient.invalidateQueries({ queryKey: ['pm-approval-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-dashboard-summary'] })
+    },
+    onError: (err: any) => {
+      error(err.message || 'Failed to resolve approval request')
+    }
+  })
+}
