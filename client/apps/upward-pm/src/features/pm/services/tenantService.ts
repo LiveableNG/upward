@@ -46,6 +46,21 @@ export interface Tenant {
 }
 
 export const tenantService = {
+  lookupUser: (params: { email?: string; phone?: string }) => {
+    const query = new URLSearchParams()
+    if (params.email) query.set('email', params.email)
+    if (params.phone) query.set('phone', params.phone)
+    return request<{
+      exists: boolean
+      user?: {
+        firstName: string
+        lastName: string
+        email: string
+        phone?: string | null
+      }
+    }>(`/pm/tenants/lookup-user?${query.toString()}`)
+  },
+
   getTenants: () => {
     return request<Tenant[]>('/pm/tenants')
   },

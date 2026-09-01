@@ -506,9 +506,156 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   .ea-close:hover { background:var(--sand); color:var(--ink); }
   .ea-sub { font-size:13.5px; color:var(--ink-soft); margin-bottom:20px; line-height:1.45; }
 
+  .top-announcement-bar {
+    background: var(--ink);
+    color: #FDFBF5;
+    font-size: 13px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  @media(max-width:768px){
+    .top-announcement-bar { display: none; }
+  }
+  .top-announcement-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    text-align: center;
+  }
+  .top-announcement-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--rust);
+    color: #fff;
+    font: 700 11px var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .top-announcement-text {
+    font-weight: 500;
+    color: #E7E0D2;
+  }
+  .top-announcement-text strong {
+    color: #fff;
+    font-weight: 700;
+  }
+  .top-announcement-link {
+    color: var(--rust-light);
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.18s ease;
+  }
+  .top-announcement-link:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  .cohort-callout-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1.5px solid var(--sand);
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-top: 14px;
+    margin-bottom: 14px;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(21,22,43,0.04);
+  }
+  @media(max-width:600px){
+    .cohort-callout-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
+      padding: 12px 14px;
+    }
+    .cohort-callout-divider {
+      display: none;
+    }
+    .cohort-callout-item:last-child {
+      grid-column: span 2;
+    }
+  }
+  .cohort-callout-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cohort-callout-label {
+    font: 600 10px var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--rust);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .cohort-callout-value {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .cohort-callout-divider {
+    width: 1px;
+    height: 26px;
+    background: var(--sand);
+  }
+  .cohort-badge-live {
+    color: var(--forest);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cohort-start-highlight {
+    background: var(--rust-wash);
+    border: 1px solid rgba(138,74,42,0.25);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin: 14px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .cohort-start-highlight i {
+    color: var(--rust);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .cohort-start-highlight strong {
+    display: block;
+    color: var(--rust);
+    font-weight: 800;
+    font-size: 13.5px;
+  }
+  .cohort-start-highlight span {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+
 </style>
 </head>
 <body>
+
+<div class="top-announcement-bar">
+  <div class="wrap top-announcement-content">
+    <span class="top-announcement-badge"><i class="fa-solid fa-calendar-days"></i> Next Cohort</span>
+    <span class="top-announcement-text">Classes Start <strong>October 31, 2026</strong> — Founding Cohort Applications Now Open</span>
+    <a href="/university/apply" class="top-announcement-link">Apply Now <i class="fa-solid fa-arrow-right"></i></a>
+  </div>
+</div>
 
 <header>
   <nav class="wrap">
@@ -536,15 +683,33 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
-      <span class="eyebrow">Lagos · Abuja · Port Harcourt · Oyo</span>
+      <span class="eyebrow"><i class="fa-solid fa-location-dot" style="margin-right:6px; font-size:10px;"></i> Lagos · Abuja · Port Harcourt · Oyo</span>
       <h1>Build a career. <em class="accent">Build a business.</em></h1>
       <p class="hero-sub">A practical, hands-on programme for ambitious people who want to become useful, employable and commercially active in Nigeria's real estate industry.</p>
+      
+      <div class="cohort-callout-card">
+        <div class="cohort-callout-item">
+          <div class="cohort-callout-label"><i class="fa-solid fa-calendar-days"></i> Class Start Date</div>
+          <div class="cohort-callout-value">October 31, 2026</div>
+        </div>
+        <div class="cohort-callout-divider"></div>
+        <div class="cohort-callout-item">
+          <div class="cohort-callout-label"><i class="fa-solid fa-clock"></i> Duration &amp; Format</div>
+          <div class="cohort-callout-value">10 Weeks · Hybrid</div>
+        </div>
+        <div class="cohort-callout-divider"></div>
+        <div class="cohort-callout-item">
+          <div class="cohort-callout-label"><i class="fa-solid fa-user-graduate"></i> Status</div>
+          <div class="cohort-callout-value"><span class="cohort-badge-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Admissions Open</span></div>
+        </div>
+      </div>
+
       <div class="income-callout">
         <div class="income-num">₦10m<span>+</span></div>
         <div class="income-text"><strong>Build toward a ₦10m+ a year property business</strong>— or a strong industry career.</div>
       </div>
       <div class="hero-apply" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-        <a class="btn btn-primary" href="/university/apply">Apply for the 2026 Cohort →</a>
+        <a class="btn btn-primary" href="/university/apply">Apply for Founding Cohort →</a>
         <button type="button" class="btn btn-outline" id="openEaModalBtn"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Request Info / Stay Updated</button>
       </div>
     </div>
@@ -865,6 +1030,13 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         <span class="eyebrow">Programme Fee</span>
         <div class="price-num">₦200k</div>
         <p>Full programme fee · 10 weeks · 6–8 hours/week · Hybrid</p>
+        <div class="cohort-start-highlight">
+          <i class="fa-solid fa-calendar-check"></i>
+          <div>
+            <strong>Classes Commence: October 31, 2026</strong>
+            <span>Founding Cohort 2026 · Priority Admission</span>
+          </div>
+        </div>
         <div class="scholarship-note">Limited scholarships of 25–50% are offered to selected applicants after application review.</div>
         <div class="price-cities">Lagos · Abuja · Port Harcourt · Oyo</div>
       </div>

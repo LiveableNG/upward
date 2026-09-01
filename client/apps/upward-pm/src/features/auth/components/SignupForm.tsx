@@ -851,7 +851,22 @@ export const SignupForm = () => {
           </div>
 
           <div className="form-group" style={{ marginTop: '16px', marginBottom: 0 }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                color: fieldErrors.termsAgreed ? 'var(--error)' : 'var(--text-secondary)',
+                lineHeight: '1.4',
+                padding: fieldErrors.termsAgreed ? '8px 12px' : '0',
+                borderRadius: fieldErrors.termsAgreed ? '8px' : '0',
+                border: fieldErrors.termsAgreed ? '1px solid var(--error)' : '1px solid transparent',
+                background: fieldErrors.termsAgreed ? 'rgba(239, 68, 68, 0.04)' : 'transparent',
+                transition: 'all 0.2s ease',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={termsAgreed}
@@ -859,7 +874,6 @@ export const SignupForm = () => {
                   clearFieldError('termsAgreed')
                   setTermsAgreed(e.target.checked)
                 }}
-                required
                 style={{ accentColor: 'var(--forest)', marginTop: '2px', width: '16px', height: '16px', cursor: 'pointer' }}
               />
               <span>
@@ -879,7 +893,7 @@ export const SignupForm = () => {
           <button
             type="submit"
             className="auth-btn auth-btn--primary auth-btn--large"
-            disabled={loading || emailExists || isCheckingEmail || isInvited || !termsAgreed}
+            disabled={loading || emailExists || isCheckingEmail || isInvited}
             style={{ marginTop: '10px' }}
           >
             <span>{loading ? 'Please wait...' : 'Create account'}</span>
