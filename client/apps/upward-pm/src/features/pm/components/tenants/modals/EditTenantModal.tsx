@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react'
-import { Save, Loader2 } from 'lucide-react'
+import { Save, Loader2, Sparkles } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useTenantActions } from '../../../hooks/useTenants'
+import { useUserLookup } from '../../../hooks/useUserLookup'
 import { Tenant } from '../../../services/tenantService'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
@@ -76,6 +77,8 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
     handleSubmit, 
     control,
     reset,
+    watch,
+    setValue,
     formState: { errors, isValid } 
   } = useForm<TenantFormData>({
     mode: 'all',
@@ -124,6 +127,10 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
       })
     }
   }, [tenant, isOpen, reset])
+
+  const typedEmail = watch('email')
+  const typedPhone = watch('phone')
+  const { foundUser } = useUserLookup(typedEmail, typedPhone)
 
   if (!isOpen) return null
 
@@ -237,6 +244,67 @@ export const EditTenantModal: React.FC<EditTenantModalProps> = ({ isOpen, onClos
                   )}
                 />
               </div>
+
+              {/* Silent Search & Smart Suggestion Banner */}
+              {foundUser && ((!typedEmail && foundUser.email) || (!typedPhone && foundUser.phone) || (!watch('firstName') && foundUser.firstName) || (!watch('lastName') && foundUser.lastName)) && (
+                <div style={{
+                  marginTop: 16,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: 'rgba(217, 119, 6, 0.08)',
+                  border: '1px solid rgba(217, 119, 6, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  fontSize: 13
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#92400e' }}>
+                    <Sparkles size={16} style={{ flexShrink: 0, color: '#d97706' }} />
+                    <span>
+                      Existing Upward account found for <strong>{foundUser.firstName} {foundUser.lastName}</strong>!
+                      {typedEmail && foundUser.phone && !typedPhone && ' Autofill their registered phone number?'}
+                      {typedPhone && foundUser.email && !typedEmail && ' Autofill their registered email address?'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentEmail = watch('email')
+                      const currentPhone = watch('phone')
+                      const currentFirstName = watch('firstName')
+                      const currentLastName = watch('lastName')
+
+                      if (foundUser.phone && (!currentPhone || currentPhone.trim() === '')) {
+                        setValue('phone', foundUser.phone, { shouldValidate: true })
+                      }
+                      if (foundUser.email && (!currentEmail || currentEmail.trim() === '')) {
+                        setValue('email', foundUser.email, { shouldValidate: true })
+                      }
+                      if (foundUser.firstName && (!currentFirstName || currentFirstName.trim() === '')) {
+                        setValue('firstName', foundUser.firstName, { shouldValidate: true })
+                      }
+                      if (foundUser.lastName && (!currentLastName || currentLastName.trim() === '')) {
+                        setValue('lastName', foundUser.lastName, { shouldValidate: true })
+                      }
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      background: '#d97706',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: 600,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    Autofill Details
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Section: Address */}

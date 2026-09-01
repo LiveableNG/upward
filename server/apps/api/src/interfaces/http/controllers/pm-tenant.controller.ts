@@ -1,8 +1,9 @@
-import { Controller, Post, Get, Patch, Body, UseGuards, Req, Param, Inject, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Query, UseGuards, Req, Param, Inject, UnauthorizedException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { GetPmTenantsUseCase } from '../../../application/pm/use-cases/tenants/get-pm-tenants.use-case';
 import { InviteTenantUseCase } from '../../../application/pm/use-cases/tenants/invite-tenant.use-case';
 import { CreateTenantUseCase, CreateTenantDto } from '../../../application/pm/use-cases/tenants/create-tenant.use-case';
+import { LookupUserUseCase } from '../../../application/pm/use-cases/tenants/lookup-user.use-case';
 import { GetTenantUseCase } from '../../../application/pm/use-cases/tenants/get-tenant.use-case';
 import { AssignTenantToUnitUseCase } from '../../../application/pm/use-cases/tenants/assign-tenant-to-unit.use-case';
 import { UpdateTenantUseCase } from '../../../application/pm/use-cases/tenants/update-tenant.use-case';
@@ -20,6 +21,7 @@ export class PmTenantController {
     private readonly getPmTenantsUseCase: GetPmTenantsUseCase,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
     private readonly createTenantUseCase: CreateTenantUseCase,
+    private readonly lookupUserUseCase: LookupUserUseCase,
     private readonly getTenantUseCase: GetTenantUseCase,
     private readonly assignTenantToUnitUseCase: AssignTenantToUnitUseCase,
     private readonly updateTenantUseCase: UpdateTenantUseCase,
@@ -37,6 +39,11 @@ export class PmTenantController {
     const pm = await this.pmRepository.findByUuid(uuid);
     if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
     return pm.id;
+  }
+
+  @Get('lookup-user')
+  async lookupUser(@Query('email') email?: string, @Query('phone') phone?: string) {
+    return this.lookupUserUseCase.execute({ email, phone });
   }
 
   @Get()

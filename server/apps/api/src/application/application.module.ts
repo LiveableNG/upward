@@ -181,6 +181,7 @@ import { UploadPropertyImageUseCase } from './pm/use-cases/upload-property-image
 import { GetPmTenantsUseCase } from './pm/use-cases/tenants/get-pm-tenants.use-case'
 import { InviteTenantUseCase } from './pm/use-cases/tenants/invite-tenant.use-case'
 import { CreateTenantUseCase } from './pm/use-cases/tenants/create-tenant.use-case'
+import { LookupUserUseCase } from './pm/use-cases/tenants/lookup-user.use-case'
 import { GetTenantUseCase } from './pm/use-cases/tenants/get-tenant.use-case'
 import { AssignTenantToUnitUseCase } from './pm/use-cases/tenants/assign-tenant-to-unit.use-case'
 
@@ -612,6 +613,7 @@ const UseCases: any[] = [
   GetPmTenantsUseCase,
   InviteTenantUseCase,
   CreateTenantUseCase,
+  LookupUserUseCase,
   GetTenantUseCase,
   AssignTenantToUnitUseCase,
   UpdateTenantUseCase,
