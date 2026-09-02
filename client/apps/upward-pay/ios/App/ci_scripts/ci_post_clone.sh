@@ -7,13 +7,16 @@ echo "=========================================="
 echo "  Xcode Cloud: Running Post-Clone Setup   "
 echo "=========================================="
 
+# Prevent Homebrew from spending minutes updating formulas during CI
+export HOMEBREW_NO_AUTO_UPDATE=1
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 # Resolve repository root
 if [ -n "$CI_PRIMARY_REPOSITORY_PATH" ]; then
     REPO_ROOT="$CI_PRIMARY_REPOSITORY_PATH"
 elif [ -n "$CI_WORKSPACE" ]; then
     REPO_ROOT="$CI_WORKSPACE"
 else
-    # Fallback path calculation
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     REPO_ROOT="$(cd "$SCRIPT_DIR/../../../../.." && pwd)"
 fi
@@ -21,27 +24,40 @@ fi
 echo "Repository Root: $REPO_ROOT"
 cd "$REPO_ROOT"
 
-# Ensure Homebrew / Node environment paths are available in Xcode Cloud
-export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
-
-# Check Node version
-if command -v node >/dev/null 2>&1; then
-    echo "Node version: $(node -v)"
-else
-    echo "ERROR: Node.js is not installed on this Xcode Cloud runner."
-    exit 1
+# Ensure Node.js is available on Xcode Cloud runner
+if ! command -v node >/dev/null 2>&1; then
+    echo "Node.js not found in PATH. Attempting Homebrew install..."
+    if command -v brew >/dev/null 2>&1; then
+        brew install node || true
+    fi
 fi
 
-# Enable corepack or install pnpm
+# Fallback: Download portable Node.js binary if brew didn't install node
+if ! command -v node >/dev/null 2>&1; then
+    echo "Downloading standalone Node.js binary..."
+    NODE_VERSION="v20.18.0"
+    ARCH="$(uname -m)"
+    if [ "$ARCH" = "arm64" ]; then
+        NODE_DIST="node-${NODE_VERSION}-darwin-arm64"
+    else
+        NODE_DIST="node-${NODE_VERSION}-darwin-x64"
+    fi
+    curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.gz" | tar -xz -C /tmp
+    export PATH="/tmp/${NODE_DIST}/bin:$PATH"
+fi
+
+echo "Node version: $(node -v)"
+
+# Ensure pnpm is installed
 if ! command -v pnpm >/dev/null 2>&1; then
-    echo "Installing pnpm globally..."
+    echo "Installing pnpm..."
     npm install -g pnpm@10
 fi
 
 echo "pnpm version: $(pnpm -v)"
 
-# Install JavaScript dependencies for the workspace
-echo "Installing dependencies via pnpm..."
+# Install dependencies for the workspace
+echo "Installing JS dependencies..."
 pnpm install --frozen-lockfile || pnpm install
 
 # Run Capacitor sync for iOS
