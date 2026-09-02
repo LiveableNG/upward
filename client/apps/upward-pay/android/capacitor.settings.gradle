@@ -21,7 +21,7 @@ include ':capacitor-share'
 project(':capacitor-share').projectDir = new File('../../../../node_modules/.pnpm/@capacitor+share@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/share/android')
 
 include ':capawesome-capacitor-google-sign-in'
-project(':capawesome-capacitor-google-sign-in').projectDir = new File('../../../../node_modules/.pnpm/@capawesome+capacitor-googl_5e9676c1e709a23edfa2b44b9734a2b2/node_modules/@capawesome/capacitor-google-sign-in/android')
+project(':capawesome-capacitor-google-sign-in').projectDir = new File('../../../../node_modules/.pnpm/@capawesome+capacitor-google-sign-in@0.1.2_@capacitor+core@8.2.0/node_modules/@capawesome/capacitor-google-sign-in/android')
 
 include ':capgo-capacitor-native-biometric'
-project(':capgo-capacitor-native-biometric').projectDir = new File('../../../../node_modules/.pnpm/@capgo+capacitor-native-bio_722a74d6395b01f2bc3725bf418b7ffc/node_modules/@capgo/capacitor-native-biometric/android')
+project(':capgo-capacitor-native-biometric').projectDir = new File('../../../../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.4.2_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric/android')

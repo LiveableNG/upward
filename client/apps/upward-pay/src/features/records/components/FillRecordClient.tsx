@@ -30,10 +30,15 @@ interface Record {
 }
 
 interface FillRecordClientProps {
-  uuid: string
+  uuid?: string
 }
 
-export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
+export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid: propUuid }) => {
+  const uuid = (propUuid && propUuid !== 'placeholder')
+    ? propUuid
+    : (typeof window !== 'undefined'
+        ? window.location.pathname.match(/\/fill-record\/([^/?#]+)/)?.[1]
+        : '') || ''
   const [details, setDetails] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -47,6 +52,10 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid }) => {
   const { success: toastSuccess, error: toastError } = useToast()
 
   useEffect(() => {
+    if (!uuid || uuid === 'placeholder') {
+      setLoading(false)
+      return
+    }
     const fetchDetails = async () => {
       try {
         const data = await getPublicRequestDetails(uuid)

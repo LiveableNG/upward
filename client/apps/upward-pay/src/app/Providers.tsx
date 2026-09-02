@@ -71,6 +71,37 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         // Give the router a moment to be ready
         await new Promise(resolve => setTimeout(resolve, 1000))
         
+        if (Capacitor.isNativePlatform()) {
+          if (targetPath.startsWith('/invite/')) {
+            const t = targetPath.split('/invite/')[1]?.split(/[?#]/)[0]
+            if (t) {
+              const extraSearch = url.search ? `&${url.search.replace(/^\?/, '')}` : ''
+              const dest = `/signup?mode=invite&token=${t}${extraSearch}`
+              console.log('[DeepLink] Native routing to:', dest)
+              router.push(dest)
+              return
+            }
+          } else if (targetPath.startsWith('/waitlist/')) {
+            const t = targetPath.split('/waitlist/')[1]?.split(/[?#]/)[0]
+            if (t) {
+              const extraSearch = url.search ? `&${url.search.replace(/^\?/, '')}` : ''
+              const dest = `/signup?mode=waitlist&uuid=${t}${extraSearch}`
+              console.log('[DeepLink] Native routing to:', dest)
+              router.push(dest)
+              return
+            }
+          } else if (targetPath.startsWith('/welcome/')) {
+            const t = targetPath.split('/welcome/')[1]?.split(/[?#]/)[0]
+            if (t) {
+              const extraSearch = url.search ? `&${url.search.replace(/^\?/, '')}` : ''
+              const dest = `/signup?mode=priority&uuid=${t}${extraSearch}`
+              console.log('[DeepLink] Native routing to:', dest)
+              router.push(dest)
+              return
+            }
+          }
+        }
+
         console.log('[DeepLink] Executing router.push:', targetPath)
         router.push(targetPath)
       } catch (error) {

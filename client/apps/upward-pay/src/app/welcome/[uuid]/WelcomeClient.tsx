@@ -20,10 +20,25 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
 
-export default function WelcomeClient() {
+interface WelcomeClientProps {
+  overrideUuid?: string
+}
+
+export default function WelcomeClient({ overrideUuid }: WelcomeClientProps = {}) {
   const params = useParams()
   const searchParams = useSearchParams()
-  const uuid = (params.uuid as string) || searchParams.get('uuid') || searchParams.get('claim') || ''
+  const rawParam =
+    overrideUuid ||
+    (params?.uuid as string) ||
+    searchParams.get('uuid') ||
+    searchParams.get('claim') ||
+    ''
+  const uuid =
+    rawParam && rawParam !== 'placeholder'
+      ? rawParam
+      : (typeof window !== 'undefined'
+          ? window.location.pathname.match(/\/welcome\/([^/?#]+)/)?.[1]
+          : '') || ''
   const router = useRouter()
   const { success, error: toastError } = useToast()
   const { login } = useAuth()
@@ -45,6 +60,10 @@ export default function WelcomeClient() {
   }, [uuid])
 
   async function fetchWaitlistData() {
+    if (!uuid || uuid === 'placeholder') {
+      setLoading(false)
+      return
+    }
     try {
       const res = await api.get(`/waitlist/claim/${uuid}`)
       if (res.success) {

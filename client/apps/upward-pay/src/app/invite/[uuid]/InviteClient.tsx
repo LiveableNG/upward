@@ -24,10 +24,25 @@ import { OnboardingFields } from '@/features/auth/components/OnboardingFields'
 import { setAccessToken } from '@/lib/auth-token'
 import { PasswordStrengthMeter } from '@/features/auth/component/signup/PasswordStrengthMeter'
 
-export default function InviteClient() {
+interface InviteClientProps {
+  overrideToken?: string
+}
+
+export default function InviteClient({ overrideToken }: InviteClientProps = {}) {
   const params = useParams()
   const searchParams = useSearchParams()
-  const token = (params.uuid as string) || searchParams.get('token') || searchParams.get('invite') || ''
+  const rawParam =
+    overrideToken ||
+    (params?.uuid as string) ||
+    searchParams.get('token') ||
+    searchParams.get('invite') ||
+    ''
+  const token =
+    rawParam && rawParam !== 'placeholder'
+      ? rawParam
+      : (typeof window !== 'undefined'
+          ? window.location.pathname.match(/\/invite\/([^/?#]+)/)?.[1]
+          : '') || ''
   const router = useRouter()
   const { success, error: toastError } = useToast()
   const { login } = useAuth()
@@ -50,6 +65,10 @@ export default function InviteClient() {
   }, [token])
 
   async function fetchInviteData() {
+    if (!token || token === 'placeholder') {
+      setLoading(false)
+      return
+    }
     try {
       const res = await api.get(`/public/invite/${token}`)
       if (res?.isWaitlist) {

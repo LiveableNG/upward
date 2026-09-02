@@ -1,0 +1,2 @@
+https://github.com/LiveableNG/upward/tree/production/client/apps/upward-pay/ios/App/App.xcodeproj
+/Users/2020pro/abdulsalam/upward/client/apps/upward-pay/ios/App/App
