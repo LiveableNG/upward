@@ -15,6 +15,7 @@ export interface SubmitStudentEarlyAccessCommand {
   ageBracket: string
   experienceLevel: string
   interest?: string
+  sessionTime?: string
 }
 
 @Injectable()
@@ -36,7 +37,9 @@ export class SubmitStudentEarlyAccessUseCase {
       city: command.city,
       ageBracket: command.ageBracket,
       experienceLevel: command.experienceLevel,
-      interest: command.interest,
+      interest: command.sessionTime
+        ? `[Session: ${command.sessionTime}] ${command.interest || ''}`.trim()
+        : command.interest,
     })
 
     const saved = await this.earlyAccessRepo.save(entry)
@@ -91,6 +94,7 @@ export class SubmitStudentEarlyAccessUseCase {
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">City:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.city}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Age Bracket:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.ageBracket}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Experience:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.experienceLevel}</td></tr>
+            ${command.sessionTime ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Session Time:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.sessionTime}</td></tr>` : ''}
             ${command.interest ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Interest:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.interest}</td></tr>` : ''}
           </table>
         </div>

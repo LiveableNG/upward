@@ -34,6 +34,9 @@ import { CreatePropertyDto, UpdatePropertyDto, BulkCreateUnitsDto, BulkFullImpor
 import { SendLandlordReportDto } from '../../../application/pm/dtos/landlord.dto';
 import { InviteTeamMemberDto, UpdateTeamMemberPermissionsDto, TransferTeamPropertiesDto } from '../../../application/pm/dtos/team.dto';
 import { InviteTeamMemberUseCase } from '../../../application/pm/use-cases/team/invite-team-member.use-case';
+import { ResendTeamInviteUseCase } from '../../../application/pm/use-cases/team/resend-team-invite.use-case';
+import { GetApprovalRequestsUseCase } from '../../../application/pm/use-cases/approvals/get-approval-requests.use-case';
+import { ResolveApprovalRequestUseCase } from '../../../application/pm/use-cases/approvals/resolve-approval-request.use-case';
 import { GetTeamMembersUseCase } from '../../../application/pm/use-cases/team/get-team-members.use-case';
 import { UpdateTeamMemberPermissionsUseCase } from '../../../application/pm/use-cases/team/update-team-member-permissions.use-case';
 import { RevokeTeamMemberUseCase } from '../../../application/pm/use-cases/team/revoke-team-member.use-case';
@@ -82,6 +85,9 @@ export class PmPropertyController {
     private readonly getLandlordReportUseCase: GetLandlordReportUseCase,
     private readonly pmBulkRentReminderUseCase: PmBulkRentReminderUseCase,
     private readonly inviteTeamMemberUseCase: InviteTeamMemberUseCase,
+    private readonly resendTeamInviteUseCase: ResendTeamInviteUseCase,
+    private readonly getApprovalRequestsUseCase: GetApprovalRequestsUseCase,
+    private readonly resolveApprovalRequestUseCase: ResolveApprovalRequestUseCase,
     private readonly getTeamMembersUseCase: GetTeamMembersUseCase,
     private readonly updateTeamMemberPermissionsUseCase: UpdateTeamMemberPermissionsUseCase,
     private readonly revokeTeamMemberUseCase: RevokeTeamMemberUseCase,
@@ -133,9 +139,9 @@ export class PmPropertyController {
   }
 
   @Get('dashboard/summary')
-  async getDashboardSummary(@Req() req: any) {
+  async getDashboardSummary(@Req() req: any, @Query() query: any) {
     const pmId = await this.getPmId(req);
-    return this.getPmDashboardSummaryUseCase.execute(pmId);
+    return this.getPmDashboardSummaryUseCase.execute(pmId, query);
   }
 
   @Get('properties')
@@ -337,6 +343,12 @@ export class PmPropertyController {
     return this.inviteTeamMemberUseCase.execute(pmId, dto);
   }
 
+  @Post('team/:uuid/resend-invite')
+  async resendTeamInvite(@Req() req: any, @Param('uuid') uuid: string) {
+    const pmId = await this.getPmId(req);
+    return this.resendTeamInviteUseCase.execute(pmId, uuid);
+  }
+
   @Get('team')
   async getTeamMembers(@Req() req: any) {
     const pmId = await this.getPmId(req);
@@ -363,5 +375,21 @@ export class PmPropertyController {
   async revokeTeamMember(@Req() req: any, @Param('uuid') uuid: string) {
     const pmId = await this.getPmId(req);
     return this.revokeTeamMemberUseCase.execute(pmId, uuid);
+  }
+
+  @Get('approval-requests')
+  async getApprovalRequests(@Req() req: any) {
+    const pmId = await this.getPmId(req);
+    return this.getApprovalRequestsUseCase.execute(pmId);
+  }
+
+  @Post('approval-requests/:uuid/resolve')
+  async resolveApprovalRequest(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() body: { action: 'APPROVE' | 'REJECT'; rejectionReason?: string }
+  ) {
+    const pmId = await this.getPmId(req);
+    return this.resolveApprovalRequestUseCase.execute(pmId, uuid, body.action, body.rejectionReason);
   }
 }

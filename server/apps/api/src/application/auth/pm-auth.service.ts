@@ -434,11 +434,28 @@ export class PmAuthService extends BaseAuthService {
   async getInviteDetails(uuid: string) {
     const pm = await this.pmRepository.findByUuid(uuid)
     if (!pm) throw new UnauthorizedException('Invitation not found')
-    
+
+    const collab = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
+      where: { collaboratorPmId: pm.id },
+    })
+
+    let ownerPm: any = null
+    if (collab?.ownerPmId) {
+      ownerPm = await this.pmRepository.findById(collab.ownerPmId)
+    }
+
     return {
       firstName: pm.firstName,
       lastName: pm.lastName,
       email: pm.email,
+      invitedBy: ownerPm
+        ? {
+            name: `${ownerPm.firstName || ''} ${ownerPm.lastName || ''}`.trim() || ownerPm.businessName || 'Team Admin',
+            companyName: ownerPm.businessName,
+            email: ownerPm.email,
+            accessLevel: collab.accessLevel,
+          }
+        : null,
     }
   }
 

@@ -9,11 +9,13 @@ interface ConfirmationModalProps {
   onClose: () => void
   onConfirm: () => void
   title: string
-  message: string
+  message: React.ReactNode
   confirmText?: string
   cancelText?: string
   type?: 'danger' | 'primary'
   isPending?: boolean
+  confirmVariant?: 'danger' | 'primary'
+  isLoading?: boolean
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -25,8 +27,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   type = 'primary',
-  isPending = false
+  isPending = false,
+  confirmVariant,
+  isLoading
 }) => {
+  const activePending = isPending || isLoading || false
+  const activeVariant = confirmVariant || type
+
   return (
     <Modal
       isOpen={isOpen}
@@ -41,26 +48,24 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             className="btn btn--secondary" 
             style={{ flex: 1, height: 48 }} 
             onClick={onClose}
-            disabled={isPending}
+            disabled={activePending}
           >
             {cancelText}
           </button>
           <button 
             type="button" 
-            className={`btn ${type === 'danger' ? 'btn--danger' : 'btn--primary'}`} 
+            className={`btn ${activeVariant === 'danger' ? 'btn--danger' : 'btn--primary'}`} 
             style={{ flex: 1, height: 48 }} 
             onClick={onConfirm}
-            disabled={isPending}
+            disabled={activePending}
           >
-            {isPending ? 'Processing...' : confirmText}
+            {activePending ? 'Processing...' : confirmText}
           </button>
         </>
       }
     >
-      <div style={{ padding: '8px 0' }}>
-        <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-          {message}
-        </p>
+      <div style={{ padding: '8px 0', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+        {typeof message === 'string' ? <p style={{ margin: 0 }}>{message}</p> : message}
       </div>
       
       <style jsx>{`

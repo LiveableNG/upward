@@ -95,6 +95,23 @@ export const inviteTeamMember = async (data: any) => {
   })
 }
 
+export const resendTeamInvite = async (uuid: string) => {
+  return request<{ success: boolean; message: string }>(`/pm/team/${uuid}/resend-invite`, {
+    method: 'POST'
+  })
+}
+
+export const getApprovalRequests = async () => {
+  return request<any[]>('/pm/approval-requests', { method: 'GET' })
+}
+
+export const resolveApprovalRequest = async (uuid: string, action: 'APPROVE' | 'REJECT', rejectionReason?: string) => {
+  return request<{ success: boolean; message: string }>(`/pm/approval-requests/${uuid}/resolve`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejectionReason })
+  })
+}
+
 export const getTeamMembers = async () => {
   return request<any[]>('/pm/team', {
     method: 'GET'
@@ -304,8 +321,17 @@ export const uploadSignature = async (params: { base64Data: string, contentType:
   })
 }
 
-export const getDashboardSummary = async () => {
-  return request<any>('/pm/dashboard/summary', {
+export const getDashboardSummary = async (params?: Record<string, any>) => {
+  const query = new URLSearchParams()
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.append(key, String(value))
+      }
+    })
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : ''
+  return request<any>(`/pm/dashboard/summary${queryString}`, {
     method: 'GET'
   })
 }

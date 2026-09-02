@@ -121,6 +121,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
               window.location.pathname === '/forgot-password' ||
               window.location.pathname === '/pm-forgot-password' ||
               window.location.pathname.startsWith('/invite') ||
+              window.location.pathname.startsWith('/pm-invite') ||
               window.location.pathname.startsWith('/reset-password') ||
               (isPortal &&
                 (window.location.pathname === '/portal/login' ||

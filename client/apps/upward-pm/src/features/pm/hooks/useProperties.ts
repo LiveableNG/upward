@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Property, Unit } from '../services/propertyService'
+import { useToast } from '@/components/common/Toast'
 
 export const useProperties = (initialData?: any) => {
   return useQuery<Property[]>({
@@ -34,24 +35,34 @@ export const useCreateProperty = () => {
 
 export const useUpdateProperty = () => {
   const queryClient = useQueryClient()
+  const { success } = useToast()
   
   return useMutation({
     mutationFn: ({ uuid, data }: { uuid: string, data: Partial<Property> }) => api.updateProperty(uuid, data),
-    onSuccess: (_, variables) => {
+    onSuccess: (res: any, variables) => {
+      if (res?.requiresApproval) {
+        success(res.message || 'Property edit submitted for Admin approval')
+      }
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
       queryClient.invalidateQueries({ queryKey: ['pm-property', variables.uuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-approval-requests'] })
     }
   })
 }
 
 export const useDeleteProperty = () => {
   const queryClient = useQueryClient()
+  const { success } = useToast()
   
   return useMutation({
     mutationFn: (uuid: string) => api.deleteProperty(uuid),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      if (res?.requiresApproval) {
+        success(res.message || 'Property deletion submitted for Admin approval')
+      }
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-approval-requests'] })
     }
   })
 }
@@ -76,22 +87,34 @@ export const useUnit = (uuid: string) => {
 
 export const useUpdateUnit = () => {
   const queryClient = useQueryClient()
+  const { success } = useToast()
+
   return useMutation({
     mutationFn: ({ uuid, data }: { uuid: string, data: Partial<Unit> }) => api.updateUnit(uuid, data),
-    onSuccess: (_, variables) => {
+    onSuccess: (res: any, variables) => {
+      if (res?.requiresApproval) {
+        success(res.message || 'Unit edit submitted for Admin approval')
+      }
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
       queryClient.invalidateQueries({ queryKey: ['pm-unit', variables.uuid] })
+      queryClient.invalidateQueries({ queryKey: ['pm-approval-requests'] })
     }
   })
 }
 
 export const useDeleteUnit = () => {
   const queryClient = useQueryClient()
+  const { success } = useToast()
+
   return useMutation({
     mutationFn: (uuid: string) => api.deleteUnit(uuid),
-    onSuccess: () => {
+    onSuccess: (res: any) => {
+      if (res?.requiresApproval) {
+        success(res.message || 'Unit deletion submitted for Admin approval')
+      }
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-approval-requests'] })
     }
   })
 }

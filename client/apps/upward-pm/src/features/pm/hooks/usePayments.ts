@@ -12,10 +12,10 @@ export const usePaymentRequests = (initialData?: any) => {
   })
 }
 
-export const useDashboardSummary = (initialData?: any) => {
+export const useDashboardSummary = (initialData?: any, filters?: Record<string, any>) => {
   return useQuery({
-    queryKey: ['pm-dashboard-summary'],
-    queryFn: () => api.getDashboardSummary(),
+    queryKey: ['pm-dashboard-summary', filters],
+    queryFn: () => api.getDashboardSummary(filters),
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     initialData

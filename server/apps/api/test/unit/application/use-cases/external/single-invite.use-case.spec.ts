@@ -159,6 +159,7 @@ describe('SingleInviteUseCase', () => {
 
     userRepository = {
       findByEmail: jest.fn(),
+      findByPhone: jest.fn(),
       findById: jest.fn(),
       findByUuid: jest.fn(),
       save: jest.fn(),

@@ -13,6 +13,7 @@ import {
   Video,
   Award,
   ExternalLink,
+  Calendar,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -481,13 +482,30 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
         if (row.type === 'STUDENT') {
           return (
             <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-              <span>
+              <div>
                 Age: <b>{row.ageBracket || 'N/A'}</b>
-              </span>
-              <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span>
-              <span>
+                <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span>
                 Exp: <b>{row.experienceLevel || 'N/A'}</b>
-              </span>
+              </div>
+              {row.interest && (
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '11.5px',
+                    color: '#b45309',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#fef3c7',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #fde68a',
+                  }}
+                >
+                  <Calendar size={11} /> {row.interest}
+                </div>
+              )}
             </div>
           )
         }
@@ -1187,20 +1205,27 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                   </div>
                 </div>
                 {selectedRecord.interest && (
-                  <div>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Interest / Note:
+                  <div style={{ marginTop: '12px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      Information & Q&A Session Choice:
                     </span>
                     <div
                       style={{
-                        background: '#fafafa',
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        border: '1px solid #fde68a',
                         padding: '10px 14px',
                         borderRadius: '8px',
                         marginTop: '4px',
                         fontSize: '13px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
                       }}
                     >
-                      "{selectedRecord.interest}"
+                      <Calendar size={15} />
+                      {selectedRecord.interest}
                     </div>
                   </div>
                 )}
