@@ -1242,13 +1242,29 @@ export class UserAuthService extends BaseAuthService {
       throw new ForbiddenException('Waitlist entry not found')
     }
 
+    let formattedPhone: string | undefined = undefined
+    if (entry.phone) {
+      let cleaned = entry.phone.trim().replace(/\s+/g, '')
+      if (!cleaned.startsWith('+')) {
+        if (cleaned.startsWith('0') && cleaned.length === 11) {
+          cleaned = '+234' + cleaned.substring(1)
+        } else if (cleaned.length === 10) {
+          cleaned = '+234' + cleaned
+        }
+      }
+      if (/^\+\d{7,15}$/.test(cleaned)) {
+        formattedPhone = cleaned
+      }
+    }
+
     const existingUser = await this.userRepository.findByEmail(entry.email)
-    
+
     return {
       success: true,
       email: entry.email,
       firstName: entry.firstName || '',
       lastName: entry.lastName || '',
+      phone: formattedPhone,
       hasPassword: !!existingUser?.passwordHash && 
                    existingUser?.passwordHash !== PASS_PLACEHOLDERS.INVITED && 
                    existingUser?.passwordHash !== PASS_PLACEHOLDERS.SHADOW && 

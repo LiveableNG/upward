@@ -147,10 +147,17 @@ export class SingleInviteUseCase {
     
     if (effectiveEmail) {
       user = await this.userRepository.findByEmail(effectiveEmail);
-    } else if (userData.phone) {
+    }
+    
+    if (!user && userData.phone) {
       user = await this.userRepository.findByPhone(userData.phone);
+    }
+
+    if (!user && !effectiveEmail && userData.phone) {
       effectiveEmail = `${userData.phone.replace('+', '')}@upward.com`;
-    } else {
+    }
+
+    if (!user && !effectiveEmail && !userData.phone) {
       throw new BadRequestException('User must have either email or phone');
     }
 
