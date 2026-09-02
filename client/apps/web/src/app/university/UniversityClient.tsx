@@ -26,6 +26,7 @@ const formSchema = z.object({
   city: z.string().min(1, 'Please select a city'),
   age: z.string().min(1, 'Please select an age bracket'),
   exp: z.string().min(1, 'Please select your experience level'),
+  sessionTime: z.string().min(1, 'Please select a session time'),
   interest: z.string().optional(),
 })
 
@@ -165,6 +166,7 @@ export function UniversityClient() {
           city: data.city,
           ageBracket: data.age,
           experienceLevel: data.exp,
+          sessionTime: data.sessionTime,
           interest: data.interest,
         }),
       })
@@ -226,8 +228,8 @@ export function UniversityClient() {
             <a href="#faq" onClick={() => setNavOpen(false)}>
               FAQ
             </a>
-            <Link href="/university/landlord" onClick={() => setNavOpen(false)}>
-              Free Landlord Course
+            <Link href="/university/scholarships" onClick={() => setNavOpen(false)}>
+              Scholarships
             </Link>
           </div>
 
@@ -1148,13 +1150,28 @@ export function UniversityClient() {
                   />
                 </div>
 
+                <div className="uni-field" style={{ marginBottom: '16px' }}>
+                  <label htmlFor="sessionTime">Information Session Date & Time</label>
+                  <select id="sessionTime" {...register('sessionTime')}>
+                    <option value="">Select session time</option>
+                    <option value="Sat 12 Sep at 9am">Sat 12 Sep at 9am</option>
+                    <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
+                    <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
+                  </select>
+                  {errors.sessionTime && (
+                    <span style={{ fontSize: '11px', color: 'var(--uni-rust)' }}>
+                      {errors.sessionTime.message}
+                    </span>
+                  )}
+                </div>
+
                 {errorMsg && (
                   <div style={{ color: 'var(--uni-rust)', fontSize: '13px', marginBottom: '12px' }}>
                     {errorMsg}
                   </div>
                 )}
                 <button type="submit" className="uni-btn uni-btn-primary" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Join the Early Access List'}
+                  {loading ? 'Submitting...' : 'Join Information & Q&A Session →'}
                 </button>
               </form>
             ) : (

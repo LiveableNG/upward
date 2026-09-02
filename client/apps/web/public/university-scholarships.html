@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scholarships — Upward University</title>
+<meta name="description" content="Up to 50% scholarship toward your Upward University programme fee. Apply by October 4, 2026 for Founding Cohort 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.jpeg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Google Analytics & Ads -->
+<script src="/landing-analytics.js"></script>
+
+<!-- Facebook Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1079928187833425');
+fbq('track', 'PageView');
+fbq('track', 'ViewContent', {
+  content_name: 'Upward University Scholarships Page',
+  content_category: 'Education / Scholarships'
+});
+</script>
+<noscript>
+<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
+</noscript>
+<!-- End Facebook Pixel Code -->
+
+<style>
+  :root{
+    --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
+    --rust:#8A4A2A; --rust-light:#C97B4A; --rust-wash:#F4E4D8; --sand:#E7E0D2;
+    --forest:#2F7A4F; --white:#FFFFFF;
+    --shadow: 0 20px 50px -20px rgba(21,22,43,0.25);
+    --radius-lg:28px; --radius-md:18px; --maxw:1180px;
+    --mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter', system-ui, sans-serif; -webkit-font-smoothing:antialiased; line-height:1.55; }
+  
+  a{ color:inherit; }
+  h1,h2,h3,h4{ font-family:'Inter Tight', 'Inter', sans-serif; letter-spacing:-0.03em; line-height:1.1; margin:0; }
+  p{ margin:0; }
+  
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 24px; }
+  .serif{ font-family:'Fraunces', serif; font-style:italic; color:var(--rust); font-weight:500; }
+  
+  .eyebrow{ display:inline-flex; align-items:center; gap:6px; font:500 11px var(--mono); letter-spacing:.12em; text-transform:uppercase; color:var(--rust); background:var(--rust-wash); border:1px solid rgba(138,74,42,.18); padding:7px 14px; border-radius:999px; }
+  
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:14px 25px; border-radius:999px; font-weight:800; font-size:14.5px; text-decoration:none; cursor:pointer; border:0; transition:.18s ease; font-family:'Inter', sans-serif; }
+  .btn-primary{ background:var(--rust); color:var(--white); box-shadow:0 10px 24px -10px rgba(138,74,42,0.45); }
+  .btn-primary:hover{ transform:translateY(-2px); box-shadow:0 16px 30px -12px rgba(138,74,42,0.55); background:#723B20; }
+  .btn-dark{ background:var(--ink); color:var(--white); box-shadow:0 10px 24px -10px rgba(21,22,43,0.35); }
+  .btn-dark:hover{ transform:translateY(-2px); background:#0F1020; }
+  .btn-outline{ background:transparent; color:var(--ink); border:1.5px solid var(--sand); }
+  .btn-outline:hover{ border-color:var(--rust); color:var(--rust); }
+  
+  .sticky-header-wrapper { position:sticky; top:0; z-index:100; width:100%; }
+  header{ position:relative; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
+  nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:12px 24px; }
+  .logo{ display:flex; align-items:center; gap:10px; font-family:'Inter Tight'; font-weight:800; font-size:16px; letter-spacing:-0.01em; text-decoration:none; color:var(--ink); }
+  .logo .mark{ width:48px; height:48px; border-radius:12px; background:var(--rust); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
+  .logo small{ display:block; font-family:'Inter'; font-weight:600; letter-spacing:0.13em; font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; }
+  .nav-links{ display:flex; gap:28px; font-size:13.5px; font-weight:700; color:var(--ink-soft); }
+  .nav-links a{ text-decoration:none; transition:color .18s ease; }
+  .nav-links a:hover, .nav-links a.active{ color:var(--ink); }
+  .nav-links a.active{ color:var(--rust); }
+  .nav-right{ display:flex; align-items:center; gap:14px; }
+  .nav-toggle{ display:none; width:38px; height:38px; border-radius:99px; border:1.5px solid var(--sand); background:#fff; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .nav-toggle svg{ width:18px; height:18px; }
+  
+  .nav-home {
+    color: #d97757;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 18px;
+    border-right: 1px solid var(--sand);
+    margin-right: 4px;
+    transition: color 0.2s ease;
+  }
+  .nav-home:hover { color: #c46648; text-decoration: underline; }
+
+  @media(max-width:900px){
+    .nav-links{
+      display:flex; flex-direction:column; gap:0; position:absolute; top:100%; left:0; right:0;
+      background:var(--paper); border-bottom:1px solid var(--sand); padding:6px 24px 14px;
+      max-height:0; overflow:hidden; transition:max-height .25s ease;
+    }
+    .nav-links.open{ max-height:400px; }
+    .nav-links a{ padding:12px 0; border-top:1px solid var(--sand); }
+    .nav-links a:first-child{ border-top:none; }
+    .nav-home{ border-right:none; margin-right:0; padding-right:0; }
+    .nav-toggle{ display:flex; }
+  }
+
+  .top-announcement-bar {
+    background: var(--ink);
+    color: #FDFBF5;
+    font-size: 13px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  @media(max-width:768px){
+    .top-announcement-bar { padding: 6px 12px; font-size: 11.5px; line-height: 1.35; }
+    .top-announcement-content { gap: 6px 10px; font-size: 11.5px; justify-content: center; text-align: center; }
+    .top-announcement-badge { font-size: 9.5px; padding: 2px 7px; }
+    .top-announcement-text { font-size: 11.5px; }
+    .top-announcement-link { font-size: 11.5px; white-space: nowrap; }
+  }
+  .top-announcement-content { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; text-align: center; }
+  .top-announcement-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--rust); color: #fff; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 999px; }
+  .top-announcement-text { font-weight: 500; color: #E7E0D2; }
+  .top-announcement-text strong { color: #fff; font-weight: 700; }
+  .top-announcement-link { color: var(--rust-light); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.18s ease; }
+  .top-announcement-link:hover { color: #fff; text-decoration: underline; }
+
+  /* HERO */
+  .hero{ padding:72px 0 54px; }
+  .hero-grid{ display:grid; grid-template-columns:1.12fr .88fr; gap:45px; align-items:center; }
+  .hero h1{ font-size:clamp(40px, 5.5vw, 64px); margin:18px 0 16px; line-height:1.05; }
+  .hero p.lead{ font-size:18px; color:var(--ink-soft); max-width:640px; line-height:1.5; }
+  .hero-meta{ font:500 11px var(--mono); color:var(--rust); margin-top:20px; letter-spacing:.05em; display:flex; align-items:center; gap:8px; }
+  
+  .scholarship-card{
+    background: linear-gradient(145deg, var(--rust) 0%, #6E381E 100%);
+    color: #fff;
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 16px 40px -16px rgba(138,74,42,0.35);
+  }
+  .scholarship-card::after{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 88% 6%, rgba(255,255,255,0.18), transparent 46%); pointer-events:none; }
+  .scholarship-card .amount{ font:800 clamp(64px,7vw,96px)/0.9 'Inter Tight'; letter-spacing:-0.05em; margin:16px 0 12px; color:#fff; }
+  .scholarship-card p{ color:rgba(255,255,255,0.9); font-size:15px; margin:0; line-height:1.45; }
+  .scholarship-card .deadline{ display:inline-flex; align-items:center; gap:6px; margin-top:28px; padding:10px 14px; border-radius:10px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); font:500 11px var(--mono); letter-spacing:.06em; color:#fff; }
+
+  /* SECTION STYLES */
+  section{ padding:64px 0; }
+  .dark-card{ background:var(--paper-dim); color:var(--ink); border:1px solid var(--sand); border-radius:var(--radius-lg); padding:48px; position:relative; overflow:hidden; }
+  .dark-card h2 { color:var(--ink); }
+  .dark-card p{ color:var(--ink-soft); font-size:16px; margin-top:12px; line-height:1.55; }
+  .dark-card .eyebrow{ background:var(--rust-wash); border:1px solid rgba(138,74,42,.18); color:var(--rust); }
+  
+  .amount-row{ display:flex; align-items:flex-end; justify-content:space-between; gap:30px; margin-top:32px; flex-wrap:wrap; border-top:1px solid var(--sand); padding-top:28px; }
+  .fee-num{ font:800 48px 'Inter Tight'; letter-spacing:-0.04em; color:var(--ink); margin-top:4px; }
+  .fee-label{ font:500 10.5px var(--mono); color:var(--rust); letter-spacing:.1em; text-transform:uppercase; }
+  .amount-arrow{ font-size:32px; color:var(--rust); display:flex; align-items:center; }
+
+  /* CRITERIA */
+  .criteria-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:36px; }
+  .card{ background:#fff; border:1px solid var(--sand); border-radius:20px; padding:30px; box-shadow:0 4px 16px -8px rgba(21,22,43,0.04); }
+  .card .num{ font:500 11px var(--mono); color:var(--rust); letter-spacing:.08em; }
+  .card h3{ font-size:20px; margin:12px 0 8px; }
+  .card p{ color:var(--ink-soft); font-size:14px; line-height:1.5; }
+
+  /* STEPS */
+  .steps-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:36px; }
+  .step-card{ background:#fff; border:1px solid var(--sand); border-radius:18px; padding:24px; box-shadow:0 4px 16px -8px rgba(21,22,43,0.04); }
+  .step-card b{ display:inline-block; font:500 11px var(--mono); color:var(--rust); background:var(--rust-wash); padding:3px 8px; border-radius:6px; margin-bottom:12px; }
+  .step-card h3{ font-size:18px; margin:0 0 8px; }
+  .step-card p{ font-size:13.5px; color:var(--ink-soft); line-height:1.45; }
+  
+  .note-banner{ background:var(--paper-dim); border:1px solid var(--sand); border-radius:16px; padding:18px 22px; font-size:14px; color:var(--ink-soft); margin-top:28px; text-align:center; }
+  .note-banner strong{ color:var(--ink); }
+
+  /* CTA */
+  .cta-section{ padding:64px 0 80px; }
+  .cta-box{ background:var(--paper-dim); border:1px solid var(--sand); border-radius:var(--radius-lg); padding:56px 36px; text-align:center; box-shadow:var(--shadow); }
+  .cta-box h2{ font-size:clamp(32px, 4vw, 44px); margin:12px 0 14px; }
+  .cta-box p.lead{ margin:0 auto 28px; max-width:680px; color:var(--ink-soft); font-size:16px; }
+  .fine-print{ font-size:12px; color:var(--ink-soft); margin-top:16px; max-width:600px; margin-left:auto; margin-right:auto; line-height:1.45; }
+
+  /* MODAL */
+  .ea-overlay { position:fixed; inset:0; background:rgba(21,22,43,0.55); backdrop-filter:blur(6px); z-index:109; opacity:0; pointer-events:none; transition:opacity .3s ease; }
+  .ea-overlay.is-open { opacity:1; pointer-events:auto; }
+  .ea-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-45%) scale(0.96); width:90%; max-width:540px; background:#fff; border-radius:24px; border:1px solid var(--sand); padding:36px; z-index:110; opacity:0; pointer-events:none; transition:all .3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow:0 25px 60px -15px rgba(21,22,43,0.3); max-height:90vh; overflow-y:auto; }
+  .ea-modal.is-open { transform:translate(-50%,-50%) scale(1); opacity:1; pointer-events:auto; }
+  .ea-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+  .ea-title { font-size:20px; font-weight:800; color:var(--ink); }
+  .ea-close { background:var(--paper-dim); border:none; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); font-size:16px; transition:all .18s ease; }
+  .ea-close:hover { background:var(--sand); color:var(--ink); }
+  .ea-sub { font-size:13.5px; color:var(--ink-soft); margin-bottom:20px; line-height:1.45; }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--ink-soft); }
+  .field input, .field select{ width:100%; padding:12px 14px; border-radius:10px; border:1.5px solid var(--sand); font-family:'Inter'; font-size:14.5px; background:var(--paper); color:var(--ink); transition:border-color .18s ease; }
+  .field input:focus, .field select:focus{ outline:none; border-color:var(--rust); background:var(--white); }
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media(max-width:520px){ .form-row{ grid-template-columns:1fr; } }
+  .form-success{ display:none; text-align:center; padding:24px 0; }
+  .form-success.show{ display:block; }
+
+  /* FOOTER */
+  footer{ border-top:1px solid var(--sand); padding:40px 0; background:var(--paper-dim); color:var(--ink-soft); font-size:13px; }
+  .flogo{ font-family:'Inter Tight'; font-weight:800; font-size:15px; color:var(--ink); display:inline-flex; align-items:center; gap:8px; }
+
+  @media(max-width:900px){
+    .hero-grid{ grid-template-columns:1fr; gap:32px; }
+    .criteria-grid{ grid-template-columns:1fr; }
+    .steps-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media(max-width:550px){
+    .steps-grid{ grid-template-columns:1fr; }
+    .cta-box{ padding:36px 20px; }
+    .scholarship-card{ padding:28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sticky-header-wrapper">
+  <div class="top-announcement-bar">
+    <div class="wrap top-announcement-content">
+      <span class="top-announcement-badge"><i class="fa-solid fa-graduation-cap"></i> Scholarships</span>
+      <span class="top-announcement-text">Up to <strong>50% Scholarship</strong> Available — Deadline October 4, 2026</span>
+      <a href="/university/apply" class="top-announcement-link">Apply for Scholarship <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+  </div>
+
+  <header>
+    <nav class="wrap">
+      <a href="/university" class="logo">
+        <span class="mark"><img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;"></span>
+        <div>UPWARD<br><small>University</small></div>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="/" class="nav-home">← Upward Home</a>
+        <a href="/university#outcome">Outcomes</a>
+        <a href="/university/programme">Full Curriculum</a>
+        <a href="/university/scholarships" class="active">Scholarships</a>
+        <a href="/university#faq">FAQ</a>
+      </div>
+      <div class="nav-right">
+        <a class="btn btn-primary" href="/university/apply">Apply</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="#15162B" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><i class="fa-solid fa-award" style="font-size:10px;"></i> Scholarships · Founding Cohort 2026</span>
+        <h1>Up to 50% scholarship to <em class="serif">build your way in.</em></h1>
+        <p class="lead">Your financial situation shouldn't stop you from building a career or business in real estate.</p>
+        <div style="margin-top:28px; display:flex; gap:12px; flex-wrap:wrap;">
+          <a class="btn btn-primary" href="/university/apply">Apply before scholarship deadline →</a>
+          <button type="button" class="btn btn-outline" id="openEaModalBtn"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Information & Q&A Sessions</button>
+        </div>
+        <div class="hero-meta">
+          <i class="fa-solid fa-clock"></i> SCHOLARSHIP APPLICATION DEADLINE · OCTOBER 4, 2026
+        </div>
+      </div>
+
+      <div class="scholarship-card">
+        <span class="eyebrow" style="background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.2);">Maximum Scholarship</span>
+        <div class="amount">50%</div>
+        <p>of the ₦200,000 programme fee for selected applicants.</p>
+        <div class="deadline">
+          <i class="fa-solid fa-calendar-check" style="color:var(--rust-light);"></i> APPLY BY OCTOBER 4, 2026
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT THAT MEANS -->
+  <section>
+    <div class="wrap">
+      <div class="dark-card">
+        <span class="eyebrow">What that means</span>
+        <h2 style="font-size:clamp(28px, 4vw, 42px); margin-top:14px;">Up to ₦100,000 toward your programme fee.</h2>
+        <p>The full Upward University programme fee is ₦200,000. Selected scholarship recipients can receive up to 50% support toward that fee.</p>
+        
+        <div class="amount-row">
+          <div>
+            <div class="fee-label">Full Programme Fee</div>
+            <div class="fee-num">₦200,000</div>
+          </div>
+          <div class="amount-arrow">→</div>
+          <div>
+            <div class="fee-label">Maximum Scholarship</div>
+            <div class="fee-num" style="color:var(--rust-light);">₦100,000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY SCHOLARSHIPS -->
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">Why scholarships?</span>
+      <h2 style="font-size:clamp(28px, 4vw, 40px); margin-top:14px;">We want strong people to have a shot.</h2>
+      <p style="color:var(--ink-soft); max-width:720px; font-size:16px; margin-top:12px; line-height:1.55;">
+        Upward University is designed for people who are willing to put in the work and build a meaningful career or business in real estate. Scholarships help make the opportunity accessible to more people who have the potential to make the most of it.
+      </p>
+
+      <div class="criteria-grid">
+        <div class="card">
+          <div class="num">01 · POTENTIAL</div>
+          <h3>You can become exceptional.</h3>
+          <p>You have the ambition and ability to build a meaningful career or business in real estate.</p>
+        </div>
+        <div class="card">
+          <div class="num">02 · COMMITMENT</div>
+          <h3>You are prepared to do the work.</h3>
+          <p>You can commit 6–8 hours every week throughout the programme.</p>
+        </div>
+        <div class="card">
+          <div class="num">03 · NEED</div>
+          <h3>The scholarship would help.</h3>
+          <p>Financial support would materially improve your ability to participate in the programme.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section>
+    <div class="wrap">
+      <div style="text-align:center;">
+        <span class="eyebrow">How it works</span>
+        <h2 style="font-size:clamp(28px, 4vw, 40px); margin-top:14px;">Four simple steps.</h2>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <b>01</b>
+          <h3>Apply by October 4</h3>
+          <p>Complete the Upward University application and request scholarship consideration.</p>
+        </div>
+        <div class="step-card">
+          <b>02</b>
+          <h3>Tell us why</h3>
+          <p>Share your goals, circumstances, experience and what you want to build.</p>
+        </div>
+        <div class="step-card">
+          <b>03</b>
+          <h3>We assess</h3>
+          <p>Selected applicants are considered for scholarships of up to 50%.</p>
+        </div>
+        <div class="step-card">
+          <b>04</b>
+          <h3>Join the cohort</h3>
+          <p>Successful applicants receive their scholarship and proceed with admission.</p>
+        </div>
+      </div>
+
+      <div class="note-banner">
+        <i class="fa-solid fa-circle-info" style="color:var(--rust); margin-right:6px;"></i>
+        <strong>Important:</strong> Scholarships are only open to people who submit their application by <strong>October 4, 2026</strong>.
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="wrap">
+      <div class="cta-box">
+        <span class="eyebrow">Don't miss the deadline</span>
+        <h2>Apply before scholarship deadline.</h2>
+        <p class="lead">Applications submitted after October 4 may still be considered for admission, but will not be eligible for the scholarship programme.</p>
+        <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+          <a class="btn btn-primary" href="/university/apply">Apply before scholarship deadline →</a>
+        </div>
+        <p class="fine-print">₦5,000 application fee applies. It is credited toward the programme fee if admitted and refunded if you do not qualify to join the class.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Early Access / Information Request Modal Drawer -->
+<div id="ea-modal-overlay" class="ea-overlay" aria-hidden="true"></div>
+<div id="ea-modal" class="ea-modal" role="dialog" aria-modal="true" aria-labelledby="ea-modal-title" aria-hidden="true">
+  <div class="ea-header">
+    <div>
+      <span class="eyebrow" style="font-size:10px; padding:5px 12px;">Information & Q&A Sessions</span>
+      <h2 id="ea-modal-title" class="ea-title" style="margin-top:8px; font-size:18px; line-height:1.4;">Join an information and Q&A sessions to learn more about Upward University and if you should be applying</h2>
+    </div>
+    <button type="button" id="ea-modal-close" class="ea-close" aria-label="Close form">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+  <p class="ea-sub">Leave your details below to attend an information and Q&A session, and learn if Upward University is right for you.</p>
+
+  <form id="earlyAccessForm">
+    <div class="form-row">
+      <div class="field"><label for="ea_name">Full name</label><input id="ea_name" type="text" required placeholder="Your name"></div>
+      <div class="field"><label for="ea_whatsapp">WhatsApp number</label><input id="ea_whatsapp" type="tel" required placeholder="+234"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label for="ea_email">Email</label><input id="ea_email" type="email" required placeholder="you@email.com"></div>
+      <div class="field"><label for="ea_city">City</label>
+        <select id="ea_city" required>
+          <option value="">Select city</option>
+          <option>Lagos</option>
+          <option>Abuja</option>
+          <option>Port Harcourt</option>
+          <option>Oyo</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label for="ea_age">Age bracket</label>
+        <select id="ea_age" required>
+          <option value="">Select</option>
+          <option>18–24</option>
+          <option>25–30</option>
+          <option>31–40</option>
+          <option>41+</option>
+        </select>
+      </div>
+      <div class="field"><label for="ea_exp">Real estate experience</label>
+        <select id="ea_exp" required>
+          <option value="">Select</option>
+          <option>Beginner</option>
+          <option>Already active in real estate</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label for="ea_interest">What interests you most about Upward University? (optional)</label><input id="ea_interest" type="text" placeholder="Tell us in a sentence"></div>
+    <div class="field" style="margin-top:12px;"><label for="ea_session_time">Information Session Date & Time</label>
+      <select id="ea_session_time" required>
+        <option value="">Select session time</option>
+        <option value="Sat 12 Sep at 9am">Sat 12 Sep at 9am</option>
+        <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
+        <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:16px; justify-content:center;">Join Information & Q&A Session →</button>
+  </form>
+
+  <div class="form-success" id="eaFormSuccess">
+    <div class="check" style="width:48px;height:48px;border-radius:50%;background:var(--forest);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:#fff;font-size:20px;">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h3 style="font-size:20px;">Information Request Received!</h3>
+    <p style="font-size:14px; color:var(--ink-soft); margin-top:8px;">Thank you for your interest. We will keep you updated via WhatsApp with cohort details and news.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:24px; align-items:center;">
+    <div>
+      <div class="flogo">
+        <span class="mark" style="width:24px;height:24px;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;">
+          <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;">
+        </span>
+        UPWARD UNIVERSITY
+      </div>
+      <p style="margin-top:6px; font-size:12px;">Part of the Upward housing ecosystem, alongside GoodTenants. Registered in Nigeria.</p>
+    </div>
+    <div style="font-size:13px;">
+      <a href="/" style="color:var(--rust); font-weight:700; text-decoration:none;">← Back to Upward Home</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  if(navToggle && navLinks){
+    navToggle.addEventListener('click', function(){
+      const open = navLinks.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
+  const eaModalOverlay = document.getElementById('ea-modal-overlay');
+  const eaModal = document.getElementById('ea-modal');
+  const eaModalClose = document.getElementById('ea-modal-close');
+  const openEaModalBtn = document.getElementById('openEaModalBtn');
+
+  function setEaModalOpen(open) {
+    if(!eaModal || !eaModalOverlay) return;
+    if(open) {
+      eaModalOverlay.classList.add('is-open');
+      eaModal.classList.add('is-open');
+      eaModal.setAttribute('aria-hidden', 'false');
+      eaModalOverlay.setAttribute('aria-hidden', 'false');
+    } else {
+      eaModalOverlay.classList.remove('is-open');
+      eaModal.classList.remove('is-open');
+      eaModal.setAttribute('aria-hidden', 'true');
+      eaModalOverlay.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  openEaModalBtn?.addEventListener('click', () => setEaModalOpen(true));
+  eaModalClose?.addEventListener('click', () => setEaModalOpen(false));
+  eaModalOverlay?.addEventListener('click', () => setEaModalOpen(false));
+
+  const eaForm = document.getElementById('earlyAccessForm');
+  if(eaForm) {
+    const submitBtn = eaForm.querySelector('button[type="submit"]');
+    eaForm.addEventListener('submit', async function(e){
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      const payload = {
+        name: document.getElementById('ea_name').value,
+        whatsapp: document.getElementById('ea_whatsapp').value,
+        email: document.getElementById('ea_email').value,
+        city: document.getElementById('ea_city').value,
+        ageBracket: document.getElementById('ea_age').value,
+        experienceLevel: document.getElementById('ea_exp').value,
+        interest: document.getElementById('ea_interest').value,
+        sessionTime: document.getElementById('ea_session_time')?.value
+      };
+
+      try {
+        const res = await fetch('/api/v1/early-access/student', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn('Early access submission returned error:', errData);
+        }
+      } catch (err) {
+        console.error('Network error during early access submission:', err);
+      } finally {
+        if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+          window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
+          window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
+        }
+        if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Student Info Request' });
+          window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
+        }
+        eaForm.style.display = 'none';
+        const successEl = document.getElementById('eaFormSuccess');
+        const firstName = payload.name.trim().split(' ')[0];
+        if (firstName) {
+          successEl.querySelector('h3').textContent = `Thank you, ${firstName}!`;
+        }
+        successEl.classList.add('show');
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

@@ -59,7 +59,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   .btn:focus-visible{ outline:2.5px solid var(--rust); outline-offset:3px; }
   :focus-visible{ outline:2.5px solid var(--rust); outline-offset:2px; }
 
-  header{ position:sticky; top:0; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
+  .sticky-header-wrapper { position:sticky; top:0; z-index:100; width:100%; }
+  header{ position:relative; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
   nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:8px 24px; }
   .logo{ display:flex; align-items:center; gap:10px; font-family:'Inter Tight'; font-weight:800; font-size:16px; letter-spacing:-0.01em; }
   .logo .mark{ width:48px; height:48px; border-radius:12px; background:var(--rust); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
@@ -510,11 +511,32 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     background: var(--ink);
     color: #FDFBF5;
     font-size: 13px;
-    padding: 9px 0;
+    padding: 8px 0;
     border-bottom: 1px solid rgba(255,255,255,0.1);
   }
   @media(max-width:768px){
-    .top-announcement-bar { display: none; }
+    .top-announcement-bar {
+      padding: 6px 12px;
+      font-size: 11.5px;
+      line-height: 1.35;
+    }
+    .top-announcement-content {
+      gap: 6px 10px;
+      font-size: 11.5px;
+      justify-content: center;
+      text-align: center;
+    }
+    .top-announcement-badge {
+      font-size: 9.5px;
+      padding: 2px 7px;
+    }
+    .top-announcement-text {
+      font-size: 11.5px;
+    }
+    .top-announcement-link {
+      font-size: 11.5px;
+      white-space: nowrap;
+    }
   }
   .top-announcement-content {
     display: flex;
@@ -649,6 +671,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 </head>
 <body>
 
+<div class="sticky-header-wrapper">
 <div class="top-announcement-bar">
   <div class="wrap top-announcement-content">
     <span class="top-announcement-badge"><i class="fa-solid fa-calendar-days"></i> Next Cohort</span>
@@ -669,7 +692,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       <a href="/university/programme">Full Curriculum</a>
       <a href="#people">People</a>
       <a href="#faq">FAQ</a>
-      <a href="/university/landlord">Free Landlord Course</a>
+      <a href="/university/scholarships">Scholarships</a>
     </div>
     <div class="nav-right">
       <a class="btn btn-primary" href="/university/apply">Apply</a>
@@ -679,38 +702,23 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     </div>
   </nav>
 </header>
+</div>
 
 <section class="hero">
   <div class="wrap hero-grid">
     <div>
       <span class="eyebrow"><i class="fa-solid fa-location-dot" style="margin-right:6px; font-size:10px;"></i> Lagos · Abuja · Port Harcourt · Oyo</span>
-      <h1>Build a career. <em class="accent">Build a business.</em></h1>
-      <p class="hero-sub">A practical, hands-on programme for ambitious people who want to become useful, employable and commercially active in Nigeria's real estate industry.</p>
+      <h1>Learn real estate. <em class="accent">Build a business.</em> Create your own income.</h1>
+      <p class="hero-sub">A practical 10-week programme for ambitious people who want to become real estate business executives — building a business, creating income, or growing into a stronger career in Nigeria's real estate industry.</p>
       
-      <div class="cohort-callout-card">
-        <div class="cohort-callout-item">
-          <div class="cohort-callout-label"><i class="fa-solid fa-calendar-days"></i> Class Start Date</div>
-          <div class="cohort-callout-value">October 31, 2026</div>
-        </div>
-        <div class="cohort-callout-divider"></div>
-        <div class="cohort-callout-item">
-          <div class="cohort-callout-label"><i class="fa-solid fa-clock"></i> Duration &amp; Format</div>
-          <div class="cohort-callout-value">10 Weeks · Hybrid</div>
-        </div>
-        <div class="cohort-callout-divider"></div>
-        <div class="cohort-callout-item">
-          <div class="cohort-callout-label"><i class="fa-solid fa-user-graduate"></i> Status</div>
-          <div class="cohort-callout-value"><span class="cohort-badge-live"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Admissions Open</span></div>
-        </div>
-      </div>
 
       <div class="income-callout">
         <div class="income-num">₦10m<span>+</span></div>
-        <div class="income-text"><strong>Build toward a ₦10m+ a year property business</strong>— or a strong industry career.</div>
+        <div class="income-text"><strong>Build toward ₦10m+ a year in income.</strong></div>
       </div>
       <div class="hero-apply" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
         <a class="btn btn-primary" href="/university/apply">Apply for Founding Cohort →</a>
-        <button type="button" class="btn btn-outline" id="openEaModalBtn"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Request Info / Stay Updated</button>
+        <button type="button" class="btn btn-outline" id="openEaModalBtn"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Information & Q&A Sessions</button>
       </div>
     </div>
     <div class="hero-image-card">
@@ -1011,13 +1019,12 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   <div class="wrap">
     <div class="landlord-band">
       <div>
-        <span class="eyebrow">For Landlords</span>
-        <h2>Are you a landlord?</h2>
-        <p class="tagline">Protect your income. Protect your property. Build a system that lasts.</p>
-        <p style="margin-top:10px; color:var(--ink-soft); font-size:14.5px;">A free practical programme for landlords who want better returns, better protection, and better property management.</p>
+        <span class="eyebrow">Scholarships</span>
+        <h2>Up to 50% Scholarship Available</h2>
+        <p style="margin-top:10px; color:var(--ink-soft); font-size:14.5px;">Up to 50% support (up to ₦100,000) toward your programme fee for selected Founding Cohort 2026 applicants. Apply before October 4, 2026.</p>
       </div>
       <div style="text-align:right;">
-        <a href="/university/landlord" class="btn btn-outline">Learn for Free</a>
+        <a href="/university/scholarships" class="btn btn-outline">Learn About Scholarships</a>
       </div>
     </div>
   </div>
@@ -1105,7 +1112,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     <p style="color:var(--ink-soft); margin:14px auto 22px; max-width:600px; line-height:1.5;">Apply today. The ₦5,000 application fee is credited if admitted and refunded if you do not qualify.</p>
     <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; align-items:center;">
       <a href="/university/apply" class="btn btn-primary">Start Your Application →</a>
-      <button type="button" class="btn btn-outline openEaModalSecondary"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Stay Updated / Request Info</button>
+      <button type="button" class="btn btn-outline openEaModalSecondary"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Information & Q&A Sessions</button>
     </div>
   </div>
 </section>
@@ -1182,14 +1189,14 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 <div id="ea-modal" class="ea-modal" role="dialog" aria-modal="true" aria-labelledby="ea-modal-title" aria-hidden="true">
   <div class="ea-header">
     <div>
-      <span class="eyebrow" style="font-size:10px; padding:5px 12px;">Stay Updated</span>
-      <h2 id="ea-modal-title" class="ea-title" style="margin-top:8px;">Request Information</h2>
+      <span class="eyebrow" style="font-size:10px; padding:5px 12px;">Information & Q&A Sessions</span>
+      <h2 id="ea-modal-title" class="ea-title" style="margin-top:8px; font-size: 18px; line-height: 1.4;">Join an information and Q&A sessions to learn more about Upward University and if you should be applying</h2>
     </div>
     <button type="button" id="ea-modal-close" class="ea-close" aria-label="Close form">
       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
     </button>
   </div>
-  <p class="ea-sub">Not ready to apply just yet? Leave your details below and we'll send you cohort updates, course details, and announcement notices.</p>
+  <p class="ea-sub">Leave your details below to attend an information and Q&A session, and learn if Upward University is right for you.</p>
 
   <form id="earlyAccessForm">
     <div class="form-row">
@@ -1228,7 +1235,15 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       </div>
     </div>
     <div class="field"><label for="ea_interest">What interests you most about Upward University? (optional)</label><input id="ea_interest" type="text" placeholder="Tell us in a sentence"></div>
-    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px; justify-content:center;">Submit Information Request →</button>
+    <div class="field" style="margin-top:12px;"><label for="ea_session_time">Information Session Date & Time</label>
+      <select id="ea_session_time" required>
+        <option value="">Select session time</option>
+        <option value="Sat 12 Sep at 9am">Sat 12 Sep at 9am</option>
+        <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
+        <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%; margin-top:16px; justify-content:center;">Join Information & Q&A Session →</button>
   </form>
 
   <div class="form-success" id="eaFormSuccess">
@@ -1289,7 +1304,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         city: document.getElementById('ea_city').value,
         ageBracket: document.getElementById('ea_age').value,
         experienceLevel: document.getElementById('ea_exp').value,
-        interest: document.getElementById('ea_interest').value
+        interest: document.getElementById('ea_interest').value,
+        sessionTime: document.getElementById('ea_session_time')?.value
       };
 
       try {

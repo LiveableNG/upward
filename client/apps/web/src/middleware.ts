@@ -478,6 +478,9 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/university/programme') {
     return NextResponse.rewrite(new URL('/university-programme.html', request.url))
   }
+  if (pathname === '/university/scholarships' || pathname === '/university/scholarship') {
+    return NextResponse.rewrite(new URL('/university-scholarships.html', request.url))
+  }
   if (pathname === '/university/landlord') {
     return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
   }
@@ -496,6 +499,8 @@ export const config = {
     '/university',
     '/university/apply',
     '/university/programme',
+    '/university/scholarships',
+    '/university/scholarship',
     '/university/landlord',
     '/university/thank-you',
     '/landing-analytics.js',

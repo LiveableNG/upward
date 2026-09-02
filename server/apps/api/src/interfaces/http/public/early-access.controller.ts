@@ -31,6 +31,7 @@ export class EarlyAccessController {
       ageBracket: dto.ageBracket,
       experienceLevel: dto.experienceLevel,
       interest: dto.interest,
+      sessionTime: dto.sessionTime,
     })
 
     return {
