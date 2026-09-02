@@ -26,6 +26,7 @@ const formSchema = z.object({
   city: z.string().min(1, 'Please select a city'),
   age: z.string().min(1, 'Please select an age bracket'),
   exp: z.string().min(1, 'Please select your experience level'),
+  sessionTime: z.string().min(1, 'Please select a session time'),
   interest: z.string().optional(),
 })
 
@@ -35,12 +36,12 @@ const faqData = [
   {
     question: 'Do I have to choose between Property Management and Brokerage?',
     answer:
-      'No. Every student learns both. Property Management is the ongoing relationship — rent collection, maintenance, tenant relations. Brokerage is deal-based — finding clients and closing transactions. Your specialization comes later.',
+      'No. Every student learns both. Property Management is the ongoing relationship: rent collection, maintenance, tenant relations. Brokerage is deal-based: finding clients and closing transactions. Your specialization comes later.',
   },
   {
     question: 'Do I need to already own property or work in real estate?',
     answer:
-      "No. We're not looking for existing property owners or industry veterans — we're looking for people with drive, communication skills, and ideally some access to landlords or property owners, which we assess in the application.",
+      "No. We're not looking for existing property owners or industry veterans - we're looking for people with drive, communication skills, and ideally some access to landlords or property owners, which we assess in the application.",
   },
   {
     question: 'What does "Upward Certified" actually mean to a landlord?',
@@ -55,13 +56,13 @@ const faqData = [
   {
     question: 'Is this online, in-person, or hybrid?',
     answer:
-      'Hybrid, weighted toward onsite training. Most of the real learning — landlord interactions, deal practice, hands-on work — happens in person in your city.',
+      'Hybrid, weighted toward onsite training. Most of the real learning (landlord interactions, deal practice, hands-on work) happens in person in your city.',
   },
   {
     question:
-      'What happens after the Founding Cohort — is there a path to more?',
+      'What happens after the Founding Cohort - is there a path to more?',
     answer:
-      "Everyone completes the same core training. After that, standout graduates may be invited into Growth Partner — a deeper, selective relationship with Upward. It's not guaranteed or part of every student's path — it's offered separately to top performers.",
+      "Everyone completes the same core training. After that, standout graduates may be invited into Growth Partner: a deeper, selective relationship with Upward. It's not guaranteed or part of every student's path - it's offered separately to top performers.",
   },
 ]
 
@@ -165,6 +166,7 @@ export function UniversityClient() {
           city: data.city,
           ageBracket: data.age,
           experienceLevel: data.exp,
+          sessionTime: data.sessionTime,
           interest: data.interest,
         }),
       })
@@ -226,8 +228,8 @@ export function UniversityClient() {
             <a href="#faq" onClick={() => setNavOpen(false)}>
               FAQ
             </a>
-            <Link href="/university/landlord" onClick={() => setNavOpen(false)}>
-              Free Landlord Course
+            <Link href="/university/scholarships" onClick={() => setNavOpen(false)}>
+              Scholarships
             </Link>
           </div>
 
@@ -297,7 +299,7 @@ export function UniversityClient() {
               <span className="uni-kicker-card__icon">
                 <Home size={14} />
               </span>
-              <span>Upward — Rent Passport™</span>
+              <span>Upward - Rent Passport™</span>
               <ExternalLink size={12} className="uni-kicker-card__arrow" />
             </a>
             <a
@@ -328,7 +330,7 @@ export function UniversityClient() {
               <div className="idx">01</div>
               <h3>Upward Certified</h3>
               <p>
-                A credential built to mean something to landlords — not a certificate of
+                A credential built to mean something to landlords: not a certificate of
                 attendance. Assessment-based, standards-backed.
               </p>
             </div>
@@ -337,7 +339,7 @@ export function UniversityClient() {
               <h3>Tested, Then Opened Up</h3>
               <p>
                 The curriculum was piloted with an early cohort before opening to 200 seats across
-                Lagos, Abuja, Port Harcourt and Oyo. You're not the test run — you're the first
+                Lagos, Abuja, Port Harcourt and Oyo. You're not the test run: you're the first
                 official class.
               </p>
             </div>
@@ -372,7 +374,7 @@ export function UniversityClient() {
               <div className="uni-founder-name">Adekunle Jinadu</div>
               <div className="uni-founder-role">Founder, Upward &amp; GoodTenants</div>
               <p className="uni-founder-bio">
-                Five years building Nigeria's housing ecosystem — from GoodTenants' property
+                Five years building Nigeria's housing ecosystem - from GoodTenants' property
                 management infrastructure to Upward's Rent Passport™. MSc Housing, University of
                 Nottingham.
               </p>
@@ -552,7 +554,7 @@ export function UniversityClient() {
             </h2>
             <p className="lead">
               This isn't classroom-only training. Upward University moves you from learning into the
-              market — with a business identity, prospects and momentum before the programme ends.
+              market - with a business identity, prospects and momentum before the programme ends.
             </p>
           </div>
           <div className="uni-steps">
@@ -564,7 +566,7 @@ export function UniversityClient() {
             <div className="uni-step">
               <div className="uni-step-num">2</div>
               <h3>Build</h3>
-              <p>Your professional real-estate identity — name, pitch, pricing.</p>
+              <p>Your professional real-estate identity: name, pitch, pricing.</p>
             </div>
             <div className="uni-step">
               <div className="uni-step-num">3</div>
@@ -584,7 +586,7 @@ export function UniversityClient() {
             <div className="uni-step">
               <div className="uni-step-num">6</div>
               <h3>Grow</h3>
-              <p>A career, a business, or both — your call.</p>
+              <p>A career, a business, or both: your call.</p>
             </div>
           </div>
         </div>
@@ -599,7 +601,7 @@ export function UniversityClient() {
               <h2>Don't just learn. Launch.</h2>
               <p className="lead">
                 Upward University is designed to move students from classroom learning into the
-                market — fast.
+                market fast.
               </p>
             </div>
             <div className="uni-launch-grid">
@@ -773,7 +775,7 @@ export function UniversityClient() {
                 Don't just learn. Get recognised.
               </h2>
               <p style={{ marginTop: '14px', color: 'var(--uni-ink-soft)', fontSize: '15.5px', maxWidth: '480px' }}>
-                Certification is a trust layer, not a certificate of attendance — the standard
+                Certification is a trust layer, not a certificate of attendance: the standard
                 landlords and clients are taught to look for.
               </p>
               <div className="uni-progress-chain">
@@ -893,7 +895,7 @@ export function UniversityClient() {
                 <li>
                   <Check size={16} color="var(--uni-rust)" style={{ flexShrink: 0, marginTop: '3px' }} />
                   <span>
-                    Clinics, milestone reviews and firesides — support that continues
+                    Clinics, milestone reviews and firesides: support that continues
                   </span>
                 </li>
                 <li>
@@ -907,7 +909,7 @@ export function UniversityClient() {
           </div>
           <p className="uni-compare-close">
             You're not just paying for a course. You're getting a foundation to start a real career
-            — with the network and support to actually use it.
+            with the network and support to actually use it.
           </p>
         </div>
       </section>
@@ -927,7 +929,7 @@ export function UniversityClient() {
             </p>
             <div className="uni-outcome-flag">
               <Info className="uni-outcome-flag__icon" size={16} />
-              <span>₦10m+ is aspirational, not guaranteed — see FAQ for details.</span>
+              <span>₦10m+ is aspirational, not guaranteed (see FAQ for details).</span>
             </div>
           </div>
         </div>
@@ -1029,7 +1031,7 @@ export function UniversityClient() {
             Property Management + Brokerage &nbsp;·&nbsp; Career + Business + Opportunity
           </p>
           <p style={{ marginTop: '12px', color: 'var(--uni-ink-soft)', fontSize: '15.5px' }}>
-            Lagos · Abuja · Port Harcourt · Oyo — Applications open August 28.
+            Lagos · Abuja · Port Harcourt · Oyo (Applications open August 28).
           </p>
 
           <div className="uni-form-wrap">
@@ -1133,7 +1135,7 @@ export function UniversityClient() {
                 </div>
 
                 <div className="uni-track-note">
-                  <b>Track:</b> Property Management + Brokerage — every student learns both.
+                  <b>Track:</b> Property Management + Brokerage (every student learns both).
                 </div>
 
                 <div className="uni-field">
@@ -1148,13 +1150,28 @@ export function UniversityClient() {
                   />
                 </div>
 
+                <div className="uni-field" style={{ marginBottom: '16px' }}>
+                  <label htmlFor="sessionTime">Information Session Date & Time</label>
+                  <select id="sessionTime" {...register('sessionTime')}>
+                    <option value="">Select session time</option>
+                    <option value="Sat 12 Sep at 9am">Sat 12 Sep at 9am</option>
+                    <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
+                    <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
+                  </select>
+                  {errors.sessionTime && (
+                    <span style={{ fontSize: '11px', color: 'var(--uni-rust)' }}>
+                      {errors.sessionTime.message}
+                    </span>
+                  )}
+                </div>
+
                 {errorMsg && (
                   <div style={{ color: 'var(--uni-rust)', fontSize: '13px', marginBottom: '12px' }}>
                     {errorMsg}
                   </div>
                 )}
                 <button type="submit" className="uni-btn uni-btn-primary" disabled={loading}>
-                  {loading ? 'Submitting...' : 'Join the Early Access List'}
+                  {loading ? 'Submitting...' : 'Join Information & Q&A Session →'}
                 </button>
               </form>
             ) : (
@@ -1179,7 +1196,7 @@ export function UniversityClient() {
                   {submittedName ? `Thank you, ${submittedName.split(' ')[0]}!` : "You're on the list!"}
                 </h3>
                 <p style={{ color: 'var(--uni-ink-soft, #555)', fontSize: '15px', lineHeight: '1.6', maxWidth: '420px', margin: '0 auto 24px' }}>
-                  Your early access request for <b>Upward University Founding Cohort 2026</b> has been received. Applications open <b>August 28</b> — we will reach out via WhatsApp.
+                  Your early access request for <b>Upward University Founding Cohort 2026</b> has been received. Applications open <b>August 28</b>. We will reach out via WhatsApp.
                 </p>
                 <div style={{ background: '#F8F6EF', borderRadius: '12px', padding: '16px 20px', display: 'inline-block', fontSize: '13.5px', color: '#444' }}>
                   <Check size={16} color="var(--uni-moss, #2D4E35)" style={{ verticalAlign: 'middle', marginRight: '6px' }} />

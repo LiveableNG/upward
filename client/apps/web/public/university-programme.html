@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Programme — Upward University</title>
+<title>Programme - Upward University</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -163,9 +163,34 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 
   .week-list{ border-top:1px solid var(--sand); margin-top:8px; }
   .week-item{ border-bottom:1px solid var(--sand); }
-  .week-q{ width:100%; display:flex; align-items:center; gap:18px; padding:20px 0; background:none; border:none; text-align:left; cursor:pointer; font-family:'Inter Tight', sans-serif; }
-  .week-tag{ font:800 11px var(--mono); color:var(--rust); background:var(--rust-wash); border:1px solid rgba(138,74,42,0.2); border-radius:999px; padding:6px 14px; flex-shrink:0; white-space:nowrap; }
-  .week-title{ font-size:16px; font-weight:700; color:var(--ink); flex:1; }
+  .week-q{ width:100%; display:grid; grid-template-columns:115px 1fr auto; gap:20px; align-items:center; padding:20px 0; background:none; border:none; text-align:left; cursor:pointer; font-family:'Inter Tight', sans-serif; }
+  .week-tag{ font:800 11px var(--mono); color:var(--rust); background:var(--rust-wash); border:1px solid rgba(138,74,42,0.2); border-radius:999px; padding:6px 0; width:115px; display:inline-flex; align-items:center; justify-content:center; text-align:center; flex-shrink:0; white-space:nowrap; }
+  .week-title{ font-size:16px; font-weight:700; color:var(--ink); }
+  @media(max-width:640px){
+    .week-q{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:8px;
+      padding:18px 0;
+      position:relative;
+    }
+    .week-tag{
+      width:auto;
+      padding:4px 12px;
+      font-size:10px;
+    }
+    .week-title{
+      font-size:15px;
+      line-height:1.4;
+      padding-right:36px;
+    }
+    .week-plus{
+      position:absolute;
+      top:18px;
+      right:0;
+    }
+  }
   .week-plus{ width:26px; height:26px; border:1.5px solid var(--sand); border-radius:50%; position:relative; flex-shrink:0; transition:transform .25s ease, border-color .2s ease; }
   .week-plus:before,.week-plus:after{ content:''; position:absolute; background:var(--rust); top:50%; left:50%; transform:translate(-50%,-50%); }
   .week-plus:before{ width:10px; height:1.5px; }
@@ -381,7 +406,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       <a href="/university/programme" class="active">Full Curriculum</a>
       <a href="/university#people">People</a>
       <a href="/university#faq">FAQ</a>
-      <a href="/university/landlord">Free Landlord Course</a>
+      <a href="/university/scholarships">Scholarships</a>
     </div>
     <div class="nav-right">
       <a class="btn btn-primary" href="/university/apply">Apply</a>
@@ -398,7 +423,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       <div>
         <span class="eyebrow"><i class="fa-solid fa-calendar-check" style="margin-right:6px;"></i> Next Cohort Starts Oct 31, 2026</span>
         <h1>Learn. Build. <em class="accent">Launch.</em> Then grow.</h1>
-        <p class="hero-lead">A practical 10-week programme starting <strong>October 31, 2026</strong> built around doing the work — not sitting through lectures and waiting for a certificate. Property Management, Brokerage and the business skills to turn both into a career or a business.</p>
+        <p class="hero-lead">A practical 10-week programme starting <strong>October 31, 2026</strong> built around doing the work - not sitting through lectures and waiting for a certificate. Property Management, Brokerage and the business skills to turn both into a career or a business.</p>
         <div style="margin-top:16px; display:inline-flex; align-items:center; gap:10px; background:var(--rust-wash); border:1px solid rgba(138,74,42,0.2); border-radius:12px; padding:8px 14px; font-size:13px; color:var(--ink);">
           <i class="fa-solid fa-calendar-days" style="color:var(--rust);"></i>
           <span><strong>Classes Commence:</strong> October 31, 2026 · Hybrid (Lagos, Abuja, PH, Oyo)</span>
@@ -414,7 +439,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     <div class="box">
       <span class="eyebrow">Programme Outcome</span>
       <h2 style="margin-top:14px">Don't just learn. Launch.</h2>
-      <p style="margin-top:10px">Upward University moves students from learning into the market — fast. By Week 4, your professional identity, offer and initial market activity should be ready to launch.</p>
+      <p style="margin-top:10px">Upward University moves students from learning into the market fast. By Week 4, your professional identity, offer and initial market activity should be ready to launch.</p>
       <div class="grid">
         <div class="card"><div class="step-label">Weeks 1–2</div><h3>Design</h3><p>Choose your market, customer, offer and business model.</p></div>
         <div class="card"><div class="step-label">Week 3</div><h3>Build</h3><p>Business identity, WhatsApp Business, landing page, proposal and pricing.</p></div>
@@ -434,7 +459,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   </section>
 
   <section class="reveal">
-    <div class="sec-head"><span class="eyebrow">By The End</span><h2>What you'll be able to do.</h2><p class="lead">Ten concrete outcomes the programme is built around — not just topics covered, but things you can actually do.</p></div>
+    <div class="sec-head"><span class="eyebrow">By The End</span><h2>What you'll be able to do.</h2><p class="lead">Ten concrete outcomes the programme is built around: not just topics covered, but things you can actually do.</p></div>
     <ul class="value-list">
       <li><span class="tick">✓</span> Manage properties professionally.</li>
       <li><span class="tick">✓</span> Acquire and retain landlords and tenants.</li>
@@ -444,7 +469,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       <li><span class="tick">✓</span> Communicate and negotiate professionally.</li>
       <li><span class="tick">✓</span> Understand the legal and regulatory environment.</li>
       <li><span class="tick">✓</span> Build a professional network and personal brand.</li>
-      <li><span class="tick">✓</span> Generate commercial opportunities — have at least one landlord in your portfolio.</li>
+      <li><span class="tick">✓</span> Generate commercial opportunities: have at least one landlord in your portfolio.</li>
       <li><span class="tick">✓</span> Eventually, build a property management or brokerage practice.</li>
     </ul>
   </section>
@@ -522,7 +547,7 @@ Business activity and field work: set up financial tracking and sign up your fir
       </div>
 
       <div class="week-item">
-        <button class="week-q"><span class="week-tag">Week Seven</span><span class="week-title">Add-on Partner Services — Valuation, Maintenance &amp; Facilities Management</span><span class="week-plus"></span></button>
+        <button class="week-q"><span class="week-tag">Week Seven</span><span class="week-title">Add-on Partner Services: Valuation, Maintenance &amp; Facilities Management</span><span class="week-plus"></span></button>
         <div class="week-a"><div class="week-a-inner">
           <div class="week-block"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Add-on Partner Services — Valuation, Maintenance &amp; Facilities Management</h4><p>Property valuation; maintenance requests; emergency response; work orders; contractor management; preventive maintenance; service charges; budgeting; property preservation; landlord/tenant maintenance responsibilities.</p></div>
           <div class="week-block"><div class="wb-label">Business Lesson / Activity</div><h4>Introduction to Valuation</h4><p>Panel session with NIESV representatives.
@@ -550,9 +575,9 @@ Business activity: integrate technology, legal/ethical controls, and growth syst
       </div>
 
       <div class="week-item">
-        <button class="week-q"><span class="week-tag">Week Ten</span><span class="week-title">Case Studies — Critical Thinking, Problem Solving &amp; Offer Design</span><span class="week-plus"></span></button>
+        <button class="week-q"><span class="week-tag">Week Ten</span><span class="week-title">Case Studies: Critical Thinking, Problem Solving &amp; Offer Design</span><span class="week-plus"></span></button>
         <div class="week-a"><div class="week-a-inner">
-          <div class="week-block" style="grid-column:1/-1"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Case Studies — Critical Thinking, Problem Solving &amp; Offer Design</h4><p>Spotting discrepancies; analysing property issues; risk assessment; decision-making; landlord/tenant conflicts; maintenance emergencies.</p></div>
+          <div class="week-block" style="grid-column:1/-1"><div class="wb-label">Property Management &amp; Brokerage</div><h4>Case Studies: Critical Thinking, Problem Solving &amp; Offer Design</h4><p>Spotting discrepancies; analysing property issues; risk assessment; decision-making; landlord/tenant conflicts; maintenance emergencies.</p></div>
         </div></div>
       </div>
 
@@ -560,7 +585,7 @@ Business activity: integrate technology, legal/ethical controls, and growth syst
   </section>
 
   <section class="reveal">
-    <div class="sec-head"><span class="eyebrow">Practical Fieldwork</span><h2>What you'll actually produce.</h2><p class="lead">Real deliverables, not just notes — the kind of work you can show a landlord or an employer.</p></div>
+    <div class="sec-head"><span class="eyebrow">Practical Fieldwork</span><h2>What you'll actually produce.</h2><p class="lead">Real deliverables, not just notes: the kind of work you can show a landlord or an employer.</p></div>
     <div class="fieldwork-grid">
       <span>Property inspection report</span><span>Property listing</span><span>Landlord onboarding form</span><span>Tenant screening exercise</span><span>Rent collection/reporting exercise</span><span>Maintenance/work-order exercise</span><span>Professional landlord email</span><span>Tenant notice</span><span>Property marketing campaign</span><span>Landlord acquisition pitch</span><span>Negotiation role-play</span><span>Upward practical exercise</span><span>Property management case study</span>
     </div>

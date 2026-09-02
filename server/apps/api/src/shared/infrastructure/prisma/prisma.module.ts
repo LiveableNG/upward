@@ -81,6 +81,8 @@ import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manage
 import { PM_LETTERHEAD_REPOSITORY } from '../../../domains/pm/pm-letterhead.repository'
 import { PM_SIGNATURE_REPOSITORY } from '../../../domains/pm/pm-signature.repository'
 import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY, PM_DOCUMENT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
+import { PM_APPROVAL_REQUEST_REPOSITORY } from '../../../domains/pm/IApprovalRequestRepository'
+import { PrismaPmApprovalRequestRepository } from './repositories/prisma-pm-approval-request.repository'
 import { PM_LANDLORD_REPOSITORY } from '../../../domains/pm/ILandlordRepository'
 import { BULK_INVITE_REPOSITORY } from '../../../domains/pm/IBulkInviteRepository'
 import { FEEDBACK_REPOSITORY } from '../../../domains/feedback/feedback.repository'
@@ -185,6 +187,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaPropertyManagerRepository,
     },
     {
+      provide: PM_APPROVAL_REQUEST_REPOSITORY,
+      useClass: PrismaPmApprovalRequestRepository,
+    },
+    {
       provide: PM_PROPERTY_REPOSITORY,
       useClass: PrismaPmPropertyRepository,
     },
@@ -278,6 +284,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     PAYMENT_LINE_ITEM_REPOSITORY,
     VERIFICATION_TOKEN_REPOSITORY,
     PROPERTY_MANAGER_REPOSITORY,
+    PM_APPROVAL_REQUEST_REPOSITORY,
     PM_PROPERTY_REPOSITORY,
     PM_UNIT_REPOSITORY,
     PM_TENANT_REPOSITORY,

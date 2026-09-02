@@ -7,6 +7,7 @@ import { BankInfoForm } from '@/features/pm/components/settings/BankInfoForm'
 import { SecurityForm } from '@/features/pm/components/settings/SecurityForm'
 import { DataImportTab } from '@/features/pm/components/settings/DataImportTab'
 import { TeamTab } from '@/features/pm/components/settings/TeamTab'
+import { ApprovalsTab } from '@/features/pm/components/settings/ApprovalsTab'
 import { BrandingTab } from '@/features/pm/components/settings/BrandingTab'
 import { FeedbackTab } from '@/features/pm/components/settings/FeedbackTab'
 import { EmailSettingsTab } from '@/features/pm/components/settings/EmailSettingsTab'
@@ -17,7 +18,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 
 const MEMBER_TABS = new Set(['profile', 'security', 'feedback'])
-const COMPANY_TABS = new Set(['payment', 'import', 'team', 'branding', 'email'])
+const COMPANY_TABS = new Set(['payment', 'import', 'team', 'approvals', 'branding', 'email'])
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -86,6 +87,7 @@ function SettingsContent() {
       ? [
           { id: 'import', label: 'Bulk Import' },
           { id: 'team', label: 'Team' },
+          { id: 'approvals', label: 'Approvals' },
           { id: 'branding', label: 'Branding' },
           { id: 'email', label: 'Email' },
         ]
@@ -146,6 +148,7 @@ function SettingsContent() {
         {activeTab === 'security' && <SecurityForm />}
         {canManageCompanySettings && activeTab === 'import' && <DataImportTab />}
         {canManageCompanySettings && activeTab === 'team' && <TeamTab />}
+        {canManageCompanySettings && activeTab === 'approvals' && <ApprovalsTab />}
         {canManageCompanySettings && activeTab === 'branding' && <BrandingTab />}
         {canManageCompanySettings && activeTab === 'email' && <EmailSettingsTab />}
         {activeTab === 'feedback' && <FeedbackTab />}

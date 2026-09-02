@@ -12,9 +12,10 @@ import {
   Clock,
   Info,
   History,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Send
 } from 'lucide-react'
-import { useTeam, useRevokeMember } from '@/features/pm/hooks/useTeam'
+import { useTeam, useRevokeMember, useResendTeamInvite } from '@/features/pm/hooks/useTeam'
 import { InviteMemberModal } from './modals/InviteMemberModal'
 import { UpdatePermissionsModal } from './modals/UpdatePermissionsModal'
 import { TransferPropertiesModal } from './modals/TransferPropertiesModal'
@@ -25,6 +26,7 @@ import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 export function TeamTab() {
   const { data: team = [], isLoading } = useTeam()
   const { mutate: revokeMember, isPending: isRevoking } = useRevokeMember()
+  const { mutate: resendInvite, isPending: isResending } = useResendTeamInvite()
   
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [selectedCollab, setSelectedCollab] = useState<any>(null)
@@ -58,10 +60,12 @@ export function TeamTab() {
             fontSize: 14,
             fontWeight: 700
           }}>
-            {collab.member.firstName.charAt(0)}
+            {collab.member.firstName ? collab.member.firstName.charAt(0) : collab.member.email.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{collab.member.firstName} {collab.member.lastName}</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              {collab.member.firstName || collab.member.lastName ? `${collab.member.firstName} ${collab.member.lastName}`.trim() : 'Pending Invitation'}
+            </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{collab.member.email}</div>
           </div>
         </div>
@@ -87,28 +91,45 @@ export function TeamTab() {
     },
     {
       header: 'Status',
-      render: (collab) => (
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: 6, 
-          padding: '4px 10px', 
-          borderRadius: 100, 
-          fontSize: 11, 
-          fontWeight: 700,
-          background: collab.status === 'ACCEPTED' ? 'var(--forest-faint)' : 'var(--bg)',
-          color: collab.status === 'ACCEPTED' ? 'var(--forest)' : 'var(--text-muted)'
-        }}>
-          {collab.status === 'ACCEPTED' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-          {collab.status === 'ACCEPTED' ? 'Active' : 'Pending'}
-        </div>
-      )
+      render: (collab) => {
+        const isPending = collab.status === 'PENDING'
+        return (
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: 6, 
+            padding: '4px 10px', 
+            borderRadius: 100, 
+            fontSize: 11, 
+            fontWeight: 700,
+            background: isPending ? 'rgba(234, 179, 8, 0.12)' : 'var(--forest-faint)',
+            color: isPending ? '#b45309' : 'var(--forest)'
+          }}>
+            {isPending ? <Clock size={12} /> : <CheckCircle2 size={12} />}
+            {isPending ? 'Pending Acceptance' : 'Active'}
+          </div>
+        )
+      }
     },
     {
       header: '',
       align: 'right',
       render: (collab) => (
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          {collab.status === 'PENDING' && (
+            <button
+              className="btn-icon"
+              disabled={isResending}
+              onClick={(e) => {
+                e.stopPropagation()
+                resendInvite(collab.uuid)
+              }}
+              title="Resend Invitation Email"
+              style={{ color: 'var(--forest)' }}
+            >
+              <Send size={18} />
+            </button>
+          )}
           <button 
             className="btn-icon" 
             onClick={(e) => {
@@ -150,7 +171,7 @@ export function TeamTab() {
               e.stopPropagation()
               setRevokeTarget({
                 uuid: collab.uuid,
-                name: `${collab.member.firstName} ${collab.member.lastName}`.trim(),
+                name: collab.member.firstName ? `${collab.member.firstName} ${collab.member.lastName}`.trim() : collab.member.email,
               })
             }}
             style={{ color: 'var(--error)' }}

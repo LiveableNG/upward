@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            window.location.pathname === '/forgot-password' ||
                            window.location.pathname === '/pm-forgot-password' ||
                            window.location.pathname.startsWith('/invite') ||
+                           window.location.pathname.startsWith('/pm-invite') ||
                            window.location.pathname.startsWith('/reset-password') ||
                            isPortalPublic
       
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           window.location.pathname.startsWith('/login') ||
           window.location.pathname.startsWith('/signup') ||
           window.location.pathname.startsWith('/invite') ||
+          window.location.pathname.startsWith('/pm-invite') ||
           window.location.pathname.startsWith('/invited') ||
           window.location.pathname.startsWith('/welcome') ||
           window.location.pathname.startsWith('/public') ||

@@ -49,6 +49,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     pathname === '/welcome' ||
     pathname?.startsWith('/public') || 
     pathname?.startsWith('/invite') || 
+    pathname?.startsWith('/pm-invite') || 
     pathname?.startsWith('/invited') ||
     pathname?.startsWith('/reset-password')
   const isPortalPage = pathname?.startsWith('/portal')

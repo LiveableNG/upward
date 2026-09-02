@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     rules.push({ source: '/pm-login', destination: '/login' })
     rules.push({ source: '/pm-signup', destination: '/signup' })
     rules.push({ source: '/pm-forgot-password', destination: '/forgot-password' })
+    rules.push({ source: '/pm-invite/:path*', destination: '/invite/:path*' })
 
     // Dev fallback: tolerate stale/cached HTML that still references prefixed asset URLs
     if (process.env.NODE_ENV !== 'production') {

@@ -54,6 +54,8 @@ model upward_property_manager {
   signatures              upward_pm_signature[]
   teamCollaborator        upward_pm_team_collaboration[]       @relation("CollaboratorTeam")
   teamOwner               upward_pm_team_collaboration[]       @relation("OwnerTeam")
+  approvalOwner           upward_pm_approval_request[]         @relation("ApprovalOwner")
+  approvalRequester       upward_pm_approval_request[]         @relation("ApprovalRequester")
   tenants                 upward_pm_tenant[]
   verification            upward_pm_verification?
   wallet                  upward_pm_wallet?

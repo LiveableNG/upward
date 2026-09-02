@@ -48,3 +48,26 @@ model upward_pm_activity_log {
   @@index([ownerPmId])
   @@index([createdAt])
 }
+
+model upward_pm_approval_request {
+  id               Int                     @id @default(autoincrement())
+  uuid             String                  @unique @default(uuid())
+  ownerPmId        Int
+  requesterPmId    Int
+  propertyUuid     String?
+  propertyName     String?
+  unitUuid         String?
+  unitName         String?
+  type             String                  // 'EDIT_PROPERTY' | 'DELETE_PROPERTY' | 'EDIT_UNIT' | 'DELETE_UNIT'
+  status           String                  @default("PENDING") // 'PENDING' | 'APPROVED' | 'REJECTED'
+  payload          Json?
+  rejectionReason  String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  ownerPm          upward_property_manager @relation("ApprovalOwner", fields: [ownerPmId], references: [id], onDelete: Cascade)
+  requesterPm      upward_property_manager @relation("ApprovalRequester", fields: [requesterPmId], references: [id], onDelete: Cascade)
+
+  @@index([ownerPmId])
+  @@index([requesterPmId])
+  @@index([status])
+}
