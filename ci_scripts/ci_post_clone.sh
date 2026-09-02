@@ -63,7 +63,7 @@ pnpm install --frozen-lockfile || pnpm install
 # Run Capacitor sync for iOS
 echo "Syncing Capacitor iOS..."
 cd "$REPO_ROOT/client/apps/upward-pay"
-pnpm cap:sync || npx cap sync ios
+NEXT_OUTPUT=export pnpm cap:sync || (NEXT_OUTPUT=export next build && npx cap sync ios)
 
 echo "=========================================="
 echo "  Xcode Cloud Setup Completed Successfully"
