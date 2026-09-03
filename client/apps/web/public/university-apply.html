@@ -505,11 +505,54 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     font-size: 13.5px;
     color: var(--ink);
   }
+
+  /* MOBILE RESPONSIVE ENHANCEMENTS FOR FORM */
   @media(max-width: 640px) {
-    .apply-steps-bar { padding: 10px 14px; }
+    .apply-steps-bar {
+      padding: 10px 12px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+    .step-pill {
+      font-size: 11.5px;
+      gap: 6px;
+    }
+    .step-badge {
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+    }
+    .step-line {
+      margin: 0 4px;
+    }
+    .stage-nav-btns {
+      flex-direction: column-reverse;
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 20px;
+      padding-top: 16px;
+    }
+    .stage-nav-btns .btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px 18px;
+      font-size: 14.5px;
+      text-align: center;
+    }
+    .summary-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .summary-review-card {
+      padding: 16px 14px;
+      border-radius: 14px;
+    }
+  }
+  @media(max-width: 480px) {
     .step-text { display: none; }
-    .step-pill.active .step-text { display: inline-block; font-size: 12px; }
-    .summary-grid { grid-template-columns: 1fr; }
+    .step-pill.active .step-text { display: inline-block; font-size: 11.5px; white-space: nowrap; }
   }
 </style>
 </head>
@@ -648,7 +691,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           </div>
 
           <div class="stage-nav-btns" style="justify-content: flex-end;">
-            <button type="button" class="btn btn-primary" id="btn-stage-1-next" style="padding: 14px 28px;">
+            <button type="button" class="btn btn-primary" id="btn-stage-1-next">
               Continue to Step 2 →
             </button>
           </div>
@@ -962,25 +1005,64 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         return;
       }
 
-      // Save partial lead to server (for drop-off tracking in Admin)
+      const btnStage1 = document.getElementById('btn-stage-1-next');
+      if (btnStage1) {
+        btnStage1.disabled = true;
+        btnStage1.textContent = 'Saving...';
+      }
+
+      const nameVal = document.getElementById('name').value;
+      const whatsappVal = document.getElementById('whatsapp').value;
+      const emailVal = document.getElementById('email').value;
+      const cityVal = document.getElementById('city').value;
+      const ageVal = document.getElementById('age').value;
+      const occVal = document.getElementById('occupation').value;
+
+      // Save partial lead to server (for both Early Access & Application roster tracking in Admin)
       const leadPayload = {
-        name: document.getElementById('name').value,
-        whatsapp: document.getElementById('whatsapp').value,
-        email: document.getElementById('email').value,
-        city: document.getElementById('city').value,
-        ageBracket: document.getElementById('age').value,
-        occupation: document.getElementById('occupation').value,
-        experienceLevel: 'Stage 1 Completed (Basic Info)',
+        name: nameVal,
+        whatsapp: whatsappVal,
+        email: emailVal,
+        city: cityVal,
+        ageBracket: ageVal,
+        occupation: occVal,
+        experienceLevel: 'Stage 1 Completed (Basic Info Captured)',
         interest: 'Stage 1: Contact Info (Drop-off)'
       };
 
+      const appStage1Payload = {
+        name: nameVal,
+        whatsapp: whatsappVal,
+        email: emailVal,
+        city: cityVal,
+        ageBracket: ageVal,
+        occupation: occVal,
+        experienceLevel: 'Stage 1 Completed',
+        commitment: 'Pending (Stage 1 Completed)',
+        why: 'Pending (Stage 1 Completed)'
+      };
+
       try {
-        fetch('/api/v1/early-access/student', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(leadPayload)
-        }).catch(err => console.warn('Partial lead capture background sync failed:', err));
-      } catch (e) {}
+        await Promise.allSettled([
+          fetch('/api/v1/early-access/student', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(leadPayload)
+          }),
+          fetch('/api/v1/university/application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(appStage1Payload)
+          })
+        ]);
+      } catch (e) {
+        console.warn('Stage 1 lead capture sync error:', e);
+      } finally {
+        if (btnStage1) {
+          btnStage1.disabled = false;
+          btnStage1.textContent = 'Continue to Step 2 →';
+        }
+      }
 
       updateStageUI(2);
     });
@@ -1026,6 +1108,12 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         return;
       }
 
+      const btnStage2 = document.getElementById('btn-stage-2-next');
+      if (btnStage2) {
+        btnStage2.disabled = true;
+        btnStage2.textContent = 'Saving Details...';
+      }
+
       // Populate Stage 3 Summary Card
       document.getElementById('sum-name').textContent = document.getElementById('name').value;
       document.getElementById('sum-whatsapp').textContent = document.getElementById('whatsapp').value;
@@ -1034,7 +1122,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       document.getElementById('sum-scholarship').textContent = isScholarship ? 'Yes (Scholarship Candidate)' : 'No (Standard Application)';
       document.getElementById('sum-commitment').textContent = document.getElementById('commitment').value;
 
-      // Sync application state to backend
+      // Sync updated full application state to backend
       const appPayload = {
         name: document.getElementById('name').value,
         whatsapp: document.getElementById('whatsapp').value,
@@ -1042,7 +1130,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         city: document.getElementById('city').value,
         ageBracket: document.getElementById('age').value,
         occupation: document.getElementById('occupation').value,
-        experienceLevel: document.getElementById('exp').value,
+        experienceLevel: document.getElementById('exp').value || 'Stage 2 Completed',
         goals: document.getElementById('goals').value,
         commitment: document.getElementById('commitment').value,
         why: document.getElementById('why').value,
@@ -1052,12 +1140,19 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       };
 
       try {
-        fetch('/api/v1/university/application', {
+        await fetch('/api/v1/university/application', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(appPayload)
-        }).catch(err => console.warn('Stage 2 background sync failed:', err));
-      } catch (e) {}
+        });
+      } catch (e) {
+        console.warn('Stage 2 application sync error:', e);
+      } finally {
+        if (btnStage2) {
+          btnStage2.disabled = false;
+          btnStage2.textContent = 'Continue to Step 3 →';
+        }
+      }
 
       updateStageUI(3);
     });
