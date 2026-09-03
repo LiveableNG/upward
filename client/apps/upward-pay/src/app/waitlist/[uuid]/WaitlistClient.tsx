@@ -22,10 +22,25 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { setAccessToken } from '@/lib/auth-token'
 import { PasswordStrengthMeter } from '@/features/auth/component/signup/PasswordStrengthMeter'
 
-export default function WaitlistClient() {
+interface WaitlistClientProps {
+  overrideUuid?: string
+}
+
+export default function WaitlistClient({ overrideUuid }: WaitlistClientProps = {}) {
   const params = useParams()
   const searchParams = useSearchParams()
-  const uuid = (params.uuid as string) || searchParams.get('uuid') || searchParams.get('claim') || ''
+  const rawParam =
+    overrideUuid ||
+    (params?.uuid as string) ||
+    searchParams.get('uuid') ||
+    searchParams.get('claim') ||
+    ''
+  const uuid =
+    rawParam && rawParam !== 'placeholder'
+      ? rawParam
+      : (typeof window !== 'undefined'
+          ? window.location.pathname.match(/\/waitlist\/([^/?#]+)/)?.[1]
+          : '') || ''
   const router = useRouter()
   const { success, error: toastError } = useToast()
   const { login } = useAuth()
@@ -47,6 +62,10 @@ export default function WaitlistClient() {
   }, [uuid])
 
   async function fetchWaitlistData() {
+    if (!uuid || uuid === 'placeholder') {
+      setLoading(false)
+      return
+    }
     try {
       const res = await api.get(`/waitlist/claim/${uuid}`)
       if (res.email) {

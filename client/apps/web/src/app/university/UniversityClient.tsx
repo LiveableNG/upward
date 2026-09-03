@@ -60,7 +60,7 @@ const faqData = [
   },
   {
     question:
-      'What happens after the Founding Cohort - is there a path to more?',
+      'What happens after the 2026 Cohort - is there a path to more?',
     answer:
       "Everyone completes the same core training. After that, standout graduates may be invited into Growth Partner: a deeper, selective relationship with Upward. It's not guaranteed or part of every student's path - it's offered separately to top performers.",
   },
@@ -258,7 +258,7 @@ export function UniversityClient() {
         <div className="uni-wrap uni-hero-grid">
           <div>
             <span className="uni-eyebrow">
-              Founding Cohort 2026 · Lagos · Abuja · Port Harcourt · Oyo
+              2026 Cohort · Lagos · Abuja · Port Harcourt · Oyo
             </span>
             <h1>
               Become a <em className="accent">Tech-driven Real Estate Business Executive.</em>
@@ -942,7 +942,7 @@ export function UniversityClient() {
             <div className="uni-cohort-num">
               <em>200</em>
             </div>
-            <div className="uni-cohort-label">Founding Cohort 2026</div>
+            <div className="uni-cohort-label">2026 Cohort</div>
             <div className="uni-cohort-cities">Lagos · Abuja · Port Harcourt · Oyo</div>
             <div className="uni-cohort-dates">
               <div>
@@ -1021,7 +1021,7 @@ export function UniversityClient() {
       {/* Final CTA & Apply Form */}
       <section id="apply" className="uni-section" data-reveal>
         <div className="uni-wrap uni-final-cta">
-          <span className="uni-eyebrow">Founding Cohort 2026</span>
+          <span className="uni-eyebrow">2026 Cohort</span>
           <h2 style={{ marginTop: '16px' }}>
             Build your future
             <br />
@@ -1196,7 +1196,7 @@ export function UniversityClient() {
                   {submittedName ? `Thank you, ${submittedName.split(' ')[0]}!` : "You're on the list!"}
                 </h3>
                 <p style={{ color: 'var(--uni-ink-soft, #555)', fontSize: '15px', lineHeight: '1.6', maxWidth: '420px', margin: '0 auto 24px' }}>
-                  Your early access request for <b>Upward University Founding Cohort 2026</b> has been received. Applications open <b>August 28</b>. We will reach out via WhatsApp.
+                  Your early access request for <b>Upward University 2026 Cohort</b> has been received. Applications open <b>August 28</b>. We will reach out via WhatsApp.
                 </p>
                 <div style={{ background: '#F8F6EF', borderRadius: '12px', padding: '16px 20px', display: 'inline-block', fontSize: '13.5px', color: '#444' }}>
                   <Check size={16} color="var(--uni-moss, #2D4E35)" style={{ verticalAlign: 'middle', marginRight: '6px' }} />

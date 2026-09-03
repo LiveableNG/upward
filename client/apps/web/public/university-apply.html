@@ -425,6 +425,135 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     text-decoration: underline;
     transform: translateX(3px);
   }
+
+  /* Multi-Stage Step Indicator & Card Styles */
+  .apply-steps-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--paper-dim);
+    border: 1px solid var(--sand);
+    border-radius: 18px;
+    padding: 12px 20px;
+    margin-bottom: 28px;
+  }
+  .step-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+  }
+  .step-pill.active {
+    color: var(--rust);
+    opacity: 1;
+  }
+  .step-pill.completed {
+    color: var(--forest);
+    opacity: 1;
+  }
+  .step-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--sand);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11.5px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .step-pill.active .step-badge {
+    background: var(--rust);
+    color: #fff;
+  }
+  .step-pill.completed .step-badge {
+    background: var(--forest);
+    color: #fff;
+  }
+  .step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--sand);
+    margin: 0 8px;
+  }
+  .stage-nav-btns {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--sand);
+  }
+  .summary-review-card {
+    background: var(--paper-dim);
+    border: 1px solid var(--sand);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+
+  /* MOBILE RESPONSIVE ENHANCEMENTS FOR FORM */
+  @media(max-width: 640px) {
+    .apply-steps-bar {
+      padding: 10px 12px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+    .step-pill {
+      font-size: 11.5px;
+      gap: 6px;
+    }
+    .step-badge {
+      width: 22px;
+      height: 22px;
+      font-size: 11px;
+    }
+    .step-line {
+      margin: 0 4px;
+    }
+    .stage-nav-btns {
+      flex-direction: column-reverse;
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 20px;
+      padding-top: 16px;
+    }
+    .stage-nav-btns .btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px 18px;
+      font-size: 14.5px;
+      text-align: center;
+    }
+    .summary-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .summary-review-card {
+      padding: 16px 14px;
+      border-radius: 14px;
+    }
+  }
+  @media(max-width: 480px) {
+    .step-text { display: none; }
+    .step-pill.active .step-text { display: inline-block; font-size: 11.5px; white-space: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -455,7 +584,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 <main class="apply-page">
   <div class="wrap apply-container">
     <div class="apply-header">
-      <span class="eyebrow">Founding Cohort 2026</span>
+      <span class="eyebrow">2026 Cohort</span>
       <h1>Ready to <em class="accent">build your way in?</em></h1>
       <p class="apply-sub">Apply for the 10-week Upward University programme. We assess fit, commitment and readiness for practical work.</p>
     </div>
@@ -490,129 +619,202 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     </div>
 
     <div class="apply-form-box">
+      <!-- Step Indicator Bar -->
+      <div class="apply-steps-bar">
+        <div class="step-pill active" id="step-pill-1">
+          <span class="step-badge">1</span>
+          <span class="step-text">Basic Info</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-pill" id="step-pill-2">
+          <span class="step-badge">2</span>
+          <span class="step-text">Scholarship & Motivation</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-pill" id="step-pill-3">
+          <span class="step-badge">3</span>
+          <span class="step-text">Review & Payment</span>
+        </div>
+      </div>
+
       <form id="universityApplyForm" novalidate>
-        <div class="form-row">
-          <div class="field" id="field-name">
-            <label for="name">Full name <span class="req-asterisk">*</span></label>
-            <input id="name" type="text" required placeholder="Your full name">
-            <div class="error-text">Please enter your full name</div>
-          </div>
-          <div class="field" id="field-whatsapp">
-            <label for="whatsapp">WhatsApp number <span class="req-asterisk">*</span></label>
-            <input id="whatsapp" type="tel" required placeholder="+234">
-            <div class="error-text">Please enter a valid WhatsApp phone number</div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="field" id="field-email">
-            <label for="email">Email address <span class="req-asterisk">*</span></label>
-            <input id="email" type="email" required placeholder="you@email.com">
-            <div class="error-text">Please enter a valid email address</div>
-          </div>
-          <div class="field" id="field-city">
-            <label for="city">City <span class="req-asterisk">*</span></label>
-            <input id="city" type="text" required placeholder="e.g. Lagos, Abuja, Port Harcourt">
-            <div class="error-text">Please enter your city</div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="field" id="field-age">
-            <label for="age">Age bracket <span class="req-asterisk">*</span></label>
-            <select id="age" required>
-              <option value="">Select age bracket</option>
-              <option>18–20</option>
-              <option>21–25</option>
-              <option>26–30</option>
-              <option>31–40</option>
-              <option>41+</option>
-            </select>
-            <div class="error-text">Please select your age bracket</div>
-          </div>
-          <div class="field" id="field-occupation">
-            <label for="occupation">Current occupation</label>
-            <input id="occupation" type="text" placeholder="Student, Freelancer, Employed...">
-          </div>
-        </div>
-
-        <div class="field" id="field-exp">
-          <label for="exp">Real estate experience</label>
-          <textarea id="exp" placeholder="Describe any previous experience in real estate or property (optional)"></textarea>
-        </div>
-
-        <div class="field" id="field-goals">
-          <label for="goals">What do you want to achieve?</label>
-          <textarea id="goals" placeholder="Employment, property management business, brokerage business, part-time start, existing career/business, exploration..."></textarea>
-        </div>
-
-        <div class="field" id="field-commitment">
-          <label for="commitment">Can you commit 6–8 hours every week? <span class="req-asterisk">*</span></label>
-          <select id="commitment" required>
-            <option value="">Select option</option>
-            <option>Yes</option>
-            <option>Not sure</option>
-            <option>No</option>
-          </select>
-          <div class="error-text">Please select your weekly commitment</div>
-        </div>
-
-        <div class="field" id="field-why">
-          <label for="why">Why do you want to join Upward University? <span class="req-asterisk">*</span></label>
-          <textarea id="why" required placeholder="Tell us what motivates you to join this cohort"></textarea>
-          <div class="error-text">Please tell us why you want to join</div>
-        </div>
-
-        <div class="field" id="field-timing">
-          <label for="timing">What makes now the right time?</label>
-          <textarea id="timing" placeholder="Tell us why this timing works for you"></textarea>
-        </div>
-
-        <!-- Program Scholarship Section -->
-        <div class="scholarship-section-box" id="scholarshipBox">
-          <div class="scholarship-header">
-            <span class="scholarship-badge"><i class="fa-solid fa-award"></i> Program Scholarship</span>
-            <h3>Are you applying for a Program Scholarship?</h3>
-            <p>We offer partial and full scholarships for ambitious candidates based on drive and potential.</p>
+        <!-- STAGE 1: BASIC INFO & CONTACT CAPTURE -->
+        <div id="stage-1" class="form-stage">
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 1: Contact Information</h3>
+            <p style="font-size: 13.5px; color: var(--ink-soft);">Tell us who you are so we can reach you about your application.</p>
           </div>
 
-          <div class="scholarship-toggle-group">
-            <label class="scholarship-option selected" id="opt-scholarshipNo">
-              <input type="radio" name="scholarshipOption" value="no" checked id="scholarshipNo">
-              <span class="option-label">No, proceed normally</span>
-            </label>
-            <label class="scholarship-option" id="opt-scholarshipYes">
-              <input type="radio" name="scholarshipOption" value="yes" id="scholarshipYes">
-              <span class="option-label">Yes, I'm applying for a scholarship</span>
-            </label>
-          </div>
-
-          <div class="field scholarship-video-container" id="field-scholarshipVideo" style="display:none;">
-            <label for="scholarshipVideo">
-              Scholarship Video Link <span class="req-asterisk">*</span>
-            </label>
-            <div class="video-instruction-box">
-              <div class="instruction-title"><i class="fa-solid fa-circle-info" style="color:var(--rust)"></i> Scholarship Video Instructions:</div>
-              <ul>
-                <li>Record a <strong>1–2 minute video</strong> explaining why you should be considered for the program scholarship.</li>
-                <li>Share a link from <strong>Loom, Google Drive, YouTube, Vimeo, TikTok</strong>, or similar platforms.</li>
-                <li><strong class="privacy-alert"><i class="fa-solid fa-lock-open"></i> Important:</strong> Ensure your video file/link access permissions are set to <strong>PUBLIC</strong> (e.g. <em>"Anyone with the link can view"</em>) so our team can review your submission.</li>
-              </ul>
+          <div class="form-row">
+            <div class="field" id="field-name">
+              <label for="name">Full name <span class="req-asterisk">*</span></label>
+              <input id="name" type="text" required placeholder="Your full name">
+              <div class="error-text">Please enter your full name</div>
             </div>
-            <input id="scholarshipVideo" type="url" placeholder="https://loom.com/share/... or Google Drive public link">
-            <div class="error-text">Please provide a valid public video link for your scholarship review</div>
+            <div class="field" id="field-whatsapp">
+              <label for="whatsapp">WhatsApp number <span class="req-asterisk">*</span></label>
+              <input id="whatsapp" type="tel" required placeholder="+234">
+              <div class="error-text">Please enter a valid WhatsApp phone number</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field" id="field-email">
+              <label for="email">Email address <span class="req-asterisk">*</span></label>
+              <input id="email" type="email" required placeholder="you@email.com">
+              <div class="error-text">Please enter a valid email address</div>
+            </div>
+            <div class="field" id="field-city">
+              <label for="city">City <span class="req-asterisk">*</span></label>
+              <input id="city" type="text" required placeholder="e.g. Lagos, Abuja, Port Harcourt">
+              <div class="error-text">Please enter your city</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="field" id="field-age">
+              <label for="age">Age bracket <span class="req-asterisk">*</span></label>
+              <select id="age" required>
+                <option value="">Select age bracket</option>
+                <option>18–20</option>
+                <option>21–25</option>
+                <option>26–30</option>
+                <option>31–40</option>
+                <option>41+</option>
+              </select>
+              <div class="error-text">Please select your age bracket</div>
+            </div>
+            <div class="field" id="field-occupation">
+              <label for="occupation">Current occupation</label>
+              <input id="occupation" type="text" placeholder="Student, Freelancer, Employed...">
+            </div>
+          </div>
+
+          <div class="stage-nav-btns" style="justify-content: flex-end;">
+            <button type="button" class="btn btn-primary" id="btn-stage-1-next">
+              Continue to Step 2 →
+            </button>
           </div>
         </div>
 
-        <div class="checkbox-field" id="field-terms">
-          <div class="checkbox-field-inner">
-            <input type="checkbox" id="termsCheck" required>
-            <label for="termsCheck">I understand the ₦5,000 application fee is credited if admitted and refunded if I do not qualify. <span class="req-asterisk">*</span></label>
+        <!-- STAGE 2: MOTIVATION, EXPERIENCE & SCHOLARSHIP -->
+        <div id="stage-2" class="form-stage" style="display:none;">
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 2: Experience & Scholarship Choice</h3>
+            <p style="font-size: 13.5px; color: var(--ink-soft);">Tell us about your background and if you're applying for financial support.</p>
           </div>
-          <div class="error-text">You must confirm your understanding of the application fee</div>
+
+          <div class="field" id="field-exp">
+            <label for="exp">Real estate experience</label>
+            <textarea id="exp" placeholder="Describe any previous experience in real estate or property (optional)"></textarea>
+          </div>
+
+          <div class="field" id="field-goals">
+            <label for="goals">What do you want to achieve?</label>
+            <textarea id="goals" placeholder="Employment, property management business, brokerage business, part-time start, existing career/business, exploration..."></textarea>
+          </div>
+
+          <div class="field" id="field-commitment">
+            <label for="commitment">Can you commit 6–8 hours every week? <span class="req-asterisk">*</span></label>
+            <select id="commitment" required>
+              <option value="">Select option</option>
+              <option>Yes</option>
+              <option>Not sure</option>
+              <option>No</option>
+            </select>
+            <div class="error-text">Please select your weekly commitment</div>
+          </div>
+
+          <div class="field" id="field-why">
+            <label for="why">Why do you want to join Upward University? <span class="req-asterisk">*</span></label>
+            <textarea id="why" required placeholder="Tell us what motivates you to join this cohort"></textarea>
+            <div class="error-text">Please tell us why you want to join</div>
+          </div>
+
+          <div class="field" id="field-timing">
+            <label for="timing">What makes now the right time?</label>
+            <textarea id="timing" placeholder="Tell us why this timing works for you"></textarea>
+          </div>
+
+          <!-- Program Scholarship Section -->
+          <div class="scholarship-section-box" id="scholarshipBox">
+            <div class="scholarship-header">
+              <span class="scholarship-badge"><i class="fa-solid fa-award"></i> Program Scholarship</span>
+              <h3>Are you applying for a Program Scholarship?</h3>
+              <p>We offer partial and full scholarships for ambitious candidates based on drive and potential.</p>
+            </div>
+
+            <div class="scholarship-toggle-group">
+              <label class="scholarship-option selected" id="opt-scholarshipNo">
+                <input type="radio" name="scholarshipOption" value="no" checked id="scholarshipNo">
+                <span class="option-label">No, proceed normally</span>
+              </label>
+              <label class="scholarship-option" id="opt-scholarshipYes">
+                <input type="radio" name="scholarshipOption" value="yes" id="scholarshipYes">
+                <span class="option-label">Yes, I'm applying for a scholarship</span>
+              </label>
+            </div>
+
+            <div class="field scholarship-video-container" id="field-scholarshipVideo" style="display:none;">
+              <label for="scholarshipVideo">
+                Scholarship Video Link <span class="req-asterisk">*</span>
+              </label>
+              <div class="video-instruction-box">
+                <div class="instruction-title"><i class="fa-solid fa-circle-info" style="color:var(--rust)"></i> Scholarship Video Instructions:</div>
+                <ul>
+                  <li>Record a <strong>1–2 minute video</strong> explaining why you should be considered for the program scholarship.</li>
+                  <li>Share a link from <strong>Loom, Google Drive, YouTube, Vimeo, TikTok</strong>, or similar platforms.</li>
+                  <li><strong class="privacy-alert"><i class="fa-solid fa-lock-open"></i> Important:</strong> Ensure your video file/link access permissions are set to <strong>PUBLIC</strong> so our team can review your submission.</li>
+                </ul>
+              </div>
+              <input id="scholarshipVideo" type="url" placeholder="https://loom.com/share/... or Google Drive public link">
+              <div class="error-text">Please provide a valid public video link for your scholarship review</div>
+            </div>
+          </div>
+
+          <div class="stage-nav-btns">
+            <button type="button" class="btn btn-outline" id="btn-stage-2-back">← Back to Step 1</button>
+            <button type="button" class="btn btn-primary" id="btn-stage-2-next">Continue to Step 3 →</button>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary apply-submit-btn">Continue to ₦5,000 Application Payment →</button>
+        <!-- STAGE 3: REVIEW & PAYMENT -->
+        <div id="stage-3" class="form-stage" style="display:none;">
+          <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 3: Review & Application Payment</h3>
+            <p style="font-size: 13.5px; color: var(--ink-soft);">Review your application details and confirm your application fee payment.</p>
+          </div>
+
+          <!-- Application Summary Card -->
+          <div class="summary-review-card" id="summaryCard">
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--rust); letter-spacing: 0.08em; margin-bottom: 10px;">
+              <i class="fa-solid fa-user-check"></i> Application Summary
+            </div>
+            <div class="summary-grid">
+              <div><strong>Name:</strong> <span id="sum-name">-</span></div>
+              <div><strong>WhatsApp:</strong> <span id="sum-whatsapp">-</span></div>
+              <div><strong>Email:</strong> <span id="sum-email">-</span></div>
+              <div><strong>City:</strong> <span id="sum-city">-</span></div>
+              <div><strong>Scholarship:</strong> <span id="sum-scholarship">Standard Application</span></div>
+              <div><strong>Commitment:</strong> <span id="sum-commitment">-</span></div>
+            </div>
+          </div>
+
+          <div class="checkbox-field" id="field-terms">
+            <div class="checkbox-field-inner">
+              <input type="checkbox" id="termsCheck" required>
+              <label for="termsCheck">I understand the ₦5,000 application fee is credited if admitted and refunded if I do not qualify. <span class="req-asterisk">*</span></label>
+            </div>
+            <div class="error-text">You must confirm your understanding of the application fee</div>
+          </div>
+
+          <div class="stage-nav-btns">
+            <button type="button" class="btn btn-outline" id="btn-stage-3-back">← Back to Step 2</button>
+            <button type="submit" class="btn btn-primary apply-submit-btn" id="btn-final-submit">
+              Pay ₦5,000 Application Fee →
+            </button>
+          </div>
+        </div>
       </form>
 
       <div class="form-success" id="formSuccess">
@@ -707,15 +909,19 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 
   const form = document.getElementById('universityApplyForm');
   if(form) {
-    const requiredFieldConfigs = [
+    let currentStage = 1;
+
+    const stage1Fields = [
       { id: 'name', fieldId: 'field-name', validate: val => val.trim().length > 0 },
       { id: 'whatsapp', fieldId: 'field-whatsapp', validate: val => val.trim().length >= 6 },
       { id: 'email', fieldId: 'field-email', validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) },
       { id: 'city', fieldId: 'field-city', validate: val => val.trim().length > 0 },
-      { id: 'age', fieldId: 'field-age', validate: val => val !== '' },
+      { id: 'age', fieldId: 'field-age', validate: val => val !== '' }
+    ];
+
+    const stage2Fields = [
       { id: 'commitment', fieldId: 'field-commitment', validate: val => val !== '' },
-      { id: 'why', fieldId: 'field-why', validate: val => val.trim().length > 0 },
-      { id: 'termsCheck', fieldId: 'field-terms', isCheckbox: true, validate: (val, el) => el.checked }
+      { id: 'why', fieldId: 'field-why', validate: val => val.trim().length > 0 }
     ];
 
     // Scholarship toggle handling
@@ -745,8 +951,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       scholarshipNo.addEventListener('change', updateScholarshipToggle);
     }
 
-    // Clear error style on input/change
-    requiredFieldConfigs.forEach(cfg => {
+    // Clear error style on input
+    [...stage1Fields, ...stage2Fields, { id: 'termsCheck', fieldId: 'field-terms' }].forEach(cfg => {
       const el = document.getElementById(cfg.id);
       const container = document.getElementById(cfg.fieldId);
       if (el && container) {
@@ -755,24 +961,35 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         el.addEventListener('change', clearErr);
       }
     });
-    if (scholarshipVideoInput && scholarshipVideoContainer) {
-      const clearVideoErr = () => scholarshipVideoContainer.classList.remove('has-error');
-      scholarshipVideoInput.addEventListener('input', clearVideoErr);
-      scholarshipVideoInput.addEventListener('change', clearVideoErr);
+
+    function updateStageUI(stage) {
+      currentStage = stage;
+      document.getElementById('stage-1').style.display = stage === 1 ? 'block' : 'none';
+      document.getElementById('stage-2').style.display = stage === 2 ? 'block' : 'none';
+      document.getElementById('stage-3').style.display = stage === 3 ? 'block' : 'none';
+
+      [1, 2, 3].forEach(stepNum => {
+        const pill = document.getElementById(`step-pill-${stepNum}`);
+        if (pill) {
+          pill.classList.remove('active', 'completed');
+          if (stepNum === stage) pill.classList.add('active');
+          else if (stepNum < stage) pill.classList.add('completed');
+        }
+      });
+
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    const submitBtn = form.querySelector('button[type="submit"]');
-    form.addEventListener('submit', async function(e){
-      e.preventDefault();
-
+    // STAGE 1 NEXT BUTTON (Instant Partial Lead Capture)
+    document.getElementById('btn-stage-1-next')?.addEventListener('click', async function() {
       let hasError = false;
       let firstErrorEl = null;
 
-      requiredFieldConfigs.forEach(cfg => {
+      stage1Fields.forEach(cfg => {
         const el = document.getElementById(cfg.id);
         const container = document.getElementById(cfg.fieldId);
         if (el && container) {
-          const isValid = cfg.validate(el.value, el);
+          const isValid = cfg.validate(el.value);
           if (!isValid) {
             hasError = true;
             container.classList.add('has-error');
@@ -783,7 +1000,96 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         }
       });
 
-      // Scholarship video link validation when toggle is YES
+      if (hasError) {
+        if (firstErrorEl) firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      const btnStage1 = document.getElementById('btn-stage-1-next');
+      if (btnStage1) {
+        btnStage1.disabled = true;
+        btnStage1.textContent = 'Saving...';
+      }
+
+      const nameVal = document.getElementById('name').value;
+      const whatsappVal = document.getElementById('whatsapp').value;
+      const emailVal = document.getElementById('email').value;
+      const cityVal = document.getElementById('city').value;
+      const ageVal = document.getElementById('age').value;
+      const occVal = document.getElementById('occupation').value;
+
+      // Save partial lead to server (for both Early Access & Application roster tracking in Admin)
+      const leadPayload = {
+        name: nameVal,
+        whatsapp: whatsappVal,
+        email: emailVal,
+        city: cityVal,
+        ageBracket: ageVal,
+        occupation: occVal,
+        experienceLevel: 'Stage 1 Completed (Basic Info Captured)',
+        interest: 'Stage 1: Contact Info (Drop-off)'
+      };
+
+      const appStage1Payload = {
+        name: nameVal,
+        whatsapp: whatsappVal,
+        email: emailVal,
+        city: cityVal,
+        ageBracket: ageVal,
+        occupation: occVal,
+        experienceLevel: 'Stage 1 Completed',
+        commitment: 'Pending (Stage 1 Completed)',
+        why: 'Pending (Stage 1 Completed)'
+      };
+
+      try {
+        await Promise.allSettled([
+          fetch('/api/v1/early-access/student', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(leadPayload)
+          }),
+          fetch('/api/v1/university/application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(appStage1Payload)
+          })
+        ]);
+      } catch (e) {
+        console.warn('Stage 1 lead capture sync error:', e);
+      } finally {
+        if (btnStage1) {
+          btnStage1.disabled = false;
+          btnStage1.textContent = 'Continue to Step 2 →';
+        }
+      }
+
+      updateStageUI(2);
+    });
+
+    // STAGE 2 BACK BUTTON
+    document.getElementById('btn-stage-2-back')?.addEventListener('click', () => updateStageUI(1));
+
+    // STAGE 2 NEXT BUTTON
+    document.getElementById('btn-stage-2-next')?.addEventListener('click', async function() {
+      let hasError = false;
+      let firstErrorEl = null;
+
+      stage2Fields.forEach(cfg => {
+        const el = document.getElementById(cfg.id);
+        const container = document.getElementById(cfg.fieldId);
+        if (el && container) {
+          const isValid = cfg.validate(el.value);
+          if (!isValid) {
+            hasError = true;
+            container.classList.add('has-error');
+            if (!firstErrorEl) firstErrorEl = container;
+          } else {
+            container.classList.remove('has-error');
+          }
+        }
+      });
+
       const isScholarship = scholarshipYes && scholarshipYes.checked;
       if (isScholarship) {
         const videoVal = scholarshipVideoInput ? scholarshipVideoInput.value.trim() : '';
@@ -798,18 +1104,77 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       }
 
       if (hasError) {
-        if (firstErrorEl) {
-          firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          firstErrorEl.classList.remove('shake-target');
-          void firstErrorEl.offsetWidth; // trigger reflow
-          firstErrorEl.classList.add('shake-target');
-        }
+        if (firstErrorEl) firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
+      const btnStage2 = document.getElementById('btn-stage-2-next');
+      if (btnStage2) {
+        btnStage2.disabled = true;
+        btnStage2.textContent = 'Saving Details...';
+      }
 
+      // Populate Stage 3 Summary Card
+      document.getElementById('sum-name').textContent = document.getElementById('name').value;
+      document.getElementById('sum-whatsapp').textContent = document.getElementById('whatsapp').value;
+      document.getElementById('sum-email').textContent = document.getElementById('email').value;
+      document.getElementById('sum-city').textContent = document.getElementById('city').value;
+      document.getElementById('sum-scholarship').textContent = isScholarship ? 'Yes (Scholarship Candidate)' : 'No (Standard Application)';
+      document.getElementById('sum-commitment').textContent = document.getElementById('commitment').value;
+
+      // Sync updated full application state to backend
+      const appPayload = {
+        name: document.getElementById('name').value,
+        whatsapp: document.getElementById('whatsapp').value,
+        email: document.getElementById('email').value,
+        city: document.getElementById('city').value,
+        ageBracket: document.getElementById('age').value,
+        occupation: document.getElementById('occupation').value,
+        experienceLevel: document.getElementById('exp').value || 'Stage 2 Completed',
+        goals: document.getElementById('goals').value,
+        commitment: document.getElementById('commitment').value,
+        why: document.getElementById('why').value,
+        timing: document.getElementById('timing').value,
+        isScholarshipApplicant: isScholarship,
+        scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : ''
+      };
+
+      try {
+        await fetch('/api/v1/university/application', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(appPayload)
+        });
+      } catch (e) {
+        console.warn('Stage 2 application sync error:', e);
+      } finally {
+        if (btnStage2) {
+          btnStage2.disabled = false;
+          btnStage2.textContent = 'Continue to Step 3 →';
+        }
+      }
+
+      updateStageUI(3);
+    });
+
+    // STAGE 3 BACK BUTTON
+    document.getElementById('btn-stage-3-back')?.addEventListener('click', () => updateStageUI(2));
+
+    // STAGE 3 FINAL PAYSTACK SUBMIT
+    const submitBtn = document.getElementById('btn-final-submit');
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+
+      const termsEl = document.getElementById('termsCheck');
+      const termsContainer = document.getElementById('field-terms');
+      if (!termsEl.checked) {
+        termsContainer.classList.add('has-error');
+        termsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      termsContainer.classList.remove('has-error');
+
+      const isScholarship = scholarshipYes && scholarshipYes.checked;
       const payload = {
         name: document.getElementById('name').value,
         whatsapp: document.getElementById('whatsapp').value,
@@ -825,6 +1190,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         isScholarshipApplicant: isScholarship,
         scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : ''
       };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
 
       try {
         const res = await fetch('/api/v1/university/application', {
@@ -844,14 +1212,12 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
         }
 
-        // If applicant has ALREADY paid (verified via backend), skip Paystack checkout & redirect to thank you page
         if (serverData && serverData.isAlreadyPaid) {
           const firstName = encodeURIComponent(payload.name.trim().split(' ')[0] || '');
           window.location.href = `/university/thank-you?ref=VERIFIED_PAID&name=${firstName}`;
           return;
         }
 
-        // Fetch live Paystack Public Key dynamically from backend config
         let paystackKey = window.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
         if (!paystackKey) {
           try {
@@ -860,9 +1226,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
             if (configData && configData.paystackPublicKey) {
               paystackKey = configData.paystackPublicKey;
             }
-          } catch (err) {
-            console.warn('Could not fetch paystack config from server', err);
-          }
+          } catch (err) {}
         }
         if (!paystackKey) {
           paystackKey = 'pk_test_94085bb9372f06603b4ed07b88a69383e4206f3c';
@@ -874,7 +1238,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
             handler.newTransaction({
               key: paystackKey,
               email: payload.email,
-              amount: 5000 * 100, // ₦5,000 in kobo
+              amount: 5000 * 100,
               currency: 'NGN',
               ref: 'UPW_APP_' + Math.floor((Math.random() * 1000000000) + 1),
               metadata: {
@@ -885,7 +1249,6 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
                 ]
               },
               onSuccess: async function(response) {
-                // Sync payment verification to backend
                 try {
                   await fetch('/api/v1/university/application', {
                     method: 'POST',
@@ -896,32 +1259,23 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
                       paymentRef: response.reference
                     })
                   });
-                } catch (e) {
-                  console.error('Failed to sync payment status to server', e);
-                }
+                } catch (e) {}
 
-                // Redirect to dedicated Thank You URL for Meta Purchase & Google Ads conversion tracking
                 const firstName = encodeURIComponent(payload.name.trim().split(' ')[0] || '');
                 const ref = encodeURIComponent(response.reference || '');
                 window.location.href = `/university/thank-you?ref=${ref}&name=${firstName}`;
               },
               onCancel: async function() {
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Continue to ₦5,000 Application Payment →';
+                submitBtn.textContent = 'Pay ₦5,000 Application Fee →';
                 
-                // Trigger email notification for exited/canceled checkout
                 try {
                   await fetch('/api/v1/university/application', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      ...payload,
-                      sendEmail: true
-                    })
+                    body: JSON.stringify({ ...payload, sendEmail: true })
                   });
-                } catch (e) {
-                  console.warn('Failed to send exit email trigger', e);
-                }
+                } catch (e) {}
 
                 form.style.display = 'none';
                 const successEl = document.getElementById('formSuccess');
@@ -934,7 +1288,6 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
               }
             });
           } else {
-            // Trigger email notification for script fallback
             fetch('/api/v1/university/application', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -956,10 +1309,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           const script = document.createElement('script');
           script.src = 'https://js.paystack.co/v2/inline.js';
           script.onload = startPaystackPayment;
-          script.onerror = () => {
-            console.warn('Failed to load Paystack inline JS script');
-            startPaystackPayment();
-          };
+          script.onerror = () => startPaystackPayment();
           document.body.appendChild(script);
         } else {
           startPaystackPayment();
@@ -967,36 +1317,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       } catch (err) {
         console.error('Network error during submission:', err);
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Continue to ₦5,000 Application Payment →';
+        submitBtn.textContent = 'Pay ₦5,000 Application Fee →';
       }
     });
   }
-
-  // Contact Drawer & Meta Pixel Tracking
-  const contactUsBtn = document.getElementById('contact-us-btn');
-  const contactDrawer = document.getElementById('contact-drawer');
-  const contactDrawerOverlay = document.getElementById('contact-drawer-overlay');
-  const contactDrawerClose = document.getElementById('contact-drawer-close');
-
-  function setContactDrawerOpen(open) {
-      if (!contactDrawer || !contactDrawerOverlay) return;
-      contactDrawer.classList.toggle('is-open', open);
-      contactDrawerOverlay.classList.toggle('is-open', open);
-      contactDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
-      contactDrawerOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
-  }
-
-  contactUsBtn?.addEventListener('click', () => {
-    setContactDrawerOpen(true);
-    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-      window.fbq('track', 'Contact', { content_name: 'WhatsApp Contact Drawer' });
-    }
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', 'contact', { event_category: 'Contact', event_label: 'WhatsApp Contact Drawer' });
-    }
-  });
-  contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
-  contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
 </script>
 
     <script src="/landing-analytics.js" defer></script>

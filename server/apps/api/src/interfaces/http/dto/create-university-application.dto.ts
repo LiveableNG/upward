@@ -35,13 +35,13 @@ export class CreateUniversityApplicationDto {
   @IsString()
   goals?: string
 
-  @IsNotEmpty({ message: 'Commitment response is required' })
+  @IsOptional()
   @IsString()
-  commitment!: string
+  commitment?: string
 
-  @IsNotEmpty({ message: 'Reason for joining is required' })
+  @IsOptional()
   @IsString()
-  why!: string
+  why?: string
 
   @IsOptional()
   @IsString()

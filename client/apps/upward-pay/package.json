@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "cap:sync": "next build && npx cap sync",
+    "cap:sync": "NEXT_OUTPUT=export next build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
     "type-check": "tsc --noEmit"
