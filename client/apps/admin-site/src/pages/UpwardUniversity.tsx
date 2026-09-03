@@ -745,7 +745,7 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 {loadingApps ? '...' : (appStats?.admittedCount ?? applications.filter(a => a.status === 'ADMITTED').length)}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Admitted into Founding Cohort
+                Admitted into 2026 Cohort
               </div>
             </div>
           </>
@@ -795,7 +795,7 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                 {stats && stats.totalSubmissions > 0
                   ? `${Math.round((stats.studentCount / stats.totalSubmissions) * 100)}% of total leads`
-                  : 'Founding Cohort 2026'}
+                  : '2026 Cohort'}
               </div>
             </div>
 
@@ -1282,7 +1282,7 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 color: '#c2410c',
               }}
             >
-              Founding Cohort 2026 • Applied {new Date(selectedApp.createdAt).toLocaleDateString()}
+              2026 Cohort • Applied {new Date(selectedApp.createdAt).toLocaleDateString()}
             </span>
           ) : undefined
         }
