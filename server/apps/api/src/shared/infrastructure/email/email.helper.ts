@@ -578,19 +578,20 @@ export function buildRentReceiptEmailHtml(params: {
         ${breakdownRows}
         <tr>
           <td><strong>Property:</strong></td>
-          <td align="right">${params.propertyAddress} (${params.unitName})</td>
+          <td align="right">${params.propertyAddress}${params.unitName ? ` (${params.unitName})` : ''}</td>
         </tr>
         <tr>
           <td><strong>Payment Date:</strong></td>
-          <td align="right">${params.paymentDate}</td>
+          <td align="right">${params.paymentDate || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
         </tr>
       </table>
     </div>
   `;
   return buildGlobalLayoutHtml({
     role: 'TENANT',
-    title: 'Rent Payment Successful 🎉',
-    logoText: params.companyName || 'Upward',
+    title: 'Rent Payment Successful',
+    logoText: 'Upward',
+    logoSub: 'by GoodTenants',
     contentHtml: content,
     buttonText: 'View Full Receipt',
     buttonUrl: params.receiptUrl,

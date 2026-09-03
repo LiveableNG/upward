@@ -25,10 +25,10 @@ export class S3Service {
   private bucket: string
 
   constructor(private configService: ConfigService) {
-    const region = this.configService.getOrThrow<string>('AWS_REGION')
-    const accessKeyId = this.configService.getOrThrow<string>('AWS_ACCESS_KEY_ID')
-    const secretAccessKey = this.configService.getOrThrow<string>('AWS_SECRET_ACCESS_KEY')
-    this.bucket = this.configService.getOrThrow<string>('AWS_S3_BUCKET')
+    const region = (this.configService?.get ? this.configService.get<string>('AWS_REGION') : null) || process.env.AWS_REGION || 'us-east-1'
+    const accessKeyId = (this.configService?.get ? this.configService.get<string>('AWS_ACCESS_KEY_ID') : null) || process.env.AWS_ACCESS_KEY_ID || ''
+    const secretAccessKey = (this.configService?.get ? this.configService.get<string>('AWS_SECRET_ACCESS_KEY') : null) || process.env.AWS_SECRET_ACCESS_KEY || ''
+    this.bucket = (this.configService?.get ? this.configService.get<string>('AWS_S3_BUCKET') : null) || process.env.AWS_S3_BUCKET || 'upward-stories-storage-2025'
 
     this.s3Client = new S3Client({
       region,

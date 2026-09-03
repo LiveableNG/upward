@@ -164,7 +164,12 @@ export class ReceiptService {
       const FONT_SIZE = 18
       const ICON_SIZE = 28
 
-      const brandLabel = (data.brandName || 'Upward').toUpperCase()
+      const brandLabel = "UPWARD"
+      // let brandLabel = (data.brandName || 'Upward').trim()
+      // if (brandLabel.includes(':')) {
+      //   brandLabel = 'Upward'
+      // }
+      // brandLabel = brandLabel.toUpperCase()
 
       if (logoBuffer) {
         const LOGO_BOX_W = 120

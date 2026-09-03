@@ -36,6 +36,7 @@ export class SendRentReceiptEmailUseCase {
   async execute(params: {
     transactionId: number
     propertyId?: number
+    overrideRecipientEmail?: string
   }): Promise<{ emailSent: boolean; whatsappSent: boolean }> {
     const tx = await this.prisma.upward_transaction.findUnique({
       where: { id: params.transactionId },
@@ -136,7 +137,7 @@ export class SendRentReceiptEmailUseCase {
     const receiptUrl = `${baseUrl}/dashboard/receipts?id=${tx.uuid}`
 
     const success = await this.unifiedCommService.processCommunication({
-      recipientEmail: hasEmail ? tenantEmail : undefined,
+      recipientEmail: params.overrideRecipientEmail || (hasEmail ? tenantEmail : undefined),
       recipientPhone: hasPhone ? tenantPhone || undefined : undefined,
       recipientName: tenantName,
       recipientRole: 'TENANT',
