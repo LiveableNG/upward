@@ -46,6 +46,7 @@ export interface UserRepository {
   findAll(tx?: any): Promise<User[]>
   save(user: User, tx?: any): Promise<User>
   update(id: number, data: Partial<User>, tx?: any): Promise<User>
+  updatePmTenantEmail(oldEmailHash: string, newEmailEncrypted: string, newEmailHash: string, tx?: any): Promise<void>
 }
 
 export const USER_REPOSITORY = Symbol('USER_REPOSITORY')

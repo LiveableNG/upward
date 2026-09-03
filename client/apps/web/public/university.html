@@ -1129,7 +1129,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     <div style="font-size:14px; font-weight:600; display:flex; flex-direction:column; gap:8px;">
       <span style="text-transform:uppercase; font-size:11px; letter-spacing:0.1em; color:var(--rust);">Contact Us</span>
       <a href="mailto:hello@goodtenants.africa" class="contact-link"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> hello@goodtenants.africa</a>
-      <a href="tel:09040969943" class="contact-link"><i class="fa-solid fa-phone" style="font-size:12px; color:var(--rust);"></i> 09040969943</a>
+      <a href="tel:+2348104332040" class="contact-link"><i class="fa-solid fa-phone" style="font-size:12px; color:var(--rust);"></i> +234 810 433 2040</a>
     </div>
   </div>
 </footer>
@@ -1148,7 +1148,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         </div>
         <p class="contact-drawer-subtitle">Choose how you'd like to reach us.</p>
         <div class="contact-drawer-options">
-            <a href="https://wa.me/2349040969943?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
+            <a href="https://wa.me/2348104332040?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
                 class="contact-drawer-option" target="_blank" rel="noopener noreferrer">
                 <span class="contact-drawer-option-icon contact-drawer-option-icon--whatsapp" aria-hidden="true">
                     <i class="fa-brands fa-whatsapp"></i>
@@ -1158,13 +1158,13 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
                     <span class="contact-drawer-option-detail">Message us anytime</span>
                 </span>
             </a>
-            <a href="tel:09040969943" class="contact-drawer-option">
+            <a href="tel:+2348104332040" class="contact-drawer-option">
                 <span class="contact-drawer-option-icon" aria-hidden="true">
                     <i class="fa-solid fa-phone"></i>
                 </span>
                 <span class="contact-drawer-option-text">
                     <span class="contact-drawer-option-label">Call us</span>
-                    <span class="contact-drawer-option-detail">09040969943</span>
+                    <span class="contact-drawer-option-detail">+234 810 433 2040</span>
                 </span>
             </a>
             <a href="mailto:hello@goodtenants.africa?subject=Upward%20Inquiry" class="contact-drawer-option">
@@ -1319,10 +1319,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           console.warn('Early access submission returned error:', errData);
+          alert(errData.message || 'Submission failed. Please check your details and try again.');
+          return;
         }
-      } catch (err) {
-        console.error('Network error during early access submission:', err);
-      } finally {
+
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
           window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
           window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
@@ -1338,6 +1338,12 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           successEl.querySelector('h3').textContent = `Thank you, ${firstName}!`;
         }
         successEl.classList.add('show');
+      } catch (err) {
+        console.error('Network error during early access submission:', err);
+        alert('Network error. Please check your connection and try again.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
       }
     });
   }

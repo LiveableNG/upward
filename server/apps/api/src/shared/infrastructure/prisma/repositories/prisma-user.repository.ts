@@ -475,4 +475,15 @@ export class PrismaUserRepository implements UserRepository {
     })
     return this.toDomain(record)
   }
+
+  async updatePmTenantEmail(oldEmailHash: string, newEmailEncrypted: string, newEmailHash: string, tx?: any): Promise<void> {
+    const prisma = tx || this.prisma
+    await prisma.upward_pm_tenant.updateMany({
+      where: { emailHash: oldEmailHash },
+      data: {
+        emailEncrypted: newEmailEncrypted,
+        emailHash: newEmailHash,
+      }
+    })
+  }
 }

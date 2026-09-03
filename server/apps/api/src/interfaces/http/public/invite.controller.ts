@@ -1,14 +1,8 @@
-import { Controller, Get, Post, Param, Body, NotFoundException, BadRequestException, Res, HttpStatus, Inject } from '@nestjs/common'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { Controller, Get, Post, Param, Body, BadRequestException, Res, HttpStatus } from '@nestjs/common'
 import { UserAuthService } from '../../../application/auth/user-auth.service'
-import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
-import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
-import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
-import { InitializeUserSequenceUseCase } from '../../../application/use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
-import { InitializeEmailSequenceUseCase } from '../../../application/use-cases/email-sequence/initialize-email-sequence.use-case'
-import { EmailService } from '../../../shared/infrastructure/email/email.service'
-import * as bcrypt from 'bcrypt'
+import { GetInviteDataUseCase } from '../../../application/use-cases/invite/get-invite-data.use-case'
+import { RequestInviteOTPUseCase } from '../../../application/use-cases/invite/request-invite-otp.use-case'
+import { AcceptInviteUseCase } from '../../../application/use-cases/invite/accept-invite.use-case'
 
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
@@ -43,82 +37,15 @@ function setUserAuthCookies(reply: FastifyReply, accessToken: string, refreshTok
 @Controller('public/invite')
 export class InviteController {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly encryption: EncryptionService,
+    private readonly getInviteDataUseCase: GetInviteDataUseCase,
+    private readonly requestInviteOTPUseCase: RequestInviteOTPUseCase,
     private readonly userAuthService: UserAuthService,
-    private readonly webhookService: WebhookService,
-    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
-    private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
-    private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
-    private readonly emailService: EmailService,
-  ) { }
+    private readonly acceptInviteUseCase: AcceptInviteUseCase,
+  ) {}
 
   @Get(':token')
   async getInviteData(@Param('token') token: string) {
-    try {
-      const waitlist = await this.userAuthService.getWaitlistClaimData(token)
-      if ( waitlist ){
-        return {
-          isWaitlist: true,
-        }
-      }
-    } catch (e) {
-      // Ignore if waitlist entry is not found, proceed to normal invite checks
-    }
-    let userUuid: string | undefined;
-    const vt = await this.tokenRepository.findByToken(token)
-
-    if (vt && vt.context === 'INVITE' && vt.expiresAt >= new Date()) {
-      userUuid = vt.identifier;
-    } else {
-      const user = await this.userRepository.findByUuid(token);
-      if (user && user.passwordHash === 'INVITED') {
-        userUuid = token;
-      }
-    }
-
-    if (!userUuid) {
-      throw new NotFoundException('Invite link is invalid or has expired')
-    }
-
-    const user = await this.userRepository.findByUuid(userUuid)
-    if (!user) {
-      throw new NotFoundException('Invited user not found')
-    }
-
-    const hasPassword = !!user.passwordHash && user.passwordHash !== '' && user.passwordHash !== 'INVITED'
-    const companyUser = user.companyUsers?.[0]
-    const property = user.properties?.[0]
-
-    let managerName = ''
-    if (property?.manager) {
-      managerName = `${property.manager.firstName ? this.encryption.decrypt(property.manager.firstName) : ''} ${property.manager.lastName ? this.encryption.decrypt(property.manager.lastName) : ''}`
-    }
-
-    return {
-      success: true,
-      isWaitlist: false,
-      hasPassword,
-      email: user.email,
-      phone: user.phone,
-      isPhoneOnly: user.email.endsWith('@upward.com'),
-      firstName: user.firstName,
-      lastName: user.lastName,
-      company: companyUser ? {
-        name: this.encryption.decrypt(companyUser.company.name),
-        profilePic: (companyUser.company as any).profilePic,
-      } : null,
-      manager: managerName ? { name: managerName } : null,
-      property: property ? {
-        rentAmount: property.rentAmount,
-        location: property.location ? {
-          area: property.location.area,
-          city: property.location.state,
-          country: property.location.country
-        } : null
-      } : null
-    }
+    return this.getInviteDataUseCase.execute(token)
   }
 
   @Post(':token/request-otp')
@@ -126,33 +53,7 @@ export class InviteController {
     @Param('token') token: string,
     @Body() body: { email?: string }
   ) {
-    const vt = await this.tokenRepository.findByToken(token)
-    if (!vt || vt.context !== 'INVITE' || vt.expiresAt < new Date()) {
-      throw new NotFoundException('Invite link is invalid or has expired')
-    }
-
-    let email = body.email
-    if (!email) {
-      const user = await this.userRepository.findByUuid(vt.identifier)
-      if (!user) throw new NotFoundException('Invited user not found')
-      email = user.email
-    } else {
-      // "This isn't my email" flow -> update user email server-side first
-      const user = await this.userRepository.findByUuid(vt.identifier)
-      if (!user) throw new NotFoundException('Invited user not found')
-      
-      await this.userRepository.update(user.id!, { 
-        email: email,
-        emailHash: (this.userRepository as any).encryption.hash(email)
-      })
-    }
-
-    if (!email) {
-      throw new BadRequestException('No email address found for this invite')
-    }
-
-    await this.userAuthService.requestOTP(email, 'INVITE')
-    return { success: true, message: 'Verification code sent to ' + email }
+    return this.requestInviteOTPUseCase.execute(token, body?.email)
   }
 
   @Post(':token/verify-otp')
@@ -160,13 +61,10 @@ export class InviteController {
     @Param('token') token: string,
     @Body() body: { otp: string }
   ) {
-    const vt = await this.tokenRepository.findByToken(token)
-    if (!vt || vt.context !== 'INVITE') throw new NotFoundException('Invalid link')
-
-    const user = await this.userRepository.findByUuid(vt.identifier)
-    if (!user) throw new NotFoundException('User not found')
-
-    return this.userAuthService.verifyOTP(user.email, body.otp, 'INVITE', false)
+    return this.getInviteDataUseCase.execute(token).then((data) => {
+      if (!data.email) throw new BadRequestException('No email found for this invite')
+      return this.userAuthService.verifyOTP(data.email, body.otp, 'INVITE', false)
+    })
   }
 
   @Post(':token/accept')
@@ -175,131 +73,18 @@ export class InviteController {
     @Body() data: { password?: string; otp?: string; firstName?: string; lastName?: string; email?: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    let userUuid: string | undefined;
-    const vt = await this.tokenRepository.findByToken(token)
-
-    if (vt && vt.context === 'INVITE' && vt.expiresAt >= new Date()) {
-      userUuid = vt.identifier;
-    } else {
-      const user = await this.userRepository.findByUuid(token);
-      if (user && user.passwordHash === 'INVITED') {
-        userUuid = token;
-      }
-    }
-
-    if (!userUuid) {
-      throw new NotFoundException('Invite link is invalid or has expired')
-    }
-
-    const user = await this.userRepository.findByUuid(userUuid)
-    if (!user) throw new NotFoundException('Invite not found')
-
-    if (!data.password) {
-      throw new BadRequestException('Password is required')
-    }
-
-    const passwordHash = await bcrypt.hash(data.password, 10)
-    const oldEmailHash = user.emailHash
-    const newEmail = data.email || user.email
-    const newEmailHash = (this.userRepository as any).encryption.hash(newEmail)
-
-    await this.userRepository.update(user.id!, {
-      passwordHash,
-      firstName: data.firstName || user.firstName,
-      lastName: data.lastName || user.lastName,
-      email: newEmail,
-      emailHash: newEmailHash,
-      joinedAt: new Date(),
+    const result = await this.acceptInviteUseCase.execute({
+      token,
+      ...data,
     })
 
-    if (data.email && oldEmailHash && oldEmailHash !== newEmailHash) {
-      await this.prisma.upward_pm_tenant.updateMany({
-        where: { emailHash: oldEmailHash },
-        data: {
-          emailEncrypted: (this.userRepository as any).encryption.encrypt(newEmail),
-          emailHash: newEmailHash,
-        }
-      })
-    }
-
-    await this.userAuthService.syncTenantStatuses(newEmail)
-    this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification on invite accept', e))
-
-    const updatedUser = await this.userRepository.findById(user.id!)
-    if (!updatedUser) throw new Error('Failed to update user')
-
-    // Delete the invite token if it was used
-    if (vt) {
-      await this.tokenRepository.delete(vt.id!)
-    }
-
-    const { accessToken, refreshToken, user: userNoPass } = await this.userAuthService.generateFullAuthResponse(updatedUser)
-    
-    setUserAuthCookies(reply, accessToken, refreshToken)
-
-    const companyUser = updatedUser.companyUsers?.[0]
-    const platformId = companyUser?.company?.platformId
-
-    if (platformId) {
-      await this.webhookService.sendWebhook(platformId, 'invite.accepted', {
-        userUuid: updatedUser.uuid,
-        customerEmail: updatedUser.email,
-        firstName: updatedUser.firstName || '',
-        lastName: updatedUser.lastName || '',
-        registeredAt: updatedUser.updatedAt,
-      })
-    }
+    setUserAuthCookies(reply, result.accessToken, result.refreshToken)
 
     reply.status(HttpStatus.OK).send({
       success: true,
-      message: 'Account activated successfully',
-      accessToken,
-      user: userNoPass
+      message: result.message,
+      accessToken: result.accessToken,
+      user: result.user,
     })
-
-    // Initialize sequences now that the user has a real password (joined)
-    try {
-      const updated = updatedUser as any
-      const isPhoneOnly = (updated.email || '').toLowerCase().endsWith('@upward.com')
-      const hasPhone = !!updated.phone
-
-      // Determine pmName similar to signup flow
-      let pmName: string | undefined = undefined
-      const companyUser = updated.companyUsers && updated.companyUsers.length > 0 ? updated.companyUsers[0] : null
-      if (companyUser && companyUser.company && companyUser.company.name) {
-        try { pmName = this.encryption.decrypt(companyUser.company.name) } catch (e) { pmName = undefined }
-      }
-      if (!pmName && updated.properties && updated.properties.length > 0) {
-        const prop = updated.properties[0]
-        if (prop.manager) {
-          const fn = prop.manager.firstName ? this.encryption.decrypt(prop.manager.firstName) : ''
-          const ln = prop.manager.lastName ? this.encryption.decrypt(prop.manager.lastName) : ''
-          pmName = `${fn} ${ln}`.trim() || undefined
-        } else if (prop.company && prop.company.name) {
-          try { pmName = this.encryption.decrypt(prop.company.name) } catch (e) { pmName = undefined }
-        }
-      }
-
-      if (hasPhone) {
-        this.initializeUserSequenceUseCase.execute({
-          userId: updated.id,
-          firstName: updated.firstName,
-          phoneEncrypted: updated.phone,
-          phoneHash: updated.phoneHash || null,
-          pmName,
-        }).catch(e => console.error('Failed to init WA sequence on invite accept', e))
-      }
-
-      if (!isPhoneOnly && !hasPhone) {
-        this.initializeEmailSequenceUseCase.execute({
-          userId: updated.id,
-          email: updated.email,
-        }).catch(e => console.error('Failed to init Email sequence on invite accept', e))
-      }
-
-      this.userAuthService.sendWelcomeMessages(updatedUser, updatedUser.firstName, pmName).catch(e => console.error('Failed to send welcome messages on invite accept', e))
-    } catch (e) {
-      console.error('Error initializing sequences on invite accept', e)
-    }
   }
 }

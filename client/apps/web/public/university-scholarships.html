@@ -542,10 +542,10 @@ fbq('track', 'ViewContent', {
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           console.warn('Early access submission returned error:', errData);
+          alert(errData.message || 'Submission failed. Please check your details and try again.');
+          return;
         }
-      } catch (err) {
-        console.error('Network error during early access submission:', err);
-      } finally {
+
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
           window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
           window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
@@ -561,6 +561,9 @@ fbq('track', 'ViewContent', {
           successEl.querySelector('h3').textContent = `Thank you, ${firstName}!`;
         }
         successEl.classList.add('show');
+      } catch (err) {
+        console.error('Network error during early access submission:', err);
+        alert('Network error. Please check your connection and try again.');
       }
     });
   }

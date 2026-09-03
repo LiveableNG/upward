@@ -526,7 +526,7 @@ export function UniversityLandlordClient() {
           <div style={{ fontSize: '14px', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.1em', color: 'var(--uni-rust, #8A4A2A)' }}>Contact Us</span>
             <a href="mailto:hello@goodtenants.africa" className="contact-link"><span style={{ marginRight: '6px' }}>✉️</span> hello@goodtenants.africa</a>
-            <a href="tel:09040969943" className="contact-link"><span style={{ marginRight: '6px' }}>📞</span> 09040969943</a>
+            <a href="tel:+2348104332040" className="contact-link"><span style={{ marginRight: '6px' }}>📞</span> +234 810 433 2040</a>
           </div>
         </div>
       </footer>
@@ -562,7 +562,7 @@ export function UniversityLandlordClient() {
           <p className="contact-drawer-subtitle">Choose how you'd like to reach us.</p>
           <div className="contact-drawer-options">
             <a
-              href="https://wa.me/2349040969943?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
+              href="https://wa.me/2348104332040?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
               className="contact-drawer-option"
               target="_blank"
               rel="noopener noreferrer"
@@ -575,13 +575,13 @@ export function UniversityLandlordClient() {
                 <span className="contact-drawer-option-detail">Message us anytime</span>
               </span>
             </a>
-            <a href="tel:09040969943" className="contact-drawer-option">
+            <a href="tel:+2348104332040" className="contact-drawer-option">
               <span className="contact-drawer-option-icon">
                 📞
               </span>
               <span className="contact-drawer-option-text">
                 <span className="contact-drawer-option-label">Call us</span>
-                <span className="contact-drawer-option-detail">09040969943</span>
+                <span className="contact-drawer-option-detail">+234 810 433 2040</span>
               </span>
             </a>
             <a href="mailto:hello@goodtenants.africa?subject=Upward%20Inquiry" className="contact-drawer-option">

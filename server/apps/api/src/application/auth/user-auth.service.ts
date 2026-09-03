@@ -257,6 +257,8 @@ export class UserAuthService extends BaseAuthService {
       dateOfBirth: dto.dateOfBirth,
       isFromWaitlist: dto.isFromWaitlist ?? false,
       isFromInvite: dto.isFromInvite ?? false,
+      termsAcceptedAt: new Date(),
+      termsVersion: '2026-08-24',
     }
 
     await this.userRepository.save(userData as User)
