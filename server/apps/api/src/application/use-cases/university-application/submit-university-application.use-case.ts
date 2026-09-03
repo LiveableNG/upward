@@ -16,8 +16,8 @@ export interface SubmitUniversityApplicationCommand {
   occupation?: string
   experienceLevel?: string
   goals?: string
-  commitment: string
-  why: string
+  commitment?: string
+  why?: string
   timing?: string
   isScholarship?: boolean
   scholarshipVideoUrl?: string

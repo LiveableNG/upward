@@ -154,7 +154,7 @@ export class EmailService {
       return { success: false, error: 'MAILGUN_DOMAIN not configured' }
     }
 
-    let from = this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
+    let from = fromOverride || this.configService.get<string>('EMAIL_FROM') || `Upward by GoodTenants <hello@${domain}>`
     let replyTo = replyToOverride || this.replyToEmail
     let brandedHtml = html
 
@@ -167,6 +167,8 @@ export class EmailService {
       } else {
         from = `"Upward Admin" <upwardadmin@goodtenants.io>`
       }
+    } else if (upperType.includes('UNIVERSITY') || upperType.includes('STUDENT')) {
+      from = fromOverride || `"Upward University" <replyupwarduniversity@goodtenants.io>`
     }
 
     const targetPmUuid = pmUuid || userId
