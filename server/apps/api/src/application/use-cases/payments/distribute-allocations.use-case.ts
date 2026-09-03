@@ -45,9 +45,9 @@ export class DistributePaymentAllocationsUseCase {
       ? await this.lineItemRepo.findByPaymentRequestId(paymentRequestId, txClient) 
       : []
 
-    // 0. Deduct Transaction Fee first
-    // This ensures the mandatory transaction fee is prioritized and settled first
-    if (upwardFeeAmount > 0) {
+    // 0. Deduct Transaction Fee first (if enabled and applicable)
+    const isFeeRemoved = process.env.REMOVE_TRANSACTION_FEE === 'true' || this.paymentConfig.getProcessingFee() === 0
+    if (upwardFeeAmount > 0 && !isFeeRemoved) {
       const feeInAllocations = lineItemPayments?.find(lp => 
         lp.name === 'Upward Benefits'
       )

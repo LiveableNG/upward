@@ -27,4 +27,7 @@ export type PayRentStep =
 export interface LineItem {
   label: string
   amount: number
+  name?: string
+  totalAmount?: number
+  amountPaid?: number
 }

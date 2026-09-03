@@ -219,7 +219,7 @@ export class CreateManualPaymentRequestUseCase {
       description: data.metadata?.narration || data.metadata?.description || 'Manual Property Payment',
       dueDate,
       status: 'PENDING',
-      allowPartial: false,
+      allowPartial: true,
       subaccountId: subaccountId,
       userPropertyId,
       isManual: true,
@@ -483,7 +483,8 @@ export class RecordTransactionUseCase {
         try {
           const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const txFee = rates.transactionFee
-          const excludeBenefits = (data as any).metadata?.excludeBenefits === true
+          const isBenefitsOptedIn = (data as any).metadata?.includeBenefits === true
+          const excludeBenefits = (data as any).metadata?.excludeBenefits === true || !isBenefitsOptedIn
           const benFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
           upwardFeeAmount = txFee + benFee
         } catch (e: any) {
@@ -566,6 +567,20 @@ export class RecordTransactionUseCase {
             narration: result.narration,
             txClient
           })
+        }
+
+        try {
+          await txClient.upward_notification.create({
+            data: {
+              userId: user!.id!,
+              title: 'Payment Confirmed 💳',
+              message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
+              type: 'PAYMENT',
+              url: `/dashboard/receipts?id=${result.uuid}`,
+            },
+          })
+        } catch (notifErr: any) {
+          this.logger.warn(`Failed to create tenant payment notification: ${notifErr?.message}`)
         }
 
         propertyId = pr?.userPropertyId
@@ -1416,6 +1431,18 @@ export class ProcessPaymentWebhookUseCase {
         }))
 
         // Clear the intent so it's not reused
+        await this.prisma.upward_dedicated_virtual_account.update({
+          where: { id: dva.id },
+          data: {
+            metadata: {
+              ...((dva.metadata as any) || {}),
+              lastPaymentIntent: null
+            }
+          }
+        })
+      } else if (intent) {
+        this.logger.log(`DVA payment amount (${amountPaid}) does not match saved intent amount (${intent.amount}). Falling back to sequential fill.`)
+        // Clear non-matching or expired intent
         await this.prisma.upward_dedicated_virtual_account.update({
           where: { id: dva.id },
           data: {

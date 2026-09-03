@@ -13,9 +13,11 @@ import { Capacitor } from '@capacitor/core'
 
 import { ToastProvider } from '@/components/common/Toast'
 import { ThemeProvider } from '@/features/dashboard/components/ThemeProvider'
+import { GlobalPaymentSuccessModal } from '@/components/common/GlobalPaymentSuccessModal'
 import { request } from '@/lib/api-client'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  // ... existing setup ...
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -152,7 +154,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <GlobalPaymentSuccessModal />
+        </ToastProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

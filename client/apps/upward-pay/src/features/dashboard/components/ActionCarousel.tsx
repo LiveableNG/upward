@@ -68,6 +68,8 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
   }
 
   const isSelfInitiated = isSelfInitiatedPayment(p)
+  const displayAmount = isPartial ? remaining : p.total_amount
+  const amountSuffix = isPartial ? ' remaining' : ''
 
   if (isSelfInitiated) {
     if (isOverdue) {
@@ -78,8 +80,8 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
       }
     }
     return {
-      title: 'Self-initiated Payment',
-      meta: `${formatCurrency(p.total_amount, p.currency)}${duePart ? ` · ${duePart}` : ''}`,
+      title: isPartial ? 'Partial Payment Remaining' : 'Self-initiated Payment',
+      meta: `${formatCurrency(displayAmount, p.currency)}${amountSuffix}${duePart ? ` · ${duePart}` : ''}`,
       urgency: 'pending',
     }
   }
