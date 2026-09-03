@@ -14,6 +14,8 @@ import {
   Award,
   ExternalLink,
   Calendar,
+  Layers,
+  AlertCircle,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -337,21 +339,48 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
     {
       key: 'status',
       label: 'Application Status',
-      render: (row) => (
-        <span
-          style={{
-            padding: '4px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: 600,
-            background: row.status === 'SUBMITTED' ? '#fff7ed' : row.status === 'ADMITTED' ? '#f0f7f2' : '#f3f4f6',
-            color: row.status === 'SUBMITTED' ? '#c2410c' : row.status === 'ADMITTED' ? '#166534' : '#4b5563',
-            border: `1px solid ${row.status === 'SUBMITTED' ? '#ffedd5' : row.status === 'ADMITTED' ? '#bbf7d0' : '#e5e7eb'}`,
-          }}
-        >
-          {row.status}
-        </span>
-      ),
+      render: (row) => {
+        const isPaid = row.feeStatus === 'PAID'
+        const isStageDropoff = !isPaid && row.status === 'SUBMITTED'
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span
+              style={{
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: row.status === 'SUBMITTED' ? '#fff7ed' : row.status === 'ADMITTED' ? '#f0f7f2' : '#f3f4f6',
+                color: row.status === 'SUBMITTED' ? '#c2410c' : row.status === 'ADMITTED' ? '#166534' : '#4b5563',
+                border: `1px solid ${row.status === 'SUBMITTED' ? '#ffedd5' : row.status === 'ADMITTED' ? '#bbf7d0' : '#e5e7eb'}`,
+              }}
+            >
+              {row.status}
+            </span>
+            {isStageDropoff && (
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  color: '#b45309',
+                  background: '#fef3c7',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid #fde68a',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <AlertCircle size={10} /> Stage 2/3 Drop-off (Fee Unpaid)
+              </span>
+            )}
+          </div>
+        )
+      },
     },
     {
       key: 'createdAt',
@@ -487,7 +516,25 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span>
                 Exp: <b>{row.experienceLevel || 'N/A'}</b>
               </div>
-              {row.interest && (
+              {row.experienceLevel && row.experienceLevel.includes('Stage 1') ? (
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '11px',
+                    color: '#c2410c',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: '#fff7ed',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #ffedd5',
+                  }}
+                >
+                  <Layers size={11} /> Drop-off Stage 1: Basic Info
+                </div>
+              ) : row.interest ? (
                 <div
                   style={{
                     marginTop: '4px',
@@ -505,7 +552,7 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 >
                   <Calendar size={11} /> {row.interest}
                 </div>
-              )}
+              ) : null}
             </div>
           )
         }
@@ -1197,13 +1244,39 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                   </div>
                   <div>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Experience:
+                      Experience / Stage:
                     </span>
-                    <div style={{ fontWeight: 600 }}>
+                    <div style={{ fontWeight: 600, fontSize: '13px' }}>
                       {selectedRecord.experienceLevel || 'N/A'}
                     </div>
                   </div>
                 </div>
+
+                {selectedRecord.experienceLevel && selectedRecord.experienceLevel.includes('Stage 1') && (
+                  <div
+                    style={{
+                      background: '#fff7ed',
+                      border: '1.5px solid #ffedd5',
+                      borderRadius: '10px',
+                      padding: '12px 14px',
+                      marginBottom: '12px',
+                      fontSize: '13px',
+                      color: '#9a3412',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Layers size={16} color="#c2410c" />
+                    <div>
+                      <strong>Funnel Status: Drop-off at Stage 1</strong>
+                      <div style={{ fontSize: '11.5px', fontWeight: 400, color: '#c2410c' }}>
+                        Applicant entered basic contact info but dropped off before completing motivation & payment steps.
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {selectedRecord.interest && (
                   <div style={{ marginTop: '12px' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
