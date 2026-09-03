@@ -573,7 +573,7 @@ export class RecordTransactionUseCase {
           await txClient.upward_notification.create({
             data: {
               userId: user!.id!,
-              title: 'Payment Confirmed 💳',
+              title: 'Payment Confirmed',
               message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
               type: 'PAYMENT',
               url: `/dashboard/receipts?id=${result.uuid}`,

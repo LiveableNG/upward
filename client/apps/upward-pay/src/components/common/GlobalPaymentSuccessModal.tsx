@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Check, Star, X } from 'lucide-react'
+import { Check, TrendingUp, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 
@@ -15,12 +15,21 @@ export function GlobalPaymentSuccessModal() {
       const detail = event.detail
       console.log('[GlobalPaymentSuccessModal] Received payment.succeeded event:', detail)
 
+      // Suppress global modal if tenant is actively on the checkout page/flow
+      if (typeof window !== 'undefined') {
+        const pathname = window.location.pathname
+        if (pathname.includes('/pay/') || pathname.includes('/pay-rent')) {
+          console.log('[GlobalPaymentSuccessModal] Suppressing modal: user is on checkout page', pathname)
+          return
+        }
+      }
+
       setEventData(detail)
       setIsOpen(true)
 
       const amountPaid = detail?.data?.amountPaid || detail?.amount || detail?.data?.amount || 0
       const formattedAmount = amountPaid > 0 ? formatCurrency(amountPaid) : 'Payment'
-      success(`🎉 ${formattedAmount} received and confirmed!`, 'Payment Successful')
+      success(`${formattedAmount} received and confirmed`, 'Payment Successful')
     }
 
     window.addEventListener('upward:payment.succeeded', handlePaymentSucceeded)
@@ -33,8 +42,7 @@ export function GlobalPaymentSuccessModal() {
   if (!isOpen || !eventData) return null
 
   const rawAmount = eventData?.data?.amountPaid || eventData?.amount || eventData?.data?.amount || 0
-  const narration = eventData?.data?.narration || eventData?.narration || 'DVA Bank Transfer'
-  const isFullySettled = eventData?.data?.isFullySettled || false
+  const narration = eventData?.data?.narration || eventData?.narration || 'Bank Transfer'
 
   return (
     <div
@@ -45,7 +53,7 @@ export function GlobalPaymentSuccessModal() {
         right: 0,
         bottom: 0,
         zIndex: 9999,
-        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
         backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
@@ -58,12 +66,12 @@ export function GlobalPaymentSuccessModal() {
       <div
         style={{
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 400,
           backgroundColor: 'var(--surface, #ffffff)',
-          borderRadius: 28,
-          padding: '28px 24px 24px',
+          borderRadius: 24,
+          padding: '24px 20px 20px',
           textAlign: 'center',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
           position: 'relative',
           animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
@@ -73,10 +81,10 @@ export function GlobalPaymentSuccessModal() {
           onClick={() => setIsOpen(false)}
           style={{
             position: 'absolute',
-            top: 16,
-            right: 16,
-            width: 36,
-            height: 36,
+            top: 14,
+            right: 14,
+            width: 32,
+            height: 32,
             borderRadius: '50%',
             backgroundColor: 'var(--surface2, #f3f4f6)',
             border: 'none',
@@ -87,90 +95,86 @@ export function GlobalPaymentSuccessModal() {
             color: 'var(--text-secondary, #6b7280)',
           }}
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
         <div
           style={{
-            width: 76,
-            height: 76,
+            width: 64,
+            height: 64,
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 8px 28px rgba(34,197,94,0.35)',
-            margin: '0 auto 20px',
+            boxShadow: '0 6px 20px rgba(34,197,94,0.3)',
+            margin: '0 auto 16px',
           }}
         >
-          <Check size={40} strokeWidth={3} />
+          <Check size={32} strokeWidth={2.5} />
         </div>
 
         <h2
           style={{
-            fontSize: 24,
+            fontSize: 22,
             fontWeight: 800,
             color: 'var(--text, #111827)',
-            marginBottom: 8,
+            marginBottom: 6,
             letterSpacing: '-0.02em',
           }}
         >
-          Payment Received!
+          Payment Confirmed
         </h2>
 
         <p
           style={{
-            fontSize: 15,
+            fontSize: 14,
             color: 'var(--text-secondary, #4b5563)',
             lineHeight: 1.5,
-            marginBottom: 24,
+            marginBottom: 20,
           }}
         >
-          Your transfer of{' '}
           <strong style={{ color: 'var(--text, #111827)', fontWeight: 700 }}>
             {formatCurrency(rawAmount)}
           </strong>{' '}
-          ({narration}) has been confirmed and credited to your account.
+          ({narration}) has been credited to your account.
         </p>
 
         <div
           style={{
-            padding: '16px',
+            padding: '14px',
             backgroundColor: 'var(--surface2, #f9fafb)',
-            borderRadius: 20,
+            borderRadius: 16,
             border: '1px solid var(--border, #e5e7eb)',
             textAlign: 'left',
-            marginBottom: 24,
+            marginBottom: 20,
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: 12,
           }}
         >
           <div
             style={{
-              width: 28,
-              height: 28,
+              width: 32,
+              height: 32,
               borderRadius: '50%',
-              backgroundColor: 'var(--clay, #c2410c)',
-              color: '#ffffff',
+              backgroundColor: 'var(--clay-faint, #ffedd5)',
+              color: 'var(--clay, #c2410c)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
-              marginTop: 2,
             }}
           >
-            <Star size={14} fill="currentColor" />
+            <TrendingUp size={16} />
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text, #111827)' }}>
-              Upward Score Impact
+              Score Updated
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #6b7280)', marginTop: 2 }}>
-              {isFullySettled
-                ? 'Full rent settled! Your on-time payment record strengthens your credibility score.'
-                : 'Payment recorded! Complete any remaining balance on time to maximize your score boost.'}
+              Your payment has been recorded to strengthen your on-time score.
             </div>
           </div>
         </div>
@@ -179,12 +183,12 @@ export function GlobalPaymentSuccessModal() {
           onClick={() => setIsOpen(false)}
           style={{
             width: '100%',
-            height: 52,
+            height: 48,
             backgroundColor: 'var(--clay, #c2410c)',
             color: '#ffffff',
             border: 'none',
-            borderRadius: 16,
-            fontSize: 16,
+            borderRadius: 14,
+            fontSize: 15,
             fontWeight: 700,
             cursor: 'pointer',
           }}
