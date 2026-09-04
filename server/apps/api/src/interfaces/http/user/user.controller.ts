@@ -120,6 +120,7 @@ export class UserController {
       isFromWaitlist?: boolean;
       isFromInvite?: boolean;
       dateOfBirth?: string;
+      hearAboutUs?: string;
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {

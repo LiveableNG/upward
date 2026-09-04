@@ -136,6 +136,7 @@ export class UserAuthService extends BaseAuthService {
       isFromWaitlist?: boolean
       isFromInvite?: boolean
       dateOfBirth?: string
+      hearAboutUs?: string
     },
     ipAddress?: string,
     userAgent?: string,
@@ -259,6 +260,7 @@ export class UserAuthService extends BaseAuthService {
       isFromInvite: dto.isFromInvite ?? false,
       termsAcceptedAt: new Date(),
       termsVersion: '2026-08-24',
+      hearAboutUs: dto.hearAboutUs ?? null,
     }
 
     await this.userRepository.save(userData as User)

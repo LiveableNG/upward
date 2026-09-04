@@ -21,6 +21,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       rentEndDate?: string;
       address?: string;
       isFromInvite?: boolean;
+      hearAboutUs?: string;
     }) => authSignup(data),
     onSuccess: (result) => {
       if (result.accessToken) {
@@ -50,6 +51,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       address?: string;
       isFromWaitlist?: boolean;
       isFromInvite?: boolean;
+      hearAboutUs?: string;
       properties?: Array<{
         address: string;
         rentEndDate: string;

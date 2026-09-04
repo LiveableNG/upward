@@ -25,6 +25,7 @@ export interface User {
   bio?: string | null
   termsAcceptedAt?: Date | null
   termsVersion?: string | null
+  hearAboutUs?: string | null
   
   properties?: any[] // Joined properties
   companyUsers?: any[] // Joined company associations

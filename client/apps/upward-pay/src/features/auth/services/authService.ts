@@ -11,6 +11,7 @@ export async function signup(data: {
   address?: string
   isFromWaitlist?: boolean
   isFromInvite?: boolean
+  hearAboutUs?: string
   properties?: Array<{
     uuid?: string;
     address: string;

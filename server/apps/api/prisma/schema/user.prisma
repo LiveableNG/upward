@@ -36,6 +36,7 @@ model upward_user {
   savingsWalletEnabled  Boolean                          @default(false)
   termsAcceptedAt       DateTime?
   termsVersion          String?                          @default("2026-08-24")
+  hearAboutUs           String?
   authSessions          upward_auth_session[]
   benefitsSubscriptions upward_benefits_subscription[]
   communicationLogs     upward_communication_log[]

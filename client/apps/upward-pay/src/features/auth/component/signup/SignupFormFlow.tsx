@@ -14,6 +14,8 @@ import {
   Loader2,
   Sparkles,
   CheckCircle2,
+  Compass,
+  ChevronDown,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -47,7 +49,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
+  const [hearAboutUs, setHearAboutUs] = useState('')
+  const [hearAboutUsOther, setHearAboutUsOther] = useState('')
   const [localError, setLocalError] = useState('')
+
+  const HEAR_ABOUT_US_OPTIONS = [
+    { id: 'social_media', label: 'Social Media (X, Instagram, TikTok, LinkedIn)' },
+    { id: 'friend_colleague', label: 'Friend or Colleague' },
+    { id: 'google_search', label: 'Search Engine (Google, Bing)' },
+    { id: 'campus_event', label: 'Campus / University Event' },
+    { id: 'article_blog', label: 'Article, Blog, or Podcast' },
+    { id: 'online_ad', label: 'Online Advertisement' },
+    { id: 'other', label: 'Other' },
+  ]
 
   useEffect(() => {
     if (initialEmail) {
@@ -219,11 +233,15 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         } else if (isInvited) {
           setOtpError('Invite verification failed. Please try again.')
         } else {
+          const hearAboutUsValue = hearAboutUs === 'other'
+            ? (hearAboutUsOther.trim() ? `Other: ${hearAboutUsOther.trim()}` : 'Other')
+            : (HEAR_ABOUT_US_OPTIONS.find(o => o.id === hearAboutUs)?.label || hearAboutUs)
+
           if (identifierType === 'phone') {
             const generatedEmail = `${identifier.replace('+', '')}@upward.com`
-            signup({ email: generatedEmail, password, firstName, lastName, phone: identifier })
+            signup({ email: generatedEmail, password, firstName, lastName, phone: identifier, hearAboutUs: hearAboutUsValue || undefined })
           } else {
-            signup({ email, password, firstName, lastName })
+            signup({ email, password, firstName, lastName, hearAboutUs: hearAboutUsValue || undefined })
           }
         }
       }
@@ -477,6 +495,63 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             {confirmPassword.length > 0 && confirmPassword !== password && (
               <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> Passwords don't match
+              </div>
+            )}
+          </div>
+
+          <div className="auth-form__field">
+            <div className="auth-form__label-row">
+              <label htmlFor="signup-hear-about-us">Where did you hear about us?</label>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, fontStyle: 'italic' }}>Optional</span>
+            </div>
+            <div className="input-with-icon" style={{ position: 'relative' }}>
+              <Compass size={17} />
+              <select
+                id="signup-hear-about-us"
+                value={hearAboutUs}
+                onChange={(e) => setHearAboutUs(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  fontSize: '13.5px',
+                  color: hearAboutUs ? 'var(--text)' : '#9a948c',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  cursor: 'pointer',
+                  paddingRight: '28px',
+                }}
+              >
+                <option value="" disabled style={{ color: '#9a948c' }}>
+                  Select channel (optional)
+                </option>
+                {HEAR_ABOUT_US_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id} style={{ color: '#1a1a1a' }}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                style={{
+                  position: 'absolute',
+                  right: '14px',
+                  pointerEvents: 'none',
+                  color: 'var(--text-muted)',
+                }}
+              />
+            </div>
+            {hearAboutUs === 'other' && (
+              <div className="input-with-icon" style={{ marginTop: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Please specify (optional)"
+                  value={hearAboutUsOther}
+                  onChange={(e) => setHearAboutUsOther(e.target.value)}
+                  style={{ paddingLeft: '14px' }}
+                />
               </div>
             )}
           </div>
