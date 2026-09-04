@@ -651,30 +651,52 @@ export class RecordTransactionUseCase {
         }
 
         // Snapshot receipt state on upward_transaction for instant, immutable receipts
-        let snapshotRentStart: Date | null = pr?.rentStartDate ? new Date(pr.rentStartDate) : null
-        let snapshotRentEnd: Date | null = pr?.rentEndDate ? new Date(pr.rentEndDate) : null
-        let snapshotTotalInvoice: number | null = pr?.amount || null
+        let freshPr: any = null
+        if (pr?.id) {
+          freshPr = await txClient.upward_payment_request.findUnique({ where: { id: pr.id } })
+        }
+
+        const activePr = freshPr || pr
+
+        let snapshotRentStart: Date | null = activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null
+        let snapshotRentEnd: Date | null = activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null
+        let snapshotTotalInvoice: number | null = activePr?.amount || null
         let snapshotHistoricalPaid: number | null = null
         let snapshotRemaining: number | null = null
         let snapshotIsPartial: boolean | null = null
 
-        if (pr) {
+        if (!snapshotRentStart && propertyId) {
+          const latestPlatformPayment = await txClient.upward_platform_rent_payment.findFirst({
+            where: { userPropertyId: propertyId, status: 'SUCCESS' },
+            orderBy: { createdAt: 'desc' }
+          })
+          if (latestPlatformPayment?.periodStart) {
+            snapshotRentStart = new Date(latestPlatformPayment.periodStart)
+            snapshotRentEnd = latestPlatformPayment.periodEnd ? new Date(latestPlatformPayment.periodEnd) : null
+          } else {
+            const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
+            if (propRecord) {
+              snapshotRentStart = propRecord.rentStartDate ? new Date(propRecord.rentStartDate) : null
+              snapshotRentEnd = propRecord.rentEndDate ? new Date(propRecord.rentEndDate) : null
+            }
+          }
+        }
+
+        if (activePr) {
           const priorTxs = await txClient.upward_transaction.findMany({
             where: {
-              paymentRequestId: pr.id,
+              paymentRequestId: activePr.id,
               status: 'SUCCESS',
               createdAt: { lte: result.createdAt },
             },
           })
-          snapshotHistoricalPaid = priorTxs.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || result.amount || pr.amountPaid || 0
-          snapshotTotalInvoice = pr.amount
-          snapshotRemaining = Math.max(0, pr.amount - (snapshotHistoricalPaid || 0))
+          snapshotHistoricalPaid = priorTxs.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || result.amount || activePr.amountPaid || 0
+          snapshotTotalInvoice = activePr.amount
+          snapshotRemaining = Math.max(0, activePr.amount - (snapshotHistoricalPaid || 0))
           snapshotIsPartial = (snapshotRemaining || 0) > 0
         } else if (propertyId) {
           const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
           if (propRecord) {
-            snapshotRentStart = propRecord.rentStartDate ? new Date(propRecord.rentStartDate) : null
-            snapshotRentEnd = propRecord.rentEndDate ? new Date(propRecord.rentEndDate) : null
             snapshotTotalInvoice = propRecord.rentAmount || null
             snapshotHistoricalPaid = propRecord.amountPaid || result.amount
             snapshotRemaining = propRecord.amountRemaining ?? 0
