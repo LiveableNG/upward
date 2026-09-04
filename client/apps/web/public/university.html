@@ -32,7 +32,14 @@
     <img height="1" width="1" style="display:none"
     src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   </noscript>
-  <!-- End Facebook Pixel Code -->
+  <!-- Google Tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-18414957187');
+  </script>
 
   <style>
     :root {
@@ -964,9 +971,9 @@
       <!-- Supporting Description: Shortened to end at 'executives' -->
       <p class="hero-sub">A practical 10-week programme for ambitious people who want to become real estate business executives.</p>
       
-      <!-- DYNAMIC COUNTDOWN TO OCTOBER 31, 2026 -->
+      <!-- DYNAMIC COUNTDOWN TO OCTOBER 4, 2026 -->
       <div class="hero-countdown-box">
-        <div class="countdown-header"><i class="fa-solid fa-hourglass-half"></i> Scholarship ends in:</div>
+        <div class="countdown-header"><i class="fa-solid fa-hourglass-half"></i> Scholarship application ends in:</div>
         <div class="countdown-timer" id="heroCountdown">
           <div class="cd-unit"><span class="cd-num" id="cdDays">00</span><span class="cd-txt">Days</span></div>
           <span class="cd-sep">:</span>
@@ -999,7 +1006,7 @@
       
       <div class="income-flag">
         <i class="fa-solid fa-circle-info" style="font-size:12px; flex-shrink:0;"></i> 
-        <span>At typical Lagos management fees (8–10% of annual rent), a growing portfolio of a few well-chosen landlord relationships can put you in ₦10m+ territory over time.</span>
+        <span>At typical Lagos management fees (8–10% of annual rent), a growing portfolio of 2-5 well-chosen landlord relationships can put you in ₦10m+ territory over time.</span>
       </div>
     </div>
   </div>
@@ -1537,9 +1544,9 @@
     }));
   }
 
-  // Dynamic Countdown Timer to October 31, 2026
+  // Dynamic Countdown Timer to October 4, 2026
   function initCountdown() {
-    const targetDate = new Date('2026-10-31T09:00:00+01:00').getTime();
+    const targetDate = new Date('2026-10-04T09:00:00+01:00').getTime();
 
     function update() {
       const now = new Date().getTime();
@@ -1625,7 +1632,11 @@
           window.fbq('track', 'Subscribe', { content_name: 'Info & QA Session Request' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Info & QA Session Request' });
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-18414957187/iJ36CIv2lO4cEIPl98xE',
+            'value': 1.0,
+            'currency': 'USD'
+          });
         }
         eaForm.style.display = 'none';
         const successEl = document.getElementById('eaFormSuccess');

@@ -36,6 +36,15 @@ fbq('track', 'ViewContent', {
 </noscript>
 <!-- End Facebook Pixel Code -->
 
+<!-- Google Tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-18414957187');
+</script>
+
 <style>
   :root{
     --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
@@ -550,7 +559,11 @@ fbq('track', 'ViewContent', {
           window.fbq('track', 'Subscribe', { content_name: 'Scholarship Info Request' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Scholarship Info Request' });
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-18414957187/iJ36CIv2lO4cEIPl98xE',
+            'value': 1.0,
+            'currency': 'USD'
+          });
         }
         eaForm.style.display = 'none';
         const successEl = document.getElementById('eaFormSuccess');
