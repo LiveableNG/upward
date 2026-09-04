@@ -1520,10 +1520,158 @@ export class GetTransactionUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
   ) { }
 
+  private decrypt(text?: string | null): string {
+    if (!text) return ''
+    if (text.includes(':')) {
+      try {
+        return this.encryption.decrypt(text)
+      } catch {
+        return text
+      }
+    }
+    return text
+  }
+
   async execute(uuid: string) {
-    return this.txRepo.findByUuid(uuid)
+    const tx: any = await this.txRepo.findByUuid(uuid)
+    if (!tx) return null
+
+    let resolvedCompanyName = 'Upward'
+    if (tx.companyName) {
+      const dec = this.decrypt(tx.companyName)
+      if (dec && dec !== 'account_name') resolvedCompanyName = dec
+    } else if (tx.narration) {
+      const dec = this.decrypt(tx.narration)
+      if (dec && dec !== 'account_name') resolvedCompanyName = dec
+    }
+
+    if (tx.paymentRequestId) {
+      const pr = await this.prisma.upward_payment_request.findUnique({
+        where: { id: tx.paymentRequestId },
+        include: {
+          lineItemRecords: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          userProperty: {
+            include: {
+              pm: {
+                include: {
+                  receiptSetting: true,
+                  emailSetting: true,
+                },
+              },
+              company: true,
+              manager: true,
+              location: true,
+            },
+          },
+        },
+      })
+
+      if (pr) {
+        const priorTxs = await this.prisma.upward_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            status: 'SUCCESS',
+            createdAt: { lte: tx.createdAt },
+          },
+        })
+        const historicalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+        const historicalRemaining = Math.max(0, pr.amount - historicalPaidToDate)
+
+        const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
+        const rentAmount = rentItem ? rentItem.totalAmount : pr.amount
+
+        const pm = pr.userProperty?.pm
+        const company = pr.userProperty?.company
+        const manager = pr.userProperty?.manager
+        const loc = pr.userProperty?.location
+
+        const themeColor = pm?.receiptSetting?.themeColor || '#B65B37'
+        const companyLogo = pm?.receiptSetting?.useEmailLogo === false
+          ? (pm.receiptSetting?.logoUrl || '')
+          : (pm?.emailSetting?.logoUrl || company?.logoUrl || '')
+
+        if (pm?.businessName) {
+          const dec = this.decrypt(pm.businessName)
+          if (dec && dec !== 'account_name') {
+            resolvedCompanyName = dec
+          }
+        } else if (company?.name) {
+          const dec = this.decrypt(company.name)
+          if (dec && dec !== 'account_name') {
+            resolvedCompanyName = dec
+          }
+        } else if (manager) {
+          const first = this.decrypt(manager.firstName)
+          const last = this.decrypt(manager.lastName)
+          const fullName = `${first} ${last}`.trim()
+          if (fullName && fullName !== 'account_name') {
+            resolvedCompanyName = fullName
+          }
+        }
+
+        const addressParts = [
+          loc?.address,
+          loc?.subarea,
+          loc?.area,
+          loc?.state,
+        ].filter(Boolean)
+        const propertyAddress = addressParts.length > 0 ? addressParts.join(', ') : ''
+
+        const lineItems = (pr.lineItemRecords && pr.lineItemRecords.length > 0)
+          ? pr.lineItemRecords.map((li: any) => ({
+              label: li.name,
+              amount: li.totalAmount,
+              category: 'Package',
+            }))
+          : []
+
+        return {
+          ...tx,
+          paymentRequest: {
+            ...tx.paymentRequest,
+            ...pr,
+          },
+          rentAmount,
+          totalInvoiceAmount: pr.amount,
+          historicalPaidToDate,
+          historicalRemaining,
+          isPartial: historicalRemaining > 0,
+          themeColor,
+          companyLogo: companyLogo || tx.companyLogo,
+          companyName: resolvedCompanyName,
+          propertyAddress: propertyAddress || tx.propertyAddress,
+          lineItems: (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : lineItems,
+        }
+      }
+    }
+
+    if (tx.landlordId && (!resolvedCompanyName || resolvedCompanyName === 'Upward')) {
+      const landlord = await this.prisma.upward_saved_landlord.findFirst({
+        where: {
+          OR: [
+            { uuid: tx.landlordId },
+            { id: !isNaN(Number(tx.landlordId)) ? Number(tx.landlordId) : -1 },
+          ],
+        },
+      })
+      if (landlord) {
+        const name = this.decrypt(landlord.name || landlord.accountName)
+        if (name && name !== 'account_name') {
+          resolvedCompanyName = name
+        }
+      }
+    }
+
+    return {
+      ...tx,
+      companyName: resolvedCompanyName,
+    }
   }
 }
 
@@ -1632,6 +1780,40 @@ export class GenerateReceiptPdfUseCase {
       }
     }
 
+    if (txWithBranding?.paymentRequest) {
+      const pr = txWithBranding.paymentRequest
+      if (pr.amount !== undefined && pr.amount > 0) {
+        const priorTxs = await this.prisma.upward_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            status: 'SUCCESS',
+            createdAt: { lte: txWithBranding.createdAt },
+          },
+        })
+        const historicalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || txWithBranding.amount || pr.amountPaid || 0
+        const historicalRemaining = Math.max(0, pr.amount - historicalPaidToDate)
+
+        const prLineItems = await this.prisma.upward_payment_line_item.findMany({
+          where: { paymentRequestId: pr.id }
+        })
+        const rentItem = prLineItems.find((i: any) => i.name?.toLowerCase().includes('rent'))
+        const rentAmount = rentItem ? rentItem.totalAmount : pr.amount
+
+        enriched.rentAmount = rentAmount
+        enriched.totalInvoiceAmount = pr.amount
+        enriched.totalPaidToDate = historicalPaidToDate
+        enriched.remainingBalance = historicalRemaining
+
+        if (historicalRemaining > 0) {
+          enriched.isPartial = true
+          enriched.status = 'PARTIAL'
+        } else {
+          enriched.isPartial = false
+          enriched.status = 'PAID'
+        }
+      }
+    }
+
     if (prop) {
 
       let pm: any = (txWithBranding?.paymentRequest as any)?.pmPaymentRequests?.[0]?.pm
@@ -1675,8 +1857,11 @@ export class GenerateReceiptPdfUseCase {
         if (decrypted && decrypted !== 'account_name') {
           companyName = decrypted
         }
-      } else if (prop.company?.name && !prop.company.name.includes(':')) {
-        companyName = prop.company.name
+      } else if (prop.company?.name && prop.company.name !== 'account_name') {
+        const decrypted = prop.company.name.includes(':') ? this.encryption.decrypt(prop.company.name) : prop.company.name
+        if (decrypted && decrypted !== 'account_name') {
+          companyName = decrypted
+        }
       } else if (prop.manager) {
         const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
         const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
@@ -1703,8 +1888,11 @@ export class GenerateReceiptPdfUseCase {
       }
 
       if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
-        if (prop.company?.name && !prop.company.name.includes(':')) {
-          enriched.landlordName = prop.company.name
+        if (prop.company?.name && prop.company.name !== 'account_name') {
+          const decrypted = prop.company.name.includes(':') ? this.encryption.decrypt(prop.company.name) : prop.company.name
+          if (decrypted && decrypted !== 'account_name') {
+            enriched.landlordName = decrypted
+          }
         } else if (prop.manager) {
           const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
           const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
@@ -1712,6 +1900,13 @@ export class GenerateReceiptPdfUseCase {
             enriched.landlordName = `${first} ${last}`
           }
         }
+      }
+
+      if (enriched.landlordName && enriched.landlordName.includes(':')) {
+        enriched.landlordName = this.encryption.decrypt(enriched.landlordName)
+      }
+      if (enriched.brandName && enriched.brandName.includes(':')) {
+        enriched.brandName = this.encryption.decrypt(enriched.brandName)
       }
     }
 

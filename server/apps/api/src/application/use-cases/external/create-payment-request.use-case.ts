@@ -139,9 +139,16 @@ export class CreateExternalPaymentRequestUseCase {
 
       // Re-sync line items: delete old, recreate
       if (payload.lineItems && payload.lineItems.length > 0) {
+        const sortedLineItems = [...payload.lineItems].sort((a, b) => {
+          const aIsRent = (a.name || '').toLowerCase().includes('rent')
+          const bIsRent = (b.name || '').toLowerCase().includes('rent')
+          if (aIsRent && !bIsRent) return -1
+          if (!aIsRent && bIsRent) return 1
+          return 0
+        })
         await this.lineItemRepository.deleteByPaymentRequestId(paymentRequest.id!)
         await this.lineItemRepository.bulkCreate(
-          payload.lineItems.map((item, idx) => ({
+          sortedLineItems.map((item, idx) => ({
             paymentRequestId: paymentRequest!.id!,
             name: item.name || payload.description || 'Invoice Item',
             totalAmount: item.amount,
@@ -204,8 +211,15 @@ export class CreateExternalPaymentRequestUseCase {
 
       // Create line item records
       if (payload.lineItems && payload.lineItems.length > 0) {
+        const sortedLineItems = [...payload.lineItems].sort((a, b) => {
+          const aIsRent = (a.name || '').toLowerCase().includes('rent')
+          const bIsRent = (b.name || '').toLowerCase().includes('rent')
+          if (aIsRent && !bIsRent) return -1
+          if (!aIsRent && bIsRent) return 1
+          return 0
+        })
         await this.lineItemRepository.bulkCreate(
-          payload.lineItems.map((item, idx) => ({
+          sortedLineItems.map((item, idx) => ({
             paymentRequestId: paymentRequest!.id!,
             name: item.name || payload.description || 'Invoice Item',
             totalAmount: item.amount,

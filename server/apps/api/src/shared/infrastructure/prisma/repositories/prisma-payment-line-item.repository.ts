@@ -59,7 +59,13 @@ export class PrismaPaymentLineItemRepository implements IPaymentLineItemReposito
       where: { paymentRequestId },
       orderBy: { sortOrder: 'asc' },
     })
-    return rows.map(this.map)
+    return rows.map(this.map).sort((a, b) => {
+      const aIsRent = (a.name || '').toLowerCase().includes('rent')
+      const bIsRent = (b.name || '').toLowerCase().includes('rent')
+      if (aIsRent && !bIsRent) return -1
+      if (!aIsRent && bIsRent) return 1
+      return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    })
   }
 
   async update(

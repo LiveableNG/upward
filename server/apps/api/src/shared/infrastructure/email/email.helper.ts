@@ -512,89 +512,108 @@ export function buildWaitlistConfirmationHtml(params: {
 export function buildRentReceiptEmailHtml(params: {
   tenantName: string;
   propertyAddress: string;
-  unitName: string;
+  unitName?: string;
   amountPaid: number;
-  balance: number;
+  balance?: number;
   receiptNumber: string;
-  paymentDate: string;
-  receiptUrl: string;
+  paymentDate?: string;
+  receiptUrl?: string;
   tenancyPeriod?: string;
   companyName?: string;
   logoUrl?: string;
   lineItems?: Array<{ label: string; amount: number }>;
 }): string {
-  const tenancyPeriodRow = params.tenancyPeriod
-    ? `<tr>
-        <td><strong>Tenancy Period:</strong></td>
-        <td align="right">${params.tenancyPeriod}</td>
-      </tr>`
-    : '';
-
   const logoHtml = params.logoUrl
-    ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${params.logoUrl}" alt="${params.companyName || 'Logo'}" style="max-height: 55px; max-width: 200px; object-fit: contain;" /></div>`
-    : '';
+    ? `<div style="margin-bottom: 16px;"><img src="${params.logoUrl}" alt="${params.companyName || 'Upward'}" style="max-height: 40px; max-width: 160px; object-fit: contain;" /></div>`
+    : `<div style="font-size: 14px; font-weight: 700; color: #FBF3EE; margin-bottom: 16px; letter-spacing: 0.5px;">▲ ${params.companyName || 'UPWARD'}</div>`;
 
-  let breakdownRows = '';
+  let breakdownHtml = '';
   if (params.lineItems && params.lineItems.length > 0) {
     const itemsHtml = params.lineItems
       .map(
-        (item) => `
-        <tr>
-          <td style="padding: 4px 0; color: #6b7280; font-size: 13px;">${item.label}</td>
-          <td align="right" style="padding: 4px 0; color: #374151; font-size: 13px; font-weight: 500;">NGN ${Number(item.amount).toLocaleString()}</td>
+        (item, idx) => `
+        <tr style="background: ${idx % 2 === 0 ? '#F5F2ED' : 'transparent'};">
+          <td style="padding: 8px 10px; color: #211C18; font-size: 12.5px; border-radius: 6px 0 0 6px;">${item.label}</td>
+          <td align="right" style="padding: 8px 10px; color: #211C18; font-size: 12.5px; font-weight: 600; border-radius: 0 6px 6px 0;">NGN ${Number(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         </tr>`
       )
       .join('');
 
-    breakdownRows = `
-      <tr>
-        <td colspan="2" style="padding-top: 12px; border-top: 1px dashed #e5e7eb;">
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr>
-              <td colspan="2" style="font-weight: 600; font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 6px;">Payment Breakdown</td>
-            </tr>
-            ${itemsHtml}
-          </table>
-        </td>
-      </tr>`;
+    breakdownHtml = `
+      <div style="margin-top: 18px;">
+        <div style="font-weight: 600; font-size: 12px; color: #211C18; margin-bottom: 8px;">Payment breakdown</div>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: separate; border-spacing: 0 2px;">
+          ${itemsHtml}
+          <tr>
+            <td style="padding: 10px 10px 4px; color: #211C18; font-size: 13px; font-weight: 700; border-top: 1px solid #E7E1D8;">This payment</td>
+            <td align="right" style="padding: 10px 10px 4px; color: #8C4327; font-size: 13px; font-weight: 700; border-top: 1px solid #E7E1D8;">NGN ${params.amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+          </tr>
+        </table>
+      </div>`;
   }
 
   const content = `
-    ${logoHtml}
-    <p>Hi ${params.tenantName},</p>
-    <p>Your rent payment was successful. Thank you!</p>
-    
-    <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
-      <table width="100%" cellpadding="4" cellspacing="0" style="font-size: 14px; color: #4b5563;">
-        <tr>
-          <td><strong>Receipt Number:</strong></td>
-          <td align="right">${params.receiptNumber}</td>
-        </tr>
-        ${tenancyPeriodRow}
-        <tr>
-          <td><strong>Amount Paid:</strong></td>
-          <td align="right" style="color: #166534; font-weight: 700;">NGN ${params.amountPaid.toLocaleString()}</td>
-        </tr>
-        ${breakdownRows}
-        <tr>
-          <td><strong>Property:</strong></td>
-          <td align="right">${params.propertyAddress}${params.unitName ? ` (${params.unitName})` : ''}</td>
-        </tr>
-        <tr>
-          <td><strong>Payment Date:</strong></td>
-          <td align="right">${params.paymentDate || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-        </tr>
-      </table>
+    <div style="max-width: 440px; margin: 0 auto; background: #FBF9F6; border-radius: 16px; overflow: hidden; border: 1px solid #E7E1D8; font-family: 'Inter', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif; color: #211C18;">
+      <!-- Hero -->
+      <div style="padding: 28px 24px 28px; background: linear-gradient(155deg, #B65B37 0%, #8C4327 100%); color: #FBF3EE;">
+        ${logoHtml}
+        <div style="font-size: 12px; color: rgba(251,243,238,0.72); margin-bottom: 4px;">Amount received</div>
+        <div style="font-size: 32px; font-weight: 700; color: #FBF3EE; font-family: Georgia, 'Times New Roman', serif;">NGN ${params.amountPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+        <div style="margin-top: 12px; font-size: 11px; color: rgba(251,243,238,0.72);">${params.paymentDate || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+      </div>
+
+      <!-- Scallop -->
+      <div style="height: 12px; background: radial-gradient(circle at 8px 0, transparent 8px, #8C4327 8.5px) top left, #FBF9F6; background-size: 16px 16px; background-repeat: repeat-x; margin-top: -12px;"></div>
+
+      <div style="padding: 20px 24px 24px;">
+        ${breakdownHtml}
+
+        <!-- Details Grid -->
+        <div style="margin-top: 20px;">
+          <div style="font-weight: 600; font-size: 12px; color: #211C18; margin-bottom: 8px;">Details</div>
+          <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 12.5px; border-collapse: collapse;">
+            <tr>
+              <td style="color: #8F857A; font-size: 11px; padding: 4px 0;" width="40%">Property</td>
+              <td align="right" style="font-weight: 600; color: #211C18; padding: 4px 0;">${params.propertyAddress}${params.unitName ? ` (${params.unitName})` : ''}</td>
+            </tr>
+            ${params.tenancyPeriod ? `
+            <tr>
+              <td style="color: #8F857A; font-size: 11px; padding: 4px 0;">Rental Period</td>
+              <td align="right" style="font-weight: 600; color: #211C18; padding: 4px 0;">${params.tenancyPeriod}</td>
+            </tr>
+            ` : ''}
+            <tr>
+              <td style="color: #8F857A; font-size: 11px; padding: 4px 0;">Receipt No.</td>
+              <td align="right" style="font-weight: 600; color: #211C18; padding: 4px 0;">${params.receiptNumber}</td>
+            </tr>
+            <tr>
+              <td style="color: #8F857A; font-size: 11px; padding: 4px 0;">Tenant</td>
+              <td align="right" style="font-weight: 600; color: #211C18; padding: 4px 0;">${params.tenantName}</td>
+            </tr>
+            ${params.companyName ? `
+            <tr>
+              <td style="color: #8F857A; font-size: 11px; padding: 4px 0;">Recipient / Landlord</td>
+              <td align="right" style="font-weight: 600; color: #211C18; padding: 4px 0;">${params.companyName}</td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+
+        ${params.receiptUrl ? `
+        <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #E7E1D8;">
+          <a href="${params.receiptUrl}" style="display: inline-block; background: #B65B37; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 12.5px; padding: 10px 22px; border-radius: 8px;">View Digital Receipt</a>
+        </div>
+        ` : ''}
+      </div>
     </div>
   `;
+
   return buildGlobalLayoutHtml({
     role: 'TENANT',
-    title: 'Rent Payment Successful',
+    title: 'Rent Payment Receipt',
     logoText: 'Upward',
     logoSub: 'by GoodTenants',
     contentHtml: content,
-    buttonText: 'View Full Receipt',
-    buttonUrl: params.receiptUrl,
   });
 }
 

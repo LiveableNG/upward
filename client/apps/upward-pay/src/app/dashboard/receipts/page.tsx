@@ -63,6 +63,32 @@ export default function ReceiptsPage() {
           ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
           : undefined
 
+        const pr = tx.paymentRequest
+        const totalInvoiceAmount = pr?.amount
+        const totalPaidToDate = tx.historicalPaidToDate || pr?.amountPaid
+        const remainingBalance = totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
+          ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
+          : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined)
+        const isPartial = remainingBalance !== undefined ? remainingBalance > 0 : (pr?.status === 'PARTIAL')
+
+        const cleanDisplayName = (name?: string | null, fallback = 'Upward') => {
+          if (!name) return fallback
+          const trimmed = name.trim()
+          if (trimmed === 'account_name' || trimmed === 'accountName') return fallback
+          if (trimmed.includes(':') && /^[0-9a-fA-F]{16,}:/.test(trimmed)) {
+            return fallback
+          }
+          if (/^[0-9a-fA-F]{32,}$/.test(trimmed)) {
+            return fallback
+          }
+          return trimmed
+        }
+
+        const companyLogo = tx.companyLogo || landlord?.logoUrl || ''
+        const themeColor = tx.themeColor || landlord?.themeColor || '#B65B37'
+        const candidateCompanyName = tx.companyName || ((landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.paymentRequest?.subaccount?.businessName || tx.narration))
+        const resolvedCompanyName = cleanDisplayName(candidateCompanyName, 'Upward')
+
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
           uuid: tx.uuid,
@@ -71,16 +97,22 @@ export default function ReceiptsPage() {
           paidAt: tx.createdAt,
           generatedAt: new Date().toISOString(),
           tenantName: profile ? `${profile.firstName} ${profile.lastName}` : 'Tenant',
-          companyName: (landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.paymentRequest?.subaccount?.businessName || tx.narration),
-          companyLogo: '',
+          companyName: resolvedCompanyName,
+          companyLogo,
+          themeColor,
           paymentType: tx.paymentType || 'Rent Payment',
-          propertyAddress: propertyAddress,
+          propertyAddress: tx.propertyAddress || propertyAddress,
           amount: tx.amount,
           currency: tx.currency || 'NGN',
-          channel: 'Paystack',
+          channel: tx.channel || 'Paystack',
           paystackReference: tx.reference,
           type: 'debit',
-          status: tx.paymentRequest?.status || (tx.status === 'SUCCESS' ? 'PAID' : 'PENDING'), // PARTIAL, PAID, etc.
+          status: isPartial ? 'PARTIAL' : (tx.paymentRequest?.status || (tx.status === 'SUCCESS' ? 'PAID' : 'PENDING')),
+          isPartial: !!isPartial,
+          rentAmount: tx.rentAmount,
+          totalInvoiceAmount,
+          totalPaidToDate,
+          remainingBalance,
           lineItems:
             tx.lineItems && tx.lineItems.length > 0
               ? tx.lineItems.map((item: any) => ({
@@ -88,7 +120,11 @@ export default function ReceiptsPage() {
                   amount: item.amount,
                   category: item.category || 'Package',
                 }))
-              : [],
+              : (tx.paymentRequest?.lineItemRecords || []).map((item: any) => ({
+                  label: item.name,
+                  amount: item.totalAmount,
+                  category: 'Package',
+                })),
           tenancyPeriod,
         }
         setReceipt(data)
