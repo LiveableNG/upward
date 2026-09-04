@@ -950,19 +950,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
 
             {/* ── Where Did You Hear About Us Breakdown ── */}
-            {metrics.hearAboutUsStats && Object.keys(metrics.hearAboutUsStats).length > 0 && (
-              <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Globe size={18} style={{ color: 'var(--accent)' }} /> Signup Channel Attribution ("Where did you hear about us?")
-                    </h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Breakdown of customer acquisition sources selected during upward-pay account registration.
-                    </p>
-                  </div>
+            <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Globe size={18} style={{ color: 'var(--accent)' }} /> Signup Channel Attribution ("Where did you hear about us?")
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Breakdown of customer acquisition sources selected during upward-pay account registration.
+                  </p>
                 </div>
+              </div>
 
+              {metrics.hearAboutUsStats && Object.keys(metrics.hearAboutUsStats).length > 0 ? (
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -989,8 +989,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       )
                     })}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{ background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No signup channel selections recorded yet for this timeframe. (Channel attribution data is captured when users sign up via upward-pay).
+                </div>
+              )}
+            </div>
 
             {/* ── Email Campaigns & Open Performance ── */}
             {metrics.emailLogsSummary && (
