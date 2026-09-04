@@ -266,18 +266,63 @@ export class ReceiptService {
           }
         }
       } else {
-        // Draw Upward Triangle Logo Icon
-        doc.save()
-        doc.polygon([BRAND_X + 6, BRAND_Y + 1], [BRAND_X + 13, BRAND_Y + 13], [BRAND_X, BRAND_Y + 13])
-        doc.fill('#FBF3EE')
-        doc.restore()
-
+        // Draw Upward Logo Icon & Brand Name when no custom logo image buffer is present
+        const rawBrand = data.brandName ? data.brandName.trim() : 'Upward'
         const brandName = cleanDisplayName(data.brandName, 'Upward')
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(13)
-          .fillColor('#FBF3EE')
-          .text(brandName, BRAND_X + 18, BRAND_Y + 1)
+        const isUpward = brandName.toUpperCase() === 'UPWARD'
+
+        if (isUpward) {
+          const ICON_SIZE = 22
+          doc.save()
+          doc.translate(BRAND_X, BRAND_Y - 3)
+          doc.scale(ICON_SIZE / 40)
+
+          doc.roundedRect(7, 15, 10, 17, 5).fill('#FBF3EE')
+          doc.roundedRect(23, 15, 10, 17, 5).fill('#FBF3EE')
+
+          doc
+            .moveTo(12, 30)
+            .quadraticCurveTo(12, 37, 20, 37)
+            .quadraticCurveTo(28, 37, 28, 30)
+            .lineWidth(5.5)
+            .stroke('#FBF3EE')
+
+          doc.moveTo(7, 19).lineTo(20, 8).lineTo(33, 19).lineWidth(5).stroke('#FBF3EE')
+          doc.circle(20, 5, 3).fill('#22c55e')
+          doc.restore()
+
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(14)
+            .fillColor('#FBF3EE')
+            .text('PWARD', BRAND_X + ICON_SIZE - 2, BRAND_Y)
+        } else {
+          // Custom Landlord / PM Name (e.g. "Famous Amos") without a custom logo image
+          const ICON_SIZE = 18
+          doc.save()
+          doc.translate(BRAND_X, BRAND_Y - 2)
+          doc.scale(ICON_SIZE / 40)
+
+          doc.roundedRect(7, 15, 10, 17, 5).fill('#FBF3EE')
+          doc.roundedRect(23, 15, 10, 17, 5).fill('#FBF3EE')
+
+          doc
+            .moveTo(12, 30)
+            .quadraticCurveTo(12, 37, 20, 37)
+            .quadraticCurveTo(28, 37, 28, 30)
+            .lineWidth(5.5)
+            .stroke('#FBF3EE')
+
+          doc.moveTo(7, 19).lineTo(20, 8).lineTo(33, 19).lineWidth(5).stroke('#FBF3EE')
+          doc.circle(20, 5, 3).fill('#22c55e')
+          doc.restore()
+
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(14)
+            .fillColor('#FBF3EE')
+            .text(rawBrand, BRAND_X + ICON_SIZE + 4, BRAND_Y)
+        }
       }
 
       // Hero: "Amount received"

@@ -31,6 +31,14 @@ fbq('track', 'ViewContent', {
 src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 </noscript>
 <!-- End Facebook Pixel Code -->
+<!-- Google Tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-18414957187');
+</script>
 <style>
   :root{
     --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
@@ -1215,7 +1223,11 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
           window.fbq('track', 'Purchase', { value: 5000, currency: 'NGN', content_name: 'Student Application Step 1' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-          window.gtag('event', 'step_1_submitted', { event_category: 'Application', event_label: 'Step 1 Application Submitted' });
+          window.gtag('event', 'conversion', {
+            'send_to': 'AW-18414957187/zGcOCN2Loe4cEIPl98xE',
+            'value': 1.0,
+            'currency': 'USD'
+          });
         }
 
         if (serverData && serverData.isAlreadyPaid) {
