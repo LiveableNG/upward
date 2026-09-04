@@ -25,6 +25,8 @@ export interface ReceiptPdfData {
   brandName?: string
   themeColor?: string
   tenancyPeriod?: string
+  rentStartDate?: Date
+  rentEndDate?: Date
   isPartial?: boolean
   rentAmount?: number
   totalInvoiceAmount?: number

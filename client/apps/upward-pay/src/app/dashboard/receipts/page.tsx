@@ -57,19 +57,21 @@ export default function ReceiptsPage() {
         const propInfo = tx.property || landlord?.properties?.[0]
         const propertyAddress = tx.propertyAddress || propInfo?.locationAddress || propInfo?.address || tx.paymentRequest?.propertyLocation || profile?.address || ''
 
-        const rentStartDate = tx.paymentRequest?.rentStartDate
-        const rentEndDate = tx.paymentRequest?.rentEndDate
+        const rentStartDate = tx.rentStartDate || tx.paymentRequest?.rentStartDate
+        const rentEndDate = tx.rentEndDate || tx.paymentRequest?.rentEndDate
         const tenancyPeriod = (rentStartDate && rentEndDate)
           ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
           : undefined
 
         const pr = tx.paymentRequest
-        const totalInvoiceAmount = pr?.amount
-        const totalPaidToDate = tx.historicalPaidToDate || pr?.amountPaid
-        const remainingBalance = totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
-          ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
-          : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined)
-        const isPartial = remainingBalance !== undefined ? remainingBalance > 0 : (pr?.status === 'PARTIAL')
+        const totalInvoiceAmount = tx.totalInvoiceAmount !== undefined ? tx.totalInvoiceAmount : pr?.amount
+        const totalPaidToDate = tx.historicalPaidToDate !== undefined ? tx.historicalPaidToDate : (pr?.amountPaid)
+        const remainingBalance = tx.remainingBalance !== undefined
+          ? tx.remainingBalance
+          : (totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
+            ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
+            : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined))
+        const isPartial = tx.isPartial !== undefined ? tx.isPartial : (remainingBalance !== undefined ? remainingBalance > 0 : (pr?.status === 'PARTIAL'))
 
         const cleanDisplayName = (name?: string | null, fallback = 'Upward') => {
           if (!name) return fallback

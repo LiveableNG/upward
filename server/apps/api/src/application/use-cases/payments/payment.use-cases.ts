@@ -649,6 +649,50 @@ export class RecordTransactionUseCase {
             remainingToConsume -= toConsume
           }
         }
+
+        // Snapshot receipt state on upward_transaction for instant, immutable receipts
+        let snapshotRentStart: Date | null = pr?.rentStartDate ? new Date(pr.rentStartDate) : null
+        let snapshotRentEnd: Date | null = pr?.rentEndDate ? new Date(pr.rentEndDate) : null
+        let snapshotTotalInvoice: number | null = pr?.amount || null
+        let snapshotHistoricalPaid: number | null = null
+        let snapshotRemaining: number | null = null
+        let snapshotIsPartial: boolean | null = null
+
+        if (pr) {
+          const priorTxs = await txClient.upward_transaction.findMany({
+            where: {
+              paymentRequestId: pr.id,
+              status: 'SUCCESS',
+              createdAt: { lte: result.createdAt },
+            },
+          })
+          snapshotHistoricalPaid = priorTxs.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || result.amount || pr.amountPaid || 0
+          snapshotTotalInvoice = pr.amount
+          snapshotRemaining = Math.max(0, pr.amount - (snapshotHistoricalPaid || 0))
+          snapshotIsPartial = (snapshotRemaining || 0) > 0
+        } else if (propertyId) {
+          const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
+          if (propRecord) {
+            snapshotRentStart = propRecord.rentStartDate ? new Date(propRecord.rentStartDate) : null
+            snapshotRentEnd = propRecord.rentEndDate ? new Date(propRecord.rentEndDate) : null
+            snapshotTotalInvoice = propRecord.rentAmount || null
+            snapshotHistoricalPaid = propRecord.amountPaid || result.amount
+            snapshotRemaining = propRecord.amountRemaining ?? 0
+            snapshotIsPartial = (snapshotRemaining ?? 0) > 0
+          }
+        }
+
+        await txClient.upward_transaction.update({
+          where: { id: result.id },
+          data: {
+            rentStartDate: snapshotRentStart,
+            rentEndDate: snapshotRentEnd,
+            totalInvoiceAmount: snapshotTotalInvoice,
+            historicalPaidToDate: snapshotHistoricalPaid,
+            remainingBalance: snapshotRemaining,
+            isPartial: snapshotIsPartial,
+          } as any
+        })
       }
 
       return { result, pr, rentPortion, excess, paymentAmount }
@@ -1720,7 +1764,7 @@ export class GenerateReceiptPdfUseCase {
   async executeBuffer(
     data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string },
   ): Promise<Buffer> {
-    const enriched = { ...data }
+    const enriched: any = { ...data }
     if (enriched.paidAt && typeof enriched.paidAt === 'string') {
       enriched.paidAt = new Date(enriched.paidAt)
     }
@@ -1772,15 +1816,26 @@ export class GenerateReceiptPdfUseCase {
             })
           : null) as any
 
-    if (!enriched.tenancyPeriod) {
-      const rentStartDate = txWithBranding?.paymentRequest?.rentStartDate
-      const rentEndDate = txWithBranding?.paymentRequest?.rentEndDate
-      if (rentStartDate && rentEndDate) {
-        enriched.tenancyPeriod = `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-      }
+    const snapshotStart = (txWithBranding as any)?.rentStartDate || txWithBranding?.paymentRequest?.rentStartDate || prop?.rentStartDate
+    const snapshotEnd = (txWithBranding as any)?.rentEndDate || txWithBranding?.paymentRequest?.rentEndDate || prop?.rentEndDate
+
+    if (snapshotStart && snapshotEnd) {
+      enriched.rentStartDate = snapshotStart
+      enriched.rentEndDate = snapshotEnd
+      enriched.tenancyPeriod = `${new Date(snapshotStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(snapshotEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
     }
 
-    if (txWithBranding?.paymentRequest) {
+    const hasSnapshotAmounts = (txWithBranding as any)?.totalInvoiceAmount !== null && (txWithBranding as any)?.totalInvoiceAmount !== undefined
+
+    if (hasSnapshotAmounts) {
+      const snapTx = txWithBranding as any
+      enriched.totalInvoiceAmount = snapTx.totalInvoiceAmount
+      enriched.rentAmount = snapTx.totalInvoiceAmount
+      enriched.totalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
+      enriched.remainingBalance = snapTx.remainingBalance ?? 0
+      enriched.isPartial = snapTx.isPartial ?? false
+      enriched.status = enriched.isPartial ? 'PARTIAL' : 'PAID'
+    } else if (txWithBranding?.paymentRequest) {
       const pr = txWithBranding.paymentRequest
       if (pr.amount !== undefined && pr.amount > 0) {
         const priorTxs = await this.prisma.upward_transaction.findMany({

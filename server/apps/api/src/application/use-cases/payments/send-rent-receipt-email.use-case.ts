@@ -93,18 +93,18 @@ export class SendRentReceiptEmailUseCase {
     const formattedAmount = `${tx.currency || 'NGN'} ${rentAmount.toLocaleString()}`
     const pdfFilename = `receipt-${receiptNumber.replace(/\//g, '-')}.pdf`
 
-    const rentStartDate = tx.paymentRequest?.rentStartDate
-    const rentEndDate = tx.paymentRequest?.rentEndDate
+    const rentStartDate = (tx as any).rentStartDate || tx.paymentRequest?.rentStartDate
+    const rentEndDate = (tx as any).rentEndDate || tx.paymentRequest?.rentEndDate
     const tenancyPeriod = (rentStartDate && rentEndDate)
       ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : undefined
 
-    let totalInvoiceAmount: number | undefined = undefined
-    let totalPaidToDate: number | undefined = undefined
-    let remainingBalance: number | undefined = undefined
-    let isPartial: boolean | undefined = undefined
+    let totalInvoiceAmount: number | undefined = (tx as any).totalInvoiceAmount ?? undefined
+    let totalPaidToDate: number | undefined = (tx as any).historicalPaidToDate ?? undefined
+    let remainingBalance: number | undefined = (tx as any).remainingBalance ?? undefined
+    let isPartial: boolean | undefined = (tx as any).isPartial ?? undefined
 
-    if (tx.paymentRequestId) {
+    if (totalInvoiceAmount === undefined && tx.paymentRequestId) {
       const pr = await this.prisma.upward_payment_request.findUnique({
         where: { id: tx.paymentRequestId },
       })
