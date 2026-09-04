@@ -1212,7 +1212,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         const serverData = await res.json().catch(() => ({}));
 
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('trackCustom', 'Step1ApplicationSubmit', { content_name: 'Step 1 Application Submitted' });
+          window.fbq('track', 'Purchase', { value: 5000, currency: 'NGN', content_name: 'Student Application Step 1' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
           window.gtag('event', 'step_1_submitted', { event_category: 'Application', event_label: 'Step 1 Application Submitted' });
