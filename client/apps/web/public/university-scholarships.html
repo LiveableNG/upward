@@ -547,12 +547,10 @@ fbq('track', 'ViewContent', {
         }
 
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
-          window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
+          window.fbq('track', 'Lead', { content_name: 'Scholarship Info Request' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Student Info Request' });
-          window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
+          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Scholarship Info Request' });
         }
         eaForm.style.display = 'none';
         const successEl = document.getElementById('eaFormSuccess');
@@ -567,6 +565,18 @@ fbq('track', 'ViewContent', {
       }
     });
   }
+
+  // Track Apply CTA Button Clicks (single unified tag)
+  document.querySelectorAll('a[href="/university/apply"], a[href="university-apply.html"], .apply-trigger-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'InitiateCheckout', { content_name: 'Apply CTA Click' });
+      }
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'begin_checkout', { event_category: 'CTA', event_label: 'Apply CTA Click' });
+      }
+    });
+  });
 </script>
 
 </body>

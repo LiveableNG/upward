@@ -1212,12 +1212,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         const serverData = await res.json().catch(() => ({}));
 
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('track', 'SubmitApplication', { content_name: 'Detailed Student Application' });
-          window.fbq('track', 'Lead', { content_name: 'Detailed Application Lead' });
+          window.fbq('trackCustom', 'Step1ApplicationSubmit', { content_name: 'Step 1 Application Submitted' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Detailed Student Application' });
-          window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
+          window.gtag('event', 'step_1_submitted', { event_category: 'Application', event_label: 'Step 1 Application Submitted' });
         }
 
         if (serverData && serverData.isAlreadyPaid) {

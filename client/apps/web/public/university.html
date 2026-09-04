@@ -1324,12 +1324,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         }
 
         if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('track', 'SubmitApplication', { content_name: 'Student Information Lead' });
-          window.fbq('track', 'Lead', { content_name: 'Student Info Request' });
+          window.fbq('track', 'Lead', { content_name: 'Info & QA Session Request' });
         }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Student Info Request' });
-          window.gtag('event', 'conversion', { 'send_to': 'AW-18414957187/hpGeCJiSrOscEIPl98xE' });
+          window.gtag('event', 'generate_lead', { event_category: 'Application', event_label: 'Info & QA Session Request' });
         }
         eaForm.style.display = 'none';
         const successEl = document.getElementById('eaFormSuccess');
@@ -1354,7 +1352,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   }, { threshold: 0.1 });
   revealEls.forEach(el=>io.observe(el));
 
-  // Contact Drawer & Meta Pixel Tracking
+  // Contact Drawer
   const contactUsBtn = document.getElementById('contact-us-btn');
   const contactDrawer = document.getElementById('contact-drawer');
   const contactDrawerOverlay = document.getElementById('contact-drawer-overlay');
@@ -1368,20 +1366,12 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       contactDrawerOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
   }
 
-  contactUsBtn?.addEventListener('click', () => {
-    setContactDrawerOpen(true);
-    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-      window.fbq('track', 'Contact', { content_name: 'WhatsApp Contact Drawer' });
-    }
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', 'contact', { event_category: 'Contact', event_label: 'WhatsApp Contact Drawer' });
-    }
-  });
+  contactUsBtn?.addEventListener('click', () => setContactDrawerOpen(true));
   contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
   contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
 
-  // Track InitiateCheckout on CTA buttons
-  document.querySelectorAll('a[href="/university/apply"]').forEach(btn => {
+  // Track Apply CTA Button Clicks (single unified tag)
+  document.querySelectorAll('a[href="/university/apply"], a[href="university-apply.html"], .apply-trigger-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
         window.fbq('track', 'InitiateCheckout', { content_name: 'Apply CTA Click' });

@@ -722,14 +722,21 @@ Business activity: integrate technology, legal/ethical controls, and growth syst
       contactDrawerOverlay.classList.toggle('is-open', open);
   }
 
-  contactUsBtn?.addEventListener('click', () => {
-    setContactDrawerOpen(true);
-    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-      window.gtag('event', 'contact', { event_category: 'Contact', event_label: 'WhatsApp Contact Drawer' });
-    }
-  });
+  contactUsBtn?.addEventListener('click', () => setContactDrawerOpen(true));
   contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
   contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
+
+  // Track Apply CTA Button Clicks (single unified tag)
+  document.querySelectorAll('a[href="/university/apply"], a[href="university-apply.html"], .apply-trigger-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', 'InitiateCheckout', { content_name: 'Apply CTA Click' });
+      }
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'begin_checkout', { event_category: 'CTA', event_label: 'Apply CTA Click' });
+      }
+    });
+  });
 </script>
 
     <script src="/landing-analytics.js" defer></script>
