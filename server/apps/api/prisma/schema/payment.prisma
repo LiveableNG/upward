@@ -19,6 +19,12 @@ model upward_transaction {
   isManual              Boolean                        @default(false)
   settlementBatchId     Int?
   settlementStatus      String                         @default("PENDING")
+  rentStartDate        DateTime?
+  rentEndDate          DateTime?
+  totalInvoiceAmount   Float?
+  historicalPaidToDate Float?
+  remainingBalance     Float?
+  isPartial            Boolean?
   benefitsSubscriptions upward_benefits_subscription[]
   overpayments          upward_overpayment[]
   proof                 upward_payment_proof?

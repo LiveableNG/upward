@@ -23,6 +23,8 @@ import {
   X,
   Clock,
   Check,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
@@ -518,6 +520,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const [gaStats, setGaStats] = useState<any>(null)
   const [loadingGaStats, setLoadingGaStats] = useState(true)
   const [showAllPages, setShowAllPages] = useState(false)
+  const [showEmailPerformance, setShowEmailPerformance] = useState(false)
   const navigate = useNavigate()
 
   // Reset selected users when switching filters or subviews
@@ -946,80 +949,143 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               />
             </div>
 
+            {/* ── Where Did You Hear About Us Breakdown ── */}
+            <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Globe size={18} style={{ color: 'var(--accent)' }} /> Signup Channel Attribution ("Where did you hear about us?")
+                  </h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Breakdown of customer acquisition sources selected during upward-pay account registration.
+                  </p>
+                </div>
+              </div>
+
+              {metrics.hearAboutUsStats && Object.keys(metrics.hearAboutUsStats).length > 0 ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '16px',
+                }}>
+                  {Object.entries(metrics.hearAboutUsStats)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([channel, count]) => {
+                      const totalSubmissions = Object.values(metrics.hearAboutUsStats!).reduce((sum, n) => sum + n, 0)
+                      const pct = totalSubmissions > 0 ? Math.round((count / totalSubmissions) * 100) : 0
+                      return (
+                        <div key={channel} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', marginBottom: '8px', wordBreak: 'break-word' }}>
+                            {channel}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{count}</span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>({pct}%)</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', background: 'var(--accent)', width: `${pct}%`, borderRadius: '3px' }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              ) : (
+                <div style={{ background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No signup channel selections recorded yet for this timeframe. (Channel attribution data is captured when users sign up via upward-pay).
+                </div>
+              )}
+            </div>
+
             {/* ── Email Campaigns & Open Performance ── */}
             {metrics.emailLogsSummary && (
               <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: showEmailPerformance ? '20px' : '0' }}>
                   <div>
                     <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Mail size={18} style={{ color: 'var(--accent)' }} /> Email Campaigns & Open Performance
+                      <span style={{ fontSize: '11px', fontWeight: 600, background: 'var(--surface-hover)', padding: '2px 8px', borderRadius: '12px', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                        {metrics.emailLogsSummary.openRate}% Avg Open Rate
+                      </span>
                     </h3>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
                       Timeframe statistics for emails sent out, opened vs not opened, and open rates.
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailPerformance((prev) => !prev)}
+                    className="btn btn-secondary"
+                    style={{ height: '34px', padding: '0 14px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                  >
+                    {showEmailPerformance ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    {showEmailPerformance ? 'Hide Analytics' : 'Show Analytics'}
+                  </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                  <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Sent</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)' }}>{metrics.emailLogsSummary.totalSent.toLocaleString()}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Opened</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--success)' }}>{metrics.emailLogsSummary.totalOpened.toLocaleString()}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Not Opened</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-muted)' }}>{metrics.emailLogsSummary.totalNotOpened.toLocaleString()}</div>
-                  </div>
-                  <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '4px' }}>Avg Open Rate</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{metrics.emailLogsSummary.openRate}%</div>
-                  </div>
-                </div>
+                {showEmailPerformance && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Sent</div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)' }}>{metrics.emailLogsSummary.totalSent.toLocaleString()}</div>
+                      </div>
+                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Opened</div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--success)' }}>{metrics.emailLogsSummary.totalOpened.toLocaleString()}</div>
+                      </div>
+                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Not Opened</div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-muted)' }}>{metrics.emailLogsSummary.totalNotOpened.toLocaleString()}</div>
+                      </div>
+                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '4px' }}>Avg Open Rate</div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{metrics.emailLogsSummary.openRate}%</div>
+                      </div>
+                    </div>
 
-                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                          <th style={{ padding: '12px 16px', fontWeight: 700 }}>Email Subject</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Sent</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Opened</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Not Opened</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 700, width: '150px', textAlign: 'center' }}>Open Rate</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {metrics.emailLogsSummary.bySubject.length > 0 ? (
-                          metrics.emailLogsSummary.bySubject.map((item, idx) => (
-                            <tr key={idx} style={{ borderBottom: idx < metrics.emailLogsSummary!.bySubject.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                              <td style={{ padding: '12px 16px', fontWeight: 600 }}>{item.subject}</td>
-                              <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.sent}</td>
-                              <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--success)', fontWeight: 600 }}>{item.opened}</td>
-                              <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>{item.notOpened}</td>
-                              <td style={{ padding: '12px 16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                  <span style={{ fontWeight: 700, minWidth: '36px', textAlign: 'right' }}>{item.openRate}%</span>
-                                  <div style={{ width: '60px', height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', background: 'var(--accent)', width: `${item.openRate}%`, borderRadius: '3px' }} />
-                                  </div>
-                                </div>
-                              </td>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
+                              <th style={{ padding: '12px 16px', fontWeight: 700 }}>Email Subject</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Sent</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Opened</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Not Opened</th>
+                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '150px', textAlign: 'center' }}>Open Rate</th>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                              No email logs sent in this timeframe.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                          </thead>
+                          <tbody>
+                            {metrics.emailLogsSummary.bySubject.length > 0 ? (
+                              metrics.emailLogsSummary.bySubject.map((item, idx) => (
+                                <tr key={idx} style={{ borderBottom: idx < metrics.emailLogsSummary!.bySubject.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>{item.subject}</td>
+                                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.sent}</td>
+                                  <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--success)', fontWeight: 600 }}>{item.opened}</td>
+                                  <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>{item.notOpened}</td>
+                                  <td style={{ padding: '12px 16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                      <span style={{ fontWeight: 700, minWidth: '36px', textAlign: 'right' }}>{item.openRate}%</span>
+                                      <div style={{ width: '60px', height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', background: 'var(--accent)', width: `${item.openRate}%`, borderRadius: '3px' }} />
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                  No email logs sent in this timeframe.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

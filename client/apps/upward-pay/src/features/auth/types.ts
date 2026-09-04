@@ -62,7 +62,9 @@ export interface UserProfile {
       accountName: string;
       bankName: string;
       bankCode?: string;
-    }
+    };
+    amountPaid?: number;
+    amountRemaining?: number;
   }>
   isFromWaitlist: boolean
   isFromInvite: boolean

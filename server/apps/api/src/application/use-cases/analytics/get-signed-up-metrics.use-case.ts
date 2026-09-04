@@ -158,11 +158,20 @@ export class GetSignedUpMetricsUseCase {
           originType: origin,
           origin,
           hasPassword,
+          hearAboutUs: u.hearAboutUs || null,
           lastPaidAt: lastPaidAt ? (lastPaidAt as Date).toISOString() : null,
           transactions: u.transactions || [],
           paymentRequests: u.paymentRequests || [],
         }
       })
+
+    const hearAboutUsStats: Record<string, number> = {}
+    signedUpDirectory.forEach((u) => {
+      if (u.hearAboutUs) {
+        const val = u.hearAboutUs.trim()
+        hearAboutUsStats[val] = (hearAboutUsStats[val] || 0) + 1
+      }
+    })
 
     const signedUpTotalCount = allUsers.length
     const allUsersPayments = allUsers.map((u) => {
@@ -187,6 +196,7 @@ export class GetSignedUpMetricsUseCase {
         total: signedUpTotalCount,
         paying: signedUpPayingCount,
         totalPaid: signedUpTotalPaid,
+        hearAboutUsStats,
       },
       totalUsersWithPassword,
     }

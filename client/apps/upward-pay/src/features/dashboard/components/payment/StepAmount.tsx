@@ -34,15 +34,22 @@ function splitInitialLineItems(items: LineItem[]): { rentAmount: number; extras:
   const cleaned = syncFeeLineItems(items)
   if (cleaned.length === 0) return { rentAmount: 0, extras: [] }
 
-  const rentItem = cleaned.find(i => i.label === 'Rent')
-  const extras = cleaned.filter(i => i.label !== 'Rent')
+  const rentItem = cleaned.find(i => i.label === 'Rent' || i.name === 'Rent')
+  const extras = cleaned.filter(i => i.label !== 'Rent' && i.name !== 'Rent')
 
   if (rentItem) {
-    return { rentAmount: Number(rentItem.amount) || 0, extras }
+    const total = Number(rentItem.totalAmount ?? rentItem.amount) || 0
+    const paid = Number(rentItem.amountPaid) || 0
+    const rentRemaining = Math.max(0, total - paid)
+    return { rentAmount: rentRemaining > 0 ? rentRemaining : (paid > 0 ? 0 : total), extras }
   }
 
   return {
-    rentAmount: cleaned.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+    rentAmount: cleaned.reduce((sum, item) => {
+      const total = Number(item.totalAmount ?? item.amount) || 0
+      const paid = Number(item.amountPaid) || 0
+      return sum + Math.max(0, total - paid)
+    }, 0),
     extras: [],
   }
 }

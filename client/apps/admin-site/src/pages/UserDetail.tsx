@@ -15,6 +15,7 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Compass,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -34,6 +35,7 @@ interface UserDetailData {
   firstName: string
   lastName: string
   phone: string
+  hearAboutUs?: string | null
   upwardScore?: {
     score: number
     maxScore: number
@@ -516,6 +518,12 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                   <Calendar size={14} style={{ color: 'var(--success)' }} />
                   <span>Joined on {new Date(user.joinedAt).toLocaleDateString()}</span>
+                </div>
+              )}
+              {user.hearAboutUs && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                  <Compass size={14} style={{ color: 'var(--accent)' }} />
+                  <span>Source: <strong>{user.hearAboutUs}</strong></span>
                 </div>
               )}
               {!user.invitedAt && !user.joinedAt && (

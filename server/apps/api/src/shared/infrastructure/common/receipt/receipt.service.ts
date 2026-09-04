@@ -20,11 +20,94 @@ export interface ReceiptPdfData {
   channel: string
   type: string
   status?: string
-  lineItems?: Array<{ label: string; amount: number }>
+  lineItems?: Array<{ label: string; amount: number; totalAmount?: number; amountPaid?: number; status?: string }>
   logoUrl?: string
   brandName?: string
   themeColor?: string
   tenancyPeriod?: string
+  rentStartDate?: Date
+  rentEndDate?: Date
+  isPartial?: boolean
+  rentAmount?: number
+  totalInvoiceAmount?: number
+  totalPaidToDate?: number
+  remainingBalance?: number
+}
+
+function parseHexColor(hex: string): { r: number; g: number; b: number } {
+  let clean = hex.replace('#', '').trim()
+  if (clean.length === 3) {
+    clean = clean.split('').map((c) => c + c).join('')
+  }
+  if (clean.length !== 6) {
+    return { r: 182, g: 91, b: 55 }
+  }
+  const num = parseInt(clean, 16)
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  }
+}
+
+function getPdfThemeColors(themeColor?: string) {
+  if (!themeColor || themeColor.toLowerCase() === '#b65b37') {
+    return {
+      clay: '#B65B37',
+      clayDeep: '#8C4327',
+      clayTint: '#F3E4DC',
+      stripe: '#F5F2ED',
+    }
+  }
+  const { r, g, b } = parseHexColor(themeColor)
+  const deepR = Math.max(0, Math.round(r * 0.76))
+  const deepG = Math.max(0, Math.round(g * 0.76))
+  const deepB = Math.max(0, Math.round(b * 0.76))
+
+  const tintR = Math.min(255, Math.round(r + (255 - r) * 0.85))
+  const tintG = Math.min(255, Math.round(g + (255 - g) * 0.85))
+  const tintB = Math.min(255, Math.round(b + (255 - b) * 0.85))
+
+  const stripeR = Math.min(255, Math.round(r + (255 - r) * 0.95))
+  const stripeG = Math.min(255, Math.round(g + (255 - g) * 0.95))
+  const stripeB = Math.min(255, Math.round(b + (255 - b) * 0.95))
+
+  const toHex = (n: number) => n.toString(16).padStart(2, '0')
+
+  return {
+    clay: themeColor,
+    clayDeep: `#${toHex(deepR)}${toHex(deepG)}${toHex(deepB)}`,
+    clayTint: `#${toHex(tintR)}${toHex(tintG)}${toHex(tintB)}`,
+    stripe: `#${toHex(stripeR)}${toHex(stripeG)}${toHex(stripeB)}`,
+  }
+}
+
+function formatHeroDate(date: Date): string {
+  try {
+    const d = new Date(date)
+    const dayName = d.toLocaleDateString('en-GB', { weekday: 'short' })
+    const day = d.getDate()
+    const month = d.toLocaleDateString('en-GB', { month: 'short' })
+    const year = d.getFullYear()
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${dayName}, ${day} ${month} ${year} · ${hours}:${minutes}`
+  } catch {
+    return String(date)
+  }
+}
+
+function cleanDisplayName(name?: string | null, fallback = 'Upward'): string {
+  if (!name) return fallback
+  const trimmed = name.trim()
+  if (trimmed === 'account_name' || trimmed === 'accountName') return fallback
+  if (trimmed.includes(':') && /^[0-9a-fA-F]{16,}:/.test(trimmed)) {
+    return fallback
+  }
+  if (/^[0-9a-fA-F]{32,}$/.test(trimmed)) {
+    return fallback
+  }
+  return trimmed
 }
 
 @Injectable()
@@ -41,7 +124,7 @@ export class ReceiptService {
         } else {
           const receiptSettingsMatch = data.logoUrl.match(/\/receipt-settings\/logo\/([^\/]+)\/([^\/?#]+)/)
           const emailSettingsMatch = data.logoUrl.match(/\/email-settings\/logo\/([^\/]+)\/([^\/?#]+)/)
-          
+
           if (receiptSettingsMatch) {
             const uuid = receiptSettingsMatch[1]
             const filename = receiptSettingsMatch[2]
@@ -53,11 +136,8 @@ export class ReceiptService {
           }
         }
 
-        console.log(`[ReceiptService] logoUrl: ${data.logoUrl}, resolved s3Key: ${s3Key}`);
-
         if (s3Key) {
           logoBuffer = await this.s3Service.getFileBuffer(s3Key)
-          console.log(`[ReceiptService] Fetched logo from S3, buffer length: ${logoBuffer?.length}`);
         } else {
           let fetchUrl = data.logoUrl
           if (fetchUrl.includes('localhost')) {
@@ -66,14 +146,10 @@ export class ReceiptService {
           const response = await fetch(fetchUrl)
           if (response.ok) {
             logoBuffer = Buffer.from(await response.arrayBuffer())
-            console.log(`[ReceiptService] Fetched logo from fallback HTTP, buffer length: ${logoBuffer?.length}`);
-          } else {
-            console.error(`Failed to fetch logo: ${response.status} ${response.statusText}`)
           }
         }
       } catch (err) {
         console.error('Error fetching logo for receipt:', err)
-        // Fall back to default Upward branding
       }
     }
 
@@ -82,47 +158,65 @@ export class ReceiptService {
 
   private renderReceiptPdf(data: ReceiptPdfData, logoBuffer?: Buffer): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const W = 595.28
-      const HERO_H = 295
-      const SCALLOP_R = 13
-      const ROW_H = 58
-      const BREAKDOWN_ROW_H = 32
+      const W = 460
+      const HERO_H = 196
+      const SCALLOP_R = 10
 
-      const rows: { label: string; value: string; bold?: boolean }[] = [
-        { label: 'Tenant', value: data.tenantName },
-        { label: 'Receipt No.', value: data.receiptNumber },
-        { label: 'Channel', value: data.channel },
-      ]
+      const colors = getPdfThemeColors(data.themeColor)
+      const paper = '#FBF9F6'
+      const ink = '#211C18'
+      const inkMuted = '#8F857A'
+      const inkFaint = '#C7BEB2'
+      const line = '#E7E1D8'
+      const clay = colors.clay
+      const clayDeep = colors.clayDeep
+      const clayTint = colors.clayTint
+      const stripe = colors.stripe
 
-      const hasBreakdown = data.lineItems && data.lineItems.length > 0
-      const breakdownDesc = hasBreakdown
-        ? `${data.lineItems!.map((item: any) => `${item.label} (N${item.amount.toLocaleString()})`).join(', ')}`
-        : data.propertyName || data.propertyAddress || ''
+      const isPartial =
+        data.status === 'PARTIAL' ||
+        data.isPartial ||
+        (data.remainingBalance !== undefined && data.remainingBalance > 0)
 
-      if (data.type === 'RENT') {
-        rows.push({ label: 'Property', value: data.propertyAddress || breakdownDesc })
-        if (data.tenancyPeriod) {
-          rows.push({ label: 'Tenancy Period', value: data.tenancyPeriod })
-        }
-      }
-      if (data.type === 'RENT' && data.landlordName) {
-        rows.push({ label: 'Recipient', value: data.landlordName })
-      }
-      if (data.propertyAddress && !hasBreakdown && data.type !== 'RENT') {
-        rows.push({ label: 'Address', value: data.propertyAddress })
-      }
+      const totalRent = data.rentAmount || data.totalInvoiceAmount || data.amount
+      const totalPaid = data.totalPaidToDate || data.amount
+      const balanceRemaining =
+        data.remainingBalance !== undefined
+          ? Math.max(0, data.remainingBalance)
+          : Math.max(0, (data.totalInvoiceAmount || totalRent) - totalPaid)
 
-      rows.push({
-        label: 'Paystack Reference',
-        value: data.reference,
-        bold: true,
-      })
+      const breakdownItems =
+        data.lineItems && data.lineItems.length > 0
+          ? [...data.lineItems].sort((a, b) => {
+              const aIsRent = (a.label || '').toLowerCase().includes('rent')
+              const bIsRent = (b.label || '').toLowerCase().includes('rent')
+              if (aIsRent && !bIsRent) return -1
+              if (!aIsRent && bIsRent) return 1
+              return 0
+            })
+          : [
+              {
+                label: data.paymentType || 'Rent',
+                amount: data.amount,
+              },
+            ]
 
-      const CARD_H =
-        rows.length * ROW_H + (hasBreakdown ? data.lineItems!.length * BREAKDOWN_ROW_H + 50 : 16)
+      // Compute dynamic height
+      const STATS_Y = HERO_H - 16
+      const STATS_H = 116
+      const BREAKDOWN_START_Y = STATS_Y + STATS_H + 22
+      const BREAKDOWN_ROW_H = 28
+      const breakdownTableH = 20 + breakdownItems.length * BREAKDOWN_ROW_H + 34
+      const DETAILS_START_Y = BREAKDOWN_START_Y + breakdownTableH + 20
 
-      const dynamicH = HERO_H + SCALLOP_R + 4 + CARD_H + 40
-      const H = dynamicH
+      // Details estimation
+      const propText = data.propertyAddress || data.propertyName || 'Address not specified'
+      const propHeight = propText.length > 50 ? 28 : 16
+      const detailsRowsCount = data.tenancyPeriod ? 3 : 3
+      const detailsGridH = 24 + propHeight + 14 + detailsRowsCount * 36
+
+      const FOOTER_Y = DETAILS_START_Y + detailsGridH + 22
+      const dynamicH = FOOTER_Y + 54
 
       const doc = new PDFDocument({
         size: [W, dynamicH],
@@ -135,50 +229,30 @@ export class ReceiptService {
       doc.on('end', () => resolve(Buffer.concat(buffers)))
       doc.on('error', reject)
 
-      const clay = data.themeColor || '#d97757'
-      const dark = '#0a0a0f'
-      const textSecondary = '#4a4642'
-      const textMuted = '#928e89'
-      const oat = '#faf9f5'
-      const borderSolid = '#e2ddd7'
-      const white = '#ffffff'
+      // 1. Base Paper Background
+      doc.rect(0, 0, W, dynamicH).fill(paper)
 
-      doc.rect(0, 0, W, H).fill(oat)
-      doc.rect(0, 0, W, HERO_H).fill(clay)
+      // 2. Hero Header Background (Linear Gradient)
+      const grad = doc.linearGradient(0, 0, W, HERO_H)
+      grad.stop(0, clay)
+      grad.stop(1, clayDeep)
+      doc.rect(0, 0, W, HERO_H).fill(grad)
 
-      doc.save()
-      doc
-        .fillOpacity(0.07)
-        .circle(W - 55, 55, 110)
-        .fill(white)
-      doc
-        .fillOpacity(0.05)
-        .circle(60, HERO_H - 30, 80)
-        .fill(white)
-      doc.restore()
-      doc.fillOpacity(1)
-
-      const BRAND_X = 36
-      const BRAND_Y = 42
-
-      const FONT_SIZE = 18
-      const ICON_SIZE = 28
-
-      const brandLabel = (data.brandName || 'Upward').toUpperCase()
+      // Brand Logo / Icon in Hero
+      const BRAND_X = 32
+      const BRAND_Y = 32
 
       if (logoBuffer) {
-        const LOGO_BOX_W = 120
-        const LOGO_BOX_H = 36
-
-        // Write the buffer to a temporary file and pass the path to PDFKit to avoid memory buffer decoding issues
         let tempFilePath: string | null = null
         try {
           const tempDir = os.tmpdir()
-          tempFilePath = path.join(tempDir, `upward_logo_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`)
+          tempFilePath = path.join(
+            tempDir,
+            `upward_logo_${Date.now()}_${Math.floor(Math.random() * 1000)}.png`,
+          )
           fs.writeFileSync(tempFilePath, logoBuffer)
-
-          doc.image(tempFilePath, BRAND_X, BRAND_Y - 4, { 
-            fit: [LOGO_BOX_W, LOGO_BOX_H]
+          doc.image(tempFilePath, BRAND_X, BRAND_Y - 4, {
+            fit: [120, 26],
           })
         } catch (imageErr) {
           console.error('[ReceiptService] Error rendering logo image in PDFKit:', imageErr)
@@ -192,155 +266,287 @@ export class ReceiptService {
           }
         }
       } else {
+        // Draw Upward Triangle Logo Icon
         doc.save()
-
-        const iconOffsetY = BRAND_Y - (ICON_SIZE * 22) / 40 + 4
-
-        doc.translate(BRAND_X, iconOffsetY)
-        doc.scale(ICON_SIZE / 40)
-
-        doc.roundedRect(7, 15, 10, 17, 5).fill(white)
-        doc.roundedRect(23, 15, 10, 17, 5).fill(white)
-
-        doc
-          .moveTo(12, 30)
-          .quadraticCurveTo(12, 37, 20, 37)
-          .quadraticCurveTo(28, 37, 28, 30)
-          .lineWidth(5.5)
-          .stroke(white)
-
-        doc.moveTo(7, 19).lineTo(20, 8).lineTo(33, 19).lineWidth(5).stroke(white)
-
-        doc.circle(20, 5, 3).fill('#22c55e')
-
+        doc.polygon([BRAND_X + 6, BRAND_Y + 1], [BRAND_X + 13, BRAND_Y + 13], [BRAND_X, BRAND_Y + 13])
+        doc.fill('#FBF3EE')
         doc.restore()
 
+        const brandName = cleanDisplayName(data.brandName, 'Upward')
         doc
           .font('Helvetica-Bold')
-          .fontSize(FONT_SIZE)
-          .fillColor(white)
-          .text(brandLabel === 'UPWARD' ? 'PWARD' : brandLabel, BRAND_X + ICON_SIZE - 1, BRAND_Y)
+          .fontSize(13)
+          .fillColor('#FBF3EE')
+          .text(brandName, BRAND_X + 18, BRAND_Y + 1)
       }
+
+      // Hero: "Amount received"
       doc
         .font('Helvetica')
-        .fontSize(8.5)
-        .fillColor('rgba(255,255,255,0.6)')
-        .text('Transaction Receipt', 0, BRAND_Y + 9, { width: W - 34, align: 'right' })
+        .fontSize(11)
+        .fillColor('rgba(251,243,238,0.72)')
+        .text('Amount received', BRAND_X, 74)
 
+      // Hero Amount (Serif)
       const amountStr = `${data.currency} ${data.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
       doc
-        .font('Helvetica-Bold')
-        .fontSize(40)
-        .fillColor(white)
-        .text(amountStr, 0, 110, { width: W, align: 'center' })
+        .font('Times-Bold')
+        .fontSize(36)
+        .fillColor('#FBF3EE')
+        .text(amountStr, BRAND_X, 94)
 
-      const isPartial = data.status === 'PARTIAL'
-      const statusText = isPartial ? 'Partial Payment' : 'Successful'
-      const PILL_W = isPartial ? 110 : 96
-      const PILL_H = 24
-      const PILL_X = (W - PILL_W) / 2
-      const PILL_Y = 162
-      doc.roundedRect(PILL_X, PILL_Y, PILL_W, PILL_H, 99).fill(white)
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(9.5)
-        .fillColor(clay)
-        .text(statusText, PILL_X, PILL_Y + 7.5, { width: PILL_W, align: 'center' })
+      // Hero Foot: Status Pill & Time
+      const statusText = isPartial ? 'Partial payment' : 'Paid in full'
+      const PILL_W = isPartial ? 98 : 82
+      const PILL_H = 22
+      const PILL_Y = 150
 
-      const dateStr =
-        data.paidAt.toLocaleDateString('en-GB', {
-          weekday: 'short',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        }) +
-        '  ·  ' +
-        data.paidAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      doc.save()
+      doc.roundedRect(BRAND_X, PILL_Y, PILL_W, PILL_H, 11)
+      doc.fillOpacity(0.18).fill('#FBF3EE')
+      doc.restore()
+
+      doc.save()
+      doc.roundedRect(BRAND_X, PILL_Y, PILL_W, PILL_H, 11)
+      doc.lineWidth(0.75).strokeOpacity(0.35).stroke('#FBF3EE')
+      doc.restore()
+
       doc
         .font('Helvetica')
-        .fontSize(8.5)
-        .fillColor('white')
-        .text(dateStr, 0, 202, { width: W, align: 'center' })
+        .fontSize(9.5)
+        .fillColor('#FBF3EE')
+        .text(statusText, BRAND_X, PILL_Y + 5.5, { width: PILL_W, align: 'center' })
 
+      const dateStr = formatHeroDate(data.paidAt)
+      doc
+        .font('Helvetica')
+        .fontSize(10)
+        .fillColor('rgba(251,243,238,0.72)')
+        .text(dateStr, BRAND_X, PILL_Y + 5.5, { width: W - 64, align: 'right' })
+
+      // 3. Scallop Divider at bottom of Hero
       const numScallops = Math.floor(W / (SCALLOP_R * 2))
       const scallopsW = numScallops * SCALLOP_R * 2
       const scallopsStartX = (W - scallopsW) / 2
-      const TOP_TEAR_Y = HERO_H - SCALLOP_R
-
-      doc.rect(0, TOP_TEAR_Y, W, SCALLOP_R * 2 + 16).fill(oat)
-
       for (let i = 0; i < numScallops; i++) {
         const cx = scallopsStartX + i * SCALLOP_R * 2 + SCALLOP_R
-        doc.circle(cx, TOP_TEAR_Y, SCALLOP_R).fill(clay)
+        doc.circle(cx, HERO_H, SCALLOP_R).fill(clayDeep)
       }
 
-      const CARD_X = 36
-      const CARD_Y = HERO_H + SCALLOP_R + 4
-      const CARD_W = W - 72
+      // 4. Floating 2x2 Stats Card
+      const CARD_X = 32
+      const CARD_W = W - 64
+      const halfW = (CARD_W - 1) / 2
+      const halfH = (STATS_H - 1) / 2
 
-      doc.roundedRect(CARD_X, CARD_Y, CARD_W, CARD_H, 14).fill(white)
+      doc.save()
+      doc.roundedRect(CARD_X, STATS_Y, CARD_W, STATS_H, 12).clip()
 
-      rows.forEach((row, i) => {
-        const rowY = CARD_Y + 8 + i * ROW_H
-        const isLast = i === rows.length - 1
+      // Fill grid separator line
+      doc.rect(CARD_X, STATS_Y, CARD_W, STATS_H).fill(line)
+
+      // Cell 1: Total Rent (Top-Left)
+      doc.rect(CARD_X, STATS_Y, halfW, halfH).fill(paper)
+      // Cell 2: Paid So Far (Top-Right)
+      doc.rect(CARD_X + halfW + 1, STATS_Y, halfW, halfH).fill(paper)
+      // Cell 3: This Payment (Bottom-Left - Highlighted)
+      doc.rect(CARD_X, STATS_Y + halfH + 1, halfW, halfH).fill(clayTint)
+      // Cell 4: Balance Remaining (Bottom-Right)
+      doc.rect(CARD_X + halfW + 1, STATS_Y + halfH + 1, halfW, halfH).fill(paper)
+
+      doc.restore()
+
+      // Content for Cell 1 (Total Rent)
+      doc.font('Helvetica').fontSize(9).fillColor(inkMuted).text('Total rent', CARD_X + 16, STATS_Y + 12)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .fillColor(ink)
+        .text(
+          `${data.currency} ${totalRent.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          CARD_X + 16,
+          STATS_Y + 28,
+        )
+
+      // Content for Cell 2 (Paid so far)
+      doc.font('Helvetica').fontSize(9).fillColor(inkMuted).text('Paid so far', CARD_X + halfW + 17, STATS_Y + 12)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .fillColor(ink)
+        .text(
+          `${data.currency} ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          CARD_X + halfW + 17,
+          STATS_Y + 28,
+        )
+
+      // Content for Cell 3 (This payment - Highlighted)
+      doc.font('Helvetica').fontSize(9).fillColor(inkMuted).text('This payment', CARD_X + 16, STATS_Y + halfH + 13)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .fillColor(clayDeep)
+        .text(
+          `${data.currency} ${data.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          CARD_X + 16,
+          STATS_Y + halfH + 29,
+        )
+
+      // Content for Cell 4 (Balance remaining)
+      doc.font('Helvetica').fontSize(9).fillColor(inkMuted).text('Balance remaining', CARD_X + halfW + 17, STATS_Y + halfH + 13)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(13)
+        .fillColor(ink)
+        .text(
+          `${data.currency} ${balanceRemaining.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          CARD_X + halfW + 17,
+          STATS_Y + halfH + 29,
+        )
+
+      // 5. Payment Breakdown Section
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor(ink)
+        .text('Payment breakdown', CARD_X, BREAKDOWN_START_Y)
+
+      breakdownItems.forEach((item, i) => {
+        const rowY = BREAKDOWN_START_Y + 18 + i * BREAKDOWN_ROW_H
+
+        if (i % 2 === 0) {
+          doc.roundedRect(CARD_X, rowY, CARD_W, BREAKDOWN_ROW_H - 4, 6).fill(stripe)
+        }
 
         doc
           .font('Helvetica')
-          .fontSize(8)
-          .fillColor(textMuted)
-          .text(row.label, CARD_X + 22, rowY + 8)
-        doc
-          .font(row.bold ? 'Helvetica-Bold' : 'Helvetica')
-          .fontSize(12)
-          .fillColor(row.bold ? dark : textSecondary)
-          .text(row.value, CARD_X + 22, rowY + 23, { width: CARD_W - 44 })
+          .fontSize(10)
+          .fillColor(ink)
+          .text(item.label, CARD_X + 12, rowY + 5, { width: 230 })
 
-        if (!isLast || hasBreakdown) {
-          doc
-            .moveTo(CARD_X + 22, rowY + ROW_H)
-            .lineTo(CARD_X + CARD_W - 22, rowY + ROW_H)
-            .strokeColor(borderSolid)
-            .lineWidth(0.5)
-            .stroke()
-        }
-      })
-
-      if (hasBreakdown) {
-        const breakdownY = CARD_Y + 8 + rows.length * ROW_H + 12
         doc
           .font('Helvetica-Bold')
-          .fontSize(9)
-          .fillColor(dark)
-          .text('PAYMENT BREAKDOWN', CARD_X + 22, breakdownY)
+          .fontSize(10)
+          .fillColor(ink)
+          .text(
+            `${data.currency} ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+            CARD_X + 12,
+            rowY + 5,
+            { width: CARD_W - 24, align: 'right' },
+          )
+      })
 
-        data.lineItems!.forEach((item, i) => {
-          const itemY = breakdownY + 20 + i * BREAKDOWN_ROW_H
-          doc
-            .font('Helvetica')
-            .fontSize(10)
-            .fillColor(textSecondary)
-            .text(item.label, CARD_X + 22, itemY)
-          doc
-            .font('Helvetica-Bold')
-            .fontSize(10)
-            .fillColor(dark)
-            .text(
-              `${data.currency} ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-              CARD_X + 22,
-              itemY,
-              { width: CARD_W - 44, align: 'right' },
-            )
+      // Breakdown Table Footer: "This payment"
+      const tfootY = BREAKDOWN_START_Y + 18 + breakdownItems.length * BREAKDOWN_ROW_H + 4
+      doc
+        .moveTo(CARD_X, tfootY)
+        .lineTo(CARD_X + CARD_W, tfootY)
+        .lineWidth(1)
+        .strokeColor(line)
+        .stroke()
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor(ink)
+        .text('This payment', CARD_X + 12, tfootY + 8)
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor(clayDeep)
+        .text(
+          `${data.currency} ${data.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+          CARD_X + 12,
+          tfootY + 8,
+          { width: CARD_W - 24, align: 'right' },
+        )
+
+      // 6. Details Section
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor(ink)
+        .text('Details', CARD_X, DETAILS_START_Y)
+
+      // Property (Full Width)
+      const propY = DETAILS_START_Y + 18
+      doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Property', CARD_X, propY)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .fillColor(ink)
+        .text(propText, CARD_X, propY + 12, { width: CARD_W })
+
+      let gridY = propY + 12 + propHeight + 12
+
+      // 2-Column Details Grid
+      const colW = (CARD_W - 16) / 2
+      const col2X = CARD_X + colW + 16
+
+      // Row 1: Rental Period & Receipt No.
+      if (data.tenancyPeriod) {
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Rental period', CARD_X, gridY)
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text(data.tenancyPeriod, CARD_X, gridY + 12, { width: colW })
+
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Receipt no.', col2X, gridY)
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text(data.receiptNumber, col2X, gridY + 12, { width: colW })
+      } else {
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Receipt no.', CARD_X, gridY)
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text(data.receiptNumber, CARD_X, gridY + 12, { width: colW })
+
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Payment channel', col2X, gridY)
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text(data.channel || 'Paystack', col2X, gridY + 12, { width: colW })
+      }
+
+      gridY += 34
+
+      // Row 2: Tenant & Landlord
+      doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Tenant', CARD_X, gridY)
+      doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text(data.tenantName, CARD_X, gridY + 12, { width: colW })
+
+      doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Recipient / Landlord', col2X, gridY)
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .fillColor(ink)
+        .text(data.landlordName || 'Landlord', col2X, gridY + 12, { width: colW })
+
+      gridY += 34
+
+      // Row 3: Payment channel & Reference
+      if (data.tenancyPeriod) {
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Payment channel', CARD_X, gridY)
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(ink).text(data.channel || 'Paystack', CARD_X, gridY + 12, { width: colW })
+
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Reference', col2X, gridY)
+        doc.font('Courier').fontSize(8.5).fillColor(ink).text(data.reference, col2X, gridY + 12, { width: colW })
+      } else {
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Reference', CARD_X, gridY)
+        doc.font('Courier').fontSize(8.5).fillColor(ink).text(data.reference, CARD_X, gridY + 12, { width: CARD_W })
+      }
+
+      // 7. Footer
+      doc
+        .moveTo(CARD_X, FOOTER_Y)
+        .lineTo(CARD_X + CARD_W, FOOTER_Y)
+        .lineWidth(1)
+        .strokeColor(line)
+        .stroke()
+
+      doc
+        .font('Helvetica')
+        .fontSize(8.5)
+        .fillColor(inkFaint)
+        .text('This receipt confirms a payment made through\nthe Upward platform.', CARD_X, FOOTER_Y + 14, {
+          lineGap: 2,
         })
-      }
 
-      const BOT_TEAR_Y = CARD_Y + CARD_H - SCALLOP_R
-
-      doc.rect(0, BOT_TEAR_Y, W, SCALLOP_R * 2 + 4).fill(oat)
-
-      for (let i = 0; i < numScallops; i++) {
-        const cx = scallopsStartX + i * SCALLOP_R * 2 + SCALLOP_R
-        doc.circle(cx, BOT_TEAR_Y + SCALLOP_R * 2, SCALLOP_R).fill(white)
-      }
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(9)
+        .fillColor(inkFaint)
+        .text('UPWARD', CARD_X, FOOTER_Y + 18, { width: CARD_W, align: 'right' })
 
       doc.end()
     })

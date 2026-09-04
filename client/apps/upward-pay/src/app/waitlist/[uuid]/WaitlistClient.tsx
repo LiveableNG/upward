@@ -241,8 +241,29 @@ export default function WaitlistClient({ overrideUuid }: WaitlistClientProps = {
                   <p>Your data is protected and encrypted.</p>
                 </div>
 
+                <div className="auth-terms" style={{ marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: '1.5' }}>
+                  By clicking &quot;Claim Account&quot;, you agree to our{' '}
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--clay)', fontWeight: 600 }}
+                  >
+                    Terms of Use
+                  </a>{' '}
+                  and{' '}
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--clay)', fontWeight: 600 }}
+                  >
+                    Privacy Policy
+                  </a>.
+                </div>
+
                 <button
-                  className="btn btn--primary btn--full btn--pay auth-form__mt-8"
+                  className="btn btn--primary btn--full btn--pay auth-form__mt-6"
                   type="submit"
                   disabled={
                     isSubmitting || 

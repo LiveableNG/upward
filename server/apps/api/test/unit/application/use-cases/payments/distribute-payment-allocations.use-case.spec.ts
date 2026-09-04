@@ -9,8 +9,11 @@ describe('DistributePaymentAllocationsUseCase', () => {
   let txRepo: jest.Mocked<ITransactionRepository>;
   let paymentConfig: jest.Mocked<PaymentConfigurationService>;
   let prisma: jest.Mocked<PrismaService>;
+  const originalEnv = process.env.REMOVE_TRANSACTION_FEE;
 
   beforeEach(() => {
+    delete process.env.REMOVE_TRANSACTION_FEE;
+
     lineItemRepo = {
       findByPaymentRequestId: jest.fn(),
       update: jest.fn(),
@@ -22,6 +25,7 @@ describe('DistributePaymentAllocationsUseCase', () => {
 
     paymentConfig = {
       getDynamicProcessingRates: jest.fn(),
+      getProcessingFee: jest.fn().mockReturnValue(2000),
     } as any;
 
     prisma = {
@@ -36,6 +40,14 @@ describe('DistributePaymentAllocationsUseCase', () => {
       paymentConfig,
       prisma
     );
+  });
+
+  afterAll(() => {
+    if (originalEnv !== undefined) {
+      process.env.REMOVE_TRANSACTION_FEE = originalEnv;
+    } else {
+      delete process.env.REMOVE_TRANSACTION_FEE;
+    }
   });
 
   describe('execute', () => {

@@ -36,6 +36,7 @@ export class SendRentReceiptEmailUseCase {
   async execute(params: {
     transactionId: number
     propertyId?: number
+    overrideRecipientEmail?: string
   }): Promise<{ emailSent: boolean; whatsappSent: boolean }> {
     const tx = await this.prisma.upward_transaction.findUnique({
       where: { id: params.transactionId },
@@ -92,11 +93,35 @@ export class SendRentReceiptEmailUseCase {
     const formattedAmount = `${tx.currency || 'NGN'} ${rentAmount.toLocaleString()}`
     const pdfFilename = `receipt-${receiptNumber.replace(/\//g, '-')}.pdf`
 
-    const rentStartDate = tx.paymentRequest?.rentStartDate
-    const rentEndDate = tx.paymentRequest?.rentEndDate
+    const rentStartDate = (tx as any).rentStartDate || tx.paymentRequest?.rentStartDate
+    const rentEndDate = (tx as any).rentEndDate || tx.paymentRequest?.rentEndDate
     const tenancyPeriod = (rentStartDate && rentEndDate)
       ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
       : undefined
+
+    let totalInvoiceAmount: number | undefined = (tx as any).totalInvoiceAmount ?? undefined
+    let totalPaidToDate: number | undefined = (tx as any).historicalPaidToDate ?? undefined
+    let remainingBalance: number | undefined = (tx as any).remainingBalance ?? undefined
+    let isPartial: boolean | undefined = (tx as any).isPartial ?? undefined
+
+    if (totalInvoiceAmount === undefined && tx.paymentRequestId) {
+      const pr = await this.prisma.upward_payment_request.findUnique({
+        where: { id: tx.paymentRequestId },
+      })
+      if (pr) {
+        const priorTxs = await this.prisma.upward_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            status: 'SUCCESS',
+            createdAt: { lte: tx.createdAt },
+          },
+        })
+        totalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+        totalInvoiceAmount = pr.amount
+        remainingBalance = Math.max(0, pr.amount - totalPaidToDate)
+        isPartial = remainingBalance > 0
+      }
+    }
 
     const receiptData: ReceiptPdfData & {
       userPropertyId?: number
@@ -119,7 +144,11 @@ export class SendRentReceiptEmailUseCase {
       reference: tx.reference,
       channel,
       type: 'RENT',
-      status: paymentStatus,
+      status: isPartial ? 'PARTIAL' : paymentStatus,
+      isPartial,
+      totalInvoiceAmount,
+      totalPaidToDate,
+      remainingBalance,
       lineItems,
       userPropertyId: propertyId,
       companyName: branding.companyName,
@@ -136,7 +165,7 @@ export class SendRentReceiptEmailUseCase {
     const receiptUrl = `${baseUrl}/dashboard/receipts?id=${tx.uuid}`
 
     const success = await this.unifiedCommService.processCommunication({
-      recipientEmail: hasEmail ? tenantEmail : undefined,
+      recipientEmail: params.overrideRecipientEmail || (hasEmail ? tenantEmail : undefined),
       recipientPhone: hasPhone ? tenantPhone || undefined : undefined,
       recipientName: tenantName,
       recipientRole: 'TENANT',
@@ -221,7 +250,10 @@ export class SendRentReceiptEmailUseCase {
         companyName = decrypted
       }
     } else if (property.company?.name && property.company.name !== 'account_name') {
-      companyName = property.company.name
+      const decrypted = property.company.name.includes(':') ? this.encryption.decrypt(property.company.name) : property.company.name
+      if (decrypted && decrypted !== 'account_name') {
+        companyName = decrypted
+      }
     } else if (property.manager) {
       const first = property.manager.firstName?.includes(':')
         ? this.encryption.decrypt(property.manager.firstName)
@@ -244,14 +276,14 @@ export class SendRentReceiptEmailUseCase {
 
     if (!logoUrl) logoUrl = undefined
 
-    const themeColor = property.pm?.receiptSetting?.themeColor || '#d97757'
+    const themeColor = property.pm?.receiptSetting?.themeColor || '#B65B37'
 
     const managerName = property.manager
       ? `${property.manager.firstName?.includes(':') ? this.encryption.decrypt(property.manager.firstName) : property.manager.firstName} ${property.manager.lastName?.includes(':') ? this.encryption.decrypt(property.manager.lastName) : property.manager.lastName}`.trim()
       : undefined
 
     return {
-      companyName: logoUrl ? companyName : (property.company?.name || 'Upward'),
+      companyName: companyName || 'Upward',
       managerName,
       logoUrl,
       themeColor,

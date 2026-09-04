@@ -1,13 +1,15 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Home, Plus } from 'lucide-react'
+import { ChevronRight, Home, Plus, ArrowRight, Activity, Clock } from 'lucide-react'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { type UserProfile } from '@/features/auth/types'
 import { setupAddPropertyEditPath, setupEditPropertyPath, SETUP_PATHS } from '../setupPaths'
 import { ManualAccountModal } from '@/features/dashboard/components/payment/ManualAccountModal'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 
 type Property = NonNullable<UserProfile['properties']>[number]
 
@@ -42,6 +44,11 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
   const router = useRouter()
   const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string, initialData?: any } | null>(null)
 
+  const { data: pendingPayments } = useQuery({
+    queryKey: ['pendingPayments'],
+    queryFn: () => api.getPendingPayments().catch(() => []),
+  })
+
   return (
     <PayPageShell
       title="Rental details"
@@ -55,6 +62,23 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
           {properties.map((prop) => {
             const address = formatPropertyAddress(prop)
             const manager = formatManagerLabel(prop)
+
+            const activeRequest = Array.isArray(pendingPayments)
+              ? pendingPayments.find(
+                  (p: any) =>
+                    p.userPropertyId === prop.id || p.userPropertyUuid === prop.uuid,
+                )
+              : null
+
+            const pAny = prop as any
+            const isPartial = pAny.amountRemaining && pAny.amountRemaining > 0 && pAny.amountPaid && pAny.amountPaid > 0
+            const totalRent = prop.rentAmount || (pAny.amountPaid ? pAny.amountPaid + (pAny.amountRemaining || 0) : 0)
+            const amountPaid = pAny.amountPaid || activeRequest?.amountPaid || 0
+            const pctPaid = totalRent > 0 ? Math.min(100, Math.round((amountPaid / totalRent) * 100)) : 0
+
+            const rawRemaining = activeRequest?.remainingBalance ?? pAny.amountRemaining ?? (totalRent > 0 ? Math.max(0, totalRent - amountPaid) : 0)
+            const remainingAmount = Math.max(0, rawRemaining)
+            const showRenewalCard = remainingAmount > 0 && pctPaid < 100 && activeRequest?.status !== 'PAID' && (isPartial || (activeRequest && activeRequest.status !== 'PAID'))
 
             return (
               <div
@@ -85,7 +109,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     {prop.isVerified ? (
                       <span className="pay-flow__badge">
                         <span className="pay-flow__badge-dot" />
-                        Verified
+                        Verified Term
                       </span>
                     ) : null}
                   </div>
@@ -96,11 +120,65 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                       ? ` · ${formatCurrency(prop.rentAmount, 'NGN')}/yr`
                       : ''}
                   </div>
-                  {prop.rentEndDate ? (
+                  {prop.rentStartDate && prop.rentEndDate ? (
+                    <div className="pay-flow__card-meta pay-flow__card-meta--muted">
+                      Verified Period: {formatDate(prop.rentStartDate)} - {formatDate(prop.rentEndDate)}
+                    </div>
+                  ) : prop.rentEndDate ? (
                     <div className="pay-flow__card-meta pay-flow__card-meta--muted">
                       Next due {formatDate(prop.rentEndDate)}
                     </div>
                   ) : null}
+
+                  {/* Partial Payment / Renewal Progress Banner */}
+                  {showRenewalCard && (
+                    <div
+                      style={{
+                        marginTop: 14,
+                        padding: '12px',
+                        borderRadius: 10,
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border-solid)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--clay)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          <Activity size={13} />
+                          Renewal in Progress ({pctPaid}% Paid)
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
+                          {formatCurrency(amountPaid)} of {formatCurrency(totalRent)}
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div style={{ width: '100%', height: 6, borderRadius: 99, background: 'var(--border-solid)', overflow: 'hidden' }}>
+                        <div style={{ width: `${pctPaid}%`, height: '100%', background: 'var(--clay)', borderRadius: 99, transition: 'width 300ms ease' }} />
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                          Remaining: <strong style={{ color: 'var(--text)' }}>{formatCurrency(remainingAmount)}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn--primary btn--sm"
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4 }}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            router.push('/dashboard/pay-rent')
+                          }}
+                        >
+                          Complete Payment <ArrowRight size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div style={{ marginTop: 12 }}>
                     {prop.pmManualAccount || ((prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
                       <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>

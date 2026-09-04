@@ -45,9 +45,9 @@ export class DistributePaymentAllocationsUseCase {
       ? await this.lineItemRepo.findByPaymentRequestId(paymentRequestId, txClient) 
       : []
 
-    // 0. Deduct Transaction Fee first
-    // This ensures the mandatory transaction fee is prioritized and settled first
-    if (upwardFeeAmount > 0) {
+    // 0. Deduct Transaction Fee first (if enabled and applicable)
+    const isFeeRemoved = process.env.REMOVE_TRANSACTION_FEE === 'true' || this.paymentConfig.getProcessingFee() === 0
+    if (upwardFeeAmount > 0 && !isFeeRemoved) {
       const feeInAllocations = lineItemPayments?.find(lp => 
         lp.name === 'Upward Benefits'
       )
@@ -157,12 +157,6 @@ export class DistributePaymentAllocationsUseCase {
         }
       }
     }
-
-    // 2. Auto-allocate remaining balance across all unpaid items.
-    // IMPORTANT: Skip this step if the caller provided explicit manual lineItemPayments.
-    // When sequentialFill=true (DVA payment with no stored intent + allowPartial), fill items
-    // top-to-bottom by sortOrder — this matches the most likely tenant intent.
-    // Otherwise (no manual allocations, no sequential flag), distribute proportionally.
     const hasManualAllocations = lineItemPayments && lineItemPayments.length > 0
     if (!hasManualAllocations && remainingPayment > 0 && currentItems.length > 0) {
       const unpaidItems = currentItems
@@ -171,7 +165,13 @@ export class DistributePaymentAllocationsUseCase {
           const need = item.totalAmount - item.amountPaid
           return !isFee && need > 0
         })
-        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .sort((a, b) => {
+          const aIsRent = (a.name || '').toLowerCase().includes('rent')
+          const bIsRent = (b.name || '').toLowerCase().includes('rent')
+          if (aIsRent && !bIsRent) return -1
+          if (!aIsRent && bIsRent) return 1
+          return (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+        })
 
       const totalOutstanding = unpaidItems.reduce((sum, item) => sum + (item.totalAmount - item.amountPaid), 0)
 
@@ -180,7 +180,6 @@ export class DistributePaymentAllocationsUseCase {
         let distributed = 0
 
         if (sequentialFill) {
-          // --- Sequential Fill: pay items in sortOrder, one at a time ---
           this.logger.log(`Sequential-filling ${distributableAmount} across ${unpaidItems.length} line items (no checkout intent, allowPartial)`)
           for (const item of unpaidItems) {
             if (remainingPayment <= 0) break

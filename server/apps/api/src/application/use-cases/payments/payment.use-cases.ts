@@ -219,7 +219,7 @@ export class CreateManualPaymentRequestUseCase {
       description: data.metadata?.narration || data.metadata?.description || 'Manual Property Payment',
       dueDate,
       status: 'PENDING',
-      allowPartial: false,
+      allowPartial: true,
       subaccountId: subaccountId,
       userPropertyId,
       isManual: true,
@@ -483,7 +483,8 @@ export class RecordTransactionUseCase {
         try {
           const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
           const txFee = rates.transactionFee
-          const excludeBenefits = (data as any).metadata?.excludeBenefits === true
+          const isBenefitsOptedIn = (data as any).metadata?.includeBenefits === true
+          const excludeBenefits = (data as any).metadata?.excludeBenefits === true || !isBenefitsOptedIn
           const benFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
           upwardFeeAmount = txFee + benFee
         } catch (e: any) {
@@ -568,6 +569,20 @@ export class RecordTransactionUseCase {
           })
         }
 
+        try {
+          await txClient.upward_notification.create({
+            data: {
+              userId: user!.id!,
+              title: 'Payment Confirmed',
+              message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
+              type: 'PAYMENT',
+              url: `/dashboard/receipts?id=${result.uuid}`,
+            },
+          })
+        } catch (notifErr: any) {
+          this.logger.warn(`Failed to create tenant payment notification: ${notifErr?.message}`)
+        }
+
         propertyId = pr?.userPropertyId
         if (!propertyId && data.userPropertyUuid) {
           const p = await txClient.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
@@ -634,6 +649,72 @@ export class RecordTransactionUseCase {
             remainingToConsume -= toConsume
           }
         }
+
+        // Snapshot receipt state on upward_transaction for instant, immutable receipts
+        let freshPr: any = null
+        if (pr?.id) {
+          freshPr = await txClient.upward_payment_request.findUnique({ where: { id: pr.id } })
+        }
+
+        const activePr = freshPr || pr
+
+        let snapshotRentStart: Date | null = activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null
+        let snapshotRentEnd: Date | null = activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null
+        let snapshotTotalInvoice: number | null = activePr?.amount || null
+        let snapshotHistoricalPaid: number | null = null
+        let snapshotRemaining: number | null = null
+        let snapshotIsPartial: boolean | null = null
+
+        if (!snapshotRentStart && propertyId) {
+          const latestPlatformPayment = await txClient.upward_platform_rent_payment.findFirst({
+            where: { userPropertyId: propertyId, status: 'SUCCESS' },
+            orderBy: { createdAt: 'desc' }
+          })
+          if (latestPlatformPayment?.periodStart) {
+            snapshotRentStart = new Date(latestPlatformPayment.periodStart)
+            snapshotRentEnd = latestPlatformPayment.periodEnd ? new Date(latestPlatformPayment.periodEnd) : null
+          } else {
+            const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
+            if (propRecord) {
+              snapshotRentStart = propRecord.rentStartDate ? new Date(propRecord.rentStartDate) : null
+              snapshotRentEnd = propRecord.rentEndDate ? new Date(propRecord.rentEndDate) : null
+            }
+          }
+        }
+
+        if (activePr) {
+          const priorTxs = await txClient.upward_transaction.findMany({
+            where: {
+              paymentRequestId: activePr.id,
+              status: 'SUCCESS',
+              createdAt: { lte: result.createdAt },
+            },
+          })
+          snapshotHistoricalPaid = priorTxs.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || result.amount || activePr.amountPaid || 0
+          snapshotTotalInvoice = activePr.amount
+          snapshotRemaining = Math.max(0, activePr.amount - (snapshotHistoricalPaid || 0))
+          snapshotIsPartial = (snapshotRemaining || 0) > 0
+        } else if (propertyId) {
+          const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
+          if (propRecord) {
+            snapshotTotalInvoice = propRecord.rentAmount || null
+            snapshotHistoricalPaid = propRecord.amountPaid || result.amount
+            snapshotRemaining = propRecord.amountRemaining ?? 0
+            snapshotIsPartial = (snapshotRemaining ?? 0) > 0
+          }
+        }
+
+        await txClient.upward_transaction.update({
+          where: { id: result.id },
+          data: {
+            rentStartDate: snapshotRentStart,
+            rentEndDate: snapshotRentEnd,
+            totalInvoiceAmount: snapshotTotalInvoice,
+            historicalPaidToDate: snapshotHistoricalPaid,
+            remainingBalance: snapshotRemaining,
+            isPartial: snapshotIsPartial,
+          } as any
+        })
       }
 
       return { result, pr, rentPortion, excess, paymentAmount }
@@ -1425,6 +1506,18 @@ export class ProcessPaymentWebhookUseCase {
             }
           }
         })
+      } else if (intent) {
+        this.logger.log(`DVA payment amount (${amountPaid}) does not match saved intent amount (${intent.amount}). Falling back to sequential fill.`)
+        // Clear non-matching or expired intent
+        await this.prisma.upward_dedicated_virtual_account.update({
+          where: { id: dva.id },
+          data: {
+            metadata: {
+              ...((dva.metadata as any) || {}),
+              lastPaymentIntent: null
+            }
+          }
+        })
       }
     }
 
@@ -1493,10 +1586,158 @@ export class GetTransactionUseCase {
   constructor(
     @Inject(TRANSACTION_REPOSITORY)
     private readonly txRepo: ITransactionRepository,
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
   ) { }
 
+  private decrypt(text?: string | null): string {
+    if (!text) return ''
+    if (text.includes(':')) {
+      try {
+        return this.encryption.decrypt(text)
+      } catch {
+        return text
+      }
+    }
+    return text
+  }
+
   async execute(uuid: string) {
-    return this.txRepo.findByUuid(uuid)
+    const tx: any = await this.txRepo.findByUuid(uuid)
+    if (!tx) return null
+
+    let resolvedCompanyName = 'Upward'
+    if (tx.companyName) {
+      const dec = this.decrypt(tx.companyName)
+      if (dec && dec !== 'account_name') resolvedCompanyName = dec
+    } else if (tx.narration) {
+      const dec = this.decrypt(tx.narration)
+      if (dec && dec !== 'account_name') resolvedCompanyName = dec
+    }
+
+    if (tx.paymentRequestId) {
+      const pr = await this.prisma.upward_payment_request.findUnique({
+        where: { id: tx.paymentRequestId },
+        include: {
+          lineItemRecords: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          userProperty: {
+            include: {
+              pm: {
+                include: {
+                  receiptSetting: true,
+                  emailSetting: true,
+                },
+              },
+              company: true,
+              manager: true,
+              location: true,
+            },
+          },
+        },
+      })
+
+      if (pr) {
+        const priorTxs = await this.prisma.upward_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            status: 'SUCCESS',
+            createdAt: { lte: tx.createdAt },
+          },
+        })
+        const historicalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+        const historicalRemaining = Math.max(0, pr.amount - historicalPaidToDate)
+
+        const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
+        const rentAmount = rentItem ? rentItem.totalAmount : pr.amount
+
+        const pm = pr.userProperty?.pm
+        const company = pr.userProperty?.company
+        const manager = pr.userProperty?.manager
+        const loc = pr.userProperty?.location
+
+        const themeColor = pm?.receiptSetting?.themeColor || '#B65B37'
+        const companyLogo = pm?.receiptSetting?.useEmailLogo === false
+          ? (pm.receiptSetting?.logoUrl || '')
+          : (pm?.emailSetting?.logoUrl || company?.logoUrl || '')
+
+        if (pm?.businessName) {
+          const dec = this.decrypt(pm.businessName)
+          if (dec && dec !== 'account_name') {
+            resolvedCompanyName = dec
+          }
+        } else if (company?.name) {
+          const dec = this.decrypt(company.name)
+          if (dec && dec !== 'account_name') {
+            resolvedCompanyName = dec
+          }
+        } else if (manager) {
+          const first = this.decrypt(manager.firstName)
+          const last = this.decrypt(manager.lastName)
+          const fullName = `${first} ${last}`.trim()
+          if (fullName && fullName !== 'account_name') {
+            resolvedCompanyName = fullName
+          }
+        }
+
+        const addressParts = [
+          loc?.address,
+          loc?.subarea,
+          loc?.area,
+          loc?.state,
+        ].filter(Boolean)
+        const propertyAddress = addressParts.length > 0 ? addressParts.join(', ') : ''
+
+        const lineItems = (pr.lineItemRecords && pr.lineItemRecords.length > 0)
+          ? pr.lineItemRecords.map((li: any) => ({
+              label: li.name,
+              amount: li.totalAmount,
+              category: 'Package',
+            }))
+          : []
+
+        return {
+          ...tx,
+          paymentRequest: {
+            ...tx.paymentRequest,
+            ...pr,
+          },
+          rentAmount,
+          totalInvoiceAmount: pr.amount,
+          historicalPaidToDate,
+          historicalRemaining,
+          isPartial: historicalRemaining > 0,
+          themeColor,
+          companyLogo: companyLogo || tx.companyLogo,
+          companyName: resolvedCompanyName,
+          propertyAddress: propertyAddress || tx.propertyAddress,
+          lineItems: (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : lineItems,
+        }
+      }
+    }
+
+    if (tx.landlordId && (!resolvedCompanyName || resolvedCompanyName === 'Upward')) {
+      const landlord = await this.prisma.upward_saved_landlord.findFirst({
+        where: {
+          OR: [
+            { uuid: tx.landlordId },
+            { id: !isNaN(Number(tx.landlordId)) ? Number(tx.landlordId) : -1 },
+          ],
+        },
+      })
+      if (landlord) {
+        const name = this.decrypt(landlord.name || landlord.accountName)
+        if (name && name !== 'account_name') {
+          resolvedCompanyName = name
+        }
+      }
+    }
+
+    return {
+      ...tx,
+      companyName: resolvedCompanyName,
+    }
   }
 }
 
@@ -1545,7 +1786,7 @@ export class GenerateReceiptPdfUseCase {
   async executeBuffer(
     data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string },
   ): Promise<Buffer> {
-    const enriched = { ...data }
+    const enriched: any = { ...data }
     if (enriched.paidAt && typeof enriched.paidAt === 'string') {
       enriched.paidAt = new Date(enriched.paidAt)
     }
@@ -1597,11 +1838,56 @@ export class GenerateReceiptPdfUseCase {
             })
           : null) as any
 
-    if (!enriched.tenancyPeriod) {
-      const rentStartDate = txWithBranding?.paymentRequest?.rentStartDate
-      const rentEndDate = txWithBranding?.paymentRequest?.rentEndDate
-      if (rentStartDate && rentEndDate) {
-        enriched.tenancyPeriod = `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    const snapshotStart = (txWithBranding as any)?.rentStartDate || txWithBranding?.paymentRequest?.rentStartDate || prop?.rentStartDate
+    const snapshotEnd = (txWithBranding as any)?.rentEndDate || txWithBranding?.paymentRequest?.rentEndDate || prop?.rentEndDate
+
+    if (snapshotStart && snapshotEnd) {
+      enriched.rentStartDate = snapshotStart
+      enriched.rentEndDate = snapshotEnd
+      enriched.tenancyPeriod = `${new Date(snapshotStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(snapshotEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    }
+
+    const hasSnapshotAmounts = (txWithBranding as any)?.totalInvoiceAmount !== null && (txWithBranding as any)?.totalInvoiceAmount !== undefined
+
+    if (hasSnapshotAmounts) {
+      const snapTx = txWithBranding as any
+      enriched.totalInvoiceAmount = snapTx.totalInvoiceAmount
+      enriched.rentAmount = snapTx.totalInvoiceAmount
+      enriched.totalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
+      enriched.remainingBalance = snapTx.remainingBalance ?? 0
+      enriched.isPartial = snapTx.isPartial ?? false
+      enriched.status = enriched.isPartial ? 'PARTIAL' : 'PAID'
+    } else if (txWithBranding?.paymentRequest) {
+      const pr = txWithBranding.paymentRequest
+      if (pr.amount !== undefined && pr.amount > 0) {
+        const priorTxs = await this.prisma.upward_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            status: 'SUCCESS',
+            createdAt: { lte: txWithBranding.createdAt },
+          },
+        })
+        const historicalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || txWithBranding.amount || pr.amountPaid || 0
+        const historicalRemaining = Math.max(0, pr.amount - historicalPaidToDate)
+
+        const prLineItems = await this.prisma.upward_payment_line_item.findMany({
+          where: { paymentRequestId: pr.id }
+        })
+        const rentItem = prLineItems.find((i: any) => i.name?.toLowerCase().includes('rent'))
+        const rentAmount = rentItem ? rentItem.totalAmount : pr.amount
+
+        enriched.rentAmount = rentAmount
+        enriched.totalInvoiceAmount = pr.amount
+        enriched.totalPaidToDate = historicalPaidToDate
+        enriched.remainingBalance = historicalRemaining
+
+        if (historicalRemaining > 0) {
+          enriched.isPartial = true
+          enriched.status = 'PARTIAL'
+        } else {
+          enriched.isPartial = false
+          enriched.status = 'PAID'
+        }
       }
     }
 
@@ -1648,8 +1934,11 @@ export class GenerateReceiptPdfUseCase {
         if (decrypted && decrypted !== 'account_name') {
           companyName = decrypted
         }
-      } else if (prop.company?.name && !prop.company.name.includes(':')) {
-        companyName = prop.company.name
+      } else if (prop.company?.name && prop.company.name !== 'account_name') {
+        const decrypted = prop.company.name.includes(':') ? this.encryption.decrypt(prop.company.name) : prop.company.name
+        if (decrypted && decrypted !== 'account_name') {
+          companyName = decrypted
+        }
       } else if (prop.manager) {
         const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
         const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
@@ -1676,8 +1965,11 @@ export class GenerateReceiptPdfUseCase {
       }
 
       if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
-        if (prop.company?.name && !prop.company.name.includes(':')) {
-          enriched.landlordName = prop.company.name
+        if (prop.company?.name && prop.company.name !== 'account_name') {
+          const decrypted = prop.company.name.includes(':') ? this.encryption.decrypt(prop.company.name) : prop.company.name
+          if (decrypted && decrypted !== 'account_name') {
+            enriched.landlordName = decrypted
+          }
         } else if (prop.manager) {
           const first = prop.manager.firstName?.includes(':') ? this.encryption.decrypt(prop.manager.firstName) : prop.manager.firstName
           const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
@@ -1685,6 +1977,13 @@ export class GenerateReceiptPdfUseCase {
             enriched.landlordName = `${first} ${last}`
           }
         }
+      }
+
+      if (enriched.landlordName && enriched.landlordName.includes(':')) {
+        enriched.landlordName = this.encryption.decrypt(enriched.landlordName)
+      }
+      if (enriched.brandName && enriched.brandName.includes(':')) {
+        enriched.brandName = this.encryption.decrypt(enriched.brandName)
       }
     }
 

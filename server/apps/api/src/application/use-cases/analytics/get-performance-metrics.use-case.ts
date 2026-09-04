@@ -69,6 +69,7 @@ export class GetPerformanceMetricsUseCase {
           passwordHash: true,
           isFromWaitlist: true,
           isFromInvite: true,
+          hearAboutUs: true,
           createdAt: true,
           updatedAt: true,
           authSessions: {

@@ -243,6 +243,7 @@ export class GetAdminUserDetailUseCase {
         upwardScore,
         credibilityRequests,
         savingsWalletEnabled: u.savingsWalletEnabled,
+        hearAboutUs: u.hearAboutUs || null,
         isFromInvite: u.isFromInvite,
         isFromWaitlist: u.isFromWaitlist,
         invitedAt: u.isFromInvite ? ((u as any).invitedAt || u.createdAt) : null,

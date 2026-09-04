@@ -82,8 +82,6 @@ export const metadata: Metadata = {
 }
 
 const GA_ID = process.env['NEXT_PUBLIC_GA_ID']
-// Only enable Google Ads in production (when NEXT_PUBLIC_GA_ID is present)
-const GADS_ID = GA_ID ? (process.env['NEXT_PUBLIC_GADS_ID'] || 'AW-18414957187') : undefined
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -116,10 +114,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ToastProvider>
         </ThemeProvider>
 
-        {(GA_ID || GADS_ID) && (
+        {GA_ID && (
           <>
             <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID || GADS_ID}`}
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
               strategy="afterInteractive"
             />
             <Script id="ga-init" strategy="afterInteractive">
@@ -127,8 +125,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                ${GA_ID ? `gtag('config', '${GA_ID}', { page_path: window.location.pathname });` : ''}
-                ${GADS_ID ? `gtag('config', '${GADS_ID}');` : ''}
+                gtag('config', '${GA_ID}', { page_path: window.location.pathname });
               `}
             </Script>
           </>

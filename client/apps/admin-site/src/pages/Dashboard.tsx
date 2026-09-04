@@ -297,6 +297,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       invitedAt,
       joinedAt,
       createdAt,
+      hearAboutUs: item.hearAboutUs || item.rawRecord?.hearAboutUs || null,
       totalPaid: item.totalPaid,
       transactions: item.transactions || [],
       paymentRequests: item.paymentRequests || [],
@@ -356,6 +357,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         isExWaitlist: u.origin === 'WAITLIST',
         totalPaid: u.totalPaid,
         rentExpiryDate: u.rentExpiryDate,
+        hearAboutUs: u.hearAboutUs,
         pms: u.pms,
         rawRecord: u,
       })

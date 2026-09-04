@@ -17,7 +17,7 @@ export class SettlePropertyBalanceUseCase {
     private readonly propertyRepo: PropertyRepository,
     @Inject(RENT_CYCLE_REPOSITORY)
     private readonly rentCycleRepo: IRentCycleRepository,
-  ) {}
+  ) { }
 
   async execute(params: {
     userId: number
@@ -82,7 +82,7 @@ export class SettlePropertyBalanceUseCase {
 
           const isCurrentPeriodFull = currentPeriodPaid >= (prop.rentAmount - 1)
 
-          if ((!isFirstRent && isCurrentPeriodFull) || (isFirstRent && isCurrentPeriodFull)) {
+          if (!isFirstRent || isCurrentPeriodFull) {
             if (effectivePeriodEnd) {
               const nextStart = new Date(effectivePeriodEnd)
               nextStart.setDate(nextStart.getDate() + 1)
@@ -177,7 +177,7 @@ export class SettlePropertyBalanceUseCase {
 
     const cycleDueDate = dueDate ? new Date(dueDate) : (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date())
     const paidAt = new Date()
-    
+
     let currentTotalPaid = rentPortion
     let amountOwedForCycle = totalOwedForProp || rentPortion
 

@@ -56,6 +56,9 @@ import { UpdateAdminDetailsUseCase } from './use-cases/admin/update-admin-detail
 import { GetEmailClickTrackingStatsUseCase } from './use-cases/admin/get-email-click-tracking-stats.use-case'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
+import { GetInviteDataUseCase } from './use-cases/invite/get-invite-data.use-case'
+import { RequestInviteOTPUseCase } from './use-cases/invite/request-invite-otp.use-case'
+import { AcceptInviteUseCase } from './use-cases/invite/accept-invite.use-case'
 import { GetWaitlistUseCase } from './use-cases/waitlist/get-waitlist.use-case'
 import { UpdateWaitlistUserUseCase } from './use-cases/waitlist/update-waitlist-user.use-case'
 import { DeleteWaitlistUserUseCase } from './use-cases/waitlist/delete-waitlist-user.use-case'
@@ -775,6 +778,9 @@ const UseCases: any[] = [
   GetSignatureImageUseCase,
   GetPublicAssetUseCase,
   GetRelayDocumentUseCase,
+  GetInviteDataUseCase,
+  RequestInviteOTPUseCase,
+  AcceptInviteUseCase,
 ]
 
 // AI Document ingestion imports
