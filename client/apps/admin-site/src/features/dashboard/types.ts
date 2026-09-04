@@ -36,6 +36,7 @@ export interface SignedUpRecord {
   originType?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   origin?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   hasPassword?: boolean
+  hearAboutUs?: string | null
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   lastPaidAt?: string | null
   transactions?: any[]
@@ -108,6 +109,7 @@ export interface MetricsSummary {
     total: number
     paying: number
     totalPaid: number
+    hearAboutUsStats?: Record<string, number>
   }
   invited: {
     pending: number
@@ -179,6 +181,7 @@ export interface FlatMetrics {
   inactiveCount: number
   activeRate: number
   totalUsersWithPassword: number
+  hearAboutUsStats?: Record<string, number>
   emailLogsSummary?: {
     totalSent: number
     totalOpened: number
@@ -213,6 +216,7 @@ export function flattenMetrics(m: MetricsSummary): FlatMetrics {
     inactiveCount: m.activeUsers?.inactiveCount ?? 0,
     activeRate: m.activeUsers?.activeRate ?? 0,
     totalUsersWithPassword: m.activeUsers?.totalUsersWithPassword ?? 0,
+    hearAboutUsStats: m.signedUp?.hearAboutUsStats || {},
     emailLogsSummary: (m as any).emailLogsSummary,
     activitySessionsCount: (m as any).activitySessionsCount,
   }

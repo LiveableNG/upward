@@ -946,6 +946,49 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               />
             </div>
 
+            {/* ── Where Did You Hear About Us Breakdown ── */}
+            {metrics.hearAboutUsStats && Object.keys(metrics.hearAboutUsStats).length > 0 && (
+              <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Globe size={18} style={{ color: 'var(--accent)' }} /> Signup Channel Attribution ("Where did you hear about us?")
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Breakdown of customer acquisition sources selected during upward-pay account registration.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '16px',
+                }}>
+                  {Object.entries(metrics.hearAboutUsStats)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([channel, count]) => {
+                      const totalSubmissions = Object.values(metrics.hearAboutUsStats!).reduce((sum, n) => sum + n, 0)
+                      const pct = totalSubmissions > 0 ? Math.round((count / totalSubmissions) * 100) : 0
+                      return (
+                        <div key={channel} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', marginBottom: '8px', wordBreak: 'break-word' }}>
+                            {channel}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{count}</span>
+                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>({pct}%)</span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', background: 'var(--accent)', width: `${pct}%`, borderRadius: '3px' }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* ── Email Campaigns & Open Performance ── */}
             {metrics.emailLogsSummary && (
               <div className="card" style={{ padding: '24px', marginTop: '24px' }}>

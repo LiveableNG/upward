@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock } from 'lucide-react'
+import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock, Compass } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export type DrawerEntity = {
@@ -20,6 +20,7 @@ export type DrawerEntity = {
   invitedAt?: string | null
   joinedAt?: string | null
   createdAt?: string
+  hearAboutUs?: string | null
   transactionCount?: number
   totalPaid?: number
   propertyCount?: number
@@ -217,6 +218,17 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                       </strong>
                     </span>
                   </div>
+                  {entity.hearAboutUs && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      <Compass size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      <span>
+                        Source:{' '}
+                        <strong style={{ fontWeight: 600, color: 'var(--text)' }}>
+                          {entity.hearAboutUs}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

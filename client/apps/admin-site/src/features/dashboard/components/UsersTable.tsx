@@ -20,6 +20,7 @@ export interface UnifiedUserRecord {
   totalPaid: number
   upwardScore?: { score: number; band?: string; color?: string }
   rentExpiryDate?: string
+  hearAboutUs?: string | null
   failureReason?: string
   rawRecord: any
 }
