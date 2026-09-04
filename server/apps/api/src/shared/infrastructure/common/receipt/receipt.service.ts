@@ -266,18 +266,45 @@ export class ReceiptService {
           }
         }
       } else {
-        // Draw Upward Triangle Logo Icon
-        doc.save()
-        doc.polygon([BRAND_X + 6, BRAND_Y + 1], [BRAND_X + 13, BRAND_Y + 13], [BRAND_X, BRAND_Y + 13])
-        doc.fill('#FBF3EE')
-        doc.restore()
-
+        // Draw Upward Logo Icon & Brand Name
         const brandName = cleanDisplayName(data.brandName, 'Upward')
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(13)
-          .fillColor('#FBF3EE')
-          .text(brandName, BRAND_X + 18, BRAND_Y + 1)
+        const isUpwardBranding = brandName.toUpperCase() === 'UPWARD'
+
+        if (isUpwardBranding) {
+          const ICON_SIZE = 24
+          const iconOffsetY = BRAND_Y - (ICON_SIZE * 22) / 40 + 2
+
+          doc.save()
+          doc.translate(BRAND_X, iconOffsetY)
+          doc.scale(ICON_SIZE / 40)
+
+          doc.roundedRect(7, 15, 10, 17, 5).fill('#FBF3EE')
+          doc.roundedRect(23, 15, 10, 17, 5).fill('#FBF3EE')
+
+          doc
+            .moveTo(12, 30)
+            .quadraticCurveTo(12, 37, 20, 37)
+            .quadraticCurveTo(28, 37, 28, 30)
+            .lineWidth(5.5)
+            .stroke('#FBF3EE')
+
+          doc.moveTo(7, 19).lineTo(20, 8).lineTo(33, 19).lineWidth(5).stroke('#FBF3EE')
+          doc.circle(20, 5, 3).fill('#22c55e')
+          doc.restore()
+
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(14)
+            .fillColor('#FBF3EE')
+            .text('PWARD', BRAND_X + ICON_SIZE - 2, BRAND_Y + 1)
+        } else {
+          // Custom Landlord Brand Name without uploaded logo image
+          doc
+            .font('Helvetica-Bold')
+            .fontSize(14)
+            .fillColor('#FBF3EE')
+            .text(brandName, BRAND_X, BRAND_Y + 1)
+        }
       }
 
       // Hero: "Amount received"
