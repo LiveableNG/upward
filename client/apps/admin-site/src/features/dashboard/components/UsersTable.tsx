@@ -286,7 +286,16 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       key: 'origin',
       label: 'Origin',
       sortable: true,
-      render: (item) => getOriginBadge(item.origin),
+      render: (item) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'flex-start' }}>
+          {getOriginBadge(item.origin)}
+          {item.hearAboutUs && (
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontStyle: 'italic', fontWeight: 500 }}>
+              via {item.hearAboutUs}
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'pmName',
