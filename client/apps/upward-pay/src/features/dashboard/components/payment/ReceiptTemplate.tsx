@@ -192,11 +192,9 @@ export default function ReceiptTemplate({
                     alt={receipt.companyName || 'Brand'}
                     className="brand-logo"
                   />
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" className="brand-svg">
-                    <path d="M12 3L21 20H3L12 3Z" fill="#FBF3EE" />
-                  </svg>
-                )}
+                ) : (receipt.companyName || 'Upward').toUpperCase() === 'UPWARD' ? (
+                  <UpwardLogo size={24} color="#FBF3EE" className="brand-svg" />
+                ) : null}
                 <span>{receipt.companyName || 'Upward'}</span>
               </div>
 
