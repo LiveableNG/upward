@@ -39,6 +39,7 @@ export class PrismaUserRepository implements UserRepository {
       bio: model.bio,
       termsAcceptedAt: model.termsAcceptedAt,
       termsVersion: model.termsVersion,
+      hearAboutUs: model.hearAboutUs,
       properties: model.properties ? model.properties.map((p: any) => ({
         id: p.id,
         uuid: p.uuid,
@@ -400,6 +401,7 @@ export class PrismaUserRepository implements UserRepository {
         bio: user.bio,
         termsAcceptedAt: user.termsAcceptedAt ?? new Date(),
         termsVersion: user.termsVersion ?? '2026-08-24',
+        hearAboutUs: user.hearAboutUs ?? null,
         resetPasswordOTP: user.resetPasswordOTP,
         resetPasswordExpires: user.resetPasswordExpires,
       },
@@ -415,7 +417,7 @@ export class PrismaUserRepository implements UserRepository {
     const scalarFields = [
       'passwordHash', 'authProvider', 'providerId', 'gender', 'dateOfBirth', 'isIdentityVerified',
       'isFromWaitlist', 'isFromInvite', 'invitedAt', 'joinedAt', 'profilePic', 'profileSlug', 
-      'bio', 'termsAcceptedAt', 'termsVersion', 'resetPasswordOTP', 'resetPasswordExpires'
+      'bio', 'termsAcceptedAt', 'termsVersion', 'hearAboutUs', 'resetPasswordOTP', 'resetPasswordExpires'
     ]
 
     for (const field of scalarFields) {
