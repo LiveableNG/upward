@@ -12,6 +12,7 @@ export interface IEarlyAccessRepository {
   findById(id: string): Promise<EarlyAccessEntry | null>
   findAll(params?: { type?: string; search?: string; limit?: number; offset?: number }): Promise<{ entries: EarlyAccessEntry[]; total: number }>
   getStats(): Promise<EarlyAccessStats>
+  delete(id: string): Promise<boolean>
 }
 
 export const EARLY_ACCESS_REPOSITORY = Symbol('EARLY_ACCESS_REPOSITORY')

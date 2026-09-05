@@ -54,3 +54,19 @@ export class GetEarlyAccessEntriesUseCase {
     }
   }
 }
+
+@Injectable()
+export class DeleteEarlyAccessEntryUseCase {
+  constructor(
+    @Inject(EARLY_ACCESS_REPOSITORY)
+    private readonly earlyAccessRepo: IEarlyAccessRepository,
+  ) {}
+
+  async execute(id: string): Promise<boolean> {
+    const existing = await this.earlyAccessRepo.findById(id)
+    if (!existing) {
+      throw new Error(`Early access entry with ID ${id} not found`)
+    }
+    return this.earlyAccessRepo.delete(id)
+  }
+}

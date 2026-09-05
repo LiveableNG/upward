@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -15,6 +16,7 @@ import {
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
   UpdateUniversityApplicationStatusUseCase,
+  DeleteUniversityApplicationUseCase,
 } from '../../../application/use-cases/university-application/get-university-applications-admin.use-case'
 
 @Controller('admin/university/applications')
@@ -24,6 +26,7 @@ export class UniversityApplicationAdminController {
     private readonly getStatsUseCase: GetUniversityApplicationStatsUseCase,
     private readonly getApplicationsUseCase: GetUniversityApplicationsUseCase,
     private readonly updateStatusUseCase: UpdateUniversityApplicationStatusUseCase,
+    private readonly deleteApplicationUseCase: DeleteUniversityApplicationUseCase,
   ) {}
 
   @Get('stats')
@@ -81,6 +84,16 @@ export class UniversityApplicationAdminController {
       success: true,
       message: 'Application status updated successfully',
       data: updated.toObject(),
+    }
+  }
+
+  @Delete(':id')
+  @Roles(AdminRole.DEVELOPER)
+  async deleteApplication(@Param('id') id: string) {
+    await this.deleteApplicationUseCase.execute(id)
+    return {
+      success: true,
+      message: 'Application deleted successfully',
     }
   }
 }

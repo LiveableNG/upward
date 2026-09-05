@@ -122,4 +122,12 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
       cityBreakdown,
     }
   }
+
+  async delete(id: string): Promise<boolean> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (this.prisma as any).upward_early_access.delete({
+      where: { id },
+    })
+    return true
+  }
 }

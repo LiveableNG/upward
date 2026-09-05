@@ -10,6 +10,7 @@ import { SendHomeRequestDigestUseCase } from '../application/use-cases/home-requ
 import { QueueDailySequencesUseCase } from '../application/use-cases/sequence/queue-daily-sequences.use-case'
 import { ApplyDailySavingsInterestUseCase } from '../application/use-cases/payments/wallet.use-cases'
 import { NotifyEligibleDeletionAccountsUseCase } from '../application/use-cases/admin/notify-eligible-deletion-accounts.use-case'
+import { SendUniversityApplicationDailyDigestUseCase } from '../application/use-cases/university-application/send-university-application-daily-digest.use-case'
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import { S3Service } from '../shared/infrastructure/common/s3/s3.service'
@@ -33,6 +34,7 @@ export class ScheduleService implements OnModuleInit {
     private readonly queueDailySequencesUseCase: QueueDailySequencesUseCase,
     private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
     private readonly notifyEligibleDeletionAccountsUseCase: NotifyEligibleDeletionAccountsUseCase,
+    private readonly sendUniversityApplicationDailyDigestUseCase: SendUniversityApplicationDailyDigestUseCase,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
   ) {
@@ -105,6 +107,13 @@ export class ScheduleService implements OnModuleInit {
       .dailyAt('09:00')
       .withoutOverlapping()
       .description('Daily digest to admins listing 10, 20, and 30+ day disabled accounts pending deletion')
+
+    s.call('universityApplicationDigest', async () => {
+      await this.sendUniversityApplicationDailyDigestUseCase.execute()
+    })
+      .dailyAt('09:00')
+      .withoutOverlapping()
+      .description('Daily email digest summarizing yesterday\'s Upward University applications to admins')
 
     s.call('cleanupDevEmails', async () => {
       this.logger.log('Starting daily dev-emails S3 and database cleanup task...')

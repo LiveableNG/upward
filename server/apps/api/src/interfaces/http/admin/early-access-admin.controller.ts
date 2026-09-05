@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Delete,
+  Param,
   Query,
   UseGuards,
 } from '@nestjs/common'
@@ -11,6 +13,7 @@ import { AdminRole } from '@upward/shared-types'
 import {
   GetEarlyAccessStatsUseCase,
   GetEarlyAccessEntriesUseCase,
+  DeleteEarlyAccessEntryUseCase,
 } from '../../../application/use-cases/early-access/get-early-access-admin.use-case'
 
 @Controller('admin/early-access')
@@ -19,6 +22,7 @@ export class EarlyAccessAdminController {
   constructor(
     private readonly getEarlyAccessStatsUseCase: GetEarlyAccessStatsUseCase,
     private readonly getEarlyAccessEntriesUseCase: GetEarlyAccessEntriesUseCase,
+    private readonly deleteEarlyAccessEntryUseCase: DeleteEarlyAccessEntryUseCase,
   ) {}
 
   @Get('stats')
@@ -53,6 +57,16 @@ export class EarlyAccessAdminController {
       success: true,
       data: result.data,
       meta: result.meta,
+    }
+  }
+
+  @Delete(':id')
+  @Roles(AdminRole.DEVELOPER)
+  async deleteEntry(@Param('id') id: string) {
+    await this.deleteEarlyAccessEntryUseCase.execute(id)
+    return {
+      success: true,
+      message: 'Early access record deleted successfully',
     }
   }
 }
