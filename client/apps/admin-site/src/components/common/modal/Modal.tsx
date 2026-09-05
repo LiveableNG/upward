@@ -26,11 +26,7 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div
-      className="modal-overlay"
-      style={{ alignItems: 'flex-start', paddingTop: '80px' }}
-      onClick={onClose}
-    >
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: '32px' }}>
           {!hideHeader && (
