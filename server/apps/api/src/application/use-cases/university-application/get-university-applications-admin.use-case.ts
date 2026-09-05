@@ -96,3 +96,19 @@ export class UpdateUniversityApplicationStatusUseCase {
     return this.applicationRepo.save(updated)
   }
 }
+
+@Injectable()
+export class DeleteUniversityApplicationUseCase {
+  constructor(
+    @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
+    private readonly applicationRepo: IUniversityApplicationRepository,
+  ) {}
+
+  async execute(id: string): Promise<boolean> {
+    const existing = await this.applicationRepo.findById(id)
+    if (!existing) {
+      throw new Error(`University application with ID ${id} not found`)
+    }
+    return this.applicationRepo.delete(id)
+  }
+}

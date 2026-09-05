@@ -16,6 +16,7 @@ import {
   Calendar,
   Layers,
   AlertCircle,
+  Trash2,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -80,9 +81,11 @@ interface ApplicationStats {
 
 interface UpwardUniversityProps {
   token: string
+  adminRole?: string
 }
 
-export default function UpwardUniversity({ token }: UpwardUniversityProps) {
+export default function UpwardUniversity({ token, adminRole }: UpwardUniversityProps) {
+  const isDeveloper = adminRole === 'DEVELOPER'
   const [activeTab, setActiveTab] = useState<'APPLICATIONS' | 'EARLY_ACCESS'>('APPLICATIONS')
 
   // Applications State
@@ -109,6 +112,40 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
   // Detail Modal State
   const [selectedRecord, setSelectedRecord] = useState<EarlyAccessRecord | null>(null)
 
+  // Delete Confirmation State
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; type: 'APPLICATION' | 'EARLY_ACCESS' } | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      if (deleteTarget.type === 'APPLICATION') {
+        const res = await apiService.delete(`/admin/university/applications/${deleteTarget.id}`, token)
+        if (res && res.success) {
+          showToast('Application deleted successfully')
+          if (selectedApp && selectedApp.id === deleteTarget.id) setSelectedApp(null)
+          fetchApplications(appPage)
+          fetchAppStats()
+        }
+      } else {
+        const res = await apiService.delete(`/admin/early-access/${deleteTarget.id}`, token)
+        if (res && res.success) {
+          showToast('Early access record deleted successfully')
+          if (selectedRecord && selectedRecord.id === deleteTarget.id) setSelectedRecord(null)
+          fetchRecords(page)
+          fetchStats()
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete record:', err)
+      showToast('Failed to delete record', true)
+    } finally {
+      setDeleting(false)
+      setDeleteTarget(null)
+    }
+  }
+
   const fetchAppStats = async () => {
     try {
       const response = await apiService.get('/admin/university/applications/stats', token)
@@ -128,7 +165,7 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
 
       const response = await apiService.get(url, token)
       if (response && response.data) {
-        setApplications(response.data)
+        setApplications(response.data)  
         setAppTotalPages(response.meta?.totalPages || 1)
       }
     } catch (error) {
@@ -397,16 +434,41 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
     },
     {
       key: 'actions',
-      label: 'Action',
+      label: 'Actions',
       render: (row) => (
-        <button
-          onClick={() => setSelectedApp(row)}
-          className="btn btn-secondary btn-sm"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
-        >
-          <Eye size={14} />
-          View Application
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => setSelectedApp(row)}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
+          >
+            <Eye size={14} />
+            View Application
+          </button>
+          {isDeveloper && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeleteTarget({ id: row.id, name: row.name, type: 'APPLICATION' })
+              }}
+              className="btn btn-sm"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px 10px',
+                background: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              title="Delete Application"
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       ),
     },
   ]
@@ -586,17 +648,42 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
       key: 'actions',
       label: 'Actions',
       render: (row) => (
-        <button
-          className="btn btn-secondary"
-          style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', gap: '6px', alignItems: 'center' }}
-          onClick={(e) => {
-            e.stopPropagation()
-            setSelectedRecord(row)
-          }}
-        >
-          <Eye size={13} />
-          View
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            className="btn btn-secondary"
+            style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', gap: '6px', alignItems: 'center' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setSelectedRecord(row)
+            }}
+          >
+            <Eye size={13} />
+            View
+          </button>
+          {isDeveloper && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeleteTarget({ id: row.id, name: row.name, type: 'EARLY_ACCESS' })
+              }}
+              className="btn btn-sm"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px 10px',
+                background: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              title="Delete Record"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       ),
     },
   ]
@@ -1330,6 +1417,31 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                 </div>
               </div>
             )}
+
+            {isDeveloper && (
+              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setDeleteTarget({ id: selectedRecord.id, name: selectedRecord.name, type: 'EARLY_ACCESS' })}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    background: '#fef2f2',
+                    color: '#dc2626',
+                    border: '1px solid #fecaca',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Trash2 size={15} />
+                  Delete Early Access Record
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Modal>
@@ -1606,6 +1718,91 @@ export default function UpwardUniversity({ token }: UpwardUniversityProps) {
                   </select>
                 </div>
               </div>
+
+              {isDeveloper && (
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget({ id: selectedApp.id, name: selectedApp.name, type: 'APPLICATION' })}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      background: '#fef2f2',
+                      color: '#dc2626',
+                      border: '1px solid #fecaca',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Trash2 size={15} />
+                    Delete Application Record
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Confirmation Modal for Deletion ── */}
+      <Modal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => !deleting && setDeleteTarget(null)}
+        title="Confirm Record Deletion"
+      >
+        {deleteTarget && (
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#dc2626' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#fef2f2', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <AlertCircle size={24} color="#dc2626" />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>Are you sure?</h4>
+                <p style={{ margin: '2px 0 0 0', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '14px', color: 'var(--text-primary)', background: '#fafafa', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              You are about to permanently delete the {deleteTarget.type === 'APPLICATION' ? 'University Application' : 'Early Access / Info Request'} record for <strong>{deleteTarget.name}</strong>.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.7 : 1,
+                }}
+              >
+                <Trash2 size={15} />
+                {deleting ? 'Deleting...' : 'Yes, Delete Record'}
+              </button>
             </div>
           </div>
         )}

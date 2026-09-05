@@ -22,4 +22,5 @@ export interface IUniversityApplicationRepository {
     offset?: number
   }): Promise<{ applications: UniversityApplication[]; total: number }>
   getStats(): Promise<ApplicationStats>
+  delete(id: string): Promise<boolean>
 }

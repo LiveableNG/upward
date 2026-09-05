@@ -42,6 +42,17 @@ export class PrismaUniversityApplicationRepository
         notes: rawData.notes ?? null,
       },
       update: {
+        name: rawData.name,
+        whatsapp: rawData.whatsapp,
+        email: rawData.email,
+        city: rawData.city,
+        ageBracket: rawData.ageBracket,
+        occupation: rawData.occupation ?? null,
+        experienceLevel: rawData.experienceLevel ?? null,
+        goals: rawData.goals ?? null,
+        commitment: rawData.commitment,
+        why: rawData.why,
+        timing: rawData.timing ?? null,
         isScholarship: rawData.isScholarship,
         scholarshipVideoUrl: rawData.scholarshipVideoUrl ?? null,
         status: rawData.status,
@@ -151,5 +162,13 @@ export class PrismaUniversityApplicationRepository
       admittedCount,
       feePaidCount,
     }
+  }
+
+  async delete(id: string): Promise<boolean> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (this.prisma as any).upward_university_application.delete({
+      where: { id },
+    })
+    return true
   }
 }

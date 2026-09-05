@@ -1016,7 +1016,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       const btnStage1 = document.getElementById('btn-stage-1-next');
       if (btnStage1) {
         btnStage1.disabled = true;
-        btnStage1.textContent = 'Saving...';
+        btnStage1.textContent = 'Please wait...';
       }
 
       const nameVal = document.getElementById('name').value;
@@ -1119,7 +1119,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       const btnStage2 = document.getElementById('btn-stage-2-next');
       if (btnStage2) {
         btnStage2.disabled = true;
-        btnStage2.textContent = 'Saving Details...';
+        btnStage2.textContent = 'Please wait...';
       }
 
       // Populate Stage 3 Summary Card
@@ -1137,14 +1137,14 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         email: document.getElementById('email').value,
         city: document.getElementById('city').value,
         ageBracket: document.getElementById('age').value,
-        occupation: document.getElementById('occupation').value,
+        occupation: document.getElementById('occupation').value || undefined,
         experienceLevel: document.getElementById('exp').value || 'Stage 2 Completed',
-        goals: document.getElementById('goals').value,
+        goals: document.getElementById('goals').value || undefined,
         commitment: document.getElementById('commitment').value,
         why: document.getElementById('why').value,
-        timing: document.getElementById('timing').value,
+        timing: document.getElementById('timing').value || undefined,
         isScholarshipApplicant: isScholarship,
-        scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : ''
+        scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : undefined
       };
 
       try {

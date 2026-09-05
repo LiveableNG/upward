@@ -72,12 +72,15 @@ import { SubmitLandlordEarlyAccessUseCase } from './use-cases/early-access/submi
 import {
   GetEarlyAccessStatsUseCase,
   GetEarlyAccessEntriesUseCase,
+  DeleteEarlyAccessEntryUseCase,
 } from './use-cases/early-access/get-early-access-admin.use-case'
 import { SubmitUniversityApplicationUseCase } from './use-cases/university-application/submit-university-application.use-case'
+import { SendUniversityApplicationDailyDigestUseCase } from './use-cases/university-application/send-university-application-daily-digest.use-case'
 import {
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
   UpdateUniversityApplicationStatusUseCase,
+  DeleteUniversityApplicationUseCase,
 } from './use-cases/university-application/get-university-applications-admin.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
@@ -738,10 +741,13 @@ const UseCases: any[] = [
   SubmitLandlordEarlyAccessUseCase,
   GetEarlyAccessStatsUseCase,
   GetEarlyAccessEntriesUseCase,
+  DeleteEarlyAccessEntryUseCase,
   SubmitUniversityApplicationUseCase,
+  SendUniversityApplicationDailyDigestUseCase,
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
   UpdateUniversityApplicationStatusUseCase,
+  DeleteUniversityApplicationUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
   QueueDailySequencesUseCase,

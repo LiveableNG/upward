@@ -69,6 +69,7 @@ export class SubmitUniversityApplicationUseCase {
         ageBracket: command.ageBracket,
         occupation: command.occupation ?? existingProps.occupation,
         experienceLevel: command.experienceLevel ?? existingProps.experienceLevel,
+        goals: command.goals ?? existingProps.goals,
         commitment: command.commitment ?? existingProps.commitment ?? 'Pending (Stage 1 Completed)',
         why: command.why ?? existingProps.why ?? 'Pending (Stage 1 Completed)',
         timing: command.timing ?? existingProps.timing,
@@ -160,28 +161,7 @@ export class SubmitUniversityApplicationUseCase {
       }
     }
 
-    // Admin System Alert
-    try {
-      const adminMessage = `
-        <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
-          <h3 style="color: #8A4A2A; margin-bottom: 12px;">Upward University Application ${isExisting ? 'Updated' : 'Submitted'}</h3>
-          <p>Status: <strong>${saved.feeStatus === 'PAID' ? 'PAID (₦5,000 Verified)' : 'PENDING PAYMENT'}</strong></p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px;">
-            <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; border-bottom: 1px solid #eee;">Name:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.name}</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.email}</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">WhatsApp:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.whatsapp}</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">City:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.city}</td></tr>
-            <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Fee Status:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; color: ${saved.feeStatus === 'PAID' ? 'green' : 'orange'}; font-weight: bold;">${saved.feeStatus || 'PENDING'}</td></tr>
-          </table>
-        </div>
-      `
-      await this.emailService.sendSystemAlertToAdmins(
-        `🎓 University Application ${isExisting ? 'Updated' : 'Submitted'}: ${command.name} (${saved.feeStatus === 'PAID' ? 'PAID' : 'PENDING'})`,
-        adminMessage,
-      )
-    } catch (err) {
-      this.logger.error('Failed to send university application admin alert', err)
-    }
+
 
     return {
       application: saved,

@@ -110,7 +110,7 @@ function AppRoutes() {
           <Route path="/demo-requests" element={<DemoRequests token={auth.token} />} />
           <Route
             path="/university-early-access"
-            element={<UpwardUniversity token={auth.token} />}
+            element={<UpwardUniversity token={auth.token} adminRole={auth.user.role} />}
           />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
