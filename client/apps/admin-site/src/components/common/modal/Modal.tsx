@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 
 export interface ModalProps {
   isOpen: boolean
@@ -25,12 +26,8 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   if (!isOpen) return null
 
-  return (
-    <div
-      className="modal-overlay"
-      style={{ alignItems: 'flex-start', paddingTop: '80px' }}
-      onClick={onClose}
-    >
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: '32px' }}>
           {!hideHeader && (
@@ -73,6 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
