@@ -408,6 +408,14 @@ export class ReviewManualPaymentUseCase {
             transactionId: tx.id
           }
         })
+
+        // Also mark any pending initial onboarding platform rent payment for this property as SUCCESS
+        if (property?.id) {
+          await this.prisma.upward_platform_rent_payment.updateMany({
+            where: { userPropertyId: property.id, status: 'PENDING_APPROVAL' },
+            data: { status: 'SUCCESS' }
+          }).catch((err: any) => this.logger.warn(`Failed to update initial onboarding payment status: ${err.message}`))
+        }
         
         await this.sendApprovalNotification(user, property, tx.uuid)
         

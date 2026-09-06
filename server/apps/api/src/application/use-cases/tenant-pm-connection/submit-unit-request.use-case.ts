@@ -19,6 +19,8 @@ type UnitDetails = {
   rentStartDate: string;
   rentEndDate: string;
   rentType?: string;
+  tenancyStatus?: 'NEW_CYCLE' | 'PAYING_BALANCE' | 'ALREADY_PAID';
+  initialAmountPaid?: number;
 };
 
 type PaymentDetails = {
@@ -170,12 +172,46 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
+    const tenancyStatus = unitDetails.tenancyStatus || 'NEW_CYCLE';
+    let initialPaid = 0;
+    let amountPaid = 0;
+    let amountRemaining = unitDetails.rentAmount;
+    let startDate = new Date(unitDetails.rentStartDate);
+    let endDate = new Date(unitDetails.rentEndDate);
+
+    if (tenancyStatus === 'PAYING_BALANCE' && unitDetails.initialAmountPaid) {
+      initialPaid = Math.min(unitDetails.rentAmount, Math.max(0, unitDetails.initialAmountPaid));
+      amountPaid = initialPaid;
+      amountRemaining = Math.max(0, unitDetails.rentAmount - initialPaid);
+    } else if (tenancyStatus === 'ALREADY_PAID') {
+      initialPaid = unitDetails.rentAmount;
+      // Advance to next cycle
+      const nextStart = new Date(endDate);
+      nextStart.setDate(nextStart.getDate() + 1);
+      const nextEnd = new Date(nextStart);
+      if (unitDetails.rentType === 'Monthly') {
+        nextEnd.setMonth(nextEnd.getMonth() + 1);
+      } else {
+        nextEnd.setFullYear(nextEnd.getFullYear() + 1);
+      }
+      nextEnd.setDate(nextEnd.getDate() - 1);
+
+      startDate = nextStart;
+      endDate = nextEnd;
+      amountPaid = 0;
+      amountRemaining = unitDetails.rentAmount;
+    }
+
     const propertyBaseData: any = {
       user: { connect: { id: fullUser.id } },
       rentAmount: unitDetails.rentAmount,
-      rentStartDate: new Date(unitDetails.rentStartDate),
-      rentEndDate: new Date(unitDetails.rentEndDate),
+      rentStartDate: startDate,
+      rentEndDate: endDate,
       rentType: unitDetails.rentType || 'Annually',
+      amountPaid,
+      amountRemaining,
+      initialAmountPaid: initialPaid,
+      isFirstRent: tenancyStatus === 'NEW_CYCLE',
     };
 
     if (pm) {
@@ -199,22 +235,27 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
+    let savedProperty: any = null;
+
     if (unitDetails.uuid) {
       const existing = await this.prisma.upward_user_property.findUnique({
         where: { uuid: unitDetails.uuid }
       });
 
-      if (existing && existing.isVerified) {
-        // If property is verified, keep existing lease details and relationships
+      if (existing && (existing.isVerified || existing.pmUnitId)) {
+        // STRICT LOCK: If property is verified/managed, lock lease details
         propertyBaseData.rentAmount = existing.rentAmount;
         propertyBaseData.rentStartDate = existing.rentStartDate;
         propertyBaseData.rentEndDate = existing.rentEndDate;
         propertyBaseData.rentType = existing.rentType;
+        propertyBaseData.amountPaid = existing.amountPaid;
+        propertyBaseData.amountRemaining = existing.amountRemaining;
+        propertyBaseData.initialAmountPaid = existing.initialAmountPaid;
         delete propertyBaseData.pm;
         delete propertyBaseData.subaccount;
       }
 
-      await (this.prisma as any).upward_user_property.update({
+      savedProperty = await (this.prisma as any).upward_user_property.update({
         where: { uuid: unitDetails.uuid, userId: fullUser.id },
         data: {
           ...propertyBaseData,
@@ -230,7 +271,7 @@ export class SubmitUnitRequestUseCase {
         }
       });
     } else {
-      await (this.prisma as any).upward_user_property.create({
+      savedProperty = await (this.prisma as any).upward_user_property.create({
         data: {
           ...propertyBaseData,
           location: {
@@ -244,6 +285,48 @@ export class SubmitUnitRequestUseCase {
           }
         }
       });
+    }
+
+    // Upsert manual payment account for self-managed property if paymentDetails provided
+    if (savedProperty?.id && paymentDetails?.accountNumber && paymentDetails?.bankCode) {
+      await this.prisma.upward_manual_account.upsert({
+        where: { userPropertyId: savedProperty.id },
+        create: {
+          userPropertyId: savedProperty.id,
+          accountNumber: paymentDetails.accountNumber,
+          accountName: paymentDetails.accountName || 'Landlord',
+          bankName: paymentDetails.bankName || '',
+          bankCode: paymentDetails.bankCode,
+        },
+        update: {
+          accountNumber: paymentDetails.accountNumber,
+          accountName: paymentDetails.accountName || 'Landlord',
+          bankName: paymentDetails.bankName || '',
+          bankCode: paymentDetails.bankCode,
+        }
+      }).catch((e: any) => this.logger.warn(`Failed to save manual account: ${e.message}`));
+    }
+
+    // Record initial offline payment entry if initialPaid > 0 (marked PENDING_APPROVAL until PM verifies)
+    if (savedProperty?.id && initialPaid > 0) {
+      const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
+        where: { userPropertyId: savedProperty.id, notes: 'Initial Onboarding Payment' }
+      });
+      if (!existingRecord) {
+        await this.prisma.upward_platform_rent_payment.create({
+          data: {
+            userPropertyId: savedProperty.id,
+            amount: initialPaid,
+            rentAmountAtPayment: unitDetails.rentAmount,
+            paymentDate: new Date(),
+            method: 'INITIAL_ONBOARDING',
+            status: 'PENDING_APPROVAL',
+            notes: 'Initial Onboarding Payment',
+            periodStart: new Date(unitDetails.rentStartDate),
+            periodEnd: new Date(unitDetails.rentEndDate),
+          }
+        }).catch((e: any) => this.logger.warn(`Failed to record platform rent payment: ${e.message}`));
+      }
     }
 
     if (pm) {

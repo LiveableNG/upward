@@ -31,6 +31,11 @@ export interface UserProfile {
     rentStartDate?: string;
     rentEndDate: string;
     rentAmount?: number;
+    rentType?: string;
+    initialAmountPaid?: number;
+    pmId?: number;
+    pmUnitId?: string;
+    paymentProofs?: any[];
     isManaged?: boolean;
     isVerified?: boolean;
     isPmVerified?: boolean;

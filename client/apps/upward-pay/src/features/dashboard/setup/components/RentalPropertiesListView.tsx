@@ -86,6 +86,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                 role="button"
                 tabIndex={0}
                 className="pay-flow__card pay-flow__property-card"
+                style={{ alignItems: 'flex-start' }}
                 onClick={() => {
                   if (prop.uuid) {
                     router.push(setupEditPropertyPath(prop.uuid))
@@ -100,7 +101,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                   }
                 }}
               >
-                <div className="pay-flow__card-icon pay-flow__card-icon--home">
+                <div className="pay-flow__card-icon pay-flow__card-icon--home" style={{ marginTop: 2 }}>
                   <Home size={20} />
                 </div>
                 <div className="pay-flow__card-body">
@@ -122,7 +123,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                   </div>
                   {prop.rentStartDate && prop.rentEndDate ? (
                     <div className="pay-flow__card-meta pay-flow__card-meta--muted">
-                      Verified Period: {formatDate(prop.rentStartDate)} - {formatDate(prop.rentEndDate)}
+                      Tenancy Period: {formatDate(prop.rentStartDate)} - {formatDate(prop.rentEndDate)}
                     </div>
                   ) : prop.rentEndDate ? (
                     <div className="pay-flow__card-meta pay-flow__card-meta--muted">
@@ -130,51 +131,66 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     </div>
                   ) : null}
 
-                  {/* Partial Payment / Renewal Progress Banner */}
+                  {/* Sleek Mobile-Optimized Renewal Progress Banner */}
                   {showRenewalCard && (
                     <div
                       style={{
-                        marginTop: 14,
-                        padding: '12px',
+                        marginTop: 10,
+                        padding: '10px 12px',
                         borderRadius: 10,
-                        background: 'var(--bg)',
-                        border: '1px solid var(--border-solid)',
+                        background: 'rgba(194, 80, 31, 0.05)',
+                        border: '1px solid rgba(194, 80, 31, 0.18)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 8,
+                        gap: 6,
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--clay)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          <Activity size={13} />
-                          Renewal in Progress ({pctPaid}% Paid)
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--skin-primary, #c2501f)', minWidth: 0 }}>
+                          <Activity size={12} style={{ flexShrink: 0 }} />
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            Renewal ({pctPaid}% Paid)
+                          </span>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>
-                          {formatCurrency(amountPaid)} of {formatCurrency(totalRent)}
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1714', flexShrink: 0 }}>
+                          {formatCurrency(remainingAmount)} left
                         </span>
                       </div>
 
                       {/* Progress Bar */}
-                      <div style={{ width: '100%', height: 6, borderRadius: 99, background: 'var(--border-solid)', overflow: 'hidden' }}>
-                        <div style={{ width: `${pctPaid}%`, height: '100%', background: 'var(--clay)', borderRadius: 99, transition: 'width 300ms ease' }} />
+                      <div style={{ width: '100%', height: 4, borderRadius: 99, background: 'rgba(194, 80, 31, 0.12)', overflow: 'hidden' }}>
+                        <div style={{ width: `${pctPaid}%`, height: '100%', background: 'var(--skin-primary, #c2501f)', borderRadius: 99, transition: 'width 300ms ease' }} />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-                        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          Remaining: <strong style={{ color: 'var(--text)' }}>{formatCurrency(remainingAmount)}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
+                        <span style={{ fontSize: 11, color: '#7a7268', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          Paid {formatCurrency(amountPaid)} of {formatCurrency(totalRent)}
                         </span>
                         <button
                           type="button"
-                          className="btn btn--primary btn--sm"
-                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4 }}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '4px 10px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: 'var(--skin-primary, #c2501f)',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
                             router.push('/dashboard/pay-rent')
                           }}
                         >
-                          Complete Payment <ArrowRight size={12} />
+                          Pay balance <ArrowRight size={11} />
                         </button>
                       </div>
                     </div>

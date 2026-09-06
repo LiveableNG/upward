@@ -3,6 +3,8 @@ import { toDateInputValue } from './rentalDates'
 
 export type SetupMode = 'onboarding' | 'edit'
 
+export type TenancyStatus = 'NEW_CYCLE' | 'PAYING_BALANCE' | 'ALREADY_PAID'
+
 export type RentalFormData = {
   uuid?: string
   pmName: string
@@ -15,6 +17,10 @@ export type RentalFormData = {
   rentStartDate: string
   rentEndDate: string
   rentType: string
+  tenancyStatus: TenancyStatus
+  amountAlreadyPaid: string
+  proofFile?: File | null
+  proofFileMeta?: { name: string; size: number; type: string } | null
 }
 
 export type PaymentDraftDetails = {
@@ -59,6 +65,10 @@ export const EMPTY_RENTAL_FORM: RentalFormData = {
   rentStartDate: '',
   rentEndDate: '',
   rentType: 'Annually',
+  tenancyStatus: 'NEW_CYCLE',
+  amountAlreadyPaid: '',
+  proofFile: null,
+  proofFileMeta: null,
 }
 
 export function createEmptyDraft(mode: SetupMode = 'onboarding'): SetupDraft {
@@ -109,7 +119,13 @@ export function loadSetupDraft(): SetupDraft | null {
 
 export function saveSetupDraft(draft: SetupDraft) {
   if (typeof window === 'undefined') return
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
+  // Omit File object when saving to sessionStorage to prevent JSON stringify issues
+  const { proofFile, ...formDataRest } = draft.formData
+  const serializableDraft = {
+    ...draft,
+    formData: formDataRest,
+  }
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializableDraft))
 }
 
 export function patchSetupDraft(patch: Partial<SetupDraft>) {
@@ -123,14 +139,17 @@ export function clearSetupDraft() {
 }
 
 export type DraftUserProperty = {
+  id?: number
   uuid?: string
   address?: string
   rentStartDate?: string
-  rentEndDate: string
+  rentEndDate?: string
   rentAmount?: number
   rentType?: string
   isManaged?: boolean
   isPlatformLinked?: boolean
+  pmUnitId?: number
+  isVerified?: boolean
   managerName?: string
   managerEmail?: string
   companyName?: string
@@ -145,6 +164,18 @@ export type DraftUserProperty = {
     email?: string
     phone?: string
   }
+  manualAccount?: {
+    accountNumber?: string
+    bankCode?: string
+    accountName?: string
+    bankName?: string
+  }
+  pmManualAccount?: {
+    accountNumber?: string
+    bankCode?: string
+    accountName?: string
+    bankName?: string
+  }
   subaccount?: {
     accountNumber?: string
     bankCode?: string
@@ -156,6 +187,15 @@ export type DraftUserProperty = {
     accountName?: string
     bankName?: string
   }
+  paymentProofs?: Array<{
+    id: number
+    uuid: string
+    fileName?: string
+    fileUrl?: string
+    amount?: number
+    status: string
+    createdAt: string
+  }>
   location?: {
     area?: string
     subarea?: string
@@ -187,6 +227,24 @@ function companyNameFromProperty(prop: DraftUserProperty): string {
 }
 
 function paymentDetailsFromProperty(prop: DraftUserProperty): PaymentDraftDetails {
+  if (prop.manualAccount?.accountNumber && prop.manualAccount?.bankCode) {
+    return {
+      accountNumber: prop.manualAccount.accountNumber,
+      bankCode: prop.manualAccount.bankCode,
+      accountName: prop.manualAccount.accountName || '',
+      bankName: prop.manualAccount.bankName || '',
+    }
+  }
+
+  if (prop.pmManualAccount?.accountNumber && prop.pmManualAccount?.bankCode) {
+    return {
+      accountNumber: prop.pmManualAccount.accountNumber,
+      bankCode: prop.pmManualAccount.bankCode,
+      accountName: prop.pmManualAccount.accountName || '',
+      bankName: prop.pmManualAccount.bankName || '',
+    }
+  }
+
   const accountNumber =
     prop.subaccount?.accountNumber || prop.dedicatedAccount?.accountNumber || ''
   const bankCode = prop.subaccount?.bankCode || prop.dedicatedAccount?.bankCode || ''
@@ -219,6 +277,8 @@ export function draftFromProperty(
   const managerEmail = managerEmailFromProperty(prop)
   const companyName = companyNameFromProperty(prop)
 
+  const isManaged = !!(prop.isManaged || prop.isPlatformLinked || prop.pmUnitId || prop.isVerified)
+
   draft.formData = {
     uuid: prop.uuid,
     pmName: managerName,
@@ -231,14 +291,18 @@ export function draftFromProperty(
     rentStartDate: toDateInputValue(prop.rentStartDate),
     rentEndDate: toDateInputValue(prop.rentEndDate),
     rentType: prop.rentType || 'Annually',
+    tenancyStatus: 'NEW_CYCLE',
+    amountAlreadyPaid: '',
+    proofFile: null,
+    proofFileMeta: null,
   }
   draft.pmEmail = managerEmail
   draft.phone = user.phone || ''
   draft.landlordSkipped = !managerEmail && !managerName && !companyName
   draft.paymentDetails = paymentDetailsFromProperty(prop)
   draft.companyName = companyName
-  draft.pmFound = !!(prop.isManaged || prop.isPlatformLinked)
-  draft.isManagedProperty = !!(prop.isManaged || prop.isPlatformLinked)
+  draft.pmFound = isManaged
+  draft.isManagedProperty = isManaged
   if (draft.pmFound) {
     draft.pmDetails = {
       name: managerName || companyName,
@@ -258,3 +322,4 @@ export function draftFromProperty(
 
   return draft
 }
+
