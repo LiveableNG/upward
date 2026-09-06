@@ -37,23 +37,20 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const toast = useToast()
   const queryClient = useQueryClient()
 
-  // Find target property from user profile
   const property = (user?.properties || []).find((p) => p.uuid === propertyUuid)
 
-  // Property lock conditions:
-  // A property is locked ONLY IF:
-  // 1. It is verified and linked to a property manager (isVerified && pmId), OR
-  // 2. It was linked via external PM unit (pmUnitId || externalUnitId || isPlatformLinked), OR
-  // 3. The tenant has paid rent on Upward (amountPaid > initialAmountPaid or active platform rent payments)
-  const isPmVerified = !!(property?.isVerified && (property as any)?.pmId)
+  const isPmVerified = !!(property?.isVerified && (property as any)?.isManaged)
   const isExternalUnit = !!((property as any)?.pmUnitId || (property as any)?.externalUnitId || property?.isPlatformLinked)
-  const hasPaidOnUpward = ((property as any)?.amountPaid || 0) > ((property as any)?.initialAmountPaid || 0) || (((property as any)?.platformRentPayments || []).length > 0)
+  
+  const onlinePayments = ((property as any)?.platformRentPayments || []).filter(
+    (p: any) => p.method !== 'INITIAL_ONBOARDING' && p.status === 'SUCCESS'
+  )
+  const hasPaidOnUpward = ((property as any)?.amountPaid || 0) > ((property as any)?.initialAmountPaid || 0) || onlinePayments.length > 0
 
   const isManaged = isPmVerified || isExternalUnit || hasPaidOnUpward
 
   const initialManual = (property as any)?.manualAccount || (property as any)?.pmManualAccount
 
-  // State
   const [address, setAddress] = useState('')
   const [area, setArea] = useState('')
   const [subarea, setSubarea] = useState('')
@@ -260,7 +257,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
       footer={
         isManaged ? (
           <PayFlowPrimaryButton
-            onClick={() => router.push('/dashboard/support')}
+            onClick={() => router.push('/dashboard/help')}
           >
             Contact support to update
           </PayFlowPrimaryButton>
@@ -306,7 +303,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             </div>
             <button
               type="button"
-              onClick={() => router.push('/dashboard/support')}
+              onClick={() => router.push('/dashboard/help')}
               style={{
                 padding: '8px 14px',
                 borderRadius: 8,
@@ -480,108 +477,6 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             disabled={isManaged}
             intro=""
           />
-        </div>
-
-        {/* Section 4: Proof of Payment (Single Active Proof Constraint) */}
-        <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileText size={18} color="var(--skin-primary, #c2501f)" />
-            Proof of Payment
-          </h3>
-
-          {activeProof ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '14px 16px',
-                borderRadius: 12,
-                background: '#f8f6f2',
-                border: '1px solid #e2dad0',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <FileText size={24} color="var(--skin-primary, #c2501f)" />
-                <div>
-                  <strong style={{ display: 'block', fontSize: 14 }}>{activeProof.fileName || 'Payment Receipt'}</strong>
-                  <span style={{ fontSize: 12, color: '#7a7268' }}>
-                    Status: <span style={{ fontWeight: 600, color: activeProof.status === 'APPROVED' ? '#166534' : '#b45309' }}>{activeProof.status}</span>
-                  </span>
-                </div>
-              </div>
-
-              {activeProof.status === 'PENDING' && (
-                <button
-                  type="button"
-                  onClick={() => handleDeleteProof(activeProof.id)}
-                  disabled={isDeletingProof}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #fecaca',
-                    background: '#fef2f2',
-                    color: '#dc2626',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Trash2 size={14} />
-                  {isDeletingProof ? 'Removing…' : 'Delete'}
-                </button>
-              )}
-            </div>
-          ) : (
-            <div>
-              <label
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px 16px',
-                  borderRadius: 14,
-                  border: '2px dashed #d1c7b8',
-                  background: '#fcfaf7',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                <UploadCloud size={32} color="var(--skin-primary, #c2501f)" style={{ marginBottom: 8 }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1714' }}>
-                  {newProofFile ? newProofFile.name : 'Upload replacement proof of payment'}
-                </span>
-                <span style={{ fontSize: 12, color: '#7a7268', marginTop: 4 }}>
-                  PNG, JPG, or PDF up to 10MB (Only 1 active proof allowed per property)
-                </span>
-                <input
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png"
-                  onChange={handleProofFileSelect}
-                  style={{ display: 'none' }}
-                />
-              </label>
-
-              {newProofFile && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
-                  <span style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>
-                    Selected: {newProofFile.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setNewProofFile(null)}
-                    style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 13, cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </PayPageShell>

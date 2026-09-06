@@ -51,7 +51,7 @@ export class PrismaUserRepository implements UserRepository {
         currency: p.currency,
         location: p.location,
         unitName: p.pmUnit?.unitName || undefined,
-        isManaged: !!p.pmId || !!p.company?.platformId,
+        isManaged: !!(p.pmId && p.isVerified) || !!p.company?.platformId,
         isVerified: !!p.isVerified || !!p.company?.platformId,
         isPmVerified: p.pm ? !!p.pm.isVerified : false,
         isPlatformLinked: !!p.company?.platformId,
@@ -67,10 +67,13 @@ export class PrismaUserRepository implements UserRepository {
           email: p.manager.email ? this.encryption.decrypt(p.manager.email) : undefined,
           phone: p.manager.phone ? this.encryption.decrypt(p.manager.phone) : undefined,
         } : (p.pm ? {
+          id: p.pm.id,
+          uuid: p.pm.uuid,
           firstName: this.encryption.decrypt(p.pm.firstName),
           lastName: this.encryption.decrypt(p.pm.lastName),
           email: this.encryption.decrypt(p.pm.email),
           phone: p.pm.phone ? this.encryption.decrypt(p.pm.phone) : undefined,
+          passwordHash: p.pm.passwordHash,
         } : undefined),
         company: p.company ? {
           ...p.company,
@@ -408,7 +411,7 @@ export class PrismaUserRepository implements UserRepository {
     })
     return this.toDomain(record)
   }
-
+  
   async update(id: number, data: Partial<User>, tx?: any): Promise<User> {
     const prisma = tx || this.prisma
     const updateData: any = {}
