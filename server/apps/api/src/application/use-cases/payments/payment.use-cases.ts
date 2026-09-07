@@ -672,6 +672,15 @@ export class RecordTransactionUseCase {
         }
 
         if (activePr) {
+          const depositTxs = await txClient.upward_rent_deposit_transaction.findMany({
+            where: {
+              paymentRequestId: activePr.id,
+              type: 'DEBIT',
+              status: 'SUCCESS',
+            },
+          })
+          const depositPaid = depositTxs.reduce((sum: number, dt: any) => sum + (dt.amount || 0), 0)
+
           const priorTxs = await txClient.upward_transaction.findMany({
             where: {
               paymentRequestId: activePr.id,
@@ -679,10 +688,38 @@ export class RecordTransactionUseCase {
               createdAt: { lte: result.createdAt },
             },
           })
-          snapshotHistoricalPaid = priorTxs.reduce((sum: number, t: any) => sum + (t.amount || 0), 0) || result.amount || activePr.amountPaid || 0
+          const txsPaid = priorTxs.reduce((sum: number, t: any) => sum + (t.amount || 0), 0)
+
           snapshotTotalInvoice = activePr.amount
-          snapshotRemaining = Math.max(0, activePr.amount - (snapshotHistoricalPaid || 0))
-          snapshotIsPartial = (snapshotRemaining || 0) > 0
+          snapshotHistoricalPaid = activePr.status === 'PAID'
+            ? activePr.amount
+            : Math.max(activePr.amountPaid || 0, txsPaid + depositPaid)
+          snapshotRemaining = activePr.status === 'PAID'
+            ? 0
+            : Math.max(0, activePr.amount - (snapshotHistoricalPaid || 0))
+          snapshotIsPartial = activePr.status !== 'PAID' && (snapshotRemaining || 0) > 0
+
+          // Factor in deposit applied to line items snapshot if deposit was applied
+          if (depositPaid > 0 && activePr.lineItemRecords && activePr.lineItemRecords.length > 0) {
+            const hasDepositItem = (result.lineItems as any[])?.some((i: any) =>
+              (i.name || i.label || '').toLowerCase().includes('deposit')
+            )
+            if (!hasDepositItem && activePr.status === 'PAID') {
+              const fullItems = activePr.lineItemRecords.map((lir: any) => ({
+                name: lir.name,
+                label: lir.name,
+                amount: lir.totalAmount,
+                category: 'Package',
+              }))
+              fullItems.push({
+                name: 'Rent Deposit Applied',
+                label: 'Rent Deposit Applied',
+                amount: -depositPaid,
+                category: 'Rent Deposit',
+              })
+              result.lineItems = fullItems
+            }
+          }
         } else if (propertyId) {
           const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
           if (propRecord) {
@@ -702,6 +739,7 @@ export class RecordTransactionUseCase {
             historicalPaidToDate: snapshotHistoricalPaid,
             remainingBalance: snapshotRemaining,
             isPartial: snapshotIsPartial,
+            lineItems: result.lineItems,
           } as any
         })
       }
@@ -1658,11 +1696,27 @@ export class GetTransactionUseCase {
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
         rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
 
-        if (hasSnapshotAmounts) {
+        const depositTxs = await this.prisma.upward_rent_deposit_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            type: 'DEBIT',
+            status: 'SUCCESS',
+          },
+        })
+        const totalDepositApplied = depositTxs.reduce((sum, dt) => sum + (dt.amount || 0), 0)
+        const isPrPaid = pr.status === 'PAID'
+
+        if (isPrPaid) {
+          totalInvoice = pr.amount
+          rentAmount = pr.amount
+          historicalPaidToDate = pr.amount
+          historicalRemaining = 0
+          isPartial = false
+        } else if (hasSnapshotAmounts) {
           const snapTx = tx as any
           totalInvoice = snapTx.totalInvoiceAmount
           rentAmount = snapTx.totalInvoiceAmount
-          historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
+          historicalPaidToDate = Math.max(pr.amountPaid || 0, (snapTx.historicalPaidToDate ?? snapTx.amount) + totalDepositApplied)
           historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
         } else {
@@ -1674,7 +1728,7 @@ export class GetTransactionUseCase {
             },
           })
           const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
-          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) + totalDepositApplied || tx.amount || pr.amountPaid || 0
           historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
             ? Math.min(propRent, propInitialPaid + basePaid)
             : basePaid
@@ -1720,13 +1774,36 @@ export class GetTransactionUseCase {
         ].filter(Boolean)
         const propertyAddress = addressParts.length > 0 ? addressParts.join(', ') : ''
 
-        const lineItems = (pr.lineItemRecords && pr.lineItemRecords.length > 0)
-          ? pr.lineItemRecords.map((li: any) => ({
-              label: li.name,
-              amount: li.totalAmount,
+        let resolvedLineItems = (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : []
+        if (resolvedLineItems.length === 0 && pr.lineItemRecords && pr.lineItemRecords.length > 0) {
+          resolvedLineItems = pr.lineItemRecords.map((li: any) => ({
+            label: li.name,
+            name: li.name,
+            amount: li.totalAmount,
+            category: 'Package',
+          }))
+        }
+
+        if (totalDepositApplied > 0 && pr.lineItemRecords && pr.lineItemRecords.length > 0) {
+          const hasDepositItem = resolvedLineItems.some((i: any) =>
+            (i.name || i.label || '').toLowerCase().includes('deposit')
+          )
+          if (!hasDepositItem && isPrPaid) {
+            const fullItems = pr.lineItemRecords.map((lir: any) => ({
+              name: lir.name,
+              label: lir.name,
+              amount: lir.totalAmount,
               category: 'Package',
             }))
-          : []
+            fullItems.push({
+              name: 'Rent Deposit Applied',
+              label: 'Rent Deposit Applied',
+              amount: -totalDepositApplied,
+              category: 'Rent Deposit',
+            })
+            resolvedLineItems = fullItems
+          }
+        }
 
         return {
           ...tx,
@@ -1749,7 +1826,8 @@ export class GetTransactionUseCase {
           companyLogo: companyLogo || tx.companyLogo,
           companyName: resolvedCompanyName,
           propertyAddress: propertyAddress || tx.propertyAddress,
-          lineItems: (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : lineItems,
+          lineItems: resolvedLineItems,
+          depositApplied: totalDepositApplied,
         }
       }
     }
