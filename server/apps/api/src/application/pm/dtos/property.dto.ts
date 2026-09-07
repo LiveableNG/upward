@@ -14,7 +14,8 @@ export class CreatePropertyDto {
   totalUnits?: number;
 
   @IsString()
-  propertyType!: string;
+  @IsOptional()
+  propertyType?: string;
 
   @IsOptional()
   imageUrl?: string;
