@@ -38,6 +38,8 @@ model upward_user_property {
   infractions            upward_property_infraction[]
   inspections            upward_property_inspection[]
   rentCycles             upward_rent_cycle[]
+  rentDepositBalances    upward_rent_deposit_balance[]
+  rentDepositTransactions upward_rent_deposit_transaction[]
   contracts              upward_user_contract[]
   company                upward_company?                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   location               upward_location?                  @relation(fields: [locationId], references: [id])

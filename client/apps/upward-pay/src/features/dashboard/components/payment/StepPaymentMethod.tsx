@@ -1,9 +1,16 @@
 import React from 'react'
 import { CreditCard, Landmark } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { RentDepositApplicationCard } from '@/features/payments/components/unified-pay/RentDepositApplicationCard'
 
 type StepPaymentMethodProps = {
   amount: number
+  paymentRequestUuid?: string
+  propertyUuid?: string
+  lineItems?: any[]
+  canPayPartial?: boolean
+  onDepositApplied?: (appliedAmount: number) => void
+  onSettledSuccess?: () => void
   onPayOnline: () => void
   onBankTransfer: () => void
   processing?: boolean
@@ -15,6 +22,12 @@ type StepPaymentMethodProps = {
 
 export function StepPaymentMethod({
   amount,
+  paymentRequestUuid,
+  propertyUuid,
+  lineItems = [],
+  canPayPartial = true,
+  onDepositApplied,
+  onSettledSuccess,
   onPayOnline,
   onBankTransfer,
   processing = false,
@@ -27,6 +40,18 @@ export function StepPaymentMethod({
 
   return (
     <div className="pay-flow__payment-method">
+      {paymentRequestUuid && (
+        <RentDepositApplicationCard
+          paymentRequestUuid={paymentRequestUuid}
+          propertyUuid={propertyUuid}
+          totalOwed={amount}
+          lineItems={lineItems}
+          canPayPartial={canPayPartial}
+          onDepositApplied={onDepositApplied}
+          onSettledSuccess={onSettledSuccess}
+        />
+      )}
+
       <p className="pay-flow__payment-method-intro">
         Paying <strong>{formatCurrency(amount)}</strong> — choose how you&apos;d like to pay.
       </p>

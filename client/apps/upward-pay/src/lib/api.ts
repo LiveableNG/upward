@@ -53,6 +53,9 @@ export const api = {
   getBenefitsStatus: benefitsService.getBenefitsStatus,
   initializeBenefitsPayment: benefitsService.initializeBenefitsPayment,
   confirmBenefitsPayment: benefitsService.confirmBenefitsPayment,
+  getRentDepositSummary: paymentService.getRentDepositSummary,
+  applyRentDeposit: paymentService.applyRentDeposit,
+  getRentDepositReceipt: paymentService.getRentDepositReceipt,
 
   // Documents
   getMyDocuments: documentService.getMyDocuments,

@@ -28,8 +28,6 @@ import {
   DVA_ACCOUNT_REPOSITORY,
   IDVAAccountRepository,
   DVAAccount,
-  OVERPAYMENT_REPOSITORY,
-  IOverpaymentRepository,
 } from '../../../domains/payments/payment.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
@@ -42,6 +40,7 @@ import { CreditWalletUseCase } from './wallet.use-cases'
 import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
+import { CreditRentDepositUseCase } from './credit-rent-deposit.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
@@ -377,9 +376,7 @@ export class RecordTransactionUseCase {
     private readonly activateBenefits: ActivateBenefitsSubscriptionUseCase,
     private readonly syncPmStatus: SyncPmPaymentStatusUseCase,
     private readonly settleProperty: SettlePropertyBalanceUseCase,
-    private readonly handleOverpayment: HandlePaymentOverpaymentUseCase,
-    @Inject(OVERPAYMENT_REPOSITORY)
-    private readonly overpaymentRepo: IOverpaymentRepository,
+    private readonly creditRentDeposit: CreditRentDepositUseCase,
     private readonly paymentConfig: PaymentConfigurationService,
   ) { }
 
@@ -623,31 +620,18 @@ export class RecordTransactionUseCase {
           })
         }
 
-        await this.handleOverpayment.execute({
-          userId: user!.id!,
-          excess,
-          reference: data.reference,
-          currency: data.currency || 'NGN',
-          paymentRequestId: pr?.id,
-          propertyAddress: data.propertyAddress,
-          futureCreditName: data.futureCreditName,
-          parentTransactionId: result.id,
-          txClient
-        })
-
-        if (appliedCredit > 0) {
-          let remainingToConsume = appliedCredit
-          const overpayments = await this.overpaymentRepo.findByUserIdAndStatus(user!.id!, 'AVAILABLE', txClient)
-          for (const op of overpayments) {
-            if (remainingToConsume <= 0) break
-            const toConsume = Math.min(op.amount, remainingToConsume)
-            const newAmount = op.amount - toConsume
-            await this.overpaymentRepo.update(op.id, {
-              amount: newAmount,
-              status: newAmount <= 0 ? 'USED' : 'AVAILABLE'
-            }, txClient)
-            remainingToConsume -= toConsume
-          }
+        if (excess > 0 && propertyId) {
+          await this.creditRentDeposit.execute({
+            userId: user!.id!,
+            userPropertyId: propertyId,
+            amount: excess,
+            reference: `EXCESS_${data.reference}`,
+            currency: data.currency || 'NGN',
+            source: 'OVERPAYMENT_EXCESS',
+            paymentRequestId: pr?.id,
+            narration: data.futureCreditName || 'Invoice Settlement Excess',
+            txClient,
+          })
         }
 
         // Snapshot receipt state on upward_transaction for instant, immutable receipts
@@ -844,8 +828,6 @@ export class InitializePaymentUseCase {
     private readonly userRepository: UserRepository,
     @Inject(PAYMENT_REQUEST_REPOSITORY)
     private readonly paymentRequestRepo: IPaymentRequestRepository,
-    @Inject(OVERPAYMENT_REPOSITORY)
-    private readonly overpaymentRepo: IOverpaymentRepository,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
     private readonly paymentConfig: PaymentConfigurationService,
     private readonly prisma: PrismaService,
@@ -936,9 +918,7 @@ export class InitializePaymentUseCase {
         this.logger.log(`User ${user.email} does not have a valid phone number on profile. Using generated mock phone number: ${tenantPhone}`)
       }
 
-      const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
-      const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
-
+      const appliedDeposit = Number(data.metadata?.appliedDepositAmount || 0)
       const baseAmount = data.amount || pr.amount
 
       let clientFee = 0
@@ -956,7 +936,7 @@ export class InitializePaymentUseCase {
       const effectiveFee = clientFee || (data.amount ? 0 : flatFee)
       const requestedTotal = baseAmount + (data.amount ? 0 : (clientFee || flatFee))
 
-      const appliedCredit = Math.min(totalCredit, requestedTotal)
+      const appliedCredit = Math.min(appliedDeposit, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
       try {
@@ -1007,13 +987,11 @@ export class InitializePaymentUseCase {
     }
 
     // Standard Payment or DVA Fallback
-    const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
-    const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
-
+    const appliedDeposit = Number(data.metadata?.appliedDepositAmount || 0)
     const baseAmount = data.amount || pr?.amount || 0
     const requestedTotal = baseAmount + flatFee
 
-    const appliedCredit = Math.min(totalCredit, requestedTotal)
+    const appliedCredit = Math.min(appliedDeposit, requestedTotal)
     const finalAmountToPay = requestedTotal - appliedCredit
 
     if (finalAmountToPay <= 0) {
@@ -1065,6 +1043,7 @@ export class ProcessPaymentWebhookUseCase {
 
   constructor(
     private readonly recordTransaction: RecordTransactionUseCase,
+    private readonly creditRentDeposit: CreditRentDepositUseCase,
     private readonly configService: ConfigService,
     @Inject(DVA_ACCOUNT_REPOSITORY)
     private readonly dvaRepo: IDVAAccountRepository,
@@ -1450,7 +1429,7 @@ export class ProcessPaymentWebhookUseCase {
     const amountPaid = data.amount / 100
 
     if (!pr) {
-      this.logger.log(`Manual DVA payment received for Property ${dva.userPropertyId} with no active request. Recording as general payment.`)
+      this.logger.log(`Direct DVA transfer received for Property ${dva.userPropertyId} with no active request. Crediting Rent Deposit Balance directly.`)
 
       // Find the user associated with this property
       const userProp = await this.prisma.upward_user_property.findUnique({
@@ -1463,17 +1442,23 @@ export class ProcessPaymentWebhookUseCase {
         return { success: true, message: 'Property not found' }
       }
 
-      return this.recordTransaction.execute({
-        userId: userProp.user.uuid,
+      // DO NOT create duplicate record in upward_transaction. Credit Rent Deposit directly!
+      const depositTx = await this.creditRentDeposit.execute({
+        userId: userProp.user.id,
+        userPropertyId: userProp.id,
         amount: amountPaid,
-        currency: data.currency || 'NGN',
         reference: data.reference,
-        type: 'RENT',
-        status: 'SUCCESS',
-        narration: `Manual Bank Transfer to ${dva.accountNumber}`,
-        settlementStatus: 'VERIFIED',
-        userPropertyUuid: userProp.uuid
+        currency: data.currency || 'NGN',
+        source: 'DVA_INFLOW',
+        narration: `Direct Bank Transfer to Virtual Account (${dva.accountNumber})`,
       })
+
+      return {
+        success: true,
+        type: 'RENT_DEPOSIT_CREDIT',
+        depositTransactionId: depositTx?.id,
+        message: 'Funds credited to Rent Deposit Balance',
+      }
     }
 
     // 1. Check for stored payment intent in DVA metadata

@@ -460,6 +460,18 @@ export default function PayRentPage() {
       {step === 'payment-method' && (
         <StepPaymentMethod
           amount={payAmount}
+          paymentRequestUuid={activePaymentRequest?.uuid}
+          propertyUuid={selectedPropertyUuid || undefined}
+          lineItems={lineItems}
+          canPayPartial={activePaymentRequest?.allowPartial ?? true}
+          onDepositApplied={(appliedAmount) => {
+            const remaining = Math.max(0, requestedAmount - totalPaidAlready - appliedAmount)
+            setPayAmount(remaining)
+          }}
+          onSettledSuccess={() => {
+            toast.success('Rent invoice fully settled with your Rent Deposit Balance!')
+            router.push('/dashboard')
+          }}
           processing={processing || cancelling}
           bankTransferDisabled={!canBankTransfer}
           bankTransferDisabledReason={

@@ -48,7 +48,11 @@ export function CheckoutReceipt({
                 />
               </div>
             ) : (
-              <span className="pay-flow__receipt-value">
+              <span
+                className={`pay-flow__receipt-value ${
+                  row.amount < 0 ? 'pay-flow__receipt-value--credit' : ''
+                }`}
+              >
                 {formatCurrency(row.amount, currency)}
               </span>
             )}

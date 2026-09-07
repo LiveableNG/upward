@@ -90,9 +90,10 @@ model upward_payment_request {
   reminderFrequency  String                      @default("NONE")
   isRecurring        Boolean                     @default(false)
   recurrenceInterval String?
-  scheduledAt        DateTime?
-  overpayments       upward_overpayment[]
-  lineItemRecords    upward_payment_line_item[]
+  scheduledAt             DateTime?
+  overpayments            upward_overpayment[]
+  rentDepositTransactions upward_rent_deposit_transaction[]
+  lineItemRecords         upward_payment_line_item[]
   paymentProofs      upward_payment_proof[]
   subaccount         upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
   user               upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -164,6 +165,57 @@ model upward_overpayment {
   user             upward_user             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model upward_rent_deposit_balance {
+  id             Int                               @id @default(autoincrement())
+  uuid           String                            @unique @default(uuid())
+  userId         Int
+  userPropertyId Int
+  balance        Float                             @default(0)
+  currency       String                            @default("NGN")
+  createdAt      DateTime                          @default(now())
+  updatedAt      DateTime                          @updatedAt
+
+  user           upward_user                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty   upward_user_property             @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  transactions   upward_rent_deposit_transaction[]
+
+  @@unique([userId, userPropertyId])
+  @@index([userId])
+  @@index([userPropertyId])
+}
+
+model upward_rent_deposit_transaction {
+  id               Int                          @id @default(autoincrement())
+  uuid             String                       @unique @default(uuid())
+  depositBalanceId Int
+  userId           Int
+  userPropertyId   Int
+  paymentRequestId Int?
+  type             String                       // 'CREDIT' | 'DEBIT'
+  amount           Float
+  balanceBefore    Float
+  balanceAfter     Float
+  source           String                       // 'DVA_INFLOW' | 'OVERPAYMENT_EXCESS' | 'PR_APPLICATION'
+  status           String                       @default("SUCCESS")
+  reference        String                       @unique
+  narration        String?
+  receiptUrl       String?
+  metadata         Json?
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  depositBalance   upward_rent_deposit_balance @relation(fields: [depositBalanceId], references: [id], onDelete: Cascade)
+  user             upward_user                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty     upward_user_property        @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  paymentRequest   upward_payment_request?      @relation(fields: [paymentRequestId], references: [id], onDelete: SetNull)
+
+  @@index([depositBalanceId])
+  @@index([userId])
+  @@index([userPropertyId])
+  @@index([reference])
+  @@index([paymentRequestId])
 }
 
 model upward_paystack_subaccount {

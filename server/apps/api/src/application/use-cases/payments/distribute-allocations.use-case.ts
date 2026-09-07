@@ -294,9 +294,9 @@ export class DistributePaymentAllocationsUseCase {
       }
     }
 
-    // 5. Handle any remaining balance as Excess / Future Credit
+    // 5. Handle any remaining balance as Rent Deposit Balance
     if (remainingPayment > 0) {
-      const label = 'Excess / Future Credit'
+      const label = 'Rent Deposit Balance'
       const existingAlloc = allocatedItems.find(a => a.name === label)
       if (existingAlloc) {
         existingAlloc.amount += remainingPayment
@@ -305,10 +305,10 @@ export class DistributePaymentAllocationsUseCase {
           name: label,
           label: label,
           amount: remainingPayment,
-          category: 'Overpayment'
+          category: 'Rent Deposit'
         })
       }
-      this.logger.log(`Added remaining ${remainingPayment} to Excess / Future Credit`)
+      this.logger.log(`Added remaining ${remainingPayment} to Rent Deposit Balance`)
       remainingPayment = 0
     }
 

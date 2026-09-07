@@ -14,6 +14,7 @@ import { CheckoutRecipientCard } from './CheckoutRecipientCard'
 import { CheckoutAmountHero, parseRentInput } from './CheckoutAmountHero'
 import { CheckoutReceipt, type CheckoutReceiptRow } from './CheckoutReceipt'
 import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
+import { RentDepositApplicationCard } from './RentDepositApplicationCard'
 
 const FEE_NAMES = new Set(['Processing Fee', 'Transaction Fee', 'Upward Benefits'])
 const FEE_IDS = new Set([-2, -3])
@@ -150,6 +151,21 @@ export function BasicCheckoutView({
   const heroEditable =
     canPayPartial && rentLineItems.length === 1 && !isPendingRefund
 
+  const [appliedDepositAmount, setAppliedDepositAmount] = useState(0)
+  const [, setDepositAllocations] = useState<
+    Array<{ lineItemId: number; amount: number }>
+  >([])
+
+  const netPayable = Math.max(0, parsedAmount - appliedDepositAmount)
+
+  const handleDepositApplied = (
+    amount: number,
+    allocations?: Array<{ lineItemId: number; amount: number }>,
+  ) => {
+    setAppliedDepositAmount(amount)
+    setDepositAllocations(allocations || [])
+  }
+
   const receiptRows: CheckoutReceiptRow[] = useMemo(() => {
     const rows: CheckoutReceiptRow[] = rentAllocations
       .filter((alloc) => alloc.allocated > 0 || canPayPartial)
@@ -185,6 +201,14 @@ export function BasicCheckoutView({
       })
     }
 
+    if (appliedDepositAmount > 0) {
+      rows.push({
+        id: -99,
+        name: 'Rent Deposit Applied',
+        amount: -appliedDepositAmount,
+      })
+    }
+
     return rows
   }, [
     rentAllocations,
@@ -194,6 +218,7 @@ export function BasicCheckoutView({
     transactionFeeAmount,
     benefitsFeeAmount,
     rentSubtotal,
+    appliedDepositAmount,
   ])
 
   const handleRentHeroChange = (value: string) => {
@@ -206,15 +231,18 @@ export function BasicCheckoutView({
 
   const ctaLabel = () => {
     if (isPendingRefund) return 'Refund pending'
-    if (parsedAmount === 0) return 'Enter amount to continue'
+    if (netPayable === 0 && appliedDepositAmount > 0) {
+      return `Settle with Rent Deposit (${formatCurrency(appliedDepositAmount, currency)})`
+    }
+    if (netPayable === 0) return 'Enter amount to continue'
     if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
-    if (isUnderpaying) {
+    if (isUnderpaying && appliedDepositAmount === 0) {
       return `Full payment required — ${formatCurrency(totalOwed, currency)}`
     }
-    return `Pay ${formatCurrency(parsedAmount, currency)} now`
+    return `Pay ${formatCurrency(netPayable, currency)} now`
   }
 
-  const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund
+  const ctaDisabled = (!isValidAmount && appliedDepositAmount === 0) || (isUnderpaying && appliedDepositAmount === 0) || isPendingRefund
 
   const handleBack = () => {
     if (authUser) {
@@ -356,9 +384,28 @@ export function BasicCheckoutView({
             />
           ) : null}
 
+          {isLoggedIn && (
+            <RentDepositApplicationCard
+              paymentRequestUuid={uuid}
+              propertyUuid={paymentData.property?.uuid}
+              totalOwed={totalOwed}
+              currency={currency}
+              lineItems={visibleAllocs}
+              canPayPartial={canPayPartial}
+              onDepositApplied={handleDepositApplied}
+              onSettledSuccess={() => {
+                if (authUser) {
+                  router.replace('/dashboard')
+                } else {
+                  window.location.reload()
+                }
+              }}
+            />
+          )}
+
           <CheckoutReceipt
             rows={receiptRows}
-            total={parsedAmount}
+            total={netPayable}
             currency={currency}
             onRowChange={canPayPartial ? handleAllocationChange : undefined}
           />

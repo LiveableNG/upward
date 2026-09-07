@@ -1,65 +1,42 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import {
-  ITransactionRepository,
-  TRANSACTION_REPOSITORY,
-  OVERPAYMENT_REPOSITORY,
-  IOverpaymentRepository,
-} from '../../../domains/payments/payment.repository'
+import { Injectable, Logger } from '@nestjs/common'
+import { CreditRentDepositUseCase } from './credit-rent-deposit.use-case'
 
 @Injectable()
 export class HandlePaymentOverpaymentUseCase {
   private readonly logger = new Logger(HandlePaymentOverpaymentUseCase.name)
 
   constructor(
-    @Inject(TRANSACTION_REPOSITORY)
-    private readonly txRepo: ITransactionRepository,
-    @Inject(OVERPAYMENT_REPOSITORY)
-    private readonly overpaymentRepo: IOverpaymentRepository,
+    private readonly creditRentDeposit: CreditRentDepositUseCase,
   ) {}
 
   async execute(params: {
     userId: number
+    userPropertyId?: number
     excess: number
     reference: string
     currency: string
     paymentRequestId?: number
     propertyAddress?: string
     futureCreditName?: string
-    parentTransactionId: number
-    txClient: any
+    parentTransactionId?: number
+    txClient?: any
   }) {
-    const { userId, excess, reference, currency, paymentRequestId, propertyAddress, futureCreditName, parentTransactionId, txClient } = params
+    const { userId, userPropertyId, excess, reference, currency, paymentRequestId, futureCreditName, txClient } = params
 
-    if (excess <= 0) return
+    if (excess <= 0 || !userPropertyId) return
 
-    const futureCreditRef = `FC_${reference}`
-    const existingFc = await this.txRepo.findByReference(futureCreditRef, txClient)
-    
-    if (!existingFc) {
-      const creditName = futureCreditName || 'Future Credit'
-      await this.txRepo.create({
-        userId: userId,
-        type: 'RENT',
-        status: 'SUCCESS',
-        amount: excess,
-        currency: currency,
-        reference: futureCreditRef,
-        narration: creditName,
-        paymentRequestId: paymentRequestId,
-        propertyAddress: propertyAddress,
-        lineItems: [{ name: creditName, amount: excess }],
-      } as any, txClient)
-
-      await this.overpaymentRepo.create({
-        userId: userId,
-        amount: excess,
-        currency: currency,
-        transactionId: parentTransactionId,
-        paymentRequestId: paymentRequestId,
-        status: 'AVAILABLE',
-      }, txClient)
-      
-      this.logger.log(`Overpayment of ${excess} recorded as Future Credit for user ${userId}`)
-    }
+    return this.creditRentDeposit.execute({
+      userId,
+      userPropertyId,
+      amount: excess,
+      reference: `EXCESS_${reference}`,
+      currency,
+      source: 'OVERPAYMENT_EXCESS',
+      paymentRequestId,
+      narration: futureCreditName || 'Invoice Settlement Excess',
+      txClient,
+    })
   }
 }
+
+

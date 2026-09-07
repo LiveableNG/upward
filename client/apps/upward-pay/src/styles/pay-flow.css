@@ -2214,6 +2214,10 @@
   color: #1a1714;
 }
 
+.pay-flow__receipt-value--credit {
+  color: #16a34a;
+}
+
 .pay-flow__receipt-edit {
   display: flex;
   align-items: center;

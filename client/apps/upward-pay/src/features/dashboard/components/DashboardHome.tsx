@@ -25,8 +25,8 @@ import { ShareCredibility } from './ShareCredibility'
 import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
 import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 // Hidden for now — leave Find a home / request flow intact
-// import { ExclusiveHomesPromo, ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
+import { RentDepositCard } from './RentDepositCard'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -210,6 +210,7 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
+      <RentDepositCard />
       <button
         type="button"
         className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
