@@ -36,7 +36,7 @@ interface RentDepositApplicationCardProps {
     appliedAmount: number,
     allocations?: Array<{ lineItemId: number; amount: number }>,
   ) => void
-  onSettledSuccess?: () => void
+  onSettledSuccess?: (isFullSettlement?: boolean) => void
 }
 
 export function RentDepositApplicationCard({
@@ -215,7 +215,7 @@ export function RentDepositApplicationCard({
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
 
       setSuccessMessage('Deposit applied successfully!')
-      onSettledSuccess?.()
+      onSettledSuccess?.(isFullSettlement)
     } catch (err: any) {
       setErrorMessage(
         err?.message || 'Failed to apply rent deposit balance. Please try again.',
@@ -415,15 +415,41 @@ export function RentDepositApplicationCard({
             </button>
           )}
 
-          {/* Partial Payment Note (when partial remaining) */}
+          {/* Partial Payment Note and Direct Apply Option (when partial remaining) */}
           {!isFullSettlement && appliedAmount > 0 && (
-            <div className="rent-deposit-card__note">
-              <ShieldCheck size={14} className="rent-deposit-card__note-icon" />
-              <span>
-                <strong>{formatCurrency(appliedAmount, currency)}</strong> will be applied from your
-                deposit. Proceed with checkout below to pay the remaining{' '}
-                <strong>{formatCurrency(remainingAfterDeposit, currency)}</strong>.
-              </span>
+            <div className="rent-deposit-card__partial-actions">
+              <div className="rent-deposit-card__note">
+                <ShieldCheck size={14} className="rent-deposit-card__note-icon" />
+                <span>
+                  <strong>{formatCurrency(appliedAmount, currency)}</strong> will be applied from your
+                  deposit. Proceed with checkout below to pay the remaining{' '}
+                  <strong>{formatCurrency(remainingAfterDeposit, currency)}</strong>.
+                </span>
+              </div>
+
+              {canPayPartial && (
+                <button
+                  type="button"
+                  className="rent-deposit-card__partial-settle-btn"
+                  onClick={handleDirectSettlement}
+                  disabled={isSettling}
+                >
+                  {isSettling ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Applying deposit to line items...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={15} />
+                      <span>
+                        Apply {formatCurrency(appliedAmount, currency)} from deposit now (pay remainder later)
+                      </span>
+                      <ArrowRight size={15} />
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -816,6 +842,45 @@ export function RentDepositApplicationCard({
           color: var(--clay);
           flex-shrink: 0;
           margin-top: 1px;
+        }
+
+        .rent-deposit-card__partial-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .rent-deposit-card__partial-settle-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 11px 16px;
+          border-radius: 12px;
+          background: var(--surface, #ffffff);
+          color: var(--clay, #dc2626);
+          border: 1.5px solid var(--clay, #dc2626);
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+
+        .rent-deposit-card__partial-settle-btn:hover:not(:disabled) {
+          background: var(--clay-faint, #fbf7f4);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(217, 119, 87, 0.12);
+        }
+
+        .rent-deposit-card__partial-settle-btn:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+
+        .rent-deposit-card__partial-settle-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
       `}</style>
     </div>

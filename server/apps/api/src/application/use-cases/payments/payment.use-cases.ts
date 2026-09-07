@@ -451,7 +451,8 @@ export class RecordTransactionUseCase {
             matchesRentPlusTxFee
           const activeBenefitsFee = (ratesForExpected.benefitsPaid || excludeBenefits) ? 0 : ratesForExpected.benefitsFee
           const dynamicFee = data.isManual ? 0 : (ratesForExpected.transactionFee + activeBenefitsFee)
-          const expectedTotal = pr.amount + dynamicFee
+          const remainingRentForExpected = Math.max(0, pr.amount - (pr.amountPaid || 0))
+          const expectedTotal = remainingRentForExpected + dynamicFee
           if (!pr.allowPartial && effectiveAmount < expectedTotal && !data.settlementStatus) {
             data.settlementStatus = 'PENDING_REFUND'
             this.logger.warn(`Full-Payment Violation: User paid ${effectiveAmount} instead of ${expectedTotal}. Marking reference ${data.reference} for refund.`)
@@ -939,6 +940,16 @@ export class InitializePaymentUseCase {
       const appliedCredit = Math.min(appliedDeposit, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
+      if (finalAmountToPay <= 0) {
+        return {
+          type: 'CREDIT_ONLY',
+          amount: requestedTotal,
+          appliedCredit,
+          finalAmount: 0,
+          reference: `CREDIT-${user.id}-${Date.now()}`
+        }
+      }
+
       try {
         const dva = await this.resolveDedicatedAccount.execute({
           userPropertyId: userPropertyId,
@@ -955,7 +966,7 @@ export class InitializePaymentUseCase {
               metadata: {
                 ...(typeof dva.metadata === 'object' && dva.metadata !== null ? dva.metadata : {}),
                 lastPaymentIntent: {
-                  amount: requestedTotal,
+                  amount: finalAmountToPay,
                   lineItems: data.metadata.lineItems,
                   excludeBenefits: data.metadata?.excludeBenefits === true,
                   timestamp: Date.now()
@@ -965,13 +976,14 @@ export class InitializePaymentUseCase {
           })
         }
 
-        this.logger.log(`DVA Initialization for PR ${pr?.uuid || 'manual'}: Amount ${requestedTotal}, Fee ${effectiveFee}, LineItems: ${JSON.stringify(data.metadata?.lineItems || [])}`)
+        this.logger.log(`DVA Initialization for PR ${pr?.uuid || 'manual'}: Amount ${finalAmountToPay}, Fee ${effectiveFee}, LineItems: ${JSON.stringify(data.metadata?.lineItems || [])}`)
 
         return {
           type: 'DVA',
-          amount: requestedTotal,
+          amount: finalAmountToPay,
           appliedCredit,
           finalAmount: finalAmountToPay,
+          totalAmount: requestedTotal,
           fee: effectiveFee || flatFee,
           dva: {
             accountNumber: dva.accountNumber,
@@ -1514,7 +1526,8 @@ export class ProcessPaymentWebhookUseCase {
     const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
     const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
     const dynamicFee = rates.transactionFee + activeBenefitsFee
-    const expectedTotal = pr.amount + dynamicFee
+    const remainingRentForExpected = Math.max(0, pr.amount - (pr.amountPaid || 0))
+    const expectedTotal = remainingRentForExpected + dynamicFee
 
     let settlementStatus = 'VERIFIED'
     if (!pr.allowPartial && amountPaid < expectedTotal) {

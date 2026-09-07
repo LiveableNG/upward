@@ -36,6 +36,9 @@ import { CHECKOUT_EXPERIMENT_EVENTS } from '@/features/premium/utils/checkoutExp
 import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
 import { BasicCheckoutView } from '@/features/payments/components/unified-pay/BasicCheckoutView'
 import { isSelfInitiatedPayment } from '@/features/dashboard/components/payment/paymentOrigin'
+import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/common/Toast'
+import { api } from '@/lib/api'
 
 export default function PayClient({ overrideToken }: { overrideToken?: string }) {
   const router = useRouter()
@@ -50,6 +53,10 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   } = useCheckoutVariant()
   const { track } = useCheckoutExperimentTracking()
   const [showUnverifiedModal, setShowUnverifiedModal] = React.useState(false)
+  const [checkoutAmount, setCheckoutAmount] = React.useState<number | null>(null)
+  const [checkoutLineItems, setCheckoutLineItems] = React.useState<Array<{ name: string; amountPaid: number }> | null>(null)
+  const queryClient = useQueryClient()
+  const { success: toastSuccess, error: toastError } = useToast()
   const checkoutViewedRef = useRef(false)
 
   const uuid = useMemo(() => {
@@ -143,38 +150,123 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     track,
   ])
 
-  const handlePayClick = useCallback(() => {
-    if (!paymentData) return
+  const handlePayClick = useCallback(
+    async (
+      depositInfo?:
+        | {
+            amount: number
+            allocations?: Array<{ lineItemId: number; amount: number }>
+          }
+        | React.MouseEvent<any>,
+    ) => {
+      if (!paymentData) return
 
-    const isGuest = !paymentData.hasPassword
-    const verificationOn = paymentData?.user?.verificationOn ?? true
-    const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
+      const isGuest = !paymentData.hasPassword
+      const verificationOn = paymentData?.user?.verificationOn ?? true
+      const hasPaidBefore = (paymentData?.user?.paidRequestsCount ?? 0) >= 1
 
-    if (
-      verificationOn &&
-      authUser &&
-      !authUser.isIdentityVerified &&
-      !isGuest &&
-      hasPaidBefore
-    ) {
-      setShowUnverifiedModal(true)
-      return
-    }
+      if (
+        verificationOn &&
+        authUser &&
+        !authUser.isIdentityVerified &&
+        !isGuest &&
+        hasPaidBefore
+      ) {
+        setShowUnverifiedModal(true)
+        return
+      }
 
-    track(
-      CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_STARTED,
+      const hasDeposit =
+        depositInfo &&
+        'amount' in depositInfo &&
+        typeof depositInfo.amount === 'number' &&
+        depositInfo.amount > 0
+
+      if (hasDeposit) {
+        const info = depositInfo as {
+          amount: number
+          allocations?: Array<{ lineItemId: number; amount: number }>
+        }
+
+        try {
+          await api.applyRentDeposit({
+            paymentRequestUuid: uuid,
+            amountToApply: info.amount,
+            lineItemAllocations:
+              info.allocations && info.allocations.length > 0
+                ? info.allocations
+                : undefined,
+          })
+
+          queryClient.invalidateQueries({ queryKey: ['rent-deposit-summary'] })
+          queryClient.invalidateQueries({ queryKey: ['payment-request'] })
+          queryClient.invalidateQueries({ queryKey: ['payment-details', uuid] })
+          queryClient.invalidateQueries({ queryKey: ['transactions'] })
+
+          const currentPaid = paymentData.payment?.amountPaid || 0
+          const remainingDue = Math.max(
+            0,
+            paymentData.payment.amount - (currentPaid + info.amount),
+          )
+
+          // If rent deposit covered the full amount, settle directly without opening checkout modal!
+          if (remainingDue <= 0) {
+            toastSuccess('Invoice settled with Rent Deposit balance!')
+            await loadPaymentDetails()
+            setStep('already-paid')
+            return
+          }
+
+          // Compute remaining line items after deposit deduction
+          const net = Math.max(0, parsedAmount - info.amount)
+          const remainingLineItems = finalLineItemPayments
+            .map((item) => {
+              const alloc = info.allocations?.find((a) => a.lineItemId === item.id)
+              const depositUsed = alloc ? alloc.amount : 0
+              return {
+                ...item,
+                amountPaid: Math.max(0, item.amountPaid - depositUsed),
+              }
+            })
+            .filter((item) => item.amountPaid > 0)
+
+          setCheckoutAmount(net)
+          setCheckoutLineItems(remainingLineItems)
+
+          // Refresh payment details from server
+          await loadPaymentDetails()
+        } catch (err: any) {
+          toastError(
+            err?.message || 'Failed to apply rent deposit balance. Please try again.',
+            'Deposit Application Failed',
+          )
+          return
+        }
+      }
+
+      track(
+        CHECKOUT_EXPERIMENT_EVENTS.PAYMENT_STARTED,
+        variant,
+        isBenefitsOptedIn,
+      )
+      setStep('checkout')
+    },
+    [
+      paymentData,
+      authUser,
+      uuid,
+      queryClient,
+      toastSuccess,
+      toastError,
+      loadPaymentDetails,
+      parsedAmount,
+      finalLineItemPayments,
+      track,
       variant,
       isBenefitsOptedIn,
-    )
-    setStep('checkout')
-  }, [
-    paymentData,
-    authUser,
-    variant,
-    isBenefitsOptedIn,
-    track,
-    setStep,
-  ])
+      setStep,
+    ],
+  )
 
   useEffect(() => {
     if ((isBasicCheckout || rates.benefitsPaid) && isBenefitsOptedIn) {
@@ -252,14 +344,18 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
           <div className="bg-white rounded-[40px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.1)] border border-[var(--border-solid)] animate-in zoom-in-95 fade-in duration-500 max-h-[calc(100vh-32px)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <PaystackEmbeddedCheckout
               email={paymentData.user.email}
-              amount={parsedAmount}
+              amount={checkoutAmount ?? parsedAmount}
               gatewayFee={0}
               currency={currency}
               companyName={paymentData.company?.name}
               paymentRequestUuid={uuid}
               onSuccess={handlePaymentSuccess}
-              onClose={() => setStep('invoice')}
-              lineItems={finalLineItemPayments.map(p => ({ name: p.name, amount: p.amountPaid }))}
+              onClose={() => {
+                setCheckoutAmount(null)
+                setCheckoutLineItems(null)
+                setStep('invoice')
+              }}
+              lineItems={(checkoutLineItems ?? finalLineItemPayments).map(p => ({ name: p.name, amount: p.amountPaid }))}
             />
           </div>
         </div>
@@ -568,6 +664,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             executeLogin={executeLogin}
             handleAllocationChange={handleAllocationChange}
             onPayClick={handlePayClick}
+            onReloadDetails={loadPaymentDetails}
+            onSettledSuccess={(isFull) => {
+              if (isFull) {
+                setStep('already-paid')
+              } else {
+                loadPaymentDetails()
+              }
+            }}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
             cancelLoading={isSelfInitiated ? isSubmitting : false}
           />
@@ -599,6 +703,14 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
             executeLogin={executeLogin}
             handleAllocationChange={handleAllocationChange}
             onPayClick={handlePayClick}
+            onReloadDetails={loadPaymentDetails}
+            onSettledSuccess={(isFull) => {
+              if (isFull) {
+                setStep('already-paid')
+              } else {
+                loadPaymentDetails()
+              }
+            }}
             onCancelRequest={isSelfInitiated ? handleCancelRequest : undefined}
             cancelLoading={isSelfInitiated ? isSubmitting : false}
             showPremiumOptions={showBenefitsUI}
@@ -792,7 +904,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
                     <div className="pay-cta pay-cta--sticky">
                       <button
                         className="btn btn--primary btn--full btn--pay btn--pill"
-                        onClick={handlePayClick}
+                        onClick={() => handlePayClick()}
                         disabled={ctaDisabled}
                       >
                         <CreditCard size={18} className="icon--left" />
