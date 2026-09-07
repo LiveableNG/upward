@@ -1643,24 +1643,47 @@ export class GetTransactionUseCase {
       })
 
       if (pr) {
-        const priorTxs = await this.prisma.upward_transaction.findMany({
-          where: {
-            paymentRequestId: pr.id,
-            status: 'SUCCESS',
-            createdAt: { lte: tx.createdAt },
-          },
-        })
+        const resolvedRentStart = tx.rentStartDate || pr.rentStartDate || pr.userProperty?.rentStartDate
+        const resolvedRentEnd = tx.rentEndDate || pr.rentEndDate || pr.userProperty?.rentEndDate
+        const tenancyPeriod = (resolvedRentStart && resolvedRentEnd)
+          ? `${new Date(resolvedRentStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(resolvedRentEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : undefined
+
+        const hasSnapshotAmounts = (tx as any)?.totalInvoiceAmount !== null && (tx as any)?.totalInvoiceAmount !== undefined
+        let totalInvoice: number
+        let historicalPaidToDate: number
+        let historicalRemaining: number
+        let isPartial: boolean
+        let rentAmount: number
+
         const propRent = pr.userProperty?.rentAmount
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
-        const rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
+        rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
 
-        const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
-        const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
-        const historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
-          ? Math.min(propRent, propInitialPaid + basePaid)
-          : basePaid
-        const totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : pr.amount
-        const historicalRemaining = Math.max(0, totalInvoice - historicalPaidToDate)
+        if (hasSnapshotAmounts) {
+          const snapTx = tx as any
+          totalInvoice = snapTx.totalInvoiceAmount
+          rentAmount = snapTx.totalInvoiceAmount
+          historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
+          historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
+          isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
+        } else {
+          const priorTxs = await this.prisma.upward_transaction.findMany({
+            where: {
+              paymentRequestId: pr.id,
+              status: 'SUCCESS',
+              createdAt: { lte: tx.createdAt },
+            },
+          })
+          const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
+          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+          historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
+            ? Math.min(propRent, propInitialPaid + basePaid)
+            : basePaid
+          totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : (pr.amount || rentAmount)
+          historicalRemaining = Math.max(0, totalInvoice - historicalPaidToDate)
+          isPartial = historicalRemaining > 0
+        }
 
         const pm = pr.userProperty?.pm
         const company = pr.userProperty?.company
@@ -1707,22 +1730,23 @@ export class GetTransactionUseCase {
             }))
           : []
 
-        const resolvedRentStart = pr.userProperty?.rentStartDate || tx.rentStartDate || pr.rentStartDate
-        const resolvedRentEnd = pr.userProperty?.rentEndDate || tx.rentEndDate || pr.rentEndDate
-
         return {
           ...tx,
           rentStartDate: resolvedRentStart,
           rentEndDate: resolvedRentEnd,
+          tenancyPeriod,
           paymentRequest: {
             ...tx.paymentRequest,
             ...pr,
           },
           rentAmount,
           totalInvoiceAmount: totalInvoice,
+          totalPaidToDate: historicalPaidToDate,
           historicalPaidToDate,
+          remainingBalance: historicalRemaining,
           historicalRemaining,
-          isPartial: historicalRemaining > 0,
+          isPartial,
+          status: isPartial ? 'PARTIAL' : (tx.status === 'SUCCESS' ? 'PAID' : tx.status),
           themeColor,
           companyLogo: companyLogo || tx.companyLogo,
           companyName: resolvedCompanyName,
