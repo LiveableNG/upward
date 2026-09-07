@@ -30,19 +30,19 @@ function getTranchesForCycle(cycle: any, successfulTransactions: any[]): { amoun
         tranches.push({ amount: amountOwed - totalTxAmount, paidAt: null })
       }
     } else {
+      // Unverified / PENDING onboarding cycle has no verified transactions yet
+      tranches.push({ amount: amountOwed, paidAt: null })
+    }
+  } else {
+    if (cycle.status === 'PAID_ON_TIME' || cycle.status === 'PAID' || cycle.status === 'PAID_LATE') {
       if (cycle.amountPaid > 0) {
         tranches.push({ amount: cycle.amountPaid, paidAt: cycle.paidAt ? new Date(cycle.paidAt) : new Date(cycle.updatedAt) })
       }
       if (cycle.amountPaid < amountOwed) {
         tranches.push({ amount: amountOwed - cycle.amountPaid, paidAt: null })
       }
-    }
-  } else {
-    if (cycle.amountPaid > 0) {
-      tranches.push({ amount: cycle.amountPaid, paidAt: cycle.paidAt ? new Date(cycle.paidAt) : new Date(cycle.updatedAt) })
-    }
-    if (cycle.amountPaid < amountOwed) {
-      tranches.push({ amount: amountOwed - cycle.amountPaid, paidAt: null })
+    } else {
+      tranches.push({ amount: amountOwed, paidAt: null })
     }
   }
   return tranches

@@ -64,8 +64,12 @@ export default function ReceiptsPage() {
           : undefined
 
         const pr = tx.paymentRequest
-        const totalInvoiceAmount = tx.totalInvoiceAmount !== undefined ? tx.totalInvoiceAmount : pr?.amount
-        const totalPaidToDate = tx.historicalPaidToDate !== undefined ? tx.historicalPaidToDate : (pr?.amountPaid)
+        const fullRentAmount = tx.rentAmount || propInfo?.rentAmount || pr?.amount
+        const totalInvoiceAmount = tx.totalInvoiceAmount !== undefined ? tx.totalInvoiceAmount : (fullRentAmount || pr?.amount)
+        const initialPaid = propInfo?.initialAmountPaid || 0
+        const totalPaidToDate = tx.historicalPaidToDate !== undefined 
+          ? tx.historicalPaidToDate 
+          : ((pr?.amountPaid || 0) + (initialPaid && tx.amount < (fullRentAmount || 0) ? initialPaid : 0))
         const remainingBalance = tx.remainingBalance !== undefined
           ? tx.remainingBalance
           : (totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 

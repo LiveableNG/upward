@@ -211,7 +211,7 @@ export class SubmitUnitRequestUseCase {
       amountPaid,
       amountRemaining,
       initialAmountPaid: initialPaid,
-      isFirstRent: tenancyStatus === 'NEW_CYCLE',
+      isFirstRent: initialPaid > 0 ? false : tenancyStatus === 'NEW_CYCLE',
     };
 
     if (pm) {

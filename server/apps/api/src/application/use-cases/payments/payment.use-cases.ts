@@ -658,9 +658,19 @@ export class RecordTransactionUseCase {
 
         const activePr = freshPr || pr
 
-        let snapshotRentStart: Date | null = activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null
-        let snapshotRentEnd: Date | null = activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null
-        let snapshotTotalInvoice: number | null = activePr?.amount || null
+        const propRecord = propertyId
+          ? await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
+          : null
+
+        let snapshotRentStart: Date | null = propRecord?.rentStartDate
+          ? new Date(propRecord.rentStartDate)
+          : (activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null)
+        let snapshotRentEnd: Date | null = propRecord?.rentEndDate
+          ? new Date(propRecord.rentEndDate)
+          : (activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null)
+        let snapshotTotalInvoice: number | null = (propRecord?.rentAmount && propRecord.initialAmountPaid > 0)
+          ? propRecord.rentAmount
+          : (activePr?.amount || null)
         let snapshotHistoricalPaid: number | null = null
         let snapshotRemaining: number | null = null
         let snapshotIsPartial: boolean | null = null
@@ -673,12 +683,6 @@ export class RecordTransactionUseCase {
           if (latestPlatformPayment?.periodStart) {
             snapshotRentStart = new Date(latestPlatformPayment.periodStart)
             snapshotRentEnd = latestPlatformPayment.periodEnd ? new Date(latestPlatformPayment.periodEnd) : null
-          } else {
-            const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
-            if (propRecord) {
-              snapshotRentStart = propRecord.rentStartDate ? new Date(propRecord.rentStartDate) : null
-              snapshotRentEnd = propRecord.rentEndDate ? new Date(propRecord.rentEndDate) : null
-            }
           }
         }
 
@@ -1646,11 +1650,17 @@ export class GetTransactionUseCase {
             createdAt: { lte: tx.createdAt },
           },
         })
-        const historicalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
-        const historicalRemaining = Math.max(0, pr.amount - historicalPaidToDate)
-
+        const propRent = pr.userProperty?.rentAmount
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
-        const rentAmount = rentItem ? rentItem.totalAmount : pr.amount
+        const rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
+
+        const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
+        const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+        const historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
+          ? Math.min(propRent, propInitialPaid + basePaid)
+          : basePaid
+        const totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : pr.amount
+        const historicalRemaining = Math.max(0, totalInvoice - historicalPaidToDate)
 
         const pm = pr.userProperty?.pm
         const company = pr.userProperty?.company
@@ -1697,14 +1707,19 @@ export class GetTransactionUseCase {
             }))
           : []
 
+        const resolvedRentStart = pr.userProperty?.rentStartDate || tx.rentStartDate || pr.rentStartDate
+        const resolvedRentEnd = pr.userProperty?.rentEndDate || tx.rentEndDate || pr.rentEndDate
+
         return {
           ...tx,
+          rentStartDate: resolvedRentStart,
+          rentEndDate: resolvedRentEnd,
           paymentRequest: {
             ...tx.paymentRequest,
             ...pr,
           },
           rentAmount,
-          totalInvoiceAmount: pr.amount,
+          totalInvoiceAmount: totalInvoice,
           historicalPaidToDate,
           historicalRemaining,
           isPartial: historicalRemaining > 0,
