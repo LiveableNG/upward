@@ -1049,7 +1049,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       const occVal = document.getElementById('occupation').value;
       const sessionVal = document.getElementById('session_time').value;
 
-      const srcIdent = window.UpwardTracker ? window.UpwardTracker.getSourceIdentifier() : null;
+      const srcIdent = (window.UpwardTracker && typeof window.UpwardTracker.getSourceIdentifier === 'function')
+        ? window.UpwardTracker.getSourceIdentifier()
+        : (typeof window.getUniversitySource === 'function' ? window.getUniversitySource() : null);
 
       // Save partial lead to server (for both Early Access & Application roster tracking in Admin)
       const leadPayload = {
@@ -1229,7 +1231,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         sessionTime: document.getElementById('session_time').value,
         isScholarshipApplicant: isScholarship,
         scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : '',
-        sourceIdentifier: window.getUniversitySource ? window.getUniversitySource() : ''
+        sourceIdentifier: (window.UpwardTracker && typeof window.UpwardTracker.getSourceIdentifier === 'function')
+          ? window.UpwardTracker.getSourceIdentifier()
+          : (typeof window.getUniversitySource === 'function' ? window.getUniversitySource() : '')
       };
 
       submitBtn.disabled = true;
