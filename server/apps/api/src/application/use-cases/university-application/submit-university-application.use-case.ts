@@ -21,6 +21,7 @@ export interface SubmitUniversityApplicationCommand {
   timing?: string
   isScholarship?: boolean
   scholarshipVideoUrl?: string
+  sessionTime?: string
   feeStatus?: string
   paymentRef?: string
   sendEmail?: boolean
@@ -75,6 +76,7 @@ export class SubmitUniversityApplicationUseCase {
         timing: command.timing ?? existingProps.timing,
         isScholarship: command.isScholarship ?? existingProps.isScholarship,
         scholarshipVideoUrl: command.scholarshipVideoUrl ?? existingProps.scholarshipVideoUrl,
+        sessionTime: command.sessionTime ?? existingProps.sessionTime,
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
         updatedAt: new Date(),
@@ -94,6 +96,7 @@ export class SubmitUniversityApplicationUseCase {
         timing: command.timing,
         isScholarship: command.isScholarship,
         scholarshipVideoUrl: command.scholarshipVideoUrl,
+        sessionTime: command.sessionTime,
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
       })
@@ -115,6 +118,11 @@ export class SubmitUniversityApplicationUseCase {
         let buttonText = ''
         let buttonUrl = ''
 
+        const sessionInfo =
+          saved.sessionTime && saved.sessionTime !== "I don't need an info session"
+            ? `<p style="background: #fdf6ec; border-left: 4px solid #8A4A2A; padding: 8px 12px; margin: 14px 0;"><strong>Information &amp; Q&amp;A Session:</strong> ${saved.sessionTime}</p>`
+            : ''
+
         if (isPaidNow) {
           subjectText = 'Application & Fee Confirmed — Upward University Cohort 2026'
           buttonText = 'Explore Upward University'
@@ -123,6 +131,7 @@ export class SubmitUniversityApplicationUseCase {
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
             <p><strong>Thank you! Your Upward University Application & ₦5,000 Fee Payment have been received.</strong></p>
             <p>Your spot for the <strong>Founding Cohort 2026</strong> is now safely logged with our admissions team.</p>
+            ${sessionInfo}
             <p>Our admissions committee will review your responses and reach out via WhatsApp and email with your cohort orientation details and next steps.</p>
             <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward University Admissions Team</strong></p>
           `
@@ -134,6 +143,7 @@ export class SubmitUniversityApplicationUseCase {
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
             <p><strong>Your Upward University Application Profile Has Been Saved!</strong></p>
             <p>Thank you for starting your application for the <strong>Founding Cohort 2026</strong>.</p>
+            ${sessionInfo}
             <p>To complete your application for admissions review, please complete your ₦5,000 application fee payment below. (Note: The fee is credited toward your programme tuition if admitted, and fully refunded if you do not qualify).</p>
             <p>Click the button below anytime to reopen your application checkout and finish your payment.</p>
             <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward University Admissions Team</strong></p>

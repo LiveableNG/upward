@@ -56,6 +56,7 @@ interface UniversityApplicationRecord {
   timing?: string | null
   isScholarship?: boolean
   scholarshipVideoUrl?: string | null
+  sessionTime?: string | null
   status: 'SUBMITTED' | 'REVIEWED' | 'ADMITTED' | 'REJECTED' | 'FEE_PAID' | 'REFUNDED'
   applicationFee: number
   feeStatus: 'PENDING' | 'PAID' | 'REFUNDED'
@@ -347,6 +348,11 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
           <div><b>{row.occupation || 'Not specified'}</b></div>
           <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{row.experienceLevel || 'Beginner'}</div>
+          {row.sessionTime && (
+            <div style={{ fontSize: '11px', color: '#92400e', background: '#fef3c7', padding: '1px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '3px', fontWeight: 600 }}>
+              <Calendar size={11} /> {row.sessionTime}
+            </div>
+          )}
         </div>
       ),
     },
@@ -1582,6 +1588,32 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                   </span>
                   <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
                     {selectedApp.timing}
+                  </div>
+                </div>
+              )}
+
+              {selectedApp.sessionTime && (
+                <div style={{ marginBottom: '14px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Information & Q&A Session Choice:
+                  </span>
+                  <div
+                    style={{
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      marginTop: '4px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <Calendar size={15} />
+                    {selectedApp.sessionTime}
                   </div>
                 </div>
               )}
