@@ -40,6 +40,7 @@
     gtag('js', new Date());
     gtag('config', 'AW-18414957187');
   </script>
+  <script src="/university-tracker.js"></script>
 
   <style>
     :root {
@@ -937,9 +938,9 @@
     <nav class="wrap">
       <div class="logo">
         <span class="mark">
-          <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 48 48\'><rect width=\'48\' height=\'48\' fill=\'%238A4A2A\'/><text x=\'50%25\' y=\'55%25\' fill=\'white\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' text-anchor=\'middle\' dominant-baseline=\'middle\'>U</text></svg>';">
+          <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University and Business Accelerator Logo" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'48\' height=\'48\' viewBox=\'0 0 48 48\'><rect width=\'48\' height=\'48\' fill=\'%238A4A2A\'/><text x=\'50%25\' y=\'55%25\' fill=\'white\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' text-anchor=\'middle\' dominant-baseline=\'middle\'>U</text></svg>';">
         </span>
-        <div>UPWARD<br><small>University</small></div>
+        <div>UPWARD<br><small>University and Business Accelerator</small></div>
       </div>
       <div class="nav-links" id="navLinks">
         <a href="/" class="nav-home">← Upward Home</a>
@@ -1611,7 +1612,8 @@
         ageBracket: document.getElementById('ea_age').value,
         experienceLevel: document.getElementById('ea_exp').value,
         interest: document.getElementById('ea_interest').value,
-        sessionTime: document.getElementById('ea_session_time')?.value
+        sessionTime: document.getElementById('ea_session_time')?.value,
+        sourceIdentifier: window.getUniversitySource ? window.getUniversitySource() : ''
       };
 
       try {

@@ -79,6 +79,7 @@ export class UniversityApplicationController {
       isScholarship: dto.isScholarship ?? dto.isScholarshipApplicant,
       scholarshipVideoUrl: dto.scholarshipVideoUrl,
       sessionTime: dto.sessionTime,
+      sourceIdentifier: dto.sourceIdentifier,
       feeStatus: dto.feeStatus,
       paymentRef: dto.paymentRef,
       sendEmail: dto.sendEmail,

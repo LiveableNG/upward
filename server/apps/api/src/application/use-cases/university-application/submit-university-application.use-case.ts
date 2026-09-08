@@ -3,6 +3,10 @@ import {
   UNIVERSITY_APPLICATION_REPOSITORY,
   IUniversityApplicationRepository,
 } from '../../../domains/university-application/university-application.repository'
+import {
+  UNIVERSITY_TRAFFIC_REPOSITORY,
+  IUniversityTrafficRepository,
+} from '../../../domains/university-traffic/university-traffic.repository'
 import { UniversityApplication } from '../../../domains/university-application/university-application.entity'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { buildGlobalLayoutHtml } from '../../../shared/infrastructure/email/email.helper'
@@ -22,6 +26,7 @@ export interface SubmitUniversityApplicationCommand {
   isScholarship?: boolean
   scholarshipVideoUrl?: string
   sessionTime?: string
+  sourceIdentifier?: string
   feeStatus?: string
   paymentRef?: string
   sendEmail?: boolean
@@ -41,6 +46,8 @@ export class SubmitUniversityApplicationUseCase {
     @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
     private readonly applicationRepo: IUniversityApplicationRepository,
     private readonly emailService: EmailService,
+    @Inject(UNIVERSITY_TRAFFIC_REPOSITORY)
+    private readonly trafficRepo: IUniversityTrafficRepository,
   ) {}
 
   async execute(command: SubmitUniversityApplicationCommand): Promise<SubmitUniversityApplicationResult> {
@@ -77,6 +84,7 @@ export class SubmitUniversityApplicationUseCase {
         isScholarship: command.isScholarship ?? existingProps.isScholarship,
         scholarshipVideoUrl: command.scholarshipVideoUrl ?? existingProps.scholarshipVideoUrl,
         sessionTime: command.sessionTime ?? existingProps.sessionTime,
+        sourceIdentifier: command.sourceIdentifier ?? existingProps.sourceIdentifier,
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
         updatedAt: new Date(),
@@ -97,6 +105,7 @@ export class SubmitUniversityApplicationUseCase {
         isScholarship: command.isScholarship,
         scholarshipVideoUrl: command.scholarshipVideoUrl,
         sessionTime: command.sessionTime,
+        sourceIdentifier: command.sourceIdentifier,
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
       })
@@ -104,6 +113,14 @@ export class SubmitUniversityApplicationUseCase {
     }
 
     const saved = await this.applicationRepo.save(application)
+
+    // Attribution: increment conversion count if sourceIdentifier was provided and it is a new application or first-time attribution
+    const isNewAttribution = !existing || !existing.toObject().sourceIdentifier
+    if (command.sourceIdentifier && isNewAttribution) {
+      this.trafficRepo.incrementConversion(command.sourceIdentifier).catch((err: any) => {
+        this.logger.warn(`Failed to increment traffic conversion for ${command.sourceIdentifier}: ${err?.message || err}`)
+      })
+    }
 
     // Send single email ONLY when explicitly requested (e.g. on checkout exit or payment completion)
     const shouldSendEmail = command.sendEmail === true || command.feeStatus === 'PAID'

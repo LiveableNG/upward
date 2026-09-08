@@ -487,55 +487,103 @@ model upward_demo_request {
 }
 
 model upward_early_access {
-  id              String   @id @default(uuid())
-  type            String   // STUDENT | LANDLORD
-  name            String
-  whatsapp        String
-  email           String?
-  city            String
-  ageBracket      String?  // Student specific
-  experienceLevel String?  // Student specific
-  interest        String?  // Student specific
-  propertyCount   String?  // Landlord specific
-  landlordStatus  String?  // Landlord specific
-  managementStyle String?  // Landlord specific
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String   @id @default(uuid())
+  type             String   // STUDENT | LANDLORD
+  name             String
+  whatsapp         String
+  email            String?
+  city             String
+  ageBracket       String?  // Student specific
+  experienceLevel  String?  // Student specific
+  interest         String?  // Student specific
+  propertyCount    String?  // Landlord specific
+  landlordStatus   String?  // Landlord specific
+  managementStyle  String?  // Landlord specific
+  sourceIdentifier String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([type])
   @@index([email])
   @@index([whatsapp])
+  @@index([sourceIdentifier])
   @@index([createdAt])
 }
 
 model upward_university_application {
-  id              String   @id @default(uuid())
-  name            String
-  whatsapp        String
-  email           String
-  city            String
-  ageBracket      String
-  occupation      String?
-  experienceLevel String?
-  goals           String?
-  commitment      String
-  why             String
-  timing          String?
-  isScholarship   Boolean  @default(false)
+  id                  String   @id @default(uuid())
+  name                String
+  whatsapp            String
+  email               String
+  city                String
+  ageBracket          String
+  occupation          String?
+  experienceLevel     String?
+  goals               String?
+  commitment          String
+  why                 String
+  timing              String?
+  isScholarship       Boolean  @default(false)
   scholarshipVideoUrl String?
-  sessionTime     String?
-  status          String   @default("SUBMITTED") // SUBMITTED | REVIEWED | ADMITTED | REJECTED | FEE_PAID | REFUNDED
-  applicationFee  Float    @default(5000.0)
-  feeStatus       String   @default("PENDING") // PENDING | PAID | REFUNDED
-  paymentRef      String?
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  sessionTime         String?
+  sourceIdentifier    String?
+  status              String   @default("SUBMITTED") // SUBMITTED | REVIEWED | ADMITTED | REJECTED | FEE_PAID | REFUNDED
+  applicationFee      Float    @default(5000.0)
+  feeStatus           String   @default("PENDING") // PENDING | PAID | REFUNDED
+  paymentRef          String?
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([email])
   @@index([whatsapp])
   @@index([status])
   @@index([feeStatus])
+  @@index([sourceIdentifier])
   @@index([createdAt])
 }
+
+model upward_university_source {
+  id           String                   @id @default(uuid())
+  identifier   String                   @unique
+  name         String
+  channel      String                   @default("OTHER") // INSTAGRAM | FACEBOOK | TIKTOK | TWITTER | WHATSAPP | FLYER | INFLUENCER | OTHER
+  targetUrl    String                   @default("/university")
+  description  String?
+  totalViews   Int                      @default(0)
+  uniqueViews  Int                      @default(0)
+  conversions  Int                      @default(0)
+  isActive     Boolean                  @default(true)
+  lastVisitedAt DateTime?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  visits       upward_university_visit[]
+
+  @@index([identifier])
+  @@index([channel])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model upward_university_visit {
+  id         String                    @id @default(uuid())
+  sourceId   String?
+  identifier String
+  visitorId  String
+  sessionId  String
+  ipHash     String?
+  userAgent  String?
+  referer    String?
+  path       String
+  isUnique   Boolean                   @default(true)
+  createdAt  DateTime                  @default(now())
+  source     upward_university_source? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@index([sourceId])
+  @@index([identifier])
+  @@index([visitorId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
 

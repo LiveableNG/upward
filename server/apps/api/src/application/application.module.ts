@@ -82,6 +82,17 @@ import {
   UpdateUniversityApplicationStatusUseCase,
   DeleteUniversityApplicationUseCase,
 } from './use-cases/university-application/get-university-applications-admin.use-case'
+import { TrackUniversityVisitUseCase } from './use-cases/university-traffic/track-university-visit.use-case'
+import {
+  GetUniversityTrafficSourcesAdminUseCase,
+  GetUniversityTrafficStatsAdminUseCase,
+  GetUniversitySourceVisitsAdminUseCase,
+} from './use-cases/university-traffic/get-university-traffic-sources-admin.use-case'
+import { CreateUniversityTrafficSourceUseCase } from './use-cases/university-traffic/create-university-traffic-source.use-case'
+import {
+  UpdateUniversityTrafficSourceUseCase,
+  DeleteUniversityTrafficSourceUseCase,
+} from './use-cases/university-traffic/update-university-traffic-source.use-case'
 
 import { GetSessionsUseCase } from './use-cases/sessions/get-sessions.use-case'
 import { CreateSessionUseCase } from './use-cases/sessions/create-session.use-case'
@@ -748,6 +759,13 @@ const UseCases: any[] = [
   GetUniversityApplicationsUseCase,
   UpdateUniversityApplicationStatusUseCase,
   DeleteUniversityApplicationUseCase,
+  TrackUniversityVisitUseCase,
+  GetUniversityTrafficSourcesAdminUseCase,
+  GetUniversityTrafficStatsAdminUseCase,
+  GetUniversitySourceVisitsAdminUseCase,
+  CreateUniversityTrafficSourceUseCase,
+  UpdateUniversityTrafficSourceUseCase,
+  DeleteUniversityTrafficSourceUseCase,
   InitializeEmailSequenceUseCase,
   ProcessPendingEmailSequencesUseCase,
   QueueDailySequencesUseCase,

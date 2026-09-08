@@ -39,6 +39,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
   gtag('js', new Date());
   gtag('config', 'AW-18414957187');
 </script>
+<script src="/university-tracker.js"></script>
 <style>
   :root{
     --ink:#15162B; --ink-soft:#4B4B63; --paper:#FDFBF5; --paper-dim:#F6F2E9;
@@ -577,8 +578,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 <header>
   <nav class="wrap">
     <a href="/university" class="logo">
-      <span class="mark"><img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style="width:100%;height:100%;object-fit:cover;"></span>
-      <div>UPWARD<br><small>University</small></div>
+      <span class="mark"><img src="/university-logos/upward_university_logo.jpeg" alt="Upward University and Business Accelerator Logo" style="width:100%;height:100%;object-fit:cover;"></span>
+      <div>UPWARD<br><small>University and Business Accelerator</small></div>
     </a>
     <div class="nav-links" id="navLinks">
       <a href="/" class="nav-home">← Upward Home</a>
@@ -1048,6 +1049,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       const occVal = document.getElementById('occupation').value;
       const sessionVal = document.getElementById('session_time').value;
 
+      const srcIdent = (window.UpwardTracker && typeof window.UpwardTracker.getSourceIdentifier === 'function')
+        ? window.UpwardTracker.getSourceIdentifier()
+        : (typeof window.getUniversitySource === 'function' ? window.getUniversitySource() : null);
+
       // Save partial lead to server (for both Early Access & Application roster tracking in Admin)
       const leadPayload = {
         name: nameVal,
@@ -1057,6 +1062,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         ageBracket: ageVal,
         occupation: occVal,
         sessionTime: sessionVal,
+        sourceIdentifier: srcIdent || undefined,
         experienceLevel: 'Stage 1 Completed (Basic Info Captured)',
         interest: sessionVal ? `[Session: ${sessionVal}] Stage 1: Contact Info (Drop-off)` : 'Stage 1: Contact Info (Drop-off)'
       };
@@ -1069,6 +1075,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         ageBracket: ageVal,
         occupation: occVal,
         sessionTime: sessionVal,
+        sourceIdentifier: srcIdent || undefined,
         experienceLevel: 'Stage 1 Completed',
         commitment: 'Pending (Stage 1 Completed)',
         why: 'Pending (Stage 1 Completed)'
@@ -1223,7 +1230,10 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         timing: document.getElementById('timing').value,
         sessionTime: document.getElementById('session_time').value,
         isScholarshipApplicant: isScholarship,
-        scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : ''
+        scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : '',
+        sourceIdentifier: (window.UpwardTracker && typeof window.UpwardTracker.getSourceIdentifier === 'function')
+          ? window.UpwardTracker.getSourceIdentifier()
+          : (typeof window.getUniversitySource === 'function' ? window.getUniversitySource() : '')
       };
 
       submitBtn.disabled = true;
