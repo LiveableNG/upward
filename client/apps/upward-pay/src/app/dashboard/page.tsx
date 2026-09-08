@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { usePendingPayments, useTransactions } from '@/features/dashboard/hooks/useDashboard'
 import { useAuth } from '@/features/auth/AuthContext'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { StatStrip } from '@/features/dashboard/components/StatStrip'
 import { DashboardHome } from '@/features/dashboard/components/DashboardHome'
-import FallbackSuspense from '@/components/FallbackSuspense'
+import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
+import { PullToRefresh } from '@/components/common/PullToRefresh'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { formatDate } from '@/lib/utils'
 import { Capacitor } from '@capacitor/core'
@@ -62,8 +63,22 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
+  const queryClient = useQueryClient()
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] }),
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['benefits-status'] }),
+      queryClient.invalidateQueries({ queryKey: ['score-profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-home'] }),
+      queryClient.invalidateQueries({ queryKey: ['all-bills'] }),
+    ])
+  }
+
   if (authLoading || !user) {
-    return <FallbackSuspense message="Loading your account..." />
+    return <DashboardSkeleton />
   }
 
   // Gracefully handle critical errors
@@ -157,48 +172,50 @@ export default function DashboardPage() {
     }) || propertyReminders.some((r: any) => r?.isCritical)
 
   return (
-    <div className="dashboard dashboard--nav-offset dashboard--proto-home">
-      <div className="mobile-only mobile-header-sticky">
-        <DashboardHeader
-          firstName={firstName}
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="dashboard dashboard--nav-offset dashboard--proto-home">
+        <div className="mobile-only mobile-header-sticky">
+          <DashboardHeader
+            firstName={firstName}
+            notifCount={notifCount}
+            profilePic={user.profilePic}
+          />
+        </div>
+
+        <StatStrip
+          completedPaymentsCount={completedPayments?.length || 0}
+          totalPaid={totalPaid}
+          currency={currency}
+          pendingCount={pendingPayments.length}
+          isLoading={txLoading || pendingLoading}
+        />
+
+        <DashboardHome
+          user={user}
+          pendingPayments={pendingPayments}
+          completedPayments={completedPayments || []}
+          credScore={credScore}
+          maxScore={maxScore}
+          band={band}
+          rank={rank}
+          isScorable={isScorable}
+          streak={streak}
+          onTimePct={onTime}
+          profileCompletion={profileCompletion}
+          propertyReminders={propertyReminders}
+          isIdentityVerified={isIdentityVerified}
+          verificationOn={user?.verificationOn ?? true}
+          isNewUser={isNewUser}
           notifCount={notifCount}
-          profilePic={user.profilePic}
+          anyOverdue={anyOverdue}
+          showAppBanner={shouldShowAppBanner}
+          onDismissAppBanner={handleDismissBanner}
+          benefitsActive={!benefitsError && !!benefitsStatus?.isActive}
+          benefitsEndsAt={benefitsError ? null : benefitsStatus?.endsAt || null}
+          isLoading={pendingLoading || txLoading}
         />
       </div>
-
-      <StatStrip
-        completedPaymentsCount={completedPayments?.length || 0}
-        totalPaid={totalPaid}
-        currency={currency}
-        pendingCount={pendingPayments.length}
-        isLoading={txLoading || pendingLoading}
-      />
-
-      <DashboardHome
-        user={user}
-        pendingPayments={pendingPayments}
-        completedPayments={completedPayments || []}
-        credScore={credScore}
-        maxScore={maxScore}
-        band={band}
-        rank={rank}
-        isScorable={isScorable}
-        streak={streak}
-        onTimePct={onTime}
-        profileCompletion={profileCompletion}
-        propertyReminders={propertyReminders}
-        isIdentityVerified={isIdentityVerified}
-        verificationOn={user?.verificationOn ?? true}
-        isNewUser={isNewUser}
-        notifCount={notifCount}
-        anyOverdue={anyOverdue}
-        showAppBanner={shouldShowAppBanner}
-        onDismissAppBanner={handleDismissBanner}
-        benefitsActive={!benefitsError && !!benefitsStatus?.isActive}
-        benefitsEndsAt={benefitsError ? null : benefitsStatus?.endsAt || null}
-        isLoading={pendingLoading || txLoading}
-      />
-    </div>
+    </PullToRefresh>
   )
 }
 

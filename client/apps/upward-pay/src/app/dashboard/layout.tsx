@@ -15,6 +15,8 @@ const AnnouncementManager = dynamic(() => import('@/features/dashboard/component
 const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
 const ProfileSetupBlocker = dynamic(() => import('@/features/dashboard/components/ProfileSetupBlocker').then(mod => mod.ProfileSetupBlocker), { ssr: false })
 const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/TermsAcceptanceModal').then(mod => mod.TermsAcceptanceModal), { ssr: false })
+import { PageTransition } from '@/components/common/PageTransition'
+import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -86,7 +88,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <AnnouncementManager />
       <RentReminderManager />
       <main className="dashboard-layout__content">
-        <Suspense fallback={<FallbackSuspense message="Loading..." />}>{children}</Suspense>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <PageTransition>{children}</PageTransition>
+        </Suspense>
       </main>
       {!hideBottomNav && <BottomNav />}
     </div>

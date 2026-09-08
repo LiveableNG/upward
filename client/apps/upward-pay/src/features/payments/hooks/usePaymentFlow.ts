@@ -107,7 +107,7 @@ export function usePaymentFlow(
 ) {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { user: authUser, login } = useAuth()
+  const { user: authUser, login, loading: authLoading } = useAuth()
   const { success, error: toastError, info: toastInfo } = useToast()
 
   const [step, setStep] = useState<PayStep>('loading')
@@ -651,6 +651,7 @@ export function usePaymentFlow(
     loginLoading,
     executeLogin,
     authUser,
+    authLoading,
     isPendingRefund,
     isBenefitsOptedIn: effectiveIsBenefitsOptedIn,
     setIsBenefitsOptedIn,

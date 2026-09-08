@@ -23,6 +23,8 @@ import { useToast } from '@/components/common/Toast'
 import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+import { BiometricQuickLogin } from './BiometricQuickLogin'
+import { BiometryType } from '@capgo/capacitor-native-biometric'
 
 type LoginMethod = 'password' | 'code' | null
 
@@ -64,6 +66,11 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(null)
   const [biometricAvailable, setBiometricAvailable] = useState(false)
   const [biometricLoading, setBiometricLoading] = useState(false)
+  const [showBiometricScreen, setShowBiometricScreen] = useState(false)
+  const [savedBiometricEmail, setSavedBiometricEmail] = useState('')
+  const [biometryType, setBiometryType] = useState<BiometryType | null>(null)
+  const autoBiometricTriggered = useRef(false)
+
   const [step, setStep] = useState<'login' | 'otp'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
@@ -100,6 +107,23 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
       if (available) {
         const enabled = await BiometricsService.isEnabled()
         setBiometricAvailable(enabled)
+        if (enabled) {
+          const type = await BiometricsService.getBiometryType()
+          setBiometryType(type)
+          const creds = await BiometricsService.getCredentials()
+          if (creds && creds.email) {
+            setSavedBiometricEmail(creds.email)
+            setLoginEmail(creds.email)
+            setShowBiometricScreen(true)
+
+            if (!autoBiometricTriggered.current) {
+              autoBiometricTriggered.current = true
+              setTimeout(() => {
+                handleBiometricLogin()
+              }, 250)
+            }
+          }
+        }
       }
     }
     checkBiometrics()
@@ -154,6 +178,8 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     }
   }, [loginEmail, loginPhone, identifierType])
 
+  const [biometricFailCount, setBiometricFailCount] = useState(0)
+
   const handleBiometricLogin = async () => {
     setBiometricLoading(true)
     try {
@@ -164,11 +190,23 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           doLogin(creds.email, creds.password)
         } else {
           toastError('No stored credentials found. Please log in manually once.')
+          setShowBiometricScreen(false)
         }
+      } else {
+        // Biometric failed or cancelled
+        setBiometricFailCount((prev) => {
+          const next = prev + 1
+          if (next >= 2) {
+            toastError('Biometric verification failed. Please sign in with your password.')
+            setShowBiometricScreen(false)
+          }
+          return next
+        })
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Biometric authentication failed'
       toastError(message)
+      setShowBiometricScreen(false)
     } finally {
       setBiometricLoading(false)
     }
@@ -328,6 +366,18 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           />
         </div>
       </div>
+    )
+  }
+
+  if (showBiometricScreen && savedBiometricEmail) {
+    return (
+      <BiometricQuickLogin
+        userEmail={savedBiometricEmail}
+        biometryType={biometryType}
+        loading={biometricLoading || loginLoading}
+        onAuthenticate={handleBiometricLogin}
+        onUsePasswordInstead={() => setShowBiometricScreen(false)}
+      />
     )
   }
 
@@ -573,14 +623,19 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 <button
                   type="button"
                   className="auth-form__link auth-form__link--biometric"
-                  onClick={handleBiometricLogin}
-                  disabled={isBusy || !emailExists || isSpecialAccount}
+                  onClick={() => {
+                    if (savedBiometricEmail) {
+                      setShowBiometricScreen(true)
+                    }
+                    handleBiometricLogin()
+                  }}
+                  disabled={isBusy || isSpecialAccount}
                 >
                   {biometricLoading ? (
                     <Loader2 size={16} className="animate-spin" />
                   ) : (
                     <>
-                      <Fingerprint size={16} /> Use biometrics
+                      <Fingerprint size={16} /> Log in with {biometryType === BiometryType.FACE_ID ? 'Face ID' : biometryType === BiometryType.TOUCH_ID ? 'Touch ID' : 'biometrics'}
                     </>
                   )}
                 </button>
