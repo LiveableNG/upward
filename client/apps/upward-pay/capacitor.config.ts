@@ -19,6 +19,7 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
     },
     GoogleSignIn: {
+      clientId: '451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com',
       serverClientId: '451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
     }

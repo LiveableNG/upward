@@ -148,7 +148,7 @@ export type DraftUserProperty = {
   rentType?: string
   isManaged?: boolean
   isPlatformLinked?: boolean
-  pmUnitId?: number
+  pmUnitId?: number | string
   isVerified?: boolean
   managerName?: string
   managerEmail?: string
