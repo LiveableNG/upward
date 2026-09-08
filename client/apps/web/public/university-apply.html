@@ -706,6 +706,17 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
             </div>
           </div>
 
+          <div class="field" id="field-session-time">
+            <label for="session_time">Information Session Date &amp; Time <span class="req-asterisk">*</span></label>
+            <select id="session_time" required>
+              <option value="">Select session time</option>
+              <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
+              <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
+              <option value="I don't need an info session">I don't need an info session</option>
+            </select>
+            <div class="error-text">Please select an information session option</div>
+          </div>
+
           <div class="stage-nav-btns" style="justify-content: flex-end;">
             <button type="button" class="btn btn-primary" id="btn-stage-1-next">
               Continue to Step 2 →
@@ -813,6 +824,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
               <div><strong>City:</strong> <span id="sum-city">-</span></div>
               <div><strong>Scholarship:</strong> <span id="sum-scholarship">Standard Application</span></div>
               <div><strong>Commitment:</strong> <span id="sum-commitment">-</span></div>
+              <div style="grid-column: 1 / -1;"><strong>Info Session:</strong> <span id="sum-session">-</span></div>
             </div>
           </div>
 
@@ -932,7 +944,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       { id: 'whatsapp', fieldId: 'field-whatsapp', validate: val => val.trim().length >= 6 },
       { id: 'email', fieldId: 'field-email', validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) },
       { id: 'city', fieldId: 'field-city', validate: val => val.trim().length > 0 },
-      { id: 'age', fieldId: 'field-age', validate: val => val !== '' }
+      { id: 'age', fieldId: 'field-age', validate: val => val !== '' },
+      { id: 'session_time', fieldId: 'field-session-time', validate: val => val !== '' }
     ];
 
     const stage2Fields = [
@@ -1033,6 +1046,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       const cityVal = document.getElementById('city').value;
       const ageVal = document.getElementById('age').value;
       const occVal = document.getElementById('occupation').value;
+      const sessionVal = document.getElementById('session_time').value;
 
       // Save partial lead to server (for both Early Access & Application roster tracking in Admin)
       const leadPayload = {
@@ -1042,8 +1056,9 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         city: cityVal,
         ageBracket: ageVal,
         occupation: occVal,
+        sessionTime: sessionVal,
         experienceLevel: 'Stage 1 Completed (Basic Info Captured)',
-        interest: 'Stage 1: Contact Info (Drop-off)'
+        interest: sessionVal ? `[Session: ${sessionVal}] Stage 1: Contact Info (Drop-off)` : 'Stage 1: Contact Info (Drop-off)'
       };
 
       const appStage1Payload = {
@@ -1053,6 +1068,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         city: cityVal,
         ageBracket: ageVal,
         occupation: occVal,
+        sessionTime: sessionVal,
         experienceLevel: 'Stage 1 Completed',
         commitment: 'Pending (Stage 1 Completed)',
         why: 'Pending (Stage 1 Completed)'
@@ -1137,6 +1153,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       document.getElementById('sum-city').textContent = document.getElementById('city').value;
       document.getElementById('sum-scholarship').textContent = isScholarship ? 'Yes (Scholarship Candidate)' : 'No (Standard Application)';
       document.getElementById('sum-commitment').textContent = document.getElementById('commitment').value;
+      document.getElementById('sum-session').textContent = document.getElementById('session_time').value || '-';
 
       // Sync updated full application state to backend
       const appPayload = {
@@ -1146,6 +1163,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         city: document.getElementById('city').value,
         ageBracket: document.getElementById('age').value,
         occupation: document.getElementById('occupation').value || undefined,
+        sessionTime: document.getElementById('session_time').value || undefined,
         experienceLevel: document.getElementById('exp').value || 'Stage 2 Completed',
         goals: document.getElementById('goals').value || undefined,
         commitment: document.getElementById('commitment').value,
@@ -1203,6 +1221,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         commitment: document.getElementById('commitment').value,
         why: document.getElementById('why').value,
         timing: document.getElementById('timing').value,
+        sessionTime: document.getElementById('session_time').value,
         isScholarshipApplicant: isScholarship,
         scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : ''
       };
@@ -1271,7 +1290,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
                 custom_fields: [
                   { display_name: "Applicant Name", variable_name: "applicant_name", value: payload.name },
                   { display_name: "WhatsApp Number", variable_name: "whatsapp_number", value: payload.whatsapp },
-                  { display_name: "City", variable_name: "city", value: payload.city }
+                  { display_name: "City", variable_name: "city", value: payload.city },
+                  { display_name: "Info Session", variable_name: "info_session", value: payload.sessionTime || '' }
                 ]
               },
               onSuccess: async function(response) {

@@ -28,6 +28,22 @@ export class GetPmDashboardSummaryUseCase {
     };
   }
 
+  private calculateLapsedPeriods(rentDueDate: Date, today: Date, rentType?: string | null): number {
+    if (rentDueDate >= today) return 0;
+    const type = rentType || 'Monthly';
+    if (type === 'Monthly') {
+      const months = (today.getFullYear() - rentDueDate.getFullYear()) * 12 + (today.getMonth() - rentDueDate.getMonth());
+      return Math.max(1, months);
+    } else if (type === 'Annually' || type === 'Yearly') {
+      const diffYears = (today.getTime() - rentDueDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+      return Math.max(1, Math.ceil(diffYears));
+    } else if (type === 'Quarterly') {
+      const months = (today.getFullYear() - rentDueDate.getFullYear()) * 12 + (today.getMonth() - rentDueDate.getMonth());
+      return Math.max(1, Math.ceil(months / 3));
+    }
+    return 1;
+  }
+
   async execute(pmId: number, query: any = {}) {
     const { startDate, endDate, managerUuid, propertyUuid } = query || {};
 
@@ -144,7 +160,20 @@ export class GetPmDashboardSummaryUseCase {
     const vacantUnits = units.filter(u => u.status === 'VACANT').length;
     const occupiedUnits = units.filter(u => u.status === 'OCCUPIED').length;
 
-    // 7. Fetch payment requests
+    // 7. Fetch all recorded rent payments (actual collections)
+    const rentPayments = await this.prisma.upward_pm_rent_payment.findMany({
+      where: {
+        unit: { propertyId: { in: accessiblePropertyIds } },
+        status: 'SUCCESS'
+      },
+      include: {
+        unit: { include: { property: true } },
+        tenant: true
+      },
+      orderBy: { paymentDate: 'desc' }
+    });
+
+    // 8. Fetch payment requests
     const paymentRequests = await this.prisma.upward_pm_payment_request.findMany({
       where: {
         unit: { propertyId: { in: accessiblePropertyIds } }
@@ -157,7 +186,7 @@ export class GetPmDashboardSummaryUseCase {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Map payment requests for response
+    // Map payment requests
     const mappedRequests = paymentRequests.map(r => ({
       uuid: r.uuid,
       amount: r.amount,
@@ -166,6 +195,10 @@ export class GetPmDashboardSummaryUseCase {
       dueDate: r.dueDate,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
+      paymentDate: r.updatedAt || r.createdAt,
+      periodStart: r.rentStartDate || null,
+      periodEnd: r.rentEndDate || null,
+      method: 'Online',
       coreRequestUuid: r.paymentRequest?.uuid || null,
       tenant: this.decryptTenant(r.tenant),
       unit: {
@@ -186,50 +219,42 @@ export class GetPmDashboardSummaryUseCase {
       }
     }));
 
-    // Find active requests
+    // Map rent payments into completed payment structures
+    const mappedRentPayments = rentPayments.map(p => ({
+      uuid: p.uuid,
+      amount: p.amount,
+      amountPaid: p.amount,
+      status: 'PAID',
+      dueDate: p.paymentDate,
+      createdAt: p.createdAt,
+      updatedAt: p.paymentDate || p.createdAt,
+      paymentDate: p.paymentDate,
+      periodStart: p.periodStart,
+      periodEnd: p.periodEnd,
+      method: p.method || 'Bank Transfer',
+      notes: p.notes,
+      coreRequestUuid: null,
+      tenant: this.decryptTenant(p.tenant),
+      unit: {
+        id: p.unit.id,
+        uuid: p.unit.uuid,
+        unitName: p.unit.unitName,
+        isSynced: p.unit.isSynced,
+        rentAmount: p.unit.rentAmount,
+        rentStartDate: p.unit.rentStartDate,
+        rentDueDate: p.unit.rentDueDate,
+        rentType: p.unit.rentType,
+        managementFee: p.unit.managementFee,
+        property: {
+          id: p.unit.property.id,
+          uuid: p.unit.property.uuid,
+          name: p.unit.property.name
+        }
+      }
+    }));
+
+    // Find active payment requests (pending / partial)
     const activeRequests = mappedRequests.filter(r => r.status === 'PENDING' || r.status === 'PARTIAL');
-
-    // Find unbilled units
-    const unbilledUnits = units.filter(u => {
-      if (u.status !== 'OCCUPIED' || !u.tenantId || !u.rentDueDate) return false;
-      return !activeRequests.some(r => r.unit.id === u.id);
-    });
-
-    // Map unbilled units to unbilled request structures
-    const unbilledRequests = unbilledUnits.map(u => {
-      const property = allAccessibleProperties.find(p => p.id === u.propertyId);
-      return {
-        uuid: u.uuid,
-        amount: u.rentAmount,
-        amountPaid: 0,
-        status: 'UNBILLED',
-        dueDate: u.rentDueDate!,
-        createdAt: u.createdAt,
-        updatedAt: u.updatedAt,
-        coreRequestUuid: null,
-        tenant: this.decryptTenant(u.tenant),
-        unit: {
-          id: u.id,
-          uuid: u.uuid,
-          unitName: u.unitName,
-          isSynced: u.isSynced,
-          rentAmount: u.rentAmount,
-          rentStartDate: u.rentStartDate,
-          rentDueDate: u.rentDueDate,
-          rentType: u.rentType,
-          managementFee: u.managementFee,
-          property: property ? {
-            id: property.id,
-            uuid: property.uuid,
-            name: property.name
-          } : null
-        },
-        isUnbilled: true
-      };
-    });
-
-    // Merge active payment requests with unbilled requests
-    let allArrearsAndUpcoming = [...activeRequests, ...unbilledRequests];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -241,8 +266,116 @@ export class GetPmDashboardSummaryUseCase {
     if (filterStart) filterStart.setHours(0, 0, 0, 0);
     if (filterEnd) filterEnd.setHours(23, 59, 59, 999);
 
+    // Combine completed payments from rentPayments and any standalone paid payment requests
+    const rentPaymentUuids = new Set(mappedRentPayments.map(p => p.uuid));
+    const standalonePaidRequests = mappedRequests.filter(r => r.status === 'PAID' && !rentPaymentUuids.has(r.uuid));
+    let completedPayments = [...mappedRentPayments, ...standalonePaidRequests]
+      .sort((a, b) => new Date(b.paymentDate || b.updatedAt || b.createdAt).getTime() - new Date(a.paymentDate || a.updatedAt || a.createdAt).getTime());
+
+    // Filter completed payments by payment date if date filters applied
     if (filterStart || filterEnd) {
-      allArrearsAndUpcoming = allArrearsAndUpcoming.filter(r => {
+      completedPayments = completedPayments.filter(p => {
+        const d = new Date(p.paymentDate || p.updatedAt || p.createdAt);
+        if (filterStart && d < filterStart) return false;
+        if (filterEnd && d > filterEnd) return false;
+        return true;
+      });
+    }
+
+    // Calculate total rent collected
+    const totalCollected = completedPayments.reduce((sum, p) => sum + (p.amountPaid || p.amount || 0), 0);
+
+    // Find unbilled units: occupied units with tenant and rentDueDate that don't have an active pending payment request
+    const unbilledUnits = units.filter(u => {
+      if (u.status !== 'OCCUPIED' || !u.tenantId || !u.rentDueDate) return false;
+      return !activeRequests.some(r => r.unit.id === u.id);
+    });
+
+    const unbilledArrears: any[] = [];
+    const unbilledUpcoming: any[] = [];
+
+    for (const u of unbilledUnits) {
+      const property = allAccessibleProperties.find(p => p.id === u.propertyId);
+      const dueDate = new Date(u.rentDueDate!);
+      dueDate.setHours(0, 0, 0, 0);
+
+      const propData = property ? { id: property.id, uuid: property.uuid, name: property.name } : null;
+      const unitData = {
+        id: u.id,
+        uuid: u.uuid,
+        unitName: u.unitName,
+        isSynced: u.isSynced,
+        rentAmount: u.rentAmount,
+        rentStartDate: u.rentStartDate,
+        rentDueDate: u.rentDueDate,
+        rentType: u.rentType,
+        managementFee: u.managementFee,
+        property: propData
+      };
+
+      if (dueDate < today) {
+        // Overdue tenancy in Arrears
+        const lapsedPeriods = this.calculateLapsedPeriods(dueDate, today, u.rentType);
+        const overdueAmount = lapsedPeriods * u.rentAmount;
+
+        unbilledArrears.push({
+          uuid: u.uuid,
+          amount: overdueAmount,
+          amountPaid: 0,
+          status: 'UNBILLED',
+          dueDate: u.rentDueDate!,
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+          coreRequestUuid: null,
+          tenant: this.decryptTenant(u.tenant),
+          unit: unitData,
+          isUnbilled: true,
+          lapsedPeriods
+        });
+      } else {
+        // Upcoming renewal
+        const unitPayments = rentPayments.filter(p => p.unitId === u.id);
+        const advancePayments = unitPayments.filter(p => p.periodStart && new Date(p.periodStart) >= dueDate);
+        const advancePaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
+        const remainingOwing = Math.max(0, u.rentAmount - advancePaid);
+
+        unbilledUpcoming.push({
+          uuid: u.uuid,
+          amount: u.rentAmount,
+          amountPaid: advancePaid,
+          status: advancePaid >= u.rentAmount ? 'PAID' : (advancePaid > 0 ? 'PARTIAL' : 'UNBILLED'),
+          dueDate: u.rentDueDate!,
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+          coreRequestUuid: null,
+          tenant: this.decryptTenant(u.tenant),
+          unit: unitData,
+          isUnbilled: true,
+          remainingOwing
+        });
+      }
+    }
+
+    // Active PRs separated into overdue and upcoming
+    const activeOverdueRequests = activeRequests.filter(r => new Date(r.dueDate) < today);
+    const activeUpcomingRequests = activeRequests.filter(r => new Date(r.dueDate) >= today);
+
+    let overduePayments = [...activeOverdueRequests, ...unbilledArrears]
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+    let upcomingPayments = [...activeUpcomingRequests, ...unbilledUpcoming]
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+    // Apply date filters to Arrears and Upcoming if specified
+    if (filterStart || filterEnd) {
+      overduePayments = overduePayments.filter(r => {
+        const d = new Date(r.dueDate);
+        if (filterStart && d < filterStart) return false;
+        if (filterEnd && d > filterEnd) return false;
+        return true;
+      });
+
+      upcomingPayments = upcomingPayments.filter(r => {
         const d = new Date(r.dueDate);
         if (filterStart && d < filterStart) return false;
         if (filterEnd && d > filterEnd) return false;
@@ -250,33 +383,22 @@ export class GetPmDashboardSummaryUseCase {
       });
     }
 
-    // Overdue payments (due date before today)
-    const overduePayments = allArrearsAndUpcoming
-      .filter(r => new Date(r.dueDate) < today)
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
-    // Upcoming payments (due date today or after)
-    const upcomingPayments = allArrearsAndUpcoming
-      .filter(r => new Date(r.dueDate) >= today)
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
-    // Completed payments (payment request PAID status)
-    let completedPayments = mappedRequests
-      .filter(r => r.status === 'PAID')
-      .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
-
+    // Total Owing calculation:
+    // 1) All arrears (past due overdue amounts)
+    const arrearsOwing = overduePayments.reduce((sum, r) => sum + (r.amount - (r.amountPaid || 0)), 0);
+    // 2) If looking at 'all' (all expiry dates), total owing is arrears + active pending invoices
+    // If looking at a date preset / range, total owing includes upcoming renewals due within that window
+    let upcomingOwing = 0;
     if (filterStart || filterEnd) {
-      completedPayments = completedPayments.filter(r => {
-        const d = new Date(r.dueDate);
-        if (filterStart && d < filterStart) return false;
-        if (filterEnd && d > filterEnd) return false;
-        return true;
-      });
+      upcomingOwing = upcomingPayments.reduce((sum, r) => {
+        const owing = r.remainingOwing !== undefined ? r.remainingOwing : (r.amount - (r.amountPaid || 0));
+        return sum + owing;
+      }, 0);
+    } else {
+      upcomingOwing = activeUpcomingRequests.reduce((sum, r) => sum + (r.amount - (r.amountPaid || 0)), 0);
     }
 
-    // Calculate Collection Health Metrics for Selected Scope & Date Range
-    const totalCollected = completedPayments.reduce((sum, r) => sum + r.amountPaid, 0);
-    const totalOwing = allArrearsAndUpcoming.reduce((sum, r) => sum + (r.amount - r.amountPaid), 0);
+    const totalOwing = arrearsOwing + upcomingOwing;
     const totalExpected = totalCollected + totalOwing;
     const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 100;
 
@@ -327,7 +449,7 @@ export class GetPmDashboardSummaryUseCase {
       allAccessibleProperties: allAccessibleProperties.map(p => ({ uuid: p.uuid, name: p.name })),
       propertiesCount,
       hasProperties: propertiesCount > 0,
-      openRequestsCount: allArrearsAndUpcoming.length
+      openRequestsCount: overduePayments.length + upcomingPayments.length
     };
   }
 }
