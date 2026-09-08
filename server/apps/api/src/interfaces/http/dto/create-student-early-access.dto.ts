@@ -34,4 +34,8 @@ export class CreateStudentEarlyAccessDto {
   @IsOptional()
   @IsString()
   sessionTime?: string
+
+  @IsOptional()
+  @IsString()
+  sourceIdentifier?: string
 }

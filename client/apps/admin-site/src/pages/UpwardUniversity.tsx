@@ -17,6 +17,13 @@ import {
   Layers,
   AlertCircle,
   Trash2,
+  Link2,
+  Copy,
+  Check,
+  Plus,
+  TrendingUp,
+  BarChart2,
+  Share2,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -66,6 +73,46 @@ interface UniversityApplicationRecord {
   updatedAt: string
 }
 
+export interface TrafficSourceRecord {
+  id: string
+  identifier: string
+  name: string
+  channel: string
+  targetUrl: string
+  description?: string | null
+  totalViews: number
+  uniqueViews: number
+  conversions: number
+  conversionRate: number
+  isActive: boolean
+  lastVisitedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TrafficStats {
+  totalSources: number
+  totalViews: number
+  uniqueViews: number
+  totalConversions: number
+  overallConversionRate: number
+  channelBreakdown: Array<{ channel: string; views: number; uniqueViews: number; conversions: number }>
+}
+
+export interface TrafficVisitRecord {
+  id: string
+  sourceId?: string | null
+  identifier: string
+  visitorId: string
+  sessionId: string
+  ipHash?: string | null
+  userAgent?: string | null
+  referer?: string | null
+  path: string
+  isUnique: boolean
+  createdAt: string
+}
+
 interface EarlyAccessStats {
   totalSubmissions: number
   studentCount: number
@@ -87,7 +134,7 @@ interface UpwardUniversityProps {
 
 export default function UpwardUniversity({ token, adminRole }: UpwardUniversityProps) {
   const isDeveloper = adminRole === 'DEVELOPER'
-  const [activeTab, setActiveTab] = useState<'APPLICATIONS' | 'EARLY_ACCESS'>('APPLICATIONS')
+  const [activeTab, setActiveTab] = useState<'APPLICATIONS' | 'EARLY_ACCESS' | 'TRAFFIC'>('APPLICATIONS')
 
   // Applications State
   const [applications, setApplications] = useState<UniversityApplicationRecord[]>([])
@@ -106,6 +153,30 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
+  // Traffic / Referral State
+  const [trafficSources, setTrafficSources] = useState<TrafficSourceRecord[]>([])
+  const [trafficStats, setTrafficStats] = useState<TrafficStats | null>(null)
+  const [loadingTraffic, setLoadingTraffic] = useState(true)
+  const [loadingTrafficStats, setLoadingTrafficStats] = useState(true)
+  const [trafficPage, setTrafficPage] = useState(1)
+  const [trafficTotalPages, setTrafficTotalPages] = useState(1)
+  const [trafficSearch, setTrafficSearch] = useState('')
+  const [trafficChannelFilter, setTrafficChannelFilter] = useState('ALL')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isVisitsModalOpen, setIsVisitsModalOpen] = useState(false)
+  const [selectedSourceForVisits, setSelectedSourceForVisits] = useState<TrafficSourceRecord | null>(null)
+  const [visitsList, setVisitsList] = useState<TrafficVisitRecord[]>([])
+  const [loadingVisits, setLoadingVisits] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [creatingSource, setCreatingSource] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    identifier: '',
+    channel: 'INSTAGRAM',
+    targetUrl: '/university',
+    description: '',
+  })
+
   // Filters
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'STUDENT' | 'LANDLORD'>('ALL')
   const [search, setSearch] = useState('')
@@ -114,7 +185,11 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
   const [selectedRecord, setSelectedRecord] = useState<EarlyAccessRecord | null>(null)
 
   // Delete Confirmation State
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; type: 'APPLICATION' | 'EARLY_ACCESS' } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string
+    name: string
+    type: 'APPLICATION' | 'EARLY_ACCESS' | 'TRAFFIC_SOURCE'
+  } | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const handleDeleteConfirm = async () => {
@@ -129,13 +204,20 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           fetchApplications(appPage)
           fetchAppStats()
         }
-      } else {
+      } else if (deleteTarget.type === 'EARLY_ACCESS') {
         const res = await apiService.delete(`/admin/early-access/${deleteTarget.id}`, token)
         if (res && res.success) {
           showToast('Early access record deleted successfully')
           if (selectedRecord && selectedRecord.id === deleteTarget.id) setSelectedRecord(null)
           fetchRecords(page)
           fetchStats()
+        }
+      } else if (deleteTarget.type === 'TRAFFIC_SOURCE') {
+        const res = await apiService.delete(`/admin/university/traffic/sources/${deleteTarget.id}`, token)
+        if (res && res.success) {
+          showToast('Tracking source deleted successfully')
+          fetchTrafficSources(trafficPage)
+          fetchTrafficStats()
         }
       }
     } catch (err) {
@@ -228,18 +310,161 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     }
   }
 
+  // Traffic & Analytics Fetching
+  const fetchTrafficStats = async () => {
+    setLoadingTrafficStats(true)
+    try {
+      const response = await apiService.get('/admin/university/traffic/stats', token)
+      if (response && response.data) {
+        setTrafficStats(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch traffic stats:', error)
+    } finally {
+      setLoadingTrafficStats(false)
+    }
+  }
+
+  const fetchTrafficSources = async (pageNum = trafficPage) => {
+    setLoadingTraffic(true)
+    try {
+      let url = `/admin/university/traffic/sources?page=${pageNum}&limit=50`
+      if (trafficChannelFilter !== 'ALL') url += `&channel=${trafficChannelFilter}`
+      if (trafficSearch.trim()) url += `&search=${encodeURIComponent(trafficSearch.trim())}`
+
+      const response = await apiService.get(url, token)
+      if (response && response.data) {
+        setTrafficSources(response.data)
+        setTrafficTotalPages(response.meta?.totalPages || 1)
+      }
+    } catch (error) {
+      console.error('Failed to fetch traffic sources:', error)
+      showToast('Failed to load traffic sources', true)
+    } finally {
+      setLoadingTraffic(false)
+    }
+  }
+
+  const fetchVisitsForSource = async (source: TrafficSourceRecord) => {
+    setSelectedSourceForVisits(source)
+    setIsVisitsModalOpen(true)
+    setLoadingVisits(true)
+    try {
+      const response = await apiService.get(`/admin/university/traffic/sources/${source.id}/visits?limit=50`, token)
+      if (response && response.data) {
+        setVisitsList(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch source visits:', error)
+      showToast('Failed to load recent visits', true)
+    } finally {
+      setLoadingVisits(false)
+    }
+  }
+
+  const handleCreateSource = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!createForm.name.trim() || !createForm.identifier.trim()) {
+      showToast('Name and identifier are required', true)
+      return
+    }
+
+    setCreatingSource(true)
+    try {
+      const response = await apiService.post(
+        '/admin/university/traffic/sources',
+        {
+          name: createForm.name.trim(),
+          identifier: createForm.identifier.trim().toLowerCase(),
+          channel: createForm.channel,
+          targetUrl: createForm.targetUrl.trim() || '/university',
+          description: createForm.description.trim() || undefined,
+        },
+        token
+      )
+
+      if (response && response.success) {
+        showToast('Tracking source created successfully!')
+        setIsCreateModalOpen(false)
+        setCreateForm({
+          name: '',
+          identifier: '',
+          channel: 'INSTAGRAM',
+          targetUrl: '/university',
+          description: '',
+        })
+        fetchTrafficSources(1)
+        fetchTrafficStats()
+      } else {
+        showToast(response?.message || 'Failed to create tracking source', true)
+      }
+    } catch (error: any) {
+      console.error('Failed to create tracking source:', error)
+      showToast(error?.response?.data?.message || error?.message || 'Failed to create source', true)
+    } finally {
+      setCreatingSource(false)
+    }
+  }
+
+  const handleToggleSourceActive = async (source: TrafficSourceRecord) => {
+    try {
+      const response = await apiService.patch(
+        `/admin/university/traffic/sources/${source.id}`,
+        { isActive: !source.isActive },
+        token
+      )
+      if (response && response.success) {
+        showToast(`Tracking link ${!source.isActive ? 'activated' : 'paused'}`)
+        fetchTrafficSources(trafficPage)
+      }
+    } catch (error) {
+      console.error('Failed to update source status:', error)
+      showToast('Failed to update status', true)
+    }
+  }
+
+  const handleCopyLink = (identifier: string, targetUrl = '/university') => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://upward.ng'
+    let fullUrl = `${origin}/university/${identifier}`
+    if (targetUrl && targetUrl.includes('/apply')) {
+      fullUrl = `${origin}/university/apply?ref=${identifier}`
+    } else if (targetUrl && targetUrl !== '/university') {
+      fullUrl = `${origin}${targetUrl}${targetUrl.includes('?') ? '&' : '?'}ref=${identifier}`
+    }
+
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopiedId(identifier)
+      showToast('Tracking link copied to clipboard!')
+      setTimeout(() => setCopiedId(null), 2500)
+    }).catch(() => {
+      showToast('Could not copy link', true)
+    })
+  }
+
+  const slugify = (text: string) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
   useEffect(() => {
     fetchAppStats()
     fetchStats()
+    fetchTrafficStats()
   }, [])
 
   useEffect(() => {
     if (activeTab === 'APPLICATIONS') {
       fetchApplications(appPage)
-    } else {
+    } else if (activeTab === 'EARLY_ACCESS') {
       fetchRecords(page)
+    } else if (activeTab === 'TRAFFIC') {
+      fetchTrafficSources(trafficPage)
     }
-  }, [activeTab, appPage, page, typeFilter])
+  }, [activeTab, appPage, page, trafficPage, typeFilter, trafficChannelFilter])
 
   const handleAppSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -694,6 +919,254 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     },
   ]
 
+  const getChannelBadge = (channel: string) => {
+    const ch = (channel || 'OTHER').toUpperCase()
+    const colorMap: Record<string, { bg: string; color: string; border: string }> = {
+      INSTAGRAM: { bg: '#fdf2f8', color: '#db2777', border: '#fbcfe8' },
+      FACEBOOK: { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
+      TIKTOK: { bg: '#f3f4f6', color: '#111827', border: '#e5e7eb' },
+      TWITTER: { bg: '#f0f9ff', color: '#0284c7', border: '#bae6fd' },
+      WHATSAPP: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
+      FLYER: { bg: '#fef3c7', color: '#b45309', border: '#fde68a' },
+      INFLUENCER: { bg: '#f5f3ff', color: '#7c3aed', border: '#ddd6fe' },
+      YOUTUBE: { bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+      OTHER: { bg: '#f8fafc', color: '#475569', border: '#e2e8f0' },
+    }
+    const theme = colorMap[ch] || colorMap.OTHER
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 8px',
+          borderRadius: '12px',
+          fontSize: '11px',
+          fontWeight: 700,
+          background: theme.bg,
+          color: theme.color,
+          border: `1px solid ${theme.border}`,
+          textTransform: 'uppercase',
+        }}
+      >
+        {ch}
+      </span>
+    )
+  }
+
+  // Column definitions for Traffic Sources DataTable
+  const trafficColumns: ColumnDef<TrafficSourceRecord>[] = [
+    {
+      key: 'name',
+      label: 'Campaign / Source Name',
+      render: (row) => (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13.5px' }}>{row.name}</span>
+            {getChannelBadge(row.channel)}
+          </div>
+          {row.description && (
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{row.description}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'identifier',
+      label: 'Tracking Identifier & Link',
+      render: (row) => {
+        const isCopied = copiedId === row.identifier
+        const linkPath = row.targetUrl && row.targetUrl.includes('/apply')
+          ? `/university/apply?ref=${row.identifier}`
+          : `/university/${row.identifier}`
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <code
+              style={{
+                fontSize: '12px',
+                background: '#f8fafc',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid #e2e8f0',
+                color: '#8A4A2A',
+                fontWeight: 600,
+                fontFamily: 'monospace',
+              }}
+            >
+              {linkPath}
+            </code>
+            <button
+              type="button"
+              onClick={() => handleCopyLink(row.identifier, row.targetUrl)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: isCopied ? '1px solid #bbf7d0' : '1px solid var(--border)',
+                background: isCopied ? '#f0fdf4' : '#ffffff',
+                color: isCopied ? '#166534' : 'var(--text-secondary)',
+                transition: 'all 0.15s ease',
+              }}
+              title="Copy tracking link"
+            >
+              {isCopied ? <Check size={12} color="#166534" /> : <Copy size={12} />}
+              {isCopied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'uniqueViews',
+      label: 'Unique Visitors',
+      render: (row) => (
+        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+          <div style={{ fontWeight: 700, fontSize: '14px', color: '#8A4A2A' }}>
+            {row.uniqueViews.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            {row.totalViews} total views
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'conversions',
+      label: 'Conversions',
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '13.5px', color: row.conversions > 0 ? '#15803d' : 'var(--text-primary)' }}>
+            {row.conversions}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            leads & apps
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'conversionRate',
+      label: 'Conv. Rate',
+      render: (row) => {
+        const rate = row.conversionRate || 0
+        const isHigh = rate >= 5
+        return (
+          <span
+            style={{
+              padding: '3px 8px',
+              borderRadius: '12px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              background: isHigh ? '#dcfce7' : '#f3f4f6',
+              color: isHigh ? '#15803d' : '#4b5563',
+              border: `1px solid ${isHigh ? '#bbf7d0' : '#e5e7eb'}`,
+            }}
+          >
+            {rate}%
+          </span>
+        )
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (row) => (
+        <button
+          type="button"
+          onClick={() => handleToggleSourceActive(row)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '3px 10px',
+            borderRadius: '20px',
+            fontSize: '11.5px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            border: `1px solid ${row.isActive ? '#bbf7d0' : '#fecaca'}`,
+            background: row.isActive ? '#f0fdf4' : '#fef2f2',
+            color: row.isActive ? '#166534' : '#dc2626',
+          }}
+          title="Click to toggle active state"
+        >
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: row.isActive ? '#16a34a' : '#dc2626',
+            }}
+          />
+          {row.isActive ? 'Active' : 'Paused'}
+        </button>
+      ),
+    },
+    {
+      key: 'lastVisitedAt',
+      label: 'Last Visit',
+      render: (row) => (
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          {row.lastVisitedAt
+            ? new Date(row.lastVisitedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'No visits yet'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ padding: '6px 10px', fontSize: '12px', display: 'inline-flex', gap: '4px', alignItems: 'center' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              fetchVisitsForSource(row)
+            }}
+            title="View recent visitor log"
+          >
+            <Eye size={13} />
+            Visits Log
+          </button>
+          {isDeveloper && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeleteTarget({ id: row.id, name: row.name, type: 'TRAFFIC_SOURCE' })
+              }}
+              className="btn btn-sm"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px 10px',
+                background: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              title="Delete Tracking Source"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
       {/* ── Header ── */}
@@ -783,6 +1256,26 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         >
           <Users size={16} />
           Early Access & Info Leads ({stats?.totalSubmissions || 0})
+        </button>
+        <button
+          onClick={() => setActiveTab('TRAFFIC')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'TRAFFIC' ? '#8A4A2A' : 'transparent',
+            color: activeTab === 'TRAFFIC' ? '#fff' : 'var(--text-secondary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Share2 size={16} />
+          Traffic & Referral Sources ({trafficStats?.totalSources || 0})
         </button>
       </div>
 
@@ -889,7 +1382,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
               </div>
             </div>
           </>
-        ) : (
+        ) : activeTab === 'EARLY_ACCESS' ? (
           <>
             <div
               className="card"
@@ -1002,6 +1495,100 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
               </div>
             </div>
           </>
+        ) : (
+          <>
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#8A4A2A', fontWeight: 700 }}>
+                  UNIQUE VISITORS
+                </span>
+                <Users size={20} color="#8A4A2A" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#8A4A2A' }}>
+                {loadingTrafficStats ? '...' : (trafficStats?.uniqueViews ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Deduplicated organic & referral visitors
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  TOTAL PAGEVIEWS
+                </span>
+                <Eye size={20} color="var(--accent)" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: 'var(--text-primary)' }}>
+                {loadingTrafficStats ? '...' : (trafficStats?.totalViews ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Total session hits across all sources
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#15803d', fontWeight: 700 }}>
+                  ATTRIBUTED CONVERSIONS
+                </span>
+                <Award size={20} color="#15803d" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#166534' }}>
+                {loadingTrafficStats ? '...' : (trafficStats?.totalConversions ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px', fontWeight: 500 }}>
+                Applications & lead form completions
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#fffbf5',
+                border: '1px solid #fde68a',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 700 }}>
+                  OVERALL CONVERSION RATE
+                </span>
+                <TrendingUp size={20} color="#b45309" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#92400e' }}>
+                {loadingTrafficStats ? '...' : `${trafficStats?.overallConversionRate ?? 0}%`}
+              </div>
+              <div style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', fontWeight: 500 }}>
+                Conversions / unique visitors
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -1068,7 +1655,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             onPageChange={setAppPage}
           />
         </>
-      ) : (
+      ) : activeTab === 'EARLY_ACCESS' ? (
         <>
           {/* ── Early Access Type Tabs & Search Controls ── */}
           <div
@@ -1188,6 +1775,139 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             currentPage={page}
             totalPages={totalPages}
             onPageChange={setPage}
+          />
+        </>
+      ) : (
+        <>
+          {/* ── Traffic & Source Links Controls ── */}
+          <div
+            className="card"
+            style={{
+              padding: '16px',
+              borderRadius: '14px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
+            {/* Filter by Channel */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Channel:</span>
+              <select
+                value={trafficChannelFilter}
+                onChange={(e) => {
+                  setTrafficChannelFilter(e.target.value)
+                  setTrafficPage(1)
+                }}
+                style={{
+                  height: '38px',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: '#fff',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="ALL">All Channels</option>
+                <option value="INSTAGRAM">Instagram</option>
+                <option value="FACEBOOK">Facebook</option>
+                <option value="TIKTOK">TikTok</option>
+                <option value="TWITTER">Twitter / X</option>
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="FLYER">Flyers & Posters</option>
+                <option value="INFLUENCER">Influencer Promo</option>
+                <option value="YOUTUBE">YouTube</option>
+                <option value="OTHER">Other / Direct</option>
+              </select>
+            </div>
+
+            {/* Search and Create Action */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  setTrafficPage(1)
+                  fetchTrafficSources(1)
+                }}
+                style={{ display: 'flex', gap: '8px' }}
+              >
+                <div style={{ position: 'relative' }}>
+                  <Search
+                    size={16}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted)',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search source name or slug..."
+                    value={trafficSearch}
+                    onChange={(e) => setTrafficSearch(e.target.value)}
+                    style={{
+                      paddingLeft: '36px',
+                      paddingRight: '12px',
+                      height: '38px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      fontSize: '13px',
+                      width: '260px',
+                    }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-secondary" style={{ height: '38px' }}>
+                  Search
+                </button>
+              </form>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateForm({
+                    name: '',
+                    identifier: '',
+                    channel: 'INSTAGRAM',
+                    targetUrl: '/university',
+                    description: '',
+                  })
+                  setIsCreateModalOpen(true)
+                }}
+                className="btn btn-primary"
+                style={{
+                  height: '38px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#8A4A2A',
+                  color: '#fff',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                }}
+              >
+                <Plus size={16} />
+                Create Source Link
+              </button>
+            </div>
+          </div>
+
+          <DataTable<TrafficSourceRecord>
+            data={trafficSources}
+            columns={trafficColumns}
+            keyExtractor={(item) => item.id}
+            isLoading={loadingTraffic}
+            currentPage={trafficPage}
+            totalPages={trafficTotalPages}
+            onPageChange={setTrafficPage}
           />
         </>
       )}
@@ -1780,6 +2500,309 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         )}
       </Modal>
 
+      {/* ── Create New Tracking Link Modal ── */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => !creatingSource && setIsCreateModalOpen(false)}
+        title="Create Campaign Tracking Link"
+        description="Generate a unique tracking identifier to monitor organic, ad, or flyer traffic with GA-level anti-reload tracking."
+        icon={<Link2 size={20} color="#8A4A2A" />}
+        maxWidth="580px"
+      >
+        <form onSubmit={handleCreateSource}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Campaign / Source Name *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Instagram Ads — Lagos Cohort"
+                value={createForm.name}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setCreateForm((prev) => ({
+                    ...prev,
+                    name: val,
+                    identifier: prev.identifier === slugify(prev.name) ? slugify(val) : prev.identifier,
+                  }))
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13.5px',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Marketing Channel *
+                </label>
+                <select
+                  value={createForm.channel}
+                  onChange={(e) => setCreateForm({ ...createForm, channel: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="FACEBOOK">Facebook</option>
+                  <option value="TIKTOK">TikTok</option>
+                  <option value="TWITTER">Twitter / X</option>
+                  <option value="WHATSAPP">WhatsApp</option>
+                  <option value="FLYER">Flyer & Campus Posters</option>
+                  <option value="INFLUENCER">Influencer Outreach</option>
+                  <option value="YOUTUBE">YouTube</option>
+                  <option value="OTHER">Other / Direct</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Target Destination *
+                </label>
+                <select
+                  value={createForm.targetUrl}
+                  onChange={(e) => setCreateForm({ ...createForm, targetUrl: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="/university">Main Landing Page (/university)</option>
+                  <option value="/university/apply">Direct Application (/university/apply)</option>
+                  <option value="/university/scholarships">Scholarship Page (/university/scholarships)</option>
+                  <option value="/university/landlord">Landlord Programme (/university/landlord)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Unique Slug / Identifier *
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    padding: '10px 12px',
+                    background: '#f8fafc',
+                    border: '1px solid var(--border)',
+                    borderRight: 'none',
+                    borderRadius: '8px 0 0 8px',
+                    fontSize: '12.5px',
+                    color: 'var(--text-muted)',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  /university/
+                </span>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. ig-lagos-1"
+                  value={createForm.identifier}
+                  onChange={(e) => setCreateForm({ ...createForm, identifier: slugify(e.target.value) })}
+                  style={{
+                    flex: 1,
+                    padding: '10px 14px',
+                    borderRadius: '0 8px 8px 0',
+                    border: '1px solid var(--border)',
+                    fontSize: '13.5px',
+                    fontFamily: 'monospace',
+                    fontWeight: 600,
+                    color: '#8A4A2A',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Only lowercase letters, numbers, and dashes (auto-formatted).
+              </p>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Campaign Notes (Optional)
+              </label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Target: UNILAG students, Ad budget: ₦50k, Duration: 2 weeks"
+                value={createForm.description}
+                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13px',
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                }}
+              />
+            </div>
+
+            {/* Generated URL Preview Box */}
+            {createForm.identifier && (
+              <div
+                style={{
+                  background: '#fdf8f5',
+                  border: '1px solid #f4e4d8',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                }}
+              >
+                <div style={{ fontSize: '11px', color: '#8A4A2A', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Live Link Preview:
+                </div>
+                <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#8A4A2A', fontWeight: 700, marginTop: '4px', wordBreak: 'break-all' }}>
+                  {typeof window !== 'undefined' ? window.location.origin : 'https://upward.ng'}
+                  {createForm.targetUrl.includes('/apply')
+                    ? `/university/apply?ref=${createForm.identifier}`
+                    : `/university/${createForm.identifier}`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsCreateModalOpen(false)}
+              disabled={creatingSource}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={creatingSource}
+              style={{
+                background: '#8A4A2A',
+                color: '#fff',
+                padding: '8px 20px',
+                borderRadius: '8px',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Plus size={16} />
+              {creatingSource ? 'Creating Link...' : 'Create Tracking Link'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Recent Visits Log Modal ── */}
+      <Modal
+        isOpen={isVisitsModalOpen}
+        onClose={() => setIsVisitsModalOpen(false)}
+        title={selectedSourceForVisits ? `Traffic Activity: ${selectedSourceForVisits.name}` : 'Recent Visits Log'}
+        description={
+          selectedSourceForVisits ? (
+            <span>
+              Identifier: <code style={{ color: '#8A4A2A', fontWeight: 700 }}>{selectedSourceForVisits.identifier}</code> •{' '}
+              Total: <b>{selectedSourceForVisits.totalViews}</b> views (<b>{selectedSourceForVisits.uniqueViews}</b> unique) •{' '}
+              Conversions: <b>{selectedSourceForVisits.conversions}</b>
+            </span>
+          ) : undefined
+        }
+        icon={<BarChart2 size={20} color="#8A4A2A" />}
+        maxWidth="740px"
+        footerActions={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+            <button className="btn btn-secondary" onClick={() => setIsVisitsModalOpen(false)}>
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div>
+          {loadingVisits ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              Loading recent visit activity...
+            </div>
+          ) : visitsList.length === 0 ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No recorded visits yet for this link. Share the link to start tracking!
+            </div>
+          ) : (
+            <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                    <th style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>Timestamp</th>
+                    <th style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>Type</th>
+                    <th style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>Visitor / Session</th>
+                    <th style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>Referrer</th>
+                    <th style={{ padding: '8px 10px', color: 'var(--text-muted)', fontWeight: 600 }}>Path</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visitsList.map((v) => (
+                    <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        {new Date(v.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span
+                          style={{
+                            padding: '2px 7px',
+                            borderRadius: '10px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background: v.isUnique ? '#dcfce7' : '#f3f4f6',
+                            color: v.isUnique ? '#15803d' : '#4b5563',
+                          }}
+                        >
+                          {v.isUnique ? 'Unique' : 'Repeat'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                        <div>{v.visitorId.slice(0, 16)}...</div>
+                      </td>
+                      <td style={{ padding: '8px 10px', color: 'var(--text-secondary)', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {v.referer || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Direct</span>}
+                      </td>
+                      <td style={{ padding: '8px 10px', color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '11.5px' }}>
+                        {v.path}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Modal>
+
       {/* ── Confirmation Modal for Deletion ── */}
       <Modal
         isOpen={Boolean(deleteTarget)}
@@ -1801,7 +2824,13 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             </div>
 
             <p style={{ fontSize: '14px', color: 'var(--text-primary)', background: '#fafafa', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              You are about to permanently delete the {deleteTarget.type === 'APPLICATION' ? 'University Application' : 'Early Access / Info Request'} record for <strong>{deleteTarget.name}</strong>.
+              You are about to permanently delete the{' '}
+              {deleteTarget.type === 'APPLICATION'
+                ? 'University Application'
+                : deleteTarget.type === 'EARLY_ACCESS'
+                ? 'Early Access / Info Request'
+                : 'Traffic Source Tracking Link'}{' '}
+              for <strong>{deleteTarget.name}</strong>.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>

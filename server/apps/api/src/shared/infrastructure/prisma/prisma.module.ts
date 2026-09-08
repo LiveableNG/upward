@@ -43,10 +43,12 @@ import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whats
 
 import { PrismaEarlyAccessRepository } from '../../../infrastructure/repositories/prisma-early-access.repository'
 import { PrismaUniversityApplicationRepository } from '../../../infrastructure/repositories/prisma-university-application.repository'
+import { PrismaUniversityTrafficRepository } from '../../../infrastructure/repositories/prisma-university-traffic.repository'
 
 import { PaystackGateway } from '../payments/paystack.gateway'
 import { EARLY_ACCESS_REPOSITORY } from '../../../domains/early-access/early-access.repository'
 import { UNIVERSITY_APPLICATION_REPOSITORY } from '../../../domains/university-application/university-application.repository'
+import { UNIVERSITY_TRAFFIC_REPOSITORY } from '../../../domains/university-traffic/university-traffic.repository'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {
@@ -258,6 +260,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: UNIVERSITY_APPLICATION_REPOSITORY,
       useClass: PrismaUniversityApplicationRepository,
     },
+    {
+      provide: UNIVERSITY_TRAFFIC_REPOSITORY,
+      useClass: PrismaUniversityTrafficRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -302,6 +308,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     BULK_IMPORT_JOB_REPOSITORY,
     EARLY_ACCESS_REPOSITORY,
     UNIVERSITY_APPLICATION_REPOSITORY,
+    UNIVERSITY_TRAFFIC_REPOSITORY,
   ],
 })
 export class PrismaModule {}

@@ -3,6 +3,10 @@ import {
   EARLY_ACCESS_REPOSITORY,
   IEarlyAccessRepository,
 } from '../../../domains/early-access/early-access.repository'
+import {
+  UNIVERSITY_TRAFFIC_REPOSITORY,
+  IUniversityTrafficRepository,
+} from '../../../domains/university-traffic/university-traffic.repository'
 import { EarlyAccessEntry } from '../../../domains/early-access/early-access.entity'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { buildGlobalLayoutHtml } from '../../../shared/infrastructure/email/email.helper'
@@ -16,6 +20,7 @@ export interface SubmitStudentEarlyAccessCommand {
   experienceLevel: string
   interest?: string
   sessionTime?: string
+  sourceIdentifier?: string
 }
 
 @Injectable()
@@ -26,6 +31,8 @@ export class SubmitStudentEarlyAccessUseCase {
     @Inject(EARLY_ACCESS_REPOSITORY)
     private readonly earlyAccessRepo: IEarlyAccessRepository,
     private readonly emailService: EmailService,
+    @Inject(UNIVERSITY_TRAFFIC_REPOSITORY)
+    private readonly trafficRepo: IUniversityTrafficRepository,
   ) {}
 
   async execute(command: SubmitStudentEarlyAccessCommand): Promise<EarlyAccessEntry> {
@@ -43,6 +50,12 @@ export class SubmitStudentEarlyAccessUseCase {
     })
 
     const saved = await this.earlyAccessRepo.save(entry)
+
+    if (command.sourceIdentifier) {
+      this.trafficRepo.incrementConversion(command.sourceIdentifier).catch((err: any) => {
+        this.logger.warn(`Failed to increment early access conversion for ${command.sourceIdentifier}: ${err?.message || err}`)
+      })
+    }
 
     // 1. Send applicant confirmation email
     if (command.email) {

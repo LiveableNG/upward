@@ -466,6 +466,9 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/university/apply') {
     return NextResponse.rewrite(new URL('/university-apply.html', request.url))
   }
+  if (pathname.startsWith('/university/apply/')) {
+    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
+  }
   if (pathname === '/university/programme') {
     return NextResponse.rewrite(new URL('/university-programme.html', request.url))
   }
@@ -478,6 +481,9 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/university/thank-you') {
     return NextResponse.rewrite(new URL('/university-thank-you.html', request.url))
   }
+  if (pathname.startsWith('/university/')) {
+    return NextResponse.rewrite(new URL('/university.html', request.url))
+  }
 
   return NextResponse.next()
 }
@@ -488,12 +494,7 @@ export const config = {
     '/for-pm',
     '/for-landlord',
     '/university',
-    '/university/apply',
-    '/university/programme',
-    '/university/scholarships',
-    '/university/scholarship',
-    '/university/landlord',
-    '/university/thank-you',
+    '/university/:path*',
     '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',

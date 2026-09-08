@@ -32,6 +32,7 @@ export class EarlyAccessController {
       experienceLevel: dto.experienceLevel,
       interest: dto.interest,
       sessionTime: dto.sessionTime,
+      sourceIdentifier: dto.sourceIdentifier,
     })
 
     return {

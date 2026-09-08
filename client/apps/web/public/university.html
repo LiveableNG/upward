@@ -40,6 +40,7 @@
     gtag('js', new Date());
     gtag('config', 'AW-18414957187');
   </script>
+  <script src="/university-tracker.js"></script>
 
   <style>
     :root {
@@ -1611,7 +1612,8 @@
         ageBracket: document.getElementById('ea_age').value,
         experienceLevel: document.getElementById('ea_exp').value,
         interest: document.getElementById('ea_interest').value,
-        sessionTime: document.getElementById('ea_session_time')?.value
+        sessionTime: document.getElementById('ea_session_time')?.value,
+        sourceIdentifier: window.getUniversitySource ? window.getUniversitySource() : ''
       };
 
       try {

@@ -65,6 +65,10 @@ export class CreateUniversityApplicationDto {
 
   @IsOptional()
   @IsString()
+  sourceIdentifier?: string
+
+  @IsOptional()
+  @IsString()
   feeStatus?: string
 
   @IsOptional()

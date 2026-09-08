@@ -19,6 +19,7 @@ export interface UniversityApplicationProps {
   isScholarship?: boolean
   scholarshipVideoUrl?: string | null
   sessionTime?: string | null
+  sourceIdentifier?: string | null
   status?: ApplicationStatus
   applicationFee?: number
   feeStatus?: FeeStatus
@@ -114,6 +115,9 @@ export class UniversityApplication {
   }
   get sessionTime(): string | null | undefined {
     return this.props.sessionTime
+  }
+  get sourceIdentifier(): string | null | undefined {
+    return this.props.sourceIdentifier
   }
   get status(): ApplicationStatus | undefined {
     return this.props.status
