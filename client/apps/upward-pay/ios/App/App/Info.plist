@@ -49,6 +49,8 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to log in securely to Upward Pay.</string>
+	<key>GIDClientID</key>
+	<string>451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -57,6 +59,12 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>upward</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i</string>
 			</array>
 		</dict>
 	</array>
