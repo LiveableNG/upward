@@ -1,0 +1,7 @@
+*Issue 1*:
+A self-signup (PM is not on Upward) has made part payment for his current rent before signup; now he wants to pay balance, but if he does, he will only get score for part payment.
+Also, our system will not automatically approve the part payment since no PM allowed it.
+
+
+- For a self signup, when a part payment is made by a payment, let's show their current tenancy period on Upward and ask the tenant if it's the first part payment for that tenure of it it's a balance - if it's a balance, we ask them to enter/upload info of the previous payment of that tenure, and then we can ask their PMs who are on GT/Upward PM to confirm both (so it can be unconfirmed or partly confirmed, depending on response) - we can later extend this to PMs who are not on GT/Upward PM
+- Also, if full payment is made by self signup, we should show their current tenancy period and ask if the payment is for current tenancy period or for next/future tenancy period.

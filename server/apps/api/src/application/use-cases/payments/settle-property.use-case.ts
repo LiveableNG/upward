@@ -68,10 +68,15 @@ export class SettlePropertyBalanceUseCase {
 
         const effectiveRentType = rentType || prop.rentType || 'Annually'
         const leaseYears = (prop as any).leaseYears || 1
-        const isFirstRent = (prop as any).isFirstRent ?? false
 
         const existingPayments = await txClient.upward_platform_rent_payment.findMany({
-          where: { userPropertyId: prop.id, status: 'SUCCESS' }
+          where: {
+            userPropertyId: prop.id,
+            OR: [
+              { status: 'SUCCESS' },
+              { method: 'INITIAL_ONBOARDING' },
+            ]
+          }
         })
 
         if (effectivePeriodStart && prop.rentAmount > 0) {
@@ -82,7 +87,8 @@ export class SettlePropertyBalanceUseCase {
 
           const isCurrentPeriodFull = currentPeriodPaid >= (prop.rentAmount - 1)
 
-          if (!isFirstRent || isCurrentPeriodFull) {
+          // If the current cycle was ALREADY fully paid off before this payment, this payment applies to UPCOMING cycle
+          if (isCurrentPeriodFull) {
             if (effectivePeriodEnd) {
               const nextStart = new Date(effectivePeriodEnd)
               nextStart.setDate(nextStart.getDate() + 1)
@@ -136,7 +142,13 @@ export class SettlePropertyBalanceUseCase {
         }
 
         const allPayments = await txClient.upward_platform_rent_payment.findMany({
-          where: { userPropertyId: prop.id, status: 'SUCCESS' }
+          where: {
+            userPropertyId: prop.id,
+            OR: [
+              { status: 'SUCCESS' },
+              { method: 'INITIAL_ONBOARDING' },
+            ]
+          }
         })
 
         const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>()
@@ -157,18 +169,30 @@ export class SettlePropertyBalanceUseCase {
           (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
         )
 
-        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (prop.rentAmount || 0))
+        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (prop.rentAmount - 1 || 0))
 
         if (fullyPaidPeriods.length > 0) {
           const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!
 
+          // Advance property to the next cycle following the latest fully paid period
+          const nextStart = new Date(latestFullyPaid.periodEnd)
+          nextStart.setDate(nextStart.getDate() + 1)
+
+          const nextEnd = new Date(nextStart)
+          if (effectiveRentType === 'Monthly') {
+            nextEnd.setMonth(nextEnd.getMonth() + 1)
+          } else {
+            nextEnd.setFullYear(nextEnd.getFullYear() + leaseYears)
+          }
+          nextEnd.setDate(nextEnd.getDate() - 1)
+
           await this.propertyRepo.update(prop.id, {
-            rentStartDate: latestFullyPaid.periodStart,
-            rentEndDate: latestFullyPaid.periodEnd,
+            rentStartDate: nextStart,
+            rentEndDate: nextEnd,
             isFirstRent: false,
           }, txClient)
 
-          this.logger.log(`Synced platform property ${prop.id} dates to latest fully paid period: ${latestFullyPaid.periodStart.toISOString()} - ${latestFullyPaid.periodEnd.toISOString()}`)
+          this.logger.log(`Synced platform property ${prop.id} dates to next upcoming cycle: ${nextStart.toISOString()} - ${nextEnd.toISOString()}`)
         }
       } catch (err) {
         this.logger.error(`Failed to sync platform property rent period for property ${prop.id}:`, err)

@@ -1,12 +1,13 @@
 'use client'
 
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface SetupPageShellProps {
   title?: string
   subtitle?: string
   progress?: { step: number; total: number }
+  stepNames?: string[]
   backHref?: string
   onBack?: () => void
   className?: string
@@ -18,6 +19,7 @@ export function SetupPageShell({
   title,
   subtitle,
   progress,
+  stepNames,
   backHref,
   onBack,
   className,
@@ -49,8 +51,26 @@ export function SetupPageShell({
           </button>
           {title && <h1 className="setup-page__header-title">{title}</h1>}
         </div>
+        {stepNames && stepNames.length > 0 && (
+          <div className="setup-page__substeps" style={{ marginTop: 12, marginBottom: 4 }}>
+            {stepNames.map((name, idx) => {
+              const stepNum = idx + 1
+              const isComplete = progress ? progress.step > stepNum : false
+              const isActive = progress ? progress.step === stepNum : false
+              return (
+                <div
+                  key={name}
+                  className={`setup-page__substep ${isActive ? 'setup-page__substep--active' : ''} ${isComplete ? 'setup-page__substep--complete' : ''}`}
+                >
+                  {isComplete ? <Check size={12} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 2 }} /> : null}
+                  {name}
+                </div>
+              )
+            })}
+          </div>
+        )}
         {progress && (
-          <div className="setup-page__progress-wrap">
+          <div className="setup-page__progress-wrap" style={{ marginTop: stepNames ? 8 : 14 }}>
             <div className="setup-page__progress-meta">
               <span>
                 Step {progress.step} of {progress.total}

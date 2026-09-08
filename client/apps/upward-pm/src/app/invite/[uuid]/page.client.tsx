@@ -94,7 +94,7 @@ export default function ClaimAccountPage() {
             Invitation Expired or Invalid
           </h2>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
-            This invitation link is invalid or has already been claimed. Please contact the administrator who invited you.
+            This invitation link is invalid or has already been claimed. Please reach out to the person who invited you.
           </p>
           <button 
             type="button" 
@@ -121,7 +121,7 @@ export default function ClaimAccountPage() {
             Activate Your Account
           </h2>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 440, lineHeight: 1.5 }}>
-            You&apos;ve been invited to join the property management team on Upward. Complete your details below to activate access.
+            You&apos;ve been invited to Upward. Complete your details below to activate your account and get started.
           </p>
         </div>
 
@@ -164,19 +164,21 @@ export default function ClaimAccountPage() {
                   {inviter.companyName && <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}> ({inviter.companyName})</span>}
                 </div>
               </div>
-              <div
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 100,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  background: 'var(--forest-faint)',
-                  color: 'var(--forest)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {inviter.accessLevel === 'ALL' ? 'Admin Access' : 'Manager Access'}
-              </div>
+              {inviter.accessLevel && (
+                <div
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 100,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: 'var(--forest-faint)',
+                    color: 'var(--forest)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {inviter.accessLevel === 'ALL' ? 'Admin Access' : 'Manager Access'}
+                </div>
+              )}
             </div>
           )}
 

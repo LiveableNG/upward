@@ -658,9 +658,19 @@ export class RecordTransactionUseCase {
 
         const activePr = freshPr || pr
 
-        let snapshotRentStart: Date | null = activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null
-        let snapshotRentEnd: Date | null = activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null
-        let snapshotTotalInvoice: number | null = activePr?.amount || null
+        const propRecord = propertyId
+          ? await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
+          : null
+
+        let snapshotRentStart: Date | null = propRecord?.rentStartDate
+          ? new Date(propRecord.rentStartDate)
+          : (activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null)
+        let snapshotRentEnd: Date | null = propRecord?.rentEndDate
+          ? new Date(propRecord.rentEndDate)
+          : (activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null)
+        let snapshotTotalInvoice: number | null = (propRecord?.rentAmount && propRecord.initialAmountPaid > 0)
+          ? propRecord.rentAmount
+          : (activePr?.amount || null)
         let snapshotHistoricalPaid: number | null = null
         let snapshotRemaining: number | null = null
         let snapshotIsPartial: boolean | null = null
@@ -673,12 +683,6 @@ export class RecordTransactionUseCase {
           if (latestPlatformPayment?.periodStart) {
             snapshotRentStart = new Date(latestPlatformPayment.periodStart)
             snapshotRentEnd = latestPlatformPayment.periodEnd ? new Date(latestPlatformPayment.periodEnd) : null
-          } else {
-            const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
-            if (propRecord) {
-              snapshotRentStart = propRecord.rentStartDate ? new Date(propRecord.rentStartDate) : null
-              snapshotRentEnd = propRecord.rentEndDate ? new Date(propRecord.rentEndDate) : null
-            }
           }
         }
 
@@ -1639,18 +1643,47 @@ export class GetTransactionUseCase {
       })
 
       if (pr) {
-        const priorTxs = await this.prisma.upward_transaction.findMany({
-          where: {
-            paymentRequestId: pr.id,
-            status: 'SUCCESS',
-            createdAt: { lte: tx.createdAt },
-          },
-        })
-        const historicalPaidToDate = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
-        const historicalRemaining = Math.max(0, pr.amount - historicalPaidToDate)
+        const resolvedRentStart = tx.rentStartDate || pr.rentStartDate || pr.userProperty?.rentStartDate
+        const resolvedRentEnd = tx.rentEndDate || pr.rentEndDate || pr.userProperty?.rentEndDate
+        const tenancyPeriod = (resolvedRentStart && resolvedRentEnd)
+          ? `${new Date(resolvedRentStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(resolvedRentEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : undefined
 
+        const hasSnapshotAmounts = (tx as any)?.totalInvoiceAmount !== null && (tx as any)?.totalInvoiceAmount !== undefined
+        let totalInvoice: number
+        let historicalPaidToDate: number
+        let historicalRemaining: number
+        let isPartial: boolean
+        let rentAmount: number
+
+        const propRent = pr.userProperty?.rentAmount
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
-        const rentAmount = rentItem ? rentItem.totalAmount : pr.amount
+        rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
+
+        if (hasSnapshotAmounts) {
+          const snapTx = tx as any
+          totalInvoice = snapTx.totalInvoiceAmount
+          rentAmount = snapTx.totalInvoiceAmount
+          historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
+          historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
+          isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
+        } else {
+          const priorTxs = await this.prisma.upward_transaction.findMany({
+            where: {
+              paymentRequestId: pr.id,
+              status: 'SUCCESS',
+              createdAt: { lte: tx.createdAt },
+            },
+          })
+          const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
+          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+          historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
+            ? Math.min(propRent, propInitialPaid + basePaid)
+            : basePaid
+          totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : (pr.amount || rentAmount)
+          historicalRemaining = Math.max(0, totalInvoice - historicalPaidToDate)
+          isPartial = historicalRemaining > 0
+        }
 
         const pm = pr.userProperty?.pm
         const company = pr.userProperty?.company
@@ -1699,15 +1732,21 @@ export class GetTransactionUseCase {
 
         return {
           ...tx,
+          rentStartDate: resolvedRentStart,
+          rentEndDate: resolvedRentEnd,
+          tenancyPeriod,
           paymentRequest: {
             ...tx.paymentRequest,
             ...pr,
           },
           rentAmount,
-          totalInvoiceAmount: pr.amount,
+          totalInvoiceAmount: totalInvoice,
+          totalPaidToDate: historicalPaidToDate,
           historicalPaidToDate,
+          remainingBalance: historicalRemaining,
           historicalRemaining,
-          isPartial: historicalRemaining > 0,
+          isPartial,
+          status: isPartial ? 'PARTIAL' : (tx.status === 'SUCCESS' ? 'PAID' : tx.status),
           themeColor,
           companyLogo: companyLogo || tx.companyLogo,
           companyName: resolvedCompanyName,

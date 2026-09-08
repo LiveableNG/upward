@@ -52,7 +52,7 @@ export class CreatePropertyUseCase {
       name: dto.name,
       address: dto.address || null,
       totalUnits: dto.totalUnits || 0,
-      propertyType: dto.propertyType,
+      propertyType: dto.propertyType || 'Residential',
       imageUrl: dto.imageUrl || null,
       country: dto.country || 'Nigeria',
       state: dto.state || null,

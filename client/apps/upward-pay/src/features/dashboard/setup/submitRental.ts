@@ -1,6 +1,7 @@
 import { api } from '@/lib/api'
 import { type SetupDraft } from './setupDraft'
 import { toDateInputValue } from './rentalDates'
+import { uploadProofOfPayment } from '@/features/payments/services/paymentService'
 
 export async function submitRentalRequest(draft: SetupDraft) {
   const {
@@ -15,6 +16,10 @@ export async function submitRentalRequest(draft: SetupDraft) {
     paymentDetails,
   } = draft
 
+  const initialPaidNum = formData.amountAlreadyPaid
+    ? parseFloat(formData.amountAlreadyPaid.replace(/,/g, '')) || 0
+    : 0
+
   const unitDetails: {
     uuid?: string
     address: string
@@ -26,6 +31,8 @@ export async function submitRentalRequest(draft: SetupDraft) {
     rentStartDate: string
     rentEndDate: string
     rentType: string
+    tenancyStatus: string
+    initialAmountPaid: number
   } = {
     address: formData.address,
     area: formData.area,
@@ -36,6 +43,8 @@ export async function submitRentalRequest(draft: SetupDraft) {
     rentStartDate: toDateInputValue(formData.rentStartDate),
     rentEndDate: toDateInputValue(formData.rentEndDate),
     rentType: formData.rentType || 'Annually',
+    tenancyStatus: formData.tenancyStatus || 'NEW_CYCLE',
+    initialAmountPaid: initialPaidNum,
   }
 
   if (formData.uuid) unitDetails.uuid = formData.uuid
@@ -68,7 +77,17 @@ export async function submitRentalRequest(draft: SetupDraft) {
     }
   }
 
-  await api.post('/user/pm-connection/add-unit-request', payload)
+  const res = await api.post('/user/pm-connection/add-unit-request', payload)
+
+  // Upload proof of payment if attached
+  if (formData.proofFile) {
+    const propUuid = (res as any)?.data?.userProperty?.uuid || formData.uuid
+    await uploadProofOfPayment({
+      userPropertyUuid: propUuid,
+      amount: initialPaidNum || unitDetails.rentAmount,
+      file: formData.proofFile,
+    }).catch((e: any) => console.warn('Failed to upload proof during rental submit:', e))
+  }
 }
 
 export async function submitContactDetails(phone: string, dateOfBirth: string) {

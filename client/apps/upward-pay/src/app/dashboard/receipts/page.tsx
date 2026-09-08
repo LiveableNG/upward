@@ -57,20 +57,28 @@ export default function ReceiptsPage() {
         const propInfo = tx.property || landlord?.properties?.[0]
         const propertyAddress = tx.propertyAddress || propInfo?.locationAddress || propInfo?.address || tx.paymentRequest?.propertyLocation || profile?.address || ''
 
-        const rentStartDate = tx.rentStartDate || tx.paymentRequest?.rentStartDate
-        const rentEndDate = tx.rentEndDate || tx.paymentRequest?.rentEndDate
-        const tenancyPeriod = (rentStartDate && rentEndDate)
+        const rentStartDate = tx.rentStartDate || tx.paymentRequest?.rentStartDate || propInfo?.rentStartDate
+        const rentEndDate = tx.rentEndDate || tx.paymentRequest?.rentEndDate || propInfo?.rentEndDate
+        const tenancyPeriod = tx.tenancyPeriod || ((rentStartDate && rentEndDate)
           ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-          : undefined
+          : undefined)
 
         const pr = tx.paymentRequest
-        const totalInvoiceAmount = tx.totalInvoiceAmount !== undefined ? tx.totalInvoiceAmount : pr?.amount
-        const totalPaidToDate = tx.historicalPaidToDate !== undefined ? tx.historicalPaidToDate : (pr?.amountPaid)
+        const fullRentAmount = tx.rentAmount ?? tx.totalInvoiceAmount ?? propInfo?.rentAmount ?? pr?.amount
+        const totalInvoiceAmount = tx.totalInvoiceAmount !== undefined ? tx.totalInvoiceAmount : (fullRentAmount || pr?.amount)
+        const initialPaid = propInfo?.initialAmountPaid || 0
+        const totalPaidToDate = tx.totalPaidToDate !== undefined
+          ? tx.totalPaidToDate
+          : (tx.historicalPaidToDate !== undefined 
+            ? tx.historicalPaidToDate 
+            : ((pr?.amountPaid || 0) + (initialPaid && tx.amount < (fullRentAmount || 0) ? initialPaid : 0)))
         const remainingBalance = tx.remainingBalance !== undefined
           ? tx.remainingBalance
-          : (totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
-            ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
-            : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined))
+          : (tx.historicalRemaining !== undefined
+            ? tx.historicalRemaining
+            : (totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
+              ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
+              : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined)))
         const isPartial = tx.isPartial !== undefined ? tx.isPartial : (remainingBalance !== undefined ? remainingBalance > 0 : (pr?.status === 'PARTIAL'))
 
         const cleanDisplayName = (name?: string | null, fallback = 'Upward') => {

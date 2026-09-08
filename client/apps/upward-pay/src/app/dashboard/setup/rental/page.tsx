@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { RentalFormView } from '@/features/dashboard/setup/components/RentalFormView'
+import { EditPropertyView } from '@/features/dashboard/setup/components/EditPropertyView'
 import { RentalPropertiesListView } from '@/features/dashboard/setup/components/RentalPropertiesListView'
 import { useSetupMode } from '@/features/dashboard/setup/setupPaths'
 
@@ -18,6 +19,10 @@ function SetupRentalPageInner() {
   const returnTo = searchParams.get('returnTo')
 
   const activeProperties = (user?.properties || []).filter((p) => !p.isPastTenancy)
+
+  if (isEdit && propertyUuid) {
+    return <EditPropertyView propertyUuid={propertyUuid} />
+  }
 
   if (isEdit && !propertyUuid && !isNew && !returnTo && activeProperties.length > 0) {
     return <RentalPropertiesListView properties={activeProperties} />
@@ -33,3 +38,4 @@ export default function SetupRentalPage() {
     </Suspense>
   )
 }
+

@@ -1154,7 +1154,6 @@ export function UniversityClient() {
                   <label htmlFor="sessionTime">Information Session Date & Time</label>
                   <select id="sessionTime" {...register('sessionTime')}>
                     <option value="">Select session time</option>
-                    <option value="Sat 12 Sep at 9am">Sat 12 Sep at 9am</option>
                     <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
                     <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
                   </select>

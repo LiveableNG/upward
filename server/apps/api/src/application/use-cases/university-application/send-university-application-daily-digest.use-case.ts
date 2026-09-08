@@ -60,6 +60,7 @@ export class SendUniversityApplicationDailyDigestUseCase {
             <th style="padding: 8px; border: 1px solid #e4e4e7;">Email / Phone</th>
             <th style="padding: 8px; border: 1px solid #e4e4e7;">City</th>
             <th style="padding: 8px; border: 1px solid #e4e4e7;">Scholarship</th>
+            <th style="padding: 8px; border: 1px solid #e4e4e7;">Info Session</th>
             <th style="padding: 8px; border: 1px solid #e4e4e7;">Fee Status</th>
             <th style="padding: 8px; border: 1px solid #e4e4e7;">Submitted</th>
           </tr>
@@ -71,6 +72,7 @@ export class SendUniversityApplicationDailyDigestUseCase {
       const isPaid = app.feeStatus === 'PAID'
       const statusColor = isPaid ? '#16a34a' : '#d97706'
       const scholarshipBadge = app.isScholarship ? '<span style="color:#8A4A2A;font-weight:bold;">Yes</span>' : 'No'
+      const sessionDisplay = app.sessionTime || '<span style="color:#a1a1aa;">None</span>'
       const submittedTime = new Date(app.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
       appsTableHtml += `
@@ -79,6 +81,7 @@ export class SendUniversityApplicationDailyDigestUseCase {
           <td style="padding: 8px; border: 1px solid #e4e4e7;">${app.email}<br/><span style="color:#71717a;font-size:12px;">${app.whatsapp}</span></td>
           <td style="padding: 8px; border: 1px solid #e4e4e7;">${app.city}</td>
           <td style="padding: 8px; border: 1px solid #e4e4e7;">${scholarshipBadge}</td>
+          <td style="padding: 8px; border: 1px solid #e4e4e7;">${sessionDisplay}</td>
           <td style="padding: 8px; border: 1px solid #e4e4e7; color: ${statusColor}; font-weight: bold;">${app.feeStatus || 'PENDING'}</td>
           <td style="padding: 8px; border: 1px solid #e4e4e7; color: #71717a;">${submittedTime}</td>
         </tr>
