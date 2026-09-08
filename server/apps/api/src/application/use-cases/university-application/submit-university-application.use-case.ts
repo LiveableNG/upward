@@ -114,8 +114,9 @@ export class SubmitUniversityApplicationUseCase {
 
     const saved = await this.applicationRepo.save(application)
 
-    // Attribution: increment conversion count if sourceIdentifier was provided
-    if (command.sourceIdentifier) {
+    // Attribution: increment conversion count if sourceIdentifier was provided and it is a new application or first-time attribution
+    const isNewAttribution = !existing || !existing.toObject().sourceIdentifier
+    if (command.sourceIdentifier && isNewAttribution) {
       this.trafficRepo.incrementConversion(command.sourceIdentifier).catch((err: any) => {
         this.logger.warn(`Failed to increment traffic conversion for ${command.sourceIdentifier}: ${err?.message || err}`)
       })

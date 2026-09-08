@@ -208,7 +208,7 @@ export function UniversityClient() {
             <div>
               UPWARD
               <br />
-              <small>University</small>
+              <small>University and Business Accelerator</small>
             </div>
           </Link>
 
