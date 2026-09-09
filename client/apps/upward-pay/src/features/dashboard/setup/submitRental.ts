@@ -49,14 +49,20 @@ export async function submitRentalRequest(draft: SetupDraft) {
 
   if (formData.uuid) unitDetails.uuid = formData.uuid
 
+  const hasPaymentDetails =
+    !landlordSkipped &&
+    Boolean(paymentDetails?.accountNumber?.trim() && paymentDetails?.bankCode?.trim())
+
   const payload: Record<string, unknown> = {
     unitDetails,
-    paymentDetails: {
-      accountNumber: paymentDetails.accountNumber,
-      bankCode: paymentDetails.bankCode,
-      accountName: paymentDetails.accountName,
-      bankName: paymentDetails.bankName,
-    },
+    paymentDetails: hasPaymentDetails
+      ? {
+          accountNumber: paymentDetails.accountNumber.trim(),
+          bankCode: paymentDetails.bankCode.trim(),
+          accountName: paymentDetails.accountName?.trim() || undefined,
+          bankName: paymentDetails.bankName?.trim() || undefined,
+        }
+      : undefined,
   }
 
   if (!landlordSkipped && pmEmail.trim()) {

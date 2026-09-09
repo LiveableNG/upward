@@ -32,9 +32,11 @@ export function RentalConfirmView() {
       ? draft.pmDetails?.businessName || draft.pmDetails?.name
       : draft.formData.pmName || draft.pmEmail
 
-  const paymentLabel = draft.paymentDetails.accountName
-    ? `${draft.paymentDetails.accountName} (${draft.paymentDetails.bankName || 'Bank'}) · ${draft.paymentDetails.accountNumber}`
-    : 'Not specified'
+  const paymentLabel = draft.landlordSkipped
+    ? 'Not specified (can be added later)'
+    : draft.paymentDetails.accountName
+      ? `${draft.paymentDetails.accountName} (${draft.paymentDetails.bankName || 'Bank'}) · ${draft.paymentDetails.accountNumber}`
+      : 'Not specified'
 
   const totalRentNum = parseFloat(draft.formData.rentAmount.replace(/,/g, '')) || 0
   const paidNum = parseFloat(draft.formData.amountAlreadyPaid.replace(/,/g, '')) || 0
