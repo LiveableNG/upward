@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
-import { BiometricEnrollmentStep } from '@/features/auth/component/signup/BiometricEnrollmentStep'
 import { Capacitor } from '@capacitor/core'
 import { BenefitsStep } from '@/features/auth/component/signup/BenefitsStep'
 import { LoginFormFlow } from '@/features/auth/component/signup/LoginFormFlow'
@@ -14,7 +13,7 @@ import InviteClient from '@/app/invite/[uuid]/InviteClient'
 import WelcomeClient from '@/app/welcome/[uuid]/WelcomeClient'
 import { GoogleAuthProvider } from '@/features/auth/components/GoogleAuthProvider'
 
-type Mode = 'welcome' | 'signup' | 'login' | 'biometrics' | 'waitlist' | 'invite' | 'priority'
+type Mode = 'welcome' | 'signup' | 'login' | 'waitlist' | 'invite' | 'priority'
 
 function SignupPageContent() {
   const router = useRouter()
@@ -83,16 +82,6 @@ function SignupPageContent() {
     )
   }
 
-  if (mode === 'biometrics' && credentials) {
-    return (
-      <BiometricEnrollmentStep 
-        email={credentials.email}
-        password={credentials.password}
-        onComplete={() => router.push('/dashboard')}
-      />
-    )
-  }
-
   if (mode === 'waitlist') {
     return <WaitlistClient />
   }
@@ -109,13 +98,8 @@ function SignupPageContent() {
     <SignupFormFlow 
       initialEmail={initialEmail}
       onBackToWelcome={() => setMode('welcome')} 
-      onSignupSuccess={(email, password) => {
-        setCredentials({ email, password })
-        if (Capacitor.isNativePlatform()) {
-          setMode('biometrics')
-        } else {
-          router.replace('/dashboard')
-        }
+      onSignupSuccess={() => {
+        router.replace('/dashboard')
       }}
     />
   )

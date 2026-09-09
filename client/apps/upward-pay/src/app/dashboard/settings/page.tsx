@@ -3,13 +3,16 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Eye, EyeOff, Lock, LogOut, MessageSquare } from 'lucide-react'
+import { ChevronRight, Eye, EyeOff, Lock, LogOut, MessageSquare, KeyRound } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { BiometricSwitch } from '@/features/auth/component/BiometricSwitch'
 import { NotificationSwitch } from '@/features/notifications/components/NotificationSwitch'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
+import { PinService } from '@/features/auth/services/pinService'
+import { PinSetupModal } from '@/features/auth/components/PinSetupModal'
+import { Capacitor } from '@capacitor/core'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -24,6 +27,17 @@ export default function SettingsPage() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
   const [feedback, setFeedback] = useState({ type: 'SUGGESTION', message: '' })
   const [submittingFeedback, setSubmittingFeedback] = useState(false)
+
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [hasPinEnrolled, setHasPinEnrolled] = useState(false)
+  const [isNative, setIsNative] = useState(false)
+
+  React.useEffect(() => {
+    setIsNative(Capacitor.isNativePlatform())
+    if (user?.email) {
+      PinService.hasPin(user.email).then(setHasPinEnrolled)
+    }
+  }, [user?.email])
 
   if (!user) return null
 
@@ -82,7 +96,40 @@ export default function SettingsPage() {
         <h3 className="profile-page__section-label">Security &amp; notifications</h3>
         <div className="settings-page__menu-card">
           <NotificationSwitch />
-          <BiometricSwitch />
+          
+          {isNative && (
+            <button
+              type="button"
+              className="settings-page__row"
+              onClick={() => setShowPinModal(true)}
+            >
+              <span className="settings-page__row-left">
+                <span className="settings-page__row-icon">
+                  <KeyRound size={18} />
+                </span>
+                <span className="settings-page__row-text">
+                  <span className="settings-page__row-title">App PIN code</span>
+                  <span className="settings-page__row-desc">
+                    {hasPinEnrolled ? '6-digit PIN is configured' : 'Set up a 6-digit PIN for quick access'}
+                  </span>
+                </span>
+              </span>
+              <span
+                style={{
+                  fontSize: '12.5px',
+                  fontWeight: 600,
+                  color: 'var(--clay)',
+                  background: 'rgba(217, 119, 87, 0.1)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                }}
+              >
+                {hasPinEnrolled ? 'Change PIN' : 'Set up'}
+              </span>
+            </button>
+          )}
+
+          <BiometricSwitch onPromptPinSetup={() => setShowPinModal(true)} />
 
           <button
             type="button"
@@ -229,6 +276,19 @@ export default function SettingsPage() {
           Sign out
         </button>
       </section>
+
+      {showPinModal && user && (
+        <PinSetupModal
+          user={{ email: user.email, firstName: user.firstName, lastName: user.lastName }}
+          onComplete={() => {
+            setShowPinModal(false)
+            if (user?.email) {
+              PinService.hasPin(user.email).then(setHasPinEnrolled)
+            }
+          }}
+          allowDismiss={true}
+        />
+      )}
     </PayPageShell>
   )
 }

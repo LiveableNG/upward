@@ -31,7 +31,8 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
 
   React.useEffect(() => {
     if (value !== localIso) {
-      const parts = value ? value.split('-') : []
+      const cleanValue = value ? value.split('T')[0] : ''
+      const parts = cleanValue ? cleanValue.split('-') : []
       setLocalYear(parts[0] || '')
       setLocalMonth(parts[1] ? String(Number(parts[1])) : '')
       setLocalDay(parts[2] ? String(Number(parts[2])) : '')
@@ -174,10 +175,10 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           width: 100%;
           height: 48px;
           padding: 0 24px 0 10px;
-          border: 1.5px solid var(--border-solid);
+          border: 1.5px solid var(--border-solid, #ece4d9);
           border-radius: 12px;
-          background: var(--surface);
-          color: var(--text-muted);
+          background: var(--surface, #fff);
+          color: var(--text-muted, #7a7268);
           font-size: 14px;
           font-family: inherit;
           font-weight: 500;
@@ -192,19 +193,19 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           overflow: hidden;
         }
         .dob-select.has-value {
-          color: var(--text);
+          color: var(--text, #1a1714);
         }
         .dob-select:focus {
-          border-color: var(--clay);
-          box-shadow: 0 0 0 3px rgba(var(--clay-rgb, 180, 120, 80), 0.12);
+          border-color: var(--clay, #c2501f);
+          box-shadow: 0 0 0 3px rgba(194, 80, 31, 0.12);
         }
         .dob-select:hover:not(:focus) {
-          border-color: var(--text-muted);
+          border-color: var(--text-muted, #a9a096);
         }
         .dob-select__chevron {
           position: absolute;
           right: 8px;
-          color: var(--text-muted);
+          color: var(--text-muted, #7a7268);
           pointer-events: none;
           flex-shrink: 0;
         }

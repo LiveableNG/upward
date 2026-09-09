@@ -1,4 +1,4 @@
-import { getAccessToken, setAccessToken } from './auth-token'
+import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, initStoredTokens } from './auth-token'
 import { Capacitor } from '@capacitor/core'
 
 const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
@@ -8,36 +8,58 @@ const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform()
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
 
-async function runRefresh(): Promise<string | null> {
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-    const response = await fetch(`${API_BASE}/user/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-      credentials: 'include',
-      signal: controller.signal,
-    })
-    
-    clearTimeout(timeoutId)
-    
-    if (!response.ok) throw new Error('Refresh failed')
-    
-    const data = await response.json()
-    if (data.accessToken) {
-      setAccessToken(data.accessToken)
-      return data.accessToken
-    }
-    return null
-  } catch (err) {
-    setAccessToken(null)
-    return null
-  } finally {
-    isRefreshing = false
-    refreshPromise = null
+export async function runRefresh(): Promise<string | null> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise
   }
+
+  isRefreshing = true
+  refreshPromise = (async () => {
+    try {
+      await initStoredTokens()
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+      const storedRefreshToken = getRefreshToken()
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (Capacitor.isNativePlatform()) {
+        headers['x-client-platform'] = 'capacitor'
+        if (storedRefreshToken) {
+          headers['x-refresh-token'] = storedRefreshToken
+        }
+      }
+
+      const response = await fetch(`${API_BASE}/user/auth/refresh`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
+        credentials: 'include',
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) throw new Error('Refresh failed')
+      
+      const data = await response.json()
+      if (data.accessToken) {
+        setAccessToken(data.accessToken)
+        if (data.refreshToken) {
+          setRefreshToken(data.refreshToken)
+        }
+        return data.accessToken
+      }
+      return null
+    } catch (err) {
+      console.warn('[api-client] Token refresh attempt failed:', err)
+      return null
+    } finally {
+      isRefreshing = false
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -54,6 +76,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     if (Capacitor.isNativePlatform()) {
       headers['x-client-platform'] = 'capacitor'
+      const rt = getRefreshToken()
+      if (rt) {
+        headers['x-refresh-token'] = rt
+      }
     }
 
     if (options.body && !headers['Content-Type'] && !(options.body instanceof FormData)) {
@@ -133,6 +159,10 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
 
     if (Capacitor.isNativePlatform()) {
       headers['x-client-platform'] = 'capacitor'
+      const rt = getRefreshToken()
+      if (rt) {
+        headers['x-refresh-token'] = rt
+      }
     }
 
     const controller = new AbortController()

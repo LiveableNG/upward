@@ -62,8 +62,6 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(null)
-  const [biometricAvailable, setBiometricAvailable] = useState(false)
-  const [biometricLoading, setBiometricLoading] = useState(false)
   const [step, setStep] = useState<'login' | 'otp'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
@@ -86,24 +84,13 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
   const isGoogleOnly = authProvider === 'google' && emailExists
   const isSpecialAccount = isInvited || isWaitlist
-  const isBusy = loginLoading || biometricLoading || isRequestingOTP || isCheckingEmail
+  const isBusy = loginLoading || isRequestingOTP || isCheckingEmail
 
   useEffect(() => {
     if (initialEmail) {
       setLoginEmail(initialEmail)
     }
   }, [initialEmail])
-
-  useEffect(() => {
-    async function checkBiometrics() {
-      const available = await BiometricsService.isAvailable()
-      if (available) {
-        const enabled = await BiometricsService.isEnabled()
-        setBiometricAvailable(enabled)
-      }
-    }
-    checkBiometrics()
-  }, [])
 
   useEffect(() => {
     setEmailExists(false)
@@ -154,25 +141,6 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     }
   }, [loginEmail, loginPhone, identifierType])
 
-  const handleBiometricLogin = async () => {
-    setBiometricLoading(true)
-    try {
-      const authenticated = await BiometricsService.authenticate('Log in with your biometrics')
-      if (authenticated) {
-        const creds = await BiometricsService.getCredentials()
-        if (creds) {
-          doLogin(creds.email, creds.password)
-        } else {
-          toastError('No stored credentials found. Please log in manually once.')
-        }
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Biometric authentication failed'
-      toastError(message)
-    } finally {
-      setBiometricLoading(false)
-    }
-  }
 
   const handleRequestOTP = async (customContext?: 'WAITLIST' | 'INVITE', channel?: 'SMS' | 'WHATSAPP') => {
     if (identifierType === 'email' && !loginEmail) {
@@ -330,6 +298,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
       </div>
     )
   }
+
 
   return (
     <div className="auth-shell auth-shell--login">
@@ -569,22 +538,6 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 )}
               </button>
 
-              {loginMethod === 'password' && biometricAvailable && (
-                <button
-                  type="button"
-                  className="auth-form__link auth-form__link--biometric"
-                  onClick={handleBiometricLogin}
-                  disabled={isBusy || !emailExists || isSpecialAccount}
-                >
-                  {biometricLoading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <>
-                      <Fingerprint size={16} /> Use biometrics
-                    </>
-                  )}
-                </button>
-              )}
             </>
           )}
         </form>

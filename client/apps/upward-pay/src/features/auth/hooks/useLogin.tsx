@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { login as authLogin, loginWithOTP as authOTPLogin } from '../services/authService'
 import { useAuth } from '../AuthContext'
-import { setAccessToken } from '@/lib/auth-token'
+import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { BiometricsService } from '../services/biometricsService'
+import { Capacitor } from '@capacitor/core'
 
 export function useLogin(redirect: string) {
   const router = useRouter()
@@ -18,10 +19,17 @@ export function useLogin(redirect: string) {
         setAccessToken(result.accessToken)
         setCookie('pay_access_token', result.accessToken)
       }
+      if (result.refreshToken) {
+        setRefreshToken(result.refreshToken)
+      }
       
-      // Save credentials for biometrics if enabled
-      if (await BiometricsService.isEnabled()) {
-        await BiometricsService.saveCredentials(variables.email, variables.password)
+      // Save credentials for biometrics & PIN silent re-authentication on native mobile
+      if (Capacitor.isNativePlatform() && variables.password) {
+        try {
+          await BiometricsService.saveCredentials(variables.email, variables.password)
+        } catch (e) {
+          console.warn('[useLogin] Credentials save error ignored:', e)
+        }
       }
 
       // Clear any stale cache from a previously logged-in account before loading new user data
@@ -39,6 +47,9 @@ export function useLogin(redirect: string) {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
         setCookie('pay_access_token', result.accessToken)
+      }
+      if (result.refreshToken) {
+        setRefreshToken(result.refreshToken)
       }
       
       // Clear any stale cache from a previously logged-in account before loading new user data
