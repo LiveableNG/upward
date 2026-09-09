@@ -205,9 +205,17 @@ export class PmAuthController {
   @HttpCode(HttpStatus.OK)
   async claimAccount(
     @Param('uuid') uuid: string, 
-    @Body() body: { password: string; firstName?: string; lastName?: string }
+    @Body() body: { password: string; firstName?: string; lastName?: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    return this.pmAuthService.claimAccount(uuid, body.password, body.firstName, body.lastName)
+    const { refreshToken, ...rest } = await this.pmAuthService.claimAccount(
+      uuid,
+      body.password,
+      body.firstName,
+      body.lastName,
+    )
+    setPmAuthCookies(reply, rest.accessToken, refreshToken)
+    reply.status(HttpStatus.OK).send(rest)
   }
 
   @Post('forgot-password')

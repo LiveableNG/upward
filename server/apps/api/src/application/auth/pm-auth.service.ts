@@ -465,12 +465,11 @@ export class PmAuthService extends BaseAuthService {
 
     const newPasswordHash = await bcrypt.hash(passwordHash, 10)
     
-    await this.pmRepository.update(pm.id!, {
+    const updatedPm = await this.pmRepository.update(pm.id!, {
         passwordHash: newPasswordHash,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
     })
-
 
     // Update collaboration status if any
     await (this.prisma as any).upward_pm_team_collaboration.updateMany({
@@ -480,7 +479,7 @@ export class PmAuthService extends BaseAuthService {
 
     this.emailService.sendCustomerSupportNotification('PM', pm.uuid).catch(e => console.error('Failed to send CS notification', e));
 
-    return { success: true }
+    return this.generateFullAuthResponse(updatedPm)
   }
 
   async forgotPassword(email: string): Promise<void> {
