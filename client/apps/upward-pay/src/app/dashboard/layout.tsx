@@ -22,7 +22,7 @@ import { api } from '@/lib/api'
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isLoggedIn, loading, user } = useAuth()
+  const { isLoggedIn, loading, user, isPinLocked } = useAuth()
   const { data: scoreProfile } = useScoreProfile()
   const [blockerDismissed, setBlockerDismissed] = useState(false)
 
@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [searchParams, isLoggedIn])
 
-  if (!loading && !isLoggedIn) {
+  if (!loading && !isLoggedIn && !isPinLocked) {
     return <FallbackSuspense message="Redirecting to login..." />
   }
 

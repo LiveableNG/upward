@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const router = useRouter()
   
   // Use global auth state instead of fetching profile again
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, isPinLocked } = useAuth()
   
   // Granular data fetching
   const { data: rawPending, isLoading: pendingLoading, error: pendingError } = usePendingPayments()
@@ -56,12 +56,12 @@ export default function DashboardPage() {
     }
   }
 
-  // Only redirect if auth context definitively says no user
+  // Only redirect if auth context definitively says no user and app is not locked
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !user && !isPinLocked) {
       router.push('/login')
     }
-  }, [user, authLoading, router])
+  }, [user, authLoading, isPinLocked, router])
 
   const queryClient = useQueryClient()
 

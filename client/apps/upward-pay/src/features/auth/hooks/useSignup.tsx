@@ -2,8 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { signup as authSignup } from '../services/authService'
 import { useAuth } from '../AuthContext'
-import { setAccessToken } from '@/lib/auth-token'
+import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
+import { Capacitor } from '@capacitor/core'
+import { BiometricsService } from '../services/biometricsService'
 
 export function useSignup(redirect: string = '/dashboard', onSuccess?: () => void) {
   const router = useRouter()
@@ -23,10 +25,17 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       isFromInvite?: boolean;
       hearAboutUs?: string;
     }) => authSignup(data),
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
         setCookie('pay_access_token', result.accessToken)
+      }
+      if (result.refreshToken) {
+        setRefreshToken(result.refreshToken)
+      }
+
+      if (Capacitor.isNativePlatform() && variables.password) {
+        BiometricsService.saveCredentials(variables.email, variables.password).catch(() => {})
       }
 
       setAuthUser(result.user)
