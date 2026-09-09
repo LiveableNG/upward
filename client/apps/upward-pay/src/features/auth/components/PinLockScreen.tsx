@@ -91,7 +91,7 @@ export function PinLockScreen({ user, onUnlock, onLogout }: PinLockScreenProps) 
   }
 
   const handleKeyPress = async (digit: string) => {
-    if (isAuthenticating || pin.length >= 6) return
+    if (isAuthenticating || isFaceIdPrompting || pin.length >= 6) return
     setError(null)
     const newPin = [...pin, digit]
     setPin(newPin)
@@ -119,7 +119,7 @@ export function PinLockScreen({ user, onUnlock, onLogout }: PinLockScreenProps) 
   }
 
   const handleDelete = () => {
-    if (pin.length === 0) return
+    if (isAuthenticating || isFaceIdPrompting || pin.length === 0) return
     setError(null)
     setPin((prev) => prev.slice(0, -1))
   }
@@ -179,16 +179,6 @@ export function PinLockScreen({ user, onUnlock, onLogout }: PinLockScreenProps) 
           )}
         </div>
       </div>
-
-      {/* Center Biometric Indicator when OS prompt is showing */}
-      {isFaceIdPrompting && (
-        <div className="pin-faceid-badge" aria-hidden="true">
-          <div className="pin-faceid-badge-inner">
-            {isFaceId ? <Scan size={44} strokeWidth={1.75} /> : <Fingerprint size={44} strokeWidth={1.75} />}
-            <span>{bioLabel}</span>
-          </div>
-        </div>
-      )}
 
       {/* Numeric Keypad */}
       <div className="pin-keypad">
@@ -395,49 +385,6 @@ export function PinLockScreen({ user, onUnlock, onLogout }: PinLockScreenProps) 
 
         :global(.pin-encrypted-icon) {
           color: #3b82f6;
-        }
-
-        /* Center Floating Face ID Box */
-        .pin-faceid-badge {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          z-index: 1000000;
-          pointer-events: none;
-        }
-
-        .pin-faceid-badge-inner {
-          background: rgba(30, 41, 59, 0.92);
-          backdrop-filter: blur(12px);
-          color: #ffffff;
-          width: 140px;
-          height: 140px;
-          border-radius: 24px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-          animation: badgePop 0.2s ease-out;
-        }
-
-        @keyframes badgePop {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        .pin-faceid-badge-inner span {
-          font-size: 14px;
-          font-weight: 600;
-          letter-spacing: -0.2px;
         }
 
         /* Keypad Styling */

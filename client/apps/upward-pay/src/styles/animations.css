@@ -273,8 +273,7 @@
 
 /* Page Enter Transition */
 .app-page-transition {
-  animation: appPageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: transform, opacity;
+  animation: appPageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   width: 100%;
 }
 
@@ -285,7 +284,7 @@
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 

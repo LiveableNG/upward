@@ -1,11 +1,18 @@
 .setup-page {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   z-index: 1050;
   background: var(--shell-page-bg, #faf8f5);
   display: flex;
   flex-direction: column;
   font-family: var(--font-auth);
+  box-sizing: border-box;
 }
 
 .setup-page__header {
@@ -86,7 +93,8 @@
 }
 
 .setup-page__scroll {
-  flex: 1;
+  flex: 1 1 0%;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 6px 24px 14px;
