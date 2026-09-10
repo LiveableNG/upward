@@ -27,6 +27,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
         propertyCount: rawData.propertyCount ?? null,
         landlordStatus: rawData.landlordStatus ?? null,
         managementStyle: rawData.managementStyle ?? null,
+        abVariant: rawData.abVariant ? rawData.abVariant.toUpperCase() : 'A',
       },
     })
 
@@ -43,6 +44,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
       propertyCount: created.propertyCount,
       landlordStatus: created.landlordStatus,
       managementStyle: created.managementStyle,
+      abVariant: created.abVariant || 'A',
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
     })

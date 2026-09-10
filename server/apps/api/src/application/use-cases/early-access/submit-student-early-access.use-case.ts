@@ -21,6 +21,7 @@ export interface SubmitStudentEarlyAccessCommand {
   interest?: string
   sessionTime?: string
   sourceIdentifier?: string
+  abVariant?: string
 }
 
 @Injectable()
@@ -44,6 +45,7 @@ export class SubmitStudentEarlyAccessUseCase {
       city: command.city,
       ageBracket: command.ageBracket,
       experienceLevel: command.experienceLevel,
+      abVariant: command.abVariant || 'A',
       interest: command.sessionTime
         ? `[Session: ${command.sessionTime}] ${command.interest || ''}`.trim()
         : command.interest,

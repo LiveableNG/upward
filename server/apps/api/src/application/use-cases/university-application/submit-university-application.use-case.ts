@@ -27,6 +27,7 @@ export interface SubmitUniversityApplicationCommand {
   scholarshipVideoUrl?: string
   sessionTime?: string
   sourceIdentifier?: string
+  abVariant?: string
   feeStatus?: string
   paymentRef?: string
   sendEmail?: boolean
@@ -85,6 +86,7 @@ export class SubmitUniversityApplicationUseCase {
         scholarshipVideoUrl: command.scholarshipVideoUrl ?? existingProps.scholarshipVideoUrl,
         sessionTime: command.sessionTime ?? existingProps.sessionTime,
         sourceIdentifier: command.sourceIdentifier ?? existingProps.sourceIdentifier,
+        abVariant: command.abVariant ?? existingProps.abVariant ?? 'A',
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
         updatedAt: new Date(),
@@ -106,6 +108,7 @@ export class SubmitUniversityApplicationUseCase {
         scholarshipVideoUrl: command.scholarshipVideoUrl,
         sessionTime: command.sessionTime,
         sourceIdentifier: command.sourceIdentifier,
+        abVariant: command.abVariant || 'A',
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
       })

@@ -1214,7 +1214,7 @@
   <div class="wrap">
     <div class="value-grid">
       <div class="value-card">
-        <span class="fraunces-label">Why ₦200,000?</span>
+        <span class="fraunces-label" id="val-why-label">Why ₦200,000?</span>
         <h3>You're not paying for 10 weeks of lectures.</h3>
         <p>You're paying for a structured pathway to build useful skills, practical assets and relationships, with support designed to help you actually use them.</p>
         <ul class="value-list">
@@ -1312,23 +1312,23 @@
 <!-- 7. APPLY / PRICING (Pills Kept) -->
 <section id="apply" class="reveal in">
   <div class="wrap">
-    <div class="price">
-      <div class="price-panel">
-        <span class="eyebrow">Programme Fee</span>
-        <div class="price-num">₦200k</div>
-        <p>Full programme fee · 10 weeks · 6–8 hours/week · Hybrid</p>
-        <div class="scholarship-note">Limited scholarships of 25–50% are offered to selected applicants after application review.</div>
+    <div class="price" id="pricing-container">
+      <div class="price-panel" id="price-panel">
+        <span class="eyebrow" id="price-eyebrow">Programme Fee</span>
+        <div class="price-num" id="price-num">₦200k</div>
+        <p id="price-desc">Full programme fee · 10 weeks · 6–8 hours/week · Hybrid</p>
+        <div class="scholarship-note" id="price-note">Limited scholarships of 25–50% are offered to selected applicants after application review.</div>
         <div class="price-cities">Lagos · Abuja · Port Harcourt · Oyo</div>
       </div>
-      <div class="app-box">
+      <div class="app-box" id="app-box">
         <div>
-          <span class="eyebrow">Start Your Application</span>
-          <div class="app-fee">₦5,000</div>
-          <p style="font-size:14px; color:var(--ink-soft); line-height:1.45;">The application fee is <strong>credited toward your ₦200,000 programme fee if admitted.</strong></p>
-          <div class="refund"><strong>Don't qualify?</strong><br>Your ₦5,000 application fee is refunded.</div>
+          <span class="eyebrow" id="app-box-eyebrow">Start Your Application</span>
+          <div class="app-fee" id="app-fee">₦5,000</div>
+          <p id="app-fee-desc" style="font-size:14px; color:var(--ink-soft); line-height:1.45;">The application fee is <strong>credited toward your ₦200,000 programme fee if admitted.</strong></p>
+          <div class="refund" id="app-refund"><strong>Don't qualify?</strong><br>Your ₦5,000 application fee is refunded.</div>
         </div>
         <div style="margin-top:24px;">
-          <a href="/academy/apply" class="btn btn-primary" style="width:100%; justify-content:center; padding:16px; font-size:15.5px;">Start Application →</a>
+          <a href="/academy/apply" id="apply-btn-main" class="btn btn-primary" style="width:100%; justify-content:center; padding:16px; font-size:15.5px;">Start Application →</a>
         </div>
       </div>
     </div>
@@ -1362,7 +1362,7 @@
         <summary>Is the ₦10m+ figure guaranteed?<span class="faq-icon">+</span></summary>
         <p>No. It is an aspirational business target, not a guaranteed outcome. Results depend on effort, client acquisition, portfolio size, pricing and market conditions.</p>
       </details>
-      <details>
+      <details id="faq-fee-question">
         <summary>What is the ₦5,000 application fee?<span class="faq-icon">+</span></summary>
         <p>It is credited toward the ₦200,000 programme fee if admitted, and refunded if you do not qualify to join the class.</p>
       </details>
@@ -1382,7 +1382,7 @@
 <section class="reveal">
   <div class="wrap cta-center">
     <h2 style="font-size:clamp(30px,4vw,46px); margin-top:14px;">Don't just learn real estate.<br><em class="accent">Start building your way in.</em></h2>
-    <p style="color:var(--ink-soft); margin:14px auto 22px; max-width:600px; line-height:1.5;">Apply today. The ₦5,000 application fee is credited if admitted and refunded if you do not qualify.</p>
+    <p id="final-cta-note" style="color:var(--ink-soft); margin:14px auto 22px; max-width:600px; line-height:1.5;">Apply today. The ₦5,000 application fee is credited if admitted and refunded if you do not qualify.</p>
     <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap; align-items:center;">
       <a href="/academy/apply" class="btn btn-primary">Start Your Application →</a>
       <button type="button" class="btn btn-outline openEaModalSecondary"><i class="fa-solid fa-envelope" style="font-size:12px; color:var(--rust);"></i> Information &amp; Q&amp;A Sessions</button>
@@ -1605,15 +1605,16 @@
       submitBtn.textContent = 'Submitting...';
 
       const payload = {
-        name: document.getElementById('ea_name').value,
-        whatsapp: document.getElementById('ea_whatsapp').value,
-        email: document.getElementById('ea_email').value,
-        city: document.getElementById('ea_city').value,
-        ageBracket: document.getElementById('ea_age').value,
-        experienceLevel: document.getElementById('ea_exp').value,
-        interest: document.getElementById('ea_interest').value,
-        sessionTime: document.getElementById('ea_session_time')?.value,
-        sourceIdentifier: window.getUniversitySource ? window.getUniversitySource() : ''
+        name: eaForm.name.value.trim(),
+        whatsapp: eaForm.whatsapp.value.trim(),
+        email: eaForm.email.value.trim() || undefined,
+        city: eaForm.city.value,
+        ageBracket: eaForm.ageBracket.value,
+        experienceLevel: eaForm.experienceLevel.value,
+        interest: eaForm.interest ? eaForm.interest.value.trim() : undefined,
+        sessionTime: eaForm.sessionTime ? eaForm.sessionTime.value : undefined,
+        sourceIdentifier: (typeof window.getUniversitySource === 'function') ? window.getUniversitySource() : undefined,
+        abVariant: (typeof window.getUniversityAbVariant === 'function') ? window.getUniversityAbVariant() : 'A'
       };
 
       try {
@@ -1692,6 +1693,59 @@
       }
     });
   });
+
+  // Apply A/B Variant UI Adaptations
+  function applyAbVariantUi() {
+    const variant = typeof window.getUniversityAbVariant === 'function' ? window.getUniversityAbVariant() : 'A';
+    if (variant === 'B') {
+      const whyLabel = document.getElementById('val-why-label');
+      if (whyLabel) whyLabel.textContent = 'Why Upward Academy?';
+
+      const priceEyebrow = document.getElementById('price-eyebrow');
+      if (priceEyebrow) priceEyebrow.textContent = 'Admissions & Cohort';
+
+      const priceNum = document.getElementById('price-num');
+      if (priceNum) priceNum.textContent = 'Selective';
+
+      const priceDesc = document.getElementById('price-desc');
+      if (priceDesc) priceDesc.textContent = 'Admissions open for the 2026 Cohort · 10 weeks · 6–8 hours/week · Hybrid';
+
+      const priceNote = document.getElementById('price-note');
+      if (priceNote) priceNote.textContent = 'Curriculum schedule, scholarship opportunities (up to 50%), and fee breakdown unlocked upon submitting your candidate registration.';
+
+      const appBoxEyebrow = document.getElementById('app-box-eyebrow');
+      if (appBoxEyebrow) appBoxEyebrow.textContent = 'Step 1: Registration';
+
+      const appFee = document.getElementById('app-fee');
+      if (appFee) appFee.textContent = 'Candidate Profile';
+
+      const appFeeDesc = document.getElementById('app-fee-desc');
+      if (appFeeDesc) appFeeDesc.innerHTML = 'Complete your initial profile. Admissions review and cohort fee breakdown provided upon submission.';
+
+      const appRefund = document.getElementById('app-refund');
+      if (appRefund) appRefund.innerHTML = '<strong>Candidate Assessment</strong><br>Profiles reviewed within 48 hours.';
+
+      const applyBtnMain = document.getElementById('apply-btn-main');
+      if (applyBtnMain) applyBtnMain.textContent = 'Register & Start Application →';
+
+      const feeFaq = document.getElementById('faq-fee-question');
+      if (feeFaq) {
+        const summary = feeFaq.querySelector('summary');
+        if (summary) summary.innerHTML = 'How does the candidate application & admission process work?<span class="faq-icon">+</span>';
+        const answer = feeFaq.querySelector('p');
+        if (answer) answer.textContent = 'Candidates submit their profile and motivation. Our admissions committee reviews each candidate. Detailed programme fee breakdown, scholarship awards (up to 50%), and orientation schedules are delivered upon completing your registration profile.';
+      }
+
+      const finalCtaNote = document.getElementById('final-cta-note');
+      if (finalCtaNote) finalCtaNote.textContent = 'Apply today. Submit your candidate profile for review by the admissions committee.';
+    }
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    applyAbVariantUi();
+  } else {
+    document.addEventListener('DOMContentLoaded', applyAbVariantUi);
+  }
 </script>
 
     <script src="/landing-analytics.js" defer></script>

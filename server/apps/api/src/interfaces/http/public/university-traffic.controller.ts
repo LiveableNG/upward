@@ -32,6 +32,7 @@ export class UniversityTrafficController {
       identifier: dto.identifier,
       visitorId: dto.visitorId,
       sessionId: dto.sessionId,
+      abVariant: dto.abVariant,
       ipAddress: ip,
       userAgent,
       referer,

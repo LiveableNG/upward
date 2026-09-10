@@ -100,6 +100,7 @@ export interface UniversityTrafficVisitProps {
   identifier: string
   visitorId: string
   sessionId: string
+  abVariant?: string | null
   ipHash?: string | null
   userAgent?: string | null
   referer?: string | null
@@ -129,6 +130,10 @@ export class UniversityTrafficVisit {
 
   get sessionId(): string {
     return this.props.sessionId
+  }
+
+  get abVariant(): string | null | undefined {
+    return this.props.abVariant
   }
 
   get ipHash(): string | null | undefined {
@@ -162,6 +167,7 @@ export class UniversityTrafficVisit {
       identifier: this.props.identifier,
       visitorId: this.props.visitorId,
       sessionId: this.props.sessionId,
+      abVariant: this.props.abVariant || 'A',
       ipHash: this.props.ipHash,
       userAgent: this.props.userAgent,
       referer: this.props.referer,

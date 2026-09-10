@@ -617,7 +617,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       <span class="apply-cohort-tag">Admissions Open</span>
     </div>
 
-    <div class="fees-grid">
+    <div class="fees-grid" id="apply-fees-grid">
       <div class="fee-card">
         <span class="eyebrow">Programme fee</span>
         <div class="fee-price">₦200,000</div>
@@ -1233,7 +1233,8 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         scholarshipVideoUrl: isScholarship ? scholarshipVideoInput.value.trim() : '',
         sourceIdentifier: (window.UpwardTracker && typeof window.UpwardTracker.getSourceIdentifier === 'function')
           ? window.UpwardTracker.getSourceIdentifier()
-          : (typeof window.getUniversitySource === 'function' ? window.getUniversitySource() : '')
+          : (typeof window.getUniversitySource === 'function' ? window.getUniversitySource() : ''),
+        abVariant: (typeof window.getUniversityAbVariant === 'function') ? window.getUniversityAbVariant() : 'A'
       };
 
       submitBtn.disabled = true;
@@ -1377,6 +1378,23 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       }
     });
   }
+
+  // A/B Variant Adaptations on Application Page
+  (function initAbVariantApply() {
+    const variant = typeof window.getUniversityAbVariant === 'function' ? window.getUniversityAbVariant() : 'A';
+    if (variant === 'B') {
+      const feesGrid = document.getElementById('apply-fees-grid');
+      if (feesGrid) {
+        feesGrid.innerHTML = `
+          <div class="fee-card" style="grid-column: 1 / -1; background: #faf8f5; border-color: rgba(138, 74, 42, 0.2);">
+            <span class="eyebrow" style="color: var(--rust);">2026 Cohort Application</span>
+            <div class="fee-price" style="font-size: 22px; color: var(--dark);">Candidate Registration</div>
+            <p style="margin-top: 4px; color: var(--ink-soft); font-size: 13.5px;">Complete your registration profile below. Full tuition terms, scholarship options (up to 50%), and ₦5,000 application fee payment are confirmed in the final step.</p>
+          </div>
+        `;
+      }
+    }
+  })();
 </script>
 
     <script src="/landing-analytics.js" defer></script>
