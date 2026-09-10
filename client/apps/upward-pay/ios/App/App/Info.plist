@@ -55,6 +55,8 @@
 	<string>Upward Pay requires access to your photo library to select and upload your profile picture, payment receipts, and verification documents.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Upward Pay requires permission to save photos and receipts to your photo library.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>GIDClientID</key>
 	<string>479168827275-73i9l5kao61lieb38gngf1leu7d38rvo.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
