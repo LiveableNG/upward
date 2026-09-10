@@ -500,6 +500,7 @@ model upward_early_access {
   landlordStatus   String?  // Landlord specific
   managementStyle  String?  // Landlord specific
   sourceIdentifier String?
+  abVariant        String?  @default("A") // A | B
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -507,6 +508,7 @@ model upward_early_access {
   @@index([email])
   @@index([whatsapp])
   @@index([sourceIdentifier])
+  @@index([abVariant])
   @@index([createdAt])
 }
 
@@ -527,6 +529,7 @@ model upward_university_application {
   scholarshipVideoUrl String?
   sessionTime         String?
   sourceIdentifier    String?
+  abVariant           String?  @default("A") // A | B
   status              String   @default("SUBMITTED") // SUBMITTED | REVIEWED | ADMITTED | REJECTED | FEE_PAID | REFUNDED
   applicationFee      Float    @default(5000.0)
   feeStatus           String   @default("PENDING") // PENDING | PAID | REFUNDED
@@ -540,6 +543,7 @@ model upward_university_application {
   @@index([status])
   @@index([feeStatus])
   @@index([sourceIdentifier])
+  @@index([abVariant])
   @@index([createdAt])
 }
 
@@ -571,6 +575,7 @@ model upward_university_visit {
   identifier String
   visitorId  String
   sessionId  String
+  abVariant  String?                   @default("A") // A | B
   ipHash     String?
   userAgent  String?
   referer    String?
@@ -583,6 +588,7 @@ model upward_university_visit {
   @@index([identifier])
   @@index([visitorId])
   @@index([sessionId])
+  @@index([abVariant])
   @@index([createdAt])
 }
 

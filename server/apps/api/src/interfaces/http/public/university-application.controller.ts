@@ -80,6 +80,7 @@ export class UniversityApplicationController {
       scholarshipVideoUrl: dto.scholarshipVideoUrl,
       sessionTime: dto.sessionTime,
       sourceIdentifier: dto.sourceIdentifier,
+      abVariant: dto.abVariant,
       feeStatus: dto.feeStatus,
       paymentRef: dto.paymentRef,
       sendEmail: dto.sendEmail,

@@ -64,6 +64,7 @@ interface UniversityApplicationRecord {
   isScholarship?: boolean
   scholarshipVideoUrl?: string | null
   sessionTime?: string | null
+  abVariant?: string | null
   status: 'SUBMITTED' | 'REVIEWED' | 'ADMITTED' | 'REJECTED' | 'FEE_PAID' | 'REFUNDED'
   applicationFee: number
   feeStatus: 'PENDING' | 'PAID' | 'REFUNDED'
@@ -90,6 +91,18 @@ export interface TrafficSourceRecord {
   updatedAt: string
 }
 
+export interface AbVariantMetrics {
+  name: string
+  views: number
+  uniqueViews: number
+  earlyAccessCount: number
+  applicationsCount: number
+  paidApplicationsCount: number
+  applicationConversionRate: number
+  paidConversionRate: number
+  totalRevenue: number
+}
+
 export interface TrafficStats {
   totalSources: number
   totalViews: number
@@ -97,6 +110,10 @@ export interface TrafficStats {
   totalConversions: number
   overallConversionRate: number
   channelBreakdown: Array<{ channel: string; views: number; uniqueViews: number; conversions: number }>
+  abTestStats?: {
+    variantA: AbVariantMetrics
+    variantB: AbVariantMetrics
+  }
 }
 
 export interface TrafficVisitRecord {
@@ -169,11 +186,19 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
   const [loadingVisits, setLoadingVisits] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [creatingSource, setCreatingSource] = useState(false)
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<{
+    name: string
+    identifier: string
+    channel: string
+    targetUrl: string
+    forcedVariant: 'AUTO' | 'A' | 'B'
+    description: string
+  }>({
     name: '',
     identifier: '',
     channel: 'INSTAGRAM',
     targetUrl: '/academy',
+    forcedVariant: 'AUTO',
     description: '',
   })
 
@@ -391,6 +416,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           identifier: '',
           channel: 'INSTAGRAM',
           targetUrl: '/university',
+          forcedVariant: 'AUTO',
           description: '',
         })
         fetchTrafficSources(1)
@@ -580,6 +606,30 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           )}
         </div>
       ),
+    },
+    {
+      key: 'abVariant',
+      label: 'A/B Test Variant',
+      render: (row) => {
+        const isVariantB = row.abVariant === 'B'
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: isVariantB ? '#f3e8ff' : '#eff6ff',
+              color: isVariantB ? '#7e22ce' : '#1d4ed8',
+              border: `1px solid ${isVariantB ? '#d8b4fe' : '#bfdbfe'}`,
+            }}
+          >
+            {isVariantB ? 'Variant B (Post-Reg)' : 'Variant A (Upfront)'}
+          </span>
+        )
+      },
     },
     {
       key: 'feeStatus',
@@ -1214,6 +1264,161 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           Refresh
         </button>
       </div>
+
+      {/* ── Real-Time A/B Testing Card ── */}
+      {trafficStats?.abTestStats && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #ffffff 0%, #fdfbf9 100%)',
+            border: '1px solid #e7dcd3',
+            borderRadius: '16px',
+            padding: '22px',
+            marginBottom: '24px',
+            boxShadow: '0 2px 8px rgba(138, 74, 42, 0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ background: '#fdf0e9', color: '#8A4A2A', padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Live Experiment
+                </span>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  A/B Test: Upfront Pricing vs Post-Registration Pricing
+                </h3>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                Comparing visitor conversion and paid ₦5,000 application fee completions between upfront pricing transparency and deferred post-registration pricing.
+              </p>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              Split: <b>50% / 50% Sticky Traffic</b>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+            {/* Variant A Card */}
+            <div
+              style={{
+                border: '1px solid #bfdbfe',
+                borderRadius: '12px',
+                background: '#f8fafc',
+                padding: '18px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Control (Variant A)
+                  </span>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+                    Upfront Pricing (₦200k / ₦5k)
+                  </div>
+                </div>
+                <span style={{ fontSize: '11.5px', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  Transparent
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Unique Visitors</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                    {trafficStats.abTestStats.variantA.uniqueViews}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Applications</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                    {trafficStats.abTestStats.variantA.applicationsCount}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>App Conv. Rate</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#1d4ed8' }}>
+                    {trafficStats.abTestStats.variantA.applicationConversionRate}%
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Paid Apps (₦5k)</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#166534' }}>
+                    {trafficStats.abTestStats.variantA.paidApplicationsCount} ({trafficStats.abTestStats.variantA.paidConversionRate}%)
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Revenue</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#166534' }}>
+                    ₦{trafficStats.abTestStats.variantA.totalRevenue.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Variant B Card */}
+            <div
+              style={{
+                border: '1px solid #e9d5ff',
+                borderRadius: '12px',
+                background: '#faf5ff',
+                padding: '18px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#7e22ce', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Experiment (Variant B)
+                  </span>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#581c87' }}>
+                    Post-Registration Pricing
+                  </div>
+                </div>
+                <span style={{ fontSize: '11.5px', background: '#f3e8ff', color: '#6b21a8', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  Deferred Price
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3e8ff' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7e22ce' }}>Unique Visitors</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#581c87' }}>
+                    {trafficStats.abTestStats.variantB.uniqueViews}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7e22ce' }}>Applications</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#581c87' }}>
+                    {trafficStats.abTestStats.variantB.applicationsCount}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7e22ce' }}>App Conv. Rate</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#7e22ce' }}>
+                    {trafficStats.abTestStats.variantB.applicationConversionRate}%
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3e8ff' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7e22ce' }}>Paid Apps (₦5k)</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#166534' }}>
+                    {trafficStats.abTestStats.variantB.paidApplicationsCount} ({trafficStats.abTestStats.variantB.paidConversionRate}%)
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#7e22ce' }}>Revenue</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#166534' }}>
+                    ₦{trafficStats.abTestStats.variantB.totalRevenue.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Main Section Tabs ── */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
@@ -1876,6 +2081,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                     identifier: '',
                     channel: 'INSTAGRAM',
                     targetUrl: '/academy',
+                    forcedVariant: 'AUTO',
                     description: '',
                   })
                   setIsCreateModalOpen(true)
@@ -2641,6 +2847,30 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
 
             <div>
               <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                A/B Test Variant Routing (Optional)
+              </label>
+              <select
+                value={createForm.forcedVariant}
+                onChange={(e) => setCreateForm({ ...createForm, forcedVariant: e.target.value as any })}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: '#fff',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="AUTO">Auto (50/50 Random Split)</option>
+                <option value="A">Force Variant A (Upfront Pricing)</option>
+                <option value="B">Force Variant B (Post-Registration Pricing)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
                 Campaign Notes (Optional)
               </label>
               <textarea
@@ -2676,8 +2906,8 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                 <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#8A4A2A', fontWeight: 700, marginTop: '4px', wordBreak: 'break-all' }}>
                   {typeof window !== 'undefined' ? window.location.origin : 'https://upward.ng'}
                   {createForm.targetUrl.includes('/apply')
-                    ? `/academy/apply?ref=${createForm.identifier}`
-                    : `/academy/${createForm.identifier}`}
+                    ? `/academy/apply?ref=${createForm.identifier}${createForm.forcedVariant !== 'AUTO' ? `&variant=${createForm.forcedVariant}` : ''}`
+                    : `/academy/${createForm.identifier}${createForm.forcedVariant !== 'AUTO' ? `?variant=${createForm.forcedVariant}` : ''}`}
                 </div>
               </div>
             )}

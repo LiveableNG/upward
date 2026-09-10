@@ -124,6 +124,7 @@ export function UniversityClient() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [submittedName, setSubmittedName] = useState('')
+  const [abVariant, setAbVariant] = useState<'A' | 'B'>('A')
 
   const {
     register,
@@ -134,6 +135,9 @@ export function UniversityClient() {
   })
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).getUniversityAbVariant) {
+      setAbVariant((window as any).getUniversityAbVariant())
+    }
     const revealEls = document.querySelectorAll('[data-reveal]')
     const observer = new IntersectionObserver(
       (entries) => {
@@ -168,6 +172,7 @@ export function UniversityClient() {
           experienceLevel: data.exp,
           sessionTime: data.sessionTime,
           interest: data.interest,
+          abVariant,
         }),
       })
 
