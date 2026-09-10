@@ -139,11 +139,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem('upward_session_active', 'true')
         localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
       }
-    } catch (err) {
-      // If on native platform with PIN enrolled, retain the user session and do not eject to login
+    } catch (err: any) {
+      console.warn('[Auth] refreshUser error:', err)
+      // If on native platform with PIN enrolled or valid session in memory, retain session unless explicitly rejected
       const hasPin = await PinService.hasPin().catch(() => false)
-      if (Capacitor.isNativePlatform() && hasPin) {
-        console.warn('[Auth] refreshUser failed while PIN enrolled. Retaining session for unlock re-auth.')
+      const isAuthRejected = err?.status === 401 || err?.message === 'Session expired'
+      if (Capacitor.isNativePlatform() && (hasPin || (!isAuthRejected && userRef.current))) {
+        console.warn('[Auth] Retaining session on native platform.')
         if (!userRef.current && typeof window !== 'undefined') {
           const cached = localStorage.getItem('upward_cached_user_profile')
           if (cached) {
@@ -243,6 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser)
     userRef.current = newUser
     setIsPinLocked(false)
+    setLoading(false)
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('upward_session_active', 'true')
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
