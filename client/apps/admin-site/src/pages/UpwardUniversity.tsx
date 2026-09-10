@@ -173,7 +173,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     name: '',
     identifier: '',
     channel: 'INSTAGRAM',
-    targetUrl: '/university',
+    targetUrl: '/academy',
     description: '',
   })
 
@@ -423,12 +423,12 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     }
   }
 
-  const handleCopyLink = (identifier: string, targetUrl = '/university') => {
+  const handleCopyLink = (identifier: string, targetUrl = '/academy') => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://upward.ng'
-    let fullUrl = `${origin}/university/${identifier}`
+    let fullUrl = `${origin}/academy/${identifier}`
     if (targetUrl && targetUrl.includes('/apply')) {
-      fullUrl = `${origin}/university/apply?ref=${identifier}`
-    } else if (targetUrl && targetUrl !== '/university') {
+      fullUrl = `${origin}/academy/apply?ref=${identifier}`
+    } else if (targetUrl && targetUrl !== '/academy' && targetUrl !== '/university') {
       fullUrl = `${origin}${targetUrl}${targetUrl.includes('?') ? '&' : '?'}ref=${identifier}`
     }
 
@@ -977,8 +977,8 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
       render: (row) => {
         const isCopied = copiedId === row.identifier
         const linkPath = row.targetUrl && row.targetUrl.includes('/apply')
-          ? `/university/apply?ref=${row.identifier}`
-          : `/university/${row.identifier}`
+          ? `/academy/apply?ref=${row.identifier}`
+          : `/academy/${row.identifier}`
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <code
@@ -1197,7 +1197,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           </Link>
           <div>
             <h1 className="section-title" style={{ margin: 0 }}>
-              Upward University Management
+              Upward Academy Management
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
               Review cohort applications, applicant profiles, and early access leads
@@ -1875,7 +1875,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                     name: '',
                     identifier: '',
                     channel: 'INSTAGRAM',
-                    targetUrl: '/university',
+                    targetUrl: '/academy',
                     description: '',
                   })
                   setIsCreateModalOpen(true)
@@ -2294,7 +2294,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
 
               <div style={{ marginBottom: '14px' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  Why Upward University?
+                  Why Upward Academy?
                 </span>
                 <div style={{ background: '#fafafa', padding: '10px 14px', borderRadius: '8px', marginTop: '4px', fontSize: '13px', border: '1px solid var(--border)' }}>
                   {selectedApp.why}
@@ -2588,10 +2588,10 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                     boxSizing: 'border-box',
                   }}
                 >
-                  <option value="/university">Main Landing Page (/university)</option>
-                  <option value="/university/apply">Direct Application (/university/apply)</option>
-                  <option value="/university/scholarships">Scholarship Page (/university/scholarships)</option>
-                  <option value="/university/landlord">Landlord Programme (/university/landlord)</option>
+                  <option value="/academy">Main Landing Page (/academy)</option>
+                  <option value="/academy/apply">Direct Application (/academy/apply)</option>
+                  <option value="/academy/scholarships">Scholarship Page (/academy/scholarships)</option>
+                  <option value="/academy/landlord">Landlord Programme (/academy/landlord)</option>
                 </select>
               </div>
             </div>
@@ -2613,7 +2613,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                     fontFamily: 'monospace',
                   }}
                 >
-                  /university/
+                  /academy/
                 </span>
                 <input
                   type="text"
@@ -2676,8 +2676,8 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                 <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#8A4A2A', fontWeight: 700, marginTop: '4px', wordBreak: 'break-all' }}>
                   {typeof window !== 'undefined' ? window.location.origin : 'https://upward.ng'}
                   {createForm.targetUrl.includes('/apply')
-                    ? `/university/apply?ref=${createForm.identifier}`
-                    : `/university/${createForm.identifier}`}
+                    ? `/academy/apply?ref=${createForm.identifier}`
+                    : `/academy/${createForm.identifier}`}
                 </div>
               </div>
             )}
@@ -2826,7 +2826,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             <p style={{ fontSize: '14px', color: 'var(--text-primary)', background: '#fafafa', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
               You are about to permanently delete the{' '}
               {deleteTarget.type === 'APPLICATION'
-                ? 'University Application'
+                ? 'Academy Application'
                 : deleteTarget.type === 'EARLY_ACCESS'
                 ? 'Early Access / Info Request'
                 : 'Traffic Source Tracking Link'}{' '}

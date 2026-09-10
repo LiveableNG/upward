@@ -640,7 +640,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 }}
               >
                 <GraduationCap size={15} />
-                Upward University
+                Upward Academy
               </Link>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>

@@ -230,7 +230,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     recipientRole: 'TENANT',
     subjectTemplate: "You're on the list — here's what happens next",
     plainTextTemplate:
-      'Hi {{firstName}}, welcome to the Upward University Waitlist! Thank you for signing up and taking the first step toward building a ₦10M+ property management business.',
+      'Hi {{firstName}}, welcome to the Upward Academy Waitlist! Thank you for signing up and taking the first step toward building a ₦10M+ property management business.',
     whatsappTemplateName: 'upward_university_waitlist',
     whatsappParams: ['firstName'],
   },

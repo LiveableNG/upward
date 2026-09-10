@@ -77,9 +77,19 @@
       return queryRef.trim().toLowerCase();
     }
 
-    // 2. Check path: /university/:identifier
+    // 2. Check path: /academy/:identifier or /university/:identifier
     var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'faq'];
-    if (pathname.startsWith('/university/apply/')) {
+    if (pathname.startsWith('/academy/apply/')) {
+      var applySlug = pathname.replace('/academy/apply/', '').split('/')[0];
+      if (applySlug && reserved.indexOf(applySlug) === -1) {
+        return applySlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/')) {
+      var slug = pathname.replace('/academy/', '').split('/')[0];
+      if (slug && reserved.indexOf(slug) === -1) {
+        return slug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/university/apply/')) {
       var applySlug = pathname.replace('/university/apply/', '').split('/')[0];
       if (applySlug && reserved.indexOf(applySlug) === -1) {
         return applySlug.trim().toLowerCase();
