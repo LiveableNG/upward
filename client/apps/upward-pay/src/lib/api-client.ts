@@ -1,9 +1,9 @@
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, initStoredTokens } from './auth-token'
 import { Capacitor } from '@capacitor/core'
 
-const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
+export const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
   ? '/api/v1'
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1')
+  : (process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000/api/v1' : ''))
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
@@ -63,6 +63,11 @@ export async function runRefresh(): Promise<string | null> {
 }
 
 export async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  if (!API_BASE && !path.startsWith('http')) {
+    throw new Error(
+      'Configuration Error: NEXT_PUBLIC_API_URL is missing. Please check your Xcode Cloud workflow environment variables.'
+    )
+  }
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
   
   const makeRequest = async (token: string | null): Promise<T> => {
@@ -76,9 +81,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     if (Capacitor.isNativePlatform()) {
       headers['x-client-platform'] = 'capacitor'
-      const rt = getRefreshToken()
-      if (rt) {
-        headers['x-refresh-token'] = rt
+      if (path.includes('/user/auth/logout')) {
+        const rt = getRefreshToken()
+        if (rt) {
+          headers['x-refresh-token'] = rt
+        }
       }
     }
 
@@ -98,7 +105,20 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       signal: controller.signal,
     }
 
-    const res = await fetch(url, fetchOptions)
+    let res: Response
+    try {
+      res = await fetch(url, fetchOptions)
+    } catch (err: any) {
+      clearTimeout(timeoutId)
+      console.error(`[api-client] Network error requesting ${url}:`, err)
+      if (err.name === 'AbortError') {
+        throw new Error(`Request timed out for ${url}. Please check your internet connection.`)
+      }
+      if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
+        throw new Error(`Unable to reach server at ${url}. Please check your internet connection or server availability.`)
+      }
+      throw err
+    }
     clearTimeout(timeoutId)
     
     if (res.status === 401 && !path.includes('/user/auth/refresh') && !path.includes('/user/auth/login')) {
@@ -146,6 +166,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 }
 
 export async function requestBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  if (!API_BASE && !path.startsWith('http')) {
+    throw new Error(
+      'Configuration Error: NEXT_PUBLIC_API_URL is missing. Please check your Xcode Cloud workflow environment variables.'
+    )
+  }
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`
   
   const makeRequest = async (token: string | null): Promise<Blob> => {
@@ -159,21 +184,30 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
 
     if (Capacitor.isNativePlatform()) {
       headers['x-client-platform'] = 'capacitor'
-      const rt = getRefreshToken()
-      if (rt) {
-        headers['x-refresh-token'] = rt
-      }
     }
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 120000)
 
-    const res = await fetch(url, {
-      credentials: 'include',
-      ...options,
-      headers,
-      signal: controller.signal,
-    })
+    let res: Response
+    try {
+      res = await fetch(url, {
+        credentials: 'include',
+        ...options,
+        headers,
+        signal: controller.signal,
+      })
+    } catch (err: any) {
+      clearTimeout(timeoutId)
+      console.error(`[api-client] Network error requesting blob ${url}:`, err)
+      if (err.name === 'AbortError') {
+        throw new Error(`Download timed out for ${url}. Please check your internet connection.`)
+      }
+      if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
+        throw new Error(`Unable to reach server at ${url}. Please check your internet connection or server availability.`)
+      }
+      throw err
+    }
     
     clearTimeout(timeoutId)
 
