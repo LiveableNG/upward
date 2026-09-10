@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description:
     'Assure your income. Protect your asset. Cement your legacy. A 2-week WhatsApp-first programme for current and aspiring Nigerian landlords.',
   alternates: {
-    canonical: '/university/landlord',
+    canonical: '/academy/landlord',
   },
   icons: {
     icon: '/university-logos/upward_university_logo.jpeg',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     title: 'Upward Landlord Programme — Protect Your Income & Property',
     description:
       'Assure your income. Protect your asset. Cement your legacy. A 2-week WhatsApp-first programme for current and aspiring Nigerian landlords.',
-    url: '/university/landlord',
+    url: '/academy/landlord',
   },
 }
 

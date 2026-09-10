@@ -91,11 +91,11 @@ export function UniversityLandlordClient() {
       {/* Header */}
       <header className="uni-header">
         <nav className="uni-wrap uni-nav">
-          <Link href="/university/landlord" className="uni-logo">
+          <Link href="/academy/landlord" className="uni-logo">
             <span className="mark">
               <img
                 src="/university-logos/upward_university_logo.jpeg"
-                alt="Upward University Logo"
+                alt="Upward Academy Logo"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
               />
             </span>
@@ -119,7 +119,7 @@ export function UniversityLandlordClient() {
             <a href="#family" onClick={() => setNavOpen(false)}>
               Cement Legacy
             </a>
-            <Link href="/university" onClick={() => setNavOpen(false)}>
+            <Link href="/academy" onClick={() => setNavOpen(false)}>
               Student Programme
             </Link>
           </div>
@@ -507,15 +507,15 @@ export function UniversityLandlordClient() {
           <div>
             <div className="flogo">
               <span className="mark" style={{ width: '24px', height: '24px', borderRadius: '6px', overflow: 'hidden', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}>
-                <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src="/university-logos/upward_university_logo.jpeg" alt="Upward Academy Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </span>
               UPWARD
             </div>
             <p style={{ marginTop: '6px' }}>
-              Part of the Upward housing ecosystem, alongside GoodTenants and Upward University. Registered in Nigeria.
+              Part of the Upward housing ecosystem, alongside GoodTenants and Upward Academy. Registered in Nigeria.
             </p>
             <p style={{ marginTop: '8px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <Link className="back" href="/university">
+              <Link className="back" href="/academy">
                 ← Back to Student Programme
               </Link>
               <Link className="back" href="/" style={{ color: 'var(--uni-rust, #8A4A2A)', fontWeight: 700 }}>

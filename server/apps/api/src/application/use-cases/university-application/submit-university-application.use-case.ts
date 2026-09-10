@@ -141,29 +141,29 @@ export class SubmitUniversityApplicationUseCase {
             : ''
 
         if (isPaidNow) {
-          subjectText = 'Application & Fee Confirmed — Upward University Cohort 2026'
-          buttonText = 'Explore Upward University'
-          buttonUrl = 'https://upward.goodtenants.io/university'
+          subjectText = 'Application & Fee Confirmed — Upward Academy Cohort 2026'
+          buttonText = 'Explore Upward Academy'
+          buttonUrl = 'https://upward.goodtenants.io/academy'
           contentHtml = `
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
-            <p><strong>Thank you! Your Upward University Application & ₦5,000 Fee Payment have been received.</strong></p>
+            <p><strong>Thank you! Your Upward Academy Application & ₦5,000 Fee Payment have been received.</strong></p>
             <p>Your spot for the <strong>Founding Cohort 2026</strong> is now safely logged with our admissions team.</p>
             ${sessionInfo}
             <p>Our admissions committee will review your responses and reach out via WhatsApp and email with your cohort orientation details and next steps.</p>
-            <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward University Admissions Team</strong></p>
+            <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Academy Admissions Team</strong></p>
           `
         } else {
-          subjectText = 'Complete Your ₦5,000 Application Payment — Upward University'
+          subjectText = 'Complete Your ₦5,000 Application Payment — Upward Academy'
           buttonText = 'Complete ₦5,000 Payment →'
-          buttonUrl = `https://upward.goodtenants.io/university/apply?email=${encodeURIComponent(command.email)}`
+          buttonUrl = `https://upward.goodtenants.io/academy/apply?email=${encodeURIComponent(command.email)}`
           contentHtml = `
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
-            <p><strong>Your Upward University Application Profile Has Been Saved!</strong></p>
+            <p><strong>Your Upward Academy Application Profile Has Been Saved!</strong></p>
             <p>Thank you for starting your application for the <strong>Founding Cohort 2026</strong>.</p>
             ${sessionInfo}
             <p>To complete your application for admissions review, please complete your ₦5,000 application fee payment below. (Note: The fee is credited toward your programme tuition if admitted, and fully refunded if you do not qualify).</p>
             <p>Click the button below anytime to reopen your application checkout and finish your payment.</p>
-            <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward University Admissions Team</strong></p>
+            <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Academy Admissions Team</strong></p>
           `
         }
 
@@ -172,7 +172,7 @@ export class SubmitUniversityApplicationUseCase {
           title: isPaidNow ? 'Application & Fee Payment Received' : 'Complete Your Application Payment',
           contentHtml,
           logoText: 'UPWARD',
-          logoSub: 'UNIVERSITY',
+          logoSub: 'ACADEMY',
           buttonText,
           buttonUrl,
         })
