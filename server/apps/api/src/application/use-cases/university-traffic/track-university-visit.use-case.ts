@@ -10,6 +10,7 @@ export interface TrackVisitInput {
   identifier: string
   visitorId: string
   sessionId: string
+  abVariant?: string
   ipAddress?: string
   userAgent?: string
   referer?: string
@@ -45,6 +46,7 @@ export class TrackUniversityVisitUseCase {
       identifier: input.identifier,
       visitorId: input.visitorId,
       sessionId: input.sessionId,
+      abVariant: input.abVariant,
       ipHash,
       userAgent: input.userAgent,
       referer: input.referer,

@@ -50,7 +50,7 @@ export class SendUniversityApplicationDailyDigestUseCase {
       day: 'numeric',
     })
 
-    const subject = `🎓 Daily Digest: ${totalApplications} Upward University Application(s) [${dateFormatted}]`
+    const subject = `🎓 Daily Digest: ${totalApplications} Upward Academy Application(s) [${dateFormatted}]`
 
     let appsTableHtml = `
       <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px;">
@@ -95,7 +95,7 @@ export class SendUniversityApplicationDailyDigestUseCase {
 
     const messageHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 680px; margin: 0 auto; color: #18181b;">
-        <h2 style="color: #8A4A2A; margin-bottom: 4px;">Upward University Daily Applications Digest</h2>
+        <h2 style="color: #8A4A2A; margin-bottom: 4px;">Upward Academy Daily Applications Digest</h2>
         <p style="color: #71717a; font-size: 14px; margin-top: 0;">Summary of applications received on <strong>${dateFormatted}</strong></p>
 
         <div style="display: flex; gap: 12px; margin: 20px 0;">

@@ -69,6 +69,10 @@ export class CreateUniversityApplicationDto {
 
   @IsOptional()
   @IsString()
+  abVariant?: string
+
+  @IsOptional()
+  @IsString()
   feeStatus?: string
 
   @IsOptional()

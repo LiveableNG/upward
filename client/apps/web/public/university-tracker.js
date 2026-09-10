@@ -77,9 +77,19 @@
       return queryRef.trim().toLowerCase();
     }
 
-    // 2. Check path: /university/:identifier
+    // 2. Check path: /academy/:identifier or /university/:identifier
     var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'faq'];
-    if (pathname.startsWith('/university/apply/')) {
+    if (pathname.startsWith('/academy/apply/')) {
+      var applySlug = pathname.replace('/academy/apply/', '').split('/')[0];
+      if (applySlug && reserved.indexOf(applySlug) === -1) {
+        return applySlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/')) {
+      var slug = pathname.replace('/academy/', '').split('/')[0];
+      if (slug && reserved.indexOf(slug) === -1) {
+        return slug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/university/apply/')) {
       var applySlug = pathname.replace('/university/apply/', '').split('/')[0];
       if (applySlug && reserved.indexOf(applySlug) === -1) {
         return applySlug.trim().toLowerCase();
@@ -93,6 +103,47 @@
 
     return null;
   }
+
+  // A/B Variant Assignment ('A' = Upfront Pricing, 'B' = Post-Registration Pricing)
+  function getOrCreateAbVariant() {
+    var search = window.location.search || '';
+    var params = new URLSearchParams(search);
+    var forced = params.get('variant') || params.get('v');
+    if (forced) {
+      var norm = forced.trim().toUpperCase();
+      if (norm === 'A' || norm === 'B') {
+        try {
+          localStorage.setItem('upward_uni_ab_variant', norm);
+        } catch (e) {}
+        setCookie('upward_uni_ab_variant', norm, 30);
+        return norm;
+      }
+    }
+
+    var variant = null;
+    try {
+      variant = localStorage.getItem('upward_uni_ab_variant');
+    } catch (e) {}
+    if (!variant) {
+      variant = getCookie('upward_uni_ab_variant');
+    }
+    if (variant && (variant === 'A' || variant === 'B')) {
+      return variant;
+    }
+
+    // 50/50 Random Split
+    variant = Math.random() < 0.5 ? 'A' : 'B';
+    try {
+      localStorage.setItem('upward_uni_ab_variant', variant);
+    } catch (e) {}
+    setCookie('upward_uni_ab_variant', variant, 30);
+    return variant;
+  }
+
+  // Retrieve assigned A/B variant ('A' or 'B')
+  window.getUniversityAbVariant = function() {
+    return getOrCreateAbVariant();
+  };
 
   // Retrieve stored attribution identifier
   window.getUniversitySource = function() {
@@ -109,23 +160,22 @@
 
   // Main Tracking Execution
   function trackPageVisit() {
-    var identifier = extractIdentifier();
-    if (!identifier) {
-      // If no specific identifier, we still maintain any previously saved attribution
-      return;
-    }
+    var identifier = extractIdentifier() || 'direct';
+    var abVariant = getOrCreateAbVariant();
 
     // Save attribution for 30 days
-    try {
-      localStorage.setItem('upward_university_source', identifier);
-    } catch (e) {}
-    setCookie('upward_university_source', identifier, 30);
+    if (identifier !== 'direct') {
+      try {
+        localStorage.setItem('upward_university_source', identifier);
+      } catch (e) {}
+      setCookie('upward_university_source', identifier, 30);
+    }
 
     var visitorId = getOrCreateVisitorId();
     var sessionId = getOrCreateSessionId();
 
     // GA-Level Deduplication on Client (prevent sending rapid duplicate hits on page reload in same tab)
-    var sessionViewKey = 'upw_pv_' + identifier + '_' + window.location.pathname;
+    var sessionViewKey = 'upw_pv_' + identifier + '_' + abVariant + '_' + window.location.pathname;
     try {
       var lastViewTimestamp = sessionStorage.getItem(sessionViewKey);
       var now = Date.now();
@@ -140,6 +190,7 @@
       identifier: identifier,
       visitorId: visitorId,
       sessionId: sessionId,
+      abVariant: abVariant,
       path: window.location.pathname,
       referer: document.referrer || '',
       userAgent: navigator.userAgent || '',

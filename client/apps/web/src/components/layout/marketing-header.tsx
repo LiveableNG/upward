@@ -62,7 +62,7 @@ export function MarketingHeader() {
                     gap: '6px',
                   }}
                 >
-                  Upward University{' '}
+                  Upward Academy{' '}
                   <span
                     style={{
                       background: '#d97757',
@@ -105,7 +105,7 @@ export function MarketingHeader() {
                       }}
                     />
                     <Link
-                      href="/university"
+                      href="/academy"
                       className="marketing-header__dropdown-item"
                     >
                       <strong className="marketing-header__dropdown-title">
@@ -116,7 +116,7 @@ export function MarketingHeader() {
                       </span>
                     </Link>
                     <Link
-                      href="/university/landlord"
+                      href="/academy/landlord"
                       className="marketing-header__dropdown-item"
                     >
                       <strong className="marketing-header__dropdown-title">
@@ -221,7 +221,7 @@ export function MarketingHeader() {
             }}
           >
             <span>
-              Upward University{' '}
+              Upward Academy{' '}
               <span
                 style={{
                   background: '#d97757',
@@ -260,7 +260,7 @@ export function MarketingHeader() {
         </div>
       </div>
 
-      {/* Upward University Mobile Modal */}
+      {/* Upward Academy Mobile Modal */}
       {uniModalOpen && (
         <>
           <div
@@ -291,7 +291,7 @@ export function MarketingHeader() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
               <h3 style={{ fontFamily: 'sans-serif', fontWeight: 700, fontSize: '18px', color: '#0f172a', margin: 0 }}>
-                Upward University
+                Upward Academy
               </h3>
               <button
                 type="button"
@@ -318,7 +318,7 @@ export function MarketingHeader() {
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               <Link
-                href="/university"
+                href="/academy"
                 onClick={() => setUniModalOpen(false)}
                 style={{
                   display: 'block',
@@ -338,7 +338,7 @@ export function MarketingHeader() {
                 </p>
               </Link>
               <Link
-                href="/university/landlord"
+                href="/academy/landlord"
                 onClick={() => setUniModalOpen(false)}
                 style={{
                   display: 'block',

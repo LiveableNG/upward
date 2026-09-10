@@ -23,10 +23,23 @@ export interface RecordTrafficVisitData {
   identifier: string
   visitorId: string
   sessionId: string
+  abVariant?: string
   ipHash?: string
   userAgent?: string
   referer?: string
   path: string
+}
+
+export interface AbVariantMetrics {
+  name: string
+  views: number
+  uniqueViews: number
+  earlyAccessCount: number
+  applicationsCount: number
+  paidApplicationsCount: number
+  applicationConversionRate: number
+  paidConversionRate: number
+  totalRevenue: number
 }
 
 export interface TrafficStatsOverview {
@@ -36,6 +49,10 @@ export interface TrafficStatsOverview {
   totalConversions: number
   overallConversionRate: number
   channelBreakdown: Array<{ channel: string; views: number; uniqueViews: number; conversions: number }>
+  abTestStats?: {
+    variantA: AbVariantMetrics
+    variantB: AbVariantMetrics
+  }
 }
 
 export interface IUniversityTrafficRepository {

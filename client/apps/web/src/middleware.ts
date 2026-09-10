@@ -453,13 +453,41 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/landing.html', request.url))
   }
 
-  // Static marketing pages for PM, Landlord, and University audiences
+  // Static marketing pages for PM, Landlord, and Academy audiences
   if (pathname === '/for-pm') {
     return NextResponse.rewrite(new URL('/for-pm.html', request.url))
   }
   if (pathname === '/for-landlord') {
     return NextResponse.rewrite(new URL('/for-landlord.html', request.url))
   }
+
+  // Canonical Academy routes
+  if (pathname === '/academy') {
+    return NextResponse.rewrite(new URL('/university.html', request.url))
+  }
+  if (pathname === '/academy/apply') {
+    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
+  }
+  if (pathname.startsWith('/academy/apply/')) {
+    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
+  }
+  if (pathname === '/academy/programme') {
+    return NextResponse.rewrite(new URL('/university-programme.html', request.url))
+  }
+  if (pathname === '/academy/scholarships' || pathname === '/academy/scholarship') {
+    return NextResponse.rewrite(new URL('/university-scholarships.html', request.url))
+  }
+  if (pathname === '/academy/landlord') {
+    return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
+  }
+  if (pathname === '/academy/thank-you') {
+    return NextResponse.rewrite(new URL('/university-thank-you.html', request.url))
+  }
+  if (pathname.startsWith('/academy/')) {
+    return NextResponse.rewrite(new URL('/university.html', request.url))
+  }
+
+  // Backward compatibility: Rewrite or handle legacy /university paths
   if (pathname === '/university') {
     return NextResponse.rewrite(new URL('/university.html', request.url))
   }
@@ -493,6 +521,8 @@ export const config = {
     '/',
     '/for-pm',
     '/for-landlord',
+    '/academy',
+    '/academy/:path*',
     '/university',
     '/university/:path*',
     '/landing-analytics.js',
