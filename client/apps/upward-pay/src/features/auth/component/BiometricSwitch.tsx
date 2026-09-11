@@ -1,17 +1,24 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Fingerprint, Loader2, Eye, EyeOff, X } from 'lucide-react'
-import { BiometricsService } from '../services/biometricsService'
+import { Fingerprint, Scan, Loader2, Eye, EyeOff, X } from 'lucide-react'
+import { BiometricsService, getBiometryLabel } from '../services/biometricsService'
+import { PinService } from '../services/pinService'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '../AuthContext'
 import { login as verifyLogin } from '../services/authService'
 import { PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
+import { BiometryType } from '@capgo/capacitor-native-biometric'
 
-export function BiometricSwitch() {
+interface BiometricSwitchProps {
+  onPromptPinSetup?: () => void
+}
+
+export function BiometricSwitch({ onPromptPinSetup }: BiometricSwitchProps = {}) {
   const { user } = useAuth()
   const [isAvailable, setIsAvailable] = useState(false)
   const [isEnabled, setIsEnabled] = useState(false)
+  const [biometryType, setBiometryType] = useState<BiometryType | null>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -20,14 +27,19 @@ export function BiometricSwitch() {
 
   const { success, error } = useToast()
 
+  const bioLabel = getBiometryLabel(biometryType)
+  const isFaceId = biometryType === BiometryType.FACE_ID || biometryType === BiometryType.FACE_AUTHENTICATION
+
   useEffect(() => {
     async function checkAvailability() {
-      const available = await BiometricsService.isAvailable()
+      const [available, enabled, type] = await Promise.all([
+        BiometricsService.isAvailable(),
+        BiometricsService.isEnabled(),
+        BiometricsService.getBiometryType(),
+      ])
       setIsAvailable(available)
-      if (available) {
-        const enabled = await BiometricsService.isEnabled()
-        setIsEnabled(enabled)
-      }
+      setIsEnabled(enabled)
+      setBiometryType(type)
       setLoading(false)
     }
     checkAvailability()
@@ -39,7 +51,7 @@ export function BiometricSwitch() {
     if (isEnabled) {
       setProcessing(true)
       try {
-        await BiometricsService.clearCredentials()
+        await BiometricsService.setEnabled(false)
         setIsEnabled(false)
         success('Biometric login disabled')
       } catch (err: unknown) {
@@ -48,6 +60,15 @@ export function BiometricSwitch() {
         setProcessing(false)
       }
     } else {
+      // Must have an enrolled PIN before enabling biometrics!
+      const hasPin = await PinService.hasPin(user?.email)
+      if (!hasPin) {
+        error('Please set up an App PIN code before enabling biometric login')
+        if (onPromptPinSetup) {
+          onPromptPinSetup()
+        }
+        return
+      }
       setShowConfirm(true)
     }
   }
@@ -93,11 +114,11 @@ export function BiometricSwitch() {
       <button type="button" className="settings-page__row" onClick={handleToggle}>
         <span className="settings-page__row-left">
           <span className="settings-page__row-icon">
-            <Fingerprint size={18} />
+            {isFaceId ? <Scan size={18} /> : <Fingerprint size={18} />}
           </span>
           <span className="settings-page__row-text">
-            <span className="settings-page__row-title">Biometric login</span>
-            <span className="settings-page__row-desc">Use Face ID or fingerprint to sign in</span>
+            <span className="settings-page__row-title">{bioLabel} unlock</span>
+            <span className="settings-page__row-desc">Use {bioLabel} to quickly unlock Upward Pay</span>
           </span>
         </span>
         <span

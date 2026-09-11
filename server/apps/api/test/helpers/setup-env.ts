@@ -30,7 +30,7 @@ process.env.MOCK_EMAILS = process.env.MOCK_EMAILS || 'true';
 process.env.VERIFICATION_ON = process.env.VERIFICATION_ON || 'false';
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
-process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '140112142464-51ucis2aelijaue10qu49llnspf1d20u.apps.googleusercontent.com';
+process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '479168827275-1p91obpeaj1h3oapomikq12dc75fegaa.apps.googleusercontent.com';
 
 process.env.GA_PROPERTY_ID = process.env.GA_PROPERTY_ID || '528567914';
 process.env.GOOGLE_APPLICATION_CREDENTIALS = process.env.GOOGLE_APPLICATION_CREDENTIALS || 'test-GA_CRED';

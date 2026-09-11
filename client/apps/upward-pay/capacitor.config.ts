@@ -8,9 +8,10 @@ const config: CapacitorConfig = {
     androidScheme: 'http',
     hostname: 'localhost',
     allowNavigation: [
-      'upward-pay.goodtenants.io',
-      'upward-api.goodtenants.io/api/v1',
-      'upward.goodtenants.io'
+      '*.goodtenants.io',
+      'goodtenants.io',
+      '*.vercel.app',
+      'vercel.app'
     ]
   },
   plugins: {
@@ -19,8 +20,8 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
     },
     GoogleSignIn: {
-      clientId: '451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com',
-      serverClientId: '451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com',
+      clientId: '479168827275-1p91obpeaj1h3oapomikq12dc75fegaa.apps.googleusercontent.com',
+      serverClientId: '479168827275-1p91obpeaj1h3oapomikq12dc75fegaa.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
     }
   }

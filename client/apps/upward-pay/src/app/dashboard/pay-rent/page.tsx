@@ -14,7 +14,7 @@ import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRent
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { clearSetupDraft } from '@/features/dashboard/setup/setupDraft'
-import { SETUP_RETURN_PATHS, setupAddPropertyPath } from '@/features/dashboard/setup/setupPaths'
+import { SETUP_RETURN_PATHS, setupAddPropertyPath, setupEditPropertyPath } from '@/features/dashboard/setup/setupPaths'
 import { propertySupportsBankTransfer } from '@/features/dashboard/components/payment/propertyBankAccount'
 import { findProofUnderReviewForProperty, isProofUnderReview } from '@/features/dashboard/components/payment/propertyPayDisplay'
 import { useToast } from '@/components/common/Toast'
@@ -186,7 +186,13 @@ export default function PayRentPage() {
       setStep('confirm')
     } else {
       setSelectedLandlord(null)
-      setStep('new')
+      toast.info(
+        'Please add your landlord or bank account details to enable rent payments for this property.',
+        'Payment Details Required',
+      )
+      router.push(
+        `${setupEditPropertyPath(prop.uuid)}&returnTo=${encodeURIComponent(SETUP_RETURN_PATHS.payRent)}`,
+      )
     }
   }
 

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { AuthenticatedRequest } from '../../../application/auth/interfaces/authenticated-request.interface';
 import { VerifyPmEmailUseCase } from '../../../application/use-cases/tenant-pm-connection/verify-pm.use-case';
@@ -6,6 +6,7 @@ import { ConfirmPmConnectionUseCase } from '../../../application/use-cases/tenan
 import { InvitePmUseCase } from '../../../application/use-cases/tenant-pm-connection/invite-pm.use-case';
 import { SubmitUnitRequestUseCase } from '../../../application/use-cases/tenant-pm-connection/submit-unit-request.use-case';
 import { DiscoverLinkedPropertiesUseCase } from '../../../application/use-cases/tenant-pm-connection/discover-linked-properties.use-case';
+import { SearchPmUseCase } from '../../../application/use-cases/tenant-pm-connection/search-pm.use-case';
 
 @Controller('user/pm-connection')
 @UseGuards(JwtAuthGuard)
@@ -16,7 +17,14 @@ export class TenantPmConnectionController {
     private readonly invitePmUseCase: InvitePmUseCase,
     private readonly submitUnitRequestUseCase: SubmitUnitRequestUseCase,
     private readonly discoverLinkedPropertiesUseCase: DiscoverLinkedPropertiesUseCase,
+    private readonly searchPmUseCase: SearchPmUseCase,
   ) {}
+
+  @Get('search')
+  async searchPm(@Query('q') query: string) {
+    const result = await this.searchPmUseCase.execute(query);
+    return { success: true, data: result };
+  }
 
   @Get('discover')
   async discoverProperties(@Req() req: AuthenticatedRequest) {

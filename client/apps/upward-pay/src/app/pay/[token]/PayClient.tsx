@@ -102,6 +102,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     loginLoading,
     executeLogin,
     authUser,
+    authLoading,
     isPendingRefund,
     isBenefitsOptedIn,
     setIsBenefitsOptedIn,
@@ -464,7 +465,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
 
   if (step === 'processing') return <FallbackSuspense message="Finalizing payment..." />
 
-  if (step === 'invoice' && !isCheckoutVariantReady && isPremiumCheckout) {
+  if (step === 'invoice' && (!isCheckoutVariantReady && isPremiumCheckout || authLoading)) {
     return <FallbackSuspense message="Preparing checkout..." />
   }
 

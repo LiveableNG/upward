@@ -85,3 +85,16 @@ export const verifyResetOtp = async (email: string, otp: string) => {
     body: JSON.stringify({ email, otp })
   })
 }
+
+export const claimAccount = async (
+  uuid: string,
+  data: { password: string; firstName?: string; lastName?: string }
+) => {
+  const res = await request<any>(`/pm/auth/claim-account/${uuid}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  if (res.accessToken) setAccessToken(res.accessToken)
+  return res
+}
+

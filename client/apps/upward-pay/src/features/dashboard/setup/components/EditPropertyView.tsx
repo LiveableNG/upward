@@ -25,7 +25,8 @@ import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/compone
 import { PaymentAccountForm, isPaymentAccountResolved } from '@/features/dashboard/components/payment/PaymentAccountForm'
 import { toDateInputValue, validateRentDates } from '../rentalDates'
 import { deleteProofOfPayment, uploadProofOfPayment } from '@/features/payments/services/paymentService'
-import { setupRentalListPath } from '../setupPaths'
+import { setupRentalListPath, useSetupMode } from '../setupPaths'
+import { PmSearchSelect } from './PmSearchSelect'
 
 interface EditPropertyViewProps {
   propertyUuid: string
@@ -69,6 +70,14 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
     bankName: '',
   })
 
+  const [pmEmail, setPmEmail] = useState('')
+  const [pmName, setPmName] = useState('')
+  const [pmType, setPmType] = useState('Property Manager')
+  const [companyName, setCompanyName] = useState('')
+  const [pmInviteEmail, setPmInviteEmail] = useState('')
+  const [pmFound, setPmFound] = useState(false)
+  const [pmDetails, setPmDetails] = useState<{ id?: number; name?: string; businessName?: string } | null>(null)
+
   const [activeProof, setActiveProof] = useState<any | null>(null)
   const [isDeletingProof, setIsDeletingProof] = useState(false)
   const [newProofFile, setNewProofFile] = useState<File | null>(null)
@@ -89,6 +98,32 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
     setRentType(property.rentType || 'Annually')
     setRentStartDate(toDateInputValue(property.rentStartDate))
     setRentEndDate(toDateInputValue(property.rentEndDate))
+
+    const mgrEmail =
+      (property as any)?.manager?.email ||
+      (property as any)?.managerEmail ||
+      (property as any)?.company?.email ||
+      ''
+    const mgrName =
+      (property as any)?.managerName ||
+      ((property as any)?.manager?.firstName
+        ? `${(property as any).manager.firstName} ${(property as any).manager.lastName || ''}`.trim()
+        : '')
+    const cmpName = (property as any)?.companyName || (property as any)?.company?.name || ''
+    const hasLinkedPm = !!((property as any)?.pmId || (property as any)?.pm || isPmVerified || isExternalUnit)
+
+    setPmEmail(mgrEmail)
+    setPmName(mgrName)
+    setCompanyName(cmpName)
+    setPmFound(hasLinkedPm)
+    if (hasLinkedPm || mgrName || cmpName) {
+      setPmDetails({
+        name: mgrName || cmpName || 'Property Manager',
+        businessName: cmpName || mgrName,
+      })
+    } else {
+      setPmDetails(null)
+    }
 
     if (initialManual?.accountNumber && initialManual?.bankCode) {
       setPaymentAccount({
@@ -148,6 +183,8 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
     }
   }
 
+  const { returnTo } = useSetupMode()
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!address.trim() || !area.trim()) {
@@ -184,7 +221,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         }
       }
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         unitDetails: {
           uuid: propertyUuid,
           address: address.trim(),
@@ -199,12 +236,34 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         },
         paymentDetails: isManaged
           ? undefined
-          : {
-              accountNumber: paymentAccount.accountNumber,
-              bankCode: paymentAccount.bankCode,
-              accountName: paymentAccount.accountName,
-              bankName: paymentAccount.bankName,
-            },
+          : paymentAccount.accountNumber && paymentAccount.bankCode
+            ? {
+                accountNumber: paymentAccount.accountNumber.trim(),
+                bankCode: paymentAccount.bankCode.trim(),
+                accountName: paymentAccount.accountName?.trim() || undefined,
+                bankName: paymentAccount.bankName?.trim() || undefined,
+              }
+            : undefined,
+      }
+
+      if (!isManaged && pmEmail.trim()) {
+        const trimmedPm = pmEmail.trim()
+        const targetEmail = pmFound
+          ? trimmedPm
+          : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedPm)
+            ? trimmedPm
+            : pmInviteEmail.trim()
+
+        if (targetEmail) {
+          payload.pmEmail = targetEmail
+          payload.pmName = pmFound ? pmDetails?.name : pmName.trim()
+          if (!pmFound) {
+            payload.pmType = pmType
+            if (pmType === 'Property Manager' && companyName.trim()) {
+              payload.companyName = companyName.trim()
+            }
+          }
+        }
       }
 
       await api.post('/user/pm-connection/add-unit-request', payload)
@@ -214,7 +273,11 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
       await refreshUser()
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['score-profile'] })
-      router.push(setupRentalListPath())
+      if (returnTo) {
+        router.push(returnTo)
+      } else {
+        router.push(setupRentalListPath())
+      }
     },
     onError: (err: any) => {
       toast.error(err.message || 'Failed to save changes. Please try again.', 'Error')
@@ -250,10 +313,10 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
       subtitle={
         isManaged
           ? 'This property is verified and managed by your property manager.'
-          : 'Update address, rent terms, and landlord bank account details.'
+          : 'Update address, rent terms, landlord contact, and payment details.'
       }
       showBack
-      onBack={() => router.push(setupRentalListPath())}
+      onBack={() => router.push(returnTo || setupRentalListPath())}
       footer={
         isManaged ? (
           <PayFlowPrimaryButton
@@ -475,7 +538,42 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             value={paymentAccount}
             onChange={setPaymentAccount}
             disabled={isManaged}
-            intro=""
+            intro="Enter the bank account where you send rent payments."
+          />
+        </div>
+
+        {/* Section 4: Landlord / Property Manager Contact */}
+        <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Building2 size={18} color="var(--skin-primary, #c2501f)" />
+            Landlord or Property Manager
+          </h3>
+          <p style={{ fontSize: 13, color: '#7a7268', margin: '0 0 16px', lineHeight: 1.45 }}>
+            Search by manager name, company name, email, or phone number in real time.
+          </p>
+
+          <PmSearchSelect
+            value={{
+              pmEmail,
+              pmName,
+              pmType,
+              companyName,
+              pmInviteEmail,
+              pmFound,
+              pmDetails,
+            }}
+            onChange={(patch) => {
+              setPmEmail(patch.pmEmail)
+              setPmName(patch.pmName)
+              setPmType(patch.pmType)
+              setCompanyName(patch.companyName)
+              setPmInviteEmail(patch.pmInviteEmail)
+              setPmFound(patch.pmFound)
+              setPmDetails(patch.pmDetails)
+            }}
+            disabled={isManaged}
+            isManaged={isManaged}
+            managerLabel={managerLabel}
           />
         </div>
       </div>

@@ -16,6 +16,8 @@ import { TransactionsPageShell } from './TransactionsPageShell'
 import { useDashboard } from '../../hooks/useDashboard'
 import { useToast } from '@/components/common/Toast'
 import { useAllGtTransactions, type GtHistoryRow } from '@/features/my-home/hooks/useMyHome'
+import { useQueryClient } from '@tanstack/react-query'
+import { PullToRefresh } from '@/components/common/PullToRefresh'
 import {
   formatCurrency,
   groupTransactionsByMonth,
@@ -77,8 +79,16 @@ export function TransactionList() {
   const { transactions: gtTransactions, isLoading: gtLoading } = useAllGtTransactions()
   const [filterDate, setFilterDate] = useState('')
   const [search, setSearch] = useState('')
-
+  const queryClient = useQueryClient()
   const handleBack = () => router.push('/dashboard')
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      queryClient.invalidateQueries({ queryKey: ['gt-transactions'] }),
+      reload?.(),
+    ])
+  }
 
   const handleTxClick = (tx: TxListItem) => {
     if (tx.source === 'gt') {
@@ -156,7 +166,8 @@ export function TransactionList() {
 
   return (
     <TransactionsPageShell title="Transactions" onBack={handleBack} rightElement={dateFilter}>
-      <div className="tx-page__search">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="tx-page__search">
         <div className="tx-page__search-wrap">
           <Search size={16} className="tx-page__search-icon" />
           <input
@@ -283,6 +294,7 @@ export function TransactionList() {
           ) : null}
         </>
       )}
+      </PullToRefresh>
     </TransactionsPageShell>
   )
 }

@@ -10,7 +10,7 @@ import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
 import { socialSignIn } from '@/features/auth/services/authService'
 import { isGoogleAuthEnabled } from '@/features/auth/utils/googleAuth'
 import { useAuth } from '@/features/auth/AuthContext'
-import { setAccessToken } from '@/lib/auth-token'
+import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { useToast } from '@/components/common/Toast'
 
@@ -83,6 +83,9 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
       if (result.accessToken) {
         setAccessToken(result.accessToken)
         setCookie('pay_access_token', result.accessToken)
+      }
+      if (result.refreshToken) {
+        setRefreshToken(result.refreshToken)
       }
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)

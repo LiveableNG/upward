@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowDownRight,
@@ -165,6 +166,14 @@ export function DashboardHome({
   const myHomeProperties = useMyHomeProperties()
   const myHomePreview = myHomeProperties[0]?.unitName || myHomeProperties[0]?.label
   const { bills: gtBills } = useAllPendingBills()
+  const [isNavigatingToBreakdown, setIsNavigatingToBreakdown] = useState(false)
+
+  const handleScoreClick = () => {
+    setIsNavigatingToBreakdown(true)
+    setTimeout(() => {
+      router.push('/dashboard/score-breakdown')
+    }, 140)
+  }
 
   if (isLoading) {
     return (
@@ -281,8 +290,8 @@ export function DashboardHome({
       <div className="dash-home__main">
         <button
           type="button"
-          className="dash-home__score"
-          onClick={() => router.push('/dashboard/score-breakdown')}
+          className={`dash-home__score ${isNavigatingToBreakdown ? 'dash-home__score--clicked' : ''}`}
+          onClick={handleScoreClick}
           aria-label="View score breakdown"
         >
           <div className="dash-home__score-top">
@@ -293,7 +302,10 @@ export function DashboardHome({
                 <span className="dash-home__score-max">/ {maxScore}</span>
               </div>
               <div className="dash-home__score-sub">Rent Payment Score</div>
-              <span className="dash-home__score-pill">View breakdown ›</span>
+              <span className="dash-home__score-pill">
+                <span>View breakdown</span>
+                <ChevronRight size={13} className="dash-home__score-pill-arrow" />
+              </span>
             </div>
             <div
               className="dash-home__score-ring"
