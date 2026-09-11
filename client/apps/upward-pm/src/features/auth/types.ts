@@ -24,6 +24,16 @@ export interface PropertyManagerProfile {
   termsVersion?: string | null;
   /** False for employee-only team collaborators — company settings tabs are hidden. */
   canManageCompanySettings?: boolean;
+  accountType?: 'PM' | 'PM_EMPLOYEE';
+  jobTitle?: string;
+  accessLevel?: 'ALL' | 'CUSTOM';
+  employer?: {
+    uuid: string;
+    companyName: string;
+    ownerName: string;
+    email: string;
+    logo?: string;
+  } | null;
 }
 
 export interface AuthResponse {

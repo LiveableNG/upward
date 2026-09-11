@@ -28,6 +28,9 @@ export class PmDocumentController {
   ) {}
 
   private async getPmId(req: any): Promise<number> {
+    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
+      return req.user.ownerPmId;
+    }
     const uuid = req.user?.sub;
     if (!uuid) throw new UnauthorizedException('Invalid user context');
     const pm = await this.pmRepository.findByUuid(uuid);

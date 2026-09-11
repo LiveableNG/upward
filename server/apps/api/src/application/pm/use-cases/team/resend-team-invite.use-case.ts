@@ -14,40 +14,32 @@ export class ResendTeamInviteUseCase {
     private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
-  async execute(ownerPmId: number, collaborationUuid: string) {
-    const collab = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
+  async execute(ownerPmId: number, employeeUuid: string) {
+    const employee = await (this.prisma as any).upward_pm_employee.findFirst({
       where: {
-        uuid: collaborationUuid,
+        uuid: employeeUuid,
         ownerPmId,
-      },
-      include: {
-        collaboratorPm: true,
       },
     });
 
-    if (!collab) {
+    if (!employee) {
       throw new NotFoundException('Team member invitation record not found');
     }
 
-    const collaborator = collab.collaboratorPm;
-    if (!collaborator) {
-      throw new NotFoundException('Collaborator account not found');
-    }
-
-    if (collaborator.passwordHash !== 'PENDING_INVITE') {
+    if (employee.status !== 'PENDING' && employee.passwordHash) {
       throw new BadRequestException('This team member has already accepted their invitation.');
     }
 
-    const decryptedEmail = this.encryption.decrypt(collaborator.email);
-    const decryptedFirstName = this.encryption.decrypt(collaborator.firstName);
-    const decryptedLastName = this.encryption.decrypt(collaborator.lastName);
-    const recipientName = `${decryptedFirstName} ${decryptedLastName}`.trim() || decryptedEmail;
+    const recipientEmail = this.encryption.decrypt(employee.email);
+    const firstName = this.encryption.decrypt(employee.firstName);
+    const lastName = this.encryption.decrypt(employee.lastName);
+    const recipientName = `${firstName} ${lastName}`.trim() || recipientEmail;
 
     const owner = await this.pmRepo.findById(ownerPmId);
     const ownerName = owner?.businessName || `${owner?.firstName || ''} ${owner?.lastName || ''}`.trim() || 'Team Admin';
 
     await this.unifiedCommService.processCommunication({
-      recipientEmail: decryptedEmail,
+      recipientEmail,
       recipientName,
       recipientRole: 'PM',
       type: 'TEAM_INVITATION',
@@ -55,13 +47,13 @@ export class ResendTeamInviteUseCase {
         name: recipientName,
         inviterName: ownerName,
         isNewAccount: true,
-        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/pm-invite/${collaborator.uuid}`,
+        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/invite/${employee.uuid}`,
       },
     });
 
     return {
       success: true,
-      message: `Invitation resent to ${decryptedEmail}`,
+      message: `Invitation resent to ${employee.email}`,
     };
   }
 }

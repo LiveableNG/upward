@@ -108,23 +108,29 @@ export function AppLayout({ children }: AppLayoutProps) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-              <span>Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.</span>
+              <span>
+                {user?.accountType === 'PM_EMPLOYEE'
+                  ? 'Your company subscription renewal is pending. Contact your administrator to avoid feature lockout.'
+                  : 'Your subscription renewal failed. Please top up your wallet balance to avoid feature lockout.'}
+              </span>
             </div>
-            <button
-              onClick={() => router.push('/subscription/checkout')}
-              style={{
-                background: 'white',
-                color: '#b45309',
-                border: 'none',
-                padding: '4px 12px',
-                borderRadius: '100px',
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                cursor: 'pointer'
-              }}
-            >
-              Top Up Wallet →
-            </button>
+            {user?.accountType !== 'PM_EMPLOYEE' && (
+              <button
+                onClick={() => router.push('/subscription/checkout')}
+                style={{
+                  background: 'white',
+                  color: '#b45309',
+                  border: 'none',
+                  padding: '4px 12px',
+                  borderRadius: '100px',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Top Up Wallet →
+              </button>
+            )}
           </div>
         )}
         <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />

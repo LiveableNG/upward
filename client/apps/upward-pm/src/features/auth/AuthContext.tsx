@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { type PropertyManagerProfile } from './types'
-import { getMe, logout as authLogout } from './services/authService'
+import { getMe, getEmployeeMe, logout as authLogout } from './services/authService'
 import { useRouter } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
 import { useQueryClient } from '@tanstack/react-query'
@@ -31,7 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const profile = await getMe()
+      let profile: any = null
+      try {
+        profile = await getMe()
+      } catch (pmErr) {
+        try {
+          profile = await getEmployeeMe()
+        } catch {
+          throw pmErr
+        }
+      }
       setUser(profile)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('upward_session_active', 'true')

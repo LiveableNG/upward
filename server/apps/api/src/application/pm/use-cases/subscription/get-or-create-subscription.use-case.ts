@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+  import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { UpwardSubscriptionTier } from '@prisma/client';
 
@@ -6,11 +6,16 @@ import { UpwardSubscriptionTier } from '@prisma/client';
 export class GetOrCreateSubscriptionUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(pmUuid: string) {
-    const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: pmUuid },
-      include: { subscription: true },
-    });
+  async execute(pmUuid: string, ownerPmId?: number) {
+    const pm = ownerPmId
+      ? await this.prisma.upward_property_manager.findUnique({
+          where: { id: ownerPmId },
+          include: { subscription: true },
+        })
+      : await this.prisma.upward_property_manager.findUnique({
+          where: { uuid: pmUuid },
+          include: { subscription: true },
+        });
 
     if (!pm) {
       throw new BadRequestException('Property manager not found');

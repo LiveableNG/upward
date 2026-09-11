@@ -1,0 +1,64 @@
+model upward_pm_employee {
+  id                   Int                               @id @default(autoincrement())
+  uuid                 String                            @unique @default(uuid())
+  ownerPmId            Int
+  email                String
+  emailHash            String                            @unique
+  passwordHash         String?
+  firstName            String
+  firstNameHash        String?
+  lastName             String
+  lastNameHash         String?
+  phone                String?
+  phoneHash            String?
+  profilePic           String?
+  jobTitle             String?                           @default("Property Officer")
+  accessLevel          String                            @default("CUSTOM")
+  status               String                            @default("PENDING")
+  resetPasswordOTP     String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime                          @default(now())
+  updatedAt            DateTime                          @updatedAt
+
+  ownerPm              upward_property_manager           @relation(fields: [ownerPmId], references: [id], onDelete: Cascade)
+  assignedProperties   upward_pm_employee_property[]
+  authSessions         upward_pm_employee_auth_session[]
+  activityLogs         upward_pm_activity_log[]
+  approvalRequests     upward_pm_approval_request[]
+
+  @@index([ownerPmId])
+  @@index([emailHash])
+}
+
+model upward_pm_employee_property {
+  id          Int                 @id @default(autoincrement())
+  employeeId  Int
+  propertyId  Int
+  ownerPmId   Int
+  createdAt   DateTime            @default(now())
+
+  employee    upward_pm_employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  property    upward_pm_property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, propertyId])
+  @@index([employeeId])
+  @@index([propertyId])
+  @@index([ownerPmId])
+}
+
+model upward_pm_employee_auth_session {
+  id               String              @id @default(uuid())
+  employeeId       Int
+  refreshTokenHash String              @unique
+  userAgent        String?
+  ipAddress        String?
+  deviceId         String?
+  isRevoked        Boolean             @default(false)
+  expiresAt        DateTime
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  employee         upward_pm_employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+}

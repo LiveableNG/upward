@@ -71,6 +71,12 @@ export default function WalletPage() {
   } | null>(null);
 
   useEffect(() => {
+    if (user?.accountType === 'PM_EMPLOYEE') {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     const nextBalance = wallet?.balance ?? 0;
 
     if (lastObservedBalanceRef.current === null) {

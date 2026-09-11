@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { UpwardSubscriptionTier, UpwardUnitBillingMode } from '@prisma/client';
 import { GeneratePmDvaUseCase } from '../../../application/pm/use-cases/payments/generate-pm-dva.use-case';
@@ -25,12 +25,25 @@ export class SubscriptionController {
   @Get('subscription')
   async getSubscription(@Req() req: any) {
     const pmUuid = req.user?.sub;
-    if (!pmUuid) throw new BadRequestException('Property manager not found');
-    return this.getOrCreateSubscriptionUseCase.execute(pmUuid);
+    if (!pmUuid) throw new BadRequestException('User not found');
+    const ownerPmId = req.user?.role === 'PM_EMPLOYEE' ? req.user?.ownerPmId : undefined;
+    const sub = await this.getOrCreateSubscriptionUseCase.execute(pmUuid, ownerPmId);
+    return {
+      ...sub,
+      isEmployee: req.user?.role === 'PM_EMPLOYEE',
+    };
   }
 
   @Get('wallet')
   async getWallet(@Req() req: any) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      return {
+        balance: 0,
+        currency: 'NGN',
+        isActive: true,
+        isEmployee: true,
+      };
+    }
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     return this.getOrCreateWalletUseCase.execute(pmUuid);
@@ -38,6 +51,9 @@ export class SubscriptionController {
 
   @Get('subscription/wallet/dva')
   async getWalletDva(@Req() req: any) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      return { data: null };
+    }
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     const dva = await this.getPmDvaUseCase.execute(pmUuid);
@@ -46,6 +62,9 @@ export class SubscriptionController {
 
   @Post('subscription/wallet/dva/generate')
   async generateWalletDva(@Req() req: any) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      throw new ForbiddenException('Employees cannot generate organization virtual accounts.');
+    }
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     const result = await this.generatePmDvaUseCase.execute(pmUuid);
@@ -57,6 +76,9 @@ export class SubscriptionController {
     @Req() req: any,
     @Body() body: { tier: UpwardSubscriptionTier; billingMode?: UpwardUnitBillingMode },
   ) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      throw new ForbiddenException('Employees cannot change organization subscription tiers.');
+    }
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     
@@ -66,6 +88,9 @@ export class SubscriptionController {
 
   @Post('wallet/top-up')
   async topUpWallet(@Req() req: any, @Body() body: { amount: number; reference: string }) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      throw new ForbiddenException('Employees cannot manage company wallet deposits.');
+    }
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     
@@ -75,6 +100,9 @@ export class SubscriptionController {
 
   @Get('wallet/transactions')
   async getWalletTransactions(@Req() req: any) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      return [];
+    }
     const pmUuid = req.user?.sub;
     if (!pmUuid) throw new BadRequestException('Property manager not found');
     return this.getWalletTransactionsUseCase.execute(pmUuid);

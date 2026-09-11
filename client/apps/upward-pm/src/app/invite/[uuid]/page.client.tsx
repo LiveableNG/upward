@@ -15,7 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { request } from '@/lib/api-client'
-import { claimAccount } from '@/features/auth/services/authService'
+import { claimAccount, getEmployeeInviteDetails, acceptEmployeeInvite } from '@/features/auth/services/authService'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
@@ -34,6 +34,7 @@ export default function ClaimAccountPage() {
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [userData, setUserData] = useState<any>(null)
+  const [isEmployeeInvite, setIsEmployeeInvite] = useState(true)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -45,10 +46,24 @@ export default function ClaimAccountPage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const res = await request<any>(`/pm/auth/invite-details/${uuid}`)
-        setUserData(res)
-        setFirstName(res.firstName || '')
-        setLastName(res.lastName || '')
+        // Try employee invite first
+        try {
+          const res = await getEmployeeInviteDetails(uuid as string)
+          if (res) {
+            setUserData(res)
+            setIsEmployeeInvite(true)
+            setFirstName(res.firstName || '')
+            setLastName(res.lastName || '')
+            return
+          }
+        } catch {
+          // Fallback to legacy PM invite
+          const res = await request<any>(`/pm/auth/invite-details/${uuid}`)
+          setUserData(res)
+          setIsEmployeeInvite(false)
+          setFirstName(res.firstName || '')
+          setLastName(res.lastName || '')
+        }
       } catch (err) {
         error('Invalid or expired invitation link.')
       } finally {
@@ -66,19 +81,21 @@ export default function ClaimAccountPage() {
 
     setClaiming(true)
     try {
-      const res = await claimAccount(uuid as string, { password, firstName, lastName })
+      let res: any
+      if (isEmployeeInvite) {
+        res = await acceptEmployeeInvite(uuid as string, { password, firstName, lastName })
+      } else {
+        res = await claimAccount(uuid as string, { password, firstName, lastName })
+      }
+
       if (res.user) {
         setAuthUser(res.user)
         queryClient.setQueryData(['user'], res.user)
       }
       success('Account activated successfully! Welcome to Upward.')
-      if (res.user?.pmType === 'INDIVIDUAL_LANDLORD' || res.user?.pmType === 'Landlord') {
-        router.push('/portal')
-      } else {
-        router.push('/dashboard')
-      }
+      router.push('/dashboard')
     } catch (err: any) {
-      error(err.message || 'Failed to claim account')
+      error(err.message || 'Failed to activate account')
     } finally {
       setClaiming(false)
     }

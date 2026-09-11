@@ -67,7 +67,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       include: { landlord: true },
     });
 
-    // 2. Get collaborations
+    // 2. Get collaborations (legacy PM-to-PM collaboration)
     const collaborations = await (this.prisma as any).upward_pm_team_collaboration.findMany({
       where: { 
         collaboratorPmId: pmId,
@@ -170,7 +170,17 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       }
     });
 
-    return !!propertyCollab;
+    if (propertyCollab) return true;
+
+    // Check employee property assignment
+    const employeeProp = await (this.prisma as any).upward_pm_employee_property.findFirst({
+      where: {
+        propertyId,
+        ownerPmId: property.pmId,
+      },
+    });
+
+    return !!employeeProp;
   }
 
   async delete(uuid: string): Promise<boolean> {

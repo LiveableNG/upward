@@ -1,5 +1,4 @@
-
-import { Injectable, Inject, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { InviteTeamMemberDto, TeamAccessLevel } from '../../dtos/team.dto';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../../domains/pm/property-manager.repository';
@@ -18,92 +17,84 @@ export class InviteTeamMemberUseCase {
   ) {}
 
   async execute(ownerPmId: number, dto: InviteTeamMemberDto) {
-    // 1. Check if PM exists or create shadow account
-    let collaborator = await this.pmRepo.findByEmail(dto.email);
-    const isNewAccount = !collaborator;
+    const emailHash = this.encryption.hash(dto.email);
 
-    if (isNewAccount) {
-      const passwordHash = 'PENDING_INVITE';
-      const nameParts = (dto.name || '').split(' ');
-      const firstName = nameParts[0] || 'Member';
-      const lastName = nameParts.slice(1).join(' ') || 'Manager';
-
-      collaborator = await this.pmRepo.save({
-        uuid: crypto.randomUUID(),
-        email: dto.email,
-        emailHash: this.encryption.hash(dto.email),
-        passwordHash,
-        firstName,
-        firstNameHash: this.encryption.hash(firstName),
-        lastName,
-        lastNameHash: this.encryption.hash(lastName),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      } as any);
-    } else {
-      // If already exists, check if they are already collaborating
-      const existingCollab = await (this.prisma as any).upward_pm_team_collaboration.findUnique({
-        where: {
-          ownerPmId_collaboratorPmId: {
-            ownerPmId,
-            collaboratorPmId: collaborator!.id!
-          }
-        }
-      });
-
-      if (existingCollab && existingCollab.status !== 'REVOKED') {
-        throw new ConflictException('This person is already a member of your team');
-      }
-    }
-
-    // 2. Create/Update Collaboration Record
-    const collaboration = await (this.prisma as any).upward_pm_team_collaboration.upsert({
+    // 1. Check if employee already exists for this owner
+    let employee = await (this.prisma as any).upward_pm_employee.findFirst({
       where: {
-        ownerPmId_collaboratorPmId: {
-          ownerPmId,
-          collaboratorPmId: collaborator!.id!,
-        }
-      },
-      update: {
-        accessLevel: dto.accessLevel,
-        status: 'ACCEPTED'
-      },
-      create: {
+        emailHash,
         ownerPmId,
-        collaboratorPmId: collaborator!.id!,
-        accessLevel: dto.accessLevel,
-        status: 'ACCEPTED'
-      }
+      },
     });
 
-    // 3. Link Custom Properties if applicable
-    if (dto.accessLevel === TeamAccessLevel.CUSTOM && dto.propertyUuids) {
-      // Clear old ones first
-      await (this.prisma as any).upward_pm_property_collaboration.deleteMany({
-        where: {
-          ownerPmId,
-          collaboratorPmId: collaborator!.id!
-        }
-      });
+    const nameParts = (dto.name || '').trim().split(' ');
+    const firstName = nameParts[0] || 'Member';
+    const lastName = nameParts.slice(1).join(' ') || 'Manager';
 
+    if (employee) {
+      if (employee.status !== 'REVOKED') {
+        throw new ConflictException('This person is already an active or invited member of your team');
+      }
+
+      // Re-activate revoked employee
+      employee = await (this.prisma as any).upward_pm_employee.update({
+        where: { id: employee.id },
+        data: {
+          firstName: this.encryption.encrypt(firstName),
+          firstNameHash: this.encryption.hash(firstName),
+          lastName: this.encryption.encrypt(lastName),
+          lastNameHash: this.encryption.hash(lastName),
+          accessLevel: dto.accessLevel,
+          status: 'PENDING',
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new employee with encrypted PII
+      employee = await (this.prisma as any).upward_pm_employee.create({
+        data: {
+          uuid: crypto.randomUUID(),
+          ownerPmId,
+          email: this.encryption.encrypt(dto.email),
+          emailHash,
+          firstName: this.encryption.encrypt(firstName),
+          firstNameHash: this.encryption.hash(firstName),
+          lastName: this.encryption.encrypt(lastName),
+          lastNameHash: this.encryption.hash(lastName),
+          jobTitle: 'Property Officer',
+          accessLevel: dto.accessLevel,
+          status: 'PENDING',
+        },
+      });
+    }
+
+    // 2. Link Custom Properties if applicable
+    await (this.prisma as any).upward_pm_employee_property.deleteMany({
+      where: {
+        employeeId: employee.id,
+        ownerPmId,
+      },
+    });
+
+    if (dto.accessLevel === TeamAccessLevel.CUSTOM && dto.propertyUuids && dto.propertyUuids.length > 0) {
       const properties = await (this.prisma as any).upward_pm_property.findMany({
-        where: { uuid: { in: dto.propertyUuids }, pmId: ownerPmId }
+        where: { uuid: { in: dto.propertyUuids }, pmId: ownerPmId },
       });
 
       if (properties.length > 0) {
-        await (this.prisma as any).upward_pm_property_collaboration.createMany({
+        await (this.prisma as any).upward_pm_employee_property.createMany({
           data: properties.map((p: any) => ({
             propertyId: p.id,
-            collaboratorPmId: collaborator!.id!,
-            ownerPmId
-          }))
+            employeeId: employee.id,
+            ownerPmId,
+          })),
         });
       }
     }
 
-    // 4. Send Invitation Email
+    // 3. Send Invitation Email
     const owner = await this.pmRepo.findById(ownerPmId);
-    const ownerName = owner?.businessName || `${owner?.firstName} ${owner?.lastName}`;
+    const ownerName = owner?.businessName || `${owner?.firstName || ''} ${owner?.lastName || ''}`.trim() || 'Team Admin';
 
     await this.unifiedCommService.processCommunication({
       recipientEmail: dto.email,
@@ -113,11 +104,11 @@ export class InviteTeamMemberUseCase {
       context: {
         name: dto.name,
         inviterName: ownerName,
-        isNewAccount,
-        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/pm-invite/${collaborator!.uuid}`,
+        isNewAccount: employee.status === 'PENDING',
+        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/invite/${employee.uuid}`,
       },
     });
 
-    return collaboration;
+    return employee;
   }
 }

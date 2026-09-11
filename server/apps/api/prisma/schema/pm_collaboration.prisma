@@ -33,7 +33,8 @@ model upward_pm_property_collaboration {
 model upward_pm_activity_log {
   id          Int                     @id @default(autoincrement())
   uuid        String                  @unique @default(uuid())
-  pmId        Int
+  pmId        Int?
+  employeeId  Int?
   ownerPmId   Int
   action      String
   entityType  String
@@ -42,9 +43,11 @@ model upward_pm_activity_log {
   metadata    Json?
   createdAt   DateTime                @default(now())
   ownerPm     upward_property_manager @relation("ActivityOwner", fields: [ownerPmId], references: [id], onDelete: Cascade)
-  pm          upward_property_manager @relation("ActivityPerformer", fields: [pmId], references: [id], onDelete: Cascade)
+  pm          upward_property_manager? @relation("ActivityPerformer", fields: [pmId], references: [id], onDelete: Cascade)
+  employee    upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
+  @@index([employeeId])
   @@index([ownerPmId])
   @@index([createdAt])
 }
@@ -53,7 +56,8 @@ model upward_pm_approval_request {
   id               Int                     @id @default(autoincrement())
   uuid             String                  @unique @default(uuid())
   ownerPmId        Int
-  requesterPmId    Int
+  requesterPmId    Int?
+  requesterEmployeeId Int?
   propertyUuid     String?
   propertyName     String?
   unitUuid         String?
@@ -65,9 +69,11 @@ model upward_pm_approval_request {
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   ownerPm          upward_property_manager @relation("ApprovalOwner", fields: [ownerPmId], references: [id], onDelete: Cascade)
-  requesterPm      upward_property_manager @relation("ApprovalRequester", fields: [requesterPmId], references: [id], onDelete: Cascade)
+  requesterPm      upward_property_manager? @relation("ApprovalRequester", fields: [requesterPmId], references: [id], onDelete: Cascade)
+  requesterEmployee upward_pm_employee?    @relation(fields: [requesterEmployeeId], references: [id], onDelete: Cascade)
 
   @@index([ownerPmId])
   @@index([requesterPmId])
+  @@index([requesterEmployeeId])
   @@index([status])
 }

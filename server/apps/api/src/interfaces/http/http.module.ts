@@ -43,6 +43,7 @@ import { PmHomeRequestController } from './controllers/pm-home-request.controlle
 import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmVerificationAdminController } from './admin/pm-verification-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
+import { PmEmployeeAuthController } from './pm/pm-employee-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmEmailSettingController } from './pm/pm-email-setting.controller'
 import { PmReceiptSettingController } from './pm/pm-receipt-setting.controller'
@@ -139,6 +140,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     WebhookAdminController,
     PmVerificationAdminController,
     PmAuthController,
+    PmEmployeeAuthController,
     PmProfileController,
     PmEmailSettingController,
     PmReceiptSettingController,

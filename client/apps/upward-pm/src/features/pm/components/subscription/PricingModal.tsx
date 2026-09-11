@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Check, X, Sparkles } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
+import { useAuth } from '@/features/auth/AuthContext';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import '@/styles/features/pricing-modal.css';
@@ -14,6 +15,7 @@ interface PricingModalProps {
 
 export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const { subscription, wallet, selectTier, isSelectingTier } = useSubscription();
   const [mounted, setMounted] = useState(false);
   const [isDowngradeConfirmOpen, setIsDowngradeConfirmOpen] = useState(false);
@@ -23,7 +25,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
     setMounted(true);
   }, []);
   
-  if (!isOpen || !mounted) return null;
+  if (!isOpen || !mounted || user?.accountType === 'PM_EMPLOYEE') return null;
 
   const handleSelectTier = (tier: SubscriptionTier) => {
     const TIER_ORDER = { FREE: 1, TIER_2: 2, TIER_3: 3 };

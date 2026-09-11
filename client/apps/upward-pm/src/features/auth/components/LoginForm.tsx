@@ -13,12 +13,14 @@ import {
   Loader2
 } from 'lucide-react'
 import { UpwardLogo } from '../../../components/common/UpwardLogo'
-import { useLogin } from '../hooks/useLogin'
+import { useLogin, useEmployeeLogin } from '../hooks/useLogin'
 import { useRequestOTP, useOtpLogin } from '../hooks/useOtp'
 import { useToast } from '@/components/common/Toast'
+import { Users, UserCheck, Building2 } from 'lucide-react'
 
 export const LoginForm = () => {
   const { error: toastError } = useToast()
+  const [accountType, setAccountType] = useState<'manager' | 'staff'>('manager')
   const [loginMethod, setLoginMethod] = useState<'password' | 'code'>('password')
   const [otpStage, setOtpStage] = useState<'request' | 'verify'>('request')
   const [showPassword, setShowPassword] = useState(false)
@@ -29,10 +31,11 @@ export const LoginForm = () => {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const loginMutation = useLogin()
+  const employeeLoginMutation = useEmployeeLogin()
   const requestOtpMutation = useRequestOTP()
   const otpLoginMutation = useOtpLogin()
 
-  const loading = loginMutation.isPending || requestOtpMutation.isPending || otpLoginMutation.isPending
+  const loading = (accountType === 'staff' ? employeeLoginMutation.isPending : loginMutation.isPending) || requestOtpMutation.isPending || otpLoginMutation.isPending
 
   const clearFieldError = (field: string) => {
     setFieldErrors((current) => {
@@ -45,7 +48,12 @@ export const LoginForm = () => {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform() || typeof window === 'undefined') return
-    const pmType = new URLSearchParams(window.location.search).get('pmType')
+    const params = new URLSearchParams(window.location.search)
+    const roleParam = params.get('role')
+    if (roleParam === 'staff' || roleParam === 'employee') {
+      setAccountType('staff')
+    }
+    const pmType = params.get('pmType')
     if (!pmType) return
     setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)
   }, [])
@@ -70,7 +78,11 @@ export const LoginForm = () => {
     }
 
     setFieldErrors({})
-    loginMutation.mutate({ email, password })
+    if (accountType === 'staff') {
+      employeeLoginMutation.mutate({ email, password })
+    } else {
+      loginMutation.mutate({ email, password })
+    }
   }
 
   const handleRequestOtp = async (e: React.FormEvent) => {
@@ -182,13 +194,83 @@ export const LoginForm = () => {
 
   return (
     <div className="animate-fade-in">
+      {/* Account Role Selector (Manager vs Staff) */}
+      <div 
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: '8px', 
+          background: 'var(--bg-elevated, #F4F4F6)', 
+          padding: '4px', 
+          borderRadius: '14px', 
+          marginBottom: '20px' 
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setAccountType('manager')
+            setLoginMethod('password')
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: 'none',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: accountType === 'manager' ? '#FFFFFF' : 'transparent',
+            color: accountType === 'manager' ? 'var(--dark)' : 'var(--text-secondary)',
+            boxShadow: accountType === 'manager' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+          }}
+        >
+          <Building2 size={15} />
+          <span>Manager / Owner</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setAccountType('staff')
+            setLoginMethod('password')
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: 'none',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            background: accountType === 'staff' ? '#FFFFFF' : 'transparent',
+            color: accountType === 'staff' ? 'var(--dark)' : 'var(--text-secondary)',
+            boxShadow: accountType === 'staff' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+          }}
+        >
+          <Users size={15} />
+          <span>Staff / Employee</span>
+        </button>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '24px' }}>
         <UpwardLogo color="var(--forest)" size={48} />
         <h2 className="auth-card__title" style={{ fontSize: '24px', fontWeight: 800, marginTop: '16px', marginBottom: '8px', color: 'var(--dark)' }}>
-          {otpStage === 'verify' && loginMethod === 'code' ? 'Enter Verification Code' : 'Welcome Back'}
+          {accountType === 'staff' 
+            ? 'Staff Portal Login'
+            : (otpStage === 'verify' && loginMethod === 'code' ? 'Enter Verification Code' : 'Welcome Back')}
         </h2>
         <p className="auth-card__subtitle" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-          {loginMethod === 'code' && otpStage === 'verify' ? (
+          {accountType === 'staff' ? (
+            'Sign in to access your assigned properties and organization workflow.'
+          ) : loginMethod === 'code' && otpStage === 'verify' ? (
             <>
               We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
             </>
@@ -198,27 +280,29 @@ export const LoginForm = () => {
         </p>
       </div>
 
-      <div className="auth-method-toggle" style={{ marginBottom: '24px' }}>
-        <button
-          type="button"
-          className={`auth-method-toggle__option ${loginMethod === 'password' ? 'is-active' : ''}`}
-          onClick={() => {
-            setLoginMethod('password')
-            setOtpStage('request')
-          }}
-        >
-          <Lock size={15} />
-          <span>Password</span>
-        </button>
-        <button
-          type="button"
-          className={`auth-method-toggle__option ${loginMethod === 'code' ? 'is-active' : ''}`}
-          onClick={() => setLoginMethod('code')}
-        >
-          <ShieldCheck size={15} />
-          <span>Email Code</span>
-        </button>
-      </div>
+      {accountType === 'manager' && (
+        <div className="auth-method-toggle" style={{ marginBottom: '24px' }}>
+          <button
+            type="button"
+            className={`auth-method-toggle__option ${loginMethod === 'password' ? 'is-active' : ''}`}
+            onClick={() => {
+              setLoginMethod('password')
+              setOtpStage('request')
+            }}
+          >
+            <Lock size={15} />
+            <span>Password</span>
+          </button>
+          <button
+            type="button"
+            className={`auth-method-toggle__option ${loginMethod === 'code' ? 'is-active' : ''}`}
+            onClick={() => setLoginMethod('code')}
+          >
+            <ShieldCheck size={15} />
+            <span>Email Code</span>
+          </button>
+        </div>
+      )}
 
       {loginMethod === 'password' ? (
         <form onSubmit={handlePasswordLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -391,8 +475,17 @@ export const LoginForm = () => {
         </form>
       )}
 
-      <div className="auth-footer" style={{ marginTop: '28px', textAlign: 'center' }}>
-        Don&apos;t have an account? <Link href={signupHref}>Create one for free</Link>
+      <div className="auth-footer" style={{ marginTop: '28px', textAlign: 'center', fontSize: '13px', color: 'var(--text-secondary)' }}>
+        {accountType === 'staff' ? (
+          <>
+            Invited by your organization?{' '}
+            <span style={{ color: 'var(--forest)', fontWeight: 600 }}>Check your inbox for your activation link</span>
+          </>
+        ) : (
+          <>
+            Don&apos;t have an account? <Link href={signupHref} style={{ color: 'var(--forest)', fontWeight: 700 }}>Create one for free</Link>
+          </>
+        )}
       </div>
     </div>
   )
