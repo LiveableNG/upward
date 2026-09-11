@@ -10,6 +10,7 @@ import { useDashboard } from '@/features/dashboard/hooks/useDashboard'
 import { Modal } from '@/components/common/Modal'
 import { AddPropertyModal } from '@/features/dashboard/components/profile/AddPropertyModal'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/features/auth/AuthContext'
 
 interface Contract {
   uuid: string
@@ -23,15 +24,20 @@ interface Contract {
     uuid: string
     location?: {
       address?: string | null
-      area?: string
-      state?: string
-      country?: string
-    } | null
+    }
+  }
+  unit?: {
+    uuid: string
+    unitNumber: string
+    property?: {
+      address: string
+    }
   } | null
 }
 
 export default function DocumentsPage() {
   const router = useRouter()
+  const { isPinLocked } = useAuth()
   const { success, error, info } = useToast()
   const { data: dashboardData, reload: reloadDashboard } = useDashboard()
   const [contracts, setContracts] = useState<Contract[]>([])
@@ -68,9 +74,10 @@ export default function DocumentsPage() {
       console.error('Failed to fetch documents:', err)
       setContracts([])
       if (
-        err?.message?.toLowerCase().includes('expired') ||
+        (err?.message?.toLowerCase().includes('expired') ||
         err?.message?.toLowerCase().includes('session') ||
-        err?.status === 401
+        err?.status === 401) &&
+        !isPinLocked
       ) {
         router.push('/login')
       }

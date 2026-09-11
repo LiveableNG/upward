@@ -24,7 +24,7 @@ import { OTPInput } from '@/components/common/OTPInput'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
-import { setAccessToken } from '@/lib/auth-token'
+import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
@@ -204,6 +204,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         if (result.accessToken) {
           setAccessToken(result.accessToken)
           setCookie('pay_access_token', result.accessToken)
+        }
+        if (result.refreshToken) {
+          setRefreshToken(result.refreshToken)
         }
         queryClient.clear()
         setAuthUser(result.user)

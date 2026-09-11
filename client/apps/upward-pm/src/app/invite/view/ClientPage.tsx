@@ -5,6 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { KeyRound, ArrowRight, Mail } from 'lucide-react'
 import { request } from '@/lib/api-client'
+import { claimAccount } from '@/features/auth/services/authService'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
 import { AuthLayout } from '@/components/auth/AuthLayout'
 
@@ -12,6 +15,8 @@ function InviteContent() {
   const searchParams = useSearchParams()
   const uuid = searchParams.get('uuid')
   const router = useRouter()
+  const { login: setAuthUser } = useAuth()
+  const queryClient = useQueryClient()
   const { success, error } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -40,17 +45,23 @@ function InviteContent() {
 
   const handleClaim = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!password) return error("Please enter a password")
     if (password !== confirmPassword) return error("Passwords do not match")
     if (password.length < 6) return error("Password must be at least 6 characters")
 
     setClaiming(true)
     try {
-      await request(`/pm/auth/claim-account/${uuid}`, {
-        method: 'POST',
-        body: JSON.stringify({ password, firstName, lastName })
-      })
-      success("Account claimed successfully! Welcome to Upward.")
-      router.push('/login')
+      const res = await claimAccount(uuid as string, { password, firstName, lastName })
+      if (res.user) {
+        setAuthUser(res.user)
+        queryClient.setQueryData(['user'], res.user)
+      }
+      success("Account activated successfully! Welcome to Upward.")
+      if (res.user?.pmType === 'INDIVIDUAL_LANDLORD' || res.user?.pmType === 'Landlord') {
+        router.push('/portal')
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       error(err.message || "Failed to claim account")
     } finally {

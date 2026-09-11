@@ -14,11 +14,13 @@ import {
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/features/auth/AuthContext'
 
 export default function BenefitsPage() {
   const router = useRouter()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const { isPinLocked } = useAuth()
   const [status, setStatus] = useState<BenefitsStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
@@ -34,16 +36,17 @@ export default function BenefitsPage() {
       const message = err?.message || 'Failed to load benefits status'
       setError(message)
       if (
-        message.toLowerCase().includes('expired') ||
+        (message.toLowerCase().includes('expired') ||
         message.toLowerCase().includes('auth') ||
-        err?.status === 401
+        err?.status === 401) &&
+        !isPinLocked
       ) {
         router.push('/login')
       }
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [router, isPinLocked])
 
   useEffect(() => {
     loadStatus()

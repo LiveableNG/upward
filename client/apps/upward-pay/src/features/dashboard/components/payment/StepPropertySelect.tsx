@@ -133,6 +133,13 @@ export function StepPropertySelect({
               )
             }
 
+            const hasPayoutRoute = !!(
+              prop.isVerified ||
+              prop.subaccount ||
+              prop.dedicatedAccount ||
+              prop.manualAccount
+            )
+
             return (
               <button
                 key={prop.uuid}
@@ -143,12 +150,23 @@ export function StepPropertySelect({
                 <div className="pay-flow__card-body">
                   <div className="pay-flow__card-top-row">
                     <div className="pay-flow__card-title">{formatPropertyTitleWithUnit(prop)}</div>
-                    <span className={`pay-flow__rent-pill pay-flow__rent-pill--${rentCycle.tone}`}>
-                      {rentCycle.label}
-                    </span>
+                    {!hasPayoutRoute ? (
+                      <span className="pay-flow__rent-pill pay-flow__rent-pill--soon">
+                        Setup payment details
+                      </span>
+                    ) : (
+                      <span className={`pay-flow__rent-pill pay-flow__rent-pill--${rentCycle.tone}`}>
+                        {rentCycle.label}
+                      </span>
+                    )}
                   </div>
                   <div className="pay-flow__card-meta">{formatManagerLabel(prop)}</div>
-                  {paymentSubline ? (
+                  {!hasPayoutRoute ? (
+                    <div className="pay-flow__card-meta pay-flow__card-meta--review">
+                      <AlertCircle size={13} />
+                      Landlord bank details needed to pay rent
+                    </div>
+                  ) : paymentSubline ? (
                     <div className="pay-flow__card-meta pay-flow__card-meta--muted">{paymentSubline}</div>
                   ) : null}
                 </div>

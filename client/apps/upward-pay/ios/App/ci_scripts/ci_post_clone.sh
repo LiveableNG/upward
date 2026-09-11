@@ -60,10 +60,30 @@ echo "pnpm version: $(pnpm -v)"
 echo "Installing JS dependencies..."
 pnpm install --frozen-lockfile || pnpm install
 
+# Validate required environment variables configured in Xcode Cloud workflow
+echo "Validating environment configuration for upward-pay build..."
+export NEXT_OUTPUT="export"
+
+if [ -z "$NEXT_PUBLIC_API_URL" ]; then
+    echo "================================================================================"
+    echo "❌ ERROR: NEXT_PUBLIC_API_URL is not set in the CI workflow environment!"
+    echo "Because this is a static iOS export, Next.js requires NEXT_PUBLIC_API_URL"
+    echo "to be defined at build time so the app can communicate with the server."
+    echo ""
+    echo "Please set NEXT_PUBLIC_API_URL in:"
+    echo "  App Store Connect > Xcode Cloud > Workflows > Edit Workflow > Environment"
+    echo "================================================================================"
+    exit 1
+fi
+
+echo "✅ NEXT_PUBLIC_API_URL is set: $NEXT_PUBLIC_API_URL"
+
+PAY_DIR="$REPO_ROOT/client/apps/upward-pay"
+
 # Run Capacitor sync for iOS
 echo "Syncing Capacitor iOS..."
-cd "$REPO_ROOT/client/apps/upward-pay"
-NEXT_OUTPUT=export pnpm cap:sync || (NEXT_OUTPUT=export next build && npx cap sync ios)
+cd "$PAY_DIR"
+pnpm cap:sync || (NEXT_OUTPUT=export next build && npx cap sync ios)
 
 echo "=========================================="
 echo "  Xcode Cloud Setup Completed Successfully"

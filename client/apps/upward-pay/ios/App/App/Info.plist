@@ -49,8 +49,16 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to log in securely to Upward Pay.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Upward Pay requires access to your camera to take a profile picture and capture photos of payment receipts or verification documents.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Upward Pay requires access to your photo library to select and upload your profile picture, payment receipts, and verification documents.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Upward Pay requires permission to save photos and receipts to your photo library.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>GIDClientID</key>
-	<string>451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com</string>
+	<string>479168827275-73i9l5kao61lieb38gngf1leu7d38rvo.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -64,7 +72,7 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i</string>
+				<string>com.googleusercontent.apps.479168827275-73i9l5kao61lieb38gngf1leu7d38rvo</string>
 			</array>
 		</dict>
 	</array>

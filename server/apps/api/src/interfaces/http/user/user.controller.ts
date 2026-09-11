@@ -128,9 +128,10 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
+    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
     const { refreshToken, ...rest } = await this.userAuthService.signup(body, ipAddress, userAgent)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
-    reply.status(HttpStatus.CREATED).send(rest)
+    reply.status(HttpStatus.CREATED).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
 
   @Post('social')
@@ -144,9 +145,10 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
+    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
     const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(body.provider, body.idToken)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
-    reply.status(HttpStatus.OK).send(rest)
+    reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
 
   @Post('complete-profile')
@@ -161,6 +163,7 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
+    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
     const { refreshToken, ...rest } = await this.completeUserProfile.execute({
       email: body.email,
       passwordPlain: body.password,
@@ -175,7 +178,7 @@ export class UserController {
       profilePic: body.profilePic,
     })
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
-    reply.status(HttpStatus.OK).send(rest)
+    reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
 
   @Post('login')
@@ -190,17 +193,28 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
+    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
     const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password, ipAddress, userAgent, type)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
-    reply.status(HttpStatus.OK).send(rest)
+    reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(@Req() req: any, @Res({ passthrough: false }) reply: FastifyReply) {
-    const token = req.cookies?.[REFRESH_COOKIE_NAME]
+  async refresh(
+    @Req() req: any,
+    @Body() body: { refreshToken?: string },
+    @Res({ passthrough: false }) reply: FastifyReply
+  ) {
+    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const token =
+      req.cookies?.[REFRESH_COOKIE_NAME] ||
+      body?.refreshToken ||
+      (req.headers?.['x-refresh-token'] as string)
     if (!token) {
-      clearUserAuthCookies(reply)
+      if (!isCapacitor) {
+        clearUserAuthCookies(reply)
+      }
       throw new UnauthorizedException('No refresh token')
     }
 
@@ -211,17 +225,22 @@ export class UserController {
       const userAgent = req.headers['user-agent']
       const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(token, ipAddress, userAgent)
       setUserAuthCookies(reply, rest.accessToken, refreshToken)
-      reply.status(HttpStatus.OK).send(rest)
+      reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
     } catch (err) {
-      clearUserAuthCookies(reply)
+      if (!isCapacitor) {
+        clearUserAuthCookies(reply)
+      }
       throw err
     }
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
-  async logout(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
-    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME]
+  async logout(@Req() req: any, @Res({ passthrough: false }) reply: FastifyReply) {
+    const refreshToken =
+      req.cookies?.[REFRESH_COOKIE_NAME] ||
+      req.body?.refreshToken ||
+      (req.headers?.['x-refresh-token'] as string)
     if (refreshToken) {
       await this.userAuthService.revokeSession(refreshToken)
     }
@@ -346,9 +365,10 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
+    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
     const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user, ipAddress, userAgent)
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
-    reply.status(HttpStatus.OK).send(rest)
+    reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
 
   @Post('verify-bvn')

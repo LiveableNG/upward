@@ -18,6 +18,8 @@ import {
   AlertCircle,
   HelpCircle,
   Info,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { COUNTRIES, STATES } from '@/lib/location-data'
@@ -25,25 +27,18 @@ import { useToast } from '@/components/common/Toast'
 import { useSetupDraft } from '../SetupDraftContext'
 import { SETUP_PATHS, setupRentalListPath, useSetupMode } from '../setupPaths'
 import { SetupPageShell, SetupPrimaryButton } from './SetupPageShell'
-import { type SetupDraft, type TenancyStatus } from '../setupDraft'
+import { type SetupDraft, type TenancyStatus, EMPTY_PAYMENT_DETAILS } from '../setupDraft'
 import {
   PaymentAccountForm,
   isPaymentAccountResolved,
 } from '@/features/dashboard/components/payment/PaymentAccountForm'
 import { toDateInputValue, validateRentDates } from '../rentalDates'
 import { formatCurrency } from '@/lib/utils'
+import { PmSearchSelect } from './PmSearchSelect'
 
 type RentalFormStep = 'location' | 'tenancy' | 'manager'
 
 const STEP_NAMES = ['Location', 'Tenancy', 'Landlord', 'Review']
-
-function shouldRestoreLookup(draft: SetupDraft, isEdit: boolean): boolean {
-  if (!draft.pmEmail.trim()) return false
-  if (draft.pmFound && draft.pmDetails) return true
-  if (isEdit) return true
-  if (!draft.pmFound && draft.formData.pmName.trim()) return true
-  return false
-}
 
 export function RentalFormView() {
   const router = useRouter()
@@ -52,47 +47,13 @@ export function RentalFormView() {
   const { draft, updateDraft } = useSetupDraft()
   const { isEdit, withMode, returnTo } = useSetupMode()
 
-  const [lookupDone, setLookupDone] = useState(() => shouldRestoreLookup(draft, isEdit))
   const [formStep, setFormStep] = useState<RentalFormStep>('location')
 
-  const verifyMutation = useMutation({
-    mutationFn: async (identifier: string) => {
-      const res = await api.post('/user/pm-connection/verify', { identifier })
-      return res.data
-    },
-    onSuccess: (data) => {
-      if (data.found && data.pm) {
-        updateDraft({
-          pmFound: true,
-          landlordSkipped: false,
-          pmDetails: {
-            id: data.pm.id,
-            name: `${data.pm.firstName} ${data.pm.lastName}`,
-            businessName: data.pm.businessName || `${data.pm.firstName} ${data.pm.lastName}`,
-          },
-        })
-      } else {
-        updateDraft({ pmFound: false, landlordSkipped: false, pmDetails: null })
-      }
-      setLookupDone(true)
-    },
-    onError: () => {
-      toast.error('Unable to verify this detail. You can still enter details manually.', 'Check Failed')
-      updateDraft({ pmFound: false, landlordSkipped: false, pmDetails: null })
-      setLookupDone(true)
-    },
-  })
-
-  const handleLookup = () => {
-    const trimmed = draft.pmEmail.trim()
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
-    const isPhone = /^\+234\d{10}$/.test(trimmed)
-    if (!isEmail && !isPhone) {
-      toast.error('Please enter a valid email or phone number (+2348030000000)', 'Invalid Format')
-      return
-    }
-    verifyMutation.mutate(trimmed)
-  }
+  const hasProof = Boolean(draft.formData.proofFile || draft.formData.proofFileMeta)
+  const isFullyPaid = draft.formData.tenancyStatus === 'ALREADY_PAID'
+  const isPayingBalanceWithProof = draft.formData.tenancyStatus === 'PAYING_BALANCE' && hasProof
+  const isLandlordRequired = isFullyPaid || isPayingBalanceWithProof
+  const canSkipLandlord = !isLandlordRequired
 
   // Validation per step
   const validateLocationStep = () => {
@@ -146,18 +107,43 @@ export function RentalFormView() {
 
   const validateManagerStep = () => {
     if (draft.isManagedProperty) return true
-    if (draft.paymentDetails.accountNumber && !isPaymentAccountResolved(draft.paymentDetails)) {
+
+    const hasEnteredPayment = Boolean(
+      draft.paymentDetails.accountNumber.trim() ||
+        draft.paymentDetails.bankCode.trim() ||
+        draft.paymentDetails.accountName.trim(),
+    )
+    const hasEnteredManager = Boolean(
+      draft.pmEmail.trim() ||
+        draft.formData.pmName.trim() ||
+        draft.pmInviteEmail.trim() ||
+        (draft.pmFound && draft.pmDetails),
+    )
+
+    // If skippable and completely empty, mark skipped and pass
+    if (canSkipLandlord && !hasEnteredPayment && !hasEnteredManager) {
+      updateDraft({ landlordSkipped: true })
+      return true
+    }
+
+    if (hasEnteredPayment && !isPaymentAccountResolved(draft.paymentDetails)) {
       toast.error('Please enter and verify a valid bank account.', 'Required Account')
       return false
     }
-    if (!draft.pmEmail.trim() && !draft.formData.pmName.trim()) {
-      toast.error('Please enter your landlord or manager contact details.', 'Landlord Contact Required')
+
+    if (
+      isLandlordRequired &&
+      !draft.pmEmail.trim() &&
+      !draft.formData.pmName.trim() &&
+      !draft.pmFound
+    ) {
+      toast.error(
+        'Please search for your landlord or enter their contact details so they can verify your payment receipt.',
+        'Landlord Contact Required',
+      )
       return false
     }
-    if (draft.pmEmail.trim() && !lookupDone) {
-      toast.error('Tap "Find manager" to verify contact details.', 'Verification Needed')
-      return false
-    }
+
     return true
   }
 
@@ -189,7 +175,31 @@ export function RentalFormView() {
       return
     }
     if (!validateManagerStep()) return
-    updateDraft({ landlordSkipped: false })
+
+    const hasEnteredManager = Boolean(
+      draft.pmEmail.trim() || draft.formData.pmName.trim() || draft.pmInviteEmail.trim(),
+    )
+    updateDraft({ landlordSkipped: canSkipLandlord && !hasEnteredManager })
+    goToConfirm()
+  }
+
+  const handleManagerSkip = () => {
+    if (!validateLocationStep()) {
+      setFormStep('location')
+      return
+    }
+    if (!validateTenancyStep()) {
+      setFormStep('tenancy')
+      return
+    }
+    updateDraft({
+      landlordSkipped: true,
+      pmEmail: '',
+      pmInviteEmail: '',
+      pmFound: false,
+      pmDetails: null,
+      paymentDetails: { ...EMPTY_PAYMENT_DETAILS },
+    })
     goToConfirm()
   }
 
@@ -223,7 +233,9 @@ export function RentalFormView() {
       ? 'Enter your rental address so we can set up your profile.'
       : formStep === 'tenancy'
         ? 'Tell us about your rent cycle and payment status.'
-        : 'Where should rent be paid? Enter your landlord or manager details.'
+        : canSkipLandlord
+          ? 'Where should rent be paid? (Optional — you can skip this step and add details later)'
+          : 'Where should rent be paid? Enter your landlord or manager details to verify your payment.'
 
   const handleProofFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -264,21 +276,42 @@ export function RentalFormView() {
   const remainingNum = Math.max(0, totalRentNum - paidNum)
 
   const footer = (
-    <SetupPrimaryButton
-      onClick={() => {
-        if (formStep === 'location') handleLocationContinue()
-        else if (formStep === 'tenancy') handleTenancyContinue()
-        else handleManagerContinue()
-      }}
-    >
-      Continue
-      <ArrowRight size={18} aria-hidden />
-    </SetupPrimaryButton>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+      <SetupPrimaryButton
+        onClick={() => {
+          if (formStep === 'location') handleLocationContinue()
+          else if (formStep === 'tenancy') handleTenancyContinue()
+          else handleManagerContinue()
+        }}
+      >
+        Continue
+        <ArrowRight size={18} aria-hidden />
+      </SetupPrimaryButton>
+      {formStep === 'manager' && canSkipLandlord && (
+        <button
+          type="button"
+          onClick={handleManagerSkip}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#7a7268',
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: '4px 8px',
+            textAlign: 'center',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#1a1714')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#7a7268')}
+        >
+          Skip for now · I&apos;ll add landlord details later
+        </button>
+      )}
+    </div>
   )
-
-  const showInviteForm = lookupDone && !draft.pmFound
-  const showManagerFound = lookupDone && draft.pmFound && draft.pmDetails
-  const showFindOnly = !lookupDone
 
   return (
     <SetupPageShell
@@ -426,12 +459,15 @@ export function RentalFormView() {
                     })
                   }
                 >
-                  <div className="setup-page__status-card-header">
-                    <CreditCard size={18} className="setup-page__status-icon" color="var(--skin-primary, #c2501f)" />
-                    <strong className="setup-page__status-card-title">Starting new cycle</strong>
+                  <div className="setup-page__status-card-top">
+                    <CreditCard size={18} color="var(--skin-primary, #c2501f)" />
+                    <span className="setup-page__status-badge setup-page__status-badge--success">
+                      Optional Landlord
+                    </span>
                   </div>
+                  <strong className="setup-page__status-card-title">Starting new cycle</strong>
                   <p className="setup-page__status-card-desc">
-                    I need to pay for my upcoming rent period on Upward.
+                    I need to pay upcoming rent on Upward. Landlord connection is optional to start.
                   </p>
                 </div>
 
@@ -446,10 +482,10 @@ export function RentalFormView() {
                     })
                   }
                 >
-                  <div className="setup-page__status-card-header">
-                    <Scale size={18} className="setup-page__status-icon" color="var(--skin-primary, #c2501f)" />
-                    <strong className="setup-page__status-card-title">Paying rent balance</strong>
+                  <div className="setup-page__status-card-top">
+                    <Scale size={18} color="var(--skin-primary, #c2501f)" />
                   </div>
+                  <strong className="setup-page__status-card-title">Paying rent balance</strong>
                   <p className="setup-page__status-card-desc">
                     I already paid a portion directly to my landlord before joining.
                   </p>
@@ -466,12 +502,15 @@ export function RentalFormView() {
                     })
                   }
                 >
-                  <div className="setup-page__status-card-header">
-                    <FileText size={18} className="setup-page__status-icon" color="var(--skin-primary, #c2501f)" />
-                    <strong className="setup-page__status-card-title">Already fully paid</strong>
+                  <div className="setup-page__status-card-top">
+                    <FileText size={18} color="var(--skin-primary, #c2501f)" />
+                    <span className="setup-page__status-badge setup-page__status-badge--warning">
+                      Requires Verification
+                    </span>
                   </div>
+                  <strong className="setup-page__status-card-title">Already fully paid</strong>
                   <p className="setup-page__status-card-desc">
-                    I paid my rent in full; I want to log proof & build my score.
+                    I paid my rent in full; my landlord will verify proof to build my score.
                   </p>
                 </div>
               </div>
@@ -658,15 +697,130 @@ export function RentalFormView() {
                 />
               </div>
             </div>
+
+            {/* Tenancy Context Callout */}
+            <div
+              style={{
+                marginTop: 18,
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: canSkipLandlord ? '#fcfaf7' : '#fffbeb',
+                border: `1px solid ${canSkipLandlord ? '#eae2d7' : '#fef3c7'}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              {canSkipLandlord ? (
+                <Sparkles size={18} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+              ) : (
+                <ShieldCheck size={18} color="#b45309" style={{ flexShrink: 0 }} />
+              )}
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 12.5,
+                  color: canSkipLandlord ? '#5c5449' : '#92400e',
+                  lineHeight: 1.45,
+                }}
+              >
+                {canSkipLandlord ? (
+                  <>
+                    <strong>Next step (Landlord details) is optional:</strong> You can skip entering landlord contact & bank info now and add it anytime from your dashboard.
+                  </>
+                ) : (
+                  <>
+                    <strong>Landlord contact required in next step:</strong> Because you are logging an offline payment, your landlord or manager will be invited to verify your receipt.
+                  </>
+                )}
+              </p>
+            </div>
           </>
         )}
 
         {formStep === 'manager' && (
           <>
+            {canSkipLandlord ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: '#fcfaf7',
+                  border: '1px solid #eae2d7',
+                  marginBottom: 20,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Sparkles size={20} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+                  <div>
+                    <strong style={{ display: 'block', fontSize: 13.5, color: '#1a1714', fontWeight: 700 }}>
+                      Landlord details are optional
+                    </strong>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#7a7268', lineHeight: 1.45 }}>
+                      You can skip this step now and add landlord details anytime from your dashboard.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleManagerSkip}
+                  style={{
+                    flexShrink: 0,
+                    padding: '7px 13px',
+                    borderRadius: 8,
+                    background: '#fff',
+                    border: '1px solid #d1c7b8',
+                    color: '#1a1714',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--skin-primary, #c2501f)'
+                    e.currentTarget.style.color = 'var(--skin-primary, #c2501f)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#d1c7b8'
+                    e.currentTarget.style.color = '#1a1714'
+                  }}
+                >
+                  Skip for now <ArrowRight size={13} />
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  marginBottom: 20,
+                }}
+              >
+                <ShieldCheck size={18} style={{ flexShrink: 0 }} />
+                <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45 }}>
+                  <strong>Landlord verification needed:</strong> Because you uploaded payment proof, we need your landlord or manager&apos;s contact details so they can verify your receipt.
+                </p>
+              </div>
+            )}
+
             <PaymentAccountForm
               value={draft.paymentDetails}
               onChange={(paymentDetails) => updateDraft({ paymentDetails })}
-              intro="Where do you pay your rent? Enter your landlord or manager's bank account details."
+              intro={canSkipLandlord ? "Where do you pay your rent? (Optional: enter bank details now or later)." : "Where do you pay your rent? Enter your landlord or manager's bank account details."}
               disabled={draft.isManagedProperty}
             />
 
@@ -675,119 +829,37 @@ export function RentalFormView() {
                 Landlord or Manager Contact
               </label>
               <p style={{ fontSize: 12.5, color: '#7a7268', marginBottom: 12, lineHeight: 1.45 }}>
-                Enter your landlord or manager&apos;s email or phone number to invite them to verify your tenancy records.
+                Search by manager name, company name, email, or phone number in real time, or send an invitation.
               </p>
 
-              {showFindOnly && (
-                <div className="setup-page__field">
-                  <div className="setup-page__lookup-row">
-                    <input
-                      className="setup-page__input"
-                      type="text"
-                      placeholder="Email or phone (+23480...)"
-                      value={draft.pmEmail}
-                      onChange={(e) => updateDraft({ pmEmail: e.target.value })}
-                    />
-                    <button
-                      type="button"
-                      className="setup-page__lookup-btn"
-                      onClick={handleLookup}
-                      disabled={verifyMutation.isPending}
-                    >
-                      {verifyMutation.isPending ? 'Finding…' : 'Find manager'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {showManagerFound && (
-                <div className="setup-page__pm-card">
-                  <div className="setup-page__pm-card-inner">
-                    <CheckCircle2 size={24} className="setup-page__pm-check" aria-hidden />
-                    <div className="setup-page__pm-details">
-                      <strong className="setup-page__pm-name">{draft.pmDetails?.name}</strong>
-                      {draft.pmDetails?.businessName ? (
-                        <span className="setup-page__pm-meta">{draft.pmDetails.businessName}</span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <button type="button" className="setup-page__change-contact" onClick={() => setLookupDone(false)}>
-                    Change
-                  </button>
-                </div>
-              )}
-
-              {showInviteForm && (
-                <div className="setup-page__invite-form">
-                  <div className="setup-page__pm-not-found-card">
-                    <div className="setup-page__pm-not-found-content">
-                      <strong className="setup-page__pm-not-found-title">
-                        Manager not on Upward yet
-                      </strong>
-                      <span className="setup-page__pm-not-found-desc">
-                        Provide their details below to send a verification invitation.
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="setup-page__search-again-btn"
-                      onClick={() => setLookupDone(false)}
-                    >
-                      Search again
-                    </button>
-                  </div>
-
-                  <div className="setup-page__field-row" style={{ marginTop: 14 }}>
-                    <div className="setup-page__field">
-                      <label>Manager type</label>
-                      <select
-                        className="setup-page__input"
-                        value={draft.pmType}
-                        onChange={(e) => updateDraft({ pmType: e.target.value })}
-                      >
-                        <option value="Property Manager">Property Manager</option>
-                        <option value="Landlord">Landlord</option>
-                        <option value="Lawyer">Lawyer / Agent</option>
-                      </select>
-                    </div>
-                    <div className="setup-page__field">
-                      <label>Manager full name</label>
-                      <input
-                        className="setup-page__input"
-                        type="text"
-                        placeholder="e.g. Chief Adeleke"
-                        value={draft.formData.pmName}
-                        onChange={(e) =>
-                          updateDraft({ formData: { ...draft.formData, pmName: e.target.value } })
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="setup-page__field-row" style={{ marginTop: 12 }}>
-                    <div className="setup-page__field">
-                      <label>Manager email (for invitation)</label>
-                      <input
-                        className="setup-page__input"
-                        type="email"
-                        placeholder="landlord@example.com"
-                        value={draft.pmInviteEmail || draft.pmEmail}
-                        onChange={(e) => updateDraft({ pmInviteEmail: e.target.value })}
-                      />
-                    </div>
-                    <div className="setup-page__field">
-                      <label>Company / Estate name (optional)</label>
-                      <input
-                        className="setup-page__input"
-                        type="text"
-                        placeholder="e.g. Haven Properties"
-                        value={draft.companyName}
-                        onChange={(e) => updateDraft({ companyName: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+              <PmSearchSelect
+                value={{
+                  pmEmail: draft.pmEmail,
+                  pmName: draft.formData.pmName,
+                  pmType: draft.pmType,
+                  companyName: draft.companyName,
+                  pmInviteEmail: draft.pmInviteEmail,
+                  pmFound: draft.pmFound,
+                  pmDetails: draft.pmDetails,
+                }}
+                onChange={(patch) => {
+                  updateDraft({
+                    pmEmail: patch.pmEmail,
+                    pmType: patch.pmType,
+                    companyName: patch.companyName,
+                    pmInviteEmail: patch.pmInviteEmail,
+                    pmFound: patch.pmFound,
+                    pmDetails: patch.pmDetails,
+                    landlordSkipped: patch.landlordSkipped ?? draft.landlordSkipped,
+                    formData: {
+                      ...draft.formData,
+                      pmName: patch.pmName,
+                    },
+                  })
+                }}
+                disabled={draft.isManagedProperty}
+                isManaged={draft.isManagedProperty}
+              />
             </div>
           </>
         )}

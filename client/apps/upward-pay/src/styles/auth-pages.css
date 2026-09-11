@@ -2411,3 +2411,152 @@
   color: #bbf7d0;
   border-color: rgba(34, 197, 94, 0.25);
 }
+
+/* ==========================================================================
+   Biometric Quick Login Screen (Fintech Auto-Face ID UX)
+   ========================================================================== */
+.biometric-quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 36px 24px 32px;
+}
+
+.biometric-quick-header {
+  margin-bottom: 24px;
+}
+
+.biometric-quick-content {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.biometric-quick-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clay, #d97757);
+  margin-bottom: 6px;
+}
+
+.biometric-quick-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ink, #15162b);
+  margin: 0 0 4px 0;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.biometric-quick-email {
+  font-size: 13.5px;
+  color: var(--ink-soft, #4b4b63);
+  margin: 0 0 32px 0;
+}
+
+.biometric-trigger-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 36px;
+  width: 100%;
+}
+
+.biometric-trigger-btn {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 28px;
+  border: 1.5px solid rgba(217, 119, 87, 0.3);
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+  color: var(--clay, #d97757);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  box-shadow: 0 12px 32px -10px rgba(217, 119, 87, 0.2);
+}
+
+.biometric-trigger-btn:hover:not(:disabled),
+.biometric-trigger-btn:active:not(:disabled) {
+  transform: scale(1.05);
+  background: rgba(217, 119, 87, 0.16);
+  border-color: var(--clay, #d97757);
+  box-shadow: 0 16px 40px -8px rgba(217, 119, 87, 0.35);
+}
+
+.biometric-trigger-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.biometric-trigger-glow {
+  position: absolute;
+  inset: -5px;
+  border-radius: 33px;
+  border: 1.5px solid var(--clay, #d97757);
+  opacity: 0.4;
+  animation: biometricPulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes biometricPulse {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.15;
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0.55;
+  }
+}
+
+.biometric-trigger-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.biometric-trigger-label {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.biometric-trigger-hint {
+  font-size: 13.5px;
+  color: var(--ink-soft, #4b4b63);
+  margin-top: 16px;
+  font-weight: 500;
+}
+
+.biometric-switch-btn {
+  height: 52px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 15px;
+  border: 1.5px solid var(--sand, #e7e0d2);
+  color: var(--ink, #15162b);
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.biometric-switch-btn:hover {
+  border-color: var(--clay, #d97757);
+  color: var(--clay, #d97757);
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+}
+

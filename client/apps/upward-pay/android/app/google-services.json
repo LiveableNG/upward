@@ -1,28 +1,20 @@
 {
   "project_info": {
-    "project_number": "451444317670",
-    "project_id": "upward-by-gt",
-    "storage_bucket": "upward-by-gt.firebasestorage.app"
+    "project_number": "479168827275",
+    "project_id": "upward",
+    "storage_bucket": "upward.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:451444317670:android:14efa95c860b84151c0a27",
+        "mobilesdk_app_id": "1:479168827275:android:14efa95c860b84151c0a27",
         "android_client_info": {
           "package_name": "com.goodtenants.upward"
         }
       },
       "oauth_client": [
         {
-          "client_id": "451444317670-2vghijcnivnpbu7bk3fq4mtf1cueepe8.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.goodtenants.upward",
-            "certificate_hash": "79c2eaeaa228328ec09e8ac7a2e1bf514b3c6d2d"
-          }
-        },
-        {
-          "client_id": "451444317670-64895jdbo2om1h86rd9gqqirr9i1calq.apps.googleusercontent.com",
+          "client_id": "479168827275-ud1m5sl6ltbs5drjpfkcm3dbb1iovgk7.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.goodtenants.upward",
@@ -30,7 +22,7 @@
           }
         },
         {
-          "client_id": "451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com",
+          "client_id": "479168827275-1p91obpeaj1h3oapomikq12dc75fegaa.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -43,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "451444317670-13vd5p8irblb8ptt3fkcljec1q8ekj5i.apps.googleusercontent.com",
+              "client_id": "479168827275-1p91obpeaj1h3oapomikq12dc75fegaa.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
