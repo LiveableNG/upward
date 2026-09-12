@@ -8,9 +8,13 @@ export class GetUnitPaymentsUseCase {
     private readonly unitRepository: IUnitRepository,
   ) {}
 
-  async execute(pmId: number, unitUuid: string) {
+  async execute(pmId: number, unitUuid: string, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     // Verify PM has access to the unit
-    const units = await this.unitRepository.findAccessibleByPmId(pmId);
+    const units = actor
+      ? await this.unitRepository.findAccessibleForActor(actor)
+      : await this.unitRepository.findAccessibleByPmId(ownerPmId);
+
     if (!units.find(u => u.uuid === unitUuid)) {
       throw new NotFoundException('Unit not found');
     }
@@ -18,3 +22,4 @@ export class GetUnitPaymentsUseCase {
     return this.unitRepository.getRentPayments(unitUuid);
   }
 }
+

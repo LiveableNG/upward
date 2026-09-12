@@ -85,38 +85,38 @@ export class PmTenantController {
 
   @Get('join-requests')
   async getJoinRequests(@Req() req: any) {
-    const pmId = await this.getPmId(req);
-    return this.getPendingJoinRequestsUseCase.execute(pmId);
+    const actor = await this.getActorContext(req);
+    return this.getPendingJoinRequestsUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Post('join-requests/:uuid/dismiss')
   async dismissJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.dismissJoinRequestUseCase.execute(pmId, uuid);
+    const actor = await this.getActorContext(req);
+    return this.dismissJoinRequestUseCase.execute(actor.ownerPmId, uuid);
   }
 
   @Post('join-requests/:uuid/resolve-duplicate')
   async resolveDuplicateJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.resolveDuplicateJoinRequestUseCase.execute(pmId, uuid);
+    const actor = await this.getActorContext(req);
+    return this.resolveDuplicateJoinRequestUseCase.execute(actor.ownerPmId, uuid);
   }
 
   @Get(':uuid')
   async getTenant(@Req() req: any, @Param('uuid') uuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.getTenantUseCase.execute(pmId, uuid);
+    const actor = await this.getActorContext(req);
+    return this.getTenantUseCase.execute(actor.ownerPmId, uuid, actor);
   }
 
   @Post()
   async createTenant(@Req() req: any, @Body() dto: CreateTenantDto) {
-    const pmId = await this.getPmId(req);
-    return this.createTenantUseCase.execute(pmId, dto);
+    const actor = await this.getActorContext(req);
+    return this.createTenantUseCase.execute(actor.ownerPmId, dto);
   }
 
   @Post(':uuid/invite')
   async inviteTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() body: { deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' }) {
-    const pmId = await this.getPmId(req);
-    return this.inviteTenantUseCase.execute(pmId, uuid, body?.deliveryChannel);
+    const actor = await this.getActorContext(req);
+    return this.inviteTenantUseCase.execute(actor.ownerPmId, uuid, body?.deliveryChannel);
   }
 
   @Post(':uuid/assign')
@@ -133,9 +133,9 @@ export class PmTenantController {
       isFullyPaid?: boolean;
     }
   ) {
-    const pmId = await this.getPmId(req);
+    const actor = await this.getActorContext(req);
     return this.assignTenantToUnitUseCase.execute(
-      pmId, 
+      actor.ownerPmId, 
       body.unitUuid, 
       tenantUuid, 
       body.rentAmountPaid,
@@ -143,27 +143,39 @@ export class PmTenantController {
       body.rentType,
       body.rentStartDate ? new Date(body.rentStartDate) : undefined,
       body.rentDueDate ? new Date(body.rentDueDate) : undefined,
-      body.isFullyPaid
+      body.isFullyPaid,
+      actor
     );
   }
 
   @Post(':uuid/unassign')
   async unassignTenant(@Req() req: any, @Param('uuid') tenantUuid: string, @Body() body: { unitUuid: string }) {
-    const pmId = await this.getPmId(req);
-    return this.assignTenantToUnitUseCase.execute(pmId, body.unitUuid, null);
+    const actor = await this.getActorContext(req);
+    return this.assignTenantToUnitUseCase.execute(
+      actor.ownerPmId, 
+      body.unitUuid, 
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      actor
+    );
   }
 
   @Patch(':uuid')
   async updateTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: any) {
-    const pmId = await this.getPmId(req);
-    return this.updateTenantUseCase.execute(pmId, uuid, dto);
+    const actor = await this.getActorContext(req);
+    return this.updateTenantUseCase.execute(actor.ownerPmId, uuid, dto, actor);
   }
 
   @Post('records/bulk')
   async bulkCreateRecords(@Req() req: any, @Body() body: any) {
-    const pmId = await this.getPmId(req);
+    const actor = await this.getActorContext(req);
     return this.bulkCreateTenantRecordsUseCase.execute({
-      pmId,
+      pmId: actor.ownerPmId,
       propertyAddress: body.propertyAddress,
       unitUuid: body.unitUuid,
       firstName: body.firstName,
@@ -176,7 +188,8 @@ export class PmTenantController {
 
   @Post('bulk-invite')
   async bulkInvite(@Req() req: any, @Body() dto: BulkInviteDto) {
-    const pmId = await this.getPmId(req);
-    return this.bulkInviteTenantsUseCase.execute(pmId, dto);
+    const actor = await this.getActorContext(req);
+    return this.bulkInviteTenantsUseCase.execute(actor.ownerPmId, dto);
   }
 }
+

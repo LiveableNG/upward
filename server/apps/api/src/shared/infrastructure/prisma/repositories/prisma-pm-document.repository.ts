@@ -90,6 +90,46 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
     return documents.map(d => this.mapSentDocument(d));
   }
 
+  async findSentDocumentsForActor(actor: any): Promise<SentDocumentEntity[]> {
+    if (!actor || !actor.isEmployee || actor.accessLevel === 'ALL') {
+      const pmId = actor?.ownerPmId || actor;
+      const documents = await this.prisma.upward_pm_sent_document.findMany({
+        where: {
+          isVaultDocument: false,
+          pmId,
+        },
+        include: { tenant: true, unit: { include: { property: true } } },
+        orderBy: { createdAt: 'desc' },
+      });
+      return documents.map(d => this.mapSentDocument(d));
+    }
+
+    if (!actor.employeeId) return [];
+
+    const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+      where: {
+        employeeId: actor.employeeId,
+        ownerPmId: actor.ownerPmId,
+      },
+      select: { propertyId: true },
+    });
+
+    const propertyIds = assignedLinks.map((al: any) => al.propertyId);
+    if (propertyIds.length === 0) return [];
+
+    const documents = await this.prisma.upward_pm_sent_document.findMany({
+      where: {
+        isVaultDocument: false,
+        pmId: actor.ownerPmId,
+        unit: { propertyId: { in: propertyIds } },
+      },
+      include: { tenant: true, unit: { include: { property: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return documents.map(d => this.mapSentDocument(d));
+  }
+
+
   async findSentDocumentByUuid(uuid: string): Promise<SentDocumentEntity | null> {
     const document = await this.prisma.upward_pm_sent_document.findUnique({
       where: { uuid },

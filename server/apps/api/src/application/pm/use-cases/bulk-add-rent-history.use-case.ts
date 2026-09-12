@@ -1,5 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { IUnitRepository, PM_UNIT_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { IUnitRepository, PM_UNIT_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
@@ -13,6 +13,8 @@ export class BulkAddRentHistoryUseCase {
   constructor(
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
+    @Inject(PM_PROPERTY_REPOSITORY)
+    private readonly propertyRepository: IPropertyRepository,
     @Inject(PM_TENANT_REPOSITORY)
     private readonly tenantRepository: ITenantRepository,
     @Inject(USER_REPOSITORY)
@@ -25,14 +27,21 @@ export class BulkAddRentHistoryUseCase {
     private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
-  async execute(pmId: number, dto: BulkAddRentHistoryDto) {
+  async execute(pmId: number, dto: BulkAddRentHistoryDto, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepository.findByUuid(dto.unitUuid);
     if (!unit) {
       throw new NotFoundException('Unit not found');
     }
 
-    const pm = await this.pmRepo.findById(pmId);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, unit.propertyId, actor);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this unit');
+    }
+
+    const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
+
 
     const results = {
       total: dto.rows.length,

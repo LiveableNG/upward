@@ -41,22 +41,25 @@ export class AssignTenantToUnitUseCase {
     rentType?: string,
     rentStartDate?: Date,
     rentDueDate?: Date,
-    isFullyPaid?: boolean
+    isFullyPaid?: boolean,
+    actor?: any
   ): Promise<void> {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepo.findByUuid(unitUuid);
     if (!unit) throw new NotFoundException('Unit not found');
 
     const property = await this.propertyRepo.findById(unit.propertyId);
     if (!property) throw new NotFoundException('Property not found');
 
-    const hasAccess = await this.propertyRepo.hasAccessToProperty(pmId, property.id);
+    const hasAccess = await this.propertyRepo.hasAccessToProperty(ownerPmId, property.id, actor);
     if (!hasAccess) throw new NotFoundException('Unit not found or unauthorized');
 
     if (tenantUuid) {
       const tenant = await this.tenantRepo.findByUuid(tenantUuid);
-      if (!tenant || (tenant.pmId !== pmId && tenant.pmId !== property.pmId)) {
+      if (!tenant || (tenant.pmId !== ownerPmId && tenant.pmId !== property.pmId)) {
         throw new NotFoundException('Tenant not found');
       }
+
       const effectiveRentAmount = rentAmount !== undefined ? rentAmount : unit.rentAmount;
 
       await this.unitRepo.update(unitUuid, {

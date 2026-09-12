@@ -12,7 +12,8 @@ export class GetTenantUploadedDocumentsUseCase {
     private readonly propertyRepository: IPropertyRepository,
   ) {}
 
-  async execute(pmId: number, unitUuid: string) {
+  async execute(pmId: number, unitUuid: string, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.prisma.upward_pm_unit.findUnique({
       where: { uuid: unitUuid },
     });
@@ -21,10 +22,11 @@ export class GetTenantUploadedDocumentsUseCase {
       throw new NotFoundException('Unit not found');
     }
 
-    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, unit.propertyId);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, unit.propertyId, actor);
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this unit');
     }
+
 
     // Identify UUIDs of PM documents intentionally pushed to vault
     const vaultPmDocuments = await this.prisma.upward_pm_sent_document.findMany({

@@ -17,7 +17,7 @@ export class CreatePropertyUseCase {
     private readonly landlordService: LandlordService,
   ) {}
 
-  async execute(pmId: number, dto: CreatePropertyDto) {
+  async execute(pmId: number, dto: CreatePropertyDto, actor?: any) {
     // Check for duplicate property name for this PM
     const existing = await this.prisma.upward_pm_property.findFirst({
       where: {
@@ -63,6 +63,17 @@ export class CreatePropertyUseCase {
       landlordPhone: dto.landlordPhone || null,
     });
 
+    // If an employee created the property, auto-assign them
+    if (actor?.isEmployee && actor.employeeId) {
+      await (this.prisma as any).upward_pm_employee_property.create({
+        data: {
+          propertyId: property.id,
+          employeeId: actor.employeeId,
+          ownerPmId: pmId,
+        }
+      }).catch(() => null);
+    }
+
     if (dto.collaboratorUuids && dto.collaboratorUuids.length > 0) {
       // 1. Assign employees
       const employees = await (this.prisma as any).upward_pm_employee.findMany({
@@ -77,6 +88,7 @@ export class CreatePropertyUseCase {
             employeeId: e.id,
             ownerPmId: pmId,
           })),
+          skipDuplicates: true,
         });
       }
 
@@ -96,6 +108,7 @@ export class CreatePropertyUseCase {
         });
       }
     }
+
 
 
     await this.activityLog.log({

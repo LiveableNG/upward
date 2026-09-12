@@ -188,6 +188,7 @@ export interface IPmPaymentRequestRepository {
   create(data: Omit<PmPaymentRequestEntity, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<PmPaymentRequestEntity>;
   findByPmId(pmId: number): Promise<PmPaymentRequestEntity[]>;
   findAccessibleByPmId(pmId: number): Promise<PmPaymentRequestEntity[]>;
+  findAccessibleForActor(actor: PmActorContext): Promise<PmPaymentRequestEntity[]>;
   findByUuid(uuid: string): Promise<PmPaymentRequestEntity | null>;
   findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<PmPaymentRequestEntity | null>;
   update(uuid: string, data: Partial<PmPaymentRequestEntity>, tx?: any): Promise<PmPaymentRequestEntity>;
@@ -233,7 +234,9 @@ export interface IPmDocumentRepository {
 
   // Sent Documents
   findSentDocumentsByPmId(pmId: number): Promise<SentDocumentEntity[]>;
+  findSentDocumentsForActor(actor: PmActorContext): Promise<SentDocumentEntity[]>;
   findSentDocumentByUuid(uuid: string): Promise<SentDocumentEntity | null>;
   saveSentDocument(data: Omit<SentDocumentEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<SentDocumentEntity>;
 }
+
 

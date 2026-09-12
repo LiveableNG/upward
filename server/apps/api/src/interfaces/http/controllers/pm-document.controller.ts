@@ -11,6 +11,8 @@ import { SendBulkDocumentUseCase, BulkSendDocumentDto } from '../../../applicati
 import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/documents/generate-document-pdf.use-case';
 import { SendToTenantVaultUseCase } from '../../../application/pm/use-cases/documents/send-to-tenant-vault.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 
 @Controller('pm/documents')
 @UseGuards(JwtAuthGuard)
@@ -24,6 +26,7 @@ export class PmDocumentController {
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
     private readonly sendToVaultUseCase: SendToTenantVaultUseCase,
     private readonly subscriptionService: SubscriptionService,
+    private readonly prisma: PrismaService,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -38,17 +41,42 @@ export class PmDocumentController {
     return pm.id;
   }
 
+  private async getActorContext(req: any): Promise<PmActorContext> {
+    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
+      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+        where: { uuid: req.user.sub },
+        select: { id: true, accessLevel: true }
+      });
+      return {
+        ownerPmId: req.user.ownerPmId,
+        isEmployee: true,
+        employeeId: req.user.employeeId || employee?.id,
+        employeeUuid: req.user.sub,
+        accessLevel: employee?.accessLevel || 'CUSTOM',
+      };
+    }
+    const uuid = req.user?.sub;
+    if (!uuid) throw new UnauthorizedException('Invalid user context');
+    const pm = await this.pmRepository.findByUuid(uuid);
+    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
+    return {
+      ownerPmId: pm.id,
+      isEmployee: false,
+    };
+  }
+
   @Get()
   async getDocuments(@Request() req: any) {
-    const pmId = await this.getPmId(req);
-    return this.getDocumentsUseCase.execute(pmId);
+    const actor = await this.getActorContext(req);
+    return this.getDocumentsUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Get('tenant-uploaded/:unitUuid')
   async getTenantUploadedDocuments(@Request() req: any, @Param('unitUuid') unitUuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.getTenantUploadedDocumentsUseCase.execute(pmId, unitUuid);
+    const actor = await this.getActorContext(req);
+    return this.getTenantUploadedDocumentsUseCase.execute(actor.ownerPmId, unitUuid, actor);
   }
+
 
   @Post('templates')
   @UseGuards(SubscriptionGateGuard)
