@@ -133,6 +133,18 @@ export class UnderpaymentNotificationHandler implements OnModuleInit, OnModuleDe
                   const empLastName = emp.lastName ? (emp.lastName.includes(':') ? this.encryption.decrypt(emp.lastName) : emp.lastName) : ''
                   const empFullName = `${empFirstName} ${empLastName}`.trim() || 'Team Member'
 
+                  await (this.prisma as any).upward_pm_notification.create({
+                    data: {
+                      pmId,
+                      employeeId: emp.id,
+                      title: 'Underpayment Review Required ⚠️',
+                      message: `${tenantName} made an underpayment of ${formattedPaid} (Expected: ${formattedExpected}). Please review to accept or refund.`,
+                      type: 'SYSTEM',
+                      isPopup: true,
+                      url: '/payments',
+                    }
+                  }).catch((err: any) => this.logger.error(`Failed to create employee underpayment notification for ${emp.id}:`, err))
+
                   await this.unifiedCommService.processCommunication({
                     recipientEmail: empEmail,
                     recipientName: empFullName,

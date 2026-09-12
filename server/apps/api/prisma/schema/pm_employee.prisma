@@ -27,6 +27,7 @@ model upward_pm_employee {
   approvalRequests     upward_pm_approval_request[]
   paymentRequests      upward_pm_payment_request[]
   sentDocuments        upward_pm_sent_document[]
+  notifications        upward_pm_notification[]
 
   @@index([ownerPmId])
   @@index([emailHash])

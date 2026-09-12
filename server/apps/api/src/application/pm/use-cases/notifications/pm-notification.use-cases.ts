@@ -5,15 +5,22 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 export class GetPmNotificationsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(pmId: number) {
+  async execute(pmId: number, employeeId?: number) {
+    const whereClause: any = { pmId };
+    if (employeeId !== undefined) {
+      whereClause.employeeId = employeeId;
+    } else {
+      whereClause.employeeId = null;
+    }
+
     const [notifications, unreadCount] = await Promise.all([
-      this.prisma.upward_pm_notification.findMany({
-        where: { pmId },
+      (this.prisma as any).upward_pm_notification.findMany({
+        where: whereClause,
         orderBy: { createdAt: 'desc' },
         take: 50, // Keep list to a reasonable size
       }),
-      this.prisma.upward_pm_notification.count({
-        where: { pmId, isRead: false },
+      (this.prisma as any).upward_pm_notification.count({
+        where: { ...whereClause, isRead: false },
       }),
     ]);
 
@@ -28,16 +35,23 @@ export class GetPmNotificationsUseCase {
 export class MarkPmNotificationReadUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(pmId: number, uuid: string) {
-    const notification = await this.prisma.upward_pm_notification.findFirst({
-      where: { uuid, pmId },
+  async execute(pmId: number, uuid: string, employeeId?: number) {
+    const whereClause: any = { uuid, pmId };
+    if (employeeId !== undefined) {
+      whereClause.employeeId = employeeId;
+    } else {
+      whereClause.employeeId = null;
+    }
+
+    const notification = await (this.prisma as any).upward_pm_notification.findFirst({
+      where: whereClause,
     });
 
     if (!notification) {
       throw new NotFoundException('Notification not found');
     }
 
-    return this.prisma.upward_pm_notification.update({
+    return (this.prisma as any).upward_pm_notification.update({
       where: { id: notification.id },
       data: { isRead: true, popupSeen: true },
     });
@@ -48,9 +62,16 @@ export class MarkPmNotificationReadUseCase {
 export class MarkAllPmNotificationsReadUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(pmId: number) {
-    await this.prisma.upward_pm_notification.updateMany({
-      where: { pmId, isRead: false },
+  async execute(pmId: number, employeeId?: number) {
+    const whereClause: any = { pmId, isRead: false };
+    if (employeeId !== undefined) {
+      whereClause.employeeId = employeeId;
+    } else {
+      whereClause.employeeId = null;
+    }
+
+    await (this.prisma as any).upward_pm_notification.updateMany({
+      where: whereClause,
       data: { isRead: true },
     });
     return { success: true };
@@ -61,21 +82,28 @@ export class MarkAllPmNotificationsReadUseCase {
 export class GetUnreadPmPopupsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(pmId: number) {
-    const popups = await this.prisma.upward_pm_notification.findMany({
-      where: {
-        pmId,
-        isPopup: true,
-        popupSeen: false,
-      },
+  async execute(pmId: number, employeeId?: number) {
+    const whereClause: any = {
+      pmId,
+      isPopup: true,
+      popupSeen: false,
+    };
+    if (employeeId !== undefined) {
+      whereClause.employeeId = employeeId;
+    } else {
+      whereClause.employeeId = null;
+    }
+
+    const popups = await (this.prisma as any).upward_pm_notification.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
     });
 
     if (popups.length > 0) {
       // Mark them as seen so they won't pop up again
-      await this.prisma.upward_pm_notification.updateMany({
+      await (this.prisma as any).upward_pm_notification.updateMany({
         where: {
-          id: { in: popups.map((p) => p.id) },
+          id: { in: popups.map((p: any) => p.id) },
         },
         data: { popupSeen: true },
       });

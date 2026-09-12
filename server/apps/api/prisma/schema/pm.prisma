@@ -397,21 +397,24 @@ model upward_pm_signature {
 }
 
 model upward_pm_notification {
-  id        Int                     @id @default(autoincrement())
-  uuid      String                  @unique @default(uuid())
-  pmId      Int
-  title     String
-  message   String
-  type      String                  @default("SYSTEM")
-  url       String?
-  isRead    Boolean                 @default(false)
-  isPopup   Boolean                 @default(false)
-  popupSeen Boolean                 @default(false)
-  createdAt DateTime                @default(now())
-  updatedAt DateTime                @updatedAt
-  pm        upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  id         Int                     @id @default(autoincrement())
+  uuid       String                  @unique @default(uuid())
+  pmId       Int
+  employeeId Int?
+  title      String
+  message    String
+  type       String                  @default("SYSTEM")
+  url        String?
+  isRead     Boolean                 @default(false)
+  isPopup    Boolean                 @default(false)
+  popupSeen  Boolean                 @default(false)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  pm         upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  employee   upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
+  @@index([employeeId])
   @@index([isRead])
   @@index([createdAt])
 }

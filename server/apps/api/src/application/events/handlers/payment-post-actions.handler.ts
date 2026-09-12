@@ -165,6 +165,20 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                           const empLastName = emp.lastName ? this.encryption.decrypt(emp.lastName) : '';
                           const empFullName = `${empFirstName} ${empLastName}`.trim() || 'Team Member';
 
+                          await (this.prisma as any).upward_pm_notification.create({
+                            data: {
+                              pmId: prop.pmId,
+                              employeeId: emp.id,
+                              title: 'Payment Received',
+                              message: `Tenant ${tenantName} completed payment of NGN ${amount.toLocaleString()} for Unit ${unitName} at ${propertyName}.`,
+                              type: 'PAYMENT_COMPLETED',
+                              isPopup: true,
+                              url: data.paymentRequestUuid ? `/payments/${data.paymentRequestUuid}` : '/payments',
+                            }
+                          }).catch((err: any) => {
+                            this.logger.error(`Failed to create in-app notification for employee ${emp.id}:`, err);
+                          });
+
                           await this.unifiedCommService.processCommunication({
                             recipientEmail: empEmail,
                             recipientName: empFullName,
