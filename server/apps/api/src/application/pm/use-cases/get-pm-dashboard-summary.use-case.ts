@@ -54,6 +54,7 @@ export class GetPmDashboardSummaryUseCase {
 
     // Determine user role (Admin vs Employee)
     const isCompanyAdmin = !isEmployee;
+    let effectiveEmployeeId: number | null = null;
 
     let accessiblePropertyIds: number[] = [];
 
@@ -71,6 +72,10 @@ export class GetPmDashboardSummaryUseCase {
       accessiblePropertyIds = assignedProps.map((ap: any) => ap.propertyId);
     }
 
+    if (isEmployee && employeeId) {
+      effectiveEmployeeId = employeeId;
+    }
+
     // Handle Manager Filter (if Admin filters by specific Manager)
     let filteredManagerName = null;
     if (isCompanyAdmin && managerUuid) {
@@ -80,6 +85,7 @@ export class GetPmDashboardSummaryUseCase {
       });
 
       if (targetEmployee) {
+        effectiveEmployeeId = targetEmployee.id;
         const fn = targetEmployee.firstName ? this.encryption.decrypt(targetEmployee.firstName) : '';
         const ln = targetEmployee.lastName ? this.encryption.decrypt(targetEmployee.lastName) : '';
         filteredManagerName = `${fn} ${ln}`.trim() || 'Team Manager';
@@ -146,7 +152,7 @@ export class GetPmDashboardSummaryUseCase {
     const vacantUnits = units.filter(u => u.status === 'VACANT').length;
     const occupiedUnits = units.filter(u => u.status === 'OCCUPIED').length;
 
-    // 7. Fetch all recorded rent payments (actual collections)
+    // 7. Fetch all recorded rent payments (actual collections for accessible properties)
     const rentPayments = accessiblePropertyIds.length > 0
       ? await this.prisma.upward_pm_rent_payment.findMany({
           where: {
@@ -161,7 +167,7 @@ export class GetPmDashboardSummaryUseCase {
         })
       : [];
 
-    // 8. Fetch payment requests
+    // 8. Fetch payment requests for accessible properties
     const paymentRequests = accessiblePropertyIds.length > 0
       ? await (this.prisma as any).upward_pm_payment_request.findMany({
           where: {
@@ -272,12 +278,12 @@ export class GetPmDashboardSummaryUseCase {
     // Combine completed payments from rentPayments and any standalone paid payment requests
     const rentPaymentUuids = new Set(mappedRentPayments.map(p => p.uuid));
     const standalonePaidRequests = mappedRequests.filter((r: any) => r.status === 'PAID' && !rentPaymentUuids.has(r.uuid));
-    let completedPayments = [...mappedRentPayments, ...standalonePaidRequests]
+    let completedPayments: any[] = [...mappedRentPayments, ...standalonePaidRequests]
       .sort((a, b) => new Date(b.paymentDate || b.updatedAt || b.createdAt).getTime() - new Date(a.paymentDate || a.updatedAt || a.createdAt).getTime());
 
     // Filter completed payments by payment date if date filters applied
     if (filterStart || filterEnd) {
-      completedPayments = completedPayments.filter(p => {
+      completedPayments = completedPayments.filter((p: any) => {
         const d = new Date(p.paymentDate || p.updatedAt || p.createdAt);
         if (filterStart && d < filterStart) return false;
         if (filterEnd && d > filterEnd) return false;

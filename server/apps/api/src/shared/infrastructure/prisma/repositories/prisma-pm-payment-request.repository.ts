@@ -229,22 +229,31 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   }
 
   async findAccessibleForActor(actor: any): Promise<PmPaymentRequestEntity[]> {
-    if (!actor || !actor.isEmployee || actor.accessLevel === 'ALL') {
+    if (!actor || !actor.isEmployee) {
       const pmId = actor?.ownerPmId || actor;
       return this.findByPmId(pmId);
     }
 
     if (!actor.employeeId) return [];
 
-    const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
-      where: {
-        employeeId: actor.employeeId,
-        ownerPmId: actor.ownerPmId,
-      },
-      select: { propertyId: true },
-    });
+    let propertyIds: number[] = [];
+    if (actor.accessLevel === 'ALL') {
+      const ownedProps = await this.prisma.upward_pm_property.findMany({
+        where: { pmId: actor.ownerPmId },
+        select: { id: true },
+      });
+      propertyIds = ownedProps.map(p => p.id);
+    } else {
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+      propertyIds = assignedLinks.map((al: any) => al.propertyId);
+    }
 
-    const propertyIds = assignedLinks.map((al: any) => al.propertyId);
     if (propertyIds.length === 0) return [];
 
     const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
@@ -269,92 +278,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       orderBy: { createdAt: 'desc' },
     });
 
-    const mappedPmRequests = requests.map((pr: any) => this.mapPmPaymentRequest(pr));
-
-    const manualRequests = await (this.prisma as any).upward_payment_request.findMany({
-      where: {
-        isManual: true,
-        userProperty: {
-          pmUnit: {
-            propertyId: { in: propertyIds },
-            property: { pmId: actor.ownerPmId }
-          }
-        }
-      },
-      include: {
-        userProperty: {
-          include: {
-            pmUnit: { include: { property: true, tenant: true } }
-          }
-        },
-        lineItemRecords: true,
-        transactions: {
-          where: { status: 'SUCCESS' },
-          orderBy: { createdAt: 'desc' }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const mappedManualRequests = manualRequests.map((pr: any) => {
-      const pmUnit = pr.userProperty?.pmUnit;
-      const pmTenant = pmUnit?.tenant;
-
-      return {
-        uuid: pr.uuid,
-        amount: pr.amount,
-        currency: pr.currency,
-        description: pr.description || 'Self Payment',
-        dueDate: pr.dueDate,
-        status: pr.status,
-        amountPaid: pr.amountPaid,
-        createdAt: pr.createdAt,
-        updatedAt: pr.updatedAt,
-        pmId: pmUnit?.property?.pmId || actor.ownerPmId,
-        unitId: pmUnit?.id || null,
-        tenantId: pmTenant?.id || null,
-        isSelfPayment: true,
-        coreRequestUuid: pr.uuid,
-        
-        unit: pmUnit ? {
-          ...pmUnit,
-          property: pmUnit.property
-        } : null,
-        
-        tenant: pmTenant ? {
-          id: pmTenant.id,
-          uuid: pmTenant.uuid,
-          pmId: pmTenant.pmId,
-          firstName: pmTenant.firstNameEncrypted ? this.encryption.decrypt(pmTenant.firstNameEncrypted) : null,
-          lastName: pmTenant.lastNameEncrypted ? this.encryption.decrypt(pmTenant.lastNameEncrypted) : null,
-          commercialName: pmTenant.commercialNameEncrypted ? this.encryption.decrypt(pmTenant.commercialNameEncrypted) : null,
-          email: pmTenant.emailEncrypted ? this.encryption.decrypt(pmTenant.emailEncrypted) : null,
-          phone: pmTenant.phoneEncrypted ? this.encryption.decrypt(pmTenant.phoneEncrypted) : null,
-          inviteStatus: pmTenant.inviteStatus,
-          inviteSentAt: pmTenant.inviteSentAt
-        } : null,
-
-        lineItems: pr.lineItemRecords?.map((li: any) => ({
-          name: li.name,
-          amount: li.totalAmount,
-          amountPaid: li.amountPaid || 0,
-          status: li.status || 'PENDING',
-        })) || [],
-
-        transactions: pr.transactions?.map((tx: any) => ({
-          uuid: tx.uuid,
-          amount: tx.amount,
-          status: tx.status,
-          method: tx.method || 'Bank Transfer',
-          createdAt: tx.createdAt,
-          reference: tx.reference
-        })) || []
-      } as any;
-    });
-
-    const allRequests = [...mappedPmRequests, ...mappedManualRequests];
-    allRequests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    return allRequests;
+    return requests.map((pr: any) => this.mapPmPaymentRequest(pr));
   }
 
 
