@@ -64,21 +64,39 @@ export class CreatePropertyUseCase {
     });
 
     if (dto.collaboratorUuids && dto.collaboratorUuids.length > 0) {
-        const collaborators = await (this.prisma as any).upward_property_manager.findMany({
-            where: { uuid: { in: dto.collaboratorUuids } },
-            select: { id: true }
-        });
+      // 1. Assign employees
+      const employees = await (this.prisma as any).upward_pm_employee.findMany({
+        where: { uuid: { in: dto.collaboratorUuids }, ownerPmId: pmId },
+        select: { id: true },
+      });
 
-        if (collaborators.length > 0) {
-            await (this.prisma as any).upward_pm_property_collaboration.createMany({
-                data: collaborators.map((c: any) => ({
-                    propertyId: property.id,
-                    collaboratorPmId: c.id,
-                    ownerPmId: pmId
-                }))
-            });
-        }
+      if (employees.length > 0) {
+        await (this.prisma as any).upward_pm_employee_property.createMany({
+          data: employees.map((e: any) => ({
+            propertyId: property.id,
+            employeeId: e.id,
+            ownerPmId: pmId,
+          })),
+        });
+      }
+
+      // 2. Fallback legacy PM collaborators
+      const collaborators = await (this.prisma as any).upward_property_manager.findMany({
+        where: { uuid: { in: dto.collaboratorUuids } },
+        select: { id: true },
+      });
+
+      if (collaborators.length > 0) {
+        await (this.prisma as any).upward_pm_property_collaboration.createMany({
+          data: collaborators.map((c: any) => ({
+            propertyId: property.id,
+            collaboratorPmId: c.id,
+            ownerPmId: pmId,
+          })),
+        });
+      }
     }
+
 
     await this.activityLog.log({
         pmId,

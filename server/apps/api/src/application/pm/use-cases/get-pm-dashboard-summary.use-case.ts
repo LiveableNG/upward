@@ -44,72 +44,52 @@ export class GetPmDashboardSummaryUseCase {
     return 1;
   }
 
-  async execute(pmId: number, query: any = {}) {
+  async execute(pmId: number, query: any = {}, actor?: any) {
     const { startDate, endDate, managerUuid, propertyUuid } = query || {};
 
-    // 1. Get owned property IDs
-    const ownedProps = await this.prisma.upward_pm_property.findMany({
-      where: { pmId },
-      select: { id: true, uuid: true, name: true }
-    });
-    const ownedPropertyIds = ownedProps.map(p => p.id);
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+    const isEmployee = actor ? actor.isEmployee : false;
+    const employeeId = actor?.employeeId;
+    const accessLevel = actor?.accessLevel;
 
-    // 2. Get team collaborations (ALL access)
-    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
-      where: { collaboratorPmId: pmId, status: 'ACCEPTED', accessLevel: 'ALL' },
-      select: { ownerPmId: true }
-    });
-    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+    // Determine user role (Admin vs Employee)
+    const isCompanyAdmin = !isEmployee;
 
-    const collabOwnerProps = ownerPmIds.length > 0 ? await this.prisma.upward_pm_property.findMany({
-      where: { pmId: { in: ownerPmIds } },
-      select: { id: true, uuid: true, name: true }
-    }) : [];
-    const collabOwnerPropertyIds = collabOwnerProps.map(p => p.id);
+    let accessiblePropertyIds: number[] = [];
 
-    // 3. Get custom property collaborations
-    const propCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
-      where: { collaboratorPmId: pmId },
-      select: { propertyId: true }
-    });
-    const customCollabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
-
-    // Consolidated list of accessible property IDs
-    let accessiblePropertyIds = Array.from(new Set([
-      ...ownedPropertyIds,
-      ...collabOwnerPropertyIds,
-      ...customCollabPropertyIds
-    ]));
-
-    // Determine user role (Admin vs Manager)
-    const isCompanyAdmin = ownedProps.length > 0 || ownerPmIds.length === 0;
+    if (!isEmployee || accessLevel === 'ALL') {
+      const ownedProps = await this.prisma.upward_pm_property.findMany({
+        where: { pmId: ownerPmId },
+        select: { id: true, uuid: true, name: true }
+      });
+      accessiblePropertyIds = ownedProps.map(p => p.id);
+    } else if (isEmployee && employeeId) {
+      const assignedProps = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: { employeeId, ownerPmId },
+        select: { propertyId: true }
+      });
+      accessiblePropertyIds = assignedProps.map((ap: any) => ap.propertyId);
+    }
 
     // Handle Manager Filter (if Admin filters by specific Manager)
     let filteredManagerName = null;
     if (isCompanyAdmin && managerUuid) {
-      const targetManager = await (this.prisma as any).upward_property_manager.findUnique({
-        where: { uuid: managerUuid },
-        select: { id: true, firstName: true, lastName: true, businessName: true }
+      const targetEmployee = await (this.prisma as any).upward_pm_employee.findFirst({
+        where: { uuid: managerUuid, ownerPmId },
+        select: { id: true, firstName: true, lastName: true, accessLevel: true }
       });
 
-      if (targetManager) {
-        filteredManagerName = `${this.encryption.decrypt(targetManager.firstName) || ''} ${this.encryption.decrypt(targetManager.lastName) || ''}`.trim() || targetManager.businessName;
-        // Get custom property collabs for this manager
-        const managerPropCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
-          where: { collaboratorPmId: targetManager.id, ownerPmId: pmId },
-          select: { propertyId: true }
-        });
-        const managerPropIds = managerPropCollabs.map((pc: any) => pc.propertyId);
+      if (targetEmployee) {
+        const fn = targetEmployee.firstName ? this.encryption.decrypt(targetEmployee.firstName) : '';
+        const ln = targetEmployee.lastName ? this.encryption.decrypt(targetEmployee.lastName) : '';
+        filteredManagerName = `${fn} ${ln}`.trim() || 'Team Manager';
 
-        // Check if manager has ALL access
-        const managerTeamCollab = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
-          where: { collaboratorPmId: targetManager.id, ownerPmId: pmId, status: 'ACCEPTED' },
-          select: { accessLevel: true }
-        });
-
-        if (managerTeamCollab?.accessLevel === 'ALL') {
-          // Keep all owned property IDs
-        } else {
+        if (targetEmployee.accessLevel !== 'ALL') {
+          const managerPropLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+            where: { employeeId: targetEmployee.id, ownerPmId },
+            select: { propertyId: true }
+          });
+          const managerPropIds = managerPropLinks.map((pc: any) => pc.propertyId);
           accessiblePropertyIds = accessiblePropertyIds.filter(id => managerPropIds.includes(id));
         }
       }
@@ -123,37 +103,43 @@ export class GetPmDashboardSummaryUseCase {
       });
       if (targetProp && accessiblePropertyIds.includes(targetProp.id)) {
         accessiblePropertyIds = [targetProp.id];
+      } else {
+        accessiblePropertyIds = [];
       }
     }
 
     // 4. Fetch all properties to compute propertyCount and top 3 properties
-    const allAccessibleProperties = await this.prisma.upward_pm_property.findMany({
-      where: { id: { in: accessiblePropertyIds } },
-      orderBy: { createdAt: 'desc' }
-    });
+    const allAccessibleProperties = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_property.findMany({
+          where: { id: { in: accessiblePropertyIds } },
+          orderBy: { createdAt: 'desc' }
+        })
+      : [];
 
     const propertiesCount = allAccessibleProperties.length;
 
     // 5. Fetch all units for these properties
-    const units = await this.prisma.upward_pm_unit.findMany({
-      where: { propertyId: { in: accessiblePropertyIds } },
-      include: {
-        tenant: true
-      }
-    });
+    const units = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_unit.findMany({
+          where: { propertyId: { in: accessiblePropertyIds } },
+          include: {
+            tenant: true
+          }
+        })
+      : [];
 
     const totalUnits = units.length;
 
     // 6. Fetch all tenants accessible
-    const tenants = await this.prisma.upward_pm_tenant.findMany({
-      where: {
-        OR: [
-          { pmId },
-          { pmId: { in: ownerPmIds } },
-          { units: { some: { propertyId: { in: accessiblePropertyIds } } } }
-        ]
-      }
-    });
+    const tenants = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_tenant.findMany({
+          where: {
+            pmId: ownerPmId,
+            units: { some: { propertyId: { in: accessiblePropertyIds } } }
+          }
+        })
+      : [];
+
 
     const activeTenantsCount = tenants.filter(t => t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED').length;
     const pendingInvites = tenants.filter(t => t.inviteStatus === 'PENDING' || t.inviteStatus === 'SENT').length;

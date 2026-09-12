@@ -48,6 +48,8 @@ import { CreatePmLandlordDto } from '../../../application/pm/dtos/landlord.dto';
 import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase, GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
 import { ResolvePendingRefundUseCase, RefundResolutionAction } from '../../../application/pm/use-cases/payments/resolve-refund.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
 @Controller('pm')
@@ -99,6 +101,7 @@ export class PmPropertyController {
     private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
     private readonly getPmUnresolvedTransactionsUseCase: GetPmUnresolvedTransactionsUseCase,
     private readonly resolvePendingRefundUseCase: ResolvePendingRefundUseCase,
+    private readonly prisma: PrismaService,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -111,6 +114,30 @@ export class PmPropertyController {
     const pm = await this.pmRepository.findByUuid(uuid);
     if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
     return pm.id;
+  }
+
+  private async getActorContext(req: any): Promise<PmActorContext> {
+    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
+      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+        where: { uuid: req.user.sub },
+        select: { id: true, accessLevel: true }
+      });
+      return {
+        ownerPmId: req.user.ownerPmId,
+        isEmployee: true,
+        employeeId: req.user.employeeId || employee?.id,
+        employeeUuid: req.user.sub,
+        accessLevel: employee?.accessLevel || 'CUSTOM',
+      };
+    }
+    const uuid = req.user?.sub;
+    if (!uuid) throw new UnauthorizedException('Invalid user context');
+    const pm = await this.pmRepository.findByUuid(uuid);
+    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
+    return {
+      ownerPmId: pm.id,
+      isEmployee: false,
+    };
   }
 
   @Post('units/:unitUuid/payments/bulk')
@@ -131,32 +158,32 @@ export class PmPropertyController {
 
   @Patch('properties/:propertyUuid')
   async updateProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string, @Body() dto: UpdatePropertyDto) {
-    const pmId = await this.getPmId(req);
-    return this.updatePropertyUseCase.execute(pmId, propertyUuid, dto);
+    const actor = await this.getActorContext(req);
+    return this.updatePropertyUseCase.execute(actor.ownerPmId, propertyUuid, dto, actor);
   }
 
   @Delete('properties/:propertyUuid')
   async deleteProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.deletePropertyUseCase.execute(pmId, propertyUuid);
+    const actor = await this.getActorContext(req);
+    return this.deletePropertyUseCase.execute(actor.ownerPmId, propertyUuid, actor);
   }
 
   @Get('dashboard/summary')
   async getDashboardSummary(@Req() req: any, @Query() query: any) {
-    const pmId = await this.getPmId(req);
-    return this.getPmDashboardSummaryUseCase.execute(pmId, query);
+    const actor = await this.getActorContext(req);
+    return this.getPmDashboardSummaryUseCase.execute(actor.ownerPmId, query, actor);
   }
 
   @Get('properties')
   async getProperties(@Req() req: any) {
-    const pmId = await this.getPmId(req);
-    return this.getPmPropertiesUseCase.execute(pmId);
+    const actor = await this.getActorContext(req);
+    return this.getPmPropertiesUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Get('properties/:propertyUuid')
   async getProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.getPmPropertyUseCase.execute(pmId, propertyUuid);
+    const actor = await this.getActorContext(req);
+    return this.getPmPropertyUseCase.execute(actor.ownerPmId, propertyUuid, actor);
   }
 
   @Post('units/bulk')
@@ -173,8 +200,8 @@ export class PmPropertyController {
 
   @Get('units')
   async getUnits(@Req() req: any, @Query('propertyUuid') propertyUuid?: string) {
-    const pmId = await this.getPmId(req);
-    return this.getPmUnitsUseCase.execute(pmId, propertyUuid);
+    const actor = await this.getActorContext(req);
+    return this.getPmUnitsUseCase.execute(actor.ownerPmId, propertyUuid, actor);
   }
 
   @Get('units/:unitUuid')
@@ -185,15 +212,16 @@ export class PmPropertyController {
 
   @Patch('units/:unitUuid')
   async updateUnit(@Req() req: any, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
-    const pmId = await this.getPmId(req);
-    return this.updateUnitUseCase.execute(pmId, unitUuid, dto);
+    const actor = await this.getActorContext(req);
+    return this.updateUnitUseCase.execute(actor.ownerPmId, unitUuid, dto, actor);
   }
 
   @Delete('units/:unitUuid')
   async deleteUnit(@Req() req: any, @Param('unitUuid') unitUuid: string) {
-    const pmId = await this.getPmId(req);
-    return this.deleteUnitUseCase.execute(pmId, unitUuid);
+    const actor = await this.getActorContext(req);
+    return this.deleteUnitUseCase.execute(actor.ownerPmId, unitUuid, actor);
   }
+
 
   @Get('units/:unitUuid/payments')
   async getUnitPayments(@Req() req: any, @Param('unitUuid') unitUuid: string) {

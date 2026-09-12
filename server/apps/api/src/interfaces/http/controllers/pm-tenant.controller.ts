@@ -13,6 +13,8 @@ import { GetPendingJoinRequestsUseCase } from '../../../application/pm/use-cases
 import { DismissJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/dismiss-join-request.use-case';
 import { ResolveDuplicateJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/resolve-duplicate-join-request.use-case';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 
 @Controller('pm/tenants')
 @UseGuards(JwtAuthGuard)
@@ -30,6 +32,7 @@ export class PmTenantController {
     private readonly getPendingJoinRequestsUseCase: GetPendingJoinRequestsUseCase,
     private readonly dismissJoinRequestUseCase: DismissJoinRequestUseCase,
     private readonly resolveDuplicateJoinRequestUseCase: ResolveDuplicateJoinRequestUseCase,
+    private readonly prisma: PrismaService,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -44,6 +47,30 @@ export class PmTenantController {
     return pm.id;
   }
 
+  private async getActorContext(req: any): Promise<PmActorContext> {
+    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
+      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+        where: { uuid: req.user.sub },
+        select: { id: true, accessLevel: true }
+      });
+      return {
+        ownerPmId: req.user.ownerPmId,
+        isEmployee: true,
+        employeeId: req.user.employeeId || employee?.id,
+        employeeUuid: req.user.sub,
+        accessLevel: employee?.accessLevel || 'CUSTOM',
+      };
+    }
+    const uuid = req.user?.sub;
+    if (!uuid) throw new UnauthorizedException('Invalid user context');
+    const pm = await this.pmRepository.findByUuid(uuid);
+    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
+    return {
+      ownerPmId: pm.id,
+      isEmployee: false,
+    };
+  }
+
   @Get('lookup-user')
   async lookupUser(@Query('email') email?: string, @Query('phone') phone?: string) {
     return this.lookupUserUseCase.execute({ email, phone });
@@ -51,9 +78,10 @@ export class PmTenantController {
 
   @Get()
   async getTenants(@Req() req: any) {
-    const pmId = await this.getPmId(req);
-    return this.getPmTenantsUseCase.execute(pmId);
+    const actor = await this.getActorContext(req);
+    return this.getPmTenantsUseCase.execute(actor.ownerPmId, actor);
   }
+
 
   @Get('join-requests')
   async getJoinRequests(@Req() req: any) {

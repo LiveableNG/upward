@@ -1,3 +1,5 @@
+import { PmActorContext } from './types/pm-actor-context';
+
 export const PM_PROPERTY_REPOSITORY = Symbol('PM_PROPERTY_REPOSITORY');
 export const PM_UNIT_REPOSITORY = Symbol('PM_UNIT_REPOSITORY');
 export const PM_PAYMENT_REQUEST_REPOSITORY = Symbol('PM_PAYMENT_REQUEST_REPOSITORY');
@@ -90,9 +92,10 @@ export interface IPropertyRepository {
   create(data: Omit<PropertyEntity, 'id' | 'uuid'>): Promise<PropertyEntity>;
   findByPmId(pmId: number): Promise<PropertyEntity[]>;
   findAccessibleByPmId(pmId: number): Promise<PropertyEntity[]>;
+  findAccessibleForActor(actor: PmActorContext): Promise<PropertyEntity[]>;
   findById(id: number): Promise<PropertyEntity | null>;
   findByUuid(uuid: string): Promise<PropertyEntity | null>;
-  hasAccessToProperty(pmId: number, propertyId: number): Promise<boolean>;
+  hasAccessToProperty(pmId: number, propertyId: number, actor?: PmActorContext): Promise<boolean>;
   update(uuid: string, data: Partial<Omit<PropertyEntity, 'id' | 'uuid' | 'pmId'>>): Promise<PropertyEntity>;
   delete(uuid: string): Promise<boolean>;
 }
@@ -121,6 +124,7 @@ export interface IUnitRepository {
   findByUuid(uuid: string): Promise<UnitEntity | null>;
   findByPmId(pmId: number): Promise<UnitEntity[]>;
   findAccessibleByPmId(pmId: number): Promise<UnitEntity[]>;
+  findAccessibleForActor(actor: PmActorContext): Promise<UnitEntity[]>;
   update(uuid: string, data: Partial<Omit<UnitEntity, 'id' | 'uuid' | 'propertyId'>>): Promise<UnitEntity>;
   delete(uuid: string): Promise<boolean>;
   
@@ -136,6 +140,7 @@ export const PM_TENANT_REPOSITORY = Symbol('PM_TENANT_REPOSITORY');
 export interface ITenantRepository {
   findByPmId(pmId: number): Promise<TenantEntity[]>;
   findAccessibleByPmId(pmId: number): Promise<TenantEntity[]>;
+  findAccessibleForActor(actor: PmActorContext): Promise<TenantEntity[]>;
   findById(id: number): Promise<TenantEntity | null>;
   findByUuid(uuid: string): Promise<TenantEntity | null>;
   findByUuids(uuids: string[]): Promise<TenantEntity[]>;
@@ -144,6 +149,7 @@ export interface ITenantRepository {
   create(data: Omit<TenantEntity, 'id' | 'uuid'>): Promise<TenantEntity>;
   update(uuid: string, data: Partial<Omit<TenantEntity, 'id' | 'uuid' | 'pmId'>>): Promise<TenantEntity>;
 }
+
 
 export interface PmPaymentRequestEntity {
   id: number;

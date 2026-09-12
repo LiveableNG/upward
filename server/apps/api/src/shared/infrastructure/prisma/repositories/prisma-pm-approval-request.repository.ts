@@ -18,7 +18,8 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
 
   async create(input: CreateApprovalRequestInput): Promise<ApprovalRequest> {
     const data: any = {
-      requesterPmId: input.requesterPmId,
+      requesterPmId: input.requesterPmId || null,
+      requesterEmployeeId: input.requesterEmployeeId || null,
       ownerPmId: input.ownerPmId,
       type: input.type,
       propertyUuid: input.propertyUuid,
@@ -38,16 +39,34 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
 
     // Create In-App Notification & Send Email to Admin Owner
     try {
-      const requester = await this.prisma.upward_property_manager.findUnique({
-        where: { id: input.requesterPmId },
-        select: { firstName: true, email: true }
-      });
+      let requesterName = 'A team manager';
+      if (input.requesterEmployeeId) {
+        const emp = await (this.prisma as any).upward_pm_employee.findUnique({
+          where: { id: input.requesterEmployeeId },
+          select: { firstName: true, lastName: true, email: true }
+        });
+        if (emp) {
+          const fn = emp.firstName ? this.encryption.decrypt(emp.firstName) : '';
+          const ln = emp.lastName ? this.encryption.decrypt(emp.lastName) : '';
+          requesterName = `${fn} ${ln}`.trim() || (emp.email ? this.encryption.decrypt(emp.email) : 'A team manager');
+        }
+      } else if (input.requesterPmId) {
+        const requester = await this.prisma.upward_property_manager.findUnique({
+          where: { id: input.requesterPmId },
+          select: { firstName: true, lastName: true, email: true }
+        });
+        if (requester) {
+          const fn = requester.firstName ? this.encryption.decrypt(requester.firstName) : '';
+          const ln = requester.lastName ? this.encryption.decrypt(requester.lastName) : '';
+          requesterName = `${fn} ${ln}`.trim() || (requester.email ? this.encryption.decrypt(requester.email) : 'A team manager');
+        }
+      }
+
       const owner = await this.prisma.upward_property_manager.findUnique({
         where: { id: input.ownerPmId },
         select: { firstName: true, email: true }
       });
 
-      const requesterName = requester?.firstName ? this.encryption.decrypt(requester.firstName) : (requester?.email ? this.encryption.decrypt(requester.email) : 'A team manager');
       const ownerEmail = owner?.email ? this.encryption.decrypt(owner.email) : null;
       const isUnit = input.type.includes('UNIT');
       const itemLabel = isUnit ? `Unit ${input.unitName || ''}` : `Property ${input.propertyName || ''}`;
@@ -56,14 +75,14 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
       const notifTitle = 'Pending Approval Request';
       const notifMsg = `${requesterName} submitted a request to ${actionLabel} ${itemLabel.trim()}.`;
 
-      // 1. In-App Popup Notification
+      // 1. In-App Popup Notification to Admin
       await this.prisma.upward_pm_notification.create({
         data: {
           pmId: input.ownerPmId,
           title: notifTitle,
           message: notifMsg,
           type: 'APPROVAL_REQUEST',
-          isPopup: true, // Shows popup modal when opening app
+          isPopup: true,
           url: '/settings?tab=approvals',
         }
       });
@@ -105,6 +124,15 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
             lastName: true,
             email: true
           }
+        },
+        requesterEmployee: {
+          select: {
+            uuid: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            jobTitle: true
+          }
         }
       }
     });
@@ -124,6 +152,15 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
             lastName: true,
             email: true
           }
+        },
+        requesterEmployee: {
+          select: {
+            uuid: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            jobTitle: true
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -138,16 +175,49 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
       data: {
         status,
         rejectionReason: rejectionReason || null
+      },
+      include: {
+        requesterPm: {
+          select: {
+            uuid: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        requesterEmployee: {
+          select: {
+            uuid: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            jobTitle: true
+          }
+        }
       }
     });
 
-    // Create In-App Notification & Send Email to Manager Requester
+    // Create Notification & Send Email to Requester
     try {
-      const requester = await this.prisma.upward_property_manager.findUnique({
-        where: { id: record.requesterPmId },
-        select: { firstName: true, email: true }
-      });
-      const requesterEmail = requester?.email ? this.encryption.decrypt(requester.email) : null;
+      let requesterEmail: string | null = null;
+      if (record.requesterEmployee) {
+        requesterEmail = record.requesterEmployee.email ? this.encryption.decrypt(record.requesterEmployee.email) : null;
+      } else if (record.requesterPm) {
+        requesterEmail = record.requesterPm.email ? this.encryption.decrypt(record.requesterPm.email) : null;
+      } else if (record.requesterPmId) {
+        const requester = await this.prisma.upward_property_manager.findUnique({
+          where: { id: record.requesterPmId },
+          select: { email: true }
+        });
+        requesterEmail = requester?.email ? this.encryption.decrypt(requester.email) : null;
+      } else if (record.requesterEmployeeId) {
+        const emp = await (this.prisma as any).upward_pm_employee.findUnique({
+          where: { id: record.requesterEmployeeId },
+          select: { email: true }
+        });
+        requesterEmail = emp?.email ? this.encryption.decrypt(emp.email) : null;
+      }
+
       const isUnit = record.type.includes('UNIT');
       const itemLabel = isUnit ? `Unit ${record.unitName || ''}` : `Property ${record.propertyName || ''}`;
       const actionLabel = record.type.startsWith('EDIT') ? 'edit' : 'delete';
@@ -155,19 +225,21 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
       const notifTitle = `Approval Request ${status === 'APPROVED' ? 'Approved' : 'Rejected'}`;
       const notifMsg = `Your request to ${actionLabel} ${itemLabel.trim()} was ${status.toLowerCase()}.${status === 'REJECTED' && rejectionReason ? ` Reason: ${rejectionReason}` : ''}`;
 
-      // 1. In-App Popup Notification
-      await this.prisma.upward_pm_notification.create({
-        data: {
-          pmId: record.requesterPmId,
-          title: notifTitle,
-          message: notifMsg,
-          type: 'APPROVAL_RESULT',
-          isPopup: true, // Shows popup modal when opening app
-          url: '/settings?tab=approvals',
-        }
-      });
+      // In-App Notification if requester was PM
+      if (record.requesterPmId) {
+        await this.prisma.upward_pm_notification.create({
+          data: {
+            pmId: record.requesterPmId,
+            title: notifTitle,
+            message: notifMsg,
+            type: 'APPROVAL_RESULT',
+            isPopup: true,
+            url: '/settings?tab=approvals',
+          }
+        });
+      }
 
-      // 2. Email Notification to Manager
+      // Email Notification to Requester (Employee or PM)
       if (requesterEmail && this.emailService) {
         const html = `
           <div style="font-family: system-ui, -apple-system, sans-serif; padding: 24px; color: #111827;">
@@ -175,16 +247,16 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
             <p>Hello,</p>
             <p>Your request to <strong>${actionLabel}</strong> ${itemLabel.trim()} has been <strong>${status.toLowerCase()}</strong> by your company Admin.</p>
             ${status === 'REJECTED' && rejectionReason ? `<p style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px; border-radius: 6px;"><strong>Reason:</strong> ${rejectionReason}</p>` : ''}
-            <p>You can view your approval history in your Upward PM settings dashboard.</p>
-            <a href="https://pm.upward.ng/settings?tab=approvals" style="display: inline-block; background: #166534; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-top: 12px;">View Approvals</a>
+            <p>You can view your approval status in your Upward PM portal.</p>
+            <a href="https://pm.upward.ng/properties" style="display: inline-block; background: #166534; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-top: 12px;">View Portfolio</a>
           </div>
         `;
         this.emailService.sendGenericEmail(requesterEmail, `Approval Request ${status}: ${itemLabel.trim()}`, html).catch(err => {
-          console.error('Failed to send approval result email to manager:', err);
+          console.error('Failed to send approval result email to requester:', err);
         });
       }
     } catch (err) {
-      console.error('Failed to create manager notification for approval resolution:', err);
+      console.error('Failed to handle notifications for approval resolution:', err);
     }
 
     return this.mapToDomain(record);
@@ -201,11 +273,23 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
       };
     }
 
+    let requesterEmployee = undefined;
+    if (record.requesterEmployee) {
+      requesterEmployee = {
+        uuid: record.requesterEmployee.uuid,
+        firstName: record.requesterEmployee.firstName ? this.encryption.decrypt(record.requesterEmployee.firstName) : '',
+        lastName: record.requesterEmployee.lastName ? this.encryption.decrypt(record.requesterEmployee.lastName) : '',
+        email: record.requesterEmployee.email ? this.encryption.decrypt(record.requesterEmployee.email) : '',
+        jobTitle: record.requesterEmployee.jobTitle || 'Property Officer',
+      };
+    }
+
     return {
       id: record.id,
       uuid: record.uuid,
       ownerPmId: record.ownerPmId,
       requesterPmId: record.requesterPmId,
+      requesterEmployeeId: record.requesterEmployeeId,
       propertyUuid: record.propertyUuid,
       propertyName: record.propertyName,
       unitUuid: record.unitUuid || record.payload?.unitUuid || null,
@@ -216,7 +300,9 @@ export class PrismaPmApprovalRequestRepository implements IApprovalRequestReposi
       rejectionReason: record.rejectionReason,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
-      requesterPm
+      requesterPm,
+      requesterEmployee
     };
   }
 }
+
