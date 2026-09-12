@@ -30,7 +30,7 @@ const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.i
 export default function ClaimAccountPage() {
   const { uuid } = useParams()
   const router = useRouter()
-  const { login: setAuthUser } = useAuth()
+  const { user, isLoggedIn, login: setAuthUser } = useAuth()
   const queryClient = useQueryClient()
   const { success, error } = useToast()
 
@@ -45,6 +45,7 @@ export default function ClaimAccountPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   useEffect(() => {
     async function fetchUser() {
@@ -81,6 +82,7 @@ export default function ClaimAccountPage() {
     if (!password) return error('Please enter a password')
     if (password !== confirmPassword) return error('Passwords do not match')
     if (password.length < 6) return error('Password must be at least 6 characters')
+    if (!termsAgreed) return error('Please accept the Terms of Use and Privacy Policy')
 
     setClaiming(true)
     try {
@@ -128,7 +130,7 @@ export default function ClaimAccountPage() {
           <div className="card-head">
             <h2>Invitation invalid or expired</h2>
             <p>
-              This invitation link is invalid or has already been claimed. Please reach out to the person who invited you.
+              This invitation link is invalid or has already expired. Please reach out to the person who invited you.
             </p>
           </div>
           <button 
@@ -146,6 +148,93 @@ export default function ClaimAccountPage() {
   }
 
   const inviter = userData.invitedBy
+  const companyName = inviter?.companyName || inviter?.name || 'Upward Workspace'
+
+  // If already activated / accepted
+  if (userData.isActivated || userData.status === 'ACTIVE') {
+    return (
+      <AuthLayout
+        eyebrow="Account Active"
+        visualTitle="Welcome back to your workspace."
+        visualDesc="Your team account is active. Sign in to collaborate and manage properties seamlessly."
+      >
+        <div className="animate-fade-in" style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'var(--forest-faint)',
+              color: 'var(--forest)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <UserCheck size={28} />
+          </div>
+
+          <div className="card-head" style={{ marginBottom: 20 }}>
+            <h2>Account Already Activated</h2>
+            <p>
+              The invitation for <strong style={{ color: 'var(--ink)' }}>{userData.email}</strong> has already been claimed and activated.
+            </p>
+          </div>
+
+          {/* Workspace Invitation Card */}
+          <div className="workspace-invite-card" style={{ textAlign: 'left', marginBottom: 24 }}>
+            <div className="workspace-invite-card__icon">
+              <Building2 size={22} />
+            </div>
+            <div className="workspace-invite-card__body">
+              <span className="workspace-invite-card__eyebrow">Organization Workspace</span>
+              <h3 className="workspace-invite-card__title">
+                {companyName}
+              </h3>
+              <div className="workspace-invite-card__meta">
+                <span className="workspace-invite-card__email">
+                  <Mail size={13} />
+                  {userData.email}
+                </span>
+                {userData.jobTitle && (
+                  <span className="workspace-invite-card__inviter">
+                    · {userData.jobTitle}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isLoggedIn ? (
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => router.push('/dashboard')}
+              style={{ width: '100%' }}
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => router.push(`/login?email=${encodeURIComponent(userData.email)}`)}
+              style={{ width: '100%' }}
+            >
+              <span>Sign in to your account</span>
+              <ArrowRight size={16} />
+            </button>
+          )}
+
+          <p className="foot-note" style={{ fontSize: 13, marginTop: 20 }}>
+            Need help accessing your workspace? Contact your administrator or support.
+          </p>
+        </div>
+      </AuthLayout>
+    )
+  }
 
   return (
     <AuthLayout
@@ -267,9 +356,38 @@ export default function ClaimAccountPage() {
             </div>
           </div>
 
+          <div className="checkbox-row" style={{ marginTop: 14, marginBottom: 8 }}>
+            <input
+              id="claim-terms"
+              type="checkbox"
+              checked={termsAgreed}
+              onChange={(e) => setTermsAgreed(e.target.checked)}
+              required
+            />
+            <label htmlFor="claim-terms">
+              I agree to Upward's{' '}
+              <a
+                href={`${WEB_URL}/legal/terms`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Terms of Use
+              </a>{' '}
+              and{' '}
+              <a
+                href={`${WEB_URL}/legal/privacy`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </a>
+              , and accept this invitation to join <strong>{companyName}</strong>.
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={claiming}
+            disabled={claiming || !termsAgreed}
             className="primary-btn"
             style={{ marginTop: 12 }}
           >
@@ -278,25 +396,9 @@ export default function ClaimAccountPage() {
           </button>
         </form>
 
-        {/* Legal Footer */}
-        <p className="foot-note" style={{ fontSize: 12.5, marginTop: 20 }}>
-          By activating your account, you agree to our{' '}
-          <a
-            href={`${WEB_URL}/legal/terms`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Terms of Use
-          </a>{' '}
-          and{' '}
-          <a
-            href={`${WEB_URL}/legal/privacy`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Privacy Policy
-          </a>
-          .
+        {/* Workspace Footnote */}
+        <p className="foot-note" style={{ fontSize: 12.5, marginTop: 18, textAlign: 'center' }}>
+          By joining <strong style={{ color: 'var(--ink)' }}>{inviter?.companyName || 'your organization workspace'}</strong>, you will have access to assigned properties and team workflows.
         </p>
       </div>
     </AuthLayout>

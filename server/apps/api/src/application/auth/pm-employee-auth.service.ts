@@ -126,6 +126,8 @@ export class PmEmployeeAuthService extends BaseAuthService {
       accessLevel: employee.accessLevel,
       status: employee.status,
       accountType: 'PM_EMPLOYEE',
+      isEmployee: true,
+      termsAcceptedAt: employee.updatedAt || new Date(),
       canManageCompanySettings: false,
       isBlocked: ownerPm?.isBlocked ?? false,
       assignedPropertiesCount: assignedCount,
@@ -247,6 +249,7 @@ export class PmEmployeeAuthService extends BaseAuthService {
     const ownerLastName = owner ? this.encryption.decrypt(owner.lastName) : '';
     const ownerBusinessName = owner?.businessName ? this.encryption.decrypt(owner.businessName) : null;
     const inviterName = ownerBusinessName || `${ownerFirstName} ${ownerLastName}`.trim() || 'Property Manager';
+    const isActivated = employee.status === 'ACTIVE' || !!employee.passwordHash;
 
     return {
       uuid: employee.uuid,
@@ -256,6 +259,7 @@ export class PmEmployeeAuthService extends BaseAuthService {
       jobTitle: employee.jobTitle,
       accessLevel: employee.accessLevel,
       status: employee.status,
+      isActivated,
       assignedProperties: employee.assignedProperties.map((ap: any) => ap.property),
       invitedBy: {
         name: inviterName,
@@ -277,6 +281,10 @@ export class PmEmployeeAuthService extends BaseAuthService {
 
     if (employee.status === 'REVOKED') {
       throw new BadRequestException('This invitation has been revoked');
+    }
+
+    if (employee.status === 'ACTIVE' && employee.passwordHash) {
+      throw new BadRequestException('This invitation has already been accepted. Please sign in to your account.');
     }
 
     const currentFirstName = this.encryption.decrypt(employee.firstName);

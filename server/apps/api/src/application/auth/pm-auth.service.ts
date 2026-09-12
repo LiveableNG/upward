@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Inject } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY, PropertyManager } from '../../domains/pm/property-manager.repository'
@@ -444,10 +444,14 @@ export class PmAuthService extends BaseAuthService {
       ownerPm = await this.pmRepository.findById(collab.ownerPmId)
     }
 
+    const isActivated = pm.passwordHash !== 'PENDING_INVITE' && !!pm.passwordHash
+
     return {
       firstName: pm.firstName,
       lastName: pm.lastName,
       email: pm.email,
+      status: isActivated ? 'ACTIVE' : 'PENDING',
+      isActivated,
       invitedBy: ownerPm
         ? {
             name: `${ownerPm.firstName || ''} ${ownerPm.lastName || ''}`.trim() || ownerPm.businessName || 'Team Admin',
@@ -462,6 +466,10 @@ export class PmAuthService extends BaseAuthService {
   async claimAccount(uuid: string, passwordHash: string, firstName?: string, lastName?: string) {
     const pm = await this.pmRepository.findByUuid(uuid)
     if (!pm) throw new UnauthorizedException('Invitation not found')
+
+    if (pm.passwordHash !== 'PENDING_INVITE' && !!pm.passwordHash) {
+      throw new BadRequestException('This invitation has already been claimed. Please sign in to your account.')
+    }
 
     const newPasswordHash = await bcrypt.hash(passwordHash, 10)
     

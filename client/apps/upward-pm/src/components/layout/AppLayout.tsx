@@ -78,7 +78,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <AccessSuspended />
   }
 
-  const showTermsGate = user && !user.termsAcceptedAt
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE' || (user as any)?.isEmployee
+  const showTermsGate = user && !isEmployee && !user.termsAcceptedAt
 
   return (
     <div className={cn("layout", isSidebarCollapsed && "layout--collapsed")}>
