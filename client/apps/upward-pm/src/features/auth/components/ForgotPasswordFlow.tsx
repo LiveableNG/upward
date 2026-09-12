@@ -1,18 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Mail, 
   ArrowLeft, 
-  ShieldCheck, 
   Lock, 
   Eye, 
   EyeOff, 
   CheckCircle2, 
-  ChevronRight,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useMutation } from '@tanstack/react-query'
@@ -32,11 +31,22 @@ export default function ForgotPasswordFlow() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
 
   const forgotMutation = useMutation({
     mutationFn: (emailAddress: string) => forgotPassword(emailAddress),
     onSuccess: () => {
       success('Verification code sent successfully!')
+      setResendCooldown(30)
       setStep('OTP')
     },
     onError: (err: any) => {
@@ -65,6 +75,11 @@ export default function ForgotPasswordFlow() {
       error(err.message || 'Invalid verification code')
     }
   })
+
+  const isResending = forgotMutation.isPending
+  const isVerifying = verifyOtpMutation.isPending
+  const isResetting = resetMutation.isPending
+  const loading = isResending || isVerifying || isResetting
 
   const handleSendOTP = (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,13 +157,11 @@ export default function ForgotPasswordFlow() {
     document.getElementById(`otp-${nextIndex}`)?.focus()
   }
 
-  const loading = forgotMutation.isPending || resetMutation.isPending || verifyOtpMutation.isPending
-
   return (
     <div className="animate-fade-in">
       {step !== 'SUCCESS' && (
         <button 
-          className="btn-back" 
+          type="button"
           onClick={() => {
             if (step === 'EMAIL') {
               window.location.href = Capacitor.isNativePlatform() ? '/login' : '/pm-login'
@@ -158,42 +171,38 @@ export default function ForgotPasswordFlow() {
               setStep('OTP')
             }
           }}
+          className="back-link"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
             background: 'none',
             border: 'none',
-            color: 'var(--text-secondary)',
             cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 600,
-            marginBottom: 24,
+            marginBottom: '24px',
             padding: 0
           }}
         >
-          <ArrowLeft size={18} /> {step === 'EMAIL' ? 'Back to Login' : 'Back'}
+          <ArrowLeft size={16} />
+          <span>{step === 'EMAIL' ? 'Back to sign in' : 'Back'}</span>
         </button>
       )}
 
       {step === 'EMAIL' && (
         <div>
-          <div className="auth-header">
-            <h2 className="auth-card__title">Forgot Password?</h2>
-            <p className="auth-card__subtitle">
+          <div className="card-head">
+            <h2>Forgot password?</h2>
+            <p>
               Enter your email address and we&apos;ll send you a 6-digit code to reset your password.
             </p>
           </div>
 
-          <form onSubmit={handleSendOTP}>
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <div className="input-wrapper">
-                <Mail size={18} className="input-icon" />
+          <form onSubmit={handleSendOTP} noValidate>
+            <div className="field">
+              <label htmlFor="reset-email">Email address</label>
+              <div className="input-shell">
+                <Mail size={17} />
                 <input
+                  id="reset-email"
                   type="email"
-                  className="form-input form-input--with-icon"
-                  placeholder="name@company.com"
+                  placeholder="you@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -201,9 +210,9 @@ export default function ForgotPasswordFlow() {
               </div>
             </div>
             
-            <button type="submit" className="auth-btn auth-btn--primary" disabled={loading}>
-              {loading ? 'Sending code...' : 'Send Reset Code'}
-              <ChevronRight size={18} />
+            <button type="submit" className="primary-btn" disabled={loading}>
+              <span>{loading ? 'Sending code...' : 'Send reset code'}</span>
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
             </button>
           </form>
         </div>
@@ -211,15 +220,15 @@ export default function ForgotPasswordFlow() {
 
       {step === 'OTP' && (
         <div>
-          <div className="auth-header">
-            <h2 className="auth-card__title">Verify your email</h2>
-            <p className="auth-card__subtitle">
-              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
+          <div className="card-head">
+            <h2>Verify your email</h2>
+            <p>
+              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. Enter the code below to proceed.
             </p>
           </div>
 
-          <form onSubmit={handleVerifyOTP}>
-            <div className="otp-group">
+          <form onSubmit={handleVerifyOTP} noValidate>
+            <div className="otp-row">
               {otp.map((digit, i) => (
                 <input
                   key={i}
@@ -229,7 +238,7 @@ export default function ForgotPasswordFlow() {
                   pattern="[0-9]*"
                   maxLength={1}
                   autoComplete="one-time-code"
-                  className="otp-input"
+                  className="otp-box"
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onPaste={(e) => handleOtpPaste(e, i)}
@@ -243,50 +252,62 @@ export default function ForgotPasswordFlow() {
               ))}
             </div>
 
-            <button type="submit" className="auth-btn auth-btn--primary" style={{ marginTop: 24 }}>
-              Verify Code
-              <ArrowRight size={18} />
-            </button>
-
-            <div className="auth-footer" style={{ marginTop: 24 }}>
-              Didn&apos;t receive the code?{' '}
+            <div className="otp-meta">
+              <span>
+                Wrong email?{' '}
+                <button 
+                  type="button" 
+                  onClick={() => setStep('EMAIL')}
+                >
+                  Change it
+                </button>
+              </span>
               <button 
                 type="button" 
-                onClick={() => forgotMutation.mutate(email)}
+                onClick={() => {
+                  if (resendCooldown > 0 || isResending) return
+                  forgotMutation.mutate(email, {
+                    onSuccess: () => {
+                      setResendCooldown(30)
+                    }
+                  })
+                }}
+                disabled={resendCooldown > 0 || isResending || isVerifying}
                 style={{
-                  color: 'var(--forest)',
-                  fontWeight: 700,
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
+                  cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                  opacity: resendCooldown > 0 ? 0.6 : 1,
                 }}
               >
-                Resend
+                {isResending ? 'Sending code...' : (resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code')}
               </button>
             </div>
+
+            <button type="submit" className="primary-btn" disabled={isVerifying || isResending}>
+              <span>{isVerifying ? 'Verifying code...' : 'Verify code'}</span>
+              {isVerifying ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+            </button>
           </form>
         </div>
       )}
 
       {step === 'PASSWORD' && (
         <div>
-          <div className="auth-header">
-            <h2 className="auth-card__title">Set New Password</h2>
-            <p className="auth-card__subtitle">
+          <div className="card-head">
+            <h2>Set new password</h2>
+            <p>
               Create a strong password of at least 8 characters to secure your account.
             </p>
           </div>
 
-          <form onSubmit={handleResetPassword}>
-            <div className="form-group">
-              <label className="form-label">New Password</label>
-              <div className="input-wrapper" style={{ position: 'relative' }}>
-                <Lock size={18} className="input-icon" />
+          <form onSubmit={handleResetPassword} noValidate>
+            <div className="field">
+              <label htmlFor="reset-new-pass">New password</label>
+              <div className="input-shell">
+                <Lock size={17} />
                 <input
+                  id="reset-new-pass"
                   type={showPassword ? 'text' : 'password'}
-                  className="form-input form-input--with-icon"
-                  placeholder="••••••••"
+                  placeholder="At least 8 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -295,32 +316,22 @@ export default function ForgotPasswordFlow() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '14px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--forest)',
-                    fontWeight: 600,
-                    fontSize: '12px'
-                  }}
+                  className="icon-btn"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
-              <div className="input-wrapper" style={{ position: 'relative' }}>
-                <Lock size={18} className="input-icon" />
+            <div className="field">
+              <label htmlFor="reset-confirm-pass">Confirm password</label>
+              <div className="input-shell">
+                <Lock size={17} />
                 <input
+                  id="reset-confirm-pass"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  className="form-input form-input--with-icon"
-                  placeholder="••••••••"
+                  placeholder="Re-enter your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -329,47 +340,41 @@ export default function ForgotPasswordFlow() {
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '14px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--forest)',
-                    fontWeight: 600,
-                    fontSize: '12px'
-                  }}
+                  className="icon-btn"
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
+                  {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="auth-btn auth-btn--primary" disabled={loading}>
-              {loading ? 'Resetting...' : 'Reset Password'}
-              <ChevronRight size={18} />
+            <button type="submit" className="primary-btn" disabled={loading}>
+              <span>{loading ? 'Resetting...' : 'Reset password'}</span>
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
             </button>
           </form>
         </div>
       )}
 
       {step === 'SUCCESS' && (
-        <div style={{ textAlign: 'center', padding: '24px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-            <CheckCircle2 size={64} color="var(--forest)" />
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <CheckCircle2 size={56} color="var(--forest-700)" />
           </div>
-          <h2 className="auth-card__title" style={{ marginBottom: 12 }}>Password Reset Successful!</h2>
-          <p className="auth-card__subtitle" style={{ marginBottom: 32 }}>
-            Your password has been successfully updated. You can now log in using your new password.
-          </p>
+          <div className="card-head">
+            <h2>Password reset successful!</h2>
+            <p>
+              Your password has been successfully updated. You can now sign in using your new password.
+            </p>
+          </div>
           <button 
+            type="button"
             onClick={() => window.location.href = Capacitor.isNativePlatform() ? '/login' : '/pm-login'} 
-            className="auth-btn auth-btn--primary"
+            className="primary-btn"
+            style={{ marginTop: 24 }}
           >
-            Back to Sign In
-            <ArrowRight size={18} />
+            <span>Back to sign in</span>
+            <ArrowRight size={16} />
           </button>
         </div>
       )}
