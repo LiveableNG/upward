@@ -147,11 +147,20 @@ export class PmProfileController {
   @HttpCode(HttpStatus.OK)
   async getVerificationStatus(@Req() req: FastifyRequest) {
     if (!req.user?.sub) throw new UnauthorizedException()
-    const pm = await this.prisma.upward_property_manager.findUnique({ 
+    let pmId: number | undefined
+    if (req.user?.role === 'PM_EMPLOYEE' && (req.user as any)?.ownerPmId) {
+      pmId = (req.user as any).ownerPmId
+    } else {
+      const pm = await this.prisma.upward_property_manager.findUnique({ 
         where: { uuid: req.user.sub },
-        include: { verification: true }
+        select: { id: true }
+      })
+      if (!pm) throw new UnauthorizedException()
+      pmId = pm.id
+    }
+    const verification = await this.prisma.upward_pm_verification.findUnique({
+      where: { pmId }
     })
-    if (!pm) throw new UnauthorizedException()
-    return pm.verification || { status: 'NOT_SUBMITTED' }
+    return verification || { status: 'NOT_SUBMITTED' }
   }
 }

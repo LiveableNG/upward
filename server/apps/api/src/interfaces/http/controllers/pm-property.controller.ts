@@ -400,7 +400,7 @@ export class PmPropertyController {
   async resendTeamInvite(@Req() req: any, @Param('uuid') uuid: string) {
     const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
-      throw new UnauthorizedException('Team management is only accessible by company administrators');
+      throw new ForbiddenException('Team management is only accessible by company administrators');
     }
     return this.resendTeamInviteUseCase.execute(actor.ownerPmId, uuid);
   }
@@ -409,7 +409,7 @@ export class PmPropertyController {
   async getTeamMembers(@Req() req: any) {
     const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
-      throw new UnauthorizedException('Team management is only accessible by company administrators');
+      return [];
     }
     return this.getTeamMembersUseCase.execute(actor.ownerPmId);
   }
@@ -422,7 +422,7 @@ export class PmPropertyController {
   ) {
     const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
-      throw new UnauthorizedException('Team management is only accessible by company administrators');
+      throw new ForbiddenException('Team management is only accessible by company administrators');
     }
     return this.updateTeamMemberPermissionsUseCase.execute(actor.ownerPmId, uuid, dto);
   }
@@ -431,7 +431,7 @@ export class PmPropertyController {
   async transferTeamProperties(@Req() req: any, @Body() dto: TransferTeamPropertiesDto) {
     const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
-      throw new UnauthorizedException('Team management is only accessible by company administrators');
+      throw new ForbiddenException('Team management is only accessible by company administrators');
     }
     return this.transferTeamPropertiesUseCase.execute(actor.ownerPmId, dto);
   }
@@ -440,7 +440,7 @@ export class PmPropertyController {
   async revokeTeamMember(@Req() req: any, @Param('uuid') uuid: string) {
     const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
-      throw new UnauthorizedException('Team management is only accessible by company administrators');
+      throw new ForbiddenException('Team management is only accessible by company administrators');
     }
     return this.revokeTeamMemberUseCase.execute(actor.ownerPmId, uuid);
   }

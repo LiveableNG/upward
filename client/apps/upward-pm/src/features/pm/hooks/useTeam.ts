@@ -2,11 +2,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
 
 export function useTeam() {
+  const { user } = useAuth()
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE'
+
   return useQuery({
     queryKey: ['pm-team'],
-    queryFn: api.getTeamMembers
+    queryFn: api.getTeamMembers,
+    enabled: !isEmployee,
+    initialData: isEmployee ? [] : undefined
   })
 }
 
