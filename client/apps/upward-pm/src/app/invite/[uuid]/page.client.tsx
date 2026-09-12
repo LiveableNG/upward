@@ -136,7 +136,7 @@ export default function ClaimAccountPage() {
           <button 
             type="button" 
             className="primary-btn" 
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/pm-login')}
             style={{ marginTop: 24 }}
           >
             <span>Go to sign in</span>
@@ -220,7 +220,7 @@ export default function ClaimAccountPage() {
             <button
               type="button"
               className="primary-btn"
-              onClick={() => router.push(`/login?email=${encodeURIComponent(userData.email)}`)}
+              onClick={() => router.push(`/pm-login?email=${encodeURIComponent(userData.email)}`)}
               style={{ width: '100%' }}
             >
               <span>Sign in to your account</span>

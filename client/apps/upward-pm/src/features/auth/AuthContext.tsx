@@ -35,11 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         profile = await getMe()
       } catch (pmErr) {
-        try {
-          profile = await getEmployeeMe()
-        } catch {
-          throw pmErr
-        }
+        profile = await getEmployeeMe()
       }
       setUser(profile)
       if (typeof window !== 'undefined') {
@@ -71,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isPublicPage) {
         toastError('Your session has expired. Please login again.', 'Session Expired')
         // Use window.location.href for a hard redirect to ensure navigation happens
-        const loginPath = isPortal ? '/portal/login' : '/login'
+        const loginPath = isPortal ? '/portal/login' : '/pm-login'
         const redirectUrl = `${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`
         window.location.href = redirectUrl
       }

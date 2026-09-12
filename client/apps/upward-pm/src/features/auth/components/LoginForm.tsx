@@ -415,7 +415,7 @@ export const LoginForm = () => {
 
       {/* ── OTP Verification View ── */}
       {otpStage === 'verify' ? (
-        <form onSubmit={handleOtpSubmit} noValidate>
+        <form onSubmit={handleOtpSubmit} noValidate autoComplete="off">
           <div className={`otp-row ${isCurrentOtpError ? 'otp-row--error' : ''}`}>
             {otp.map((digit, i) => (
               <input
@@ -510,7 +510,7 @@ export const LoginForm = () => {
           )}
 
           {loginMethod === 'password' ? (
-            <form onSubmit={handlePasswordLogin} noValidate>
+            <form onSubmit={handlePasswordLogin} noValidate autoComplete="off">
               <div className="field">
                 <label htmlFor="login-email">Email address</label>
                 <div className={`input-shell ${fieldErrors.email ? 'input-shell--error' : ''}`}>
@@ -525,6 +525,7 @@ export const LoginForm = () => {
                       setEmail(e.target.value)
                     }}
                     required
+                    autoComplete="off"
                   />
                   {accountType === 'staff' && (
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -635,6 +636,7 @@ export const LoginForm = () => {
                           setPassword(e.target.value)
                         }}
                         required
+                        autoComplete="off"
                       />
                       <button
                         type="button"
@@ -660,7 +662,7 @@ export const LoginForm = () => {
               )}
             </form>
           ) : (
-            <form onSubmit={handleRequestOtp} noValidate>
+            <form onSubmit={handleRequestOtp} noValidate autoComplete="off">
               <div className="field">
                 <label htmlFor="login-otp-email">Email address</label>
                 <div className={`input-shell ${fieldErrors.email ? 'input-shell--error' : ''}`}>
@@ -675,6 +677,7 @@ export const LoginForm = () => {
                       setEmail(e.target.value)
                     }}
                     required
+                    autoComplete="off"
                   />
                 </div>
                 {fieldErrors.email && <p className="field-error-text">{fieldErrors.email}</p>}
