@@ -79,6 +79,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
 
                    let unitName = 'N/A';
                    let propertyName = 'N/A';
+                   let pmPropertyId: number | null = null;
                    if (prop.pmUnitId) {
                      const unit = await this.prisma.upward_pm_unit.findUnique({
                        where: { id: prop.pmUnitId },
@@ -87,6 +88,17 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                      if (unit) {
                        unitName = unit.unitName;
                        propertyName = unit.property?.name || 'N/A';
+                       pmPropertyId = unit.propertyId;
+                     }
+                   } else if (data.paymentRequestId) {
+                     const pr = await (this.prisma as any).upward_pm_payment_request.findUnique({
+                       where: { id: data.paymentRequestId },
+                       include: { unit: { include: { property: true } } }
+                     });
+                     if (pr?.unit) {
+                       unitName = pr.unit.unitName;
+                       propertyName = pr.unit.property?.name || 'N/A';
+                       pmPropertyId = pr.unit.propertyId;
                      }
                    }
 
@@ -105,10 +117,9 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                    });
 
                     // 2. Send email to PM
+                    const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
                     const pmEmail = pm.email ? this.encryption.decrypt(pm.email) : null;
                     if (pmEmail) {
-                      const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
-                      
                       await this.unifiedCommService.processCommunication({
                         recipientEmail: pmEmail,
                         recipientName: pmName,
@@ -127,6 +138,55 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                       }).catch((err) => {
                         this.logger.error(`Failed to send communication to PM ${pmEmail}:`, err);
                       });
+                    }
+
+                    // 3. Send email to assigned employees
+                    try {
+                      const activeEmployees = await (this.prisma as any).upward_pm_employee.findMany({
+                        where: {
+                          ownerPmId: prop.pmId,
+                          status: 'ACTIVE',
+                        },
+                        include: {
+                          assignedProperties: true,
+                        },
+                      });
+
+                      const assignedEmployees = activeEmployees.filter((emp: any) => {
+                        if (emp.accessLevel === 'ALL') return true;
+                        if (!pmPropertyId) return false;
+                        return emp.assignedProperties?.some((ap: any) => ap.propertyId === pmPropertyId);
+                      });
+
+                      for (const emp of assignedEmployees) {
+                        const empEmail = emp.email ? this.encryption.decrypt(emp.email) : null;
+                        if (empEmail && empEmail !== pmEmail) {
+                          const empFirstName = emp.firstName ? this.encryption.decrypt(emp.firstName) : '';
+                          const empLastName = emp.lastName ? this.encryption.decrypt(emp.lastName) : '';
+                          const empFullName = `${empFirstName} ${empLastName}`.trim() || 'Team Member';
+
+                          await this.unifiedCommService.processCommunication({
+                            recipientEmail: empEmail,
+                            recipientName: empFullName,
+                            recipientRole: 'PM',
+                            pmUuid: pm.uuid,
+                            type: 'PM_PAYMENT_RECEIVED',
+                            context: {
+                              pmName: empFullName,
+                              tenantName,
+                              unitName,
+                              propertyName,
+                              amount,
+                              formattedAmount: amount.toLocaleString(),
+                              baseUrl,
+                            },
+                          }).catch((err) => {
+                            this.logger.error(`Failed to send payment email to employee ${empEmail}:`, err);
+                          });
+                        }
+                      }
+                    } catch (empErr) {
+                      this.logger.error('Failed to notify assigned employees of payment:', empErr);
                     }
                  }
                } catch (err) {

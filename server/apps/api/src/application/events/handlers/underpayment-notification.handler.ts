@@ -77,34 +77,87 @@ export class UnderpaymentNotificationHandler implements OnModuleInit, OnModuleDe
             where: { id: pmId }
           })
 
-          if (pm?.email) {
-            const pmEmail = pm.email.includes(':') ? this.encryption.decrypt(pm.email) : pm.email
+          if (pm) {
+            const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
+            const pmEmail = pm.email ? (pm.email.includes(':') ? this.encryption.decrypt(pm.email) : pm.email) : null
             const pmFirstName = pm.firstName ? (pm.firstName.includes(':') ? this.encryption.decrypt(pm.firstName) : pm.firstName) : ''
             const pmLastName = pm.lastName ? (pm.lastName.includes(':') ? this.encryption.decrypt(pm.lastName) : pm.lastName) : ''
             const pmName = `${pmFirstName} ${pmLastName}`.trim() || 'Property Manager'
 
-            const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
+            if (pmEmail) {
+              await this.unifiedCommService.processCommunication({
+                recipientEmail: pmEmail,
+                recipientName: pmName,
+                recipientRole: 'PM',
+                pmUuid: pm.uuid,
+                type: 'PAYMENT_REMINDER' as any,
+                context: {
+                  displayName: pmName,
+                  pmName,
+                  amount: event.amountPaid,
+                  formattedAmount: formattedPaid,
+                  tenantName,
+                  reference: event.reference,
+                  description: `Underpayment Alert: ${tenantName} paid ${formattedPaid} instead of expected ${formattedExpected}.`,
+                  paymentLink: `${baseUrl}/portal/payments`,
+                  baseUrl,
+                }
+              }).catch(err => {
+                this.logger.error(`Failed to send underpayment notification email to PM ${pmEmail}:`, err)
+              })
+            }
 
-            await this.unifiedCommService.processCommunication({
-              recipientEmail: pmEmail,
-              recipientName: pmName,
-              recipientRole: 'PM',
-              pmUuid: pm.uuid,
-              type: 'PAYMENT_REMINDER' as any,
-              context: {
-                displayName: pmName,
-                pmName,
-                amount: event.amountPaid,
-                formattedAmount: formattedPaid,
-                tenantName,
-                reference: event.reference,
-                description: `Underpayment Alert: ${tenantName} paid ${formattedPaid} instead of expected ${formattedExpected}.`,
-                paymentLink: `${baseUrl}/portal/payments`,
-                baseUrl,
+            // 3. Send email notification to assigned employees
+            try {
+              const pmPropertyId = userProperty.pmUnit?.propertyId || null
+              const activeEmployees = await (this.prisma as any).upward_pm_employee.findMany({
+                where: {
+                  ownerPmId: pmId,
+                  status: 'ACTIVE',
+                },
+                include: {
+                  assignedProperties: true,
+                },
+              })
+
+              const assignedEmployees = activeEmployees.filter((emp: any) => {
+                if (emp.accessLevel === 'ALL') return true
+                if (!pmPropertyId) return false
+                return emp.assignedProperties?.some((ap: any) => ap.propertyId === pmPropertyId)
+              })
+
+              for (const emp of assignedEmployees) {
+                const empEmail = emp.email ? (emp.email.includes(':') ? this.encryption.decrypt(emp.email) : emp.email) : null
+                if (empEmail && empEmail !== pmEmail) {
+                  const empFirstName = emp.firstName ? (emp.firstName.includes(':') ? this.encryption.decrypt(emp.firstName) : emp.firstName) : ''
+                  const empLastName = emp.lastName ? (emp.lastName.includes(':') ? this.encryption.decrypt(emp.lastName) : emp.lastName) : ''
+                  const empFullName = `${empFirstName} ${empLastName}`.trim() || 'Team Member'
+
+                  await this.unifiedCommService.processCommunication({
+                    recipientEmail: empEmail,
+                    recipientName: empFullName,
+                    recipientRole: 'PM',
+                    pmUuid: pm.uuid,
+                    type: 'PAYMENT_REMINDER' as any,
+                    context: {
+                      displayName: empFullName,
+                      pmName: empFullName,
+                      amount: event.amountPaid,
+                      formattedAmount: formattedPaid,
+                      tenantName,
+                      reference: event.reference,
+                      description: `Underpayment Alert: ${tenantName} paid ${formattedPaid} instead of expected ${formattedExpected}.`,
+                      paymentLink: `${baseUrl}/portal/payments`,
+                      baseUrl,
+                    }
+                  }).catch(err => {
+                    this.logger.error(`Failed to send underpayment notification email to employee ${empEmail}:`, err)
+                  })
+                }
               }
-            }).catch(err => {
-              this.logger.error(`Failed to send underpayment notification email to PM ${pmEmail}:`, err)
-            })
+            } catch (empErr) {
+              this.logger.error('Failed to notify assigned employees of underpayment:', empErr)
+            }
           }
         } catch (error) {
           this.logger.error('Failed to handle UnderpaymentDetectedEvent:', error)
