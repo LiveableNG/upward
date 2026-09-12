@@ -31,8 +31,13 @@ export class PmDocumentController {
   ) {}
 
   private async getPmId(req: any): Promise<number> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
-      return req.user.ownerPmId;
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      if (req.user?.ownerPmId) return req.user.ownerPmId;
+      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+        where: { uuid: req.user.sub },
+        select: { ownerPmId: true }
+      });
+      if (employee?.ownerPmId) return employee.ownerPmId;
     }
     const uuid = req.user?.sub;
     if (!uuid) throw new UnauthorizedException('Invalid user context');
@@ -42,18 +47,21 @@ export class PmDocumentController {
   }
 
   private async getActorContext(req: any): Promise<PmActorContext> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
       const employee = await (this.prisma as any).upward_pm_employee.findUnique({
         where: { uuid: req.user.sub },
-        select: { id: true, accessLevel: true }
+        select: { id: true, ownerPmId: true, accessLevel: true }
       });
-      return {
-        ownerPmId: req.user.ownerPmId,
-        isEmployee: true,
-        employeeId: req.user.employeeId || employee?.id,
-        employeeUuid: req.user.sub,
-        accessLevel: employee?.accessLevel || 'CUSTOM',
-      };
+      const ownerPmId = req.user.ownerPmId || employee?.ownerPmId;
+      if (ownerPmId) {
+        return {
+          ownerPmId,
+          isEmployee: true,
+          employeeId: req.user.employeeId || employee?.id,
+          employeeUuid: req.user.sub,
+          accessLevel: employee?.accessLevel || 'CUSTOM',
+        };
+      }
     }
     const uuid = req.user?.sub;
     if (!uuid) throw new UnauthorizedException('Invalid user context');
