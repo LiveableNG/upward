@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { UpdatePmProfileUseCase } from '../../../application/use-cases/pm/update-pm-profile.use-case'
@@ -20,6 +21,7 @@ import { UploadPmAvatarUseCase } from '../../../application/use-cases/pm/upload-
 import { GetPmLetterheadUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-letterhead-upload-url.use-case'
 import { UploadPmLetterheadUseCase } from '../../../application/use-cases/pm/upload-pm-letterhead.use-case'
 import { VerifyAccountUseCase, GetBanksUseCase } from '../../../application/use-cases/payments/payment.use-cases'
+import { PmEmployeeAuthService } from '../../../application/auth/pm-employee-auth.service'
 
 interface FastifyRequest {
   user?: {
@@ -42,6 +44,7 @@ export class PmProfileController {
     private readonly uploadLetterheadUseCase: UploadPmLetterheadUseCase,
     private readonly verifyAccountUseCase: VerifyAccountUseCase,
     private readonly getBanksUseCase: GetBanksUseCase,
+    private readonly employeeAuthService: PmEmployeeAuthService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -55,6 +58,9 @@ export class PmProfileController {
   @HttpCode(HttpStatus.OK)
   async updateProfile(@Req() req: FastifyRequest, @Body() body: any) {
     if (!req.user?.sub) throw new UnauthorizedException()
+    if (req.user.role === 'PM_EMPLOYEE') {
+      return this.employeeAuthService.updateProfile(req.user.sub, body)
+    }
     return this.updateProfileUseCase.execute(req.user.sub, body)
   }
 
@@ -68,6 +74,9 @@ export class PmProfileController {
   @HttpCode(HttpStatus.OK)
   async updateBankInfo(@Req() req: FastifyRequest, @Body() body: any) {
     if (!req.user?.sub) throw new UnauthorizedException()
+    if (req.user.role === 'PM_EMPLOYEE') {
+      throw new ForbiddenException('Only account owners can manage payout bank information')
+    }
     return this.updateBankInfoUseCase.execute(req.user.sub, body)
   }
 
@@ -75,6 +84,9 @@ export class PmProfileController {
   @HttpCode(HttpStatus.OK)
   async changePassword(@Req() req: FastifyRequest, @Body() body: any) {
     if (!req.user?.sub) throw new UnauthorizedException()
+    if (req.user.role === 'PM_EMPLOYEE') {
+      return this.employeeAuthService.changePassword(req.user.sub, body)
+    }
     return this.changePasswordUseCase.execute(req.user.sub, body)
   }
 
@@ -85,6 +97,9 @@ export class PmProfileController {
     @Body() body: { contentType: string; filename: string },
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
+    if (req.user.role === 'PM_EMPLOYEE') {
+      return this.employeeAuthService.getAvatarUploadUrl(req.user.sub, body.contentType, body.filename)
+    }
     return this.getAvatarUrlUseCase.execute(req.user.sub, body.contentType, body.filename)
   }
 
@@ -95,6 +110,9 @@ export class PmProfileController {
     @Body() body: { base64Data: string; contentType: string },
   ) {
     if (!req.user?.sub) throw new UnauthorizedException()
+    if (req.user.role === 'PM_EMPLOYEE') {
+      return this.employeeAuthService.uploadAvatar(req.user.sub, body.base64Data, body.contentType)
+    }
     return this.uploadAvatarUseCase.execute(req.user.sub, body.base64Data, body.contentType)
   }
 

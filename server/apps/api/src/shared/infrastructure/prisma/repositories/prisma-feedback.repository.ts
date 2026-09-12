@@ -15,6 +15,14 @@ export class PrismaFeedbackRepository implements IFeedbackRepository {
       })
       if (pm) {
         pmId = pm.id
+      } else {
+        const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+          where: { uuid: data.pmUuid },
+          select: { ownerPmId: true },
+        })
+        if (employee) {
+          pmId = employee.ownerPmId
+        }
       }
     }
 

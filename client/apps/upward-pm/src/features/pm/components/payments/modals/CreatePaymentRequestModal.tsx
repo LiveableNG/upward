@@ -77,7 +77,10 @@ export function CreatePaymentRequestModal({
   const { checkAccess } = useSubscription()
   const { openPricing } = usePricingModal()
 
-  const hasBankDetails = !!(user?.bankCode && user?.accountNumber)
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE' || user?.canManageCompanySettings === false
+  const hasBankDetails = isEmployee
+    ? Boolean(user?.hasBankDetails || user?.employer?.hasBankDetails || (user?.bankCode && user?.accountNumber) || (user?.employer?.bankCode && user?.employer?.accountNumber))
+    : Boolean(user?.hasBankDetails || (user?.bankCode && user?.accountNumber))
 
   useEffect(() => {
     if (!isOpen) {
@@ -316,7 +319,13 @@ export function CreatePaymentRequestModal({
   const handleSubmit = () => {
     if (!amount || parseFloat(amount) <= 0) return error('Please enter a valid amount')
     if (!dueDate) return error('Please select a due date')
-    if (!hasBankDetails) return error('Please set up your bank information in settings to receive payments')
+    if (!hasBankDetails) {
+      return error(
+        isEmployee
+          ? 'Your organization has not configured payout bank details yet. Please notify your account administrator to configure bank settings.'
+          : 'Please set up your bank information in settings to receive payments'
+      )
+    }
     const access = checkAccess(FeatureKey.SERVICE_CHARGE_PAYMENTS)
     if (!isEditing && !selectedTemplateUuid && access.hasAccess) return error('Please select a document template')
     
@@ -441,7 +450,11 @@ export function CreatePaymentRequestModal({
             <AlertCircle size={20} />
             <div>
               <p style={{ margin: 0, fontWeight: 700 }}>Missing Bank Details</p>
-              <p style={{ margin: 0, fontSize: 12 }}>You must set up your bank account in Settings to receive payments.</p>
+              <p style={{ margin: 0, fontSize: 12 }}>
+                {isEmployee
+                  ? 'Your organization has not configured payout bank details yet. Please notify your account administrator to configure bank settings before sending payment requests.'
+                  : 'You must set up your bank account in Settings to receive payments.'}
+              </p>
             </div>
           </div>
         )}

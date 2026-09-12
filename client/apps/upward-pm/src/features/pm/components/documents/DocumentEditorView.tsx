@@ -80,7 +80,7 @@ export function DocumentEditorView({
   const { success, error } = useToast()
   const { data: tenants = [] } = useTenants()
   const { user } = useAuth()
-  const [fromEmail, setFromEmail] = useState(user?.businessName || 'Property Manager')
+  const [fromEmail, setFromEmail] = useState(user?.employer?.companyName || user?.businessName || 'Property Manager')
   const [ccEmails, setCcEmails] = useState('')
   const [bccEmails, setBccEmails] = useState('')
 
@@ -234,8 +234,8 @@ export function DocumentEditorView({
 
     // Property Manager / Company Values
     const pmValues: Record<string, string> = {
-      '[CompanyName]': user?.businessName || '__________',
-      '[Company Name]': user?.businessName || '__________',
+      '[CompanyName]': user?.employer?.companyName || user?.businessName || '__________',
+      '[Company Name]': user?.employer?.companyName || user?.businessName || '__________',
       '[CompanyAddress]': user?.companyAddress || user?.country || '__________',
       '[Company Address]': user?.companyAddress || user?.country || '__________',
       '[CompanyPhone]': user?.phone || '__________',

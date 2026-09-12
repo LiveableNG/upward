@@ -84,6 +84,10 @@ export class PmEmployeeAuthService extends BaseAuthService {
         lastName: true,
         email: true,
         profilePic: true,
+        bankCode: true,
+        bankName: true,
+        accountNumber: true,
+        accountName: true,
         isBlocked: true,
       },
     });
@@ -113,6 +117,7 @@ export class PmEmployeeAuthService extends BaseAuthService {
     const ownerBusinessName = ownerPm?.businessName ? this.encryption.decrypt(ownerPm.businessName) : null;
     const ownerFullName = `${ownerFirstName} ${ownerLastName}`.trim();
     const companyName = ownerBusinessName || ownerFullName || 'Property Team';
+    const hasBankDetails = Boolean(ownerPm?.bankCode && ownerPm?.accountNumber);
 
     return {
       id: employee.uuid,
@@ -131,12 +136,17 @@ export class PmEmployeeAuthService extends BaseAuthService {
       canManageCompanySettings: false,
       isBlocked: ownerPm?.isBlocked ?? false,
       assignedPropertiesCount: assignedCount,
+      hasBankDetails,
+      bankCode: ownerPm?.bankCode || undefined,
+      bankName: ownerPm?.bankName || undefined,
+      accountNumber: ownerPm?.accountNumber || undefined,
       employer: ownerPm ? {
         uuid: ownerPm.uuid,
         companyName,
         ownerName: ownerFullName || companyName,
         email: ownerEmail,
         logo: companyLogoUrl,
+        hasBankDetails,
       } : null,
     };
   }
@@ -582,5 +592,108 @@ export class PmEmployeeAuthService extends BaseAuthService {
     } catch {
       // Ignore
     }
+  }
+
+  async updateProfile(employeeUuid: string, dto: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    profilePic?: string;
+  }) {
+    const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+      where: { uuid: employeeUuid },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const dataToUpdate: any = { updatedAt: new Date() };
+
+    if (dto.firstName !== undefined) {
+      const trimmed = (dto.firstName || '').trim();
+      dataToUpdate.firstName = this.encryption.encrypt(trimmed);
+      dataToUpdate.firstNameHash = this.encryption.hash(trimmed);
+    }
+
+    if (dto.lastName !== undefined) {
+      const trimmed = (dto.lastName || '').trim();
+      dataToUpdate.lastName = this.encryption.encrypt(trimmed);
+      dataToUpdate.lastNameHash = this.encryption.hash(trimmed);
+    }
+
+    if (dto.phone !== undefined) {
+      const trimmed = (dto.phone || '').trim();
+      dataToUpdate.phone = trimmed ? this.encryption.encrypt(trimmed) : null;
+      dataToUpdate.phoneHash = trimmed ? this.encryption.hash(trimmed) : null;
+    }
+
+    if (dto.profilePic !== undefined) {
+      dataToUpdate.profilePic = dto.profilePic;
+    }
+
+    const updated = await (this.prisma as any).upward_pm_employee.update({
+      where: { uuid: employeeUuid },
+      data: dataToUpdate,
+    });
+
+    return this.formatEmployeeProfile(updated);
+  }
+
+  async changePassword(employeeUuid: string, dto: {
+    currentPassword?: string;
+    newPassword: string;
+  }) {
+    const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+      where: { uuid: employeeUuid },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    if (dto.currentPassword) {
+      if (!employee.passwordHash) {
+        throw new BadRequestException('Account does not have a password configured');
+      }
+      const isValid = await bcrypt.compare(dto.currentPassword, employee.passwordHash);
+      if (!isValid) throw new BadRequestException('Current password is incorrect');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await (this.prisma as any).upward_pm_employee.update({
+      where: { uuid: employeeUuid },
+      data: { passwordHash, updatedAt: new Date() },
+    });
+
+    return { success: true, message: 'Password changed successfully' };
+  }
+
+  async getAvatarUploadUrl(employeeUuid: string, contentType: string, filename: string) {
+    const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+      where: { uuid: employeeUuid },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const ext = filename.split('.').pop() || 'jpg';
+    const key = `pm/avatars/employee_${employee.id}_${Date.now()}.${ext}`;
+    const uploadUrl = await this.s3Service.getUploadUrl(key, contentType);
+
+    return { uploadUrl, fileKey: key };
+  }
+
+  async uploadAvatar(employeeUuid: string, base64Data: string, contentType: string) {
+    const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+      where: { uuid: employeeUuid },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const ext = contentType.includes('png') ? 'png' : 'jpg';
+    const key = `pm/avatars/employee_${employee.id}_${Date.now()}.${ext}`;
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    await this.s3Service.uploadBuffer(buffer, key, contentType);
+
+    await (this.prisma as any).upward_pm_employee.update({
+      where: { uuid: employeeUuid },
+      data: { profilePic: key, updatedAt: new Date() },
+    });
+
+    const publicUrl = await this.s3Service.getDownloadUrl(key);
+    return { publicUrl };
   }
 }

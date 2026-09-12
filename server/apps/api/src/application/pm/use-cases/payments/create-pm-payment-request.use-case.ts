@@ -114,7 +114,10 @@ export class CreatePmPaymentRequestUseCase {
     if (!pm) throw new NotFoundException('Property Manager not found');
 
     if (!pm.bankCode || !pm.accountNumber) {
-      throw new BadRequestException('Please set up your bank information in settings to receive payments');
+      if (actor?.isEmployee) {
+        throw new BadRequestException('Your organization has not configured payout bank details yet. Please notify your account administrator to set up bank details in Settings.');
+      }
+      throw new BadRequestException('Please set up your company bank information in Settings → Payment to start receiving rent payments.');
     }
 
     // Programmatically gate premium features under SERVICE_CHARGE_PAYMENTS
