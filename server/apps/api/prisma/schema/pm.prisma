@@ -260,13 +260,16 @@ model upward_pm_payment_request {
   isRecurring        Boolean                 @default(false)
   recurrenceInterval String?
   scheduledAt        DateTime?
+  employeeId         Int?
   paymentRequest     upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
   pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   tenant             upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
   unit               upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  employee           upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@index([pmId])
   @@index([unitId])
+  @@index([employeeId])
   @@index([status])
 }
 

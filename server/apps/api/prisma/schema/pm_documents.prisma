@@ -29,13 +29,16 @@ model upward_pm_sent_document {
   includeLetterhead Boolean                 @default(false)
   isVaultDocument   Boolean                 @default(false)
   paymentRequestId  Int?
+  employeeId        Int?
   pm                upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   tenant            upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
   unit              upward_pm_unit?         @relation(fields: [unitId], references: [id])
+  employee          upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@index([pmId])
   @@index([tenantId])
   @@index([unitId])
+  @@index([employeeId])
   @@index([recipientEmail])
   @@index([isVaultDocument])
 }

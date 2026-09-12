@@ -120,6 +120,31 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
       render: (req) => <div className="payments-view__cell payments-view__cell--date" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>{formatDate(req.dueDate)}</div>
     },
     {
+      header: 'Created By',
+      render: (req) => (
+        <div className="payments-view__cell" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>
+          {req.createdBy?.isEmployee ? (
+            <span style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              padding: '2px 8px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--dark)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              {req.createdBy.name} <span style={{ color: 'var(--clay)', fontSize: 10 }}>({req.createdBy.role})</span>
+            </span>
+          ) : (
+            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{req.createdBy?.name || 'Company Admin'}</span>
+          )}
+        </div>
+      )
+    },
+    {
       header: 'Status',
       render: (req) => (
         <div className="payments-view__cell payments-view__cell--status" style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 130, whiteSpace: 'nowrap' }}>

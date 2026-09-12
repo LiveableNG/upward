@@ -25,6 +25,8 @@ model upward_pm_employee {
   authSessions         upward_pm_employee_auth_session[]
   activityLogs         upward_pm_activity_log[]
   approvalRequests     upward_pm_approval_request[]
+  paymentRequests      upward_pm_payment_request[]
+  sentDocuments        upward_pm_sent_document[]
 
   @@index([ownerPmId])
   @@index([emailHash])

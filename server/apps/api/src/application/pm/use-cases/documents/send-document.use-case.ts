@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { 
   PM_DOCUMENT_REPOSITORY, IPmDocumentRepository,
@@ -15,7 +15,7 @@ import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
 import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
 import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 import * as crypto from 'crypto';
-
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
 
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
@@ -74,7 +74,7 @@ export class SendDocumentUseCase {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async execute(actorPmId: number, data: SendDocumentDto) {
+  async execute(actorPmId: number, data: SendDocumentDto, actor?: PmActorContext) {
     let tenantId: number | null = null;
     let unitId: number | null = null;
     let content = data.content;
@@ -147,6 +147,23 @@ export class SendDocumentUseCase {
     if (data.unitUuid && !unit && !isEdit) {
       unit = await this.unitRepo.findByUuid(data.unitUuid);
       if (unit) unitId = unit.id;
+    }
+
+    // Strict Employee Access Guard
+    if (actor?.isEmployee && actor?.accessLevel !== 'ALL') {
+      const propertyId = unit?.propertyId || (unit?.property as any)?.id;
+      if (propertyId) {
+        const assigned = await (this.prisma as any).upward_pm_employee_property.findFirst({
+          where: {
+            employeeId: actor.employeeId,
+            propertyId: propertyId,
+            ownerPmId: actor.ownerPmId,
+          }
+        });
+        if (!assigned) {
+          throw new ForbiddenException('You do not have access to send documents for this property');
+        }
+      }
     }
 
     // Resolve ownerPmId from unit or tenant first to support team collaboration settings
@@ -516,6 +533,7 @@ export class SendDocumentUseCase {
         pmId,
         tenantId,
         unitId,
+        employeeId: actor?.isEmployee ? actor.employeeId : null,
         subject: data.subject,
         content: finalContent,
         documentType: data.documentType,

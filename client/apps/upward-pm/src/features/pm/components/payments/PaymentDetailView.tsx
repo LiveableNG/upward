@@ -518,7 +518,7 @@ export const PaymentDetailView: React.FC = () => {
                         <span className="timeline-date">{formatDate(request.createdAt)}</span>
                       </div>
                       <p className="timeline-desc">
-                        Rent request initialized for {request.unit?.unitName || 'selected unit'} by Property Manager.
+                        Rent request initialized for {request.unit?.unitName || 'selected unit'} by {request.createdBy?.isEmployee ? `${request.createdBy.name} (${request.createdBy.role})` : (request.createdBy?.name || 'Company Admin')}.
                       </p>
                     </div>
                   </div>
@@ -535,6 +535,15 @@ export const PaymentDetailView: React.FC = () => {
               </h3>
               
               <div className="checkout-breakdown" style={{ gap: 16 }}>
+                <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
+                  <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Created By</span>
+                  <span className="checkout-breakdown__value" style={{ fontSize: 12, fontWeight: 600, color: '#1A1A17' }}>
+                    {request.createdBy?.isEmployee 
+                      ? `${request.createdBy.name} (${request.createdBy.role})` 
+                      : (request.createdBy?.name || 'Company Admin')}
+                  </span>
+                </div>
+
                 <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
                   <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Currency</span>
                   <span className="checkout-breakdown__value" style={{ fontSize: 12 }}>{request.currency || 'NGN'}</span>

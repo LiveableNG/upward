@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { CreatePaymentRequestDto, UpdatePmPaymentRequestDto } from '../services/paymentService'
+import { CreatePaymentRequestDto, UpdatePmPaymentRequestDto, PmPaymentRequest } from '../services/paymentService'
 
 export const usePaymentRequests = (initialData?: any) => {
-  return useQuery<any[]>({
+  return useQuery<PmPaymentRequest[]>({
     queryKey: ['pm-payment-requests'],
     queryFn: () => api.getPaymentRequests(),
     staleTime: 5 * 60 * 1000,
@@ -13,17 +13,22 @@ export const usePaymentRequests = (initialData?: any) => {
 }
 
 export const useDashboardSummary = (initialData?: any, filters?: Record<string, any>) => {
+  const hasFilters = Boolean(
+    filters &&
+      Object.values(filters).some((v) => v !== undefined && v !== null && v !== '')
+  );
+
   return useQuery({
     queryKey: ['pm-dashboard-summary', filters],
     queryFn: () => api.getDashboardSummary(filters),
-    staleTime: 1 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    initialData
+    initialData: hasFilters ? undefined : initialData
   })
 }
 
 export const usePaymentRequest = (uuid: string) => {
-  return useQuery({
+  return useQuery<PmPaymentRequest>({
     queryKey: ['pm-payment-request', uuid],
     queryFn: () => api.getPaymentRequest(uuid),
     enabled: !!uuid,

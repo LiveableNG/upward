@@ -88,7 +88,8 @@ export class PmDocumentController {
 
   @Post('send')
   async sendDocument(@Request() req: any, @Body() data: SendDocumentDto) {
-    const pmId = await this.getPmId(req);
+    const actor = await this.getActorContext(req);
+    const pmId = actor.ownerPmId;
     const isFreeTemplate = 
       data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' ||
       data.subject === 'Your Good Rental History Should Work for You' ||
@@ -109,7 +110,7 @@ export class PmDocumentController {
         });
       }
     }
-    return this.sendDocumentUseCase.execute(pmId, data);
+    return this.sendDocumentUseCase.execute(pmId, data, actor);
   }
 
   @Post('send-bulk')

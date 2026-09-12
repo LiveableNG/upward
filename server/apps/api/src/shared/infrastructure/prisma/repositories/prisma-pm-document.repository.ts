@@ -75,7 +75,7 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
     });
     const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
 
-    const documents = await this.prisma.upward_pm_sent_document.findMany({
+    const documents = await (this.prisma as any).upward_pm_sent_document.findMany({
       where: {
         isVaultDocument: false,
         OR: [
@@ -84,24 +84,24 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
           { unit: { propertyId: { in: collabPropertyIds } } }
         ]
       },
-      include: { tenant: true, unit: { include: { property: true } } },
+      include: { tenant: true, employee: true, unit: { include: { property: true } } },
       orderBy: { createdAt: 'desc' },
     });
-    return documents.map(d => this.mapSentDocument(d));
+    return documents.map((d: any) => this.mapSentDocument(d));
   }
 
   async findSentDocumentsForActor(actor: any): Promise<SentDocumentEntity[]> {
     if (!actor || !actor.isEmployee || actor.accessLevel === 'ALL') {
       const pmId = actor?.ownerPmId || actor;
-      const documents = await this.prisma.upward_pm_sent_document.findMany({
+      const documents = await (this.prisma as any).upward_pm_sent_document.findMany({
         where: {
           isVaultDocument: false,
           pmId,
         },
-        include: { tenant: true, unit: { include: { property: true } } },
+        include: { tenant: true, employee: true, unit: { include: { property: true } } },
         orderBy: { createdAt: 'desc' },
       });
-      return documents.map(d => this.mapSentDocument(d));
+      return documents.map((d: any) => this.mapSentDocument(d));
     }
 
     if (!actor.employeeId) return [];
@@ -117,31 +117,31 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
     const propertyIds = assignedLinks.map((al: any) => al.propertyId);
     if (propertyIds.length === 0) return [];
 
-    const documents = await this.prisma.upward_pm_sent_document.findMany({
+    const documents = await (this.prisma as any).upward_pm_sent_document.findMany({
       where: {
         isVaultDocument: false,
         pmId: actor.ownerPmId,
         unit: { propertyId: { in: propertyIds } },
       },
-      include: { tenant: true, unit: { include: { property: true } } },
+      include: { tenant: true, employee: true, unit: { include: { property: true } } },
       orderBy: { createdAt: 'desc' },
     });
-    return documents.map(d => this.mapSentDocument(d));
+    return documents.map((d: any) => this.mapSentDocument(d));
   }
 
 
   async findSentDocumentByUuid(uuid: string): Promise<SentDocumentEntity | null> {
-    const document = await this.prisma.upward_pm_sent_document.findUnique({
+    const document = await (this.prisma as any).upward_pm_sent_document.findUnique({
       where: { uuid },
-      include: { tenant: true, unit: { include: { property: true } } },
+      include: { tenant: true, employee: true, unit: { include: { property: true } } },
     });
     return document ? this.mapSentDocument(document) : null;
   }
 
   async saveSentDocument(data: any): Promise<SentDocumentEntity> {
-    const document = await this.prisma.upward_pm_sent_document.create({
+    const document = await (this.prisma as any).upward_pm_sent_document.create({
       data,
-      include: { tenant: true, unit: { include: { property: true } } },
+      include: { tenant: true, employee: true, unit: { include: { property: true } } },
     });
     return this.mapSentDocument(document);
   }
@@ -160,12 +160,17 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
   }
 
   private mapSentDocument(d: any): SentDocumentEntity {
+    const fn = d.employee?.firstName ? this.encryption.decrypt(d.employee.firstName) : '';
+    const ln = d.employee?.lastName ? this.encryption.decrypt(d.employee.lastName) : '';
+    const employeeName = `${fn} ${ln}`.trim();
+
     return {
       id: d.id,
       uuid: d.uuid,
       pmId: d.pmId,
       tenantId: d.tenantId,
       unitId: d.unitId,
+      employeeId: d.employeeId || null,
       subject: d.subject,
       content: d.content,
       documentType: d.documentType,
@@ -175,9 +180,26 @@ export class PrismaPmDocumentRepository implements IPmDocumentRepository {
       includeLetterhead: d.includeLetterhead,
       createdAt: d.createdAt,
       updatedAt: d.updatedAt,
+      employee: d.employee ? {
+        id: d.employee.id,
+        uuid: d.employee.uuid,
+        firstName: fn,
+        lastName: ln,
+        jobTitle: d.employee.jobTitle || 'Property Officer',
+      } : null,
+      sentBy: d.employee ? {
+        uuid: d.employee.uuid,
+        name: employeeName || 'Employee',
+        role: d.employee.jobTitle || 'Property Officer',
+        isEmployee: true,
+      } : {
+        name: 'Company Admin',
+        role: 'Admin',
+        isEmployee: false,
+      },
       tenant: d.tenant ? {
         uuid: d.tenant.uuid,
-        firstName: d.tenant.firstNameSearch, // Approximation for simple entity
+        firstName: d.tenant.firstNameSearch,
         lastName: d.tenant.lastNameSearch,
         email: d.tenant.emailHash,
         phone: d.tenant.phoneEncrypted ? this.encryption.decrypt(d.tenant.phoneEncrypted) : null,

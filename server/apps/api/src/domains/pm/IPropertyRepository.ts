@@ -176,11 +176,13 @@ export interface PmPaymentRequestEntity {
   scheduledAt?: Date | null;
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
+  employeeId?: number | null;
   createdAt: Date;
   updatedAt: Date;
   
   unit?: UnitEntity;
   tenant?: TenantEntity;
+  employee?: any;
   transactions?: any[];
 }
 
@@ -211,6 +213,7 @@ export interface SentDocumentEntity {
   pmId: number;
   tenantId: number | null;
   unitId: number | null;
+  employeeId?: number | null;
   subject: string;
   content: string;
   documentType: string;
@@ -223,6 +226,7 @@ export interface SentDocumentEntity {
   
   tenant?: TenantEntity;
   unit?: UnitEntity;
+  employee?: any;
 }
 
 export interface IPmDocumentRepository {

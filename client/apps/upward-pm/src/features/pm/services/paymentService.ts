@@ -27,6 +27,12 @@ export interface PmPaymentRequest {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   transactions?: any[];
+  createdBy?: {
+    isEmployee: boolean;
+    name: string;
+    role: string;
+    id?: number;
+  };
 }
 
 export interface CreatePaymentRequestDto {

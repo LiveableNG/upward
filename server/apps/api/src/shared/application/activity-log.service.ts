@@ -27,19 +27,21 @@ export class ActivityLogService {
   async log(params: {
     pmId: number;
     ownerPmId: number;
+    employeeId?: number;
     action: ActivityAction | string;
     entityType: string;
     entityId?: string;
     description: string;
     metadata?: any;
   }) {
-    // Only skip same-PM logs for standard collaboration actions, allow tenant requests
-    if (params.pmId === params.ownerPmId && params.action !== 'TENANT_JOIN_REQUEST') return;
+    // Skip same-PM logs only if not an employee action and not a tenant join request
+    if (params.pmId === params.ownerPmId && !params.employeeId && params.action !== 'TENANT_JOIN_REQUEST') return;
 
     return (this.prisma as any).upward_pm_activity_log.create({
       data: {
         pmId: params.pmId,
         ownerPmId: params.ownerPmId,
+        employeeId: params.employeeId,
         action: params.action,
         entityType: params.entityType,
         entityId: params.entityId,

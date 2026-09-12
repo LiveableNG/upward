@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Body, UseGuards, Req, Query, Param } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, UseGuards, Req, Query, Param, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { CreatePropertyUseCase } from '../../../application/pm/use-cases/create-property.use-case';
 import { UpdatePropertyUseCase } from '../../../application/pm/use-cases/update-property.use-case';
@@ -271,7 +271,7 @@ export class PmPropertyController {
   @Post('payment-requests')
   async createPaymentRequest(@Req() req: any, @Body() dto: CreatePmPaymentRequestDto) {
     const actor = await this.getActorContext(req);
-    return this.createPmPaymentRequestUseCase.execute(actor.ownerPmId, dto);
+    return this.createPmPaymentRequestUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Get('payment-requests')
@@ -317,6 +317,9 @@ export class PmPropertyController {
   @Post('landlords')
   async createLandlord(@Req() req: any, @Body() dto: CreatePmLandlordDto) {
     const actor = await this.getActorContext(req);
+    if (actor.isEmployee) {
+      throw new ForbiddenException('Employees can only assign or add landlords during property creation or editing');
+    }
     return this.createPmLandlordUseCase.execute(actor.ownerPmId, dto);
   }
 

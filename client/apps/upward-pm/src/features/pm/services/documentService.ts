@@ -30,6 +30,12 @@ export interface SentDocument {
     unitName: string;
     property?: { name: string };
   };
+  sentBy?: {
+    isEmployee: boolean;
+    name: string;
+    role: string;
+    id?: number;
+  };
 }
 
 export const documentService = {

@@ -177,6 +177,31 @@ export function DocumentManagementView({ onNewDocument, onSelectTemplate, onRese
       )
     },
     {
+      header: 'Sent By',
+      render: (doc) => (
+        <div style={{ fontSize: 13 }}>
+          {doc.sentBy?.isEmployee ? (
+            <span style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              padding: '2px 8px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--dark)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              {doc.sentBy.name} <span style={{ color: 'var(--clay)', fontSize: 10 }}>({doc.sentBy.role})</span>
+            </span>
+          ) : (
+            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{doc.sentBy?.name || 'Company Admin'}</span>
+          )}
+        </div>
+      )
+    },
+    {
       header: 'Status',
       render: (doc) => {
         const isFailed = doc.status === 'FAILED';
