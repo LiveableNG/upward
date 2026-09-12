@@ -195,10 +195,7 @@ export class PmPropertyController {
   @Post('import/bulk')
   async bulkFullImport(@Req() req: any, @Body() dto: BulkFullImportDto) {
     const actor = await this.getActorContext(req);
-    if (actor.isEmployee) {
-      throw new UnauthorizedException('Portfolio bulk import is only accessible by company administrators');
-    }
-    return this.bulkFullImportUseCase.execute(actor.ownerPmId, dto);
+    return this.bulkFullImportUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Get('units')

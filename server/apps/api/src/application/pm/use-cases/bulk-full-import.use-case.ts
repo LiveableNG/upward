@@ -41,7 +41,7 @@ export class BulkFullImportUseCase {
     private readonly landlordService: LandlordService,
   ) {}
 
-  async execute(pmId: number, dto: BulkFullImportDto) {
+  async execute(pmId: number, dto: BulkFullImportDto, actor?: any) {
     const { rows, inviteAfterImport } = dto;
 
     for (const row of rows) {
@@ -125,6 +125,40 @@ export class BulkFullImportUseCase {
             landlordPhone: row.landlordPhone || null,
           });
           property = { id: created.id, uuid: created.uuid };
+
+          if (actor?.employeeId && created.id) {
+            await (this.prisma as any).upward_pm_employee_property.upsert({
+              where: {
+                employeeId_propertyId: {
+                  employeeId: actor.employeeId,
+                  propertyId: created.id,
+                },
+              },
+              create: {
+                employeeId: actor.employeeId,
+                propertyId: created.id,
+                ownerPmId: pmId,
+              },
+              update: {},
+            }).catch(() => {});
+          }
+        }
+
+        if (actor?.employeeId && property?.id) {
+          await (this.prisma as any).upward_pm_employee_property.upsert({
+            where: {
+              employeeId_propertyId: {
+                employeeId: actor.employeeId,
+                propertyId: property.id,
+              },
+            },
+            create: {
+              employeeId: actor.employeeId,
+              propertyId: property.id,
+              ownerPmId: pmId,
+            },
+            update: {},
+          }).catch(() => {});
         }
 
         propertyCache.set(propertyKey, property);

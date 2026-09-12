@@ -238,6 +238,7 @@ export class BulkCreateUnitsUseCase {
     await this.activityLog.log({
         pmId,
         ownerPmId: property.pmId,
+        employeeId: actor?.isEmployee ? actor.employeeId : undefined,
         action: ActivityAction.CREATE_UNIT,
         entityType: 'UNIT',
         description: `Bulk created ${dto.units.length} units in property ${property.name}`,

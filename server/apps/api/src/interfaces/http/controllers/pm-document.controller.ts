@@ -82,8 +82,8 @@ export class PmDocumentController {
   @UseGuards(SubscriptionGateGuard)
   @RequireFeature(FeatureKey.DOCUMENT_MANAGEMENT)
   async saveTemplate(@Request() req: any, @Body() data: SaveDocumentTemplateDto) {
-    const pmId = await this.getPmId(req);
-    return this.saveTemplateUseCase.execute(pmId, data);
+    const actor = await this.getActorContext(req);
+    return this.saveTemplateUseCase.execute(actor.ownerPmId, data, actor);
   }
 
   @Post('send')

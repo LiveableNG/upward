@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Plus, Search, Menu, Building2, Filter, ChevronDown, Eye } from 'lucide-react'
+import { Plus, Search, Menu, Building2, Filter, ChevronDown, Eye, FileSpreadsheet } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -17,6 +17,7 @@ interface PropertiesTableProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onAddProperty: () => void;
+  onBulkImport?: () => void;
   onEditProperty: (property: Property) => void;
   onManageUnits: (name: string) => void;
   onViewPropertyDetail: (property: Property) => void;
@@ -28,6 +29,7 @@ export function PropertiesTable({
   searchQuery,
   setSearchQuery,
   onAddProperty,
+  onBulkImport,
   onEditProperty,
   onManageUnits,
   onViewPropertyDetail
@@ -106,9 +108,20 @@ export function PropertiesTable({
         title="Properties" 
         subtitle="Manage your property portfolio and units."
         actions={
-          <button className="btn btn--primary" onClick={onAddProperty} style={{ borderRadius: 12 }}>
-            <Plus size={18} /> Add Property
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {onBulkImport && (
+              <button 
+                className="btn btn--secondary" 
+                onClick={onBulkImport}
+                style={{ borderRadius: 12 }}
+              >
+                <FileSpreadsheet size={18} /> Bulk Import
+              </button>
+            )}
+            <button className="btn btn--primary" onClick={onAddProperty} style={{ borderRadius: 12 }}>
+              <Plus size={18} /> Add Property
+            </button>
+          </div>
         }
       />
 

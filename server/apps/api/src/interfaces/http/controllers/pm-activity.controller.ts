@@ -1,10 +1,11 @@
 
-import { Controller, Get, Param, Req, UseGuards, NotFoundException, UnauthorizedException, Inject } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards, NotFoundException, UnauthorizedException, ForbiddenException, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { ActivityLogService } from '../../../shared/application/activity-log.service';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
+import { GetTeamActivityDashboardUseCase } from '../../../application/pm/use-cases/team/get-team-activity-dashboard.use-case';
 
 @Controller('pm/team')
 @UseGuards(JwtAuthGuard)
@@ -13,6 +14,7 @@ export class PmActivityController {
     private readonly activityLog: ActivityLogService,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly getTeamActivityDashboardUseCase: GetTeamActivityDashboardUseCase,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
@@ -22,6 +24,36 @@ export class PmActivityController {
     const pm = await this.pmRepository.findByUuid(uuid);
     if (!pm?.id) throw new UnauthorizedException('Property Manager not found');
     return pm.id;
+  }
+
+  @Get('activity/dashboard')
+  async getTeamActivityDashboard(
+    @Req() req: any,
+    @Query('memberUuid') memberUuid?: string,
+    @Query('category') category?: string,
+    @Query('action') action?: string,
+    @Query('search') search?: string,
+    @Query('timeRange') timeRange?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    if (req.user?.role === 'PM_EMPLOYEE') {
+      throw new ForbiddenException('Only PM account owners and administrators can access the activity dashboard');
+    }
+    const ownerPmId = await this.getOwnerPmId(req);
+    return this.getTeamActivityDashboardUseCase.execute(ownerPmId, {
+      memberUuid,
+      category,
+      action,
+      search,
+      timeRange: timeRange as any,
+      startDate,
+      endDate,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+    });
   }
 
   @Get(':collaboratorUuid/activities')

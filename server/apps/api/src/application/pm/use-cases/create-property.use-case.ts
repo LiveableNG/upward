@@ -113,7 +113,8 @@ export class CreatePropertyUseCase {
 
     await this.activityLog.log({
         pmId,
-        ownerPmId: pmId, 
+        ownerPmId: pmId,
+        employeeId: actor?.isEmployee ? actor.employeeId : undefined,
         action: ActivityAction.CREATE_PROPERTY,
         entityType: 'PROPERTY',
         entityId: property.uuid,

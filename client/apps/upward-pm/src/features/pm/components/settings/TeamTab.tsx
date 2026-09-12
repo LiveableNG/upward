@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { 
   Users, 
   UserPlus, 
@@ -13,7 +14,8 @@ import {
   Info, 
   History, 
   ArrowRightLeft, 
-  Send 
+  Send,
+  Activity
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTeam, useRevokeMember, useResendTeamInvite } from '@/features/pm/hooks/useTeam'
@@ -316,6 +318,13 @@ export function TeamTab() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }} className="team-header-actions">
+          <Link
+            href="/team/activity"
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, height: 42, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, flex: '1 1 auto', justifyContent: 'center', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          >
+            <Activity size={16} color="var(--forest)" /> Activity Dashboard
+          </Link>
           <button
             className="btn btn--secondary"
             onClick={() => {
