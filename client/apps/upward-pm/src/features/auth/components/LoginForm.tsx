@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { Capacitor } from '@capacitor/core'
 import { 
@@ -10,19 +10,31 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  Loader2
+  Loader2,
+  AlertCircle,
+  Sparkles,
+  CheckCircle2,
+  Users,
+  Building2
 } from 'lucide-react'
 import { UpwardLogo } from '../../../components/common/UpwardLogo'
 import { useLogin, useEmployeeLogin } from '../hooks/useLogin'
-import { useRequestOTP, useOtpLogin } from '../hooks/useOtp'
+import { 
+  useRequestOTP, 
+  useOtpLogin, 
+  useEmployeeRequestOTP, 
+  useEmployeeVerifyOTP, 
+  useEmployeeOtpLogin 
+} from '../hooks/useOtp'
 import { useToast } from '@/components/common/Toast'
-import { Users, UserCheck, Building2 } from 'lucide-react'
+import { checkEmployeeEmail } from '../services/authService'
 
 export const LoginForm = () => {
   const { error: toastError } = useToast()
   const [accountType, setAccountType] = useState<'manager' | 'staff'>('manager')
   const [loginMethod, setLoginMethod] = useState<'password' | 'code'>('password')
   const [otpStage, setOtpStage] = useState<'request' | 'verify'>('request')
+  const [otpContext, setOtpContext] = useState<'LOGIN' | 'INVITE'>('LOGIN')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -30,12 +42,42 @@ export const LoginForm = () => {
   const [signupHref, setSignupHref] = useState(Capacitor.isNativePlatform() ? '/signup' : '/pm-signup')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
+  // Silent search state for employee login
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+  const [staffCheckResult, setStaffCheckResult] = useState<{
+    checked: boolean;
+    exists: boolean;
+    isInvited?: boolean;
+    hasPassword?: boolean;
+    inviteToken?: string;
+    employerName?: string;
+    jobTitle?: string;
+  }>({ checked: false, exists: false })
+  const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
+
   const loginMutation = useLogin()
   const employeeLoginMutation = useEmployeeLogin()
   const requestOtpMutation = useRequestOTP()
   const otpLoginMutation = useOtpLogin()
+  const employeeRequestOtpMutation = useEmployeeRequestOTP()
+  const employeeVerifyOtpMutation = useEmployeeVerifyOTP()
+  const employeeOtpLoginMutation = useEmployeeOtpLogin()
 
-  const loading = (accountType === 'staff' ? employeeLoginMutation.isPending : loginMutation.isPending) || requestOtpMutation.isPending || otpLoginMutation.isPending
+  const isCurrentOtpError = accountType === 'staff'
+    ? (otpContext === 'INVITE' ? employeeVerifyOtpMutation.isError : employeeOtpLoginMutation.isError)
+    : otpLoginMutation.isError
+
+  const currentOtpErrorMessage = accountType === 'staff'
+    ? (otpContext === 'INVITE' ? (employeeVerifyOtpMutation.error as any)?.message : (employeeOtpLoginMutation.error as any)?.message)
+    : (otpLoginMutation.error as any)?.message
+
+  const loading =
+    (accountType === 'staff' ? employeeLoginMutation.isPending : loginMutation.isPending) ||
+    requestOtpMutation.isPending ||
+    otpLoginMutation.isPending ||
+    employeeRequestOtpMutation.isPending ||
+    employeeVerifyOtpMutation.isPending ||
+    employeeOtpLoginMutation.isPending
 
   const clearFieldError = (field: string) => {
     setFieldErrors((current) => {
@@ -58,6 +100,40 @@ export const LoginForm = () => {
     setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)
   }, [])
 
+  // Silent email checking for staff logins
+  useEffect(() => {
+    setStaffCheckResult({ checked: false, exists: false })
+    if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
+
+    if (accountType === 'staff' && email && email.includes('@') && email.length > 5) {
+      setIsCheckingEmail(true)
+      emailCheckTimeout.current = setTimeout(async () => {
+        try {
+          const res = await checkEmployeeEmail(email.trim())
+          setStaffCheckResult({
+            checked: true,
+            exists: res.exists,
+            isInvited: res.isInvited,
+            hasPassword: res.hasPassword,
+            inviteToken: res.inviteToken,
+            employerName: res.employerName,
+            jobTitle: res.jobTitle,
+          })
+        } catch (err) {
+          console.error('Staff email check failed', err)
+        } finally {
+          setIsCheckingEmail(false)
+        }
+      }, 500)
+    } else {
+      setIsCheckingEmail(false)
+    }
+
+    return () => {
+      if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
+    }
+  }, [email, accountType])
+
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     const nextErrors: Record<string, string> = {}
@@ -68,7 +144,11 @@ export const LoginForm = () => {
       nextErrors.email = 'Please enter a valid email address'
     }
 
-    if (!password) {
+    if (accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists) {
+      nextErrors.email = 'No staff invitation found for this email address'
+    }
+
+    if (!password && (!staffCheckResult.isInvited || accountType !== 'staff')) {
       nextErrors.password = 'This field is required'
     }
 
@@ -83,6 +163,19 @@ export const LoginForm = () => {
     } else {
       loginMutation.mutate({ email, password })
     }
+  }
+
+  const handleStaffInviteVerify = () => {
+    setOtpContext('INVITE')
+    employeeRequestOtpMutation.mutate(
+      { email, context: 'INVITE' },
+      {
+        onSuccess: () => {
+          setOtpStage('verify')
+          setOtp(['', '', '', '', '', ''])
+        }
+      }
+    )
   }
 
   const handleRequestOtp = async (e: React.FormEvent) => {
@@ -101,18 +194,37 @@ export const LoginForm = () => {
     }
 
     setFieldErrors({})
-    requestOtpMutation.mutate(
-      { email, context: 'LOGIN' },
-      {
-        onSuccess: () => {
-          setOtpStage('verify')
+    setOtpContext('LOGIN')
+
+    if (accountType === 'staff') {
+      employeeRequestOtpMutation.mutate(
+        { email, context: 'LOGIN' },
+        {
+          onSuccess: () => {
+            setOtpStage('verify')
+          }
         }
-      }
-    )
+      )
+    } else {
+      requestOtpMutation.mutate(
+        { email, context: 'LOGIN' },
+        {
+          onSuccess: () => {
+            setOtpStage('verify')
+          }
+        }
+      )
+    }
+  }
+
+  const resetOtpErrors = () => {
+    if (otpLoginMutation.isError) otpLoginMutation.reset()
+    if (employeeVerifyOtpMutation.isError) employeeVerifyOtpMutation.reset()
+    if (employeeOtpLoginMutation.isError) employeeOtpLoginMutation.reset()
   }
 
   const handleOtpChange = (index: number, value: string) => {
-    if (otpLoginMutation.isError) otpLoginMutation.reset()
+    resetOtpErrors()
     
     const digitsOnly = value.replace(/\D/g, '')
 
@@ -147,7 +259,7 @@ export const LoginForm = () => {
 
   const handleOtpPaste = (e: React.ClipboardEvent, index: number) => {
     e.preventDefault()
-    if (otpLoginMutation.isError) otpLoginMutation.reset()
+    resetOtpErrors()
     const pastedData = e.clipboardData.getData('text')
     const digitsOnly = pastedData.replace(/\D/g, '').slice(0, 6)
     if (!digitsOnly) return
@@ -172,14 +284,41 @@ export const LoginForm = () => {
     const otpCode = otpArray.join('')
     if (otpCode.length !== 6) return
 
-    otpLoginMutation.mutate(
-      { email, otp: otpCode },
-      {
-        onSuccess: () => {
-          window.location.href = '/dashboard'
-        }
+    if (accountType === 'staff') {
+      if (otpContext === 'INVITE') {
+        employeeVerifyOtpMutation.mutate(
+          { email, otp: otpCode, context: 'INVITE' },
+          {
+            onSuccess: (res) => {
+              const token = res?.inviteToken || staffCheckResult.inviteToken
+              if (token) {
+                window.location.href = `/invite/${token}`
+              } else {
+                window.location.href = '/dashboard'
+              }
+            }
+          }
+        )
+      } else {
+        employeeOtpLoginMutation.mutate(
+          { email, otp: otpCode },
+          {
+            onSuccess: () => {
+              window.location.href = '/dashboard'
+            }
+          }
+        )
       }
-    )
+    } else {
+      otpLoginMutation.mutate(
+        { email, otp: otpCode },
+        {
+          onSuccess: () => {
+            window.location.href = '/dashboard'
+          }
+        }
+      )
+    }
   }
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
@@ -263,17 +402,17 @@ export const LoginForm = () => {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '24px' }}>
         <UpwardLogo color="var(--forest)" size={48} />
         <h2 className="auth-card__title" style={{ fontSize: '24px', fontWeight: 800, marginTop: '16px', marginBottom: '8px', color: 'var(--dark)' }}>
-          {accountType === 'staff' 
-            ? 'Staff Portal Login'
-            : (otpStage === 'verify' && loginMethod === 'code' ? 'Enter Verification Code' : 'Welcome Back')}
+          {otpStage === 'verify'
+            ? 'Enter Verification Code'
+            : (accountType === 'staff' ? 'Staff Portal Login' : 'Welcome Back')}
         </h2>
         <p className="auth-card__subtitle" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-          {accountType === 'staff' ? (
-            'Sign in to access your assigned properties and organization workflow.'
-          ) : loginMethod === 'code' && otpStage === 'verify' ? (
+          {otpStage === 'verify' ? (
             <>
-              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
+              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. {otpContext === 'INVITE' ? 'Enter the code to verify your invitation and set up your password.' : 'Enter the code to access your portal.'}
             </>
+          ) : accountType === 'staff' ? (
+            'Sign in to access your assigned properties and organization workflow.'
           ) : (
             'Sign in to access your properties, tenants, and collections.'
           )}
@@ -304,11 +443,81 @@ export const LoginForm = () => {
         </div>
       )}
 
-      {loginMethod === 'password' ? (
+      {otpStage === 'verify' ? (
+        <form onSubmit={handleOtpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className={`otp-group ${isCurrentOtpError ? 'otp-group--error' : ''}`} style={{ marginBottom: 0 }}>
+            {otp.map((digit, i) => (
+              <input
+                key={i}
+                id={`otp-${i}`}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={1}
+                autoComplete="one-time-code"
+                className="otp-input"
+                value={digit}
+                onChange={(e) => handleOtpChange(i, e.target.value)}
+                onPaste={(e) => handleOtpPaste(e, i)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace' && !digit && i > 0) {
+                    document.getElementById(`otp-${i - 1}`)?.focus()
+                  }
+                }}
+              />
+            ))}
+          </div>
+
+          {isCurrentOtpError && (
+            <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: 0, fontWeight: 500 }}>
+              {currentOtpErrorMessage || 'Invalid verification code'}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="auth-btn auth-btn--primary auth-btn--large"
+            disabled={loading}
+            style={{ marginTop: '10px' }}
+          >
+            <span>{loading ? 'Verifying...' : (otpContext === 'INVITE' ? 'Verify & Continue' : 'Verify & Sign In')}</span>
+            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+          </button>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', fontSize: '13px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setOtpStage('request')
+                setLoginMethod('password')
+                setOtp(['', '', '', '', '', ''])
+                resetOtpErrors()
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 500 }}
+            >
+              Back to Login
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (accountType === 'staff') {
+                  employeeRequestOtpMutation.mutate({ email, context: otpContext })
+                } else {
+                  requestOtpMutation.mutate({ email, context: 'LOGIN' })
+                }
+              }}
+              disabled={loading}
+              style={{ background: 'none', border: 'none', color: 'var(--forest)', cursor: 'pointer', fontWeight: 700 }}
+            >
+              Resend Code
+            </button>
+          </div>
+        </form>
+      ) : loginMethod === 'password' ? (
         <form onSubmit={handlePasswordLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Email Address</label>
-            <div className="input-wrapper">
+            <div className="input-wrapper" style={{ position: 'relative' }}>
               <Mail size={18} className="input-icon" />
               <input 
                 type="email" 
@@ -321,63 +530,159 @@ export const LoginForm = () => {
                 }}
                 required
               />
+              {accountType === 'staff' && (
+                <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                  {isCheckingEmail ? (
+                    <Loader2 size={16} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+                  ) : staffCheckResult.checked && staffCheckResult.exists ? (
+                    <CheckCircle2 size={16} color="var(--forest)" />
+                  ) : null}
+                </div>
+              )}
             </div>
             {fieldErrors.email && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
-          </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
-              <Link href={Capacitor.isNativePlatform() ? '/forgot-password' : '/pm-forgot-password'} style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
-                Forgot Password?
-              </Link>
-            </div>
-            <div className="input-wrapper" style={{ position: 'relative' }}>
-              <Lock size={18} className="input-icon" />
-              <input 
-                type={showPassword ? 'text' : 'password'} 
-                className={`form-input form-input--with-icon ${fieldErrors.password ? 'form-input--error' : ''}`}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  clearFieldError('password')
-                  setPassword(e.target.value)
-                }}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
+            {/* Staff: Validated Account Status Notice */}
+            {accountType === 'staff' && staffCheckResult.checked && staffCheckResult.exists && staffCheckResult.hasPassword && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--forest)', fontWeight: 600, marginTop: '8px' }}>
+                <CheckCircle2 size={14} />
+                <span>Verified staff member at {staffCheckResult.employerName}</span>
+              </div>
+            )}
+
+            {/* Staff: Not Found Warning Callout */}
+            {accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists && !isCheckingEmail && (
+              <div
+                className="animate-fade-in"
                 style={{
-                  position: 'absolute',
-                  right: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
+                  background: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                  marginTop: '10px',
                   display: 'flex',
-                  alignItems: 'center'
+                  alignItems: 'flex-start',
+                  gap: '10px'
                 }}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            {fieldErrors.password && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.password}</p>}
+                <AlertCircle size={16} color="#ef4444" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <div style={{ fontSize: '12.5px', color: '#b91c1c', lineHeight: 1.45 }}>
+                  <strong style={{ display: 'block', marginBottom: '2px' }}>No staff invitation found</strong>
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    No staff record matches <strong>{email}</strong>. Please ask your Property Manager to invite you.
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
-          <button 
-            type="submit" 
-            className="auth-btn auth-btn--primary auth-btn--large" 
-            disabled={loading}
-            style={{ marginTop: '10px' }}
-          >
-            <span>{loading ? "Signing in..." : "Sign In"}</span>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-          </button>
+          {/* Staff: Pending Invitation Card */}
+          {accountType === 'staff' && staffCheckResult.checked && staffCheckResult.exists && staffCheckResult.isInvited && staffCheckResult.inviteToken ? (
+            <div
+              className="animate-fade-in"
+              style={{
+                background: 'rgba(22, 101, 52, 0.05)',
+                border: '1.5px solid rgba(22, 101, 52, 0.22)',
+                borderRadius: '16px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                boxShadow: '0 4px 16px rgba(22, 101, 52, 0.04)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--forest)' }}>
+                <Sparkles size={18} />
+                <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Pending Invitation Found
+                </span>
+              </div>
+              <div>
+                <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 800, color: 'var(--dark)' }}>
+                  Welcome to {staffCheckResult.employerName}!
+                </h4>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  You have been invited as <strong>{staffCheckResult.jobTitle || 'Property Officer'}</strong>. Please complete your verification and choose your password to activate your account.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleStaffInviteVerify}
+                disabled={loading}
+                className="auth-btn auth-btn--primary auth-btn--large"
+                style={{
+                  textDecoration: 'none',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <span>{employeeRequestOtpMutation.isPending ? "Sending Code..." : "Verify & Set Password"}</span>
+                {employeeRequestOtpMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Password input & submit button (Only shown when not pending activation) */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
+                  <Link href={Capacitor.isNativePlatform() ? '/forgot-password' : '/pm-forgot-password'} style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div className="input-wrapper" style={{ position: 'relative' }}>
+                  <Lock size={18} className="input-icon" />
+                  <input 
+                    type={showPassword ? 'text' : 'password'} 
+                    className={`form-input form-input--with-icon ${fieldErrors.password ? 'form-input--error' : ''}`}
+                    placeholder="••••••••"
+                    value={password}
+                    disabled={accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists}
+                    onChange={(e) => {
+                      clearFieldError('password')
+                      setPassword(e.target.value)
+                    }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '14px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {fieldErrors.password && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.password}</p>}
+              </div>
+
+              <button 
+                type="submit" 
+                className="auth-btn auth-btn--primary auth-btn--large" 
+                disabled={loading || (accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists)}
+                style={{ marginTop: '10px' }}
+              >
+                <span>{loading ? "Signing in..." : "Sign In"}</span>
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
+              </button>
+            </>
+          )}
         </form>
-      ) : otpStage === 'request' ? (
+      ) : (
         <form onSubmit={handleRequestOtp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Email Address</label>
@@ -410,68 +715,6 @@ export const LoginForm = () => {
             <span>{loading ? "Sending Code..." : "Send Verification Code"}</span>
             {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
           </button>
-        </form>
-      ) : (
-        <form onSubmit={handleOtpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className={`otp-group ${otpLoginMutation.isError ? 'otp-group--error' : ''}`} style={{ marginBottom: 0 }}>
-            {otp.map((digit, i) => (
-              <input
-                key={i}
-                id={`otp-${i}`}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={1}
-                autoComplete="one-time-code"
-                className="otp-input"
-                value={digit}
-                onChange={(e) => handleOtpChange(i, e.target.value)}
-                onPaste={(e) => handleOtpPaste(e, i)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Backspace' && !digit && i > 0) {
-                    document.getElementById(`otp-${i - 1}`)?.focus()
-                  }
-                }}
-              />
-            ))}
-          </div>
-
-          {otpLoginMutation.isError && (
-            <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: 0, fontWeight: 500 }}>
-              {(otpLoginMutation.error as any)?.message || 'Invalid verification code'}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            className="auth-btn auth-btn--primary auth-btn--large"
-            disabled={loading}
-            style={{ marginTop: '10px' }}
-          >
-            <span>{loading ? 'Verifying...' : 'Verify & Sign In'}</span>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-          </button>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', fontSize: '13px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setOtpStage('request')
-                setOtp(['', '', '', '', '', ''])
-              }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 500 }}
-            >
-              Change Email
-            </button>
-            <button
-              type="button"
-              onClick={() => requestOtpMutation.mutate({ email, context: 'LOGIN' })}
-              disabled={requestOtpMutation.isPending}
-              style={{ background: 'none', border: 'none', color: 'var(--forest)', cursor: 'pointer', fontWeight: 700 }}
-            >
-              Resend Code
-            </button>
-          </div>
         </form>
       )}
 

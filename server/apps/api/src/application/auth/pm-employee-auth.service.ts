@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service';
 import { EncryptionService } from '../../shared/infrastructure/common/encryption.service';
 import { S3Service } from '../../shared/infrastructure/common/s3/s3.service';
 import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service';
+import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository';
 import { BaseAuthService } from './base-auth.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
@@ -16,6 +17,8 @@ export class PmEmployeeAuthService extends BaseAuthService {
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY)
+    private readonly tokenRepository: VerificationTokenRepository,
     jwtService: JwtService,
     configService: ConfigService,
   ) {
@@ -133,6 +136,51 @@ export class PmEmployeeAuthService extends BaseAuthService {
         email: ownerEmail,
         logo: companyLogoUrl,
       } : null,
+    };
+  }
+
+  async checkEmail(email: string): Promise<{
+    exists: boolean;
+    isInvited?: boolean;
+    hasPassword?: boolean;
+    inviteToken?: string;
+    employerName?: string;
+    jobTitle?: string;
+  }> {
+    const emailHash = this.encryption.hash(email);
+    const employee = await (this.prisma as any).upward_pm_employee.findFirst({
+      where: { emailHash },
+      include: {
+        ownerPm: {
+          select: {
+            businessName: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    if (!employee || employee.status === 'REVOKED') {
+      return { exists: false, isInvited: false, hasPassword: false };
+    }
+
+    const isInvited = employee.status === 'PENDING' || !employee.passwordHash;
+    const hasPassword = !!employee.passwordHash && employee.status === 'ACTIVE';
+
+    const owner = employee.ownerPm;
+    const ownerBusinessName = owner?.businessName ? this.encryption.decrypt(owner.businessName) : null;
+    const ownerFirstName = owner?.firstName ? this.encryption.decrypt(owner.firstName) : '';
+    const ownerLastName = owner?.lastName ? this.encryption.decrypt(owner.lastName) : '';
+    const employerName = ownerBusinessName || `${ownerFirstName} ${ownerLastName}`.trim() || 'Property Team';
+
+    return {
+      exists: true,
+      isInvited,
+      hasPassword,
+      inviteToken: employee.uuid,
+      employerName,
+      jobTitle: employee.jobTitle || 'Property Officer',
     };
   }
 
@@ -414,6 +462,104 @@ export class PmEmployeeAuthService extends BaseAuthService {
         resetPasswordExpires: null,
       },
     });
+  }
+
+  async requestOTP(email: string, context: 'LOGIN' | 'INVITE' = 'INVITE'): Promise<{ context: string }> {
+    const emailHash = this.encryption.hash(email);
+    const employee = await (this.prisma as any).upward_pm_employee.findFirst({
+      where: { emailHash },
+    });
+
+    if (!employee || employee.status === 'REVOKED') {
+      throw new NotFoundException('No staff account found with this email address.');
+    }
+
+    if (employee.status === 'SUSPENDED') {
+      throw new BadRequestException('Your employee account is suspended. Please contact your property manager.');
+    }
+
+    const effectiveContext = context;
+
+    await (this.tokenRepository as any).deleteOldTokens(email, effectiveContext);
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    await this.tokenRepository.create({
+      otp,
+      context: effectiveContext,
+      identifier: email,
+      expiresAt,
+    });
+
+    const firstName = employee.firstName ? this.encryption.decrypt(employee.firstName) : '';
+    const lastName = employee.lastName ? this.encryption.decrypt(employee.lastName) : '';
+    const employeeName = `${firstName} ${lastName}`.trim() || 'Team Member';
+
+    await this.unifiedCommService.processCommunication({
+      recipientEmail: email,
+      recipientName: employeeName,
+      recipientRole: 'PM',
+      type: 'PM_AUTH_OTP',
+      context: {
+        otp,
+        context: effectiveContext,
+        title: effectiveContext === 'INVITE' ? 'Accept Your Staff Invitation' : 'Secure Staff Portal Login',
+        message: effectiveContext === 'INVITE'
+          ? 'You have been invited to join Upward PM as a staff team member. Use the code below to verify your email and complete your account setup:'
+          : 'Use the code below to securely access your Upward PM staff dashboard:',
+      },
+    });
+
+    return { context: effectiveContext };
+  }
+
+  async verifyOTP(email: string, otp: string, context: string = 'INVITE'): Promise<{ success: boolean; message?: string; inviteToken?: string }> {
+    const record = await this.tokenRepository.findByIdentifier(email, context);
+
+    if (!record || !record.otp || record.expiresAt < new Date()) {
+      throw new UnauthorizedException('Invalid or expired verification code');
+    }
+
+    if (record.otp !== otp) {
+      throw new UnauthorizedException('Invalid verification code');
+    }
+
+    await this.tokenRepository.delete(record.id!);
+
+    const emailHash = this.encryption.hash(email);
+    const employee = await (this.prisma as any).upward_pm_employee.findFirst({
+      where: { emailHash },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Employee record not found');
+    }
+
+    return { success: true, inviteToken: employee.uuid };
+  }
+
+  async otpLogin(email: string, otp: string): Promise<any> {
+    await this.verifyOTP(email, otp, 'LOGIN');
+
+    const emailHash = this.encryption.hash(email);
+    const employee = await (this.prisma as any).upward_pm_employee.findFirst({
+      where: { emailHash },
+    });
+
+    if (!employee) {
+      throw new UnauthorizedException('Employee account not found');
+    }
+
+    if (employee.status === 'PENDING' || !employee.passwordHash) {
+      throw new UnauthorizedException('Your invitation has not been activated yet. Please complete your verification first.');
+    }
+
+    if (employee.status === 'SUSPENDED' || employee.status === 'REVOKED') {
+      throw new UnauthorizedException('Your employee access has been deactivated by the property manager.');
+    }
+
+    return this.generateFullAuthResponse(employee);
   }
 
   async revokeSession(refreshToken: string): Promise<void> {

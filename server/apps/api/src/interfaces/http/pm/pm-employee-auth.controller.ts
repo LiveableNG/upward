@@ -81,6 +81,12 @@ function clearEmployeeAuthCookies(reply: FastifyReply) {
 export class PmEmployeeAuthController {
   constructor(private readonly employeeAuthService: PmEmployeeAuthService) {}
 
+  @Post('check-email')
+  @HttpCode(HttpStatus.OK)
+  async checkEmail(@Body('email') email: string) {
+    return this.employeeAuthService.checkEmail(email);
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -88,6 +94,29 @@ export class PmEmployeeAuthController {
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     const { refreshToken, ...rest } = await this.employeeAuthService.login(body.email, body.password);
+    setEmployeeAuthCookies(reply, rest.accessToken, refreshToken);
+    reply.status(HttpStatus.OK).send(rest);
+  }
+
+  @Post('request-otp')
+  @HttpCode(HttpStatus.OK)
+  async requestOTP(@Body() body: { email: string; context?: 'LOGIN' | 'INVITE' }) {
+    return this.employeeAuthService.requestOTP(body.email, body.context);
+  }
+
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOTP(@Body() body: { email: string; otp: string; context?: string }) {
+    return this.employeeAuthService.verifyOTP(body.email, body.otp, body.context);
+  }
+
+  @Post('otp-login')
+  @HttpCode(HttpStatus.OK)
+  async otpLogin(
+    @Body() body: { email: string; otp: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    const { refreshToken, ...rest } = await this.employeeAuthService.otpLogin(body.email, body.otp);
     setEmployeeAuthCookies(reply, rest.accessToken, refreshToken);
     reply.status(HttpStatus.OK).send(rest);
   }

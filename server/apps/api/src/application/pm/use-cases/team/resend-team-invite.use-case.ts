@@ -47,7 +47,7 @@ export class ResendTeamInviteUseCase {
         name: recipientName,
         inviterName: ownerName,
         isNewAccount: true,
-        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/invite/${employee.uuid}`,
+        claimLink: `${(process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()}/pm-invite/${employee.uuid}`,
       },
     });
 
