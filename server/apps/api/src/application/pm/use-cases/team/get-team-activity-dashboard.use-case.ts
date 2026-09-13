@@ -49,6 +49,7 @@ const CATEGORY_ACTION_MAP: Record<string, string[]> = {
   ],
   TENANTS: [
     ActivityAction.CREATE_TENANT,
+    ActivityAction.ASSIGN_TENANT,
     ActivityAction.INVITE_TENANT,
     ActivityAction.BULK_INVITE_TENANTS,
     'TENANT_JOIN_REQUEST',

@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { randomUUID } from 'crypto';
 import { PASS_PLACEHOLDERS } from '../../../domains/users/user.repository';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 interface BulkCreateInput {
   pmId: number;
@@ -29,10 +30,11 @@ export class BulkCreateTenantRecordsUseCase {
     private readonly sendNotification: SendNotificationUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly configService: ConfigService,
-    private readonly encryption: EncryptionService
+    private readonly encryption: EncryptionService,
+    private readonly activityLog: ActivityLogService,
   ) { }
 
-  async execute(input: BulkCreateInput) {
+  async execute(input: BulkCreateInput, actor?: any) {
     const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: input.pmId } });
     if (!pm) throw new Error('PM not found');
 
@@ -137,6 +139,25 @@ export class BulkCreateTenantRecordsUseCase {
         message: `${pmName} just added past payment records to your profile for ${input.propertyAddress}.`,
         type: 'SYSTEM'
       }).catch((e: any) => console.error('Failed to send notification:', e));
+    }
+
+    try {
+      await this.activityLog.log({
+        pmId: input.pmId,
+        ownerPmId: input.pmId,
+        employeeId: actor?.employeeId,
+        action: ActivityAction.ADD_RENT_HISTORY,
+        entityType: 'TENANT',
+        entityId: user?.uuid,
+        description: `Imported ${recordsAdded} historical rent record(s) for ${input.firstName} ${input.lastName}`,
+        metadata: {
+          propertyAddress: input.propertyAddress,
+          recordsAdded,
+          tenantName: `${input.firstName} ${input.lastName}`.trim(),
+        },
+      });
+    } catch (logErr) {
+      console.error('Failed to log past records activity:', logErr);
     }
 
     return { success: true, recordsAdded, isNewUser };
