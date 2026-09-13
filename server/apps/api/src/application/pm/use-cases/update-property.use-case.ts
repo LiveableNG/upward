@@ -106,6 +106,19 @@ export class UpdatePropertyUseCase {
         if (landlord && landlord.id) landlordId = landlord.id;
     }
 
+    let manualAccountId: number | null | undefined = dto.manualAccountId;
+    if (dto.settlementAccountUuid !== undefined) {
+      if (dto.settlementAccountUuid) {
+        const account = await (this.prisma as any).upward_manual_account.findUnique({
+          where: { uuid: dto.settlementAccountUuid },
+          select: { id: true },
+        });
+        manualAccountId = account ? account.id : null;
+      } else {
+        manualAccountId = null;
+      }
+    }
+
     const updatedProperty = await this.propertyRepository.update(propertyUuid, {
       name: dto.name,
       address: dto.address,
@@ -119,7 +132,22 @@ export class UpdatePropertyUseCase {
       landlordName: dto.landlordName,
       landlordEmail: dto.landlordEmail,
       landlordPhone: dto.landlordPhone,
+      manualAccountId: manualAccountId !== undefined ? manualAccountId : undefined,
     });
+
+    if (manualAccountId !== undefined && property.id) {
+      const pmUnits = await (this.prisma as any).upward_pm_unit.findMany({
+        where: { propertyId: property.id },
+        select: { id: true },
+      });
+      const pmUnitIds = pmUnits.map((u: any) => u.id);
+      if (pmUnitIds.length > 0) {
+        await (this.prisma as any).upward_user_property.updateMany({
+          where: { pmUnitId: { in: pmUnitIds } },
+          data: { manualAccountId },
+        });
+      }
+    }
 
     if (updatedProperty.imageUrl) {
       updatedProperty.imageUrl = await this.s3Service.getDownloadUrl(updatedProperty.imageUrl);

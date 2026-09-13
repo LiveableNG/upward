@@ -289,22 +289,38 @@ export class SubmitUnitRequestUseCase {
 
     // Upsert manual payment account for self-managed property if paymentDetails provided
     if (savedProperty?.id && paymentDetails?.accountNumber && paymentDetails?.bankCode) {
-      await this.prisma.upward_manual_account.upsert({
-        where: { userPropertyId: savedProperty.id },
-        create: {
-          userPropertyId: savedProperty.id,
-          accountNumber: paymentDetails.accountNumber,
-          accountName: paymentDetails.accountName || 'Landlord',
-          bankName: paymentDetails.bankName || '',
-          bankCode: paymentDetails.bankCode,
-        },
-        update: {
-          accountNumber: paymentDetails.accountNumber,
-          accountName: paymentDetails.accountName || 'Landlord',
-          bankName: paymentDetails.bankName || '',
-          bankCode: paymentDetails.bankCode,
+      try {
+        const existingProperty = await this.prisma.upward_user_property.findUnique({
+          where: { id: savedProperty.id },
+          select: { id: true, manualAccountId: true }
+        })
+        if (existingProperty?.manualAccountId) {
+          await this.prisma.upward_manual_account.update({
+            where: { id: existingProperty.manualAccountId },
+            data: {
+              accountNumber: paymentDetails.accountNumber,
+              accountName: paymentDetails.accountName || 'Landlord',
+              bankName: paymentDetails.bankName || '',
+              bankCode: paymentDetails.bankCode,
+            }
+          })
+        } else {
+          const account = await this.prisma.upward_manual_account.create({
+            data: {
+              accountNumber: paymentDetails.accountNumber,
+              accountName: paymentDetails.accountName || 'Landlord',
+              bankName: paymentDetails.bankName || '',
+              bankCode: paymentDetails.bankCode,
+            }
+          })
+          await this.prisma.upward_user_property.update({
+            where: { id: savedProperty.id },
+            data: { manualAccountId: account.id }
+          })
         }
-      }).catch((e: any) => this.logger.warn(`Failed to save manual account: ${e.message}`));
+      } catch (e: any) {
+        this.logger.warn(`Failed to save manual account: ${e.message}`)
+      }
     }
 
     // Record initial offline payment entry if initialPaid > 0 (marked PENDING_APPROVAL until PM verifies)

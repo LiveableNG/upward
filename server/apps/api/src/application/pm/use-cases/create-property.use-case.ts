@@ -47,6 +47,15 @@ export class CreatePropertyUseCase {
       }
     }
 
+    let manualAccountId = dto.manualAccountId;
+    if (dto.settlementAccountUuid) {
+      const account = await (this.prisma as any).upward_manual_account.findUnique({
+        where: { uuid: dto.settlementAccountUuid },
+        select: { id: true },
+      });
+      if (account) manualAccountId = account.id;
+    }
+
     const property = await this.propertyRepository.create({
       pmId,
       name: dto.name,
@@ -61,6 +70,7 @@ export class CreatePropertyUseCase {
       landlordName: dto.landlordName || null,
       landlordEmail: dto.landlordEmail || null,
       landlordPhone: dto.landlordPhone || null,
+      manualAccountId: manualAccountId || undefined,
     });
 
     // If an employee created the property, auto-assign them

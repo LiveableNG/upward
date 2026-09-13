@@ -80,6 +80,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
     name: '', address: '', propertyType: 'Residential',
     imageFile: null as File | null, imageUrl: '', country: 'Nigeria',
     state: '', area: '', landlordName: '', landlordEmail: '', landlordPhone: '',
+    settlementAccountUuid: '',
     collaborationEnabled: false, collaboratorUuids: [] as string[]
   })
 
@@ -163,6 +164,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
         landlordName: propForm.landlordName,
         landlordEmail: propForm.landlordEmail,
         landlordPhone: propForm.landlordPhone,
+        settlementAccountUuid: propForm.settlementAccountUuid,
         collaboratorUuids: propForm.collaboratorUuids,
       }
 
@@ -179,7 +181,12 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
 
   const openEditProperty = (prop: Property) => {
     setEditingPropertyUuid(prop.uuid)
-    setPropForm({ ...prop, imageFile: null, imageUrl: prop.imageUrl || '' } as any)
+    setPropForm({ 
+      ...prop, 
+      imageFile: null, 
+      imageUrl: prop.imageUrl || '',
+      settlementAccountUuid: prop.manualAccount?.uuid || ''
+    } as any)
     setShowEditPropertyModal(true)
   }
 
@@ -215,6 +222,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
         landlordName: propForm.landlordName,
         landlordEmail: propForm.landlordEmail,
         landlordPhone: propForm.landlordPhone,
+        settlementAccountUuid: propForm.settlementAccountUuid,
       }
 
       updatePropertyMutation.mutate({ 
@@ -236,6 +244,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
       name: '', address: '', propertyType: 'Residential', 
       imageFile: null, imageUrl: '', country: 'Nigeria', state: '', area: '',
       landlordName: '', landlordEmail: '', landlordPhone: '',
+      settlementAccountUuid: '',
       collaborationEnabled: false, collaboratorUuids: []
     })
     setEditingPropertyUuid('')

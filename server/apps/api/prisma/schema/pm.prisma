@@ -45,6 +45,7 @@ model upward_property_manager {
   landlordRelations       upward_pm_landlord_relation[]
   landlordReports         upward_pm_landlord_report[]
   letterheads             upward_pm_letterhead[]
+  manualAccounts          upward_manual_account[]
   notifications           upward_pm_notification[]
   paymentRequests         upward_pm_payment_request[]
   properties              upward_pm_property[]
@@ -117,7 +118,8 @@ model upward_pm_property {
   createdAt             DateTime                           @default(now())
   updatedAt             DateTime                           @updatedAt
   landlordId            Int?
-  manualAccount         upward_manual_account?
+  manualAccountId       Int?
+  manualAccount         upward_manual_account?             @relation(fields: [manualAccountId], references: [id])
   landlord              upward_pm_landlord?                @relation(fields: [landlordId], references: [id])
   pm                    upward_property_manager            @relation(fields: [pmId], references: [id], onDelete: Cascade)
   collaborators         upward_pm_property_collaboration[]
@@ -261,6 +263,8 @@ model upward_pm_payment_request {
   recurrenceInterval String?
   scheduledAt        DateTime?
   employeeId         Int?
+  manualAccountId    Int?
+  manualAccount      upward_manual_account?  @relation(fields: [manualAccountId], references: [id])
   paymentRequest     upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
   pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   tenant             upward_pm_tenant?       @relation(fields: [tenantId], references: [id])

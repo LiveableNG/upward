@@ -45,6 +45,7 @@ export default function LandlordPropertyDetail() {
     name: '', address: '', totalUnits: '', propertyType: 'Residential',
     imageUrl: '', country: 'Nigeria', state: '', area: '',
     landlordName: '', landlordEmail: '', landlordPhone: '',
+    settlementAccountUuid: '',
     imageFile: null as File | null
   })
 
@@ -84,6 +85,7 @@ export default function LandlordPropertyDetail() {
       landlordName: property.landlordName || '',
       landlordEmail: property.landlordEmail || '',
       landlordPhone: property.landlordPhone || '',
+      settlementAccountUuid: (property as any).manualAccount?.uuid || '',
       imageFile: null
     })
     setShowEditModal(true)

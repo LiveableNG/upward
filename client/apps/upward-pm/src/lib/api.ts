@@ -86,6 +86,12 @@ export const api = {
   getPayoutBreakdown: paymentService.getPayoutBreakdown,
   getUnresolvedTransactions: paymentService.getUnresolvedTransactions,
   resolveTransaction: paymentService.resolveTransaction,
+  getSettlementAccounts: paymentService.getSettlementAccounts,
+  createSettlementAccount: paymentService.createSettlementAccount,
+  updateSettlementAccount: paymentService.updateSettlementAccount,
+  setDefaultSettlementAccount: paymentService.setDefaultSettlementAccount,
+  linkPropertiesToSettlementAccount: paymentService.linkPropertiesToSettlementAccount,
+  deleteSettlementAccount: paymentService.deleteSettlementAccount,
 
   // Team Collaboration & Approvals
   inviteTeamMember: pmService.inviteTeamMember,

@@ -254,6 +254,12 @@ import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use-case'
 import { AcceptPmTermsUseCase } from './pm/use-cases/accept-pm-terms.use-case'
+import { GetSettlementAccountsUseCase } from './pm/use-cases/settlement-accounts/get-settlement-accounts.use-case'
+import { CreateSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/create-settlement-account.use-case'
+import { UpdateSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/update-settlement-account.use-case'
+import { SetDefaultSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/set-default-settlement-account.use-case'
+import { DeleteSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/delete-settlement-account.use-case'
+import { LinkPropertiesToSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/link-properties-to-settlement-account.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
@@ -674,6 +680,12 @@ const UseCases: any[] = [
   PmBulkRentReminderUseCase,
   UpdateRentPaymentUseCase,
   DeleteRentPaymentUseCase,
+  GetSettlementAccountsUseCase,
+  CreateSettlementAccountUseCase,
+  UpdateSettlementAccountUseCase,
+  SetDefaultSettlementAccountUseCase,
+  DeleteSettlementAccountUseCase,
+  LinkPropertiesToSettlementAccountUseCase,
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,

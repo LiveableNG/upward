@@ -44,8 +44,10 @@ export const useUpdateProperty = () => {
         success(res.message || 'Property edit submitted for Admin approval')
       }
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pm-property'] })
       queryClient.invalidateQueries({ queryKey: ['pm-property', variables.uuid] })
       queryClient.invalidateQueries({ queryKey: ['pm-approval-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['settlement-accounts'] })
     }
   })
 }

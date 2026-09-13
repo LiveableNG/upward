@@ -6,7 +6,8 @@ import { useCountries, useCities } from '../../../hooks/useLocation'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { useLandlords } from '@/features/pm/hooks/useProperties'
-import { Check, Users, UserPlus } from 'lucide-react'
+import { useSettlementAccounts } from '@/features/pm/hooks/useSettlementAccounts'
+import { Check, Users, UserPlus, Landmark } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +27,7 @@ interface EditPropertyModalProps {
     landlordName?: string;
     landlordEmail?: string;
     landlordPhone?: string;
+    settlementAccountUuid?: string;
   };
   setFormData: (data: any) => void;
   onDelete: () => void;
@@ -38,6 +40,7 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
   const { data: countriesData } = useCountries()
   const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
   const { data: existingLandlords = [] } = useLandlords()
+  const { accounts, primaryAccount } = useSettlementAccounts()
   const [landlordMode, setLandlordMode] = React.useState<'NONE' | 'NEW' | 'EXISTING'>(
     formData.landlordEmail ? 'EXISTING' : 'NONE'
   )
@@ -46,7 +49,7 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
     if (isOpen) {
       setLandlordMode(formData.landlordEmail ? 'EXISTING' : 'NONE')
     }
-  }, [isOpen, formData.landlordEmail])
+  }, [isOpen])
 
   const handleToggleLandlordMode = (mode: 'NONE' | 'NEW' | 'EXISTING') => {
     const nextMode = mode === landlordMode ? 'NONE' : mode
@@ -195,6 +198,31 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
               { label: 'Mixed Use', value: 'Mixed Use' }
             ]}
           />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Landmark size={14} color="var(--forest)" /> Settlement Account
+          </label>
+          {accounts.length === 0 ? (
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>No settlement accounts configured in Settings.</p>
+          ) : (
+            <FormSelect
+              value={formData.settlementAccountUuid || ''}
+              onChange={val => setFormData({ ...formData, settlementAccountUuid: val })}
+              options={[
+                { label: `Default (${primaryAccount ? `${primaryAccount.bankName} - ${primaryAccount.accountNumber}` : 'Primary Account'})`, value: '' },
+                ...accounts.map(acc => ({
+                  label: `${acc.bankName} - ${acc.accountNumber} (${acc.accountName})${acc.isPrimary ? ' • Primary' : ''}`,
+                  value: acc.uuid
+                }))
+              ]}
+              placeholder="Select Settlement Account"
+            />
+          )}
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            Rent payments created for this property will route to this account.
+          </p>
         </div>
 
         <div style={{ marginTop: 20, padding: 14, background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>

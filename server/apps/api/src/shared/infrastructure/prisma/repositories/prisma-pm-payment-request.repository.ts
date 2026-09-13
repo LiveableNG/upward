@@ -15,6 +15,32 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       ...pr,
       coreRequestUuid: pr.paymentRequest?.uuid || null,
       employeeId: pr.employeeId || null,
+      manualAccountId: pr.manualAccountId || null,
+      settlementAccount: pr.manualAccount ? {
+        id: pr.manualAccount.id,
+        uuid: pr.manualAccount.uuid,
+        bankName: pr.manualAccount.bankName,
+        bankCode: pr.manualAccount.bankCode,
+        accountNumber: pr.manualAccount.accountNumber,
+        accountName: pr.manualAccount.accountName,
+        isPrimary: Boolean(pr.manualAccount.isPrimary),
+      } : (pr.unit?.property?.manualAccount ? {
+        id: pr.unit.property.manualAccount.id,
+        uuid: pr.unit.property.manualAccount.uuid,
+        bankName: pr.unit.property.manualAccount.bankName,
+        bankCode: pr.unit.property.manualAccount.bankCode,
+        accountNumber: pr.unit.property.manualAccount.accountNumber,
+        accountName: pr.unit.property.manualAccount.accountName,
+        isPrimary: Boolean(pr.unit.property.manualAccount.isPrimary),
+      } : (pr.paymentRequest?.manualAccount ? {
+        id: pr.paymentRequest.manualAccount.id,
+        uuid: pr.paymentRequest.manualAccount.uuid,
+        bankName: pr.paymentRequest.manualAccount.bankName,
+        bankCode: pr.paymentRequest.manualAccount.bankCode,
+        accountNumber: pr.paymentRequest.manualAccount.accountNumber,
+        accountName: pr.paymentRequest.manualAccount.accountName,
+        isPrimary: Boolean(pr.paymentRequest.manualAccount.isPrimary),
+      } : null)),
       employee: pr.employee ? {
         id: pr.employee.id,
         uuid: pr.employee.uuid,
@@ -66,11 +92,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const pr = await prisma.upward_pm_payment_request.create({
       data,
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
+        manualAccount: true,
         paymentRequest: {
           include: {
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -87,10 +115,11 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
       where: { pmId },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
-        paymentRequest: { include: { lineItemRecords: true } }
+        manualAccount: true,
+        paymentRequest: { include: { manualAccount: true, lineItemRecords: true } }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -121,11 +150,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         ]
       },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
+        manualAccount: true,
         paymentRequest: {
           include: {
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -262,11 +293,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         unit: { propertyId: { in: propertyIds } },
       },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
+        manualAccount: true,
         paymentRequest: {
           include: {
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -286,11 +319,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const pr = await (this.prisma as any).upward_pm_payment_request.findUnique({
       where: { uuid },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
+        manualAccount: true,
         paymentRequest: { 
           include: { 
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -308,9 +343,10 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         userProperty: {
           include: {
-            pmUnit: { include: { property: true, tenant: true } }
+            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
           }
         },
+        manualAccount: true,
         lineItemRecords: true,
         transactions: {
           where: { status: 'SUCCESS' },
@@ -338,6 +374,24 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         tenantId: pmTenant?.id || null,
         isSelfPayment: true,
         coreRequestUuid: manualPr.uuid,
+        manualAccountId: manualPr.manualAccountId || null,
+        settlementAccount: manualPr.manualAccount ? {
+          id: manualPr.manualAccount.id,
+          uuid: manualPr.manualAccount.uuid,
+          bankName: manualPr.manualAccount.bankName,
+          bankCode: manualPr.manualAccount.bankCode,
+          accountNumber: manualPr.manualAccount.accountNumber,
+          accountName: manualPr.manualAccount.accountName,
+          isPrimary: Boolean(manualPr.manualAccount.isPrimary),
+        } : (pmUnit.property.manualAccount ? {
+          id: pmUnit.property.manualAccount.id,
+          uuid: pmUnit.property.manualAccount.uuid,
+          bankName: pmUnit.property.manualAccount.bankName,
+          bankCode: pmUnit.property.manualAccount.bankCode,
+          accountNumber: pmUnit.property.manualAccount.accountNumber,
+          accountName: pmUnit.property.manualAccount.accountName,
+          isPrimary: Boolean(pmUnit.property.manualAccount.isPrimary),
+        } : null),
         
         unit: {
           ...pmUnit,
@@ -383,11 +437,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const pr = await (prisma as any).upward_pm_payment_request.findFirst({
       where: { paymentRequestId },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
+        manualAccount: true,
         paymentRequest: { 
           include: { 
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -406,11 +462,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       where: { uuid },
       data,
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
         employee: true,
+        manualAccount: true,
         paymentRequest: {
           include: {
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },

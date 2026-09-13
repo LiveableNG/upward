@@ -120,6 +120,21 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
       render: (req) => <div className="payments-view__cell payments-view__cell--date" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>{formatDate(req.dueDate)}</div>
     },
     {
+      header: 'Settlement Account',
+      render: (req) => {
+        const acc = req.settlementAccount
+        if (!acc) return <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Default Account</span>
+        return (
+          <div className="payments-view__cell" style={{ fontSize: 13, minWidth: 140, display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 600, color: 'var(--dark)' }}>{acc.bankName}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              •••• {acc.accountNumber ? acc.accountNumber.slice(-4) : ''} ({acc.accountName})
+            </span>
+          </div>
+        )
+      }
+    },
+    {
       header: 'Created By',
       render: (req) => (
         <div className="payments-view__cell" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>

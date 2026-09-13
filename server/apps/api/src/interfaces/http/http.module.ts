@@ -49,6 +49,7 @@ import { PmEmailSettingController } from './pm/pm-email-setting.controller'
 import { PmReceiptSettingController } from './pm/pm-receipt-setting.controller'
 import { PmLetterheadController } from './pm/pm-letterhead.controller'
 import { PmSignatureController } from './pm/pm-signature.controller'
+import { PmSettlementAccountController } from './pm/pm-settlement-account.controller'
 import { PmPropertyController } from './controllers/pm-property.controller'
 import { PmActivityController } from './controllers/pm-activity.controller'
 import { PmTenantController } from './controllers/pm-tenant.controller'
@@ -146,6 +147,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PmReceiptSettingController,
     PmLetterheadController,
     PmSignatureController,
+    PmSettlementAccountController,
     PmPropertyController,
     PmActivityController,
     PmTenantController,

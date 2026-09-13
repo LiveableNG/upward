@@ -21,6 +21,16 @@ export interface PropertyEntity {
   landlordName: string | null;
   landlordEmail: string | null;
   landlordPhone: string | null;
+  manualAccountId?: number | null;
+  manualAccount?: {
+    id: number;
+    uuid: string;
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    bankCode?: string | null;
+    isPrimary?: boolean;
+  } | null;
 }
 
 export interface UnitEntity {
@@ -177,12 +187,14 @@ export interface PmPaymentRequestEntity {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   employeeId?: number | null;
+  manualAccountId?: number | null;
   createdAt: Date;
   updatedAt: Date;
   
   unit?: UnitEntity;
   tenant?: TenantEntity;
   employee?: any;
+  settlementAccount?: any;
   transactions?: any[];
 }
 

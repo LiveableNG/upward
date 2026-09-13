@@ -8,6 +8,7 @@ import { useCreatePaymentRequest, useUpdatePaymentRequest } from '../../../hooks
 import { useToast } from '@/components/common/Toast'
 import { PmPaymentRequest } from '../../../services/paymentService'
 import { useDocuments } from '../../../hooks/useDocuments'
+import { useSettlementAccounts } from '../../../hooks/useSettlementAccounts'
 import { useAuth } from '@/features/auth/AuthContext'
 import { formatTenantName } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal/Modal'
@@ -62,6 +63,7 @@ export function CreatePaymentRequestModal({
     { name: 'Rent', amount: '' }
   ])
   const [selectedTemplateUuid, setSelectedTemplateUuid] = useState<string>('')
+  const [selectedSettlementAccountUuid, setSelectedSettlementAccountUuid] = useState<string>('')
   const [includeManagementFee, setIncludeManagementFee] = useState(false)
   const [reminderFrequency, setReminderFrequency] = useState<string>('NONE')
   const [isScheduled, setIsScheduled] = useState(false)
@@ -69,6 +71,7 @@ export function CreatePaymentRequestModal({
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurrenceInterval, setRecurrenceInterval] = useState<string>('MONTHLY')
   const { templates } = useDocuments()
+  const { accounts, primaryAccount } = useSettlementAccounts()
 
   const { success, error } = useToast()
   const { user } = useAuth()
@@ -79,8 +82,8 @@ export function CreatePaymentRequestModal({
 
   const isEmployee = user?.accountType === 'PM_EMPLOYEE' || user?.canManageCompanySettings === false
   const hasBankDetails = isEmployee
-    ? Boolean(user?.hasBankDetails || user?.employer?.hasBankDetails || (user?.bankCode && user?.accountNumber) || (user?.employer?.bankCode && user?.employer?.accountNumber))
-    : Boolean(user?.hasBankDetails || (user?.bankCode && user?.accountNumber))
+    ? Boolean(accounts.length > 0 || user?.hasBankDetails || user?.employer?.hasBankDetails || (user?.bankCode && user?.accountNumber) || (user?.employer?.bankCode && user?.employer?.accountNumber))
+    : Boolean(accounts.length > 0 || user?.hasBankDetails || (user?.bankCode && user?.accountNumber))
 
   useEffect(() => {
     if (!isOpen) {
@@ -122,11 +125,27 @@ export function CreatePaymentRequestModal({
           amount: li.amount.toString()
         })))
       }
+      if (existingRequest.settlementAccount?.uuid) {
+        setSelectedSettlementAccountUuid(existingRequest.settlementAccount.uuid)
+      } else if ((existingRequest as any).manualAccountId) {
+        const found = accounts.find(a => a.id === (existingRequest as any).manualAccountId)
+        if (found) setSelectedSettlementAccountUuid(found.uuid)
+      }
       setHasInitialized(true)
     } else if (unit) {
       const type = unit.rentType?.toUpperCase() || 'ANNUALLY'
       setRentType(type)
       setReminderFrequency('NONE') // Default to no reminders for new requests
+
+      // Initialize settlement account from property or primary
+      const propAccUuid = (unit.property as any)?.manualAccount?.uuid
+      if (propAccUuid) {
+        setSelectedSettlementAccountUuid(propAccUuid)
+      } else if (primaryAccount) {
+        setSelectedSettlementAccountUuid(primaryAccount.uuid)
+      } else if (accounts.length > 0) {
+        setSelectedSettlementAccountUuid(accounts[0].uuid)
+      }
 
       let calculatedStartDate = unit.rentStartDate ? new Date(unit.rentStartDate) : new Date()
       let calculatedEndDate = unit.rentDueDate ? new Date(unit.rentDueDate) : new Date()
@@ -197,6 +216,21 @@ export function CreatePaymentRequestModal({
       setHasInitialized(true)
     }
   }, [isOpen, unit, existingRequest, payments, hasInitialized])
+
+  // Fallback to select primary or first settlement account if not yet selected
+  useEffect(() => {
+    if (!selectedSettlementAccountUuid && accounts.length > 0) {
+      const propAccountUuid = (unit?.property as any)?.manualAccount?.uuid
+      const matchingProp = accounts.find(a => a.uuid === propAccountUuid)
+      if (matchingProp) {
+        setSelectedSettlementAccountUuid(matchingProp.uuid)
+      } else if (primaryAccount) {
+        setSelectedSettlementAccountUuid(primaryAccount.uuid)
+      } else {
+        setSelectedSettlementAccountUuid(accounts[0].uuid)
+      }
+    }
+  }, [accounts, primaryAccount, unit, selectedSettlementAccountUuid])
 
   // Update End Date when Rent Type changes
   useEffect(() => {
@@ -334,6 +368,8 @@ export function CreatePaymentRequestModal({
       if (new Date(scheduledAt) <= new Date()) return error('Scheduled date and time must be in the future')
     }
 
+    const selectedAccount = accounts.find(a => a.uuid === selectedSettlementAccountUuid) || primaryAccount;
+
     const paymentContext = {
       unitUuid: unit!.uuid,
       amount: parseFloat(amount),
@@ -348,6 +384,14 @@ export function CreatePaymentRequestModal({
       scheduledAt: isScheduled && scheduledAt ? new Date(scheduledAt).toISOString() : null,
       isRecurring: isScheduled ? isRecurring : false,
       recurrenceInterval: isScheduled && isRecurring ? recurrenceInterval : null,
+      settlementAccountUuid: selectedSettlementAccountUuid || selectedAccount?.uuid,
+      settlementAccount: selectedAccount ? {
+        uuid: selectedAccount.uuid,
+        bankName: selectedAccount.bankName,
+        accountNumber: selectedAccount.accountNumber,
+        accountName: selectedAccount.accountName,
+        isPrimary: selectedAccount.isPrimary
+      } : undefined,
       lineItems: lineItems.filter(li => li.name && li.amount).map(li => ({
         name: li.name,
         amount: parseFloat(li.amount)
@@ -698,6 +742,35 @@ export function CreatePaymentRequestModal({
               )}
             </div>
           )}
+        </div>
+
+        <div className="form-group">
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CreditCard size={14} color="var(--clay)" /> Settlement Account <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
+          {accounts.length === 0 ? (
+            <div style={{ padding: '12px 16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No settlement account configured yet.</span>
+              {!isEmployee && (
+                <a href="/settings" className="btn btn--secondary" style={{ padding: '6px 12px', height: 'auto', fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0, textDecoration: 'none' }}>
+                  Configure Bank
+                </a>
+              )}
+            </div>
+          ) : (
+            <FormSelect
+              value={selectedSettlementAccountUuid}
+              onChange={(val) => setSelectedSettlementAccountUuid(val)}
+              options={accounts.map((acc) => ({
+                label: `${acc.bankName} - ${acc.accountNumber} (${acc.accountName})${acc.isPrimary ? ' • Primary' : ''}`,
+                value: acc.uuid
+              }))}
+              portalOnDesktop
+            />
+          )}
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            Tenant payment will be deposited directly into this settlement account.
+          </p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

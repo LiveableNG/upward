@@ -302,7 +302,7 @@ export class PmPropertyController {
   @Delete('payment-requests/:uuid')
   async cancelPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
     const actor = await this.getActorContext(req);
-    return this.cancelPmPaymentRequestUseCase.execute(actor.ownerPmId, uuid);
+    return this.cancelPmPaymentRequestUseCase.execute(actor.ownerPmId, uuid, actor);
   }
 
   @Get('landlords')
