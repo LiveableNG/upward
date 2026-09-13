@@ -737,22 +737,22 @@ export function BankInfoForm() {
         isOpen={!!accountToSetDefault}
         title="Set Default Settlement Account"
         message={`Are you sure you want to set ${accountToSetDefault?.bankName} (${accountToSetDefault?.accountNumber}) as the default settlement account? Future payment requests and general payouts will route here by default.`}
-        confirmLabel="Set as Default"
+        confirmText="Set as Default"
         confirmVariant="primary"
         isLoading={setDefaultMutation.isPending}
         onConfirm={handleConfirmSetDefault}
-        onCancel={() => setAccountToSetDefault(null)}
+        onClose={() => setAccountToSetDefault(null)}
       />
 
       <ConfirmationModal
         isOpen={!!accountToDelete}
         title="Delete Settlement Account"
         message={`Are you sure you want to delete ${accountToDelete?.bankName} (${accountToDelete?.accountNumber})? Properties linked to this account will fall back to your default account.`}
-        confirmLabel="Delete Account"
+        confirmText="Delete Account"
         confirmVariant="danger"
         isLoading={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}
-        onCancel={() => setAccountToDelete(null)}
+        onClose={() => setAccountToDelete(null)}
       />
     </section>
   )

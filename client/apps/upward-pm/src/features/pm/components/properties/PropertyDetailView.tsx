@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useMemo } from 'react'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react'
+import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
@@ -9,6 +9,7 @@ import { DataTable, Column } from '@/components/common/DataTable'
 import { useToast } from '@/components/common/Toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBulkCreateUnits } from '@/features/pm/hooks/useProperties'
+import { useSettlementAccounts } from '@/features/pm/hooks/useSettlementAccounts'
 import { useDataImport } from '@/features/pm/components/settings/data-import/useDataImport'
 import { ImportOverlay } from '@/features/pm/components/settings/data-import/ImportOverlay'
 import { UNIT_COLUMNS } from '@/features/pm/components/settings/data-import/types'
@@ -33,6 +34,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
   const { success, error: toastError } = useToast()
   const queryClient = useQueryClient()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
+  const { primaryAccount } = useSettlementAccounts()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const importColumns = useMemo(() => UNIT_COLUMNS, [])
@@ -212,7 +214,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
             className="btn btn--secondary btn--sm" 
             style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
           >
-            <Wallet size={16} /> Setup Manual Payment
+            <Landmark size={16} /> Settlement Account
           </button>
           
           <button 
@@ -269,8 +271,26 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
               <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{units.length}</div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Purpose</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>Mixed Use</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Settlement Account</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {property.manualAccount ? (
+                  <>
+                    <Landmark size={14} color="var(--forest, #166534)" />
+                    <span>{property.manualAccount.bankName} (•••• {property.manualAccount.accountNumber?.slice(-4)})</span>
+                    {property.manualAccount.isPrimary && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>Default</span>
+                    )}
+                  </>
+                ) : primaryAccount ? (
+                  <>
+                    <Landmark size={14} color="var(--text-muted)" />
+                    <span>{primaryAccount.bankName} (•••• {primaryAccount.accountNumber?.slice(-4)})</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>Default</span>
+                  </>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)' }}>Not configured</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -386,7 +406,10 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         isOpen={isManualModalOpen} 
         onClose={() => setIsManualModalOpen(false)} 
         propertyId={property.id} 
+        propertyUuid={property.uuid}
         propertyName={property.name} 
+        currentManualAccount={property.manualAccount}
+        currentManualAccountId={property.manualAccountId}
       />
 
       {/* Bulk Import Units Dialog Modal */}

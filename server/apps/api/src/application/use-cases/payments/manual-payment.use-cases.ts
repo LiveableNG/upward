@@ -31,9 +31,9 @@ export class AddManualAccountUseCase {
       })
       if (!prop) throw new NotFoundException('User property not found')
 
-      if (prop.manualAccountId) {
+      if ((prop as any)?.manualAccountId) {
         return this.prisma.upward_manual_account.update({
-          where: { id: prop.manualAccountId },
+          where: { id: (prop as any).manualAccountId },
           data: {
             accountNumber: data.accountNumber,
             accountName: data.accountName,
@@ -50,7 +50,7 @@ export class AddManualAccountUseCase {
             bankCode: data.bankCode,
           }
         })
-        await this.prisma.upward_user_property.update({
+        await (this.prisma as any).upward_user_property.update({
           where: { id: data.userPropertyId },
           data: { manualAccountId: account.id }
         })
@@ -61,13 +61,13 @@ export class AddManualAccountUseCase {
     if (data.pmPropertyId) {
       const pmProp = await this.prisma.upward_pm_property.findUnique({
         where: { id: data.pmPropertyId },
-        select: { id: true, manualAccountId: true, pmId: true }
+        select: { id: true, manualAccountId: true, pmId: true } as any
       })
       if (!pmProp) throw new NotFoundException('PM property not found')
 
-      if (pmProp.manualAccountId) {
+      if ((pmProp as any)?.manualAccountId) {
         return this.prisma.upward_manual_account.update({
-          where: { id: pmProp.manualAccountId },
+          where: { id: (pmProp as any).manualAccountId },
           data: {
             accountNumber: data.accountNumber,
             accountName: data.accountName,
@@ -82,7 +82,7 @@ export class AddManualAccountUseCase {
             accountName: data.accountName,
             bankName: data.bankName,
             bankCode: data.bankCode,
-            pmId: pmProp.pmId,
+            pmId: (pmProp as any)?.pmId ?? null,
           }
         })
         await this.prisma.upward_pm_property.update({

@@ -21,6 +21,16 @@ export interface PropertyEntity {
   landlordName: string | null;
   landlordEmail: string | null;
   landlordPhone: string | null;
+  manualAccountId?: number | null;
+  manualAccount?: {
+    id: number;
+    uuid: string;
+    accountNumber: string;
+    accountName: string;
+    bankName: string;
+    bankCode?: string | null;
+    isPrimary?: boolean;
+  } | null;
 }
 
 export interface UnitEntity {

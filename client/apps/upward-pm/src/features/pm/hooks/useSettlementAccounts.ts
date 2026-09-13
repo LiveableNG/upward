@@ -55,6 +55,8 @@ export function useSetDefaultSettlementAccount() {
     mutationFn: (uuid: string) => api.setDefaultSettlementAccount(uuid),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SETTLEMENT_ACCOUNTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-property'] });
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
@@ -69,6 +71,7 @@ export function useLinkPropertiesToAccount() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SETTLEMENT_ACCOUNTS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['pm-property'] });
     },
   });
 }

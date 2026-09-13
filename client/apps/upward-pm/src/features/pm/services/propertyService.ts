@@ -1,4 +1,5 @@
 import { request } from '@/lib/api-client'
+import { SettlementAccount } from './paymentService'
 
 export interface Property {
   id: number
@@ -14,6 +15,8 @@ export interface Property {
   landlordName?: string
   landlordEmail?: string
   landlordPhone?: string
+  manualAccountId?: number | null
+  manualAccount?: SettlementAccount | null
   units?: Unit[]
 }
 
