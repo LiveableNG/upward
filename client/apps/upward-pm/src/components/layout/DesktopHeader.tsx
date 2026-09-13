@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useAuth } from '@/features/auth/AuthContext'
-import { LogOut, Bell, Wallet as WalletIcon } from 'lucide-react'
+import { LogOut, Bell, Wallet as WalletIcon, ShieldCheck, UserCheck } from 'lucide-react'
 import Link from 'next/link'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { useVerificationStatus } from '@/features/pm/hooks/useVerification'
@@ -25,33 +25,7 @@ export function DesktopHeader() {
   if (pathname !== '/dashboard') return null
 
   const isPending = verification?.status === 'PENDING'
-
-  const getRelativeTime = (dateStr: string) => {
-    const now = new Date()
-    const past = new Date(dateStr)
-    const diffMs = now.getTime() - past.getTime()
-    const diffMins = Math.floor(diffMs / (1000 * 60))
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    const diffHours = Math.floor(diffMins / 60)
-    if (diffHours < 24) return `${diffHours}h ago`
-    const diffDays = Math.floor(diffHours / 24)
-    return `${diffDays}d ago`
-  }
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'PAYMENT_COMPLETED':
-        return <CheckCircle2 size={16} className="notif-icon--success" />
-      case 'PAYMENT_OVERDUE':
-        return <AlertCircle size={16} className="notif-icon--error" />
-      case 'PAYMENT_DUE':
-      case 'PAYMENT_PROOF':
-        return <Calendar size={16} className="notif-icon--warning" />
-      default:
-        return <Sparkles size={16} className="notif-icon--system" />
-    }
-  }
+  const isEmployee = user.accountType === 'PM_EMPLOYEE'
 
   return (
     <header className="desktop-header">
@@ -60,67 +34,84 @@ export function DesktopHeader() {
       </div>
 
       <div className="desktop-header__actions">
-        
         {/* Notification Bell */}
         <NotificationsMenu />
 
         <div className="desktop-header__profile">
-          {user.isVerified ? (
-            <div 
-              style={{ 
-                padding: '4px 10px', 
-                borderRadius: 20, 
-                background: 'rgba(16, 185, 129, 0.1)', 
-                color: '#10b981', 
-                fontSize: 11, 
-                fontWeight: 700,
-                marginRight: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                border: '1px solid rgba(16, 185, 129, 0.2)',
-              }}
-            >
-                <div style={{ 
-                    width: 6, 
-                    height: 6, 
-                    borderRadius: '50%', 
-                    background: '#10b981' 
-                }} />
-                VERIFIED
+          {/* Role Badge: ADMIN vs EMPLOYEE */}
+          {isEmployee ? (
+            <div className="role-tag role-tag--employee" title={`Employee at ${user.employer?.companyName || 'Property Team'}`}>
+              <UserCheck size={11} />
+              <span>EMPLOYEE</span>
             </div>
           ) : (
-            <Link 
-              href="/settings"
-              prefetch={false}
-              className=""
-              style={{ 
-                padding: '4px 10px', 
-                borderRadius: 20, 
-                background: isPending ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
-                color: isPending ? '#3b82f6' : '#ef4444', 
-                fontSize: 11, 
-                fontWeight: 700,
-                marginRight: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                border: `1px solid ${isPending ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                cursor: 'pointer'
-              }}
-            >
+            <div className="role-tag role-tag--admin" title="Account Owner / Admin">
+              <ShieldCheck size={11} />
+              <span>ADMIN</span>
+            </div>
+          )}
+
+          {/* Verification Badge (Only for Owner/Admin PMs, or active employee status) */}
+          {!isEmployee && (
+            user.isVerified ? (
+              <div 
+                style={{ 
+                  padding: '4px 10px', 
+                  borderRadius: 20, 
+                  background: 'rgba(16, 185, 129, 0.1)', 
+                  color: '#10b981', 
+                  fontSize: 11, 
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                }}
+              >
                 <div style={{ 
-                    width: 6, 
-                    height: 6, 
-                    borderRadius: '50%', 
-                    background: isPending ? '#3b82f6' : '#ef4444' 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  background: '#10b981' 
+                }} />
+                VERIFIED
+              </div>
+            ) : (
+              <Link 
+                href="/settings"
+                prefetch={false}
+                style={{ 
+                  padding: '4px 10px', 
+                  borderRadius: 20, 
+                  background: isPending ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)', 
+                  color: isPending ? '#3b82f6' : '#ef4444', 
+                  fontSize: 11, 
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  border: `1px solid ${isPending ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ 
+                  width: 6, 
+                  height: 6, 
+                  borderRadius: '50%', 
+                  background: isPending ? '#3b82f6' : '#ef4444' 
                 }} />
                 {isPending ? 'PENDING REVIEW' : 'UNVERIFIED'}
-            </Link>
+              </Link>
+            )
           )}
+
           <div className="desktop-header__user-info">
             <span className="desktop-header__name">{user.firstName} {user.lastName}</span>
-            <span className="desktop-header__role">{user.businessName || 'Property Manager'}</span>
+            <span className="desktop-header__role">
+              {isEmployee
+                ? `${user.jobTitle || 'Staff'} • ${user.employer?.companyName || 'Property Team'}`
+                : (user.businessName || 'Property Manager')}
+            </span>
           </div>
           
           <Link href="/settings" prefetch={false} className="desktop-header__avatar">
@@ -133,7 +124,6 @@ export function DesktopHeader() {
           </Link>
         </div>
       </div>
-
     </header>
   )
 }

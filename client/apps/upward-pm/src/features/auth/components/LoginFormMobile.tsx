@@ -421,12 +421,12 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
           </div>
         ) : (
           /* Actual Login Forms */
-          <form onSubmit={handleSubmit(onSubmit, onFormError)} className="mobile-auth__form">
+          <form onSubmit={handleSubmit(onSubmit, onFormError)} className="mobile-auth__form" autoComplete="off">
             
             {/* Toggle Login Method (Password vs OTP) */}
             <div className="auth-role-toggle" style={{ margin: '0 0 16px 0' }}>
               <button 
-                type="button"
+                type="button" 
                 className={`auth-role-toggle__btn ${loginType === 'PASSWORD' ? 'auth-role-toggle__btn--active' : ''}`}
                 onClick={() => {
                   setLoginType('PASSWORD')
@@ -436,7 +436,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
                 Password
               </button>
               <button 
-                type="button"
+                type="button" 
                 className={`auth-role-toggle__btn ${loginType === 'OTP' ? 'auth-role-toggle__btn--active' : ''}`}
                 onClick={() => setLoginType('OTP')}
               >
@@ -455,6 +455,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
                   className={`form-input ${errors.email || landlordError ? 'form-input--error' : ''}`}
                   placeholder="name@company.com"
                   style={{ paddingLeft: '52px' }}
+                  autoComplete="off"
                 />
                 {isCheckingLandlord && (
                   <div style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
@@ -477,7 +478,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
             {/* Password Login Fields */}
             {loginType === 'PASSWORD' && (
               <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ display: 'flex', borderBottom: 'none', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
                   <Link 
                     href={selectedRole === 'manager' ? '/pm-forgot-password' : '/portal/forgot-password'} 
@@ -494,6 +495,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
                     className="form-input"
                     placeholder="••••••••"
                     style={{ paddingLeft: '52px' }}
+                    autoComplete="off"
                   />
                   <button
                     type="button"

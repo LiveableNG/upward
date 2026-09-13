@@ -18,11 +18,44 @@ export class UpdatePropertyUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto) {
+  async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto, actor?: any) {
     const property = await this.propertyRepository.findByUuid(propertyUuid);
     
     if (!property) {
       throw new NotFoundException('Property not found');
+    }
+
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+
+    if (actor?.isEmployee) {
+      const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, property.id, actor);
+      if (!hasAccess) {
+        throw new ForbiddenException('You do not have access to update this property');
+      }
+
+      // Employee: Queue edit request in upward_pm_approval_request
+      const approval = await this.approvalRepository.create({
+        requesterEmployeeId: actor.employeeId,
+        ownerPmId: property.pmId,
+        type: 'EDIT_PROPERTY',
+        propertyUuid,
+        propertyName: property.name,
+        payload: {
+          currentData: {
+            name: property.name,
+            address: property.address,
+            propertyType: property.propertyType,
+            totalUnits: property.totalUnits,
+          },
+          proposedData: dto
+        }
+      });
+
+      return {
+        requiresApproval: true,
+        approvalUuid: approval.uuid,
+        message: 'Your property edit request has been submitted to the Admin for approval.'
+      };
     }
 
     if (property.pmId !== pmId) {
@@ -59,6 +92,7 @@ export class UpdatePropertyUseCase {
         message: 'Your property edit request has been submitted to the Admin for approval.'
       };
     }
+
 
     let landlordId: number | undefined = undefined;
     if (dto.landlordEmail && dto.landlordEmail !== property.landlordEmail) {

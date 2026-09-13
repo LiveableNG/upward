@@ -193,8 +193,8 @@ export function BulkDocumentEditorView({
 
     // Property Manager / Company Values
     const pmValues: Record<string, string> = {
-      '[CompanyName]': user?.businessName || '__________',
-      '[Company Name]': user?.businessName || '__________',
+      '[CompanyName]': user?.employer?.companyName || user?.businessName || '__________',
+      '[Company Name]': user?.employer?.companyName || user?.businessName || '__________',
       '[CompanyAddress]': user?.companyAddress || user?.country || '__________',
       '[Company Address]': user?.companyAddress || user?.country || '__________',
       '[CompanyPhone]': user?.phone || '__________',

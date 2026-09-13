@@ -245,6 +245,7 @@ import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-
 import { TransferTeamPropertiesUseCase } from './pm/use-cases/team/transfer-team-properties.use-case'
 import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case'
 import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case'
+import { GetTeamActivityDashboardUseCase } from './pm/use-cases/team/get-team-activity-dashboard.use-case'
 import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
 import { ActivityLogService } from '../shared/application/activity-log.service'
 import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
@@ -690,6 +691,7 @@ const UseCases: any[] = [
   GetTeamMembersUseCase,
   UpdateTeamMemberPermissionsUseCase,
   RevokeTeamMemberUseCase,
+  GetTeamActivityDashboardUseCase,
   TransferTeamPropertiesUseCase,
   BulkAddRentHistoryUseCase,
   MarkCredibilityRequestDoneUseCase,

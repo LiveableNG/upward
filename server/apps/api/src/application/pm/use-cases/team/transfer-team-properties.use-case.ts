@@ -1,4 +1,3 @@
-
 import {
   BadRequestException,
   Injectable,
@@ -13,35 +12,35 @@ export class TransferTeamPropertiesUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(ownerPmId: number, dto: TransferTeamPropertiesDto) {
-    const toCollaboration = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
+    const toEmployee = await (this.prisma as any).upward_pm_employee.findFirst({
       where: {
         uuid: dto.toCollaborationUuid,
         ownerPmId,
-        status: 'ACCEPTED',
+        status: { in: ['ACTIVE', 'PENDING'] },
         accessLevel: TeamAccessLevel.CUSTOM,
       },
     });
 
-    if (!toCollaboration) {
+    if (!toEmployee) {
       throw new NotFoundException('Target manager not found or is not eligible for property assignments');
     }
 
-    let fromCollaboration: any = null;
+    let fromEmployee: any = null;
     if (dto.fromCollaborationUuid) {
       if (dto.fromCollaborationUuid === dto.toCollaborationUuid) {
         throw new BadRequestException('Source and target manager must be different');
       }
 
-      fromCollaboration = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
+      fromEmployee = await (this.prisma as any).upward_pm_employee.findFirst({
         where: {
           uuid: dto.fromCollaborationUuid,
           ownerPmId,
-          status: 'ACCEPTED',
+          status: { in: ['ACTIVE', 'PENDING'] },
           accessLevel: TeamAccessLevel.CUSTOM,
         },
       });
 
-      if (!fromCollaboration) {
+      if (!fromEmployee) {
         throw new NotFoundException('Source manager not found or is not eligible');
       }
     }
@@ -64,11 +63,11 @@ export class TransferTeamPropertiesUseCase {
       throw new BadRequestException('One or more properties were not found in your portfolio');
     }
 
-    if (fromCollaboration) {
-      const assignedLinks = await (this.prisma as any).upward_pm_property_collaboration.findMany({
+    if (fromEmployee) {
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
         where: {
           ownerPmId,
-          collaboratorPmId: fromCollaboration.collaboratorPmId,
+          employeeId: fromEmployee.id,
           propertyId: { in: properties.map((p: any) => p.id) },
         },
         select: { propertyId: true },
@@ -81,34 +80,34 @@ export class TransferTeamPropertiesUseCase {
 
     await this.prisma.$transaction(async (tx) => {
       for (const property of properties) {
-        if (fromCollaboration) {
-          await (tx as any).upward_pm_property_collaboration.deleteMany({
+        if (fromEmployee) {
+          await (tx as any).upward_pm_employee_property.deleteMany({
             where: {
               ownerPmId,
               propertyId: property.id,
-              collaboratorPmId: fromCollaboration.collaboratorPmId,
+              employeeId: fromEmployee.id,
             },
           });
         } else {
-          await (tx as any).upward_pm_property_collaboration.deleteMany({
+          await (tx as any).upward_pm_employee_property.deleteMany({
             where: {
               ownerPmId,
               propertyId: property.id,
-              collaboratorPmId: { not: toCollaboration.collaboratorPmId },
+              employeeId: { not: toEmployee.id },
             },
           });
         }
 
-        await (tx as any).upward_pm_property_collaboration.upsert({
+        await (tx as any).upward_pm_employee_property.upsert({
           where: {
-            propertyId_collaboratorPmId: {
+            employeeId_propertyId: {
               propertyId: property.id,
-              collaboratorPmId: toCollaboration.collaboratorPmId,
+              employeeId: toEmployee.id,
             },
           },
           create: {
             propertyId: property.id,
-            collaboratorPmId: toCollaboration.collaboratorPmId,
+            employeeId: toEmployee.id,
             ownerPmId,
           },
           update: {},

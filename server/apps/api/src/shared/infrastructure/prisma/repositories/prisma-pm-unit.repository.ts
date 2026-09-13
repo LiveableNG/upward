@@ -177,6 +177,49 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     return units.map(u => this.mapUnit(u));
   }
 
+  async findAccessibleForActor(actor: any): Promise<UnitEntity[]> {
+    let whereClause: any = {};
+
+    if (!actor.isEmployee || actor.accessLevel === 'ALL') {
+      whereClause = { property: { pmId: actor.ownerPmId } };
+    } else {
+      if (!actor.employeeId) return [];
+
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+
+      const propertyIds = assignedLinks.map((al: any) => al.propertyId);
+      if (propertyIds.length === 0) return [];
+
+      whereClause = {
+        propertyId: { in: propertyIds },
+        property: { pmId: actor.ownerPmId },
+      };
+    }
+
+    const units = await this.prisma.upward_pm_unit.findMany({
+      where: whereClause,
+      include: {
+        property: true,
+        tenant: true,
+        rentPayments: {
+          where: { status: 'SUCCESS' },
+          orderBy: { periodEnd: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { unitName: 'asc' },
+    });
+
+    return units.map(u => this.mapUnit(u));
+  }
+
+
   async update(uuid: string, data: any): Promise<UnitEntity> {
     const allowedFields = [
       'unitName', 'rentAmount', 'rentStartDate', 'rentDueDate', 

@@ -12,20 +12,35 @@ export class UpdateRentPaymentUseCase {
     private readonly activityLog: ActivityLogService,
   ) { }
 
-  async execute(pmId: number, paymentUuid: string, data: any) {
+  async execute(pmId: number, paymentUuid: string, data: any, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     // 1. Find the payment and verify ownership
     const payment = await this.prisma.upward_pm_rent_payment.findUnique({
       where: { uuid: paymentUuid },
       include: { unit: { include: { property: true } } }
     });
 
-    if (!payment || payment.unit.property.pmId !== pmId) {
+    if (!payment || payment.unit.property.pmId !== ownerPmId) {
       throw new NotFoundException('Rent record not found');
+    }
+
+    if (actor?.isEmployee && actor.accessLevel !== 'ALL') {
+      const assigned = await (this.prisma as any).upward_pm_employee_property.findFirst({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+          propertyId: payment.unit.property.id,
+        }
+      });
+      if (!assigned) {
+        throw new NotFoundException('Rent record not found');
+      }
     }
 
     if (payment.method?.toUpperCase() === 'PAYSTACK') {
       throw new BadRequestException('Payments recorded automatically via the Upward Pay app cannot be edited.');
     }
+
 
     // 2. Update the PM record
     const updatedPayment = await this.unitRepository.updateRentPayment(paymentUuid, data);

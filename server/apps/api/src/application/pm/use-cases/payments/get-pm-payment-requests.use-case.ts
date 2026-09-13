@@ -8,7 +8,11 @@ export class GetPmPaymentRequestsUseCase {
     private readonly pmPaymentRepo: IPmPaymentRequestRepository,
   ) {}
 
-  async execute(pmId: number): Promise<any> {
+  async execute(pmId: number, actor?: any): Promise<any> {
+    if (actor) {
+      return this.pmPaymentRepo.findAccessibleForActor(actor);
+    }
     return this.pmPaymentRepo.findAccessibleByPmId(pmId);
   }
 }
+

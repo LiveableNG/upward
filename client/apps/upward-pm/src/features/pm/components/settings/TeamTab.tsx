@@ -1,20 +1,23 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { 
   Users, 
   UserPlus, 
   Shield, 
   Trash2, 
-  Settings2,
-  Building2,
-  CheckCircle2,
-  Clock,
-  Info,
-  History,
-  ArrowRightLeft,
-  Send
+  Settings2, 
+  Building2, 
+  CheckCircle2, 
+  Clock, 
+  Info, 
+  History, 
+  ArrowRightLeft, 
+  Send,
+  Activity
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useTeam, useRevokeMember, useResendTeamInvite } from '@/features/pm/hooks/useTeam'
 import { InviteMemberModal } from './modals/InviteMemberModal'
 import { UpdatePermissionsModal } from './modals/UpdatePermissionsModal'
@@ -74,9 +77,10 @@ export function TeamTab() {
     {
       header: 'Role',
       render: (collab) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
-          <Shield size={16} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className={cn('role-tag', collab.accessLevel === 'ALL' ? 'role-tag--admin' : 'role-tag--employee')}>
+            {collab.accessLevel === 'ALL' ? 'ADMIN' : (collab.member?.jobTitle || 'EMPLOYEE')}
+          </span>
         </div>
       )
     },
@@ -240,8 +244,9 @@ export function TeamTab() {
         color: 'var(--text-secondary)' 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-          <Shield size={14} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
+          <span className={cn('role-tag', collab.accessLevel === 'ALL' ? 'role-tag--admin' : 'role-tag--employee')} style={{ transform: 'scale(0.9)', transformOrigin: 'left' }}>
+            {collab.accessLevel === 'ALL' ? 'ADMIN' : (collab.member?.jobTitle || 'EMPLOYEE')}
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Building2 size={14} />
@@ -313,6 +318,13 @@ export function TeamTab() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }} className="team-header-actions">
+          <Link
+            href="/team/activity"
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, height: 42, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, flex: '1 1 auto', justifyContent: 'center', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          >
+            <Activity size={16} color="var(--forest)" /> Activity Dashboard
+          </Link>
           <button
             className="btn btn--secondary"
             onClick={() => {

@@ -2,6 +2,8 @@ import { Inject, Injectable, BadRequestException, ConflictException } from '@nes
 import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
 import { InviteTenantUseCase } from './invite-tenant.use-case';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
@@ -26,9 +28,10 @@ export class CreateTenantUseCase {
     private readonly encryption: EncryptionService,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
     private readonly prisma: PrismaService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
-  async execute(pmId: number, data: CreateTenantDto): Promise<TenantEntity> {
+  async execute(pmId: number, data: CreateTenantDto, actor?: PmActorContext): Promise<TenantEntity> {
     const hasIndividualName = !!data.firstName?.trim() || !!data.lastName?.trim();
     const hasCommercialName = !!data.commercialName?.trim();
     if (!hasIndividualName && !hasCommercialName) {
@@ -122,7 +125,25 @@ export class CreateTenantUseCase {
       });
     }
 
-    this.inviteTenantUseCase.execute(ownerPmId, tenant.uuid, data.deliveryChannel).catch((error) => {
+    const tenantName = tenant.commercialName || `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || 'New Tenant';
+    await this.activityLog.log({
+      pmId,
+      ownerPmId,
+      employeeId: actor?.employeeId,
+      action: ActivityAction.CREATE_TENANT,
+      entityType: 'TENANT',
+      entityId: tenant.uuid,
+      description: `Created tenant record for ${tenantName}`,
+      metadata: {
+        tenantUuid: tenant.uuid,
+        name: tenantName,
+        email: data.email,
+        phone: data.phone,
+        commercialName: data.commercialName,
+      },
+    }).catch(err => console.error('[CreateTenantUseCase] Failed to log activity:', err));
+
+    this.inviteTenantUseCase.execute(ownerPmId, tenant.uuid, data.deliveryChannel, actor).catch((error) => {
       console.error(`[CreateTenantUseCase] Failed to auto-sync/invite tenant ${tenant.uuid}:`, error);
     });
 

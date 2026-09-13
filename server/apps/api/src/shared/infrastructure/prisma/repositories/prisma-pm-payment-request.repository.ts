@@ -14,6 +14,24 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     return {
       ...pr,
       coreRequestUuid: pr.paymentRequest?.uuid || null,
+      employeeId: pr.employeeId || null,
+      employee: pr.employee ? {
+        id: pr.employee.id,
+        uuid: pr.employee.uuid,
+        firstName: pr.employee.firstName ? this.encryption.decrypt(pr.employee.firstName) : '',
+        lastName: pr.employee.lastName ? this.encryption.decrypt(pr.employee.lastName) : '',
+        jobTitle: pr.employee.jobTitle || 'Property Officer',
+      } : null,
+      createdBy: pr.employee ? {
+        uuid: pr.employee.uuid,
+        name: `${pr.employee.firstName ? this.encryption.decrypt(pr.employee.firstName) : ''} ${pr.employee.lastName ? this.encryption.decrypt(pr.employee.lastName) : ''}`.trim() || 'Employee',
+        role: pr.employee.jobTitle || 'Property Officer',
+        isEmployee: true,
+      } : {
+        name: 'Company Admin',
+        role: 'Admin',
+        isEmployee: false,
+      },
       tenant: pr.tenant ? {
         id: pr.tenant.id,
         uuid: pr.tenant.uuid,
@@ -50,6 +68,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         unit: { include: { property: true } },
         tenant: true,
+        employee: true,
         paymentRequest: {
           include: {
             lineItemRecords: true,
@@ -65,16 +84,17 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   }
 
   async findByPmId(pmId: number): Promise<PmPaymentRequestEntity[]> {
-    const requests = await this.prisma.upward_pm_payment_request.findMany({
+    const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
       where: { pmId },
       include: {
         unit: { include: { property: true } },
         tenant: true,
+        employee: true,
         paymentRequest: { include: { lineItemRecords: true } }
       },
       orderBy: { createdAt: 'desc' },
     });
-    return requests.map(pr => this.mapPmPaymentRequest(pr));
+    return requests.map((pr: any) => this.mapPmPaymentRequest(pr));
   }
 
   async findAccessibleByPmId(pmId: number): Promise<PmPaymentRequestEntity[]> {
@@ -92,15 +112,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     
     const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
 
-    const pmUnitCondition = {
-      OR: [
-        { property: { pmId } },
-        { property: { pmId: { in: ownerPmIds } } },
-        { propertyId: { in: collabPropertyIds } }
-      ]
-    };
-
-    const requests = await this.prisma.upward_pm_payment_request.findMany({
+    const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
       where: {
         OR: [
           { pmId },
@@ -111,18 +123,33 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         unit: { include: { property: true } },
         tenant: true,
-        paymentRequest: { include: { lineItemRecords: true } }
+        employee: true,
+        paymentRequest: {
+          include: {
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const mappedPmRequests = requests.map(pr => this.mapPmPaymentRequest(pr));
+    const mappedPmRequests = requests.map((pr: any) => this.mapPmPaymentRequest(pr));
 
-    const manualRequests = await this.prisma.upward_payment_request.findMany({
+    const manualRequests = await (this.prisma as any).upward_payment_request.findMany({
       where: {
         isManual: true,
         userProperty: {
-          pmUnit: pmUnitCondition
+          pmUnit: {
+            OR: [
+              { property: { pmId } },
+              { property: { pmId: { in: ownerPmIds } } },
+              { propertyId: { in: collabPropertyIds } }
+            ]
+          }
         }
       },
       include: {
@@ -140,7 +167,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       orderBy: { createdAt: 'desc' },
     });
 
-    const mappedManualRequests = manualRequests.map(pr => {
+    const mappedManualRequests = manualRequests.map((pr: any) => {
       const pmUnit = pr.userProperty?.pmUnit;
       const pmTenant = pmUnit?.tenant;
 
@@ -201,12 +228,67 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     return allRequests;
   }
 
+  async findAccessibleForActor(actor: any): Promise<PmPaymentRequestEntity[]> {
+    if (!actor || !actor.isEmployee) {
+      const pmId = actor?.ownerPmId || actor;
+      return this.findByPmId(pmId);
+    }
+
+    if (!actor.employeeId) return [];
+
+    let propertyIds: number[] = [];
+    if (actor.accessLevel === 'ALL') {
+      const ownedProps = await this.prisma.upward_pm_property.findMany({
+        where: { pmId: actor.ownerPmId },
+        select: { id: true },
+      });
+      propertyIds = ownedProps.map(p => p.id);
+    } else {
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+      propertyIds = assignedLinks.map((al: any) => al.propertyId);
+    }
+
+    if (propertyIds.length === 0) return [];
+
+    const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
+      where: {
+        pmId: actor.ownerPmId,
+        unit: { propertyId: { in: propertyIds } },
+      },
+      include: {
+        unit: { include: { property: true } },
+        tenant: true,
+        employee: true,
+        paymentRequest: {
+          include: {
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return requests.map((pr: any) => this.mapPmPaymentRequest(pr));
+  }
+
+
   async findByUuid(uuid: string): Promise<PmPaymentRequestEntity | null> {
-    const pr = await this.prisma.upward_pm_payment_request.findUnique({
+    const pr = await (this.prisma as any).upward_pm_payment_request.findUnique({
       where: { uuid },
       include: {
         unit: { include: { property: true } },
         tenant: true,
+        employee: true,
         paymentRequest: { 
           include: { 
             lineItemRecords: true,
@@ -221,7 +303,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     if (pr) return this.mapPmPaymentRequest(pr);
 
     // Fallback: Check if it's a manual core request (Self Payment)
-    const manualPr = await this.prisma.upward_payment_request.findUnique({
+    const manualPr = await (this.prisma as any).upward_payment_request.findUnique({
       where: { uuid },
       include: {
         userProperty: {
@@ -298,11 +380,12 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
 
   async findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<PmPaymentRequestEntity | null> {
     const prisma = tx || this.prisma;
-    const pr = await prisma.upward_pm_payment_request.findFirst({
+    const pr = await (prisma as any).upward_pm_payment_request.findFirst({
       where: { paymentRequestId },
       include: {
         unit: { include: { property: true } },
         tenant: true,
+        employee: true,
         paymentRequest: { 
           include: { 
             lineItemRecords: true,
@@ -319,12 +402,13 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
 
   async update(uuid: string, data: any, tx?: any): Promise<PmPaymentRequestEntity> {
     const prisma = tx || this.prisma;
-    const pr = await prisma.upward_pm_payment_request.update({
+    const pr = await (prisma as any).upward_pm_payment_request.update({
       where: { uuid },
       data,
       include: {
         unit: { include: { property: true } },
         tenant: true,
+        employee: true,
         paymentRequest: {
           include: {
             lineItemRecords: true,

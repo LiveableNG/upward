@@ -13,6 +13,8 @@ import { PmPaymentNotificationEvent } from '../../../events/definition/pm-paymen
 import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 import { SubscriptionService, FeatureKey } from '../../../../domains/subscription/subscription.service';
 
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
+
 export interface CreatePmPaymentRequestDto {
   unitUuid: string;
   amount: number;
@@ -53,7 +55,7 @@ export class CreatePmPaymentRequestUseCase {
     private readonly subscriptionService: SubscriptionService,
   ) {}
 
-  async execute(pmId: number, data: CreatePmPaymentRequestDto): Promise<any> {
+  async execute(pmId: number, data: CreatePmPaymentRequestDto, actor?: PmActorContext): Promise<any> {
     const unit = await this.unitRepo.findByUuid(data.unitUuid);
     if (!unit) throw new NotFoundException('Unit not found');
 
@@ -67,6 +69,20 @@ export class CreatePmPaymentRequestUseCase {
         include: { collaborators: true }
     });
     if (!property) throw new NotFoundException('Property not found');
+
+    // Strict Employee Access Guard
+    if (actor?.isEmployee && actor?.accessLevel !== 'ALL') {
+      const assigned = await prisma.upward_pm_employee_property.findFirst({
+        where: {
+          employeeId: actor.employeeId,
+          propertyId: property.id,
+          ownerPmId: property.pmId,
+        }
+      });
+      if (!assigned) {
+        throw new ForbiddenException('You do not have access to create payment requests for this property');
+      }
+    }
 
     // Check collaborator access
     let hasAccess = property.pmId === pmId;
@@ -98,7 +114,10 @@ export class CreatePmPaymentRequestUseCase {
     if (!pm) throw new NotFoundException('Property Manager not found');
 
     if (!pm.bankCode || !pm.accountNumber) {
-      throw new BadRequestException('Please set up your bank information in settings to receive payments');
+      if (actor?.isEmployee) {
+        throw new BadRequestException('Your organization has not configured payout bank details yet. Please notify your account administrator to set up bank details in Settings.');
+      }
+      throw new BadRequestException('Please set up your company bank information in Settings → Payment to start receiving rent payments.');
     }
 
     // Programmatically gate premium features under SERVICE_CHARGE_PAYMENTS
@@ -204,6 +223,7 @@ export class CreatePmPaymentRequestUseCase {
         unitId: unit.id,
         tenantId: unit.tenantId,
         paymentRequestId: corePRId,
+        employeeId: actor?.isEmployee ? actor.employeeId : null,
         amount: data.amount,
         currency: unit.currency || 'NGN',
         description: data.description || null,
@@ -233,6 +253,7 @@ export class CreatePmPaymentRequestUseCase {
         await this.activityLog.log({
             pmId,
             ownerPmId: property.pmId,
+            employeeId: actor?.isEmployee ? actor.employeeId : undefined,
             action: ActivityAction.SEND_INVOICE,
             entityType: 'PAYMENT',
             entityId: pmPR.uuid,
@@ -241,7 +262,10 @@ export class CreatePmPaymentRequestUseCase {
                 amount: data.amount,
                 unit: unit.unitName,
                 property: property.name,
-                scheduledAt: data.scheduledAt
+                scheduledAt: data.scheduledAt,
+                isEmployee: actor?.isEmployee ?? false,
+                employeeId: actor?.employeeId,
+                employeeUuid: actor?.employeeUuid,
             }
         });
     }

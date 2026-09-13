@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { type PropertyManagerProfile } from './types'
-import { getMe, logout as authLogout } from './services/authService'
+import { getMe, getEmployeeMe, logout as authLogout } from './services/authService'
 import { useRouter } from 'next/navigation'
 import { setAccessToken } from '@/lib/auth-token'
 import { useQueryClient } from '@tanstack/react-query'
@@ -31,7 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const profile = await getMe()
+      let profile: any = null
+      try {
+        profile = await getMe()
+      } catch (pmErr) {
+        profile = await getEmployeeMe()
+      }
       setUser(profile)
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('upward_session_active', 'true')
@@ -62,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isPublicPage) {
         toastError('Your session has expired. Please login again.', 'Session Expired')
         // Use window.location.href for a hard redirect to ensure navigation happens
-        const loginPath = isPortal ? '/portal/login' : '/login'
+        const loginPath = isPortal ? '/portal/login' : '/pm-login'
         const redirectUrl = `${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`
         window.location.href = redirectUrl
       }

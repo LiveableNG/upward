@@ -10,8 +10,10 @@ export class GetPmPropertiesUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(pmId: number) {
-    const properties = await this.propertyRepository.findAccessibleByPmId(pmId);
+  async execute(pmId: number, actor?: any) {
+    const properties = actor
+      ? await this.propertyRepository.findAccessibleForActor(actor)
+      : await this.propertyRepository.findAccessibleByPmId(pmId);
     
     return Promise.all(properties.map(async (prop) => {
       if (prop.imageUrl) {
@@ -21,3 +23,4 @@ export class GetPmPropertiesUseCase {
     }));
   }
 }
+

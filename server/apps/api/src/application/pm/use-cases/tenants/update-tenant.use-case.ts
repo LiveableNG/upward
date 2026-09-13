@@ -31,48 +31,38 @@ export class UpdateTenantUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, uuid: string, data: UpdateTenantDto): Promise<TenantEntity> {
+  async execute(pmId: number, uuid: string, data: UpdateTenantDto, actor?: any): Promise<TenantEntity> {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const tenant = await this.tenantRepo.findByUuid(uuid);
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
     }
 
-    // Check collaborator access
-    let hasAccess = tenant.pmId === pmId;
-    if (!hasAccess) {
-      // Check if team collaborator with ALL access
-      const teamCollab = await this.prisma.upward_pm_team_collaboration.findFirst({
-        where: {
-          collaboratorPmId: pmId,
-          ownerPmId: tenant.pmId,
-          status: 'ACCEPTED',
-          accessLevel: 'ALL'
-        }
-      });
-      if (teamCollab) {
-        hasAccess = true;
-      }
-
-      // Check if custom property collaborator
-      if (!hasAccess) {
-        const tenantPropertyIds = tenant.units?.map(u => u.propertyId) || [];
-        if (tenantPropertyIds.length > 0) {
-          const propCollab = await this.prisma.upward_pm_property_collaboration.findFirst({
-            where: {
-              collaboratorPmId: pmId,
-              propertyId: { in: tenantPropertyIds }
-            }
-          });
-          if (propCollab) {
-            hasAccess = true;
-          }
-        }
-      }
-    }
-
-    if (!hasAccess) {
+    if (tenant.pmId !== ownerPmId) {
       throw new NotFoundException('Tenant not found');
     }
+
+    if (actor?.isEmployee && actor.accessLevel !== 'ALL') {
+      if (!actor.employeeId) {
+        throw new NotFoundException('Tenant not found');
+      }
+
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+
+      const propertyIds = new Set(assignedLinks.map((al: any) => al.propertyId));
+      const hasUnitInAssigned = tenant.units?.some((u: any) => propertyIds.has(u.propertyId));
+
+      if (!hasUnitInAssigned) {
+        throw new NotFoundException('Tenant not found');
+      }
+    }
+
 
     const oldEmail = tenant.email;
 

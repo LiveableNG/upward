@@ -190,6 +190,11 @@ export async function middleware(request: NextRequest) {
           const pmRes = await fetch(`${API_URL}/pm/auth/invite-details/${uuid}`)
           if (pmRes.ok) {
             isPmInvite = true
+          } else {
+            const empRes = await fetch(`${API_URL}/pm/employee/auth/invite-details/${uuid}`)
+            if (empRes.ok) {
+              isPmInvite = true
+            }
           }
         }
       } catch (err) {

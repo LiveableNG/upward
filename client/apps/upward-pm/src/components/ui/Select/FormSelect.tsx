@@ -132,7 +132,15 @@ export function FormSelect({
     <div
       className="upward-form-select-menu animate-scale-in"
       onClick={e => e.stopPropagation()}
-      style={{ ...menuStyle, display: 'flex', flexDirection: 'column', position: portalOnDesktop ? 'relative' : 'absolute', top: portalOnDesktop ? 0 : undefined, width: '100%', height: portalOnDesktop && portalStyle.top && (portalStyle.top as number) < (containerRef.current?.getBoundingClientRect().top || 0) ? 300 : undefined }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        position: portalOnDesktop ? 'relative' : 'absolute',
+        top: portalOnDesktop ? 0 : undefined,
+        width: '100%',
+        height: portalOnDesktop && portalStyle.top && (portalStyle.top as number) < (containerRef.current?.getBoundingClientRect().top || 0) ? 300 : undefined,
+        ...menuStyle
+      }}
     >
       <div className="upward-filter-menu__header mobile-only" style={{ display: isMobile ? 'flex' : 'none', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{label || placeholder}</h3>

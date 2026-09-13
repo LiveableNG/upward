@@ -10,18 +10,21 @@ export class GetPmUnitsUseCase {
     private readonly propertyRepository: IPropertyRepository,
   ) {}
 
-  async execute(pmId: number, propertyUuid?: string) {
+  async execute(pmId: number, propertyUuid?: string, actor?: any) {
     if (propertyUuid) {
       const property = await this.propertyRepository.findByUuid(propertyUuid);
       if (!property) {
         throw new NotFoundException('Property not found');
       }
-      const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+      const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id, actor);
       if (!hasAccess) {
         throw new ForbiddenException('You do not have access to this property');
       }
       return this.unitRepository.findByPropertyId(property.id);
     }
-    return this.unitRepository.findAccessibleByPmId(pmId);
+    return actor
+      ? this.unitRepository.findAccessibleForActor(actor)
+      : this.unitRepository.findAccessibleByPmId(pmId);
   }
 }
+

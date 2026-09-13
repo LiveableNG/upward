@@ -36,16 +36,18 @@ export class BulkCreateUnitsUseCase {
     private readonly inviteTenantUseCase: InviteTenantUseCase,
   ) {}
 
-  async execute(pmId: number, dto: BulkCreateUnitsDto) {
+  async execute(pmId: number, dto: BulkCreateUnitsDto, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const property = await this.propertyRepository.findByUuid(dto.propertyUuid);
     if (!property) {
       throw new Error('Property not found');
     }
 
-    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, property.id, actor);
     if (!hasAccess) {
       throw new Error('Unauthorized to add units to this property');
     }
+
 
     for (const u of dto.units) {
       if (u.tenantPhone) {
@@ -236,6 +238,7 @@ export class BulkCreateUnitsUseCase {
     await this.activityLog.log({
         pmId,
         ownerPmId: property.pmId,
+        employeeId: actor?.isEmployee ? actor.employeeId : undefined,
         action: ActivityAction.CREATE_UNIT,
         entityType: 'UNIT',
         description: `Bulk created ${dto.units.length} units in property ${property.name}`,

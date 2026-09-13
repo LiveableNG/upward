@@ -82,6 +82,12 @@ function CheckoutContent() {
   const isBalanceSufficient = currentBalance >= minRequiredDeposit;
 
   useEffect(() => {
+    if (user?.accountType === 'PM_EMPLOYEE') {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     if (!isPolling) return;
 
     const interval = setInterval(async () => {

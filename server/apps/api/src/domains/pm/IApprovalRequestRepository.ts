@@ -1,7 +1,8 @@
 export const PM_APPROVAL_REQUEST_REPOSITORY = Symbol('PM_APPROVAL_REQUEST_REPOSITORY');
 
 export interface CreateApprovalRequestInput {
-  requesterPmId: number;
+  requesterPmId?: number | null;
+  requesterEmployeeId?: number | null;
   ownerPmId: number;
   type: 'EDIT_PROPERTY' | 'DELETE_PROPERTY' | 'EDIT_UNIT' | 'DELETE_UNIT';
   propertyUuid?: string;
@@ -15,7 +16,8 @@ export interface ApprovalRequest {
   id: number;
   uuid: string;
   ownerPmId: number;
-  requesterPmId: number;
+  requesterPmId?: number | null;
+  requesterEmployeeId?: number | null;
   propertyUuid?: string | null;
   propertyName?: string | null;
   unitUuid?: string | null;
@@ -32,6 +34,13 @@ export interface ApprovalRequest {
     lastName: string;
     email: string;
   };
+  requesterEmployee?: {
+    uuid: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    jobTitle?: string;
+  };
 }
 
 export interface IApprovalRequestRepository {
@@ -40,3 +49,4 @@ export interface IApprovalRequestRepository {
   findPendingByOwner(ownerPmId: number): Promise<ApprovalRequest[]>;
   updateStatus(uuid: string, status: 'APPROVED' | 'REJECTED', rejectionReason?: string): Promise<ApprovalRequest>;
 }
+

@@ -14,6 +14,8 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
 import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
 import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
 
 @Injectable()
 export class InviteTenantUseCase {
@@ -32,9 +34,10 @@ export class InviteTenantUseCase {
     private readonly smsService: SmsService,
     private readonly whatsappService: WhatsappService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly activityLog: ActivityLogService,
   ) { }
 
-  async execute(pmId: number, tenantUuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP'): Promise<void> {
+  async execute(pmId: number, tenantUuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP', actor?: PmActorContext): Promise<void> {
     const tenant = await this.tenantRepo.findByUuid(tenantUuid);
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
@@ -209,5 +212,20 @@ export class InviteTenantUseCase {
         frontendUrl: 'https://upward.goodtenants.io',
       },
     });
+
+    await this.activityLog.log({
+      pmId,
+      ownerPmId: tenant.pmId,
+      employeeId: actor?.employeeId,
+      action: ActivityAction.INVITE_TENANT,
+      entityType: 'TENANT',
+      entityId: tenantUuid,
+      description: `Sent tenant onboarding invite to ${displayName}`,
+      metadata: {
+        tenantUuid,
+        displayName,
+        deliveryChannel: deliveryChannel || tenant.channel || 'EMAIL',
+      },
+    }).catch(err => console.error('[InviteTenantUseCase] Failed to log activity:', err));
   }
 }

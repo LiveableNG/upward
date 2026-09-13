@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, User, Building2, Mail, Phone } from 'lucide-react'
 import { useProperties, useLandlords } from '@/features/pm/hooks/useProperties'
+import { useAuth } from '@/features/auth/AuthContext'
 import { AddLandlordModal } from './modals/AddLandlordModal'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { PageHeader } from '@/components/ui/PageHeader/PageHeader'
@@ -24,6 +25,8 @@ interface LandlordData {
 
 export function LandlordsView() {
   const router = useRouter()
+  const { user } = useAuth()
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE'
   const { data: properties = [] } = useProperties()
   const { data: apiLandlords = [] } = useLandlords()
   const [searchQuery, setSearchQuery] = useState('')
@@ -102,13 +105,15 @@ export function LandlordsView() {
         title="Landlords" 
         subtitle="Manage your landlord database and portfolio assignments."
         actions={
-          <button 
-            className="btn btn--primary" 
-            style={{ borderRadius: 12 }}
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <Plus size={18} /> Add a landlord
-          </button>
+          !isEmployee ? (
+            <button 
+              className="btn btn--primary" 
+              style={{ borderRadius: 12 }}
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <Plus size={18} /> Add a landlord
+            </button>
+          ) : null
         }
       />
 

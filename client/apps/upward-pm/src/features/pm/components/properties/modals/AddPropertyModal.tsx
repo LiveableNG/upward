@@ -8,6 +8,7 @@ import { useTeam } from '@/features/pm/hooks/useTeam'
 import { useLandlords } from '@/features/pm/hooks/useProperties'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { PhoneInput } from '@/components/common/PhoneInput'
+import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 
 interface AddPropertyModalProps {
@@ -36,6 +37,7 @@ interface AddPropertyModalProps {
 export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ 
   isOpen, onClose, onSave, isPending, formData, setFormData, isLandlordPortal = false 
 }) => {
+  const { error: toastError } = useToast()
   const { data: countriesData } = useCountries()
   const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
   const { data: team = [] } = useTeam()
@@ -44,29 +46,63 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
     formData.landlordEmail ? 'EXISTING' : 'NONE'
   )
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setLandlordMode(formData.landlordEmail ? 'EXISTING' : 'NONE')
+    }
+  }, [isOpen, formData.landlordEmail])
+
   const handleToggleLandlordMode = (mode: 'NONE' | 'NEW' | 'EXISTING') => {
-    setLandlordMode(mode === landlordMode ? 'NONE' : mode)
-    if (mode === 'NONE' || mode === landlordMode) {
-        setFormData({
-            ...formData,
-            landlordName: '',
-            landlordEmail: '',
-            landlordPhone: ''
-        })
+    const nextMode = mode === landlordMode ? 'NONE' : mode
+    setLandlordMode(nextMode)
+    if (nextMode === 'NONE') {
+      setFormData({
+        ...formData,
+        landlordName: '',
+        landlordEmail: '',
+        landlordPhone: ''
+      })
     }
   }
 
-
-
-  const phoneError = formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone)
+  const phoneError = (landlordMode === 'NEW' && formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone))
     ? 'Invalid international phone number'
     : undefined
 
-  const emailError = formData.landlordEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail)
+  const emailError = (landlordMode === 'NEW' && formData.landlordEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail))
     ? 'Invalid email address'
     : undefined
 
-  const isInvalid = !isLandlordPortal && (!!phoneError || !!emailError) || !formData.name || !formData.address
+  const handleSaveClick = () => {
+    if (!formData.name?.trim()) {
+      return toastError('Property Name is required')
+    }
+    if (!formData.address?.trim()) {
+      return toastError('Full Address is required')
+    }
+
+    if (!isLandlordPortal) {
+      if (landlordMode === 'NEW') {
+        if (formData.landlordName?.trim() && !formData.landlordEmail?.trim()) {
+          return toastError('Please enter an email address for the new landlord')
+        }
+        if (formData.landlordEmail?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail.trim())) {
+          return toastError('Please enter a valid email address for the landlord')
+        }
+        if (formData.landlordPhone?.trim() && !isValidPhoneNumber(formData.landlordPhone.trim())) {
+          return toastError('Please enter a valid international phone number (e.g. +234...)')
+        }
+      }
+
+      if (landlordMode === 'EXISTING') {
+        if (!formData.landlordEmail?.trim()) {
+          return toastError('Please select an existing landlord or switch to "None"')
+        }
+      }
+    }
+
+    onSave()
+  }
 
   if (!isOpen) return null;
 
@@ -82,7 +118,12 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
           <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn--primary" style={{ flex: 1 }} onClick={onSave} disabled={isPending || isInvalid}>
+          <button 
+            className="btn btn--primary" 
+            style={{ flex: 1 }} 
+            onClick={handleSaveClick} 
+            disabled={isPending}
+          >
             {isPending ? 'Creating...' : 'Create Property'}
           </button>
         </div>

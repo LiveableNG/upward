@@ -13,7 +13,7 @@ export class UpdateUnitUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, uuid: string, data: any) {
+  async execute(pmId: number, uuid: string, data: any, actor?: any) {
     const unitRecord = await this.prisma.upward_pm_unit.findUnique({
       where: { uuid },
       include: { property: true }
@@ -24,6 +24,49 @@ export class UpdateUnitUseCase {
     }
 
     const property = unitRecord.property;
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+
+    if (actor?.isEmployee) {
+      const hasAccess = await (this.unitRepository as any).prisma?.upward_pm_employee_property
+        ? await this.prisma.upward_pm_employee_property.findFirst({
+            where: {
+              propertyId: property.id,
+              employeeId: actor.employeeId,
+              ownerPmId: actor.ownerPmId,
+            },
+          })
+        : true;
+
+      if (actor.accessLevel !== 'ALL' && !hasAccess) {
+        throw new ForbiddenException('You do not have access to update this unit');
+      }
+
+      // Employee: Queue edit request in upward_pm_approval_request
+      const approval = await this.approvalRepository.create({
+        requesterEmployeeId: actor.employeeId,
+        ownerPmId: property.pmId,
+        type: 'EDIT_UNIT',
+        propertyUuid: property.uuid,
+        propertyName: property.name,
+        unitUuid: uuid,
+        unitName: unitRecord.unitName,
+        payload: {
+          currentData: {
+            unitName: unitRecord.unitName,
+            rentAmount: unitRecord.rentAmount,
+            rentType: unitRecord.rentType,
+          },
+          proposedData: data
+        }
+      });
+
+      return {
+        requiresApproval: true,
+        approvalUuid: approval.uuid,
+        message: 'Your unit edit request has been submitted to the Admin for approval.'
+      };
+    }
+
     if (property.pmId !== pmId) {
       const teamCollab = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
         where: { collaboratorPmId: pmId, ownerPmId: property.pmId, status: 'ACCEPTED' }
@@ -58,6 +101,7 @@ export class UpdateUnitUseCase {
         message: 'Your unit edit request has been submitted to the Admin for approval.'
       };
     }
+
 
     const updatedUnit = await this.unitRepository.update(uuid, data);
 

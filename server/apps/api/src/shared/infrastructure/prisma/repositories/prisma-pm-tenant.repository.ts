@@ -113,6 +113,45 @@ export class PrismaPmTenantRepository implements ITenantRepository {
     return tenants.map(t => this.mapTenant(t));
   }
 
+  async findAccessibleForActor(actor: any): Promise<TenantEntity[]> {
+    let whereClause: any = {};
+
+    if (!actor.isEmployee || actor.accessLevel === 'ALL') {
+      whereClause = { pmId: actor.ownerPmId };
+    } else {
+      if (!actor.employeeId) return [];
+
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+
+      const propertyIds = assignedLinks.map((al: any) => al.propertyId);
+      if (propertyIds.length === 0) return [];
+
+      whereClause = {
+        pmId: actor.ownerPmId,
+        units: { some: { propertyId: { in: propertyIds } } },
+      };
+    }
+
+    const tenants = await this.prisma.upward_pm_tenant.findMany({
+      where: whereClause,
+      include: {
+        units: {
+          include: { property: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return tenants.map(t => this.mapTenant(t));
+  }
+
+
   async findById(id: number): Promise<TenantEntity | null> {
     const tenant = await this.prisma.upward_pm_tenant.findUnique({
       where: { id },

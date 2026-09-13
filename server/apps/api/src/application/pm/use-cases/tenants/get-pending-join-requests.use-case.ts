@@ -9,22 +9,36 @@ export class GetPendingJoinRequestsUseCase {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async execute(pmId: number) {
+  async execute(pmId: number, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const logs = await this.prisma.upward_pm_activity_log.findMany({
       where: {
-        ownerPmId: pmId,
+        ownerPmId,
         action: 'TENANT_JOIN_REQUEST',
       },
       orderBy: { createdAt: 'desc' },
     });
 
     // Filter for PENDING logs using the JSON metadata field
-    const pendingLogs = logs.filter((log: any) => {
+    let pendingLogs = logs.filter((log: any) => {
       const metadata = log.metadata as any;
       return metadata && metadata.status === 'PENDING';
     });
 
-    return Promise.all(
+    let assignedPropertyIds: Set<number> | null = null;
+    if (actor?.isEmployee && actor.accessLevel !== 'ALL') {
+      if (!actor.employeeId) return [];
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+      assignedPropertyIds = new Set(assignedLinks.map((al: any) => al.propertyId));
+    }
+
+    const results = await Promise.all(
       pendingLogs.map(async (log: any) => {
         const metadata = log.metadata as any;
         const tenantEmail = this.encryption.decrypt(metadata.userEmail);
@@ -33,7 +47,7 @@ export class GetPendingJoinRequestsUseCase {
         // Look up if this PM already has this tenant assigned to a unit
         const pmTenant = await this.prisma.upward_pm_tenant.findFirst({
           where: {
-            pmId,
+            pmId: ownerPmId,
             emailHash,
           },
           include: {
@@ -54,6 +68,7 @@ export class GetPendingJoinRequestsUseCase {
               unitUuid: activeUnit.uuid,
               unitName: activeUnit.unitName,
               propertyName: activeUnit.property.name,
+              propertyId: activeUnit.propertyId,
               isSynced: activeUnit.isSynced
             };
           }
@@ -72,5 +87,15 @@ export class GetPendingJoinRequestsUseCase {
         };
       })
     );
+
+    if (assignedPropertyIds) {
+      return results.filter(r => {
+        if (!r.existingConnection) return true;
+        return assignedPropertyIds!.has(r.existingConnection.propertyId);
+      });
+    }
+
+    return results;
   }
 }
+

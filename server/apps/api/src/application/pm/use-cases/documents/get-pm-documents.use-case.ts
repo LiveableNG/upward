@@ -191,11 +191,17 @@ export class GetPmDocumentsUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(pmId: number) {
+  async execute(pmId: number, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+    const historyPromise = actor
+      ? this.documentRepo.findSentDocumentsForActor(actor)
+      : this.documentRepo.findSentDocumentsByPmId(ownerPmId);
+
     const [templates, history] = await Promise.all([
-      this.documentRepo.findTemplatesByPmId(pmId),
-      this.documentRepo.findSentDocumentsByPmId(pmId),
+      this.documentRepo.findTemplatesByPmId(ownerPmId),
+      historyPromise,
     ]);
+
 
     const [resolvedTemplates, resolvedHistory] = await Promise.all([
       Promise.all(templates.map(async (t) => {

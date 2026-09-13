@@ -356,6 +356,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onAddProperty={() => setShowAddPropertyModal(true)}
+        onBulkImport={() => setShowImportModeModal(true)}
         onEditProperty={openEditProperty}
         onManageUnits={(name) => {
           setSelectedPropertyFilter(name)

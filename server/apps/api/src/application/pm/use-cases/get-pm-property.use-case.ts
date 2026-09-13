@@ -10,14 +10,14 @@ export class GetPmPropertyUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(pmId: number, propertyUuid: string) {
+  async execute(pmId: number, propertyUuid: string, actor?: any) {
     const property = await this.propertyRepository.findByUuid(propertyUuid);
     
     if (!property) {
       throw new NotFoundException('Property not found');
     }
 
-    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id, actor);
     if (!hasAccess) {
       throw new NotFoundException('Property not found');
     }
@@ -29,3 +29,4 @@ export class GetPmPropertyUseCase {
     return property;
   }
 }
+

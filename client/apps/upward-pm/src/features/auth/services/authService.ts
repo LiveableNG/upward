@@ -98,3 +98,72 @@ export const claimAccount = async (
   return res
 }
 
+// Staff / Employee Auth
+export const employeeLogin = async (data: { email: string; password: string }) => {
+  const res = await request<any>('/pm/employee/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  if (res.accessToken) setAccessToken(res.accessToken)
+  return res
+}
+
+export const getEmployeeInviteDetails = async (uuid: string) => {
+  return request<any>(`/pm/employee/auth/invite-details/${uuid}`, {
+    method: 'GET',
+  })
+}
+
+export const acceptEmployeeInvite = async (
+  uuid: string,
+  data: { password: string; firstName?: string; lastName?: string; phone?: string }
+) => {
+  const res = await request<any>(`/pm/employee/auth/accept-invite/${uuid}`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  if (res.accessToken) setAccessToken(res.accessToken)
+  return res
+}
+
+export const getEmployeeMe = async () => {
+  return request<any>('/pm/employee/auth/me', { method: 'GET' })
+}
+
+export const checkEmployeeEmail = async (email: string) => {
+  return request<{
+    exists: boolean;
+    isInvited?: boolean;
+    hasPassword?: boolean;
+    inviteToken?: string;
+    employerName?: string;
+    jobTitle?: string;
+  }>('/pm/employee/auth/check-email', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export const requestEmployeeOTP = async (email: string, context: 'LOGIN' | 'INVITE' = 'INVITE') => {
+  return request<{ success?: boolean; context: string }>('/pm/employee/auth/request-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, context }),
+  })
+}
+
+export const verifyEmployeeOTP = async (email: string, otp: string, context: string = 'INVITE') => {
+  return request<{ success: boolean; message?: string; inviteToken?: string }>('/pm/employee/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp, context }),
+  })
+}
+
+export const employeeOtpLogin = async (email: string, otp: string) => {
+  const res = await request<any>('/pm/employee/auth/otp-login', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  })
+  if (res.accessToken) setAccessToken(res.accessToken)
+  return res
+}
+

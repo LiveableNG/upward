@@ -67,7 +67,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       include: { landlord: true },
     });
 
-    // 2. Get collaborations
+    // 2. Get collaborations (legacy PM-to-PM collaboration)
     const collaborations = await (this.prisma as any).upward_pm_team_collaboration.findMany({
       where: { 
         collaboratorPmId: pmId,
@@ -106,6 +106,38 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     return uniqueProperties.map(p => this.mapProperty(p));
   }
 
+  async findAccessibleForActor(actor: any): Promise<PropertyEntity[]> {
+    if (!actor.isEmployee || actor.accessLevel === 'ALL') {
+      return this.findByPmId(actor.ownerPmId);
+    }
+
+    if (!actor.employeeId) {
+      return [];
+    }
+
+    const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+      where: {
+        employeeId: actor.employeeId,
+        ownerPmId: actor.ownerPmId,
+      },
+      select: { propertyId: true },
+    });
+
+    const propertyIds = assignedLinks.map((al: any) => al.propertyId);
+    if (propertyIds.length === 0) return [];
+
+    const properties = await this.prisma.upward_pm_property.findMany({
+      where: {
+        id: { in: propertyIds },
+        pmId: actor.ownerPmId,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: { landlord: true },
+    });
+
+    return properties.map(p => this.mapProperty(p));
+  }
+
   async findById(id: number): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { id },
@@ -138,12 +170,28 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     return this.mapProperty(property);
   }
 
-  async hasAccessToProperty(pmId: number, propertyId: number): Promise<boolean> {
+  async hasAccessToProperty(pmId: number, propertyId: number, actor?: any): Promise<boolean> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { id: propertyId }
     });
 
     if (!property) return false;
+
+    if (actor) {
+      if (property.pmId !== actor.ownerPmId) return false;
+      if (!actor.isEmployee || actor.accessLevel === 'ALL') return true;
+
+      if (!actor.employeeId) return false;
+      const employeeProp = await (this.prisma as any).upward_pm_employee_property.findFirst({
+        where: {
+          propertyId,
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+      });
+      return !!employeeProp;
+    }
+
     if (property.pmId === pmId) return true;
 
     // Check team collaboration (ALL access)
@@ -170,7 +218,18 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       }
     });
 
-    return !!propertyCollab;
+    if (propertyCollab) return true;
+
+    // Check employee property assignment
+    const employeeProp = await (this.prisma as any).upward_pm_employee_property.findFirst({
+      where: {
+        propertyId,
+        employeeId: pmId,
+        ownerPmId: property.pmId,
+      },
+    });
+
+    return !!employeeProp;
   }
 
   async delete(uuid: string): Promise<boolean> {
@@ -180,3 +239,4 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     return true;
   }
 }
+

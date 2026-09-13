@@ -63,6 +63,7 @@ model upward_property_manager {
   subscription            upward_subscription?
   subscriptionInvoices    upward_subscription_invoice[]
   subscriptionLogs        upward_subscription_log[]
+  employees               upward_pm_employee[]
   userProperties          upward_user_property[]
 
   @@index([email])
@@ -102,25 +103,26 @@ model upward_pm_auth_session {
 }
 
 model upward_pm_property {
-  id            Int                                @id @default(autoincrement())
-  uuid          String                             @unique @default(uuid())
-  pmId          Int
-  name          String
-  address       String?
-  totalUnits    Int                                @default(0)
-  propertyType  String                             @default("Residential")
-  imageUrl      String?
-  country       String                             @default("Nigeria")
-  state         String?
-  area          String?
-  createdAt     DateTime                           @default(now())
-  updatedAt     DateTime                           @updatedAt
-  landlordId    Int?
-  manualAccount upward_manual_account?
-  landlord      upward_pm_landlord?                @relation(fields: [landlordId], references: [id])
-  pm            upward_property_manager            @relation(fields: [pmId], references: [id], onDelete: Cascade)
-  collaborators upward_pm_property_collaboration[]
-  units         upward_pm_unit[]
+  id                    Int                                @id @default(autoincrement())
+  uuid                  String                             @unique @default(uuid())
+  pmId                  Int
+  name                  String
+  address               String?
+  totalUnits            Int                                @default(0)
+  propertyType          String                             @default("Residential")
+  imageUrl              String?
+  country               String                             @default("Nigeria")
+  state                 String?
+  area                  String?
+  createdAt             DateTime                           @default(now())
+  updatedAt             DateTime                           @updatedAt
+  landlordId            Int?
+  manualAccount         upward_manual_account?
+  landlord              upward_pm_landlord?                @relation(fields: [landlordId], references: [id])
+  pm                    upward_property_manager            @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  collaborators         upward_pm_property_collaboration[]
+  employeeCollaborations upward_pm_employee_property[]
+  units                 upward_pm_unit[]
 
   @@index([pmId])
 }
@@ -258,13 +260,16 @@ model upward_pm_payment_request {
   isRecurring        Boolean                 @default(false)
   recurrenceInterval String?
   scheduledAt        DateTime?
+  employeeId         Int?
   paymentRequest     upward_payment_request? @relation(fields: [paymentRequestId], references: [id])
   pm                 upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
   tenant             upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
   unit               upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  employee           upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   @@index([pmId])
   @@index([unitId])
+  @@index([employeeId])
   @@index([status])
 }
 
@@ -392,21 +397,24 @@ model upward_pm_signature {
 }
 
 model upward_pm_notification {
-  id        Int                     @id @default(autoincrement())
-  uuid      String                  @unique @default(uuid())
-  pmId      Int
-  title     String
-  message   String
-  type      String                  @default("SYSTEM")
-  url       String?
-  isRead    Boolean                 @default(false)
-  isPopup   Boolean                 @default(false)
-  popupSeen Boolean                 @default(false)
-  createdAt DateTime                @default(now())
-  updatedAt DateTime                @updatedAt
-  pm        upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  id         Int                     @id @default(autoincrement())
+  uuid       String                  @unique @default(uuid())
+  pmId       Int
+  employeeId Int?
+  title      String
+  message    String
+  type       String                  @default("SYSTEM")
+  url        String?
+  isRead     Boolean                 @default(false)
+  isPopup    Boolean                 @default(false)
+  popupSeen  Boolean                 @default(false)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+  pm         upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  employee   upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([pmId])
+  @@index([employeeId])
   @@index([isRead])
   @@index([createdAt])
 }

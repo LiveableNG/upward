@@ -41,13 +41,23 @@ export class PmBulkImportController {
     return this.uploadRelayDocumentUseCase.execute(body)
   }
 
+  private async getPmId(req: any): Promise<number> {
+    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
+      return req.user.ownerPmId
+    }
+    const uuid = req.user?.id || req.user?.sub
+    if (!uuid) throw new UnauthorizedException('Invalid user context')
+    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid } })
+    if (!pm) throw new UnauthorizedException('PM not found')
+    return pm.id
+  }
+
   @Post('relay')
   async createRelayJob(@Request() req: any, @Body() body: any) {
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
-    if (!pm) throw new UnauthorizedException('PM not found')
+    const pmId = await this.getPmId(req)
     
     return this.createRelayImportJobUseCase.execute({
-      pmId: pm.id,
+      pmId,
       targetPropertyUuid: body.targetPropertyUuid,
       mode: body.mode || 'full',
       originalFileName: body.originalFileName,
@@ -58,10 +68,9 @@ export class PmBulkImportController {
 
   @Get()
   async getPmJobs(@Request() req: any) {
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
-    if (!pm) throw new UnauthorizedException('PM not found')
+    const pmId = await this.getPmId(req)
     
-    return this.getPmImportJobsUseCase.execute(pm.id)
+    return this.getPmImportJobsUseCase.execute(pmId)
   }
 
   @Patch(':uuid/staged-data')
@@ -70,11 +79,10 @@ export class PmBulkImportController {
     @Request() req: any,
     @Body() body: { stagedRowsJson: string }
   ) {
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
-    if (!pm) throw new UnauthorizedException('PM not found')
+    const pmId = await this.getPmId(req)
     
     return this.updateStagedDataUseCase.execute({
-      pmId: pm.id,
+      pmId,
       jobUuid: uuid,
       stagedRowsJson: body.stagedRowsJson,
     })
@@ -86,11 +94,10 @@ export class PmBulkImportController {
     @Request() req: any,
     @Body() body: { unitsCreated?: number; propertiesCreated?: number }
   ) {
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
-    if (!pm) throw new UnauthorizedException('PM not found')
+    const pmId = await this.getPmId(req)
     
     return this.completeImportJobUseCase.execute({
-      pmId: pm.id,
+      pmId,
       jobUuid: uuid,
       unitsCreated: body.unitsCreated,
       propertiesCreated: body.propertiesCreated,
@@ -99,15 +106,14 @@ export class PmBulkImportController {
 
   @Delete(':uuid')
   async deleteJob(@Param('uuid') uuid: string, @Request() req: any) {
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.id || req.user.sub } })
-    if (!pm) throw new UnauthorizedException('PM not found')
+    const pmId = await this.getPmId(req)
     
     // Quick validation to ensure the job belongs to the PM before deleting
     const job = await (this.prisma as any).upward_pm_bulk_import_job.findUnique({
       where: { uuid }
     })
     
-    if (!job || job.pmId !== pm.id) {
+    if (!job || job.pmId !== pmId) {
       throw new UnauthorizedException('Job not found or unauthorized')
     }
 

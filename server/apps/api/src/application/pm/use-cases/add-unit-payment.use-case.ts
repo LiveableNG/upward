@@ -1,5 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { IUnitRepository, PM_UNIT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 
 @Injectable()
@@ -7,14 +7,23 @@ export class AddUnitPaymentUseCase {
   constructor(
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
+    @Inject(PM_PROPERTY_REPOSITORY)
+    private readonly propertyRepository: IPropertyRepository,
     private readonly prisma: PrismaService,
   ) { }
 
-  async execute(pmId: number, unitUuid: string, data: any) {
+  async execute(pmId: number, unitUuid: string, data: any, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepository.findByUuid(unitUuid);
     if (!unit) {
       throw new NotFoundException('Unit not found');
     }
+
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, unit.propertyId, actor);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this unit');
+    }
+
 
     const paymentData: any = {
       amount: data.amount,

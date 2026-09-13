@@ -1,11 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/common/Toast';
+import { useAuth } from '@/features/auth/AuthContext';
 import { FeatureKey, Subscription, Wallet, SubscriptionTier } from '../types/subscription';
 
 export function useSubscription() {
   const queryClient = useQueryClient();
   const { success, error } = useToast();
+  const { user } = useAuth();
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE';
+  const isSubsDisabled = process.env.NEXT_PUBLIC_DISABLE_SUBSCRIPTIONS === 'true';
 
   const { data: subscription, isLoading: isSubLoading } = useQuery<Subscription>({
     queryKey: ['subscription'],
@@ -15,6 +19,7 @@ export function useSubscription() {
   const { data: wallet, isLoading: isWalletLoading } = useQuery<Wallet>({
     queryKey: ['wallet'],
     queryFn: () => api.get('/pm/wallet'),
+    enabled: !isEmployee && !isSubsDisabled,
     refetchInterval: 10000,
     refetchOnWindowFocus: true,
   });
@@ -22,16 +27,22 @@ export function useSubscription() {
   const { data: dva, isLoading: isDvaLoading } = useQuery({
     queryKey: ['pm_dva'],
     queryFn: () => api.get('/pm/subscription/wallet/dva').then(res => res.data),
+    enabled: !isEmployee && !isSubsDisabled,
   });
 
   const { data: transactions, isLoading: isTransactionsLoading } = useQuery({
     queryKey: ['wallet_transactions'],
     queryFn: () => api.get('/pm/wallet/transactions'),
+    enabled: !isEmployee && !isSubsDisabled,
   });
 
   const selectTierMutation = useMutation({
-    mutationFn: (data: { tier: SubscriptionTier; billingMode?: 'active' | 'all' }) =>
-      api.post('/pm/subscription/select-tier', data),
+    mutationFn: (data: { tier: SubscriptionTier; billingMode?: 'active' | 'all' }) => {
+      if (isEmployee) {
+        throw new Error('Only the account admin can change subscription plans.');
+      }
+      return api.post('/pm/subscription/select-tier', data);
+    },
     onSuccess: (data, variables) => {
       const TIER_ORDER = { FREE: 1, TIER_2: 2, TIER_3: 3 };
       const currentOrder = subscription ? TIER_ORDER[subscription.tier] : 1;
@@ -53,8 +64,12 @@ export function useSubscription() {
   });
 
   const topUpMutation = useMutation({
-    mutationFn: (data: { amount: number; reference: string }) =>
-      api.post('/pm/wallet/top-up', data),
+    mutationFn: (data: { amount: number; reference: string }) => {
+      if (isEmployee) {
+        throw new Error('Only the account admin can top up the organization wallet.');
+      }
+      return api.post('/pm/wallet/top-up', data);
+    },
     onSuccess: () => {
       success('Wallet topped up successfully');
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
@@ -65,7 +80,12 @@ export function useSubscription() {
   });
 
   const generateDvaMutation = useMutation({
-    mutationFn: () => api.post('/pm/subscription/wallet/dva/generate'),
+    mutationFn: () => {
+      if (isEmployee) {
+        throw new Error('Only the account admin can configure payment accounts.');
+      }
+      return api.post('/pm/subscription/wallet/dva/generate');
+    },
     onSuccess: () => {
       success('Dedicated virtual account generated');
       queryClient.invalidateQueries({ queryKey: ['pm_dva'] });
@@ -74,8 +94,6 @@ export function useSubscription() {
       error(err.message || 'Failed to generate virtual account');
     },
   });
-
-  const isSubsDisabled = process.env.NEXT_PUBLIC_DISABLE_SUBSCRIPTIONS === 'true';
 
   const checkAccess = (feature: FeatureKey) => {
     if (isSubsDisabled) {
@@ -133,18 +151,19 @@ export function useSubscription() {
 
   return {
     subscription: activeSubscription,
-    wallet,
-    isLoading: isSubsDisabled ? false : (isSubLoading || isWalletLoading),
+    wallet: isEmployee ? undefined : wallet,
+    isLoading: isSubsDisabled ? false : (isSubLoading || (!isEmployee && isWalletLoading)),
     checkAccess,
     selectTier: selectTierMutation.mutate,
     isSelectingTier: selectTierMutation.isPending,
     topUp: topUpMutation.mutate,
     isToppingUp: topUpMutation.isPending,
-    dva,
-    isDvaLoading: isSubsDisabled ? false : isDvaLoading,
+    dva: isEmployee ? null : dva,
+    isDvaLoading: isSubsDisabled || isEmployee ? false : isDvaLoading,
     generateDva: generateDvaMutation.mutate,
     isGeneratingDva: generateDvaMutation.isPending,
-    transactions,
-    isTransactionsLoading: isSubsDisabled ? false : isTransactionsLoading,
+    transactions: isEmployee ? [] : transactions,
+    isTransactionsLoading: isSubsDisabled || isEmployee ? false : isTransactionsLoading,
+    isEmployee,
   };
 }

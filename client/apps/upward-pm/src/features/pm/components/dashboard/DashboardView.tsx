@@ -47,11 +47,13 @@ import { useSubscription } from '@/features/pm/hooks/useSubscription'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 import { SuccessNotificationModal } from '../subscription/SuccessNotificationModal'
 import { playActivationChime } from '@/lib/sound'
+import { useAuth } from '@/features/auth/AuthContext'
 
 export function DashboardView({ initialData }: { initialData?: any }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()
+  const { user } = useAuth()
 
   const [datePreset, setDatePreset] = useState<'all' | 'this_month' | 'next_30' | 'this_quarter' | 'this_year' | 'custom'>('all')
   const [customStart, setCustomStart] = useState('')
@@ -128,11 +130,13 @@ export function DashboardView({ initialData }: { initialData?: any }) {
   const [activeTab, setActiveTab] = useState<'arrears' | 'upcoming' | 'completed'>('arrears')
   const [hasSetInitialTab, setHasSetInitialTab] = useState(false)
 
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE'
+
   useEffect(() => {
-    if (subscription && subscription.tier === 'FREE' && !subscription.isInitialDepositPaid) {
+    if (!isEmployee && subscription && subscription.tier === 'FREE' && !subscription.isInitialDepositPaid) {
       openPricing()
     }
-  }, [subscription])
+  }, [subscription, isEmployee])
 
   useEffect(() => {
     const subStatus = searchParams?.get('subscription')
@@ -446,61 +450,107 @@ export function DashboardView({ initialData }: { initialData?: any }) {
           />
         </div>
 
-        <div
-          onClick={() => router.push('/subscription/wallet')}
-          className="checkout-card"
-          style={{
-            padding: '24px 32px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            position: 'relative',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            border: '1px solid #E7E3DB',
-            borderRadius: '24px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 4px 12px rgba(26, 26, 23, 0.02)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'var(--forest, #166534)';
-            e.currentTarget.style.boxShadow = '0 6px 18px rgba(22, 101, 52, 0.05)';
-            const arrow = e.currentTarget.querySelector('.wallet-arrow') as HTMLSpanElement;
-            if (arrow) arrow.style.transform = 'translateX(4px)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#E7E3DB';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 26, 23, 0.02)';
-            const arrow = e.currentTarget.querySelector('.wallet-arrow') as HTMLSpanElement;
-            if (arrow) arrow.style.transform = 'translateX(0)';
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#8A857F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Company Wallet
+        {!isEmployee ? (
+          <div
+            onClick={() => router.push('/subscription/wallet')}
+            className="checkout-card"
+            style={{
+              padding: '24px 32px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              border: '1px solid #E7E3DB',
+              borderRadius: '24px',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 4px 12px rgba(26, 26, 23, 0.02)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--forest, #166534)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(22, 101, 52, 0.05)';
+              const arrow = e.currentTarget.querySelector('.wallet-arrow') as HTMLSpanElement;
+              if (arrow) arrow.style.transform = 'translateX(4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#E7E3DB';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(26, 26, 23, 0.02)';
+              const arrow = e.currentTarget.querySelector('.wallet-arrow') as HTMLSpanElement;
+              if (arrow) arrow.style.transform = 'translateX(0)';
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#8A857F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Company Wallet
+                </span>
+                <span className="role-tag role-tag--admin">ADMIN</span>
+              </div>
+
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#1A1A17' }}>
+                ₦{(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+
+              <div style={{ fontSize: 11, color: '#5D5954', marginTop: 4, fontWeight: 500 }}>
+                Available Balance
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, borderTop: '1px solid #F2F1EB', paddingTop: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A857F', fontWeight: 600 }}>
+                Available for subscriptions
+              </span>
+              <span className="wallet-arrow" style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest, #166534)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
+                View Wallet <span style={{ transition: 'transform 0.2s ease', display: 'inline-block' }}>→</span>
               </span>
             </div>
+          </div>
+        ) : (
+          <div
+            className="checkout-card"
+            style={{
+              padding: '24px 32px',
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              border: '1px solid #E7E3DB',
+              borderRadius: '24px',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 4px 12px rgba(26, 26, 23, 0.02)',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#8A857F', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Subscription Status
+                </span>
+                <span className="role-tag role-tag--employee">EMPLOYEE</span>
+              </div>
 
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#1A1A17' }}>
-              ₦{(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#1A1A17' }}>
+                {subscription?.tier === 'TIER_3' ? 'Enterprise Plan' : subscription?.tier === 'TIER_2' ? 'Professional Plan' : 'Free Plan'}
+              </div>
+
+              <div style={{ fontSize: 11, color: '#5D5954', marginTop: 4, fontWeight: 500 }}>
+                {user?.employer?.companyName || 'Employer Company'}
+              </div>
             </div>
 
-            <div style={{ fontSize: 11, color: '#5D5954', marginTop: 4, fontWeight: 500 }}>
-              Available Balance
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, borderTop: '1px solid #F2F1EB', paddingTop: 12 }}>
+              <span style={{ fontSize: 11, color: '#166534', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#166534' }} />
+                Features Active
+              </span>
+              <span style={{ fontSize: 11, color: '#8A857F', fontWeight: 600 }}>
+                Inherited from company
+              </span>
             </div>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, borderTop: '1px solid #F2F1EB', paddingTop: 12 }}>
-            <span style={{ fontSize: 11, color: '#8A857F', fontWeight: 600 }}>
-              Available for subscriptions
-            </span>
-            <span className="wallet-arrow" style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest, #166534)', transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4 }}>
-              View Wallet <span style={{ transition: 'transform 0.2s ease', display: 'inline-block' }}>→</span>
-            </span>
-          </div>
-        </div>
+        )}
       </div>
       {/* Rent Collection Report Controls & Scope Header (Apple Fluid Design) */}
       <div 
