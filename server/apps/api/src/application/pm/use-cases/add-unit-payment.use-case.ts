@@ -167,29 +167,6 @@ export class AddUnitPaymentUseCase {
       }
     }
 
-    if (unit.isSynced && unit.userPropertyUuid) {
-      const userProperty = await this.prisma.upward_user_property.findUnique({
-        where: { uuid: unit.userPropertyUuid }
-      });
-
-      if (userProperty) {
-        await this.prisma.upward_rent_cycle.create({
-          data: {
-            userId: userProperty.userId,
-            userPropertyId: userProperty.id,
-            amountOwed: payment.amount,
-            amountPaid: payment.amount,
-            currency: unit.currency,
-            dueDate: payment.periodEnd || payment.paymentDate,
-            paidAt: payment.paymentDate,
-            status: 'PAID',
-            description: payment.notes || 'Manual rent record (PM Dashboard)',
-            source: 'PM_SYNC',
-          }
-        });
-      }
-    }
-
     return payment;
   }
 }

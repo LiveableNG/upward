@@ -143,22 +143,6 @@ export class BulkAddRentHistoryUseCase {
                 });
               }
 
-              // 4. Create Rent Cycle record linked to the user's property link
-              await this.prisma.upward_rent_cycle.create({
-                data: {
-                  userId: user.id!,
-                  userPropertyId: userProperty.id,
-                  amountOwed: row.amount,
-                  amountPaid: row.amount,
-                  currency: unit.currency || 'NGN',
-                  dueDate: row.periodEnd ? new Date(row.periodEnd) : new Date(row.paymentDate),
-                  paidAt: new Date(row.paymentDate),
-                  status: 'PAID',
-                  description: row.notes || `Rent record added by ${pm.businessName || 'Manager'}`,
-                  source: 'PM_SYNC',
-                }
-              });
-
               if (!emailedUsers.has(email)) {
                 const isShadowUser = user.passwordHash === PASS_PLACEHOLDERS.INVITED || user.passwordHash === PASS_PLACEHOLDERS.SHADOW;
                 const propertyAddress = unit.property?.address || unit.property?.name || 'your rental property';

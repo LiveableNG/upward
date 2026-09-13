@@ -101,36 +101,6 @@ export class UpdateRentPaymentUseCase {
         after: data
       }
     });
-    if (payment.unit.isSynced && payment.unit.userPropertyUuid) {
-      const userProperty = await this.prisma.upward_user_property.findUnique({
-        where: { uuid: payment.unit.userPropertyUuid }
-      });
-
-      if (userProperty) {
-
-        const matchingCycle = await this.prisma.upward_rent_cycle.findFirst({
-          where: {
-            userPropertyId: userProperty.id,
-            paidAt: payment.paymentDate,
-            amountPaid: payment.amount,
-          }
-        });
-
-        if (matchingCycle) {
-          await this.prisma.upward_rent_cycle.update({
-            where: { id: matchingCycle.id },
-            data: {
-              amountPaid: data.amount !== undefined ? data.amount : undefined,
-              amountOwed: data.amount !== undefined ? data.amount : undefined, // Keep in sync for history
-              paidAt: data.paymentDate ? new Date(data.paymentDate) : undefined,
-              dueDate: data.periodEnd ? new Date(data.periodEnd) : (data.paymentDate ? new Date(data.paymentDate) : undefined),
-              description: data.notes !== undefined ? data.notes : undefined,
-            }
-          });
-        }
-      }
-    }
-
     return updatedPayment;
   }
 }

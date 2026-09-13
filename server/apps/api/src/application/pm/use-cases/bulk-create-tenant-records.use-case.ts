@@ -1,6 +1,5 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository';
 import { SendNotificationUseCase } from '../../use-cases/notifications/notification.use-cases';
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { ConfigService } from '@nestjs/config';
@@ -27,7 +26,6 @@ interface BulkCreateInput {
 export class BulkCreateTenantRecordsUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(RENT_CYCLE_REPOSITORY) private readonly rentCycleRepo: IRentCycleRepository,
     private readonly sendNotification: SendNotificationUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly configService: ConfigService,
@@ -92,25 +90,10 @@ export class BulkCreateTenantRecordsUseCase {
 
     let recordsAdded = 0;
 
-    // 3. Add Rent Cycle Records and PM Rent Payment Records
+    // 3. Add PM Rent Payment Records
     for (const record of input.records) {
       const dueDate = new Date(record.dueDate);
       const paidDate = new Date(record.paidDate);
-      const isPaidOnTime = paidDate <= dueDate;
-      const status = isPaidOnTime ? 'PAID_ON_TIME' : 'PAID_LATE';
-
-      // Global credibility record
-      await this.rentCycleRepo.create({
-        userId: user.id,
-        source: 'PAST_RECORD',
-        amountOwed: record.amount,
-        amountPaid: record.amount,
-        currency: 'NGN',
-        dueDate: dueDate,
-        paidAt: paidDate,
-        status: status,
-        description: `Rent Payment (Imported by PM)`
-      });
 
       // Unit payment history
       if (unitId) {
