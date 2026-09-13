@@ -381,9 +381,17 @@ export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDas
             className="team-activity__member-select"
           >
             <option value="">All Team Members</option>
-            {team.map((collab: any) => (
-              <option key={collab.member.uuid} value={collab.member.uuid}>
-                {collab.member.firstName ? `${collab.member.firstName} ${collab.member.lastName}` : collab.member.email}
+            {(data?.membersSummary && data.membersSummary.length > 0
+              ? data.membersSummary
+              : team.map((collab: any) => ({
+                  uuid: collab.member?.uuid,
+                  name: collab.member?.firstName
+                    ? `${collab.member.firstName} ${collab.member.lastName}`.trim()
+                    : collab.member?.email || 'Team Member',
+                }))
+            ).map((m: any) => (
+              <option key={m.uuid} value={m.uuid}>
+                {m.name}
               </option>
             ))}
           </select>
@@ -498,16 +506,93 @@ export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDas
                           onClick={() => toggleExpand(log.uuid)}
                         >
                           {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          {isExpanded ? 'Hide Payload' : 'View Details'}
+                          {isExpanded ? 'Hide Details' : 'View Details'}
                         </button>
                       )}
                     </div>
 
                     {isExpanded && log.metadata && (
-                      <div className="team-activity__metadata-box">
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                          {JSON.stringify(log.metadata, null, 2)}
-                        </pre>
+                      <div className="team-activity__metadata-grid">
+                        {(() => {
+                          const SENSITIVE_KEYS = new Set([
+                            'sentUuid',
+                            'tenantUuid',
+                            'unitUuid',
+                            'propertyUuid',
+                            'userUuid',
+                            'userId',
+                            'pmId',
+                            'ownerPmId',
+                            'employeeId',
+                            'passwordHash',
+                            'emailHash',
+                            'phoneHash',
+                            'emailEncrypted',
+                            'phoneEncrypted',
+                          ])
+
+                          const formatLabel = (k: string): string => {
+                            return k
+                              .replace(/([A-Z])/g, ' $1')
+                              .replace(/_/g, ' ')
+                              .replace(/^./, (str) => str.toUpperCase())
+                              .trim()
+                          }
+
+                          const chips: Array<{ label: string; value: string }> = []
+
+                          Object.entries(log.metadata).forEach(([key, val]) => {
+                            if (SENSITIVE_KEYS.has(key) || val === undefined || val === null || val === '') return
+
+                            if (key === 'unitDetails' && typeof val === 'object' && !Array.isArray(val)) {
+                              const u = val as Record<string, any>
+                              const location = [u.address, u.area, u.state, u.country].filter(Boolean).join(', ')
+                              if (location) chips.push({ label: 'Location', value: location })
+                              if (u.rentAmount) {
+                                const amountStr = `₦${Number(u.rentAmount).toLocaleString()}${u.rentType ? ` (${u.rentType})` : ''}`
+                                chips.push({ label: 'Rent', value: amountStr })
+                              }
+                              if (u.initialAmountPaid) {
+                                chips.push({ label: 'Initial Paid', value: `₦${Number(u.initialAmountPaid).toLocaleString()}` })
+                              }
+                              if (u.tenancyStatus) {
+                                chips.push({ label: 'Tenancy Status', value: formatLabel(u.tenancyStatus) })
+                              }
+                              if (u.rentStartDate && u.rentEndDate) {
+                                chips.push({ label: 'Period', value: `${u.rentStartDate} → ${u.rentEndDate}` })
+                              }
+                              return
+                            }
+
+                            if (typeof val === 'object' && !Array.isArray(val)) {
+                              Object.entries(val).forEach(([subKey, subVal]) => {
+                                if (!SENSITIVE_KEYS.has(subKey) && subVal !== undefined && subVal !== null && subVal !== '') {
+                                  chips.push({ label: formatLabel(subKey), value: String(subVal) })
+                                }
+                              })
+                              return
+                            }
+
+                            if (Array.isArray(val)) {
+                              chips.push({ label: formatLabel(key), value: `${val.length} items` })
+                              return
+                            }
+
+                            if (typeof val === 'boolean') {
+                              chips.push({ label: formatLabel(key), value: val ? 'Yes' : 'No' })
+                              return
+                            }
+
+                            chips.push({ label: formatLabel(key), value: String(val) })
+                          })
+
+                          return chips.map((chip, idx) => (
+                            <div key={`${chip.label}-${idx}`} className="team-activity__metadata-chip">
+                              <span className="team-activity__metadata-key">{chip.label}:</span>
+                              <span className="team-activity__metadata-val">{chip.value}</span>
+                            </div>
+                          ))
+                        })()}
                       </div>
                     )}
                   </div>

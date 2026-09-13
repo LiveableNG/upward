@@ -14,6 +14,8 @@ import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { LandlordService } from '../services/landlord.service';
 
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
+
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
   if (cleaned.startsWith('0') && cleaned.length === 11) {
@@ -39,6 +41,7 @@ export class BulkFullImportUseCase {
     private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
     private readonly prisma: PrismaService,
     private readonly landlordService: LandlordService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(pmId: number, dto: BulkFullImportDto, actor?: any) {
@@ -315,6 +318,21 @@ export class BulkFullImportUseCase {
       });
       bulkInviteId = result.bulkInviteId;
     }
+
+    const ownerPmId = actor?.ownerPmId || pmId;
+    await this.activityLog.log({
+      pmId: actor?.isEmployee ? ownerPmId : pmId,
+      ownerPmId,
+      employeeId: actor?.isEmployee ? actor.employeeId : undefined,
+      action: ActivityAction.BULK_FULL_IMPORT,
+      entityType: 'PROPERTY_IMPORT',
+      description: `Bulk imported ${propertyCache.size} properties and ${rows.length} units with tenant records`,
+      metadata: {
+        propertiesCount: propertyCache.size,
+        unitsCount: rows.length,
+        tenantsCount: createdTenantUuids.length,
+      }
+    });
 
     return {
       success: true,

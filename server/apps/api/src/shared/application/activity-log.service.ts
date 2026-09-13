@@ -5,10 +5,16 @@ import { PrismaService } from '../infrastructure/prisma/prisma.service';
 export enum ActivityAction {
   CREATE_PROPERTY = 'CREATE_PROPERTY',
   UPDATE_PROPERTY = 'UPDATE_PROPERTY',
+  DELETE_PROPERTY = 'DELETE_PROPERTY',
   CREATE_UNIT = 'CREATE_UNIT',
   UPDATE_UNIT = 'UPDATE_UNIT',
   DELETE_UNIT = 'DELETE_UNIT',
+  BULK_CREATE_UNITS = 'BULK_CREATE_UNITS',
+  BULK_FULL_IMPORT = 'BULK_FULL_IMPORT',
+  ADD_RENT_HISTORY = 'ADD_RENT_HISTORY',
+  CREATE_TENANT = 'CREATE_TENANT',
   INVITE_TENANT = 'INVITE_TENANT',
+  BULK_INVITE_TENANTS = 'BULK_INVITE_TENANTS',
   SEND_INVOICE = 'SEND_INVOICE',
   UPDATE_RENT = 'UPDATE_RENT',
   DELETE_RENT = 'DELETE_RENT',
@@ -37,9 +43,6 @@ export class ActivityLogService {
     description: string;
     metadata?: any;
   }) {
-    // Skip same-PM logs only if not an employee action and not a tenant join request
-    if (params.pmId === params.ownerPmId && !params.employeeId && params.action !== 'TENANT_JOIN_REQUEST') return;
-
     return (this.prisma as any).upward_pm_activity_log.create({
       data: {
         pmId: params.pmId,

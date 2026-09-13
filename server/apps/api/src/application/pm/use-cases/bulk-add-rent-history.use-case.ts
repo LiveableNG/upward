@@ -7,6 +7,7 @@ import { BulkAddRentHistoryDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { SingleInviteUseCase } from '../../use-cases/external/single-invite.use-case';
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 @Injectable()
 export class BulkAddRentHistoryUseCase {
@@ -25,6 +26,7 @@ export class BulkAddRentHistoryUseCase {
     private readonly encryption: EncryptionService,
     private readonly singleInviteUseCase: SingleInviteUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(pmId: number, dto: BulkAddRentHistoryDto, actor?: any) {
@@ -236,6 +238,25 @@ export class BulkAddRentHistoryUseCase {
       } catch (err) {
         console.error('Failed to recalculate unit dates after bulk rent history import:', err);
       }
+    }
+
+    if (results.success > 0) {
+      await this.activityLog.log({
+        pmId,
+        ownerPmId,
+        employeeId: actor?.employeeId,
+        action: ActivityAction.ADD_RENT_HISTORY,
+        entityType: 'RENT_PAYMENT',
+        entityId: unit.uuid,
+        description: `Imported ${results.success} rent payment records for unit ${unit.unitName || unit.uuid}`,
+        metadata: {
+          unitUuid: unit.uuid,
+          unitName: unit.unitName,
+          propertyName: unit.property?.name,
+          successCount: results.success,
+          totalRows: dto.rows.length,
+        },
+      }).catch(err => console.error('[BulkAddRentHistoryUseCase] Failed to log activity:', err));
     }
 
     return results;

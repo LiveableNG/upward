@@ -23,26 +23,37 @@ const CATEGORY_ACTION_MAP: Record<string, string[]> = {
     ActivityAction.CANCEL_PAYMENT,
     ActivityAction.PROCESS_REFUND,
     ActivityAction.ACCEPT_PAYMENT,
+    ActivityAction.ADD_RENT_HISTORY,
   ],
   PROPERTIES: [
     ActivityAction.CREATE_PROPERTY,
     ActivityAction.UPDATE_PROPERTY,
+    ActivityAction.DELETE_PROPERTY,
     ActivityAction.CREATE_UNIT,
     ActivityAction.UPDATE_UNIT,
     ActivityAction.DELETE_UNIT,
+    ActivityAction.BULK_CREATE_UNITS,
+    ActivityAction.BULK_FULL_IMPORT,
+    'BULK_IMPORT',
+    'BULK_FULL_IMPORT',
   ],
   DOCUMENTS: [
     ActivityAction.SEND_DOCUMENT,
     ActivityAction.BULK_SEND_DOCUMENT,
     ActivityAction.SEND_REPORT,
+    'SEND_DOCUMENT',
   ],
   TEMPLATES: [
     ActivityAction.CREATE_DOCUMENT_TEMPLATE,
     ActivityAction.UPDATE_DOCUMENT_TEMPLATE,
   ],
   TENANTS: [
+    ActivityAction.CREATE_TENANT,
     ActivityAction.INVITE_TENANT,
+    ActivityAction.BULK_INVITE_TENANTS,
     'TENANT_JOIN_REQUEST',
+    'TENANT_REQUEST',
+    'CREATE_TENANT',
   ],
 };
 
@@ -66,8 +77,8 @@ export class GetTeamActivityDashboardUseCase {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
-    // 1. Fetch team members (Employees + Collaborators) to build actor dictionary
-    const [employees, collaborations] = await Promise.all([
+    // 1. Fetch team members (Employees + Collaborators) and Owner PM to build actor dictionary
+    const [employees, collaborations, ownerPm] = await Promise.all([
       (this.prisma as any).upward_pm_employee.findMany({
         where: { ownerPmId },
         select: {
@@ -96,7 +107,22 @@ export class GetTeamActivityDashboardUseCase {
           },
         },
       }),
+      (this.prisma as any).upward_property_manager.findUnique({
+        where: { id: ownerPmId },
+        select: {
+          id: true,
+          uuid: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          businessName: true,
+        },
+      }),
     ]);
+
+    const ownerFirstName = ownerPm?.firstName ? this.encryption.decrypt(ownerPm.firstName) : '';
+    const ownerLastName = ownerPm?.lastName ? this.encryption.decrypt(ownerPm.lastName) : '';
+    const ownerFullName = `${ownerFirstName} ${ownerLastName}`.trim() || ownerPm?.businessName || 'Admin (Owner)';
 
     const employeeMap = new Map<number, any>();
     const employeeUuidMap = new Map<string, any>();
@@ -339,7 +365,7 @@ export class GetTeamActivityDashboardUseCase {
         performer = pmCollabMap.get(log.pmId);
       } else {
         performer = {
-          name: 'Account Owner / System',
+          name: ownerFullName,
           role: 'ADMIN',
           jobTitle: 'Account Owner',
           type: 'OWNER',
@@ -354,7 +380,7 @@ export class GetTeamActivityDashboardUseCase {
         entityType: log.entityType,
         entityId: log.entityId,
         description: log.description,
-        metadata: log.metadata,
+        metadata: this.sanitizeAndDecryptMetadata(log.metadata),
         createdAt: log.createdAt,
         performer,
       };
@@ -379,5 +405,43 @@ export class GetTeamActivityDashboardUseCase {
         totalPages: Math.ceil(totalFiltered / limit) || 1,
       },
     };
+  }
+
+  private sanitizeAndDecryptMetadata(val: any): any {
+    if (val === null || val === undefined) return val;
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return this.sanitizeAndDecryptMetadata(parsed);
+        } catch {
+          // not JSON, continue
+        }
+      }
+      if (trimmed.includes(':') && trimmed.split(':').length === 3) {
+        try {
+          const decrypted = this.encryption.decrypt(trimmed);
+          if (decrypted && decrypted !== trimmed) {
+            return decrypted;
+          }
+        } catch {
+          // not encrypted or failed, continue
+        }
+      }
+      return val;
+    }
+    if (Array.isArray(val)) {
+      return val.map((item) => this.sanitizeAndDecryptMetadata(item));
+    }
+    if (typeof val === 'object') {
+      const result: Record<string, any> = {};
+      for (const [key, value] of Object.entries(val)) {
+        if (key === 'passwordHash' || key === 'emailHash' || key === 'phoneHash') continue;
+        result[key] = this.sanitizeAndDecryptMetadata(value);
+      }
+      return result;
+    }
+    return val;
   }
 }

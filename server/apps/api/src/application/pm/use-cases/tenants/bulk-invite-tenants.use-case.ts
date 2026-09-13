@@ -4,6 +4,8 @@ import {
   ITenantRepository,
 } from '../../../../domains/pm/IPropertyRepository';
 import { BULK_INVITE_REPOSITORY, IBulkInviteRepository } from '../../../../domains/pm/IBulkInviteRepository';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
 
 export interface BulkInviteDto {
   tenantUuids: string[];
@@ -17,9 +19,10 @@ export class BulkInviteTenantsUseCase {
     private readonly tenantRepo: ITenantRepository,
     @Inject(BULK_INVITE_REPOSITORY)
     private readonly bulkInviteRepo: IBulkInviteRepository,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
-  async execute(pmId: number, dto: BulkInviteDto): Promise<{ bulkInviteId: string }> {
+  async execute(pmId: number, dto: BulkInviteDto, actor?: PmActorContext): Promise<{ bulkInviteId: string }> {
     const { tenantUuids, deliveryChannel } = dto;
 
     const tenants = await this.tenantRepo.findByUuids(tenantUuids);
@@ -42,6 +45,21 @@ export class BulkInviteTenantsUseCase {
         retries: 0,
       })) as any
     });
+
+    await this.activityLog.log({
+      pmId,
+      ownerPmId: pmId,
+      employeeId: actor?.employeeId,
+      action: ActivityAction.BULK_INVITE_TENANTS,
+      entityType: 'TENANT',
+      entityId: bulkInvite.id,
+      description: `Bulk invited ${eligibleTenants.length} tenants via ${deliveryChannel || 'EMAIL'}`,
+      metadata: {
+        bulkInviteId: bulkInvite.id,
+        totalTenants: eligibleTenants.length,
+        channel: deliveryChannel || 'EMAIL',
+      },
+    }).catch(err => console.error('[BulkInviteTenantsUseCase] Failed to log activity:', err));
 
     return { bulkInviteId: bulkInvite.id! };
   }

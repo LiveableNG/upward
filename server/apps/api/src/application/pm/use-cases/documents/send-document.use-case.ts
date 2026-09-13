@@ -18,6 +18,7 @@ import * as crypto from 'crypto';
 import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
 
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
 import {
   EMPTY_PLACEHOLDER,
@@ -72,6 +73,7 @@ export class SendDocumentUseCase {
     private readonly whatsappService: WhatsappService,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly encryption: EncryptionService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(actorPmId: number, data: SendDocumentDto, actor?: PmActorContext) {
@@ -545,11 +547,39 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
-      if (finalStatus === 'SENT' && tenantId && (data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here')) {
-        await this.prisma.upward_pm_tenant.update({
-          where: { id: tenantId },
-          data: { hasReceivedWelcomeTemplate: true }
-        });
+      if (finalStatus === 'SENT') {
+        const isWelcome = !!(data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here');
+        const actionDesc = isWelcome 
+          ? `Sent welcome onboarding documents to ${data.recipientName}`
+          : `Sent document "${data.subject}" to ${data.recipientName}`;
+
+        this.activityLog.log({
+          pmId: actorPmId,
+          ownerPmId: pmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.SEND_DOCUMENT,
+          entityType: 'DOCUMENT',
+          entityId: sentUuid,
+          description: actionDesc,
+          metadata: {
+            sentUuid,
+            subject: data.subject,
+            recipientName: data.recipientName,
+            recipientEmail: data.recipientEmail,
+            documentType: data.documentType,
+            deliveryChannel: data.deliveryChannel || 'EMAIL',
+            isWelcomeTemplate: isWelcome,
+            unitName: unit?.unitName,
+            propertyName: unit?.property?.name,
+          },
+        }).catch((err) => console.error('Failed to log send document activity:', err));
+
+        if (tenantId && isWelcome) {
+          await this.prisma.upward_pm_tenant.update({
+            where: { id: tenantId },
+            data: { hasReceivedWelcomeTemplate: true }
+          });
+        }
       }
 
       return { ...(result as any), pdfUrl: pdfS3Url };

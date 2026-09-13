@@ -110,13 +110,13 @@ export class PmTenantController {
   @Post()
   async createTenant(@Req() req: any, @Body() dto: CreateTenantDto) {
     const actor = await this.getActorContext(req);
-    return this.createTenantUseCase.execute(actor.ownerPmId, dto);
+    return this.createTenantUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Post(':uuid/invite')
   async inviteTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() body: { deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' }) {
     const actor = await this.getActorContext(req);
-    return this.inviteTenantUseCase.execute(actor.ownerPmId, uuid, body?.deliveryChannel);
+    return this.inviteTenantUseCase.execute(actor.ownerPmId, uuid, body?.deliveryChannel, actor);
   }
 
   @Post(':uuid/assign')
@@ -189,7 +189,7 @@ export class PmTenantController {
   @Post('bulk-invite')
   async bulkInvite(@Req() req: any, @Body() dto: BulkInviteDto) {
     const actor = await this.getActorContext(req);
-    return this.bulkInviteTenantsUseCase.execute(actor.ownerPmId, dto);
+    return this.bulkInviteTenantsUseCase.execute(actor.ownerPmId, dto, actor);
   }
 }
 
