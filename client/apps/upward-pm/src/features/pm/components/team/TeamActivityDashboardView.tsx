@@ -3,9 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
-  Activity,
   History,
-  Users,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -16,18 +14,12 @@ import {
   FileCode,
   UserPlus,
   RefreshCw,
-  Sparkles,
   ChevronDown,
-  ChevronUp,
-  Clock,
-  CheckCircle2,
-  BarChart3,
-  Calendar,
-  Layers,
-  ArrowUpRight
+  Activity,
 } from 'lucide-react'
 import { useTeamActivityDashboard } from '../../hooks/useTeamActivity'
 import { useTeam } from '../../hooks/useTeam'
+import { FormSelect, SelectOption } from '@/components/ui/Select/FormSelect'
 import { formatDistanceToNow, format } from 'date-fns'
 import { TeamActivityLogItem } from '../../services/teamActivityService'
 import '@/styles/features/team-activity.css'
@@ -35,6 +27,22 @@ import '@/styles/features/team-activity.css'
 interface TeamActivityDashboardViewProps {
   initialMemberUuid?: string
 }
+
+const CATEGORY_CONFIG: Record<string, { label: string; icon: any; color: string; soft: string }> = {
+  PAYMENTS: { label: 'Payments & Invoices', icon: CreditCard, color: 'var(--forest)', soft: 'var(--forest-faint)' },
+  PROPERTIES: { label: 'Properties & Units', icon: Building2, color: '#3E5C8C', soft: 'rgba(62, 92, 140, 0.08)' },
+  DOCUMENTS: { label: 'Documents & Delivery', icon: FileText, color: 'var(--clay)', soft: 'var(--clay-faint)' },
+  TEMPLATES: { label: 'Document Templates', icon: FileCode, color: '#8A8477', soft: 'rgba(138, 132, 119, 0.1)' },
+  TENANTS: { label: 'Tenant Onboarding', icon: UserPlus, color: '#059669', soft: 'rgba(5, 150, 105, 0.08)' },
+}
+
+const RANGES = [
+  { id: 'today', label: 'Today' },
+  { id: '7d', label: '7 Days' },
+  { id: '30d', label: '30 Days' },
+  { id: '90d', label: '90 Days' },
+  { id: 'all', label: 'All Time' },
+] as const
 
 export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDashboardViewProps) {
   const [memberUuid, setMemberUuid] = useState<string>(initialMemberUuid || '')
@@ -64,26 +72,106 @@ export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDas
     }))
   }
 
-  const getCategoryIcon = (cat: string) => {
-    switch (cat) {
-      case 'PAYMENTS': return <CreditCard size={15} />
-      case 'PROPERTIES': return <Building2 size={15} />
-      case 'DOCUMENTS': return <FileText size={15} />
-      case 'TEMPLATES': return <FileCode size={15} />
-      case 'TENANTS': return <UserPlus size={15} />
-      default: return <Activity size={15} />
+  const memberOptions: SelectOption[] = useMemo(() => {
+    const opts: SelectOption[] = [{ label: 'All team members', value: '' }]
+    if (data?.membersSummary && data.membersSummary.length > 0) {
+      data.membersSummary.forEach((m) => {
+        opts.push({
+          label: m.actionsCount > 0 ? `${m.name} (${m.actionsCount} actions)` : m.name,
+          shortLabel: m.name,
+          value: m.uuid,
+        })
+      })
+    } else if (team && team.length > 0) {
+      team.forEach((collab: any) => {
+        const name = collab.member?.firstName
+          ? `${collab.member.firstName} ${collab.member.lastName}`.trim()
+          : collab.member?.email || 'Team Member'
+        opts.push({
+          label: name,
+          value: collab.member?.uuid || '',
+        })
+      })
     }
-  }
+    return opts
+  }, [data?.membersSummary, team])
 
-  const getActionBadgeColor = (cat: string) => {
-    switch (cat) {
-      case 'PAYMENTS': return { bg: 'var(--forest-faint)', color: 'var(--forest)', border: 'var(--forest-glow)' }
-      case 'PROPERTIES': return { bg: 'rgba(59, 130, 246, 0.08)', color: '#2563eb', border: 'rgba(59, 130, 246, 0.2)' }
-      case 'DOCUMENTS': return { bg: 'var(--clay-faint)', color: 'var(--clay)', border: 'var(--clay-glow)' }
-      case 'TEMPLATES': return { bg: 'rgba(147, 51, 234, 0.08)', color: '#9333ea', border: 'rgba(147, 51, 234, 0.2)' }
-      case 'TENANTS': return { bg: 'rgba(16, 185, 129, 0.08)', color: '#059669', border: 'rgba(16, 185, 129, 0.2)' }
-      default: return { bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' }
+  const getLogDetails = (log: TeamActivityLogItem): Array<[string, string]> => {
+    if (!log.metadata) return []
+    const SENSITIVE_KEYS = new Set([
+      'sentUuid',
+      'tenantUuid',
+      'unitUuid',
+      'propertyUuid',
+      'userUuid',
+      'userId',
+      'pmId',
+      'ownerPmId',
+      'employeeId',
+      'passwordHash',
+      'emailHash',
+      'phoneHash',
+      'emailEncrypted',
+      'phoneEncrypted',
+      'templateId',
+    ])
+
+    const formatKeyName = (k: string): string => {
+      return k
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/_/g, ' ')
+        .replace(/^./, (str) => str.toUpperCase())
+        .trim()
     }
+
+    const details: Array<[string, string]> = []
+
+    Object.entries(log.metadata).forEach(([key, val]) => {
+      if (SENSITIVE_KEYS.has(key) || val === undefined || val === null || val === '') return
+
+      if (key === 'unitDetails' && typeof val === 'object' && !Array.isArray(val)) {
+        const u = val as Record<string, any>
+        const location = [u.address, u.area, u.state, u.country].filter(Boolean).join(', ')
+        if (location) details.push(['Location', location])
+        if (u.rentAmount) {
+          const amountStr = `₦${Number(u.rentAmount).toLocaleString()}${u.rentType ? ` (${u.rentType})` : ''}`
+          details.push(['Rent', amountStr])
+        }
+        if (u.initialAmountPaid) {
+          details.push(['Initial Paid', `₦${Number(u.initialAmountPaid).toLocaleString()}`])
+        }
+        if (u.tenancyStatus) {
+          details.push(['Tenancy Status', formatKeyName(u.tenancyStatus)])
+        }
+        if (u.rentStartDate && u.rentEndDate) {
+          details.push(['Period', `${u.rentStartDate} → ${u.rentEndDate}`])
+        }
+        return
+      }
+
+      if (typeof val === 'object' && !Array.isArray(val)) {
+        Object.entries(val).forEach(([subKey, subVal]) => {
+          if (!SENSITIVE_KEYS.has(subKey) && subVal !== undefined && subVal !== null && subVal !== '') {
+            details.push([formatKeyName(subKey), String(subVal)])
+          }
+        })
+        return
+      }
+
+      if (Array.isArray(val)) {
+        details.push([formatKeyName(key), `${val.length} items`])
+        return
+      }
+
+      if (typeof val === 'boolean') {
+        details.push([formatKeyName(key), val ? 'Yes' : 'No'])
+        return
+      }
+
+      details.push([formatKeyName(key), String(val)])
+    })
+
+    return details
   }
 
   const handleExportCSV = () => {
@@ -111,32 +199,6 @@ export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDas
     document.body.removeChild(link)
   }
 
-  const metrics = data?.metrics || {
-    totalActions: 0,
-    totalAllTime: 0,
-    todayActions: 0,
-    activeMembersCount: 0,
-    totalTeamMembers: 0,
-  }
-
-  const categoryCounts = data?.categoryCounts || {
-    PAYMENTS: 0,
-    PROPERTIES: 0,
-    DOCUMENTS: 0,
-    TEMPLATES: 0,
-    TENANTS: 0,
-    OTHER: 0,
-  }
-
-  const topCategory = useMemo(() => {
-    const entries = Object.entries(categoryCounts)
-    if (entries.length === 0) return 'None'
-    entries.sort((a, b) => b[1] - a[1])
-    return entries[0] && entries[0][1] > 0 ? entries[0][0] : 'None'
-  }, [categoryCounts])
-
-  const maxCategoryCount = Math.max(...Object.values(categoryCounts), 1)
-
   return (
     <div className="team-activity animate-fade-in">
       {/* Header Section */}
@@ -147,473 +209,271 @@ export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDas
             <span>/</span>
             <Link href="/settings?tab=team">Team</Link>
             <span>/</span>
-            <span>Activity Dashboard</span>
+            <span style={{ color: 'var(--dark)' }}>Activity Dashboard</span>
           </div>
-          <h1 className="team-activity__title">Team Activity & Audit Reports</h1>
+          <h1 className="team-activity__title">Team activity &amp; audit reports</h1>
           <p className="team-activity__subtitle">
-            Comprehensive audit logs and operational analytics for actions performed across your property portfolio.
+            Audit logs and operational activity across your property portfolio.
           </p>
         </div>
 
         <div className="team-activity__actions">
           <button
-            className="btn btn--secondary"
+            className="team-activity__btn"
             onClick={() => refetch()}
             disabled={isFetching}
-            style={{ borderRadius: 12, height: 42, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
           >
-            <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} />
-            {isFetching ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            Refresh
           </button>
 
           <button
-            className="btn btn--secondary"
+            className="team-activity__btn team-activity__btn--primary"
             onClick={handleExportCSV}
             disabled={!data?.logs || data.logs.length === 0}
-            style={{ borderRadius: 12, height: 42, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
           >
-            <Download size={15} />
+            <Download size={14} />
             Export CSV
           </button>
         </div>
       </div>
 
-      {/* KPI Metrics Cards */}
-      <div className="team-activity__metrics">
-        <div className="team-activity__metric-card">
-          <div className="team-activity__metric-top">
-            <span className="team-activity__metric-label">Total Actions Logged</span>
-            <div className="team-activity__metric-icon team-activity__metric-icon--forest">
-              <Activity size={18} />
-            </div>
-          </div>
-          <div className="team-activity__metric-value">
-            {isLoading ? '...' : metrics.totalActions.toLocaleString()}
-          </div>
-          <div className="team-activity__metric-subtext">
-            <span>{timeRange === 'today' ? 'Today' : `In selected range (${timeRange})`}</span>
-          </div>
-        </div>
-
-        <div className="team-activity__metric-card">
-          <div className="team-activity__metric-top">
-            <span className="team-activity__metric-label">Today's Volume</span>
-            <div className="team-activity__metric-icon team-activity__metric-icon--clay">
-              <Sparkles size={18} />
-            </div>
-          </div>
-          <div className="team-activity__metric-value">
-            {isLoading ? '...' : metrics.todayActions.toLocaleString()}
-          </div>
-          <div className="team-activity__metric-subtext">
-            <span>New actions recorded since midnight</span>
-          </div>
-        </div>
-
-        <div className="team-activity__metric-card">
-          <div className="team-activity__metric-top">
-            <span className="team-activity__metric-label">Active Team Members</span>
-            <div className="team-activity__metric-icon team-activity__metric-icon--blue">
-              <Users size={18} />
-            </div>
-          </div>
-          <div className="team-activity__metric-value">
-            {isLoading ? '...' : `${metrics.activeMembersCount} / ${metrics.totalTeamMembers}`}
-          </div>
-          <div className="team-activity__metric-subtext">
-            <span>Members active in this period</span>
-          </div>
-        </div>
-
-        <div className="team-activity__metric-card">
-          <div className="team-activity__metric-top">
-            <span className="team-activity__metric-label">Top Category</span>
-            <div className="team-activity__metric-icon">
-              <Layers size={18} />
-            </div>
-          </div>
-          <div className="team-activity__metric-value" style={{ fontSize: 22, textTransform: 'capitalize' }}>
-            {isLoading ? '...' : topCategory.toLowerCase()}
-          </div>
-          <div className="team-activity__metric-subtext">
-            <span>Highest volume operational sector</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Overview Analytics & Trends Section */}
-      <div className="team-activity__overview-grid">
-        {/* Category Breakdown */}
-        <div className="team-activity__panel">
-          <div className="team-activity__panel-header">
-            <h3 className="team-activity__panel-title">
-              <BarChart3 size={18} color="var(--forest)" /> Action Breakdown by Category
-            </h3>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Last 30 Days</span>
-          </div>
-
-          <div className="team-activity__category-list">
-            {[
-              { key: 'PAYMENTS', label: 'Rent Invoicing & Payments', count: categoryCounts.PAYMENTS, color: 'var(--forest)' },
-              { key: 'PROPERTIES', label: 'Properties & Units Management', count: categoryCounts.PROPERTIES, color: '#2563eb' },
-              { key: 'DOCUMENTS', label: 'Documents & Delivery', count: categoryCounts.DOCUMENTS, color: 'var(--clay)' },
-              { key: 'TEMPLATES', label: 'Document Templates (Created/Edited)', count: categoryCounts.TEMPLATES, color: '#9333ea' },
-              { key: 'TENANTS', label: 'Tenant Onboarding & Invites', count: categoryCounts.TENANTS, color: '#059669' },
-            ].map((cat) => {
-              const pct = Math.round((cat.count / maxCategoryCount) * 100)
-              return (
-                <div key={cat.key} className="team-activity__category-row">
-                  <div className="team-activity__category-meta">
-                    <span className="team-activity__category-label">
-                      {getCategoryIcon(cat.key)} {cat.label}
-                    </span>
-                    <span className="team-activity__category-count">{cat.count} actions</span>
-                  </div>
-                  <div className="team-activity__progress-bar">
-                    <div
-                      className="team-activity__progress-fill"
-                      style={{ width: `${pct}%`, background: cat.color }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Member Leaderboard */}
-        <div className="team-activity__panel">
-          <div className="team-activity__panel-header">
-            <h3 className="team-activity__panel-title">
-              <Users size={18} color="var(--clay)" /> Team Members
-            </h3>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {data?.membersSummary?.length || 0} Members
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 240, overflowY: 'auto' }}>
-            {(!data?.membersSummary || data.membersSummary.length === 0) ? (
-              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                No team members invited yet.
-              </div>
-            ) : (
-              data.membersSummary.map((m) => (
-                <div
-                  key={m.uuid}
-                  onClick={() => setMemberUuid(memberUuid === m.uuid ? '' : m.uuid)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 12px',
-                    borderRadius: 12,
-                    background: memberUuid === m.uuid ? 'var(--bg)' : 'transparent',
-                    border: memberUuid === m.uuid ? '1px solid var(--border-strong)' : '1px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <div style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 10,
-                      background: 'var(--dark)',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      flexShrink: 0
-                    }}>
-                      {m.name.charAt(0)}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {m.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {m.jobTitle}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)' }}>
-                      {m.actionsCount} actions
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                      {m.lastActiveAt ? formatDistanceToNow(new Date(m.lastActiveAt), { addSuffix: true }) : 'Inactive'}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="team-activity__filter-bar">
-        <div className="team-activity__filter-row">
-          <div className="team-activity__search-box">
-            <Search size={16} className="team-activity__search-icon" />
+      {/* Toolbar: Search, Member FormSelect & Time Range */}
+      <div className="team-activity__toolbar">
+        <div className="team-activity__toolbar-row">
+          <div className="team-activity__search-wrap">
+            <Search size={14} className="team-activity__search-icon" />
             <input
-              type="text"
-              placeholder="Search actions, property names, invoices, or templates..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value)
                 setPage(1)
               }}
+              placeholder="Search actions, properties, invoices..."
               className="team-activity__search-input"
             />
           </div>
 
-          <select
-            value={memberUuid}
-            onChange={(e) => {
-              setMemberUuid(e.target.value)
-              setPage(1)
-            }}
-            className="team-activity__member-select"
-          >
-            <option value="">All Team Members</option>
-            {(data?.membersSummary && data.membersSummary.length > 0
-              ? data.membersSummary
-              : team.map((collab: any) => ({
-                  uuid: collab.member?.uuid,
-                  name: collab.member?.firstName
-                    ? `${collab.member.firstName} ${collab.member.lastName}`.trim()
-                    : collab.member?.email || 'Team Member',
-                }))
-            ).map((m: any) => (
-              <option key={m.uuid} value={m.uuid}>
-                {m.name}
-              </option>
-            ))}
-          </select>
+          <div className="team-activity__member-select-wrap">
+            <FormSelect
+              value={memberUuid}
+              onChange={(val) => {
+                setMemberUuid(val)
+                setPage(1)
+              }}
+              options={memberOptions}
+              placeholder="All team members"
+              triggerStyle={{ height: 40, borderRadius: 8, fontSize: 13, background: 'var(--bg)' }}
+              portalOnDesktop
+            />
+          </div>
 
-          <div className="team-activity__time-pills">
-            {(['today', '7d', '30d', '90d', 'all'] as const).map((t) => (
+          <div className="team-activity__range-group">
+            {RANGES.map((r) => (
               <button
-                key={t}
-                className={`team-activity__time-pill ${timeRange === t ? 'team-activity__time-pill--active' : ''}`}
+                key={r.id}
                 onClick={() => {
-                  setTimeRange(t)
+                  setTimeRange(r.id)
                   setPage(1)
                 }}
+                className={`team-activity__range-btn ${timeRange === r.id ? 'team-activity__range-btn--active' : ''}`}
               >
-                {t === 'today' ? 'Today' : t === '7d' ? '7 Days' : t === '30d' ? '30 Days' : t === '90d' ? '90 Days' : 'All Time'}
+                {r.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="team-activity__category-pills">
-          {[
-            { key: 'ALL', label: 'All Categories' },
-            { key: 'PAYMENTS', label: 'Payments & Invoices' },
-            { key: 'PROPERTIES', label: 'Properties & Units' },
-            { key: 'DOCUMENTS', label: 'Documents & Reports' },
-            { key: 'TEMPLATES', label: 'Document Templates' },
-            { key: 'TENANTS', label: 'Tenants' },
-          ].map((cat) => (
-            <button
-              key={cat.key}
-              className={`team-activity__cat-pill ${category === cat.key ? 'team-activity__cat-pill--active' : ''}`}
-              onClick={() => {
-                setCategory(cat.key)
-                setPage(1)
-              }}
-            >
-              {cat.key !== 'ALL' && getCategoryIcon(cat.key)}
-              {cat.label}
-            </button>
-          ))}
+        {/* Category Filter Chips */}
+        <div className="team-activity__category-bar">
+          <button
+            onClick={() => {
+              setCategory('ALL')
+              setPage(1)
+            }}
+            className={`team-activity__category-chip ${category === 'ALL' ? 'team-activity__category-chip--active' : ''}`}
+          >
+            All categories
+          </button>
+          {Object.entries(CATEGORY_CONFIG).map(([key, meta]) => {
+            const Icon = meta.icon
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  setCategory(key)
+                  setPage(1)
+                }}
+                className={`team-activity__category-chip ${category === key ? 'team-activity__category-chip--active' : ''}`}
+              >
+                <Icon size={12} />
+                {meta.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Activity Logs Timeline / Table */}
-      <div className="team-activity__feed-container">
+      {/* Full-Width Activity Logs Table Card */}
+      <div className="team-activity__table-card">
         {isLoading ? (
           <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-            <p style={{ margin: 0, fontSize: 14 }}>Loading team activity records...</p>
+            <RefreshCw size={26} className="animate-spin" style={{ margin: '0 auto 10px', opacity: 0.5 }} />
+            <p style={{ margin: 0, fontSize: 13.5 }}>Loading activity logs...</p>
           </div>
         ) : (!data?.logs || data.logs.length === 0) ? (
           <div className="team-activity__empty-state">
             <div style={{ color: 'var(--text-muted)', opacity: 0.25, marginBottom: 8 }}>
-              <History size={56} />
+              <History size={48} />
             </div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>No actions recorded</h3>
-            <p style={{ fontSize: 13.5, color: 'var(--text-muted)', maxWidth: 360, margin: 0 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>No actions recorded</h3>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 360, margin: 0 }}>
               {search || memberUuid || category !== 'ALL'
                 ? 'No activities match the current filter criteria. Try resetting filters.'
                 : 'When team members perform operations on properties, invoices, and documents, they will appear here.'}
             </p>
           </div>
         ) : (
-          <div>
-            {data.logs.map((log: TeamActivityLogItem) => {
-              const badgeStyle = getActionBadgeColor(log.category)
-              const isExpanded = !!expandedLogs[log.uuid]
+          <div className="team-activity__table-scroll">
+            <table className="team-activity__table">
+              <thead>
+                <tr>
+                  <th className="team-activity__th" style={{ width: 36 }}></th>
+                  <th className="team-activity__th" style={{ width: 220 }}>Member</th>
+                  <th className="team-activity__th" style={{ width: 180 }}>Category</th>
+                  <th className="team-activity__th">Action</th>
+                  <th className="team-activity__th" style={{ width: 180 }}>Target</th>
+                  <th className="team-activity__th" style={{ width: 140, textAlign: 'right' }}>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.logs.map((log: TeamActivityLogItem) => {
+                  const meta = CATEGORY_CONFIG[log.category] || {
+                    label: log.category,
+                    icon: Activity,
+                    color: 'var(--text-secondary)',
+                    soft: 'var(--bg)',
+                  }
+                  const Icon = meta.icon
+                  const isOpen = !!expandedLogs[log.uuid]
+                  const details = getLogDetails(log)
+                  const hasDetails = details.length > 0 || log.description.length > 60
+                  const targetDisplay = log.entityType + (log.entityId ? ` #${log.entityId.slice(0, 8)}` : '')
 
-              return (
-                <div key={log.uuid} className="team-activity__log-item">
-                  <div className="team-activity__performer-avatar">
-                    {log.performer?.name?.charAt(0) || 'U'}
-                  </div>
+                  return (
+                    <React.Fragment key={log.uuid}>
+                      <tr
+                        onClick={() => toggleExpand(log.uuid)}
+                        className={`team-activity__tr ${hasDetails ? 'team-activity__tr--clickable' : ''}`}
+                      >
+                        <td className="team-activity__td" style={{ width: 36, paddingLeft: 16, paddingRight: 4 }}>
+                          {hasDetails && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleExpand(log.uuid)
+                              }}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: 'var(--text-muted)',
+                                display: 'flex',
+                                padding: 0,
+                                transform: isOpen ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.15s ease',
+                              }}
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                          )}
+                        </td>
 
-                  <div className="team-activity__log-content">
-                    <div className="team-activity__log-header">
-                      <div className="team-activity__log-title-row">
-                        <span className="team-activity__performer-name">
-                          {log.performer?.name || 'Team Member'}
-                        </span>
-                        <span className={`team-activity__role-badge ${log.performer?.role === 'ADMIN' ? 'team-activity__role-badge--admin' : 'team-activity__role-badge--employee'}`}>
-                          {log.performer?.role || 'EMPLOYEE'}
-                        </span>
-                        <span
-                          className="team-activity__cat-tag"
-                          style={{ background: badgeStyle.bg, color: badgeStyle.color, borderColor: badgeStyle.border }}
-                        >
-                          {log.category}
-                        </span>
-                      </div>
-
-                      <span className="team-activity__time" title={format(new Date(log.createdAt), 'PPpp')}>
-                        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                      </span>
-                    </div>
-
-                    <p className="team-activity__description">
-                      {log.description}
-                    </p>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span className="team-activity__meta-badge">
-                        Target: {log.entityType} {log.entityId ? `#${log.entityId.slice(0, 8)}` : ''}
-                      </span>
-
-                      {log.metadata && (
-                        <button
-                          type="button"
-                          className="team-activity__metadata-toggle"
-                          onClick={() => toggleExpand(log.uuid)}
-                        >
-                          {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          {isExpanded ? 'Hide Details' : 'View Details'}
-                        </button>
-                      )}
-                    </div>
-
-                    {isExpanded && log.metadata && (
-                      <div className="team-activity__metadata-grid">
-                        {(() => {
-                          const SENSITIVE_KEYS = new Set([
-                            'sentUuid',
-                            'tenantUuid',
-                            'unitUuid',
-                            'propertyUuid',
-                            'userUuid',
-                            'userId',
-                            'pmId',
-                            'ownerPmId',
-                            'employeeId',
-                            'passwordHash',
-                            'emailHash',
-                            'phoneHash',
-                            'emailEncrypted',
-                            'phoneEncrypted',
-                          ])
-
-                          const formatLabel = (k: string): string => {
-                            return k
-                              .replace(/([A-Z])/g, ' $1')
-                              .replace(/_/g, ' ')
-                              .replace(/^./, (str) => str.toUpperCase())
-                              .trim()
-                          }
-
-                          const chips: Array<{ label: string; value: string }> = []
-
-                          Object.entries(log.metadata).forEach(([key, val]) => {
-                            if (SENSITIVE_KEYS.has(key) || val === undefined || val === null || val === '') return
-
-                            if (key === 'unitDetails' && typeof val === 'object' && !Array.isArray(val)) {
-                              const u = val as Record<string, any>
-                              const location = [u.address, u.area, u.state, u.country].filter(Boolean).join(', ')
-                              if (location) chips.push({ label: 'Location', value: location })
-                              if (u.rentAmount) {
-                                const amountStr = `₦${Number(u.rentAmount).toLocaleString()}${u.rentType ? ` (${u.rentType})` : ''}`
-                                chips.push({ label: 'Rent', value: amountStr })
-                              }
-                              if (u.initialAmountPaid) {
-                                chips.push({ label: 'Initial Paid', value: `₦${Number(u.initialAmountPaid).toLocaleString()}` })
-                              }
-                              if (u.tenancyStatus) {
-                                chips.push({ label: 'Tenancy Status', value: formatLabel(u.tenancyStatus) })
-                              }
-                              if (u.rentStartDate && u.rentEndDate) {
-                                chips.push({ label: 'Period', value: `${u.rentStartDate} → ${u.rentEndDate}` })
-                              }
-                              return
-                            }
-
-                            if (typeof val === 'object' && !Array.isArray(val)) {
-                              Object.entries(val).forEach(([subKey, subVal]) => {
-                                if (!SENSITIVE_KEYS.has(subKey) && subVal !== undefined && subVal !== null && subVal !== '') {
-                                  chips.push({ label: formatLabel(subKey), value: String(subVal) })
-                                }
-                              })
-                              return
-                            }
-
-                            if (Array.isArray(val)) {
-                              chips.push({ label: formatLabel(key), value: `${val.length} items` })
-                              return
-                            }
-
-                            if (typeof val === 'boolean') {
-                              chips.push({ label: formatLabel(key), value: val ? 'Yes' : 'No' })
-                              return
-                            }
-
-                            chips.push({ label: formatLabel(key), value: String(val) })
-                          })
-
-                          return chips.map((chip, idx) => (
-                            <div key={`${chip.label}-${idx}`} className="team-activity__metadata-chip">
-                              <span className="team-activity__metadata-key">{chip.label}:</span>
-                              <span className="team-activity__metadata-val">{chip.value}</span>
+                        <td className="team-activity__td">
+                          <div className="team-activity__performer-cell">
+                            <div className="team-activity__avatar">
+                              {log.performer?.name?.charAt(0) || 'U'}
                             </div>
-                          ))
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                            <div>
+                              <div className="team-activity__performer-name">
+                                {log.performer?.name || 'Team Member'}
+                              </div>
+                              <div className="team-activity__performer-role">
+                                {log.performer?.role || 'EMPLOYEE'}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
 
-            {/* Pagination Controls */}
+                        <td className="team-activity__td">
+                          <span
+                            className="team-activity__category-badge"
+                            style={{ backgroundColor: meta.soft, color: meta.color }}
+                          >
+                            <Icon size={11} />
+                            {meta.label}
+                          </span>
+                        </td>
+
+                        <td className="team-activity__td">
+                          <div className="team-activity__action-text" title={log.description}>
+                            {log.description}
+                          </div>
+                        </td>
+
+                        <td className="team-activity__td">
+                          <span className="team-activity__target-code">
+                            {targetDisplay}
+                          </span>
+                        </td>
+
+                        <td className="team-activity__td team-activity__time-cell" title={format(new Date(log.createdAt), 'PPpp')}>
+                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                        </td>
+                      </tr>
+
+                      {isOpen && (
+                        <tr className="team-activity__expanded-tr">
+                          <td></td>
+                          <td colSpan={5} className="team-activity__expanded-cell">
+                            <div className="team-activity__expanded-desc">
+                              {log.description}
+                            </div>
+                            {details.length > 0 && (
+                              <div className="team-activity__details-grid">
+                                {details.map(([label, val]) => (
+                                  <div key={label} className="team-activity__detail-item">
+                                    <div className="team-activity__detail-key">{label}</div>
+                                    <div className="team-activity__detail-val">{val}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {/* Pagination Footer */}
             {data.pagination && data.pagination.totalPages > 1 && (
-              <div className="team-activity__pagination">
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              <div className="team-activity__pagination-bar">
+                <span className="team-activity__pagination-info">
                   Showing {(page - 1) * data.pagination.limit + 1} - {Math.min(page * data.pagination.limit, data.pagination.total)} of {data.pagination.total} actions
                 </span>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="team-activity__pagination-actions">
                   <button
-                    className="team-activity__page-btn"
+                    className="team-activity__btn"
+                    style={{ height: 32, padding: '0 10px', fontSize: 12 }}
                     disabled={page <= 1}
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
-                    <ChevronLeft size={14} /> Previous
+                    <ChevronLeft size={13} /> Prev
                   </button>
 
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)' }}>
@@ -621,11 +481,12 @@ export function TeamActivityDashboardView({ initialMemberUuid }: TeamActivityDas
                   </span>
 
                   <button
-                    className="team-activity__page-btn"
+                    className="team-activity__btn"
+                    style={{ height: 32, padding: '0 10px', fontSize: 12 }}
                     disabled={page >= data.pagination.totalPages}
                     onClick={() => setPage((p) => p + 1)}
                   >
-                    Next <ChevronRight size={14} />
+                    Next <ChevronRight size={13} />
                   </button>
                 </div>
               </div>
