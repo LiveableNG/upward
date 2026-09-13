@@ -15,17 +15,22 @@ export class CancelPmPaymentRequestUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, uuid: string): Promise<{ success: boolean; message: string }> {
+  async execute(pmId: number, uuid: string, actor?: any): Promise<{ success: boolean; message: string }> {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const pmPR = await this.pmPaymentRepo.findByUuid(uuid);
     if (!pmPR) throw new NotFoundException('Payment request not found');
     
-    // Check collaborator access
-    let hasAccess = pmPR.pmId === pmId;
+    // Check access
+    let hasAccess = pmPR.pmId === ownerPmId;
+    if (!hasAccess && actor?.isEmployee) {
+      hasAccess = pmPR.pmId === actor.ownerPmId;
+    }
+
     if (!hasAccess) {
       // Check if team collaborator with ALL access
       const teamCollab = await this.prisma.upward_pm_team_collaboration.findFirst({
         where: {
-          collaboratorPmId: pmId,
+          collaboratorPmId: ownerPmId,
           ownerPmId: pmPR.pmId,
           status: 'ACCEPTED',
           accessLevel: 'ALL'
@@ -44,7 +49,7 @@ export class CancelPmPaymentRequestUseCase {
         if (unit) {
           const propCollab = await this.prisma.upward_pm_property_collaboration.findFirst({
             where: {
-              collaboratorPmId: pmId,
+              collaboratorPmId: ownerPmId,
               propertyId: unit.propertyId
             }
           });
@@ -77,18 +82,28 @@ export class CancelPmPaymentRequestUseCase {
       });
     }
 
-    await this.activityLog.log({
-      pmId,
-      ownerPmId: pmPR.pmId,
-      action: ActivityAction.CANCEL_PAYMENT,
-      entityType: 'PAYMENT',
-      entityId: uuid,
-      description: `Cancelled payment request #${uuid.slice(-8).toUpperCase()} for ${pmPR.amount} ${pmPR.currency}`,
-      metadata: {
-        amount: pmPR.amount,
-        status: 'CANCELLED'
-      }
-    });
+    try {
+      await this.activityLog.log({
+        pmId: ownerPmId,
+        ownerPmId: pmPR.pmId,
+        employeeId: actor?.isEmployee ? actor.employeeId : actor?.employeeId,
+        action: ActivityAction.CANCEL_PAYMENT,
+        entityType: 'PAYMENT',
+        entityId: uuid,
+        description: `Cancelled payment request #${uuid.slice(-8).toUpperCase()} for ${pmPR.amount} ${pmPR.currency || 'NGN'}`,
+        metadata: {
+          amount: pmPR.amount,
+          status: 'CANCELLED',
+          unit: (pmPR as any).unit?.unitName,
+          property: (pmPR as any).unit?.property?.name,
+          isEmployee: actor?.isEmployee ?? false,
+          employeeId: actor?.employeeId,
+          employeeUuid: actor?.employeeUuid,
+        }
+      });
+    } catch (logErr) {
+      console.error('Failed to log cancel payment activity:', logErr);
+    }
 
     return {
       success: true,

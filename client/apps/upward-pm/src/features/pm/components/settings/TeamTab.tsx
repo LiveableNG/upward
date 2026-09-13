@@ -361,13 +361,16 @@ export function TeamTab() {
           <Info size={18} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 4px', color: 'var(--dark)' }}>How Collaboration Works</h4>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0, maxWidth: 800 }}>
-            You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests.
-            Choose <strong>Admin</strong> for access to all properties (including ones added later), or <strong>Manager</strong> for assigned properties only (you can invite first and assign later).
+          <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 4px', color: 'var(--dark)' }}>Team Roles & Permissions</h4>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0, maxWidth: 850 }}>
+            Invite team members to collaborate on your property portfolio. Collaborators can record rent payments, manage units, and issue invoices.
           </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '8px 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div>• <strong>Admin:</strong> Full access across all current and future properties in your organization.</div>
+            <div>• <strong>Manager:</strong> Scoped access restricted only to properties you explicitly assign (you can assign properties now or update them at any time).</div>
+          </div>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '8px 0 0' }}>
-            <strong>Privacy Note:</strong> If an invited manager creates a new property of their own, you will not have access to it unless they invite you back. Access is strictly per-property.
+            <strong>Access & Security:</strong> Managers can only view and manage the properties assigned to them. All properties, units, and payment records created by team members belong to your company workspace.
           </p>
         </div>
       </div>
