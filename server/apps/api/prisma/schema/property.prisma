@@ -31,7 +31,8 @@ model upward_user_property {
   leaseYears             Int?                              @default(1)
   benefitsSubscriptions  upward_benefits_subscription[]
   dedicatedAccount       upward_dedicated_virtual_account?
-  manualAccount          upward_manual_account?
+  manualAccountId        Int?
+  manualAccount          upward_manual_account?            @relation(fields: [manualAccountId], references: [id])
   paymentProofs          upward_payment_proof[]
   paymentRequests        upward_payment_request[]
   platformRentPayments   upward_platform_rent_payment[]
@@ -70,18 +71,24 @@ model upward_platform_rent_payment {
 }
 
 model upward_manual_account {
-  id             Int                   @id @default(autoincrement())
-  uuid           String                @unique @default(uuid())
-  accountNumber  String
-  accountName    String
-  bankName       String
-  bankCode       String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  pmPropertyId   Int?                  @unique
-  userPropertyId Int?                  @unique
-  pmProperty     upward_pm_property?   @relation(fields: [pmPropertyId], references: [id], onDelete: Cascade)
-  userProperty   upward_user_property? @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  id                 Int                          @id @default(autoincrement())
+  uuid               String                       @unique @default(uuid())
+  accountNumber      String
+  accountName        String
+  bankName           String
+  bankCode           String?
+  pmId               Int?
+  isPrimary          Boolean                      @default(false)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+
+  pm                 upward_property_manager?     @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  userProperties     upward_user_property[]
+  pmProperties       upward_pm_property[]
+  pmPaymentRequests  upward_pm_payment_request[]
+  paymentRequests    upward_payment_request[]
+
+  @@index([pmId])
 }
 
 model upward_location {

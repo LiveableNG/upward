@@ -40,6 +40,8 @@ import { PrismaLandlordRepository } from './repositories/prisma-landlord.reposit
 import { PrismaPmLetterheadRepository } from './repositories/prisma-pm-letterhead.repository'
 import { PrismaPmSignatureRepository } from './repositories/prisma-pm-signature.repository'
 import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whatsapp-sequence.repository'
+import { PrismaPmSettlementAccountRepository } from './repositories/prisma-pm-settlement-account.repository'
+import { SETTLEMENT_ACCOUNT_REPOSITORY } from '../../../domains/pm/ISettlementAccountRepository'
 
 import { PrismaEarlyAccessRepository } from '../../../infrastructure/repositories/prisma-early-access.repository'
 import { PrismaUniversityApplicationRepository } from '../../../infrastructure/repositories/prisma-university-application.repository'
@@ -264,6 +266,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: UNIVERSITY_TRAFFIC_REPOSITORY,
       useClass: PrismaUniversityTrafficRepository,
     },
+    {
+      provide: SETTLEMENT_ACCOUNT_REPOSITORY,
+      useClass: PrismaPmSettlementAccountRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -309,6 +315,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     EARLY_ACCESS_REPOSITORY,
     UNIVERSITY_APPLICATION_REPOSITORY,
     UNIVERSITY_TRAFFIC_REPOSITORY,
+    SETTLEMENT_ACCOUNT_REPOSITORY,
   ],
 })
 export class PrismaModule {}

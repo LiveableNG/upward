@@ -33,6 +33,8 @@ export interface CreatePmPaymentRequestDto {
   silent?: boolean;
   /** When true, bypasses the hasReceivedWelcomeTemplate check (for system-generated PRs) */
   bypassWelcomeCheck?: boolean;
+  settlementAccountUuid?: string;
+  manualAccountId?: number;
 }
 
 @Injectable()
@@ -113,7 +115,30 @@ export class CreatePmPaymentRequestUseCase {
     const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
-    if (!pm.bankCode || !pm.accountNumber) {
+    // Resolve Settlement Account
+    let settlementAccount: any = null;
+    if (data.settlementAccountUuid) {
+      settlementAccount = await prisma.upward_manual_account.findFirst({
+        where: { uuid: data.settlementAccountUuid, pmId: ownerPmId }
+      });
+    } else if (data.manualAccountId) {
+      settlementAccount = await prisma.upward_manual_account.findFirst({
+        where: { id: data.manualAccountId, pmId: ownerPmId }
+      });
+    } else if (property.manualAccountId) {
+      settlementAccount = await prisma.upward_manual_account.findUnique({
+        where: { id: property.manualAccountId }
+      });
+    } else {
+      settlementAccount = await prisma.upward_manual_account.findFirst({
+        where: { pmId: ownerPmId, isPrimary: true }
+      });
+    }
+
+    const bankCode = settlementAccount?.bankCode || pm.bankCode;
+    const accountNumber = settlementAccount?.accountNumber || pm.accountNumber;
+
+    if (!bankCode || !accountNumber) {
       if (actor?.isEmployee) {
         throw new BadRequestException('Your organization has not configured payout bank details yet. Please notify your account administrator to set up bank details in Settings.');
       }
@@ -169,8 +194,8 @@ export class CreatePmPaymentRequestUseCase {
         minAmount: data.allowPartial === false ? 0 : data.minAmount,
         lineItems: data.lineItems,
         rentType: data.rentType || unit.rentType || undefined,
-        bankCode: pm.bankCode ?? undefined,
-        accountNumber: pm.accountNumber ?? undefined,
+        bankCode: bankCode ?? undefined,
+        accountNumber: accountNumber ?? undefined,
       };
 
       const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 
@@ -182,6 +207,14 @@ export class CreatePmPaymentRequestUseCase {
       corePRId = corePR.id ?? null;
       paymentLink = result.paymentLink;
       corePRUuid = corePR.uuid;
+
+      // Link manualAccountId on upward_payment_request if settlement account resolved
+      if (settlementAccount?.id && corePRId) {
+        await prisma.upward_payment_request.update({
+          where: { id: corePRId },
+          data: { manualAccountId: settlementAccount.id }
+        });
+      }
     } else {
       status = 'SCHEDULED';
     }
@@ -213,6 +246,7 @@ export class CreatePmPaymentRequestUseCase {
           nextReminderAt,
           allowPartial: data.allowPartial || false,
           minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
+          manualAccountId: settlementAccount?.id || property.manualAccountId || null,
         });
       }
     }
@@ -224,6 +258,7 @@ export class CreatePmPaymentRequestUseCase {
         tenantId: unit.tenantId,
         paymentRequestId: corePRId,
         employeeId: actor?.isEmployee ? actor.employeeId : null,
+        manualAccountId: settlementAccount?.id || property.manualAccountId || null,
         amount: data.amount,
         currency: unit.currency || 'NGN',
         description: data.description || null,

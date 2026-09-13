@@ -17,8 +17,8 @@ import { cn } from '@/lib/utils'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 
-const MEMBER_TABS = new Set(['profile', 'security', 'import', 'feedback'])
-const COMPANY_TABS = new Set(['payment', 'team', 'approvals', 'branding', 'email'])
+const MEMBER_TABS = new Set(['profile', 'payment', 'security', 'import', 'feedback'])
+const COMPANY_TABS = new Set(['team', 'approvals', 'branding', 'email'])
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -81,7 +81,7 @@ function SettingsContent() {
 
   const tabs = [
     { id: 'profile', label: 'Profile' },
-    ...(canManageCompanySettings ? [{ id: 'payment', label: 'Payment' }] : []),
+    { id: 'payment', label: 'Payment' },
     { id: 'security', label: 'Security' },
     { id: 'import', label: 'Bulk Import' },
     ...(canManageCompanySettings
@@ -102,7 +102,7 @@ function SettingsContent() {
         <p className="settings__subtitle">
           {canManageCompanySettings
             ? 'Manage your account, payment details and security.'
-            : 'Manage your profile, security and data import.'}
+            : 'Manage your profile, settlement view, security and data import.'}
         </p>
       </header>
 
@@ -144,7 +144,7 @@ function SettingsContent() {
           </>
         )}
 
-        {canManageCompanySettings && activeTab === 'payment' && <BankInfoForm />}
+        {activeTab === 'payment' && <BankInfoForm />}
         {activeTab === 'security' && <SecurityForm />}
         {activeTab === 'import' && <DataImportTab />}
         {canManageCompanySettings && activeTab === 'team' && <TeamTab />}

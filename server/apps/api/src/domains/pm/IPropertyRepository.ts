@@ -177,12 +177,14 @@ export interface PmPaymentRequestEntity {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   employeeId?: number | null;
+  manualAccountId?: number | null;
   createdAt: Date;
   updatedAt: Date;
   
   unit?: UnitEntity;
   tenant?: TenantEntity;
   employee?: any;
+  settlementAccount?: any;
   transactions?: any[];
 }
 
