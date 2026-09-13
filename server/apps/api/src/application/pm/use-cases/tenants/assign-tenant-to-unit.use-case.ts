@@ -12,6 +12,7 @@ import { SyncUnitToUpwardUseCase } from '../units/sync-unit.use-case';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { CreatePmPaymentRequestUseCase } from '../payments/create-pm-payment-request.use-case';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 
 @Injectable()
 export class AssignTenantToUnitUseCase {
@@ -30,6 +31,7 @@ export class AssignTenantToUnitUseCase {
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly encryption: EncryptionService,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(
@@ -178,6 +180,32 @@ export class AssignTenantToUnitUseCase {
       } catch (err) {
         console.error('Failed to resolve pending join request log during assignment:', err);
       }
+
+      try {
+        const tenantName = tenant.firstName
+          ? `${this.encryption.decrypt(tenant.firstName)} ${tenant.lastName ? this.encryption.decrypt(tenant.lastName) : ''}`.trim()
+          : (tenant.email || 'Tenant');
+
+        await this.activityLog.log({
+          pmId: ownerPmId,
+          ownerPmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.ASSIGN_TENANT,
+          entityType: 'UNIT',
+          entityId: unit.id?.toString(),
+          description: `Assigned tenant ${tenantName} to unit ${unit.unitName || ''}`,
+          metadata: {
+            unitUuid,
+            unitName: unit.unitName,
+            tenantUuid: tenant.uuid,
+            tenantName,
+            rentAmount: effectiveRentAmount,
+            rentType: rentType || unit.rentType,
+          },
+        });
+      } catch (logErr) {
+        console.error('Failed to log tenant assignment activity:', logErr);
+      }
     } else {
       if (unit.isSynced && unit.userPropertyUuid) {
         await this.prisma.upward_user_property.updateMany({
@@ -195,6 +223,24 @@ export class AssignTenantToUnitUseCase {
         isSynced: false,
         userPropertyUuid: null
       });
+
+      try {
+        await this.activityLog.log({
+          pmId: ownerPmId,
+          ownerPmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.UPDATE_UNIT,
+          entityType: 'UNIT',
+          entityId: unit.id?.toString(),
+          description: `Unassigned tenant from unit ${unit.unitName || ''}`,
+          metadata: {
+            unitUuid,
+            unitName: unit.unitName,
+          },
+        });
+      } catch (logErr) {
+        console.error('Failed to log unit unassignment activity:', logErr);
+      }
     }
   }
 

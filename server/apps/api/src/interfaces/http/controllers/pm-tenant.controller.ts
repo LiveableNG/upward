@@ -183,7 +183,7 @@ export class PmTenantController {
       email: body.email,
       phone: body.phone,
       records: body.records
-    });
+    }, actor);
   }
 
   @Post('bulk-invite')

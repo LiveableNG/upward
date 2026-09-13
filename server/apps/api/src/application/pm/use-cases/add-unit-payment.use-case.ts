@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 @Injectable()
 export class AddUnitPaymentUseCase {
@@ -10,6 +11,7 @@ export class AddUnitPaymentUseCase {
     @Inject(PM_PROPERTY_REPOSITORY)
     private readonly propertyRepository: IPropertyRepository,
     private readonly prisma: PrismaService,
+    private readonly activityLog: ActivityLogService,
   ) { }
 
   async execute(pmId: number, unitUuid: string, data: any, actor?: any) {
@@ -167,26 +169,28 @@ export class AddUnitPaymentUseCase {
       }
     }
 
-    if (unit.isSynced && unit.userPropertyUuid) {
-      const userProperty = await this.prisma.upward_user_property.findUnique({
-        where: { uuid: unit.userPropertyUuid }
-      });
-
-      if (userProperty) {
-        await this.prisma.upward_rent_cycle.create({
-          data: {
-            userId: userProperty.userId,
-            userPropertyId: userProperty.id,
-            amountOwed: payment.amount,
-            amountPaid: payment.amount,
-            currency: unit.currency,
-            dueDate: payment.periodEnd || payment.paymentDate,
-            paidAt: payment.paymentDate,
-            status: 'PAID',
-            description: payment.notes || 'Manual rent record (PM Dashboard)',
-            source: 'PM_SYNC',
-          }
+    if (payment) {
+      try {
+        await this.activityLog.log({
+          pmId: ownerPmId,
+          ownerPmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.ACCEPT_PAYMENT,
+          entityType: 'PAYMENT',
+          entityId: (payment as any)?.id?.toString(),
+          description: `Recorded rent payment of ${data.amount} for unit ${unit.unitName || ''}`,
+          metadata: {
+            unitUuid,
+            unitName: unit.unitName,
+            amount: data.amount,
+            paymentDate: paymentData.paymentDate,
+            status: paymentData.status,
+            method: paymentData.method,
+            notes: paymentData.notes,
+          },
         });
+      } catch (logErr) {
+        console.error('Failed to log payment activity:', logErr);
       }
     }
 

@@ -1,12 +1,12 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { RENT_CYCLE_REPOSITORY, IRentCycleRepository } from '../../../domains/scoring/rent-cycle.repository';
 import { SendNotificationUseCase } from '../../use-cases/notifications/notification.use-cases';
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
 import { ConfigService } from '@nestjs/config';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { randomUUID } from 'crypto';
 import { PASS_PLACEHOLDERS } from '../../../domains/users/user.repository';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 
 interface BulkCreateInput {
   pmId: number;
@@ -27,14 +27,14 @@ interface BulkCreateInput {
 export class BulkCreateTenantRecordsUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(RENT_CYCLE_REPOSITORY) private readonly rentCycleRepo: IRentCycleRepository,
     private readonly sendNotification: SendNotificationUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly configService: ConfigService,
-    private readonly encryption: EncryptionService
+    private readonly encryption: EncryptionService,
+    private readonly activityLog: ActivityLogService,
   ) { }
 
-  async execute(input: BulkCreateInput) {
+  async execute(input: BulkCreateInput, actor?: any) {
     const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: input.pmId } });
     if (!pm) throw new Error('PM not found');
 
@@ -92,25 +92,10 @@ export class BulkCreateTenantRecordsUseCase {
 
     let recordsAdded = 0;
 
-    // 3. Add Rent Cycle Records and PM Rent Payment Records
+    // 3. Add PM Rent Payment Records
     for (const record of input.records) {
       const dueDate = new Date(record.dueDate);
       const paidDate = new Date(record.paidDate);
-      const isPaidOnTime = paidDate <= dueDate;
-      const status = isPaidOnTime ? 'PAID_ON_TIME' : 'PAID_LATE';
-
-      // Global credibility record
-      await this.rentCycleRepo.create({
-        userId: user.id,
-        source: 'PAST_RECORD',
-        amountOwed: record.amount,
-        amountPaid: record.amount,
-        currency: 'NGN',
-        dueDate: dueDate,
-        paidAt: paidDate,
-        status: status,
-        description: `Rent Payment (Imported by PM)`
-      });
 
       // Unit payment history
       if (unitId) {
@@ -154,6 +139,25 @@ export class BulkCreateTenantRecordsUseCase {
         message: `${pmName} just added past payment records to your profile for ${input.propertyAddress}.`,
         type: 'SYSTEM'
       }).catch((e: any) => console.error('Failed to send notification:', e));
+    }
+
+    try {
+      await this.activityLog.log({
+        pmId: input.pmId,
+        ownerPmId: input.pmId,
+        employeeId: actor?.employeeId,
+        action: ActivityAction.ADD_RENT_HISTORY,
+        entityType: 'TENANT',
+        entityId: user?.uuid,
+        description: `Imported ${recordsAdded} historical rent record(s) for ${input.firstName} ${input.lastName}`,
+        metadata: {
+          propertyAddress: input.propertyAddress,
+          recordsAdded,
+          tenantName: `${input.firstName} ${input.lastName}`.trim(),
+        },
+      });
+    } catch (logErr) {
+      console.error('Failed to log past records activity:', logErr);
     }
 
     return { success: true, recordsAdded, isNewUser };
