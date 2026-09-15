@@ -16,7 +16,12 @@ let cachedApp: NestFastifyApplication
 let initializationPromise: Promise<NestFastifyApplication> | null = null
 
 async function bootstrap() {
-  const isDev = process.env.NODE_ENV !== 'production'
+  const isServerless = Boolean(
+    process.env['VERCEL'] ||
+      process.env['VERCEL_ENV'] ||
+      process.env['AWS_LAMBDA_FUNCTION_NAME'],
+  )
+  const isDev = process.env.NODE_ENV !== 'production' && !isServerless
 
   const fastifyAdapterOptions: any = {
     bodyLimit: 1048576 * 100, // 100MB limit for base64 file uploads
