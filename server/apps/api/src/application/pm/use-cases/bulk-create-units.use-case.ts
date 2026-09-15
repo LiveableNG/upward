@@ -211,12 +211,11 @@ export class BulkCreateUnitsUseCase {
       const actualRentAmountPaid = u.isFullyPaid ? u.rentAmount : u.rentAmountPaid;
 
       if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0 && canonicalStart) {
-        const periodEnd = canonicalDue || this.rentalPeriodService.calculateNextPeriod(
-          canonicalStart,
+        const periodEnd = canonicalDue || this.rentalPeriodService.calculatePeriodEnd(
           canonicalStart,
           inferredRentType,
           (u as any).leaseYears,
-        ).nextEnd;
+        );
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: actualRentAmountPaid,
