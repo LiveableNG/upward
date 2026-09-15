@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   SETTLEMENT_ACCOUNT_REPOSITORY,
@@ -38,6 +39,21 @@ export class UpdateSettlementAccountUseCase {
     const account = await this.accountRepo.findByUuid(accountUuid);
     if (!account || account.pmId !== pmId) {
       throw new NotFoundException('Settlement account not found');
+    }
+
+    if (dto.accountNumber || dto.bankCode) {
+      const targetAccountNumber = dto.accountNumber || account.accountNumber;
+      const targetBankCode = dto.bankCode || account.bankCode;
+      const existingAccounts = await this.accountRepo.findByPmId(pmId);
+      const isDuplicate = existingAccounts.some(
+        (acc) =>
+          acc.id !== account.id &&
+          acc.accountNumber === targetAccountNumber &&
+          (acc.bankCode === targetBankCode || (!acc.bankCode && !targetBankCode)),
+      );
+      if (isDuplicate) {
+        throw new BadRequestException('This bank account is already registered as a settlement account');
+      }
     }
 
     const updated = await this.accountRepo.update(account.id, dto);

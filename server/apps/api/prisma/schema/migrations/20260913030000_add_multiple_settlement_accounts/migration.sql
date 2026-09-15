@@ -28,16 +28,22 @@ ALTER TABLE "upward_pm_payment_request" ADD COLUMN IF NOT EXISTS "manualAccountI
 ALTER TABLE "upward_payment_request" ADD COLUMN IF NOT EXISTS "manualAccountId" INTEGER;
 
 -- AddForeignKey
+ALTER TABLE "upward_pm_property" DROP CONSTRAINT IF EXISTS "upward_pm_property_manualAccountId_fkey";
 ALTER TABLE "upward_pm_property" ADD CONSTRAINT "upward_pm_property_manualAccountId_fkey" FOREIGN KEY ("manualAccountId") REFERENCES "upward_manual_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "upward_user_property" DROP CONSTRAINT IF EXISTS "upward_user_property_manualAccountId_fkey";
 ALTER TABLE "upward_user_property" ADD CONSTRAINT "upward_user_property_manualAccountId_fkey" FOREIGN KEY ("manualAccountId") REFERENCES "upward_manual_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "upward_pm_payment_request" DROP CONSTRAINT IF EXISTS "upward_pm_payment_request_manualAccountId_fkey";
 ALTER TABLE "upward_pm_payment_request" ADD CONSTRAINT "upward_pm_payment_request_manualAccountId_fkey" FOREIGN KEY ("manualAccountId") REFERENCES "upward_manual_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "upward_payment_request" DROP CONSTRAINT IF EXISTS "upward_payment_request_manualAccountId_fkey";
 ALTER TABLE "upward_payment_request" ADD CONSTRAINT "upward_payment_request_manualAccountId_fkey" FOREIGN KEY ("manualAccountId") REFERENCES "upward_manual_account"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "upward_manual_account" DROP CONSTRAINT IF EXISTS "upward_manual_account_pmId_fkey";
 ALTER TABLE "upward_manual_account" ADD CONSTRAINT "upward_manual_account_pmId_fkey" FOREIGN KEY ("pmId") REFERENCES "upward_property_manager"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

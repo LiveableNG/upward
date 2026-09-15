@@ -41,6 +41,15 @@ export class CreateSettlementAccountUseCase {
     }
 
     const existingAccounts = await this.accountRepo.findByPmId(pmId);
+    const isDuplicate = existingAccounts.some(
+      (acc) =>
+        acc.accountNumber === dto.accountNumber &&
+        (acc.bankCode === dto.bankCode || (!acc.bankCode && !dto.bankCode)),
+    );
+    if (isDuplicate) {
+      throw new BadRequestException('This bank account is already registered as a settlement account');
+    }
+
     const isFirstAccount = existingAccounts.length === 0;
     const shouldBePrimary = Boolean(dto.isPrimary || isFirstAccount);
 

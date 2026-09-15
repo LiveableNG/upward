@@ -139,6 +139,17 @@ export function BankInfoForm() {
   const handleVerify = async () => {
     if (!selectedBankCode || accountNumber?.length !== 10) return
 
+    const isDuplicate = accounts.some(
+      (acc) =>
+        acc.uuid !== editingAccount?.uuid &&
+        acc.accountNumber === accountNumber &&
+        acc.bankCode === selectedBankCode
+    )
+    if (isDuplicate) {
+      toastError('This bank account is already registered as a settlement account')
+      return
+    }
+
     setIsVerifying(true)
     try {
       const data = await api.verifyPmBank(accountNumber, selectedBankCode)
@@ -158,6 +169,17 @@ export function BankInfoForm() {
   }
 
   const handleConfirmAccount = () => {
+    const isDuplicate = accounts.some(
+      (acc) =>
+        acc.uuid !== editingAccount?.uuid &&
+        acc.accountNumber === accountNumber &&
+        acc.bankCode === selectedBankCode
+    )
+    if (isDuplicate) {
+      toastError('This bank account is already registered as a settlement account')
+      return
+    }
+
     setValue('accountName', tempVerifiedName, { shouldDirty: true })
     const bank = banks.find(b => b.code === selectedBankCode)
     if (bank) setValue('bankName', bank.name, { shouldDirty: true })
@@ -218,6 +240,41 @@ export function BankInfoForm() {
         }
       })
     }
+  }
+
+  const handleAccountSubmit = () => {
+    if (!selectedBankCode) {
+      toastError('Please select a bank')
+      return
+    }
+    if (!accountNumber || accountNumber.length !== 10) {
+      toastError('Please enter a valid 10-digit account number')
+      return
+    }
+    const isDuplicate = accounts.some(
+      (acc) =>
+        acc.uuid !== editingAccount?.uuid &&
+        acc.accountNumber === accountNumber &&
+        acc.bankCode === selectedBankCode
+    )
+    if (isDuplicate) {
+      toastError('This bank account is already registered as a settlement account')
+      return
+    }
+    if (isVerifying) {
+      toastError('Account verification is in progress. Please wait a moment.')
+      return
+    }
+    if (!isConfirmed) {
+      if (tempVerifiedName) {
+        toastError('Please click "Confirm Name" to verify the account owner before adding.')
+      } else {
+        toastError('Please enter valid bank details and confirm the account name before adding.')
+      }
+      return
+    }
+
+    handleSubmit(handleSaveAccount)()
   }
 
   const handleConfirmSetDefault = () => {
@@ -519,15 +576,21 @@ export function BankInfoForm() {
               type="button"
               className="btn btn--primary"
               style={{ flex: 1 }}
-              onClick={handleSubmit(handleSaveAccount)}
-              disabled={createMutation.isPending || updateMutation.isPending || !isConfirmed}
+              onClick={handleAccountSubmit}
+              disabled={createMutation.isPending || updateMutation.isPending}
             >
               {createMutation.isPending || updateMutation.isPending ? 'Saving...' : editingAccount ? 'Update Account' : 'Add Account'}
             </button>
           </div>
         }
       >
-        <form onSubmit={handleSubmit(handleSaveAccount)} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            handleAccountSubmit()
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+        >
           <div className="settings__field">
             <label className="settings__label">Select Bank</label>
             <select {...register('bankCode')} className="settings__input">
