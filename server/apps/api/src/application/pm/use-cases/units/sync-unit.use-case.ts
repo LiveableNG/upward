@@ -11,6 +11,7 @@ import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../../domains/payments/p
 import { ResolveDedicatedAccountUseCase } from '../../../use-cases/payments/payment.use-cases';
 import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 import { CreatePmPaymentRequestUseCase } from '../payments/create-pm-payment-request.use-case';
+import { RentalPeriodService } from '../../../services/rental-period.service';
 
 @Injectable()
 export class SyncUnitToUpwardUseCase {
@@ -38,6 +39,7 @@ export class SyncUnitToUpwardUseCase {
     private readonly encryption: EncryptionService,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
   async execute(unitUuid: string, pmId: number): Promise<void> {
@@ -129,6 +131,26 @@ export class SyncUnitToUpwardUseCase {
 
     // Perform transaction
     await this.prisma.$transaction(async (tx) => {
+      const unitPayments = await tx.upward_pm_rent_payment.findMany({
+        where: { unitId: unit.id, tenantId: unit.tenantId || undefined, status: 'SUCCESS' },
+      });
+
+      const currentPeriodKey = unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : null;
+      const currentPaid = currentPeriodKey
+        ? unitPayments
+            .filter((p: any) => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === currentPeriodKey)
+            .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+        : 0;
+
+      const rentalState = this.rentalPeriodService.initializeRentalState({
+        rentAmount: unit.rentAmount,
+        rentStartDate: unit.rentStartDate,
+        rentEndDate: unit.rentDueDate,
+        rentType: unit.rentType,
+        initialAmountPaid: currentPaid,
+        leaseYears: (unit as any).leaseYears,
+      });
+
       const existingUserProperty = await tx.upward_user_property.findFirst({
         where: {
           userId: upwardUser.id!,
@@ -150,11 +172,14 @@ export class SyncUnitToUpwardUseCase {
           company: { connect: { id: company.id } },
           rentAmount: unit.rentAmount,
           currency: unit.currency,
-          rentStartDate: unit.rentStartDate || undefined,
-          rentEndDate: unit.rentDueDate || undefined,
+          rentStartDate: rentalState.rentStartDate,
+          rentEndDate: rentalState.rentEndDate,
           isVerified: true,
           isPastTenancy: false,
-          amountRemaining: unit.rentAmount,
+          amountPaid: rentalState.amountPaid,
+          amountRemaining: rentalState.amountRemaining,
+          isFirstRent: rentalState.isFirstRent,
+          initialAmountPaid: rentalState.initialAmountPaid,
           rentType: unit.rentType,
           pmUnit: { connect: { id: unit.id } },
           verificationStatus: 'VERIFIED',
@@ -192,12 +217,14 @@ export class SyncUnitToUpwardUseCase {
           company: { connect: { id: company.id } },
           rentAmount: unit.rentAmount,
           currency: unit.currency,
-          rentStartDate: unit.rentStartDate || undefined,
-          rentEndDate: unit.rentDueDate || undefined,
+          rentStartDate: rentalState.rentStartDate,
+          rentEndDate: rentalState.rentEndDate,
           isVerified: true,
           verificationStatus: 'VERIFIED',
-          amountPaid: 0,
-          amountRemaining: unit.rentAmount,
+          amountPaid: rentalState.amountPaid,
+          amountRemaining: rentalState.amountRemaining,
+          isFirstRent: rentalState.isFirstRent,
+          initialAmountPaid: rentalState.initialAmountPaid,
           pm: { connect: { id: pmId } },
           pmUnit: { connect: { id: unit.id } },
           rentType: unit.rentType,

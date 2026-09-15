@@ -9,6 +9,7 @@ import {
   PAYMENT_LINE_ITEM_REPOSITORY,
   IPaymentLineItemRepository,
 } from '../../../domains/payments/payment.repository'
+import { RentalPeriodService } from '../../services/rental-period.service'
 
 @Injectable()
 export class SyncPmPaymentStatusUseCase {
@@ -21,6 +22,7 @@ export class SyncPmPaymentStatusUseCase {
     private readonly paymentRequestRepo: IPaymentRequestRepository,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
     private readonly lineItemRepo: IPaymentLineItemRepository,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(params: {
@@ -96,30 +98,21 @@ export class SyncPmPaymentStatusUseCase {
             .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
 
           if (currentPeriodPaid >= (unit.rentAmount - 1) && effectivePeriodEnd) {
-            const nextStart = new Date(effectivePeriodEnd)
-            nextStart.setDate(nextStart.getDate() + 1)
-
-            const nextEnd = new Date(nextStart)
-            if (unit.rentType === 'Monthly') {
-              nextEnd.setMonth(nextEnd.getMonth() + 1)
-            } else {
-              const years = (unit as any).leaseYears || 1
-              nextEnd.setFullYear(nextEnd.getFullYear() + years)
-            }
-            nextEnd.setDate(nextEnd.getDate() - 1)
-
-            effectivePeriodStart = nextStart
-            effectivePeriodEnd = nextEnd
+            const calculated = this.rentalPeriodService.calculateNextPeriod(
+              effectivePeriodStart,
+              effectivePeriodEnd,
+              unit.rentType,
+              (unit as any).leaseYears,
+            )
+            effectivePeriodStart = calculated.nextStart
+            effectivePeriodEnd = calculated.nextEnd
           } else if (!effectivePeriodEnd) {
-            const endD = new Date(effectivePeriodStart)
-            if (unit.rentType === 'Monthly') {
-              endD.setMonth(endD.getMonth() + 1)
-            } else {
-              const years = (unit as any).leaseYears || 1
-              endD.setFullYear(endD.getFullYear() + years)
-            }
-            endD.setDate(endD.getDate() - 1)
-            effectivePeriodEnd = endD
+            effectivePeriodEnd = this.rentalPeriodService.calculateNextPeriod(
+              effectivePeriodStart,
+              effectivePeriodStart,
+              unit.rentType,
+              (unit as any).leaseYears,
+            ).nextEnd
           }
         }
 

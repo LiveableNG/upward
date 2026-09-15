@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nest
 import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
+import { RentalPeriodService } from '../../services/rental-period.service';
 
 @Injectable()
 export class AddUnitPaymentUseCase {
@@ -12,6 +13,7 @@ export class AddUnitPaymentUseCase {
     private readonly propertyRepository: IPropertyRepository,
     private readonly prisma: PrismaService,
     private readonly activityLog: ActivityLogService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
   async execute(pmId: number, unitUuid: string, data: any, actor?: any) {
@@ -57,33 +59,29 @@ export class AddUnitPaymentUseCase {
 
       // If the current period is ALREADY fully paid off, this payment belongs to the UPCOMING cycle
       if (totalPaidForPeriod >= currentPeriodDueAmount) {
-        newUnitStart = new Date(unit.rentDueDate);
-        newUnitStart.setDate(newUnitStart.getDate() + 1);
-
-        newUnitEnd = new Date(newUnitStart);
-        if (unit.rentType === 'Monthly') {
-          newUnitEnd.setMonth(newUnitEnd.getMonth() + 1);
-        } else if (unit.rentType === 'Lease' || unit.rentType === 'LEASE') {
-          let years = (unit as any).leaseYears;
-          if (!years || years <= 0) {
-            for (const p of allPayments) {
-              if (p.periodStart && p.periodEnd) {
-                const diffTime = new Date(p.periodEnd).getTime() - new Date(p.periodStart).getTime();
-                const diffYears = Math.round(diffTime / (1000 * 60 * 60 * 24 * 365.25));
-                if (diffYears >= 1) {
-                  years = diffYears;
-                  break;
-                }
+        let years = (unit as any).leaseYears;
+        if (!years || years <= 0) {
+          for (const p of allPayments) {
+            if (p.periodStart && p.periodEnd) {
+              const diffTime = new Date(p.periodEnd).getTime() - new Date(p.periodStart).getTime();
+              const diffYears = Math.round(diffTime / (1000 * 60 * 60 * 24 * 365.25));
+              if (diffYears >= 1) {
+                years = diffYears;
+                break;
               }
             }
           }
-          years = Math.max(1, years || 1);
-          newUnitEnd.setFullYear(newUnitEnd.getFullYear() + years);
-        } else {
-          newUnitEnd.setFullYear(newUnitEnd.getFullYear() + 1);
         }
-        newUnitEnd.setDate(newUnitEnd.getDate() - 1);
 
+        const nextPeriod = this.rentalPeriodService.calculateNextPeriod(
+          new Date(unit.rentStartDate),
+          new Date(unit.rentDueDate),
+          unit.rentType,
+          years,
+        );
+
+        newUnitStart = nextPeriod.nextStart;
+        newUnitEnd = nextPeriod.nextEnd;
 
         effectivePeriodStart = newUnitStart;
         effectivePeriodEnd = newUnitEnd;

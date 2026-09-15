@@ -44,6 +44,7 @@ import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
+import { RentalPeriodService } from '../../services/rental-period.service'
 
 @Injectable()
 export class GetBankDetailsUseCase {
@@ -111,6 +112,7 @@ export class CreateManualPaymentRequestUseCase {
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
   async execute(data: {
@@ -183,23 +185,16 @@ export class CreateManualPaymentRequestUseCase {
         let endD = prop.rentEndDate ? new Date(prop.rentEndDate) : null
 
         // If the property's current period is already fully paid off, advance the manual request to the upcoming cycle
-        const isCurrentPeriodPaid = (prop.amountRemaining === 0 || (prop.rentAmount && prop.amountPaid >= prop.rentAmount))
+        const isCurrentPeriodPaid = prop.amountRemaining === 0 && prop.isFirstRent === false
         if (isCurrentPeriodPaid && startD && endD) {
-          const nextStart = new Date(endD)
-          nextStart.setDate(nextStart.getDate() + 1)
-
-          const nextEnd = new Date(nextStart)
-          const rType = (prop.rentType || '').toUpperCase()
-          if (rType === 'MONTHLY') {
-            nextEnd.setMonth(nextEnd.getMonth() + 1)
-          } else {
-            const years = Math.max(1, (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1)
-            nextEnd.setFullYear(nextEnd.getFullYear() + years)
-          }
-          nextEnd.setDate(nextEnd.getDate() - 1)
-
-          startD = nextStart
-          endD = nextEnd
+          const calculated = this.rentalPeriodService.calculateNextPeriod(
+            startD,
+            endD,
+            prop.rentType,
+            (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1,
+          )
+          startD = calculated.nextStart
+          endD = calculated.nextEnd
         }
 
         if (endD) {
@@ -608,8 +603,9 @@ export class RecordTransactionUseCase {
           })
         }
 
+        let settledPeriod: any = null
         if (propertyId && rentPortion > 0) {
-          await this.settleProperty.execute({
+          settledPeriod = await this.settleProperty.execute({
             userId: user!.id!,
             propertyId,
             rentPortion,
@@ -662,29 +658,18 @@ export class RecordTransactionUseCase {
           ? await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
           : null
 
-        let snapshotRentStart: Date | null = propRecord?.rentStartDate
-          ? new Date(propRecord.rentStartDate)
-          : (activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null)
-        let snapshotRentEnd: Date | null = propRecord?.rentEndDate
-          ? new Date(propRecord.rentEndDate)
-          : (activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null)
+        let snapshotRentStart: Date | null = settledPeriod?.periodStart
+          || (activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null)
+          || (propRecord?.rentStartDate ? new Date(propRecord.rentStartDate) : null)
+        let snapshotRentEnd: Date | null = settledPeriod?.periodEnd
+          || (activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null)
+          || (propRecord?.rentEndDate ? new Date(propRecord.rentEndDate) : null)
         let snapshotTotalInvoice: number | null = (propRecord?.rentAmount && propRecord.initialAmountPaid > 0)
           ? propRecord.rentAmount
           : (activePr?.amount || null)
         let snapshotHistoricalPaid: number | null = null
         let snapshotRemaining: number | null = null
         let snapshotIsPartial: boolean | null = null
-
-        if (!snapshotRentStart && propertyId) {
-          const latestPlatformPayment = await txClient.upward_platform_rent_payment.findFirst({
-            where: { userPropertyId: propertyId, status: 'SUCCESS' },
-            orderBy: { createdAt: 'desc' }
-          })
-          if (latestPlatformPayment?.periodStart) {
-            snapshotRentStart = new Date(latestPlatformPayment.periodStart)
-            snapshotRentEnd = latestPlatformPayment.periodEnd ? new Date(latestPlatformPayment.periodEnd) : null
-          }
-        }
 
         if (activePr) {
           const priorTxs = await txClient.upward_transaction.findMany({
@@ -699,7 +684,6 @@ export class RecordTransactionUseCase {
           snapshotRemaining = Math.max(0, activePr.amount - (snapshotHistoricalPaid || 0))
           snapshotIsPartial = (snapshotRemaining || 0) > 0
         } else if (propertyId) {
-          const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
           if (propRecord) {
             snapshotTotalInvoice = propRecord.rentAmount || null
             snapshotHistoricalPaid = propRecord.amountPaid || result.amount

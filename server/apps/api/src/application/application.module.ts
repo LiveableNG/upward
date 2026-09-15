@@ -13,6 +13,7 @@ import { EncryptionService } from '../shared/infrastructure/common/encryption.se
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
+import { RentalPeriodService } from './services/rental-period.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -872,6 +873,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,
@@ -905,6 +907,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,

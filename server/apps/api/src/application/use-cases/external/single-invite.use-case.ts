@@ -24,6 +24,7 @@ import { AddManualAccountUseCase } from '../../use-cases/payments/manual-payment
 import { randomUUID } from 'crypto'
 import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { TenantSyncedEvent } from '../../events/definition/tenant-synced.event'
+import { RentalPeriodService } from '../../services/rental-period.service'
 
 import {
   InviteRequestDto as InviteRequest,
@@ -55,6 +56,7 @@ export class SingleInviteUseCase {
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
     private readonly addManualAccountUseCase: AddManualAccountUseCase,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
@@ -291,23 +293,30 @@ export class SingleInviteUseCase {
         }
       }
 
-      const isFirstRent = rentData.isFirstRent !== undefined ? rentData.isFirstRent : true
-      const initialAmountPaid = rentData.initialAmountPaid ?? 0
       const leaseYears = rentData.leaseYears ?? 1
       const rentType = rentData.rentType || 'Annually'
-      const amountRemaining = Math.max(0, rentData.rentAmount - initialAmountPaid)
+
+      const rentalState = this.rentalPeriodService.initializeRentalState({
+        rentAmount: rentData.rentAmount,
+        rentStartDate: rentData.rentStartDate,
+        rentEndDate: rentData.rentEndDate,
+        rentType,
+        initialAmountPaid: rentData.initialAmountPaid,
+        isFirstRent: rentData.isFirstRent,
+        leaseYears,
+      })
 
       if (property) {
         property = await this.propertyRepository.update(property.id!, {
           rentAmount: rentData.rentAmount,
           managerId: manager?.id || property.managerId, // Use existing if not provided
-          rentEndDate: new Date(rentData.rentEndDate),
-          rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : property.rentStartDate,
+          rentEndDate: rentalState.rentEndDate,
+          rentStartDate: rentalState.rentStartDate,
           subaccountId: property.subaccountId,
-          amountPaid: initialAmountPaid,
-          amountRemaining,
-          isFirstRent,
-          initialAmountPaid,
+          amountPaid: rentalState.amountPaid,
+          amountRemaining: rentalState.amountRemaining,
+          isFirstRent: rentalState.isFirstRent,
+          initialAmountPaid: rentalState.initialAmountPaid,
           leaseYears,
           rentType,
           isVerified: true,
@@ -323,17 +332,17 @@ export class SingleInviteUseCase {
           managerId: manager?.id,
           locationId: location.id!,
           rentAmount: rentData.rentAmount,
-          rentEndDate: new Date(rentData.rentEndDate),
-          rentStartDate: rentData.rentStartDate ? new Date(rentData.rentStartDate) : undefined,
+          rentEndDate: rentalState.rentEndDate,
+          rentStartDate: rentalState.rentStartDate,
           currency: (rentData as any).currency || 'NGN',
           platformId: platformId,
           externalUnitId: propData.externalUnitId,
           externalPropertyId: propData.externalPropertyId,
           subaccountId: undefined,
-          amountPaid: initialAmountPaid,
-          amountRemaining,
-          isFirstRent,
-          initialAmountPaid,
+          amountPaid: rentalState.amountPaid,
+          amountRemaining: rentalState.amountRemaining,
+          isFirstRent: rentalState.isFirstRent,
+          initialAmountPaid: rentalState.initialAmountPaid,
           leaseYears,
           rentType,
           isVerified: true,
@@ -342,10 +351,7 @@ export class SingleInviteUseCase {
         } as any)
       }
 
-      if (initialAmountPaid > 0 && property.id) {
-        const periodStart = property.rentStartDate ? new Date(property.rentStartDate) : new Date()
-        const periodEnd = property.rentEndDate ? new Date(property.rentEndDate) : undefined
-
+      if (rentalState.initialAmountPaid > 0 && property.id) {
         const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
           where: { userPropertyId: property.id, notes: 'Initial Onboarding Payment' }
         })
@@ -353,14 +359,14 @@ export class SingleInviteUseCase {
           await this.prisma.upward_platform_rent_payment.create({
             data: {
               userPropertyId: property.id,
-              amount: initialAmountPaid,
+              amount: rentalState.initialAmountPaid,
               rentAmountAtPayment: rentData.rentAmount,
               paymentDate: new Date(),
               method: 'INITIAL_ONBOARDING',
               status: 'SUCCESS',
               notes: 'Initial Onboarding Payment',
-              periodStart,
-              periodEnd,
+              periodStart: rentalState.rentStartDate,
+              periodEnd: rentalState.rentEndDate,
             }
           })
         }
