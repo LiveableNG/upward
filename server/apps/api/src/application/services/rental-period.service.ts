@@ -36,36 +36,124 @@ export interface ProcessRentPaymentResult {
   amountRemaining: number;
 }
 
+export interface ResolvedTargetPeriod {
+  periodStart: Date;
+  periodEnd: Date;
+  dueDate: Date;
+  isAdvance: boolean;
+}
+
 @Injectable()
 export class RentalPeriodService {
   private readonly logger = new Logger(RentalPeriodService.name);
 
   /**
-   * Standardized date arithmetic for advancing rental periods.
+   * Canonical UTC Midnight representation of a calendar date.
+   * Strips all local timezone shifts to guarantee consistent calendar day boundaries.
+   */
+  parseCalendarDate(input: Date | string | null | undefined): Date | null {
+    if (!input) return null;
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+      const datePart = trimmed.includes('T') ? trimmed.split('T')[0]! : trimmed;
+      const [y, m, d] = datePart.split('-').map(Number);
+      if (y && m && d) {
+        return new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+      }
+      const parsed = new Date(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 0, 0, 0, 0));
+      }
+      return null;
+    }
+    return new Date(Date.UTC(input.getUTCFullYear(), input.getUTCMonth(), input.getUTCDate(), 0, 0, 0, 0));
+  }
+
+  calculatePeriodEnd(
+    startDate: Date | string,
+    rentType?: string | null,
+    leaseYears?: number | null,
+  ): Date {
+    const start = this.parseCalendarDate(startDate) || this.parseCalendarDate(new Date())!;
+    const normalizedRentType = (rentType || '').toUpperCase();
+
+    let end: Date;
+    if (normalizedRentType === 'MONTHLY') {
+      end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCDate() - 1, 0, 0, 0, 0));
+    } else {
+      const years = Math.max(1, leaseYears || 1);
+      end = new Date(Date.UTC(start.getUTCFullYear() + years, start.getUTCMonth(), start.getUTCDate() - 1, 0, 0, 0, 0));
+    }
+
+    if (start.getTime() >= end.getTime()) {
+      throw new Error(`Invalid calculated period: start (${start.toISOString()}) must be before end (${end.toISOString()})`);
+    }
+
+    return end;
+  }
+
+  /**
+   * Standardized UTC date arithmetic for advancing rental periods.
    */
   calculateNextPeriod(
-    currentStart: Date,
-    currentEnd: Date,
+    currentStart: Date | string,
+    currentEnd: Date | string,
     rentType?: string | null,
     leaseYears?: number | null,
   ): CalculatedPeriod {
-    const nextStart = new Date(currentEnd);
-    nextStart.setDate(nextStart.getDate() + 1);
-    nextStart.setHours(0, 0, 0, 0);
-
-    const nextEnd = new Date(nextStart);
-    const normalizedRentType = (rentType || '').toUpperCase();
-
-    if (normalizedRentType === 'MONTHLY') {
-      nextEnd.setMonth(nextEnd.getMonth() + 1);
-    } else {
-      const years = Math.max(1, leaseYears || 1);
-      nextEnd.setFullYear(nextEnd.getFullYear() + years);
-    }
-    nextEnd.setDate(nextEnd.getDate() - 1);
-    nextEnd.setHours(23, 59, 59, 999);
+    const end = this.parseCalendarDate(currentEnd) || this.parseCalendarDate(currentStart) || new Date();
+    const nextStart = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate() + 1, 0, 0, 0, 0));
+    const nextEnd = this.calculatePeriodEnd(nextStart, rentType, leaseYears);
 
     return { nextStart, nextEnd };
+  }
+
+  /**
+   * Authoritative target period resolution for upcoming payments or payment request generation.
+   * Delegates the state-machine check directly to RentalPeriodService.
+   */
+  resolveTargetRentalPeriod(
+    prop: {
+      rentStartDate?: Date | string | null;
+      rentEndDate?: Date | string | null;
+      rentType?: string | null;
+      leaseYears?: number | null;
+      amountRemaining?: number | null;
+      isFirstRent?: boolean | null;
+    },
+    explicitPrDates?: {
+      rentStartDate?: Date | string | null;
+      rentEndDate?: Date | string | null;
+    },
+  ): ResolvedTargetPeriod {
+    const currentStart = this.parseCalendarDate(prop.rentStartDate) || this.parseCalendarDate(new Date())!;
+    const currentEnd = this.parseCalendarDate(prop.rentEndDate) || this.calculatePeriodEnd(currentStart, prop.rentType, prop.leaseYears);
+    
+    const isCurrentPeriodSettled = (prop.amountRemaining === 0) && (prop.isFirstRent === false);
+
+    if (isCurrentPeriodSettled) {
+      const calculated = this.calculateNextPeriod(currentStart, currentEnd, prop.rentType, prop.leaseYears);
+      const prStart = this.parseCalendarDate(explicitPrDates?.rentStartDate);
+      const prEnd = this.parseCalendarDate(explicitPrDates?.rentEndDate);
+
+      const periodStart = (prStart && prStart.getTime() > currentStart.getTime()) ? prStart : calculated.nextStart;
+      const periodEnd = (prEnd && prEnd.getTime() > periodStart.getTime()) ? prEnd : calculated.nextEnd;
+
+      return {
+        periodStart,
+        periodEnd,
+        dueDate: periodEnd,
+        isAdvance: true,
+      };
+    }
+
+    // Active cycle is incomplete (isFirstRent=true or balance remaining). Belongs to current period.
+    return {
+      periodStart: currentStart,
+      periodEnd: currentEnd,
+      dueDate: currentEnd,
+      isAdvance: false,
+    };
   }
 
   /**
@@ -94,29 +182,28 @@ export class RentalPeriodService {
       isFirstRent = true;
     }
 
-    // If initial payment covers the full rent amount, mark as settled for initial onboarding
     if (initialAmountPaid >= rentAmount && rentAmount > 0) {
       isFirstRent = false;
     }
 
-    const amountPaid = isFirstRent ? initialAmountPaid : rentAmount;
+    const amountPaid = isFirstRent ? Math.min(rentAmount, initialAmountPaid) : rentAmount;
     const amountRemaining = isFirstRent ? Math.max(0, rentAmount - initialAmountPaid) : 0;
 
-    const rentStartDate = params.rentStartDate
-      ? new Date(params.rentStartDate)
-      : new Date();
-    rentStartDate.setHours(0, 0, 0, 0);
+    const rentStartDate = this.parseCalendarDate(params.rentStartDate) || this.parseCalendarDate(new Date())!;
 
     let rentEndDate: Date;
     if (params.rentEndDate) {
-      rentEndDate = new Date(params.rentEndDate);
+      rentEndDate = this.parseCalendarDate(params.rentEndDate)!;
     } else {
-      rentEndDate = this.calculateNextPeriod(
-        rentStartDate,
+      rentEndDate = this.calculatePeriodEnd(
         rentStartDate,
         params.rentType,
         params.leaseYears,
-      ).nextEnd;
+      );
+    }
+
+    if (rentStartDate.getTime() >= rentEndDate.getTime()) {
+      throw new Error(`Invariant Violation: rentStartDate (${rentStartDate.toISOString()}) must be before rentEndDate (${rentEndDate.toISOString()})`);
     }
 
     return {
@@ -129,11 +216,7 @@ export class RentalPeriodService {
     };
   }
 
-  /**
-   * Authoritative state-transition function for processing rent payments.
-   * Resolves the exact rental period for the payment, applies balance updates,
-   * advances the period only when required, and creates the ledger record.
-   */
+
   async processRentPayment(params: ProcessRentPaymentParams): Promise<ProcessRentPaymentResult> {
     const {
       propertyId,
@@ -151,8 +234,8 @@ export class RentalPeriodService {
       throw new Error(`Property ${propertyId} not found during rent payment processing`);
     }
 
-    const currentStart = prop.rentStartDate ? new Date(prop.rentStartDate) : new Date();
-    const currentEnd = prop.rentEndDate ? new Date(prop.rentEndDate) : null;
+    const currentStart = this.parseCalendarDate(prop.rentStartDate) || this.parseCalendarDate(new Date())!;
+    const currentEnd = this.parseCalendarDate(prop.rentEndDate) || this.calculatePeriodEnd(currentStart, prop.rentType, prop.leaseYears);
     const rentAmount = prop.rentAmount || rentPortion;
     const effectiveRentType = params.rentType || prop.rentType || 'Annually';
     const leaseYears = (prop as any).leaseYears || 1;
@@ -163,13 +246,14 @@ export class RentalPeriodService {
       const pr = await txClient.upward_payment_request.findUnique({
         where: { id: paymentRequestId },
       });
-      if (pr?.rentStartDate) prStartDate = new Date(pr.rentStartDate);
-      if (pr?.rentEndDate) prEndDate = new Date(pr.rentEndDate);
+      if (pr?.rentStartDate) prStartDate = this.parseCalendarDate(pr.rentStartDate);
+      if (pr?.rentEndDate) prEndDate = this.parseCalendarDate(pr.rentEndDate);
     }
 
-    // Check if the current cycle on the property was already fully settled
-    const isCurrentCycleSettled = prop.amountRemaining === 0 && prop.isFirstRent === false;
-    const isPrNewerThanProperty = prStartDate && prStartDate.getTime() > currentStart.getTime();
+    // Explicit state machine check:
+    // If amountRemaining > 0 || isFirstRent -> CURRENT period
+    // If amountRemaining === 0 && !isFirstRent -> Current period is settled; advance to NEXT period
+    const isCurrentPeriodSettled = (prop.amountRemaining === 0) && (prop.isFirstRent === false);
 
     let periodStart: Date;
     let periodEnd: Date;
@@ -178,42 +262,15 @@ export class RentalPeriodService {
     let newAmountRemaining: number;
     let newIsFirstRent: boolean;
 
-    if (isPrNewerThanProperty && prStartDate && prEndDate) {
-      // ── CASE A1: Explicit Payment Request for an upcoming cycle. Advance directly to PR dates.
-      periodStart = prStartDate;
-      periodEnd = prEndDate;
-      isAdvancing = true;
-
-      newAmountPaid = rentPortion;
-      newAmountRemaining = Math.max(0, rentAmount - rentPortion);
-      const isSettled = newAmountRemaining === 0;
-      newIsFirstRent = false;
-
-      await txClient.upward_user_property.update({
-        where: { id: prop.id },
-        data: {
-          rentStartDate: periodStart,
-          rentEndDate: periodEnd,
-          amountPaid: isSettled ? rentAmount : newAmountPaid,
-          amountRemaining: newAmountRemaining,
-          isFirstRent: false,
-          isPastTenancy: false,
-        },
-      });
-
-      this.logger.log(
-        `Advanced property ${prop.id} to PR cycle: ${periodStart.toISOString().split('T')[0]} - ${periodEnd.toISOString().split('T')[0]}. Balance remaining: ${newAmountRemaining}`,
-      );
-    } else if (isCurrentCycleSettled && currentEnd) {
-      // ── CASE A2: Active cycle is already fully paid. This payment starts the NEXT cycle.
+    if (isCurrentPeriodSettled) {
+      // ── Current period is completely settled. This payment starts the NEXT period.
       const calculated = this.calculateNextPeriod(currentStart, currentEnd, effectiveRentType, leaseYears);
-      periodStart = prStartDate || calculated.nextStart;
-      periodEnd = prEndDate || calculated.nextEnd;
+      periodStart = (prStartDate && prStartDate.getTime() > currentStart.getTime()) ? prStartDate : calculated.nextStart;
+      periodEnd = (prEndDate && prEndDate.getTime() > periodStart.getTime()) ? prEndDate : calculated.nextEnd;
       isAdvancing = true;
 
-      newAmountPaid = rentPortion;
       newAmountRemaining = Math.max(0, rentAmount - rentPortion);
-      const isSettled = newAmountRemaining === 0;
+      newAmountPaid = rentAmount - newAmountRemaining; // Invariant: amountPaid + amountRemaining === rentAmount
       newIsFirstRent = false;
 
       await txClient.upward_user_property.update({
@@ -221,7 +278,7 @@ export class RentalPeriodService {
         data: {
           rentStartDate: periodStart,
           rentEndDate: periodEnd,
-          amountPaid: isSettled ? rentAmount : newAmountPaid,
+          amountPaid: newAmountPaid,
           amountRemaining: newAmountRemaining,
           isFirstRent: false,
           isPastTenancy: false,
@@ -229,19 +286,19 @@ export class RentalPeriodService {
       });
 
       this.logger.log(
-        `Advanced property ${prop.id} to new cycle: ${periodStart.toISOString().split('T')[0]} - ${periodEnd.toISOString().split('T')[0]}. Balance remaining: ${newAmountRemaining}`,
+        `Advanced property ${prop.id} to new cycle: ${periodStart.toISOString().split('T')[0]} - ${periodEnd.toISOString().split('T')[0]}. Paid: ${newAmountPaid}, Remaining: ${newAmountRemaining}`,
       );
     } else {
-      // ── CASE B: Active cycle is incomplete (partially paid or isFirstRent=true).
-      // Payment belongs to the CURRENT period. Do NOT advance dates.
+      // ── Current period is incomplete (isFirstRent=true or balance remaining).
+      // Payment applies to CURRENT period. Dates do NOT advance.
       periodStart = currentStart;
-      periodEnd = currentEnd || this.calculateNextPeriod(currentStart, currentStart, effectiveRentType, leaseYears).nextEnd;
+      periodEnd = currentEnd;
       isAdvancing = false;
 
       const totalPaid = (prop.amountPaid || 0) + rentPortion;
       newAmountRemaining = Math.max(0, rentAmount - totalPaid);
+      newAmountPaid = rentAmount - newAmountRemaining; // Invariant: amountPaid + amountRemaining === rentAmount
       const isSettled = newAmountRemaining === 0;
-      newAmountPaid = isSettled ? rentAmount : totalPaid;
       newIsFirstRent = isSettled ? false : (prop.isFirstRent ?? true);
 
       await txClient.upward_user_property.update({
@@ -255,7 +312,7 @@ export class RentalPeriodService {
       });
 
       this.logger.log(
-        `Applied payment to current cycle for property ${prop.id}: ${periodStart.toISOString().split('T')[0]} - ${periodEnd.toISOString().split('T')[0]}. isFirstRent=${newIsFirstRent}, remaining=${newAmountRemaining}`,
+        `Applied payment to current cycle for property ${prop.id}: ${periodStart.toISOString().split('T')[0]} - ${periodEnd.toISOString().split('T')[0]}. isFirstRent=${newIsFirstRent}, Paid: ${newAmountPaid}, Remaining: ${newAmountRemaining}`,
       );
     }
 
@@ -269,7 +326,7 @@ export class RentalPeriodService {
           paymentDate: new Date(),
           method: 'PAYSTACK',
           status: 'SUCCESS',
-          notes: description || `Rent Payment for property ${prop.uuid.slice(-8)}`,
+          notes: description || (prop.uuid ? `Rent Payment for property ${prop.uuid.slice(-8)}` : `Rent Payment for property ${prop.id}`),
           periodStart,
           periodEnd,
         },

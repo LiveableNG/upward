@@ -7,6 +7,7 @@ import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 import { SyncUnitToUpwardUseCase } from './units/sync-unit.use-case';
 import { InviteTenantUseCase } from './tenants/invite-tenant.use-case';
+import { RentalPeriodService } from '../../services/rental-period.service';
 
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
@@ -34,6 +35,7 @@ export class BulkCreateUnitsUseCase {
     private readonly activityLog: ActivityLogService,
     private readonly syncUnitUseCase: SyncUnitToUpwardUseCase,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(pmId: number, dto: BulkCreateUnitsDto, actor?: any) {
@@ -169,11 +171,12 @@ export class BulkCreateUnitsUseCase {
         throw new BadRequestException(`Unit "${u.unitName}" already exists in this property.`);
       }
 
+      const canonicalStart = this.rentalPeriodService.parseCalendarDate(u.rentStartDate);
+      const canonicalDue = this.rentalPeriodService.parseCalendarDate(u.rentDueDate);
+
       let inferredRentType = u.rentType;
-      if (!inferredRentType && u.rentStartDate && u.rentDueDate) {
-        const start = new Date(u.rentStartDate);
-        const due = new Date(u.rentDueDate);
-        const diffDays = Math.ceil(Math.abs(due.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (!inferredRentType && canonicalStart && canonicalDue) {
+        const diffDays = Math.ceil(Math.abs(canonicalDue.getTime() - canonicalStart.getTime()) / (1000 * 60 * 60 * 24));
         inferredRentType = diffDays > 300 ? 'Annually' : 'Monthly';
       } else if (!inferredRentType) {
         inferredRentType = 'Monthly';
@@ -184,8 +187,8 @@ export class BulkCreateUnitsUseCase {
         unitName: u.unitName!,
         rentAmount: u.rentAmount,
         managementFee: u.managementFee ?? 0,
-        rentStartDate: u.rentStartDate ? new Date(u.rentStartDate) : null,
-        rentDueDate: u.rentDueDate ? new Date(u.rentDueDate) : null,
+        rentStartDate: canonicalStart,
+        rentDueDate: canonicalDue,
         rentType: inferredRentType,
         currency: u.currency || 'NGN',
         notes: u.notes || null,
@@ -207,27 +210,23 @@ export class BulkCreateUnitsUseCase {
 
       const actualRentAmountPaid = u.isFullyPaid ? u.rentAmount : u.rentAmountPaid;
 
-      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0) {
-        let periodEnd: Date | null = null;
-        if (newUnit.rentStartDate) {
-          periodEnd = new Date(newUnit.rentStartDate);
-          if (newUnit.rentType === 'Monthly') {
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
-          } else {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-          }
-          periodEnd.setDate(periodEnd.getDate() - 1);
-        }
+      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0 && canonicalStart) {
+        const periodEnd = canonicalDue || this.rentalPeriodService.calculateNextPeriod(
+          canonicalStart,
+          canonicalStart,
+          inferredRentType,
+          (u as any).leaseYears,
+        ).nextEnd;
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: actualRentAmountPaid,
           rentAmountAtPayment: newUnit.rentAmount,
           paymentDate: new Date(),
-          periodStart: newUnit.rentStartDate,
+          periodStart: canonicalStart,
+          periodEnd: periodEnd,
           status: 'SUCCESS',
           method: 'Other',
           notes: 'Imported initial payment',
-          periodEnd: periodEnd,
           tenantId: tenantId,
           reference: null
         });

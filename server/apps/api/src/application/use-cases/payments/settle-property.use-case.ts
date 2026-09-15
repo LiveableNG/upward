@@ -65,8 +65,8 @@ export class SettlePropertyBalanceUseCase {
     }
 
     const effectiveDueDate = dueDate
-      ? new Date(dueDate)
-      : (paymentResult?.periodEnd || (prop.rentEndDate ? new Date(prop.rentEndDate) : new Date()))
+      ? (this.rentalPeriodService.parseCalendarDate(dueDate) || new Date(dueDate))
+      : (paymentResult?.periodEnd || (prop.rentEndDate ? (this.rentalPeriodService.parseCalendarDate(prop.rentEndDate) || new Date(prop.rentEndDate)) : new Date()))
     const paidAt = new Date()
 
     let currentTotalPaid = rentPortion

@@ -135,17 +135,20 @@ export class SyncUnitToUpwardUseCase {
         where: { unitId: unit.id, tenantId: unit.tenantId || undefined, status: 'SUCCESS' },
       });
 
-      const currentPeriodKey = unit.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : null;
-      const currentPaid = currentPeriodKey
+      const canonicalUnitStart = this.rentalPeriodService.parseCalendarDate(unit.rentStartDate);
+      const currentPaid = canonicalUnitStart
         ? unitPayments
-            .filter((p: any) => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === currentPeriodKey)
+            .filter((p: any) => {
+              const pStart = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+              return pStart && pStart.getTime() === canonicalUnitStart.getTime();
+            })
             .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
         : 0;
 
       const rentalState = this.rentalPeriodService.initializeRentalState({
         rentAmount: unit.rentAmount,
-        rentStartDate: unit.rentStartDate,
-        rentEndDate: unit.rentDueDate,
+        rentStartDate: canonicalUnitStart,
+        rentEndDate: this.rentalPeriodService.parseCalendarDate(unit.rentDueDate),
         rentType: unit.rentType,
         initialAmountPaid: currentPaid,
         leaseYears: (unit as any).leaseYears,

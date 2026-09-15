@@ -177,33 +177,23 @@ export class CreateManualPaymentRequestUseCase {
             status: { in: ['PENDING', 'PARTIAL'] }
           }
         })
-        if (activePr) {
-          throw new BadRequestException('An active payment request already exists for this property.')
-        }
-
-        let startD = prop.rentStartDate ? new Date(prop.rentStartDate) : null
-        let endD = prop.rentEndDate ? new Date(prop.rentEndDate) : null
-
-        // If the property's current period is already fully paid off, advance the manual request to the upcoming cycle
-        const isCurrentPeriodPaid = prop.amountRemaining === 0 && prop.isFirstRent === false
-        if (isCurrentPeriodPaid && startD && endD) {
-          const calculated = this.rentalPeriodService.calculateNextPeriod(
-            startD,
-            endD,
-            prop.rentType,
-            (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1,
-          )
-          startD = calculated.nextStart
-          endD = calculated.nextEnd
-        }
-
-        if (endD) {
-          dueDate = endD
-          rentEndDate = endD
-        }
-        if (startD) {
-          rentStartDate = startD
-        }
+        const resolved = this.rentalPeriodService.resolveTargetRentalPeriod(
+          {
+            rentStartDate: prop.rentStartDate,
+            rentEndDate: prop.rentEndDate,
+            rentType: prop.rentType,
+            leaseYears: (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1,
+            amountRemaining: prop.amountRemaining,
+            isFirstRent: prop.isFirstRent,
+          },
+          {
+            rentStartDate: data.metadata?.rentStartDate,
+            rentEndDate: data.metadata?.rentEndDate,
+          }
+        )
+        rentStartDate = resolved.periodStart
+        rentEndDate = resolved.periodEnd
+        dueDate = resolved.dueDate
       }
     }
 
@@ -219,8 +209,8 @@ export class CreateManualPaymentRequestUseCase {
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : rentStartDate,
-      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : rentEndDate,
+      rentStartDate,
+      rentEndDate,
       rentType: data.metadata?.rentType,
       companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
@@ -547,37 +537,6 @@ export class RecordTransactionUseCase {
           txClient
         })
         rentPortion = distribution.rentPortion
-        result.lineItems = distribution.allocatedItems
-
-        if (pr) {
-          await this.syncPmStatus.execute({
-            paymentRequestId: pr.id,
-            rentPortion,
-            txClient
-          })
-        } else if (data.userPropertyUuid && rentPortion > 0) {
-          await this.syncPmStatus.executeForProperty({
-            userPropertyUuid: data.userPropertyUuid,
-            rentPortion,
-            narration: result.narration,
-            txClient
-          })
-        }
-
-        try {
-          await txClient.upward_notification.create({
-            data: {
-              userId: user!.id!,
-              title: 'Payment Confirmed',
-              message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
-              type: 'PAYMENT',
-              url: `/dashboard/receipts?id=${result.uuid}`,
-            },
-          })
-        } catch (notifErr: any) {
-          this.logger.warn(`Failed to create tenant payment notification: ${notifErr?.message}`)
-        }
-
         propertyId = pr?.userPropertyId
         if (!propertyId && data.userPropertyUuid) {
           const p = await txClient.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
@@ -617,6 +576,39 @@ export class RecordTransactionUseCase {
             description: result.narration,
             txClient
           })
+        }
+
+        if (pr) {
+          await this.syncPmStatus.execute({
+            paymentRequestId: pr.id,
+            rentPortion,
+            periodStart: settledPeriod?.periodStart,
+            periodEnd: settledPeriod?.periodEnd,
+            txClient
+          })
+        } else if (data.userPropertyUuid && rentPortion > 0) {
+          await this.syncPmStatus.executeForProperty({
+            userPropertyUuid: data.userPropertyUuid,
+            rentPortion,
+            narration: result.narration,
+            periodStart: settledPeriod?.periodStart,
+            periodEnd: settledPeriod?.periodEnd,
+            txClient
+          })
+        }
+
+        try {
+          await txClient.upward_notification.create({
+            data: {
+              userId: user!.id!,
+              title: 'Payment Confirmed',
+              message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
+              type: 'PAYMENT',
+              url: `/dashboard/receipts?id=${result.uuid}`,
+            },
+          })
+        } catch (notifErr: any) {
+          this.logger.warn(`Failed to create tenant payment notification: ${notifErr?.message}`)
         }
 
         await this.handleOverpayment.execute({

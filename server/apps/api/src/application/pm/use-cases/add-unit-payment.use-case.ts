@@ -37,22 +37,22 @@ export class AddUnitPaymentUseCase {
       notes: data.notes || '',
     };
 
-    let effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null;
-    let effectivePeriodEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : null;
+    let effectivePeriodStart = this.rentalPeriodService.parseCalendarDate(unit.rentStartDate);
+    let effectivePeriodEnd = this.rentalPeriodService.parseCalendarDate(unit.rentDueDate);
     let effectiveRentAmountAtPayment = data.rentAmount !== undefined ? data.rentAmount : unit.rentAmount;
 
     let shouldIncrementUnitDates = false;
     let newUnitStart: Date | null = null;
     let newUnitEnd: Date | null = null;
 
-    if (data.paymentType === 'CURRENT' && unit.rentStartDate && unit.rentDueDate && unit.rentAmount) {
+    if (data.paymentType === 'CURRENT' && effectivePeriodStart && effectivePeriodEnd && unit.rentAmount) {
       const allPayments = await this.unitRepository.getRentPayments(unitUuid);
 
-      const samePeriodPayments = allPayments.filter(p =>
-        p.tenantId === unit.tenantId &&
-        p.periodStart &&
-        new Date(p.periodStart).getTime() === new Date(unit.rentStartDate as Date).getTime()
-      );
+      const samePeriodPayments = allPayments.filter(p => {
+        if (p.tenantId !== unit.tenantId || !p.periodStart) return false;
+        const pStart = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+        return pStart && pStart.getTime() === effectivePeriodStart!.getTime();
+      });
 
       const currentPeriodDueAmount = samePeriodPayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
       const totalPaidForPeriod = samePeriodPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -63,19 +63,23 @@ export class AddUnitPaymentUseCase {
         if (!years || years <= 0) {
           for (const p of allPayments) {
             if (p.periodStart && p.periodEnd) {
-              const diffTime = new Date(p.periodEnd).getTime() - new Date(p.periodStart).getTime();
-              const diffYears = Math.round(diffTime / (1000 * 60 * 60 * 24 * 365.25));
-              if (diffYears >= 1) {
-                years = diffYears;
-                break;
+              const pS = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+              const pE = this.rentalPeriodService.parseCalendarDate(p.periodEnd);
+              if (pS && pE) {
+                const diffTime = pE.getTime() - pS.getTime();
+                const diffYears = Math.round(diffTime / (1000 * 60 * 60 * 24 * 365.25));
+                if (diffYears >= 1) {
+                  years = diffYears;
+                  break;
+                }
               }
             }
           }
         }
 
         const nextPeriod = this.rentalPeriodService.calculateNextPeriod(
-          new Date(unit.rentStartDate),
-          new Date(unit.rentDueDate),
+          effectivePeriodStart,
+          effectivePeriodEnd,
           unit.rentType,
           years,
         );
@@ -86,11 +90,11 @@ export class AddUnitPaymentUseCase {
         effectivePeriodStart = newUnitStart;
         effectivePeriodEnd = newUnitEnd;
 
-        const upcomingPeriodPayments = allPayments.filter(p =>
-          p.tenantId === unit.tenantId &&
-          p.periodStart &&
-          new Date(p.periodStart).getTime() === newUnitStart!.getTime()
-        );
+        const upcomingPeriodPayments = allPayments.filter(p => {
+          if (p.tenantId !== unit.tenantId || !p.periodStart) return false;
+          const pStart = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+          return pStart && pStart.getTime() === newUnitStart!.getTime();
+        });
         // Anchor to the upcoming period's own rate if it already has payments,
         // otherwise this payment establishes it at the unit's current live rent.
         const upcomingPeriodDueAmount = upcomingPeriodPayments[0]?.rentAmountAtPayment ?? unit.rentAmount;
@@ -109,8 +113,8 @@ export class AddUnitPaymentUseCase {
     paymentData.rentAmountAtPayment = effectiveRentAmountAtPayment;
 
     if (data.paymentType === 'PAST') {
-      paymentData.periodStart = data.periodStart ? new Date(data.periodStart) : null;
-      paymentData.periodEnd = data.periodEnd ? new Date(data.periodEnd) : null;
+      paymentData.periodStart = this.rentalPeriodService.parseCalendarDate(data.periodStart);
+      paymentData.periodEnd = this.rentalPeriodService.parseCalendarDate(data.periodEnd);
 
       if (data.isForCurrentTenant) {
         paymentData.tenantId = unit.tenantId;
@@ -129,13 +133,16 @@ export class AddUnitPaymentUseCase {
     const allPaymentsAfter = await this.unitRepository.getRentPayments(unitUuid);
     const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
 
-    const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number; amountDue: number }>();
+    const periodMap = new Map<number, { periodStart: Date; periodEnd: Date; total: number; amountDue: number }>();
     for (const p of tenantPayments) {
-      const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
+      const start = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+      if (!start) continue;
+      const end = this.rentalPeriodService.parseCalendarDate(p.periodEnd) || start;
+      const key = start.getTime();
       if (!periodMap.has(key)) {
         periodMap.set(key, {
-          periodStart: new Date(p.periodStart!),
-          periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
+          periodStart: start,
+          periodEnd: end,
           total: 0,
           amountDue: p.rentAmountAtPayment
         });
