@@ -347,6 +347,7 @@ describe('RentalPeriodService', () => {
         },
         upward_payment_request: {
           findUnique: jest.fn().mockImplementation(() => Promise.resolve(prRecord)),
+          update: jest.fn().mockResolvedValue({}),
         },
         upward_platform_rent_payment: {
           create: jest.fn().mockResolvedValue({ id: 41 }),

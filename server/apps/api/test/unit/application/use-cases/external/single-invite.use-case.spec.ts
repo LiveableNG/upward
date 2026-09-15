@@ -665,7 +665,7 @@ describe('SingleInviteUseCase', () => {
       expect(saved.rentStartDate).toBeInstanceOf(Date)
     })
 
-    it('should set rentStartDate as undefined when not provided', async () => {
+    it('should default rentStartDate when not provided', async () => {
       setupPre()
       locationRepository.save.mockResolvedValue(makeLocation() as any)
       propertyRepository.save.mockResolvedValue(makeProperty() as any)
@@ -676,7 +676,7 @@ describe('SingleInviteUseCase', () => {
       await useCase.setupInviteContext(payload)
 
       const saved = propertyRepository.save.mock.calls[0]![0] as any
-      expect(saved.rentStartDate).toBeUndefined()
+      expect(saved.rentStartDate).toBeInstanceOf(Date)
     })
 
     it('should throw BadRequestException when rentAmount is missing', async () => {
