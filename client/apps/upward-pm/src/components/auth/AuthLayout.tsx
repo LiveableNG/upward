@@ -6,9 +6,6 @@ import { ChevronLeft } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import Link from 'next/link'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
-import logo1 from '../../../public/company-logos/02.png'
-import logo2 from '../../../public/company-logos/03.png'
-import logo3 from '../../../public/company-logos/04.png'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -98,9 +95,9 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
 
         <div className="brand-bottom">
           <div className="avatar-stack">
-            <Image src={logo1} alt="Company Logo" width={28} height={28} />
-            <Image src={logo2} alt="Company Logo" width={28} height={28} />
-            <Image src={logo3} alt="Company Logo" width={28} height={28} />
+            <Image src="/company-logos/02.png" alt="Company Logo" width={28} height={28} />
+            <Image src="/company-logos/03.png" alt="Company Logo" width={28} height={28} />
+            <Image src="/company-logos/04.png" alt="Company Logo" width={28} height={28} />
           </div>
           <span>Trusted by 1,000+ landlords and property teams</span>
         </div>

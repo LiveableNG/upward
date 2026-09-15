@@ -59,6 +59,7 @@ export interface PmPaymentRequest {
   transactions?: any[];
   manualAccountId?: number | null;
   settlementAccount?: SettlementAccount | null;
+  isSelfPayment?: boolean;
   createdBy?: {
     isEmployee?: boolean;
     isTenant?: boolean;
