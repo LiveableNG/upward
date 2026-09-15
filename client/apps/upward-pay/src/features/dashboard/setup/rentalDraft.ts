@@ -5,6 +5,12 @@ import { isRentDateRangeValid } from './rentalDates'
 export function isPaymentDraftComplete(draft: SetupDraft): boolean {
   if (draft.landlordSkipped) return true
   if (draft.isManagedProperty) return true
+  const hasEnteredPayment = Boolean(
+    draft.paymentDetails?.accountNumber?.trim() ||
+      draft.paymentDetails?.bankCode?.trim() ||
+      draft.paymentDetails?.accountName?.trim(),
+  )
+  if (!hasEnteredPayment) return true
   return isPaymentAccountResolved(draft.paymentDetails)
 }
 

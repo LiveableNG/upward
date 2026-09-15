@@ -203,8 +203,43 @@ export class SubmitUnitRequestUseCase {
       amountRemaining = unitDetails.rentAmount;
     }
 
+    // Resolve or create location record
+    let locationId: number | undefined;
+
+    let existingProperty: any = null;
+    if (unitDetails.uuid) {
+      existingProperty = await this.prisma.upward_user_property.findFirst({
+        where: { uuid: unitDetails.uuid, userId: fullUser.id }
+      });
+    }
+
+    if (existingProperty?.locationId) {
+      await this.prisma.upward_location.update({
+        where: { id: existingProperty.locationId },
+        data: {
+          address: unitDetails.address,
+          area: unitDetails.area,
+          subarea: unitDetails.subarea || '',
+          state: unitDetails.state,
+          country: unitDetails.country,
+        }
+      });
+      locationId = existingProperty.locationId;
+    } else {
+      const loc = await this.prisma.upward_location.create({
+        data: {
+          address: unitDetails.address,
+          area: unitDetails.area,
+          subarea: unitDetails.subarea || '',
+          state: unitDetails.state,
+          country: unitDetails.country,
+        }
+      });
+      locationId = loc.id;
+    }
+
     const propertyBaseData: any = {
-      user: { connect: { id: fullUser.id } },
+      location: { connect: { id: locationId } },
       rentAmount: unitDetails.rentAmount,
       rentStartDate: startDate,
       rentEndDate: endDate,
@@ -238,53 +273,30 @@ export class SubmitUnitRequestUseCase {
 
     let savedProperty: any = null;
 
-    if (unitDetails.uuid) {
-      const existing = await this.prisma.upward_user_property.findUnique({
-        where: { uuid: unitDetails.uuid }
-      });
-
-      if (existing && (existing.isVerified || existing.pmUnitId)) {
+    if (existingProperty) {
+      if (existingProperty.isVerified || existingProperty.pmUnitId) {
         // STRICT LOCK: If property is verified/managed, lock lease details
-        propertyBaseData.rentAmount = existing.rentAmount;
-        propertyBaseData.rentStartDate = existing.rentStartDate;
-        propertyBaseData.rentEndDate = existing.rentEndDate;
-        propertyBaseData.rentType = existing.rentType;
-        propertyBaseData.amountPaid = existing.amountPaid;
-        propertyBaseData.amountRemaining = existing.amountRemaining;
-        propertyBaseData.initialAmountPaid = existing.initialAmountPaid;
+        propertyBaseData.rentAmount = existingProperty.rentAmount;
+        propertyBaseData.rentStartDate = existingProperty.rentStartDate;
+        propertyBaseData.rentEndDate = existingProperty.rentEndDate;
+        propertyBaseData.rentType = existingProperty.rentType;
+        propertyBaseData.amountPaid = existingProperty.amountPaid;
+        propertyBaseData.amountRemaining = existingProperty.amountRemaining;
+        propertyBaseData.initialAmountPaid = existingProperty.initialAmountPaid;
         delete propertyBaseData.pm;
         delete propertyBaseData.subaccount;
       }
 
-      savedProperty = await (this.prisma as any).upward_user_property.update({
-        where: { uuid: unitDetails.uuid, userId: fullUser.id },
-        data: {
-          ...propertyBaseData,
-          location: {
-            update: {
-              address: unitDetails.address,
-              area: unitDetails.area,
-              subarea: unitDetails.subarea,
-              state: unitDetails.state,
-              country: unitDetails.country,
-            }
-          }
-        }
+      savedProperty = await this.prisma.upward_user_property.update({
+        where: { id: existingProperty.id },
+        data: propertyBaseData,
       });
     } else {
-      savedProperty = await (this.prisma as any).upward_user_property.create({
+      savedProperty = await this.prisma.upward_user_property.create({
         data: {
           ...propertyBaseData,
-          location: {
-            create: {
-              address: unitDetails.address,
-              area: unitDetails.area,
-              subarea: unitDetails.subarea,
-              state: unitDetails.state,
-              country: unitDetails.country,
-            }
-          }
-        }
+          user: { connect: { id: fullUser.id } },
+        },
       });
     }
 
