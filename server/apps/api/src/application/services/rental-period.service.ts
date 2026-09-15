@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service';
 
 export interface CalculatedPeriod {
   nextStart: Date;
@@ -46,6 +47,8 @@ export interface ResolvedTargetPeriod {
 @Injectable()
 export class RentalPeriodService {
   private readonly logger = new Logger(RentalPeriodService.name);
+
+  constructor(@Optional() private readonly prisma?: PrismaService) {}
 
   /**
    * Canonical UTC Midnight representation of a calendar date.
@@ -353,5 +356,140 @@ export class RentalPeriodService {
       amountPaid: newAmountPaid,
       amountRemaining: newAmountRemaining,
     };
+  }
+
+
+  async syncUnitPropertyState(unitId: number, txClient?: any): Promise<void> {
+    const prisma = txClient || this.prisma;
+    if (!prisma) {
+      this.logger.warn(`No PrismaService available to sync unit property state for unitId=${unitId}`);
+      return;
+    }
+
+    const unit = await prisma.upward_pm_unit.findUnique({
+      where: { id: unitId },
+      include: { property: true },
+    });
+    if (!unit) return;
+
+    let userProperty = null;
+    if (unit.userPropertyUuid) {
+      userProperty = await prisma.upward_user_property.findUnique({
+        where: { uuid: unit.userPropertyUuid },
+      });
+    }
+    if (!userProperty) {
+      userProperty = await prisma.upward_user_property.findFirst({
+        where: { pmUnitId: unit.id },
+      });
+    }
+
+    const payments = await prisma.upward_pm_rent_payment.findMany({
+      where: {
+        unitId: unit.id,
+        tenantId: unit.tenantId || undefined,
+        status: 'SUCCESS',
+      },
+    });
+
+    const periodMap = new Map<
+      number,
+      {
+        periodStart: Date;
+        periodEnd: Date;
+        totalPaid: number;
+        amountDue: number;
+      }
+    >();
+
+    for (const p of payments) {
+      const start = this.parseCalendarDate(p.periodStart);
+      if (!start) continue;
+      const end =
+        this.parseCalendarDate(p.periodEnd) ||
+        this.calculatePeriodEnd(start, unit.rentType, (unit as any).leaseYears);
+      const key = start.getTime();
+      if (!periodMap.has(key)) {
+        periodMap.set(key, {
+          periodStart: start,
+          periodEnd: end,
+          totalPaid: 0,
+          amountDue: p.rentAmountAtPayment || unit.rentAmount || 0,
+        });
+      }
+      periodMap.get(key)!.totalPaid += (p.amount || 0);
+    }
+
+    const sortedPeriods = Array.from(periodMap.values()).sort(
+      (a, b) => a.periodStart.getTime() - b.periodStart.getTime(),
+    );
+
+    let activeStart: Date;
+    let activeEnd: Date;
+    let amountPaid: number;
+    let amountRemaining: number;
+    let isFirstRent: boolean;
+
+    if (sortedPeriods.length === 0) {
+      activeStart =
+        this.parseCalendarDate(unit.rentStartDate) ||
+        this.parseCalendarDate(new Date())!;
+      activeEnd =
+        this.parseCalendarDate(unit.rentDueDate) ||
+        this.calculatePeriodEnd(activeStart, unit.rentType, (unit as any).leaseYears);
+      amountPaid = 0;
+      amountRemaining = unit.rentAmount || 0;
+      isFirstRent = userProperty?.isFirstRent ?? true;
+    } else {
+      const earliestIncomplete = sortedPeriods.find(
+        (p) => p.totalPaid < p.amountDue,
+      );
+
+      if (earliestIncomplete) {
+        activeStart = earliestIncomplete.periodStart;
+        activeEnd = earliestIncomplete.periodEnd;
+        amountPaid = Math.min(earliestIncomplete.amountDue, earliestIncomplete.totalPaid);
+        amountRemaining = Math.max(
+          0,
+          earliestIncomplete.amountDue - earliestIncomplete.totalPaid,
+        );
+        const isEarliestPeriod =
+          earliestIncomplete.periodStart.getTime() ===
+          sortedPeriods[0]!.periodStart.getTime();
+        isFirstRent = isEarliestPeriod ? (userProperty?.isFirstRent ?? true) : false;
+      } else {
+        const latestFullyPaid = sortedPeriods[sortedPeriods.length - 1]!;
+        activeStart = latestFullyPaid.periodStart;
+        activeEnd = latestFullyPaid.periodEnd;
+        amountPaid = latestFullyPaid.amountDue;
+        amountRemaining = 0;
+        isFirstRent = false;
+      }
+    }
+
+    await prisma.upward_pm_unit.update({
+      where: { id: unit.id },
+      data: {
+        rentStartDate: activeStart,
+        rentDueDate: activeEnd,
+      },
+    });
+
+    if (userProperty) {
+      await prisma.upward_user_property.update({
+        where: { id: userProperty.id },
+        data: {
+          rentStartDate: activeStart,
+          rentEndDate: activeEnd,
+          amountPaid,
+          amountRemaining,
+          isFirstRent,
+          isPastTenancy: false,
+        },
+      });
+      this.logger.log(
+        `Synced user property ${userProperty.id} (unit ${unit.id}): start=${activeStart.toISOString().split('T')[0]}, end=${activeEnd.toISOString().split('T')[0]}, paid=${amountPaid}, remaining=${amountRemaining}, isFirstRent=${isFirstRent}`,
+      );
+    }
   }
 }

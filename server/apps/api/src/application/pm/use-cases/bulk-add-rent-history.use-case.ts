@@ -176,51 +176,9 @@ export class BulkAddRentHistoryUseCase {
     // Recalculate unit's active occupancy period based on all payments after bulk import
     if (unit.tenantId) {
       try {
-        const allPaymentsAfter = await this.unitRepository.getRentPayments(dto.unitUuid);
-        const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
-
-        const periodMap = new Map<number, { periodStart: Date; periodEnd: Date; total: number; amountDue: number }>();
-        for (const p of tenantPayments) {
-          const start = this.rentalPeriodService.parseCalendarDate(p.periodStart);
-          if (!start) continue;
-          const end = this.rentalPeriodService.parseCalendarDate(p.periodEnd) || start;
-          const key = start.getTime();
-          if (!periodMap.has(key)) {
-            periodMap.set(key, {
-              periodStart: start,
-              periodEnd: end,
-              total: 0,
-              amountDue: p.rentAmountAtPayment
-            });
-          }
-          periodMap.get(key)!.total += p.amount;
-        }
-
-        const sortedPeriods = Array.from(periodMap.values()).sort(
-          (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
-        );
-
-        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= p.amountDue);
-
-        if (fullyPaidPeriods.length > 0) {
-          const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
-          await this.unitRepository.update(dto.unitUuid, {
-            rentStartDate: latestFullyPaid.periodStart,
-            rentDueDate: latestFullyPaid.periodEnd
-          });
-
-          if (unit.isSynced && unit.userPropertyUuid) {
-            await this.prisma.upward_user_property.updateMany({
-              where: { uuid: unit.userPropertyUuid },
-              data: {
-                rentStartDate: latestFullyPaid.periodStart,
-                rentEndDate: latestFullyPaid.periodEnd
-              }
-            });
-          }
-        }
+        await this.rentalPeriodService.syncUnitPropertyState(unit.id);
       } catch (err) {
-        console.error('Failed to recalculate unit dates after bulk rent history import:', err);
+        console.error('Failed to sync unit property state after bulk rent history import:', err);
       }
     }
 
