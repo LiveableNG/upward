@@ -60,6 +60,7 @@ model upward_user {
   wallet                upward_wallet?
   walletTransactions    upward_wallet_transaction[]
   whatsappSequenceLogs  upward_whatsapp_sequence_log[]
+  invitedPms            upward_property_manager[]        @relation("UserInvitedPms")
 
   @@index([email])
   @@index([createdAt])

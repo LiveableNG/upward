@@ -439,9 +439,38 @@ export class PmAuthService extends BaseAuthService {
       where: { collaboratorPmId: pm.id },
     })
 
-    let ownerPm: any = null
+    let invitedBy: any = null
+
     if (collab?.ownerPmId) {
-      ownerPm = await this.pmRepository.findById(collab.ownerPmId)
+      const ownerPm = await this.pmRepository.findById(collab.ownerPmId)
+      if (ownerPm) {
+        invitedBy = {
+          name: `${ownerPm.firstName || ''} ${ownerPm.lastName || ''}`.trim() || ownerPm.businessName || 'Team Admin',
+          companyName: ownerPm.businessName,
+          email: ownerPm.email,
+          accessLevel: collab.accessLevel,
+          type: 'TEAM_ADMIN',
+        }
+      }
+    } else if (pm.invitedByUserId) {
+      const invitingUser = await (this.prisma as any).upward_user.findUnique({
+        where: { id: pm.invitedByUserId },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      })
+
+      if (invitingUser) {
+        const firstName = this.encryption.decrypt(invitingUser.firstName)
+        const lastName = this.encryption.decrypt(invitingUser.lastName)
+        invitedBy = {
+          name: `${firstName} ${lastName}`.trim(),
+          email: this.encryption.decrypt(invitingUser.email),
+          type: 'TENANT',
+        }
+      }
     }
 
     const isActivated = pm.passwordHash !== 'PENDING_INVITE' && !!pm.passwordHash
@@ -450,16 +479,11 @@ export class PmAuthService extends BaseAuthService {
       firstName: pm.firstName,
       lastName: pm.lastName,
       email: pm.email,
+      pmType: pm.pmType,
+      businessName: pm.businessName,
       status: isActivated ? 'ACTIVE' : 'PENDING',
       isActivated,
-      invitedBy: ownerPm
-        ? {
-            name: `${ownerPm.firstName || ''} ${ownerPm.lastName || ''}`.trim() || ownerPm.businessName || 'Team Admin',
-            companyName: ownerPm.businessName,
-            email: ownerPm.email,
-            accessLevel: collab.accessLevel,
-          }
-        : null,
+      invitedBy,
     }
   }
 

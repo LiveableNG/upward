@@ -552,64 +552,68 @@ export function DashboardView({ initialData }: { initialData?: any }) {
           </div>
         )}
       </div>
-      {/* Rent Collection Report Controls & Scope Header (Apple Fluid Design) */}
+
+      {/* Action Center / High Priority Tasks */}
+      <ActivityCarousel />
+
+      {/* Rent Collection Report Controls & Scope Header (Compact Apple Fluid Design) */}
       <div 
         style={{
-          background: 'rgba(255, 255, 255, 0.85)',
+          background: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(231, 227, 219, 0.7)',
-          borderRadius: '24px',
-          padding: '24px 28px',
-          marginBottom: '24px',
-          boxShadow: '0 8px 32px rgba(26, 26, 23, 0.03)',
+          border: '1px solid rgba(231, 227, 219, 0.8)',
+          borderRadius: '20px',
+          padding: '18px 22px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 20px rgba(26, 26, 23, 0.02)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px',
+          gap: '14px',
           transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
+                width: 28,
+                height: 28,
+                borderRadius: 8,
                 background: 'var(--forest-faint)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'var(--forest)'
               }}>
-                <PieChart size={18} />
+                <PieChart size={16} />
               </div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--dark)', margin: 0, letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--dark)', margin: 0, letterSpacing: '-0.02em' }}>
                 Rent Collection Report
               </h2>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '2px 0 0 36px' }}>
               Track rent collected vs. rent owing based on rent expiry dates.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Scope Badge */}
             <div 
               style={{
-                padding: '6px 14px',
+                padding: '4px 12px',
                 borderRadius: 100,
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: 700,
                 background: isCompanyAdmin ? 'rgba(22, 101, 52, 0.08)' : 'rgba(234, 179, 8, 0.12)',
                 color: isCompanyAdmin ? 'var(--forest)' : '#b45309',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 border: '1px solid rgba(0, 0, 0, 0.04)'
               }}
             >
-              <Layers size={14} />
+              <Layers size={13} />
               {isCompanyAdmin
                 ? filteredManagerName
                   ? `Scope: Manager (${filteredManagerName})`
@@ -630,168 +634,151 @@ export function DashboardView({ initialData }: { initialData?: any }) {
                 }}
                 style={{
                   borderRadius: 100,
-                  height: 32,
-                  fontSize: 12,
+                  height: 28,
+                  fontSize: 11.5,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
+                  padding: '0 10px',
                   transition: 'transform 100ms ease-out',
                   cursor: 'pointer'
                 }}
                 onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.97)')}
                 onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                <RotateCcw size={13} /> Reset Filters
+                <RotateCcw size={12} /> Reset
               </button>
             )}
           </div>
         </div>
 
-        {/* Apple Segmented Date Preset Selector (Horizontally Scrollable on Mobile) */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            gap: 6, 
-            overflowX: 'auto', 
-            WebkitOverflowScrolling: 'touch', 
-            background: 'var(--bg)', 
-            padding: 4, 
-            borderRadius: 14, 
-            border: '1px solid var(--border)',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}
-        >
-          {[
-            { id: 'all', label: 'All Expiry Dates' },
-            { id: 'this_month', label: 'This Month' },
-            { id: 'next_30', label: 'Next 30 Days' },
-            { id: 'this_quarter', label: 'This Quarter' },
-            { id: 'this_year', label: 'This Year' },
-            { id: 'custom', label: 'Custom Range...' }
-          ].map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => setDatePreset(preset.id as any)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 10,
-                fontSize: 12,
-                fontWeight: datePreset === preset.id ? 700 : 500,
-                border: 'none',
-                background: datePreset === preset.id ? 'var(--dark)' : 'transparent',
-                color: datePreset === preset.id ? 'white' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                boxShadow: datePreset === preset.id ? '0 2px 8px rgba(0,0,0,0.12)' : 'none',
-                touchAction: 'manipulation'
-              }}
-              onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
-              onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
+        {/* Date Preset Selector & Filter Dropdowns Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          {/* Apple Segmented Date Preset Selector */}
+          <div 
+            style={{ 
+              display: 'flex', 
+              gap: 4, 
+              overflowX: 'auto', 
+              WebkitOverflowScrolling: 'touch', 
+              background: 'var(--bg)', 
+              padding: 3, 
+              borderRadius: 12, 
+              border: '1px solid var(--border)',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            {[
+              { id: 'all', label: 'All Expiry Dates' },
+              { id: 'this_month', label: 'This Month' },
+              { id: 'next_30', label: 'Next 30 Days' },
+              { id: 'this_quarter', label: 'This Quarter' },
+              { id: 'this_year', label: 'This Year' },
+              { id: 'custom', label: 'Custom Range...' }
+            ].map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setDatePreset(preset.id as any)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontSize: 11.5,
+                  fontWeight: datePreset === preset.id ? 700 : 500,
+                  border: 'none',
+                  background: datePreset === preset.id ? 'var(--dark)' : 'transparent',
+                  color: datePreset === preset.id ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: datePreset === preset.id ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
+                  touchAction: 'manipulation'
+                }}
+                onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.96)')}
+                onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Filter Dropdowns Bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, paddingTop: 12, borderTop: '1px solid #F2F1EB' }}>
-          {/* Custom Date Inputs if custom is selected */}
-          {datePreset === 'custom' && (
-            <>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>
-                  Expiry From
-                </label>
+          {/* Compact Property & Manager Filter Dropdowns */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+            {/* Custom Date Inputs if custom is selected */}
+            {datePreset === 'custom' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <input
                   type="date"
                   value={customStart}
                   onChange={(e) => setCustomStart(e.target.value)}
                   style={{
-                    width: '100%',
-                    height: 40,
-                    borderRadius: 10,
+                    height: 32,
+                    borderRadius: 8,
                     border: '1px solid var(--border)',
-                    padding: '0 12px',
-                    fontSize: 13,
+                    padding: '0 8px',
+                    fontSize: 12,
                     background: 'var(--bg)'
                   }}
                 />
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>
-                  Expiry To
-                </label>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>–</span>
                 <input
                   type="date"
                   value={customEnd}
                   onChange={(e) => setCustomEnd(e.target.value)}
                   style={{
-                    width: '100%',
-                    height: 40,
-                    borderRadius: 10,
+                    height: 32,
+                    borderRadius: 8,
                     border: '1px solid var(--border)',
-                    padding: '0 12px',
-                    fontSize: 13,
+                    padding: '0 8px',
+                    fontSize: 12,
                     background: 'var(--bg)'
                   }}
                 />
               </div>
-            </>
-          )}
+            )}
 
-          {/* Manager Selector (Admin only) */}
-          {isCompanyAdmin && teamMembers.length > 0 && (
-            <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>
-                Team Manager
-              </label>
+            {/* Manager Selector (Admin only) */}
+            {isCompanyAdmin && teamMembers.length > 0 && (
               <select
                 value={selectedManagerUuid}
                 onChange={(e) => setSelectedManagerUuid(e.target.value)}
                 style={{
-                  width: '100%',
-                  height: 40,
-                  borderRadius: 10,
+                  height: 32,
+                  borderRadius: 8,
                   border: '1px solid var(--border)',
-                  padding: '0 12px',
-                  fontSize: 13,
+                  padding: '0 10px',
+                  fontSize: 12,
                   background: 'var(--bg)',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  maxWidth: 200
                 }}
               >
-                <option value="">All Managers (Entire Company)</option>
+                <option value="">All Managers</option>
                 {teamMembers.map((m: any) => (
                   <option key={m.uuid} value={m.member.uuid}>
-                    {m.member.firstName ? `${m.member.firstName} ${m.member.lastName}`.trim() : m.member.email} ({m.accessLevel === 'ALL' ? 'Admin' : 'Manager'})
+                    {m.member.firstName ? `${m.member.firstName} ${m.member.lastName}`.trim() : m.member.email}
                   </option>
                 ))}
               </select>
-            </div>
-          )}
+            )}
 
-          {/* Property Selector */}
-          <div className="form-group" style={{ margin: 0 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>
-              Property
-            </label>
+            {/* Property Selector */}
             <select
               value={selectedPropertyUuid}
               onChange={(e) => setSelectedPropertyUuid(e.target.value)}
               style={{
-                width: '100%',
-                height: 40,
-                borderRadius: 10,
+                height: 32,
+                borderRadius: 8,
                 border: '1px solid var(--border)',
-                padding: '0 12px',
-                fontSize: 13,
+                padding: '0 10px',
+                fontSize: 12,
                 background: 'var(--bg)',
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                minWidth: 160
               }}
             >
               <option value="">All Properties</option>
@@ -805,82 +792,87 @@ export function DashboardView({ initialData }: { initialData?: any }) {
         </div>
 
         {/* Rent Collection Report Summary Cards & Progress Gauge */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, paddingTop: 4 }}>
-          {/* Card 1: Rent Collected */}
-          <div style={{
-            padding: 20,
-            borderRadius: 18,
-            background: 'var(--forest-faint)',
-            border: '1px solid rgba(26, 77, 46, 0.15)',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            boxShadow: '0 4px 12px rgba(22, 101, 52, 0.04)'
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-              Rent Collected
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--forest)', letterSpacing: '-0.02em' }}>
-              ₦{totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-              Received for selected period
-            </div>
-          </div>
+        {(() => {
+          const hasRentData = totalCollected > 0 || totalOwing > 0
+          const displayCollectionRate = hasRentData ? collectionRate : 0
 
-          {/* Card 2: Rent Owing */}
-          <div style={{
-            padding: 20,
-            borderRadius: 18,
-            background: totalOwing > 0 ? 'rgba(239, 68, 68, 0.05)' : 'var(--bg)',
-            border: totalOwing > 0 ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid var(--border)',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            boxShadow: totalOwing > 0 ? '0 4px 12px rgba(239, 68, 68, 0.04)' : 'none'
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: totalOwing > 0 ? 'var(--error)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-              Rent Owing (Arrears & Pending)
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: totalOwing > 0 ? 'var(--error)' : 'var(--dark)', letterSpacing: '-0.02em' }}>
-              ₦{totalOwing.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-              Outstanding balance for selected period
-            </div>
-          </div>
-
-          {/* Card 3: Collection Rate Progress Bar */}
-          <div style={{
-            padding: 20,
-            borderRadius: 18,
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Collection Rate
-              </span>
-              <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--forest)' }}>
-                {collectionRate}%
-              </span>
-            </div>
-            <div style={{ width: '100%', height: 10, background: '#E7E3DB', borderRadius: 10, overflow: 'hidden' }}>
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, paddingTop: 4 }}>
+              {/* Card 1: Rent Collected */}
               <div style={{
-                width: `${collectionRate}%`,
-                height: '100%',
-                background: 'linear-gradient(90deg, #166534, #22c55e)',
-                borderRadius: 10,
-                transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-              }} />
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-              {collectionRate}% of total expected rent collected
-            </div>
-          </div>
-        </div>
-      </div>
+                padding: '14px 18px',
+                borderRadius: 14,
+                background: 'var(--forest-faint)',
+                border: '1px solid rgba(26, 77, 46, 0.12)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                boxShadow: '0 2px 8px rgba(22, 101, 52, 0.03)'
+              }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--forest)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  Rent Collected
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--forest)', letterSpacing: '-0.02em' }}>
+                  ₦{totalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Received for selected period
+                </div>
+              </div>
 
-      <ActivityCarousel />
+              {/* Card 2: Rent Owing */}
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: 14,
+                background: totalOwing > 0 ? 'rgba(239, 68, 68, 0.04)' : 'var(--bg)',
+                border: totalOwing > 0 ? '1px solid rgba(239, 68, 68, 0.18)' : '1px solid var(--border)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                boxShadow: totalOwing > 0 ? '0 2px 8px rgba(239, 68, 68, 0.03)' : 'none'
+              }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: totalOwing > 0 ? 'var(--error)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  Rent Owing (Arrears & Pending)
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: totalOwing > 0 ? 'var(--error)' : 'var(--dark)', letterSpacing: '-0.02em' }}>
+                  ₦{totalOwing.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Outstanding balance for selected period
+                </div>
+              </div>
+
+              {/* Card 3: Collection Rate Progress Bar */}
+              <div style={{
+                padding: '14px 18px',
+                borderRadius: 14,
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Collection Rate
+                  </span>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: hasRentData ? 'var(--forest)' : 'var(--text-muted)' }}>
+                    {hasRentData ? `${displayCollectionRate}%` : '0%'}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: 8, background: '#E7E3DB', borderRadius: 8, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${displayCollectionRate}%`,
+                    height: '100%',
+                    background: hasRentData ? 'linear-gradient(90deg, #166534, #22c55e)' : '#D1D5DB',
+                    borderRadius: 8,
+                    transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }} />
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
+                  {hasRentData ? `${displayCollectionRate}% of total expected rent collected` : 'No rent scheduled for this period'}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
 
 
 

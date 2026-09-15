@@ -33,6 +33,8 @@ model upward_property_manager {
   isBlocked               Boolean                              @default(false)
   isManuallyBlocked       Boolean                              @default(false)
   disabledAt              DateTime?
+  invitedByUserId         Int?
+  invitedByUser           upward_user?                         @relation("UserInvitedPms", fields: [invitedByUserId], references: [id], onDelete: SetNull)
   activityLogsOwned       upward_pm_activity_log[]             @relation("ActivityOwner")
   activityLogsPerformed   upward_pm_activity_log[]             @relation("ActivityPerformer")
   authSessions            upward_pm_auth_session[]

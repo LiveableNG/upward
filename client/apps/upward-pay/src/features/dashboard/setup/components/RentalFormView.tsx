@@ -177,9 +177,17 @@ export function RentalFormView() {
     if (!validateManagerStep()) return
 
     const hasEnteredManager = Boolean(
-      draft.pmEmail.trim() || draft.formData.pmName.trim() || draft.pmInviteEmail.trim(),
+      draft.pmEmail.trim() ||
+        draft.formData.pmName.trim() ||
+        draft.pmInviteEmail.trim() ||
+        (draft.pmFound && draft.pmDetails),
     )
-    updateDraft({ landlordSkipped: canSkipLandlord && !hasEnteredManager })
+    const hasEnteredPayment = Boolean(
+      draft.paymentDetails.accountNumber.trim() ||
+        draft.paymentDetails.bankCode.trim() ||
+        draft.paymentDetails.accountName.trim(),
+    )
+    updateDraft({ landlordSkipped: canSkipLandlord && !hasEnteredManager && !hasEnteredPayment })
     goToConfirm()
   }
 

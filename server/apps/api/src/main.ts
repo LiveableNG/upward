@@ -16,13 +16,50 @@ let cachedApp: NestFastifyApplication
 let initializationPromise: Promise<NestFastifyApplication> | null = null
 
 async function bootstrap() {
+  const isDev = process.env.NODE_ENV !== 'production'
+
+  const fastifyAdapterOptions: any = {
+    bodyLimit: 1048576 * 100, // 100MB limit for base64 file uploads
+  }
+
+  if (isDev) {
+    fastifyAdapterOptions.disableRequestLogging = true
+    fastifyAdapterOptions.logger = {
+      level: 'debug',
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          singleLine: true,
+          translateTime: 'HH:MM:ss',
+          ignore: 'pid,hostname',
+        },
+      },
+    }
+  } else {
+    fastifyAdapterOptions.logger = true
+  }
+
+  const adapter = new FastifyAdapter(fastifyAdapterOptions)
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({
-      logger: true,
-      bodyLimit: 1048576 * 100, // 100MB limit for base64 file uploads
-    }),
+    adapter,
   )
+
+  if (isDev) {
+    const fastifyInstance = app.getHttpAdapter().getInstance()
+    fastifyInstance.addHook('onRequest', (request: any, reply: any, done: any) => {
+      request.log.debug(`--> [INCOMING]  ${request.method} ${request.url}`)
+      done()
+    })
+    fastifyInstance.addHook('onResponse', (request: any, reply: any, done: any) => {
+      const responseTime = Math.round(reply.elapsedTime)
+      const status = reply.statusCode
+      const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info'
+      request.log[level](`<-- [COMPLETED] ${request.method} ${request.url} (${status}) +${responseTime}ms`)
+      done()
+    })
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await app.register(fastifyCookie as any)

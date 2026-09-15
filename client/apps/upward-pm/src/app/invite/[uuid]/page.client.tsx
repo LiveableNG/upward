@@ -148,15 +148,23 @@ export default function ClaimAccountPage() {
   }
 
   const inviter = userData.invitedBy
-  const companyName = inviter?.companyName || inviter?.name || 'Upward Workspace'
+  const isEmployee = isEmployeeInvite
+
+  const accountOrCompanyName = isEmployee 
+    ? (inviter?.companyName || inviter?.name || 'Organization Workspace')
+    : (inviter?.companyName || userData.businessName || 'Upward')
 
   // If already activated / accepted
   if (userData.isActivated || userData.status === 'ACTIVE') {
     return (
       <AuthLayout
         eyebrow="Account Active"
-        visualTitle="Welcome back to your workspace."
-        visualDesc="Your team account is active. Sign in to collaborate and manage properties seamlessly."
+        visualTitle={isEmployee ? "Welcome back to your workspace." : "Welcome back to Upward."}
+        visualDesc={
+          isEmployee
+            ? "Your team account is active. Sign in to collaborate and manage properties seamlessly."
+            : "Your Upward account is active. Sign in to manage your properties and rent collections seamlessly."
+        }
       >
         <div className="animate-fade-in" style={{ textAlign: 'center', padding: '8px 0' }}>
           <div
@@ -182,15 +190,17 @@ export default function ClaimAccountPage() {
             </p>
           </div>
 
-          {/* Workspace Invitation Card */}
+          {/* Workspace / Account Card */}
           <div className="workspace-invite-card" style={{ textAlign: 'left', marginBottom: 24 }}>
             <div className="workspace-invite-card__icon">
               <Building2 size={22} />
             </div>
             <div className="workspace-invite-card__body">
-              <span className="workspace-invite-card__eyebrow">Organization Workspace</span>
+              <span className="workspace-invite-card__eyebrow">
+                {isEmployee ? 'Organization Workspace' : 'Upward Account'}
+              </span>
               <h3 className="workspace-invite-card__title">
-                {companyName}
+                {accountOrCompanyName}
               </h3>
               <div className="workspace-invite-card__meta">
                 <span className="workspace-invite-card__email">
@@ -229,7 +239,9 @@ export default function ClaimAccountPage() {
           )}
 
           <p className="foot-note" style={{ fontSize: 13, marginTop: 20 }}>
-            Need help accessing your workspace? Contact your administrator or support.
+            {isEmployee
+              ? 'Need help accessing your workspace? Contact your administrator or support.'
+              : 'Need help accessing your account? Contact Upward support.'}
           </p>
         </div>
       </AuthLayout>
@@ -238,28 +250,38 @@ export default function ClaimAccountPage() {
 
   return (
     <AuthLayout
-      eyebrow="Team Invitation"
-      visualTitle="Activate your team member account."
-      visualDesc="Join your property management team on Upward to collaborate and manage workflows seamlessly."
+      eyebrow={isEmployee ? "Team Invitation" : "Account Invitation"}
+      visualTitle={isEmployee ? "Activate your team member account." : "Activate your Upward account."}
+      visualDesc={
+        isEmployee
+          ? "Join your property management team on Upward to collaborate and manage workflows seamlessly."
+          : "Manage properties, automate rent collection, and connect seamlessly with your tenants and team."
+      }
     >
       <div className="animate-fade-in">
         {/* Card Header */}
         <div className="card-head">
           <h2>Activate your account</h2>
           <p>
-            Complete your details below to set your password and access your workspace.
+            Complete your details below to set your password and access your {isEmployee ? 'workspace' : 'account'}.
           </p>
         </div>
 
-        {/* Workspace Invitation Card */}
+        {/* Invitation Card */}
         <div className="workspace-invite-card">
           <div className="workspace-invite-card__icon">
             <Building2 size={22} />
           </div>
           <div className="workspace-invite-card__body">
-            <span className="workspace-invite-card__eyebrow">Workspace Invitation</span>
+            <span className="workspace-invite-card__eyebrow">
+              {isEmployee 
+                ? 'Workspace Invitation' 
+                : (inviter?.type === 'TENANT' ? 'Tenant Connection' : 'Account Invitation')}
+            </span>
             <h3 className="workspace-invite-card__title">
-              {inviter?.companyName || inviter?.name || 'Upward Workspace'}
+              {isEmployee
+                ? accountOrCompanyName
+                : (inviter?.companyName || userData.businessName || (inviter?.name ? `Invited by ${inviter.name}` : 'Upward Account'))}
             </h3>
             <div className="workspace-invite-card__meta">
               <span className="workspace-invite-card__email">
@@ -269,6 +291,11 @@ export default function ClaimAccountPage() {
               {inviter?.name && inviter.name !== inviter?.companyName && (
                 <span className="workspace-invite-card__inviter">
                   · Invited by {inviter.name}
+                </span>
+              )}
+              {inviter?.unitAddress && (
+                <span className="workspace-invite-card__inviter">
+                  · {inviter.unitAddress}
                 </span>
               )}
             </div>
@@ -381,7 +408,15 @@ export default function ClaimAccountPage() {
               >
                 Privacy Policy
               </a>
-              , and accept this invitation to join <strong>{companyName}</strong>.
+              {isEmployee ? (
+                <>
+                  , and accept this invitation to join <strong>{accountOrCompanyName}</strong>.
+                </>
+              ) : (
+                <>
+                  , and accept this invitation to activate my Upward account.
+                </>
+              )}
             </label>
           </div>
 
@@ -396,9 +431,17 @@ export default function ClaimAccountPage() {
           </button>
         </form>
 
-        {/* Workspace Footnote */}
+        {/* Footnote */}
         <p className="foot-note" style={{ fontSize: 12.5, marginTop: 18, textAlign: 'center' }}>
-          By joining <strong style={{ color: 'var(--ink)' }}>{inviter?.companyName || 'your organization workspace'}</strong>, you will have access to assigned properties and team workflows.
+          {isEmployee ? (
+            <>
+              By joining <strong style={{ color: 'var(--ink)' }}>{accountOrCompanyName}</strong>, you will have access to assigned properties and team workflows.
+            </>
+          ) : (
+            <>
+              By activating your account, you will have access to manage properties, track tenancies, and collect payments on Upward.
+            </>
+          )}
         </p>
       </div>
     </AuthLayout>
