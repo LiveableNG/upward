@@ -551,7 +551,9 @@ export const PaymentDetailView: React.FC = () => {
                         <span className="timeline-date">{formatDate(request.createdAt)}</span>
                       </div>
                       <p className="timeline-desc">
-                        Rent request initialized for {request.unit?.unitName || 'selected unit'} by {request.createdBy?.isEmployee ? `${request.createdBy.name} (${request.createdBy.role})` : (request.createdBy?.name || 'Company Admin')}.
+                        {request.isSelfPayment || request.createdBy?.isTenant || request.createdBy?.role === 'Tenant'
+                          ? `Payment self-initiated for ${request.unit?.unitName || 'selected unit'} by tenant (${request.createdBy?.name || (request.tenant ? (request.tenant.commercialName || `${request.tenant.firstName || ''} ${request.tenant.lastName || ''}`.trim()) : '') || 'Tenant'}).`
+                          : `Rent request initialized for ${request.unit?.unitName || 'selected unit'} by ${request.createdBy?.isEmployee ? `${request.createdBy.name} (${request.createdBy.role})` : (request.createdBy?.name || 'Company Admin')}.`}
                       </p>
                     </div>
                   </div>
@@ -573,6 +575,8 @@ export const PaymentDetailView: React.FC = () => {
                   <span className="checkout-breakdown__value" style={{ fontSize: 12, fontWeight: 600, color: '#1A1A17' }}>
                     {request.createdBy?.isEmployee 
                       ? `${request.createdBy.name} (${request.createdBy.role})` 
+                      : (request.isSelfPayment || request.createdBy?.isTenant || request.createdBy?.role === 'Tenant')
+                      ? `${request.createdBy?.name || (request.tenant ? (request.tenant.commercialName || `${request.tenant.firstName || ''} ${request.tenant.lastName || ''}`.trim()) : '') || 'Tenant'} (Tenant)`
                       : (request.createdBy?.name || 'Company Admin')}
                   </span>
                 </div>

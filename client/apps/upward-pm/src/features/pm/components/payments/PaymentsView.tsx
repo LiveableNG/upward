@@ -136,28 +136,48 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
     },
     {
       header: 'Created By',
-      render: (req) => (
-        <div className="payments-view__cell" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>
-          {req.createdBy?.isEmployee ? (
-            <span style={{
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              padding: '2px 8px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              color: 'var(--dark)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4
-            }}>
-              {req.createdBy.name} <span style={{ color: 'var(--clay)', fontSize: 10 }}>({req.createdBy.role})</span>
-            </span>
-          ) : (
-            <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{req.createdBy?.name || 'Company Admin'}</span>
-          )}
-        </div>
-      )
+      render: (req) => {
+        const isTenantCreated = req.isSelfPayment || req.createdBy?.isTenant || req.createdBy?.role === 'Tenant';
+        const tenantDisplayName = req.createdBy?.name || (req.tenant ? (req.tenant.commercialName || `${req.tenant.firstName || ''} ${req.tenant.lastName || ''}`.trim()) : '') || 'Tenant';
+
+        return (
+          <div className="payments-view__cell" style={{ fontSize: 13, minWidth: 120, whiteSpace: 'nowrap' }}>
+            {req.createdBy?.isEmployee ? (
+              <span style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                padding: '2px 8px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--dark)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                {req.createdBy.name} <span style={{ color: 'var(--clay)', fontSize: 10 }}>({req.createdBy.role})</span>
+              </span>
+            ) : isTenantCreated ? (
+              <span style={{
+                background: 'var(--bg)',
+                border: '1px solid var(--border)',
+                padding: '2px 8px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--dark)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                {tenantDisplayName} <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>(Tenant)</span>
+              </span>
+            ) : (
+              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{req.createdBy?.name || 'Company Admin'}</span>
+            )}
+          </div>
+        );
+      }
     },
     {
       header: 'Status',

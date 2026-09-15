@@ -184,8 +184,29 @@ export class GetPmDashboardSummaryUseCase {
         })
       : [];
 
+    const manualPaymentRequests = accessiblePropertyIds.length > 0
+      ? await (this.prisma as any).upward_payment_request.findMany({
+          where: {
+            isManual: true,
+            userProperty: {
+              pmUnit: {
+                propertyId: { in: accessiblePropertyIds }
+              }
+            }
+          },
+          include: {
+            userProperty: {
+              include: {
+                pmUnit: { include: { property: true, tenant: true } }
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+      : [];
+
     // Map payment requests
-    const mappedRequests = paymentRequests.map((r: any) => ({
+    const mappedPmRequests = paymentRequests.map((r: any) => ({
       uuid: r.uuid,
       amount: r.amount,
       amountPaid: r.amountPaid,
@@ -227,6 +248,57 @@ export class GetPmDashboardSummaryUseCase {
         }
       }
     }));
+
+    const mappedManualRequests = manualPaymentRequests.map((r: any) => {
+      const pmUnit = r.userProperty?.pmUnit;
+      const pmTenant = pmUnit?.tenant;
+      const tenantDecrypted = this.decryptTenant(pmTenant);
+      const tenantName = tenantDecrypted
+        ? (tenantDecrypted.commercialName || `${tenantDecrypted.firstName || ''} ${tenantDecrypted.lastName || ''}`.trim())
+        : 'Tenant';
+
+      return {
+        uuid: r.uuid,
+        amount: r.amount,
+        amountPaid: r.amountPaid || 0,
+        status: r.status,
+        dueDate: r.dueDate,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        paymentDate: r.updatedAt || r.createdAt,
+        periodStart: r.rentStartDate || null,
+        periodEnd: r.rentEndDate || null,
+        method: 'Bank Transfer',
+        coreRequestUuid: r.uuid,
+        employeeId: null,
+        isSelfPayment: true,
+        createdBy: {
+          name: tenantName || 'Tenant',
+          role: 'Tenant',
+          isEmployee: false,
+          isTenant: true,
+        },
+        tenant: tenantDecrypted,
+        unit: pmUnit ? {
+          id: pmUnit.id,
+          uuid: pmUnit.uuid,
+          unitName: pmUnit.unitName,
+          isSynced: pmUnit.isSynced,
+          rentAmount: pmUnit.rentAmount,
+          rentStartDate: pmUnit.rentStartDate,
+          rentDueDate: pmUnit.rentDueDate,
+          rentType: pmUnit.rentType,
+          managementFee: pmUnit.managementFee,
+          property: {
+            id: pmUnit.property.id,
+            uuid: pmUnit.property.uuid,
+            name: pmUnit.property.name
+          }
+        } : null
+      };
+    });
+
+    const mappedRequests = [...mappedPmRequests, ...mappedManualRequests];
 
     // Map rent payments into completed payment structures
     const mappedRentPayments = rentPayments.map(p => ({

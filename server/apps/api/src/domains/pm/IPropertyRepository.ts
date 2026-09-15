@@ -190,7 +190,15 @@ export interface PmPaymentRequestEntity {
   manualAccountId?: number | null;
   createdAt: Date;
   updatedAt: Date;
-  
+  isSelfPayment?: boolean;
+  createdBy?: {
+    name: string;
+    role: string;
+    isEmployee: boolean;
+    isTenant?: boolean;
+    uuid?: string;
+    id?: number;
+  };
   unit?: UnitEntity;
   tenant?: TenantEntity;
   employee?: any;

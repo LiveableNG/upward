@@ -60,10 +60,12 @@ export interface PmPaymentRequest {
   manualAccountId?: number | null;
   settlementAccount?: SettlementAccount | null;
   createdBy?: {
-    isEmployee: boolean;
+    isEmployee?: boolean;
+    isTenant?: boolean;
     name: string;
     role: string;
     id?: number;
+    uuid?: string;
   };
 }
 
