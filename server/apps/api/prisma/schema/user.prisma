@@ -50,6 +50,8 @@ model upward_user {
   paymentRequests       upward_payment_request[]
   refundLogs            upward_refund_log[]
   rentCycles            upward_rent_cycle[]
+  rentDepositBalances   upward_rent_deposit_balance[]
+  rentDepositTransactions upward_rent_deposit_transaction[]
   savingsGoals          upward_savings_goal[]
   supportTickets        upward_support_ticket[]
   transactions          upward_transaction[]

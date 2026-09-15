@@ -66,6 +66,10 @@ import {
   BENEFITS_SUBSCRIPTION_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
 import {
+  RENT_DEPOSIT_BALANCE_REPOSITORY,
+} from '../../../domains/payments/rent-deposit.repository'
+import { PrismaRentDepositBalanceRepository } from './repositories/prisma-rent-deposit-balance.repository'
+import {
   COMPANY_REPOSITORY,
   PLATFORM_REPOSITORY,
   COMPANY_USER_REPOSITORY,
@@ -270,6 +274,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: SETTLEMENT_ACCOUNT_REPOSITORY,
       useClass: PrismaPmSettlementAccountRepository,
     },
+    {
+      provide: RENT_DEPOSIT_BALANCE_REPOSITORY,
+      useClass: PrismaRentDepositBalanceRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -316,6 +324,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     UNIVERSITY_APPLICATION_REPOSITORY,
     UNIVERSITY_TRAFFIC_REPOSITORY,
     SETTLEMENT_ACCOUNT_REPOSITORY,
+    RENT_DEPOSIT_BALANCE_REPOSITORY,
   ],
 })
 export class PrismaModule {}

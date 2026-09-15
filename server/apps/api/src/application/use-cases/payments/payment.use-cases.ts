@@ -42,6 +42,7 @@ import { CreditWalletUseCase } from './wallet.use-cases'
 import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
+import { CreditRentDepositUseCase } from './credit-rent-deposit.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { RentalPeriodService } from '../../services/rental-period.service'
@@ -914,6 +915,7 @@ export class InitializePaymentUseCase {
 
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
+      const appliedDeposit = Number(data.metadata?.appliedDepositAmount || 0)
 
       const baseAmount = data.amount || pr.amount
 
@@ -932,7 +934,8 @@ export class InitializePaymentUseCase {
       const effectiveFee = clientFee || (data.amount ? 0 : flatFee)
       const requestedTotal = baseAmount + (data.amount ? 0 : (clientFee || flatFee))
 
-      const appliedCredit = Math.min(totalCredit, requestedTotal)
+      const creditToUse = appliedDeposit > 0 ? appliedDeposit : totalCredit
+      const appliedCredit = Math.min(creditToUse, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
       try {
@@ -1041,6 +1044,7 @@ export class ProcessPaymentWebhookUseCase {
 
   constructor(
     private readonly recordTransaction: RecordTransactionUseCase,
+    private readonly creditRentDeposit: CreditRentDepositUseCase,
     private readonly configService: ConfigService,
     @Inject(DVA_ACCOUNT_REPOSITORY)
     private readonly dvaRepo: IDVAAccountRepository,
@@ -1426,7 +1430,7 @@ export class ProcessPaymentWebhookUseCase {
     const amountPaid = data.amount / 100
 
     if (!pr) {
-      this.logger.log(`Manual DVA payment received for Property ${dva.userPropertyId} with no active request. Recording as general payment.`)
+      this.logger.log(`Direct DVA transfer received for Property ${dva.userPropertyId} with no active request. Crediting Rent Deposit Balance directly.`)
 
       // Find the user associated with this property
       const userProp = await this.prisma.upward_user_property.findUnique({
@@ -1439,17 +1443,22 @@ export class ProcessPaymentWebhookUseCase {
         return { success: true, message: 'Property not found' }
       }
 
-      return this.recordTransaction.execute({
-        userId: userProp.user.uuid,
+      const depositTx = await this.creditRentDeposit.execute({
+        userId: userProp.user.id,
+        userPropertyId: userProp.id,
         amount: amountPaid,
-        currency: data.currency || 'NGN',
         reference: data.reference,
-        type: 'RENT',
-        status: 'SUCCESS',
-        narration: `Manual Bank Transfer to ${dva.accountNumber}`,
-        settlementStatus: 'VERIFIED',
-        userPropertyUuid: userProp.uuid
+        currency: data.currency || 'NGN',
+        source: 'DVA_INFLOW',
+        narration: `Direct Bank Transfer to Virtual Account (${dva.accountNumber})`,
       })
+
+      return {
+        success: true,
+        type: 'RENT_DEPOSIT_CREDIT',
+        depositTransactionId: depositTx?.id,
+        message: 'Funds credited to Rent Deposit Balance',
+      }
     }
 
     // 1. Check for stored payment intent in DVA metadata
@@ -1636,10 +1645,27 @@ export class GetTransactionUseCase {
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
         rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
 
-        if (hasSnapshotAmounts) {
+        const depositTxs = await this.prisma.upward_rent_deposit_transaction.findMany({
+          where: {
+            paymentRequestId: pr.id,
+            type: 'DEBIT',
+            status: 'SUCCESS',
+          },
+        })
+        const totalDepositApplied = depositTxs.reduce((sum, dt) => sum + (dt.amount || 0), 0)
+        const isPrPaid = pr.status === 'PAID'
+
+        if (isPrPaid) {
+          totalInvoice = pr.amount
+          rentAmount = pr.amount
+          historicalPaidToDate = pr.amount
+          historicalRemaining = 0
+          isPartial = false
+        } else if (hasSnapshotAmounts) {
           const snapTx = tx as any
           totalInvoice = snapTx.totalInvoiceAmount
-          historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
+          rentAmount = snapTx.totalInvoiceAmount
+          historicalPaidToDate = Math.max(pr.amountPaid || 0, (snapTx.historicalPaidToDate ?? snapTx.amount) + totalDepositApplied)
           historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
         } else {
@@ -1651,7 +1677,7 @@ export class GetTransactionUseCase {
             },
           })
           const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
-          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) + totalDepositApplied || tx.amount || pr.amountPaid || 0
           historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
             ? Math.min(propRent, propInitialPaid + basePaid)
             : basePaid
@@ -1697,13 +1723,36 @@ export class GetTransactionUseCase {
         ].filter(Boolean)
         const propertyAddress = addressParts.length > 0 ? addressParts.join(', ') : ''
 
-        const lineItems = (pr.lineItemRecords && pr.lineItemRecords.length > 0)
-          ? pr.lineItemRecords.map((li: any) => ({
-              label: li.name,
-              amount: li.totalAmount,
+        let resolvedLineItems = (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : []
+        if (resolvedLineItems.length === 0 && pr.lineItemRecords && pr.lineItemRecords.length > 0) {
+          resolvedLineItems = pr.lineItemRecords.map((li: any) => ({
+            label: li.name,
+            name: li.name,
+            amount: li.totalAmount,
+            category: 'Package',
+          }))
+        }
+
+        if (totalDepositApplied > 0 && pr.lineItemRecords && pr.lineItemRecords.length > 0) {
+          const hasDepositItem = resolvedLineItems.some((i: any) =>
+            (i.name || i.label || '').toLowerCase().includes('deposit')
+          )
+          if (!hasDepositItem && isPrPaid) {
+            const fullItems = pr.lineItemRecords.map((lir: any) => ({
+              name: lir.name,
+              label: lir.name,
+              amount: lir.totalAmount,
               category: 'Package',
             }))
-          : []
+            fullItems.push({
+              name: 'Rent Deposit Applied',
+              label: 'Rent Deposit Applied',
+              amount: -totalDepositApplied,
+              category: 'Rent Deposit',
+            })
+            resolvedLineItems = fullItems
+          }
+        }
 
         return {
           ...tx,
@@ -1726,7 +1775,8 @@ export class GetTransactionUseCase {
           companyLogo: companyLogo || tx.companyLogo,
           companyName: resolvedCompanyName,
           propertyAddress: propertyAddress || tx.propertyAddress,
-          lineItems: (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : lineItems,
+          lineItems: resolvedLineItems,
+          depositApplied: totalDepositApplied,
         }
       }
     }
