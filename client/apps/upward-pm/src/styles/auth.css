@@ -126,16 +126,21 @@
   align-items: center;
 }
 
+.avatar-stack img,
 .avatar-stack span {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid var(--forest-800, #1a3a2c);
-  background: var(--forest-300, #7cab8d);
+  background: #ffffff;
+  object-fit: contain;
+  padding: 2px;
   margin-left: -8px;
   display: inline-block;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+.avatar-stack img:first-child,
 .avatar-stack span:first-child {
   margin-left: 0;
 }
