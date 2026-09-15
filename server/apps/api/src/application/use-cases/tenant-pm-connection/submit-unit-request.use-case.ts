@@ -92,6 +92,7 @@ export class SubmitUnitRequestUseCase {
           passwordHash: 'PENDING_INVITE',
           pmType: pmType || 'Property Manager',
           businessName: companyName || null,
+          invitedByUserId: fullUser?.id || null,
         };
 
         pm = await this.pmRepository.save(newPmData as any);

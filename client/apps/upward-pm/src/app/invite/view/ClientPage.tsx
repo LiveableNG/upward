@@ -57,11 +57,7 @@ function InviteContent() {
         queryClient.setQueryData(['user'], res.user)
       }
       success("Account activated successfully! Welcome to Upward.")
-      if (res.user?.pmType === 'INDIVIDUAL_LANDLORD' || res.user?.pmType === 'Landlord') {
-        router.push('/portal')
-      } else {
-        router.push('/dashboard')
-      }
+      router.push('/dashboard')
     } catch (err: any) {
       error(err.message || "Failed to claim account")
     } finally {

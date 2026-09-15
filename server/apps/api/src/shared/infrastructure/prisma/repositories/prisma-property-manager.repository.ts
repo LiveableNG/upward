@@ -43,6 +43,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       termsVersion: model.termsVersion,
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
+      invitedByUserId: model.invitedByUserId,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -112,6 +113,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
         termsVersion: pm.termsVersion ?? '2026-08-24',
         resetPasswordOTP: pm.resetPasswordOTP,
         resetPasswordExpires: pm.resetPasswordExpires,
+        invitedByUserId: pm.invitedByUserId,
       },
     })
     return this.toDomain(record)
@@ -179,6 +181,9 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     }
     if (data.resetPasswordExpires !== undefined) {
       updateData.resetPasswordExpires = data.resetPasswordExpires
+    }
+    if (data.invitedByUserId !== undefined) {
+      updateData.invitedByUserId = data.invitedByUserId
     }
 
     const record = await (this.prisma as any).upward_property_manager.update({

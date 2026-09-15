@@ -31,6 +31,7 @@ export interface PropertyManager {
   termsVersion?: string | null
   resetPasswordOTP?: string | null
   resetPasswordExpires?: Date | null
+  invitedByUserId?: number | null
   createdAt: Date
   updatedAt: Date
 }

@@ -37,6 +37,7 @@ export class InvitePmUseCase {
           passwordHash: 'PENDING_INVITE',
           pmType: pmType || 'Property Manager',
           businessName: companyName || null,
+          invitedByUserId: user?.id || null,
         };
         pm = await this.pmRepository.save(newPmData as any);
       }

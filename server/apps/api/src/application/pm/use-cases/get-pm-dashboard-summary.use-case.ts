@@ -481,7 +481,7 @@ export class GetPmDashboardSummaryUseCase {
 
     const totalOwing = arrearsOwing + upcomingOwing;
     const totalExpected = totalCollected + totalOwing;
-    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 100;
+    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
     // 9. Properties portfolio summary (top 3 properties)
     const topProperties = allAccessibleProperties.slice(0, 3);
