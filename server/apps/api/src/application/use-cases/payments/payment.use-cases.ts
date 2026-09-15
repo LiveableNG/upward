@@ -1647,7 +1647,6 @@ export class GetTransactionUseCase {
         if (hasSnapshotAmounts) {
           const snapTx = tx as any
           totalInvoice = snapTx.totalInvoiceAmount
-          rentAmount = snapTx.totalInvoiceAmount
           historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
           historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
@@ -1875,7 +1874,9 @@ export class GenerateReceiptPdfUseCase {
     if (hasSnapshotAmounts) {
       const snapTx = txWithBranding as any
       enriched.totalInvoiceAmount = snapTx.totalInvoiceAmount
-      enriched.rentAmount = snapTx.totalInvoiceAmount
+      const rawLineItems = (txWithBranding as any)?.lineItems || (txWithBranding as any)?.paymentRequest?.lineItemRecords || []
+      const rentItem = Array.isArray(rawLineItems) ? rawLineItems.find((i: any) => (i?.name || i?.label || '').toLowerCase().includes('rent')) : null
+      enriched.rentAmount = prop?.rentAmount || (rentItem ? (rentItem.totalAmount || rentItem.amount) : snapTx.totalInvoiceAmount)
       enriched.totalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
       enriched.remainingBalance = snapTx.remainingBalance ?? 0
       enriched.isPartial = snapTx.isPartial ?? false

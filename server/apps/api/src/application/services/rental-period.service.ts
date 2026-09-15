@@ -157,8 +157,19 @@ export class RentalPeriodService {
     const effectiveRentType = params.rentType || prop.rentType || 'Annually';
     const leaseYears = (prop as any).leaseYears || 1;
 
+    let prStartDate: Date | null = null;
+    let prEndDate: Date | null = null;
+    if (paymentRequestId) {
+      const pr = await txClient.upward_payment_request.findUnique({
+        where: { id: paymentRequestId },
+      });
+      if (pr?.rentStartDate) prStartDate = new Date(pr.rentStartDate);
+      if (pr?.rentEndDate) prEndDate = new Date(pr.rentEndDate);
+    }
+
     // Check if the current cycle on the property was already fully settled
     const isCurrentCycleSettled = prop.amountRemaining === 0 && prop.isFirstRent === false;
+    const isPrNewerThanProperty = prStartDate && prStartDate.getTime() > currentStart.getTime();
 
     let periodStart: Date;
     let periodEnd: Date;
@@ -167,11 +178,37 @@ export class RentalPeriodService {
     let newAmountRemaining: number;
     let newIsFirstRent: boolean;
 
-    if (isCurrentCycleSettled && currentEnd) {
-      // ── CASE A: Active cycle is already fully paid. This payment starts the NEXT cycle.
+    if (isPrNewerThanProperty && prStartDate && prEndDate) {
+      // ── CASE A1: Explicit Payment Request for an upcoming cycle. Advance directly to PR dates.
+      periodStart = prStartDate;
+      periodEnd = prEndDate;
+      isAdvancing = true;
+
+      newAmountPaid = rentPortion;
+      newAmountRemaining = Math.max(0, rentAmount - rentPortion);
+      const isSettled = newAmountRemaining === 0;
+      newIsFirstRent = false;
+
+      await txClient.upward_user_property.update({
+        where: { id: prop.id },
+        data: {
+          rentStartDate: periodStart,
+          rentEndDate: periodEnd,
+          amountPaid: isSettled ? rentAmount : newAmountPaid,
+          amountRemaining: newAmountRemaining,
+          isFirstRent: false,
+          isPastTenancy: false,
+        },
+      });
+
+      this.logger.log(
+        `Advanced property ${prop.id} to PR cycle: ${periodStart.toISOString().split('T')[0]} - ${periodEnd.toISOString().split('T')[0]}. Balance remaining: ${newAmountRemaining}`,
+      );
+    } else if (isCurrentCycleSettled && currentEnd) {
+      // ── CASE A2: Active cycle is already fully paid. This payment starts the NEXT cycle.
       const calculated = this.calculateNextPeriod(currentStart, currentEnd, effectiveRentType, leaseYears);
-      periodStart = calculated.nextStart;
-      periodEnd = calculated.nextEnd;
+      periodStart = prStartDate || calculated.nextStart;
+      periodEnd = prEndDate || calculated.nextEnd;
       isAdvancing = true;
 
       newAmountPaid = rentPortion;

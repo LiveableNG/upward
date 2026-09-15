@@ -190,15 +190,6 @@ export class SyncPmPaymentStatusUseCase {
               }
             });
 
-            if (unit.isSynced && unit.userPropertyUuid) {
-              await txClient.upward_user_property.updateMany({
-                where: { uuid: unit.userPropertyUuid },
-                data: {
-                  rentStartDate: latestFullyPaid.periodStart,
-                  rentEndDate: latestFullyPaid.periodEnd,
-                }
-              });
-            }
             this.logger.log(`Synced active tenancy dates for unit ${unit.id} to latest fully paid period: ${latestFullyPaid.periodStart.toISOString()} - ${latestFullyPaid.periodEnd.toISOString()}`);
           }
         }

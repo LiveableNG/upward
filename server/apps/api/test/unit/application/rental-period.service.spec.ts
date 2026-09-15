@@ -226,5 +226,106 @@ describe('RentalPeriodService', () => {
       expect(payment2.isAdvancing).toBe(true);
       expect(propertyInDb.rentStartDate.toISOString().split('T')[0]).toBe('2028-03-15');
     });
+
+    it('Scenario 3: Payment Request with multi-step partial payments (idiagbon scenario)', async () => {
+      // Property currently on 2026-2027 settled
+      let propertyInDb: any = {
+        id: 41,
+        rentAmount: 750000,
+        rentStartDate: new Date('2026-09-19T23:00:00.000Z'),
+        rentEndDate: new Date('2027-09-19T22:59:59.999Z'),
+        rentType: 'Annually',
+        amountPaid: 750000,
+        amountRemaining: 0,
+        isFirstRent: false,
+      };
+
+      const prRecord = {
+        id: 32,
+        rentStartDate: new Date('2027-09-19T23:00:00.000Z'),
+        rentEndDate: new Date('2028-09-19T22:59:59.999Z'),
+        amount: 750000,
+      };
+
+      const mockTxClient = {
+        upward_user_property: {
+          findUnique: jest.fn().mockImplementation(() => Promise.resolve(propertyInDb)),
+          update: jest.fn().mockImplementation(({ data }) => {
+            propertyInDb = { ...propertyInDb, ...data };
+            return Promise.resolve(propertyInDb);
+          }),
+        },
+        upward_payment_request: {
+          findUnique: jest.fn().mockImplementation(() => Promise.resolve(prRecord)),
+        },
+        upward_platform_rent_payment: {
+          create: jest.fn().mockResolvedValue({ id: 41 }),
+        },
+      };
+
+      // Payment 1: 400,000 against PR 32
+      const p1 = await service.processRentPayment({
+        userId: 33,
+        propertyId: 41,
+        rentPortion: 400000,
+        paymentRequestId: 32,
+        txClient: mockTxClient,
+      });
+
+      expect(p1.periodStart.toISOString().split('T')[0]).toBe('2027-09-19');
+      expect(p1.periodEnd.toISOString().split('T')[0]).toBe('2028-09-19');
+      expect(p1.isFullySettled).toBe(false);
+      expect(propertyInDb.amountPaid).toBe(400000);
+      expect(propertyInDb.amountRemaining).toBe(350000);
+      expect(propertyInDb.rentStartDate.toISOString().split('T')[0]).toBe('2027-09-19');
+
+      // Payment 2: 200,000 against PR 32 (MUST STAY on 2027-2028!)
+      const p2 = await service.processRentPayment({
+        userId: 33,
+        propertyId: 41,
+        rentPortion: 200000,
+        paymentRequestId: 32,
+        txClient: mockTxClient,
+      });
+
+      expect(p2.periodStart.toISOString().split('T')[0]).toBe('2027-09-19');
+      expect(p2.periodEnd.toISOString().split('T')[0]).toBe('2028-09-19');
+      expect(p2.isFullySettled).toBe(false);
+      expect(propertyInDb.amountPaid).toBe(600000);
+      expect(propertyInDb.amountRemaining).toBe(150000);
+      expect(propertyInDb.rentStartDate.toISOString().split('T')[0]).toBe('2027-09-19');
+
+      // Payment 3: 100,000 against PR 32 (MUST STAY on 2027-2028!)
+      const p3 = await service.processRentPayment({
+        userId: 33,
+        propertyId: 41,
+        rentPortion: 100000,
+        paymentRequestId: 32,
+        txClient: mockTxClient,
+      });
+
+      expect(p3.periodStart.toISOString().split('T')[0]).toBe('2027-09-19');
+      expect(p3.periodEnd.toISOString().split('T')[0]).toBe('2028-09-19');
+      expect(p3.isFullySettled).toBe(false);
+      expect(propertyInDb.amountPaid).toBe(700000);
+      expect(propertyInDb.amountRemaining).toBe(50000);
+      expect(propertyInDb.rentStartDate.toISOString().split('T')[0]).toBe('2027-09-19');
+
+      // Payment 4: 50,000 final balancing payment
+      const p4 = await service.processRentPayment({
+        userId: 33,
+        propertyId: 41,
+        rentPortion: 50000,
+        paymentRequestId: 32,
+        txClient: mockTxClient,
+      });
+
+      expect(p4.periodStart.toISOString().split('T')[0]).toBe('2027-09-19');
+      expect(p4.periodEnd.toISOString().split('T')[0]).toBe('2028-09-19');
+      expect(p4.isFullySettled).toBe(true);
+      expect(propertyInDb.amountPaid).toBe(750000);
+      expect(propertyInDb.amountRemaining).toBe(0);
+      expect(propertyInDb.rentStartDate.toISOString().split('T')[0]).toBe('2027-09-19');
+    });
   });
 });
