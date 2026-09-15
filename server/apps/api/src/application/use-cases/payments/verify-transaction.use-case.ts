@@ -166,7 +166,8 @@ export class VerifyGatewayTransactionUseCase {
               }
 
               if (amountPaid <= 0 && pr) {
-                amountPaid = pr.amount + 2000 // default processing fee
+                const remainingRent = Math.max(0, pr.amount - (pr.amountPaid || 0))
+                amountPaid = remainingRent > 0 ? remainingRent + 2000 : 2000
               }
               if (amountPaid <= 0) {
                 amountPaid = 10000 // default to 10k NGN

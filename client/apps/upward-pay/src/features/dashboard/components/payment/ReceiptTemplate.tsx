@@ -37,10 +37,12 @@ export interface ReceiptData {
 
 function formatMoney(amount: number | undefined | null, currency = 'NGN'): string {
   const val = amount ?? 0
-  return `${currency} ${val.toLocaleString('en-US', {
+  const isNegative = val < 0
+  const formatted = Math.abs(val).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`
+  })
+  return isNegative ? `-${currency} ${formatted}` : `${currency} ${formatted}`
 }
 
 function formatHeroDate(dateStr: string): string {
@@ -250,12 +252,17 @@ export default function ReceiptTemplate({
               <div className="table-wrapper">
                 <table>
                   <tbody>
-                    {breakdownItems.map((item, index) => (
-                      <tr key={index}>
-                        <td>{item.label}</td>
-                        <td>{formatMoney(item.amount, receipt.currency)}</td>
-                      </tr>
-                    ))}
+                    {breakdownItems.map((item, index) => {
+                      const isDeduction = item.amount < 0
+                      return (
+                        <tr key={index} className={isDeduction ? 'receipt-row--deduction' : ''}>
+                          <td>{item.label}</td>
+                          <td style={isDeduction ? { color: '#15803d', fontWeight: 600 } : undefined}>
+                            {formatMoney(item.amount, receipt.currency)}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                   <tfoot>
                     <tr>

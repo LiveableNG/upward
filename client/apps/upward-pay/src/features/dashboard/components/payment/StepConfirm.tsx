@@ -118,8 +118,8 @@ export function StepConfirm({
           </div>
           <div className="pay-flow__overpay-row">
             <span className="pay-flow__overpay-label">
-              Future Credit (Overpayment)
-              <span className="pay-flow__overpay-info" title="This excess will be tracked and visible in your transactions for future use.">
+              Rent Deposit Balance
+              <span className="pay-flow__overpay-info" title="This excess will be credited to your Rent Deposit Balance and automatically applied to future rent.">
                 <Info size={14} />
               </span>
             </span>

@@ -12,6 +12,7 @@ import {
   PrismaBenefitsSubscriptionRepository,
 } from './repositories/prisma-payments.repository'
 import { PrismaPaymentLineItemRepository } from './repositories/prisma-payment-line-item.repository'
+import { PrismaRentDepositBalanceRepository } from './repositories/prisma-rent-deposit-balance.repository'
 import { PrismaDVAAccountRepository } from './prisma-dva-account.repository'
 import {
   PrismaCompanyRepository,
@@ -61,6 +62,7 @@ import {
   SUBACCOUNT_REPOSITORY,
   WEBHOOK_REPOSITORY,
   OVERPAYMENT_REPOSITORY,
+  RENT_DEPOSIT_BALANCE_REPOSITORY,
   PAYMENT_LINE_ITEM_REPOSITORY,
   DVA_ACCOUNT_REPOSITORY,
   BENEFITS_SUBSCRIPTION_REPOSITORY,
@@ -169,6 +171,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     {
       provide: OVERPAYMENT_REPOSITORY,
       useClass: PrismaOverpaymentRepository,
+    },
+    {
+      provide: RENT_DEPOSIT_BALANCE_REPOSITORY,
+      useClass: PrismaRentDepositBalanceRepository,
     },
     {
       provide: CONTRACT_REPOSITORY,
@@ -291,6 +297,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     SUBACCOUNT_REPOSITORY,
     WEBHOOK_REPOSITORY,
     OVERPAYMENT_REPOSITORY,
+    RENT_DEPOSIT_BALANCE_REPOSITORY,
     CONTRACT_REPOSITORY,
     SUPPORT_TICKET_REPOSITORY,
     PAYMENT_LINE_ITEM_REPOSITORY,

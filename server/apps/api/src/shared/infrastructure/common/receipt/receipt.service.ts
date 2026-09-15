@@ -469,12 +469,17 @@ export class ReceiptService {
           .fillColor(ink)
           .text(item.label, CARD_X + 12, rowY + 5, { width: 230 })
 
+        const isDeduction = item.amount < 0
+        const formattedAmount = isDeduction
+          ? `-${data.currency} ${Math.abs(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+          : `${data.currency} ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+
         doc
           .font('Helvetica-Bold')
           .fontSize(10)
-          .fillColor(ink)
+          .fillColor(isDeduction ? '#15803d' : ink)
           .text(
-            `${data.currency} ${item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+            formattedAmount,
             CARD_X + 12,
             rowY + 5,
             { width: CARD_W - 24, align: 'right' },

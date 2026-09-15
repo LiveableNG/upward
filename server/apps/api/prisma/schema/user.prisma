@@ -47,6 +47,8 @@ model upward_user {
   feedback              upward_feedback[]
   notifications         upward_notification[]
   overpayments          upward_overpayment[]
+  rentDepositBalances   upward_rent_deposit_balance[]
+  rentDepositTransactions upward_rent_deposit_transaction[]
   paymentRequests       upward_payment_request[]
   refundLogs            upward_refund_log[]
   rentCycles            upward_rent_cycle[]

@@ -8,6 +8,8 @@ import {
   Param,
   UseGuards,
   Req,
+  Res,
+  Query,
   HttpException,
   HttpStatus,
   BadRequestException,
@@ -47,6 +49,9 @@ import {
   ConfirmBenefitsPaymentUseCase,
 } from '../../../application/use-cases/payments/benefits-subscription.use-cases'
 import { VerifyGatewayTransactionUseCase } from '../../../application/use-cases/payments/verify-transaction.use-case'
+import { GetRentDepositSummaryUseCase } from '../../../application/use-cases/payments/get-rent-deposit-summary.use-case'
+import { ApplyRentDepositToPaymentRequestUseCase } from '../../../application/use-cases/payments/apply-rent-deposit-to-payment-request.use-case'
+import { GenerateRentDepositReceiptPdfUseCase } from '../../../application/use-cases/payments/generate-rent-deposit-receipt-pdf.use-case'
 
 @Controller('payments')
 export class PaymentsController {
@@ -73,6 +78,9 @@ export class PaymentsController {
     private readonly getBenefitsStatusUc: GetBenefitsStatusUseCase,
     private readonly initializeBenefitsPaymentUc: InitializeBenefitsPaymentUseCase,
     private readonly confirmBenefitsPaymentUc: ConfirmBenefitsPaymentUseCase,
+    private readonly getRentDepositSummaryUc: GetRentDepositSummaryUseCase,
+    private readonly applyRentDepositUc: ApplyRentDepositToPaymentRequestUseCase,
+    private readonly generateRentDepositReceiptPdfUc: GenerateRentDepositReceiptPdfUseCase,
     private readonly prisma: PrismaService,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
@@ -86,6 +94,74 @@ export class PaymentsController {
       message: 'Benefits status retrieved',
       meta: {},
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('rent-deposit')
+  async getRentDepositSummary(
+    @Req() req: any,
+    @Query('propertyUuid') propertyUuid?: string,
+  ) {
+    const data = await this.getRentDepositSummaryUc.execute(req.user.id, propertyUuid)
+    return {
+      data,
+      message: 'Rent deposit summary retrieved',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('rent-deposit/apply')
+  async applyRentDeposit(@Req() req: any, @Body() body: any) {
+    if (!body?.paymentRequestUuid) {
+      throw new BadRequestException('Payment request UUID is required')
+    }
+    const amount = Number(body.amountToApply)
+    if (isNaN(amount) || amount <= 0) {
+      throw new BadRequestException('Amount to apply must be greater than zero')
+    }
+
+    const data = await this.applyRentDepositUc.execute({
+      userUuid: req.user.id,
+      paymentRequestUuid: body.paymentRequestUuid,
+      amountToApply: amount,
+      lineItemAllocations: body.lineItemAllocations,
+      narration: body.narration,
+    })
+
+    return {
+      data,
+      message: 'Rent deposit balance applied successfully',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('rent-deposit/receipt/:uuid')
+  async getRentDepositReceipt(
+    @Param('uuid') uuid: string,
+    @Req() req: any,
+    @Res({ passthrough: false }) res: any,
+  ) {
+    const result = await this.generateRentDepositReceiptPdfUc.execute({
+      transactionUuid: uuid,
+      userUuid: req.user.id,
+    })
+
+    if (req.query?.format === 'pdf' || req.headers?.accept?.includes('application/pdf')) {
+      res.header('Content-Type', 'application/pdf')
+      res.header('Content-Disposition', `attachment; filename="${result.fileName}"`)
+      return res.send(result.buffer)
+    }
+
+    return res.send({
+      data: {
+        url: result.url,
+        fileName: result.fileName,
+      },
+      message: 'Rent deposit receipt generated',
+      meta: {},
+    })
   }
 
   @UseGuards(JwtAuthGuard)

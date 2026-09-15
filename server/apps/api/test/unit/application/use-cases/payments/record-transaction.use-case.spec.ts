@@ -1,5 +1,5 @@
 import { RecordTransactionUseCase } from '@application/use-cases/payments/payment.use-cases';
-import { ITransactionRepository, IPaymentRequestRepository, IOverpaymentRepository } from '@domains/payments/payment.repository';
+import { ITransactionRepository, IPaymentRequestRepository } from '@domains/payments/payment.repository';
 import { EventBus } from '@application/events/domain-event';
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service';
 import { VerifyGatewayTransactionUseCase } from '@application/use-cases/payments/verify-transaction.use-case';
@@ -7,7 +7,7 @@ import { DistributePaymentAllocationsUseCase } from '@application/use-cases/paym
 import { ActivateBenefitsSubscriptionUseCase } from '@application/use-cases/payments/benefits-subscription.use-cases';
 import { SyncPmPaymentStatusUseCase } from '@application/use-cases/payments/sync-pm-status.use-case';
 import { SettlePropertyBalanceUseCase } from '@application/use-cases/payments/settle-property.use-case';
-import { HandlePaymentOverpaymentUseCase } from '@application/use-cases/payments/handle-overpayment.use-case';
+import { CreditRentDepositUseCase } from '@application/use-cases/payments/credit-rent-deposit.use-case';
 import { PaymentConfigurationService } from '@shared/infrastructure/common/payment-config.service';
 import { UnauthorizedException } from '@nestjs/common';
 
@@ -22,8 +22,7 @@ describe('RecordTransactionUseCase', () => {
   let activateBenefits: jest.Mocked<ActivateBenefitsSubscriptionUseCase>;
   let syncPmStatus: jest.Mocked<SyncPmPaymentStatusUseCase>;
   let settleProperty: jest.Mocked<SettlePropertyBalanceUseCase>;
-  let handleOverpayment: jest.Mocked<HandlePaymentOverpaymentUseCase>;
-  let overpaymentRepo: jest.Mocked<IOverpaymentRepository>;
+  let creditRentDeposit: jest.Mocked<CreditRentDepositUseCase>;
   let paymentConfig: jest.Mocked<PaymentConfigurationService>;
 
   beforeEach(() => {
@@ -76,12 +75,8 @@ describe('RecordTransactionUseCase', () => {
       execute: jest.fn(),
     } as any;
 
-    handleOverpayment = {
+    creditRentDeposit = {
       execute: jest.fn(),
-    } as any;
-
-    overpaymentRepo = {
-      create: jest.fn(),
     } as any;
 
     paymentConfig = {
@@ -98,8 +93,7 @@ describe('RecordTransactionUseCase', () => {
       activateBenefits,
       syncPmStatus,
       settleProperty,
-      handleOverpayment,
-      overpaymentRepo,
+      creditRentDeposit,
       paymentConfig
     );
   });

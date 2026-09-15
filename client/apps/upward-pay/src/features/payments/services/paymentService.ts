@@ -187,3 +187,35 @@ export async function reviewProofOfPayment(proofId: number, data: { status: 'APP
     body: JSON.stringify(data),
   })
 }
+
+export async function getRentDepositSummary(propertyUuid?: string) {
+  const url = propertyUuid
+    ? `/payments/rent-deposit?propertyUuid=${encodeURIComponent(propertyUuid)}`
+    : '/payments/rent-deposit'
+  const res = await request<any>(url, {
+    method: 'GET',
+  })
+  return res.data || res
+}
+
+export async function applyRentDeposit(data: {
+  paymentRequestUuid: string
+  amountToApply: number
+  lineItemAllocations?: Array<{ lineItemId: number; amount: number }>
+  narration?: string
+}) {
+  const res = await request<any>('/payments/rent-deposit/apply', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  return res.data || res
+}
+
+export async function getRentDepositReceipt(transactionUuid: string) {
+  const res = await request<any>(
+    `/payments/rent-deposit/receipt/${transactionUuid}`,
+    { method: 'GET' }
+  )
+  return res.data || res
+}
+

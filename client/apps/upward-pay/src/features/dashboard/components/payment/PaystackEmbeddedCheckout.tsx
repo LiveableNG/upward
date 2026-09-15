@@ -87,7 +87,7 @@ export default function PaystackEmbeddedCheckout({
             type: 'DVA',
             dva: res.dva,
             reference: res.reference,
-            amount: res.amount
+            amount: res.finalAmount ?? res.amount
           })
         } else if (res && res.type === 'PAYSTACK') {
           if (!res.accessCode) {
@@ -97,7 +97,7 @@ export default function PaystackEmbeddedCheckout({
             type: 'PAYSTACK',
             accessCode: res.accessCode,
             reference: res.reference,
-            amount: res.amount
+            amount: res.finalAmount ?? res.amount
           })
         } else {
           throw new Error('Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.')

@@ -422,11 +422,10 @@ export function StepAmount({
             <div className="pay-flow__modal-icon">
               <Info size={28} />
             </div>
-            <h3 className="pay-flow__modal-title">Confirm Overpayment</h3>
+            <h3 className="pay-flow__modal-title">Deposit Advance Rent</h3>
             <p className="pay-flow__modal-text">
-              You are about to pay <strong>{formatCurrency(resolvedAmount)}</strong>, which is{' '}
-              <strong>{formatCurrency(resolvedAmount - remainingBalance)}</strong> more than the remaining balance. Do
-              you wish to proceed?
+              You are paying <strong>{formatCurrency(resolvedAmount)}</strong>, which is{' '}
+              <strong>{formatCurrency(resolvedAmount - remainingBalance)}</strong> more than the remaining balance. The excess will be stored in your <strong>Rent Deposit Balance</strong> and automatically applied to your upcoming rent.
             </p>
             <div className="pay-flow__modal-actions">
               <button

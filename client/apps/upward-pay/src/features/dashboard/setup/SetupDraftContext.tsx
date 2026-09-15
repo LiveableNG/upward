@@ -61,7 +61,7 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
     if (mode === 'edit' && propertyUuid && user?.properties) {
       const prop = user.properties.find((p) => p.uuid === propertyUuid)
       if (prop) {
-        const fromUser = draftFromProperty(user, prop, 'edit')
+        const fromUser = draftFromProperty(user as any, prop as any, 'edit')
         hydratedKey.current = hydrationKey
         setDraftState(fromUser)
         saveSetupDraft(fromUser)
