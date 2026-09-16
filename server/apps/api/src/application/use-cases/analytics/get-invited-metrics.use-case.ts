@@ -100,14 +100,39 @@ export class GetInvitedMetricsUseCase {
         }
 
         let rentExpiryDate: Date | null | undefined = null
+        let rentStartDate: Date | null | undefined = null
+
+        const propertySummaries: any[] = []
 
         u.properties.forEach((p: any) => {
+          let propStartDate = p.rentStartDate || p.pmUnit?.rentStartDate || null
           let propEndDate = p.rentEndDate
           const latestPayment = p.pmUnit?.rentPayments?.[0]
           if (latestPayment?.periodEnd) {
             propEndDate = latestPayment.periodEnd
           }
-          if (propEndDate && (!rentExpiryDate || propEndDate > rentExpiryDate)) rentExpiryDate = propEndDate
+          if (!propEndDate && p.pmUnit?.rentDueDate) {
+            propEndDate = p.pmUnit.rentDueDate
+          }
+
+          if (propStartDate && (!rentStartDate || new Date(propStartDate) < new Date(rentStartDate))) {
+            rentStartDate = propStartDate
+          }
+          if (propEndDate && (!rentExpiryDate || new Date(propEndDate) > new Date(rentExpiryDate))) {
+            rentExpiryDate = propEndDate
+          }
+
+          const propertyAddress = p.pmUnit?.property?.address || p.location?.address || 'Property'
+          propertySummaries.push({
+            id: p.id,
+            address: propertyAddress,
+            unitName: p.pmUnit?.unitName || '',
+            rentStartDate: propStartDate ? new Date(propStartDate).toISOString() : null,
+            rentEndDate: propEndDate ? new Date(propEndDate).toISOString() : null,
+            rentAmount: p.rentAmount || null,
+            currency: p.currency || 'NGN',
+            isVerified: p.isVerified ?? false,
+          })
 
           let pmName = 'Platform'
           let pUuid = ''
@@ -122,20 +147,41 @@ export class GetInvitedMetricsUseCase {
             pmName = p.company.name ? this.encryption.decrypt(p.company.name) : 'Platform'
           }
           if (pUuid && !pmsMap.has(pUuid)) {
-            const propertyAddress = p.pmUnit?.property?.address || p.location?.address
             pmsMap.set(pUuid, { uuid: pUuid, name: pmName, propertyAddress })
           } else if (pUuid && pmsMap.has(pUuid)) {
             const existing = pmsMap.get(pUuid)!
             if (!existing.propertyAddress) {
-               existing.propertyAddress = p.pmUnit?.property?.address || p.location?.address
+               existing.propertyAddress = propertyAddress
                pmsMap.set(pUuid, existing)
             }
           }
         })
+
         if (!rentExpiryDate && pmMatch?.units && pmMatch.units.length > 0) {
           const unit = pmMatch.units[0]
           const latestPayment = unit.rentPayments?.[0]
           rentExpiryDate = latestPayment?.periodEnd ? latestPayment.periodEnd : unit.rentDueDate
+          if (!rentStartDate && unit.rentStartDate) {
+            rentStartDate = unit.rentStartDate
+          }
+        }
+
+        if (propertySummaries.length === 0 && pmMatch?.units && pmMatch.units.length > 0) {
+          pmMatch.units.forEach((unit: any) => {
+            const latestPayment = unit.rentPayments?.[0]
+            const endDate = latestPayment?.periodEnd || unit.rentDueDate || null
+            const startDate = unit.rentStartDate || null
+            propertySummaries.push({
+              id: `unit_${unit.id || Math.random()}`,
+              address: pmMatch.pmUnit?.property?.address || pmMatch.pm?.businessName || 'PM Unit',
+              unitName: unit.unitName || '',
+              rentStartDate: startDate ? new Date(startDate).toISOString() : null,
+              rentEndDate: endDate ? new Date(endDate).toISOString() : null,
+              rentAmount: unit.rentAmount || null,
+              currency: unit.currency || 'NGN',
+              isVerified: true,
+            })
+          })
         }
 
         const pmsList = Array.from(pmsMap.values())
@@ -153,6 +199,8 @@ export class GetInvitedMetricsUseCase {
           }
         }
 
+        const hasUserProperty = propertySummaries.length > 0
+
         return {
           id: `inv_u_${u.id}`,
           uuid: u.uuid,
@@ -166,12 +214,17 @@ export class GetInvitedMetricsUseCase {
           status,
           totalPaid,
           pms: pmsList,
+          hasUserProperty,
+          propertiesCount: propertySummaries.length,
+          properties: propertySummaries,
+          rentStartDate: rentStartDate ? (rentStartDate as Date).toISOString() : null,
+          rentEndDate: rentExpiryDate ? (rentExpiryDate as Date).toISOString() : null,
+          rentExpiryDate: rentExpiryDate ? (rentExpiryDate as Date).toISOString() : null,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
           feePaid,
           platformRevenue: feePaid + benefitsPaid,
           hasPlatformRevenue: feePaid + benefitsPaid > 0,
-          rentExpiryDate,
           originType: origin,
           origin,
           hasPassword,
@@ -217,11 +270,32 @@ export class GetInvitedMetricsUseCase {
           pmName = decryptedBusinessName || `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Platform'
         }
         const pmsList = t.pm?.uuid ? [{ uuid: t.pm.uuid, name: pmName, propertyAddress: t.pmUnit?.property?.address }] : []
-        let rentExpiryDate = null
+        let rentExpiryDate: Date | null = null
+        let rentStartDate: Date | null = null
+        const propertySummaries: any[] = []
+
         if (t.units && t.units.length > 0) {
-          const unit = t.units[0]
-          const latestPayment = unit.rentPayments?.[0]
-          rentExpiryDate = latestPayment?.periodEnd ? latestPayment.periodEnd : unit.rentDueDate
+          t.units.forEach((unit: any) => {
+            const latestPayment = unit.rentPayments?.[0]
+            const endDate = latestPayment?.periodEnd ? latestPayment.periodEnd : unit.rentDueDate
+            const startDate = unit.rentStartDate || null
+            if (endDate && (!rentExpiryDate || new Date(endDate) > new Date(rentExpiryDate))) {
+              rentExpiryDate = endDate
+            }
+            if (startDate && (!rentStartDate || new Date(startDate) < new Date(rentStartDate))) {
+              rentStartDate = startDate
+            }
+            propertySummaries.push({
+              id: `unit_${unit.id || Math.random()}`,
+              address: t.pmUnit?.property?.address || (t.pm ? pmName : 'PM Unit'),
+              unitName: unit.unitName || '',
+              rentStartDate: startDate ? new Date(startDate).toISOString() : null,
+              rentEndDate: endDate ? new Date(endDate).toISOString() : null,
+              rentAmount: unit.rentAmount || null,
+              currency: unit.currency || 'NGN',
+              isVerified: true,
+            })
+          })
         }
 
         let resolvedChannel: 'EMAIL' | 'SMS' | 'WHATSAPP' | null = null
@@ -240,6 +314,8 @@ export class GetInvitedMetricsUseCase {
           origin = t.emailHash ? 'INVITED_EMAIL' : 'INVITED_PHONE'
         }
 
+        const hasUserProperty = propertySummaries.length > 0
+
         return {
           id: `inv_p_${t.id}`,
           uuid: t.uuid,
@@ -253,7 +329,12 @@ export class GetInvitedMetricsUseCase {
           status: 'INVITED_PENDING' as const,
           totalPaid: 0,
           pms: pmsList,
-          rentExpiryDate,
+          hasUserProperty,
+          propertiesCount: propertySummaries.length,
+          properties: propertySummaries,
+          rentStartDate: rentStartDate ? (rentStartDate as Date).toISOString() : null,
+          rentEndDate: rentExpiryDate ? (rentExpiryDate as Date).toISOString() : null,
+          rentExpiryDate: rentExpiryDate ? (rentExpiryDate as Date).toISOString() : null,
           originType: origin,
           origin,
           hasPassword: false,

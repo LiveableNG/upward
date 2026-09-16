@@ -13,12 +13,7 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (data: any) => {
-      const result = await authLogin(data);
-      if (result.user?.pmType === 'INDIVIDUAL_LANDLORD') {
-        await authLogout().catch(() => {});
-        throw new Error("Invalid details for Property Manager. Please use the Landlord portal.");
-      }
-      return result;
+      return authLogin(data)
     },
     onSuccess: async (result, variables) => {
       if (await BiometricsService.isEnabled()) {

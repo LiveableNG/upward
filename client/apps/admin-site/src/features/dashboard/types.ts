@@ -1,3 +1,14 @@
+export interface PropertySummary {
+  id: string | number
+  address?: string
+  unitName?: string
+  rentStartDate?: string | null
+  rentEndDate?: string | null
+  rentAmount?: number | null
+  currency?: string | null
+  isVerified?: boolean
+}
+
 export interface WaitlistRecord {
   id: string
   uuid: string
@@ -11,6 +22,11 @@ export interface WaitlistRecord {
   pmName?: string
   pmUuid?: string | string[]
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
+  hasUserProperty?: boolean
+  propertiesCount?: number
+  properties?: PropertySummary[]
+  rentStartDate?: string | null
+  rentEndDate?: string | null
 }
 
 export interface SignedUpRecord {
@@ -32,6 +48,11 @@ export interface SignedUpRecord {
   hasPlatformRevenue?: boolean
   pmName?: string
   pmUuid?: string | string[]
+  hasUserProperty?: boolean
+  propertiesCount?: number
+  properties?: PropertySummary[]
+  rentStartDate?: string | null
+  rentEndDate?: string | null
   rentExpiryDate?: string
   originType?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
   origin?: 'WAITLIST' | 'SELF_REGISTERED' | 'INVITED_EMAIL' | 'INVITED_PHONE'
@@ -55,6 +76,11 @@ export interface InvitedRecord {
   joinedAt?: string | null
   status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
   totalPaid: number
+  hasUserProperty?: boolean
+  propertiesCount?: number
+  properties?: PropertySummary[]
+  rentStartDate?: string | null
+  rentEndDate?: string | null
   rentExpiryDate?: string
   pmName?: string
   pmUuid?: string | string[] | null

@@ -46,12 +46,7 @@ export function useOtpLogin() {
 
   return useMutation({
     mutationFn: async ({ email, otp }: { email: string; otp: string }) => {
-      const result = await otpLogin(email, otp);
-      if (result.user?.pmType === 'INDIVIDUAL_LANDLORD') {
-        await authLogout().catch(() => {});
-        throw new Error("Invalid details for Property Manager. Please use the Landlord portal.");
-      }
-      return result;
+      return otpLogin(email, otp)
     },
     onSuccess: () => {
       success("Logged in successfully")

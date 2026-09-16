@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
 import { FileSpreadsheet, Download, Plus, X, AlertCircle } from 'lucide-react'
 import Papa from 'papaparse'
 import { useToast } from '@/components/common/Toast'
@@ -209,10 +210,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: { uuid: string
               Upward PM is the modern platform for property managers to automate rent collection, track leases, and find verified tenants.
             </p>
             <div className="upsell-card__actions">
-              <button className="btn btn--primary" onClick={() => router.push('/signup')}>
+              <button className="btn btn--primary" onClick={() => router.push(Capacitor.isNativePlatform() ? '/signup' : '/pm-signup')}>
                 Create Free Account
               </button>
-              <button className="btn btn--secondary" onClick={() => router.push('/login')}>
+              <button className="btn btn--secondary" onClick={() => router.push(Capacitor.isNativePlatform() ? '/login' : '/pm-login')}>
                 Log In
               </button>
             </div>

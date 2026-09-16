@@ -97,6 +97,8 @@ export const SignupFormMobile = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [phoneCountryCode, setPhoneCountryCode] = useState('Nigeria')
+  const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform()
+  const [loginHref, setLoginHref] = useState(isNative ? '/login' : '/pm-login')
 
   const signupMutation = useSignup()
   const requestOtpMutation = useRequestOTP()
@@ -138,17 +140,25 @@ export const SignupFormMobile = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const prefillPmType = resolvePmTypePrefill(new URLSearchParams(window.location.search).get('pmType'))
-    if (!prefillPmType) return
-
-    setFormData((current) => {
-      if (current.pmType) return current
-      return {
-        ...current,
-        pmType: prefillPmType,
-      }
-    })
-  }, [])
+    const searchParams = new URLSearchParams(window.location.search)
+    const pmType = searchParams.get('pmType')
+    const prefillPmType = resolvePmTypePrefill(pmType)
+    if (prefillPmType) {
+      setFormData((current) => {
+        if (current.pmType) return current
+        return {
+          ...current,
+          pmType: prefillPmType,
+        }
+      })
+    }
+    const baseHref = isNative ? '/login' : '/pm-login'
+    if (pmType) {
+      setLoginHref(`${baseHref}?pmType=${encodeURIComponent(pmType)}`)
+    } else {
+      setLoginHref(baseHref)
+    }
+  }, [isNative])
 
   const loading =
     signupMutation.isPending ||
@@ -256,12 +266,8 @@ export const SignupFormMobile = () => {
       otpLoginMutation.mutate(
         { email: formData.email, otp: otpCode },
         {
-          onSuccess: (res: OtpLoginResult) => {
-            if (res.user?.pmType === 'INDIVIDUAL_LANDLORD') {
-              window.location.href = '/portal'
-            } else {
-              window.location.href = '/dashboard'
-            }
+          onSuccess: () => {
+            window.location.href = '/dashboard'
           },
         },
       )
@@ -407,8 +413,6 @@ export const SignupFormMobile = () => {
     if (step === 4) return 100
     return 0
   }
-
-  const isNative = typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 
   return (
     <div className="mobile-auth">
@@ -634,7 +638,7 @@ export const SignupFormMobile = () => {
                   {emailExists && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: '#ef4444', fontSize: '13px' }}>
                       <AlertCircle size={14} />
-                      <span>Email already registered. <Link href={isNative ? "/login" : "/pm-login"} style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
+                      <span>Email already registered. <Link href={`${loginHref}${loginHref.includes('?') ? '&' : '?'}email=${encodeURIComponent(formData.email.trim())}`} style={{ textDecoration: 'underline', fontWeight: 700, color: 'var(--forest)' }}>Log in</Link></span>
                     </div>
                   )}
                 </div>
@@ -814,7 +818,7 @@ export const SignupFormMobile = () => {
             {step === 1 && (
               <div className="mobile-auth__footer" style={{ marginTop: '24px', textAlign: 'center' }}>
                 <p className="auth-footer">
-                  Already have an account? <Link href={isNative ? "/login" : "/pm-login"}>Log in</Link>
+                  Already have an account? <Link href={loginHref}>Log in</Link>
                 </p>
               </div>
             )}

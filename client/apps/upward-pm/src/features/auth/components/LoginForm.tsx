@@ -102,6 +102,10 @@ export const LoginForm = () => {
     if (roleParam === 'staff' || roleParam === 'employee') {
       setAccountType('staff')
     }
+    const emailParam = params.get('email')
+    if (emailParam) {
+      setEmail(emailParam)
+    }
     const pmType = params.get('pmType')
     if (!pmType) return
     setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)

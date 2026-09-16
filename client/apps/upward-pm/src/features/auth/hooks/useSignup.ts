@@ -17,11 +17,7 @@ export function useSignup() {
       queryClient.setQueryData(['user'], result.user)
       success("Account created successfully!")
       
-      if (result.user.pmType === 'INDIVIDUAL_LANDLORD') {
-        router.push('/portal')
-      } else {
-        router.push('/dashboard')
-      }
+      router.push('/dashboard')
     },
     onError: (err: any) => {
       error(err.message || "Signup failed")

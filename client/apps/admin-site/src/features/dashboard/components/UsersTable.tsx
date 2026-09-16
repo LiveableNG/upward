@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Copy, Trash2, Mail, UserPlus } from 'lucide-react'
+import { Eye, Copy, Trash2, Mail, UserPlus, Building2 } from 'lucide-react'
 import { DataTable, type ColumnDef, type ActionItem, StatusBadge } from '../../../components/common'
+
+import type { PropertySummary } from '../types'
 
 export interface UnifiedUserRecord {
   id: string
@@ -19,6 +21,11 @@ export interface UnifiedUserRecord {
   pms?: Array<{ uuid: string; name: string; propertyAddress?: string }>
   totalPaid: number
   upwardScore?: { score: number; band?: string; color?: string }
+  hasUserProperty?: boolean
+  propertiesCount?: number
+  properties?: PropertySummary[]
+  rentStartDate?: string | null
+  rentEndDate?: string | null
   rentExpiryDate?: string
   hearAboutUs?: string | null
   failureReason?: string
@@ -33,6 +40,8 @@ type SortKey =
   | 'totalPaid'
   | 'createdAt'
   | 'joinedAt'
+  | 'propertiesCount'
+  | 'rentStartDate'
   | 'rentExpiry'
 type SortDir = 'asc' | 'desc'
 
@@ -159,6 +168,84 @@ const PmBadgeList: React.FC<{ pms?: UnifiedUserRecord['pms'] }> = ({ pms }) => {
   )
 }
 
+const UserPropertyBadge: React.FC<{ properties?: PropertySummary[] }> = ({ properties }) => {
+  const [open, setOpen] = useState(false)
+  if (!properties || properties.length === 0) {
+    return <span style={{ color: 'var(--text-muted)', fontSize: '12px', opacity: 0.6 }}>—</span>
+  }
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen(!open)
+        }}
+        onBlur={() => setOpen(false)}
+        style={{
+          fontSize: '11px',
+          fontWeight: 600,
+          background: 'rgba(34, 197, 94, 0.08)',
+          color: 'var(--success, #16a34a)',
+          border: '1px solid rgba(34, 197, 94, 0.25)',
+          padding: '2px 8px',
+          borderRadius: '100px',
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+        className="pm-badge-hover"
+      >
+        <Building2 size={12} style={{ flexShrink: 0 }} />
+        <span>{properties.length === 1 ? '1 Property' : `${properties.length} Properties`}</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginTop: '4px',
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            color: 'var(--text)',
+            fontSize: '11px',
+            fontWeight: 500,
+            zIndex: 50,
+            width: 'max-content',
+            maxWidth: '260px',
+            animation: 'popupFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            lineHeight: 1.4,
+            whiteSpace: 'normal',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {properties.map((p, idx) => (
+            <div key={idx} style={{ borderBottom: idx < properties.length - 1 ? '1px dashed var(--border)' : 'none', paddingBottom: idx < properties.length - 1 ? '4px' : 0 }}>
+              <div style={{ fontWeight: 600 }}>{p.address}</div>
+              {p.unitName && <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Unit: {p.unitName}</div>}
+              {(p.rentStartDate || p.rentEndDate) && (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '10px', marginTop: '2px' }}>
+                  {p.rentStartDate ? new Date(p.rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'} — {p.rentEndDate ? new Date(p.rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export const UsersTable: React.FC<UsersTableProps> = ({
   isSuperadmin,
   paginatedItems,
@@ -213,11 +300,25 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         if (a.joinedAt && !b.joinedAt) return sortDir === 'asc' ? -1 : 1
         va = a.joinedAt || ''
         vb = b.joinedAt || ''
+      } else if (sortKey === 'propertiesCount') {
+        const countA = a.propertiesCount ?? (a.properties?.length || 0)
+        const countB = b.propertiesCount ?? (b.properties?.length || 0)
+        va = countA
+        vb = countB
+      } else if (sortKey === 'rentStartDate') {
+        const startA = a.rentStartDate || a.properties?.[0]?.rentStartDate || ''
+        const startB = b.rentStartDate || b.properties?.[0]?.rentStartDate || ''
+        if (!startA && startB) return sortDir === 'asc' ? 1 : -1
+        if (startA && !startB) return sortDir === 'asc' ? -1 : 1
+        va = startA
+        vb = startB
       } else if (sortKey === 'rentExpiry') {
-        if (!a.rentExpiryDate && b.rentExpiryDate) return sortDir === 'asc' ? 1 : -1
-        if (a.rentExpiryDate && !b.rentExpiryDate) return sortDir === 'asc' ? -1 : 1
-        va = a.rentExpiryDate || ''
-        vb = b.rentExpiryDate || ''
+        const expiryA = a.rentExpiryDate || a.rentEndDate || a.properties?.[0]?.rentEndDate || ''
+        const expiryB = b.rentExpiryDate || b.rentEndDate || b.properties?.[0]?.rentEndDate || ''
+        if (!expiryA && expiryB) return sortDir === 'asc' ? 1 : -1
+        if (expiryA && !expiryB) return sortDir === 'asc' ? -1 : 1
+        va = expiryA
+        vb = expiryB
       }
       if (va < vb) return sortDir === 'asc' ? -1 : 1
       if (va > vb) return sortDir === 'asc' ? 1 : -1
@@ -490,6 +591,33 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         )
       },
     },
+    {
+      key: 'propertiesCount',
+      label: 'Property',
+      sortable: true,
+      render: (item) => <UserPropertyBadge properties={item.properties} />,
+    },
+    {
+      key: 'rentStartDate',
+      label: 'Rent Start',
+      sortable: true,
+      render: (item) => {
+        const startDate = item.rentStartDate || item.properties?.[0]?.rentStartDate
+        return (
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {startDate ? (
+              new Date(startDate).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })
+            ) : (
+              <span style={{ opacity: 0.5 }}>—</span>
+            )}
+          </span>
+        )
+      },
+    },
     showFailureReason
       ? {
           key: 'failureReason',
@@ -507,19 +635,22 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           key: 'rentExpiry',
           label: 'Rent Expiry',
           sortable: true,
-          render: (item) => (
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              {item.rentExpiryDate ? (
-                new Date(item.rentExpiryDate).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              ) : (
-                <span style={{ opacity: 0.5 }}>—</span>
-              )}
-            </span>
-          ),
+          render: (item) => {
+            const expiryDate = item.rentExpiryDate || item.rentEndDate || item.properties?.[0]?.rentEndDate
+            return (
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {expiryDate ? (
+                  new Date(expiryDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                ) : (
+                  <span style={{ opacity: 0.5 }}>—</span>
+                )}
+              </span>
+            )
+          },
         },
   ]
 

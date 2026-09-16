@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock, Compass } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import type { PropertySummary } from '../types'
+
 export type DrawerEntity = {
   kind: 'user' | 'pm'
   uuid: string
@@ -24,6 +26,9 @@ export type DrawerEntity = {
   transactionCount?: number
   totalPaid?: number
   propertyCount?: number
+  properties?: PropertySummary[]
+  rentStartDate?: string | null
+  rentEndDate?: string | null
   transactions?: any[]
   paymentRequests?: any[]
 }
@@ -288,6 +293,53 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                 </div>
               </div>
             </div>
+
+            {/* Properties & Tenancy Details */}
+            {entity.kind === 'user' && entity.properties && entity.properties.length > 0 && (
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+                <span className="section-label" style={{ display: 'block', marginBottom: '14px', fontWeight: 600, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Properties & Tenancy Details ({entity.properties.length})
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {entity.properties.map((p, idx) => (
+                    <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', background: 'var(--surface-hover)' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Building2 size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>
+                            {p.address || 'Property'}
+                          </span>
+                        </div>
+                        {p.unitName && (
+                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+                            Unit: {p.unitName}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border)', fontSize: '11px' }}>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Rent Start</div>
+                          <div style={{ fontWeight: 500, marginTop: '2px' }}>
+                            {p.rentStartDate ? new Date(p.rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Rent Expiry</div>
+                          <div style={{ fontWeight: 500, marginTop: '2px', color: p.rentEndDate ? 'var(--text)' : 'var(--text-muted)' }}>
+                            {p.rentEndDate ? new Date(p.rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                          </div>
+                        </div>
+                      </div>
+                      {p.rentAmount && (
+                        <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          Rent Amount: <strong>₦{Number(p.rentAmount).toLocaleString()}</strong>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Payments & Transactions Breakdown */}
             {entity.kind === 'user' && entity.transactions && entity.transactions.length > 0 && (
