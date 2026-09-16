@@ -116,7 +116,11 @@ export class GetPerformanceMetricsUseCase {
               pm: { select: { id: true, createdAt: true, uuid: true, businessName: true, firstName: true, lastName: true } },
               company: { select: { id: true, createdAt: true, uuid: true, name: true } },
               location: { select: { address: true } },
+              rentStartDate: true,
               rentEndDate: true,
+              rentAmount: true,
+              currency: true,
+              isVerified: true,
               pmUnit: {
                 select: {
                   unitName: true,

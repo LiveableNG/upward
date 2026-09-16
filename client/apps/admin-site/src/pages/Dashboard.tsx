@@ -109,6 +109,18 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [contactFilter, setContactFilter] = useState<
     'all' | 'emailOnly' | 'phoneOnly' | 'both' | 'neither'
   >('all')
+  const [propertyFilter, setPropertyFilter] = useState<
+    'all' | 'withProperty' | 'withoutProperty'
+  >('all')
+  const [tenancyDateFilter, setTenancyDateFilter] = useState<
+    | 'all'
+    | 'withBothDates'
+    | 'withExpiryDate'
+    | 'withoutExpiryDate'
+    | 'withStartDate'
+    | 'withoutStartDate'
+    | 'noDates'
+  >('all')
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -299,6 +311,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       createdAt,
       hearAboutUs: item.hearAboutUs || item.rawRecord?.hearAboutUs || null,
       totalPaid: item.totalPaid,
+      propertyCount: item.propertiesCount || item.properties?.length || (item.rawRecord?.properties?.length || 0),
+      properties: item.properties || item.rawRecord?.properties || [],
+      rentStartDate: item.rentStartDate || item.rawRecord?.rentStartDate || null,
+      rentEndDate: item.rentEndDate || item.rentExpiryDate || item.rawRecord?.rentEndDate || item.rawRecord?.rentExpiryDate || null,
       transactions: item.transactions || [],
       paymentRequests: item.paymentRequests || [],
     })
@@ -323,6 +339,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     const list: UnifiedUserRecord[] = []
 
     waitlistList.forEach((w) => {
+      const hasProp = !!(w.hasUserProperty || (w.properties && w.properties.length > 0))
       list.push({
         id: w.id,
         uuid: w.uuid,
@@ -336,13 +353,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: false,
         isExWaitlist: false,
         totalPaid: 0,
-        rentExpiryDate: undefined,
+        hasUserProperty: hasProp,
+        propertiesCount: w.propertiesCount || (w.properties ? w.properties.length : 0),
+        properties: w.properties || [],
+        rentStartDate: w.rentStartDate || null,
+        rentEndDate: w.rentEndDate || null,
+        rentExpiryDate: w.rentEndDate || undefined,
         pms: w.pms,
         rawRecord: w,
       })
     })
 
     signedUpList.forEach((u) => {
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
       list.push({
         id: u.id,
         uuid: u.uuid,
@@ -356,7 +379,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPassword: u.hasPassword ?? true,
         isExWaitlist: u.origin === 'WAITLIST',
         totalPaid: u.totalPaid,
-        rentExpiryDate: u.rentExpiryDate,
+        hasUserProperty: hasProp,
+        propertiesCount: u.propertiesCount || (u.properties ? u.properties.length : 0),
+        properties: u.properties || [],
+        rentStartDate: u.rentStartDate || null,
+        rentEndDate: u.rentEndDate || u.rentExpiryDate || null,
+        rentExpiryDate: u.rentExpiryDate || u.rentEndDate || undefined,
         hearAboutUs: u.hearAboutUs,
         pms: u.pms,
         rawRecord: u,
@@ -364,6 +392,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
 
     invitedList.forEach((i) => {
+      const hasProp = !!(i.hasUserProperty || (i.properties && i.properties.length > 0))
       list.push({
         id: i.id,
         uuid: i.uuid,
@@ -379,7 +408,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         isExWaitlist: i.origin === 'WAITLIST',
         pms: i.pms,
         totalPaid: i.totalPaid,
-        rentExpiryDate: i.rentExpiryDate,
+        hasUserProperty: hasProp,
+        propertiesCount: i.propertiesCount || (i.properties ? i.properties.length : 0),
+        properties: i.properties || [],
+        rentStartDate: i.rentStartDate || null,
+        rentEndDate: i.rentEndDate || i.rentExpiryDate || null,
+        rentExpiryDate: i.rentExpiryDate || i.rentEndDate || undefined,
         failureReason: i.failureReason,
         rawRecord: i,
       })
@@ -463,6 +497,105 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     return { emailOnly, phoneOnly, both, neither }
   }, [usersFilteredByPm, originFilter])
 
+  const propertyCounts = useMemo(() => {
+    let withProperty = 0
+    let withoutProperty = 0
+
+    const baseFiltered = usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+      return true
+    })
+
+    baseFiltered.forEach((u) => {
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (hasProp) withProperty++
+      else withoutProperty++
+    })
+
+    return {
+      all: baseFiltered.length,
+      withProperty,
+      withoutProperty,
+    }
+  }, [usersFilteredByPm, originFilter, contactFilter])
+
+  const tenancyDateCounts = useMemo(() => {
+    let withBothDates = 0
+    let withStartDate = 0
+    let withoutStartDate = 0
+    let withExpiryDate = 0
+    let withoutExpiryDate = 0
+    let noDates = 0
+
+    const baseFiltered = usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (propertyFilter === 'withProperty' && !hasProp) return false
+      if (propertyFilter === 'withoutProperty' && hasProp) return false
+
+      return true
+    })
+
+    baseFiltered.forEach((u) => {
+      const hasStart = !!(u.rentStartDate || u.properties?.[0]?.rentStartDate)
+      const hasEnd = !!(u.rentExpiryDate || u.rentEndDate || u.properties?.[0]?.rentEndDate)
+
+      if (hasStart && hasEnd) withBothDates++
+      if (hasStart) withStartDate++
+      else withoutStartDate++
+      if (hasEnd) withExpiryDate++
+      else withoutExpiryDate++
+      if (!hasStart && !hasEnd) noDates++
+    })
+
+    return {
+      all: baseFiltered.length,
+      withBothDates,
+      withStartDate,
+      withoutStartDate,
+      withExpiryDate,
+      withoutExpiryDate,
+      noDates,
+    }
+  }, [usersFilteredByPm, originFilter, contactFilter, propertyFilter])
+
   const filteredUsers = useMemo(() => {
     return usersFilteredByPm.filter((u) => {
       // 1. Origin Filter
@@ -487,9 +620,25 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
       }
 
+      // 3. Property Filter
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (propertyFilter === 'withProperty' && !hasProp) return false
+      if (propertyFilter === 'withoutProperty' && hasProp) return false
+
+      // 4. Tenancy Date Filter
+      const hasStart = !!(u.rentStartDate || u.properties?.[0]?.rentStartDate)
+      const hasEnd = !!(u.rentExpiryDate || u.rentEndDate || u.properties?.[0]?.rentEndDate)
+
+      if (tenancyDateFilter === 'withBothDates' && (!hasStart || !hasEnd)) return false
+      if (tenancyDateFilter === 'withStartDate' && !hasStart) return false
+      if (tenancyDateFilter === 'withoutStartDate' && hasStart) return false
+      if (tenancyDateFilter === 'withExpiryDate' && !hasEnd) return false
+      if (tenancyDateFilter === 'withoutExpiryDate' && hasEnd) return false
+      if (tenancyDateFilter === 'noDates' && (hasStart || hasEnd)) return false
+
       return true
     })
-  }, [usersFilteredByPm, originFilter, contactFilter])
+  }, [usersFilteredByPm, originFilter, contactFilter, propertyFilter, tenancyDateFilter])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -959,6 +1108,118 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   </button>
                 </div>
               )}
+
+              {/* Property Status Filter */}
+              {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingRight: '8px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    User Property:
+                  </span>
+                  <button
+                    onClick={() => setPropertyFilter('all')}
+                    className={`date-chip ${propertyFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All ({propertyCounts.all})
+                  </button>
+                  <button
+                    onClick={() => setPropertyFilter('withProperty')}
+                    className={`date-chip ${propertyFilter === 'withProperty' ? 'active' : ''}`}
+                  >
+                    🏠 With Property ({propertyCounts.withProperty})
+                  </button>
+                  <button
+                    onClick={() => setPropertyFilter('withoutProperty')}
+                    className={`date-chip ${propertyFilter === 'withoutProperty' ? 'active' : ''}`}
+                  >
+                    Without Property ({propertyCounts.withoutProperty})
+                  </button>
+                </div>
+              )}
+
+              {/* Tenancy Dates Filter */}
+              {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingRight: '8px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Tenancy Dates:
+                  </span>
+                  <button
+                    onClick={() => setTenancyDateFilter('all')}
+                    className={`date-chip ${tenancyDateFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All Dates ({tenancyDateCounts.all})
+                  </button>
+                  <button
+                    onClick={() => setTenancyDateFilter('withBothDates')}
+                    className={`date-chip ${tenancyDateFilter === 'withBothDates' ? 'active' : ''}`}
+                  >
+                    Both Start & Expiry ({tenancyDateCounts.withBothDates})
+                  </button>
+                  <button
+                    onClick={() => setTenancyDateFilter('withExpiryDate')}
+                    className={`date-chip ${tenancyDateFilter === 'withExpiryDate' ? 'active' : ''}`}
+                  >
+                    Has Expiry Date ({tenancyDateCounts.withExpiryDate})
+                  </button>
+                  <button
+                    onClick={() => setTenancyDateFilter('withoutExpiryDate')}
+                    className={`date-chip ${tenancyDateFilter === 'withoutExpiryDate' ? 'active' : ''}`}
+                  >
+                    Missing Expiry Date ({tenancyDateCounts.withoutExpiryDate})
+                  </button>
+                  <button
+                    onClick={() => setTenancyDateFilter('withStartDate')}
+                    className={`date-chip ${tenancyDateFilter === 'withStartDate' ? 'active' : ''}`}
+                  >
+                    Has Start Date ({tenancyDateCounts.withStartDate})
+                  </button>
+                  <button
+                    onClick={() => setTenancyDateFilter('withoutStartDate')}
+                    className={`date-chip ${tenancyDateFilter === 'withoutStartDate' ? 'active' : ''}`}
+                  >
+                    Missing Start Date ({tenancyDateCounts.withoutStartDate})
+                  </button>
+                  <button
+                    onClick={() => setTenancyDateFilter('noDates')}
+                    className={`date-chip ${tenancyDateFilter === 'noDates' ? 'active' : ''}`}
+                  >
+                    No Dates ({tenancyDateCounts.noDates})
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1051,7 +1312,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     toggleSelectUser={toggleSelectUser}
                     showFailureReason={usersSubtab === 'unsynced'}
                     isGuestOrUnsynced={usersSubtab === 'guest' || usersSubtab === 'unsynced'}
-                    onPreview={(item) => openDrawerForUser(item)}
+                    onPreview={openDrawerForUser}
                     onDeleteSelected={triggerBulkDelete}
                     token={token}
                   />
