@@ -30,6 +30,38 @@ function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   return cleaned;
 }
 
+function normalizeRentType(val?: string | null): string {
+  if (!val) return 'Annually';
+  const clean = val.toString().trim().toLowerCase();
+  if (['monthly', 'month', 'per month', 'mo', 'm'].includes(clean) || clean.includes('month')) {
+    return 'Monthly';
+  }
+  if (['lease', 'multi-year', 'multi year'].includes(clean) || clean.includes('lease')) {
+    return 'Lease';
+  }
+  if (
+    [
+      'annually',
+      'annual',
+      'yearly',
+      'year',
+      'per annum',
+      'annum',
+      'pa',
+      'p.a.',
+      'yr',
+      '1 year',
+      'per year',
+      '1 yr',
+    ].includes(clean) ||
+    clean.includes('year') ||
+    clean.includes('annu')
+  ) {
+    return 'Annually';
+  }
+  return 'Annually';
+}
+
 @Injectable()
 export class BulkFullImportUseCase {
   constructor(
@@ -248,7 +280,7 @@ export class BulkFullImportUseCase {
         continue;
       }
 
-      let inferredRentType = row.unitRentType;
+      let inferredRentType = row.unitRentType ? normalizeRentType(row.unitRentType) : undefined;
       if (!inferredRentType && row.unitRentStartDate && row.unitRentDueDate) {
         const start = new Date(row.unitRentStartDate);
         const due = new Date(row.unitRentDueDate);

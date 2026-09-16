@@ -15,6 +15,7 @@ import {
   validateCell,
   parseDateString,
   calculateRentEndDateAndWarning,
+  normalizeRentType,
   type DateOrder,
 } from './utils'
 import { useToast } from '@/components/common/Toast'
@@ -491,14 +492,7 @@ export const useDataImport = (
       })
 
       const rentTypeKey = mode === 'full' ? 'unitRentType' : 'rentType'
-      const hasTenant = !!(
-        mappedRow.tenantFirstName?.trim() ||
-        mappedRow.tenantLastName?.trim() ||
-        mappedRow.tenantCommercialName?.trim()
-      )
-      if (hasTenant && !mappedRow[rentTypeKey]) {
-        mappedRow[rentTypeKey] = 'Annually'
-      }
+      mappedRow[rentTypeKey] = normalizeRentType(mappedRow[rentTypeKey])
 
       const hasTenantName = !!(
         mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim()

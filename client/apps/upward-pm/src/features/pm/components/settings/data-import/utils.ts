@@ -120,6 +120,38 @@ export interface RentDateFixResult {
   warningMessage: string | null
 }
 
+export const normalizeRentType = (val?: string | null): 'Monthly' | 'Annually' | 'Lease' => {
+  if (!val) return 'Annually'
+  const clean = val.toString().trim().toLowerCase()
+  if (['monthly', 'month', 'per month', 'mo', 'm'].includes(clean) || clean.includes('month')) {
+    return 'Monthly'
+  }
+  if (['lease', 'multi-year', 'multi year'].includes(clean) || clean.includes('lease')) {
+    return 'Lease'
+  }
+  if (
+    [
+      'annually',
+      'annual',
+      'yearly',
+      'year',
+      'per annum',
+      'annum',
+      'pa',
+      'p.a.',
+      'yr',
+      '1 year',
+      'per year',
+      '1 yr',
+    ].includes(clean) ||
+    clean.includes('year') ||
+    clean.includes('annu')
+  ) {
+    return 'Annually'
+  }
+  return 'Annually'
+}
+
 export const calculateRentEndDateAndWarning = (
   startDateStr: string,
   rentType: string,
@@ -141,7 +173,7 @@ export const calculateRentEndDateAndWarning = (
   }
 
   const startDate = new Date(Date.UTC(y, m - 1, d))
-  const trimmedType = (rentType || '').trim()
+  const trimmedType = normalizeRentType(rentType)
   const years = Math.max(1, parseInt(String(leaseYears || '1'), 10) || 1)
 
   const endDateInclusive = new Date(startDate.getTime())
@@ -249,8 +281,6 @@ export const validateCell = (
       'rentStartDate',
       'unitRentAmountPaid',
       'rentAmountPaid',
-      'unitRentType',
-      'rentType'
     ].includes(field)) {
       isRequired = true
     }
@@ -266,11 +296,11 @@ export const validateCell = (
   if (isRequired && !value && value !== 0) {
     errorMsg = 'Required'
   } else if (field === 'unitRentType' || field === 'rentType') {
-    if (value && !['Monthly', 'Annually', 'Lease'].includes(value)) {
+    if (value && !['Monthly', 'Annually', 'Lease'].includes(normalizeRentType(value))) {
       errorMsg = 'Must be Monthly, Annually, or Lease'
     }
   } else if (field === 'leaseYears') {
-    const rentTypeVal = row?.unitRentType || row?.rentType
+    const rentTypeVal = normalizeRentType(row?.unitRentType || row?.rentType)
     if (rentTypeVal === 'Lease') {
       if (!value || isNaN(parseInt(value, 10)) || parseInt(value, 10) < 1) {
         errorMsg = 'Lease Years required (min 1)'

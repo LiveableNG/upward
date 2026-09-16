@@ -23,6 +23,38 @@ function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   return cleaned;
 }
 
+function normalizeRentType(val?: string | null): string {
+  if (!val) return 'Annually';
+  const clean = val.toString().trim().toLowerCase();
+  if (['monthly', 'month', 'per month', 'mo', 'm'].includes(clean) || clean.includes('month')) {
+    return 'Monthly';
+  }
+  if (['lease', 'multi-year', 'multi year'].includes(clean) || clean.includes('lease')) {
+    return 'Lease';
+  }
+  if (
+    [
+      'annually',
+      'annual',
+      'yearly',
+      'year',
+      'per annum',
+      'annum',
+      'pa',
+      'p.a.',
+      'yr',
+      '1 year',
+      'per year',
+      '1 yr',
+    ].includes(clean) ||
+    clean.includes('year') ||
+    clean.includes('annu')
+  ) {
+    return 'Annually';
+  }
+  return 'Annually';
+}
+
 @Injectable()
 export class BulkCreateUnitsUseCase {
   constructor(
@@ -174,12 +206,12 @@ export class BulkCreateUnitsUseCase {
       const canonicalStart = this.rentalPeriodService.parseCalendarDate(u.rentStartDate);
       const canonicalDue = this.rentalPeriodService.parseCalendarDate(u.rentDueDate);
 
-      let inferredRentType = u.rentType;
+      let inferredRentType = u.rentType ? normalizeRentType(u.rentType) : undefined;
       if (!inferredRentType && canonicalStart && canonicalDue) {
         const diffDays = Math.ceil(Math.abs(canonicalDue.getTime() - canonicalStart.getTime()) / (1000 * 60 * 60 * 24));
         inferredRentType = diffDays > 300 ? 'Annually' : 'Monthly';
       } else if (!inferredRentType) {
-        inferredRentType = 'Monthly';
+        inferredRentType = 'Annually';
       }
 
       const newUnit = await this.unitRepository.create({
