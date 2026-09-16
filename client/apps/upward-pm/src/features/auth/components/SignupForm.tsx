@@ -356,30 +356,47 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
     }
 
     const nameParts = formData.fullName.trim().split(/\s+/)
-    const firstName = nameParts[0]
-    const lastName = nameParts.slice(1).join(' ') || ' '
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
 
-    signupMutation.mutate(
+    const signupPayload = {
+      firstName,
+      lastName,
+      businessName: formData.companyName.trim(),
+      companyName: formData.companyName.trim(),
+      country: formData.country,
+      email: formData.email.trim(),
+      phone: bPhone,
+      tenantsNumber: formData.tenantsNumber,
+      pmType: formData.pmType,
+      password: formData.password,
+      fullName: formData.fullName.trim(),
+      personalEmail: formData.personalEmail.trim() || formData.email.trim(),
+      personalPhone: pPhone || bPhone,
+    }
+
+    verifyOtpMutation.mutate(
       {
-        companyName: formData.companyName.trim(),
-        country: formData.country,
         email: formData.email.trim(),
-        phone: bPhone,
-        tenantsNumber: formData.tenantsNumber,
-        pmType: formData.pmType,
-        password: formData.password,
-        fullName: formData.fullName.trim(),
-        personalEmail: formData.personalEmail.trim() || formData.email.trim(),
-        personalPhone: pPhone || bPhone,
         otp: otpCode,
+        context: 'SIGNUP',
       },
       {
-        onSuccess: () => {
-          setStep('success')
+        onSuccess: (res: any) => {
+          if (res?.success) {
+            signupMutation.mutate(signupPayload, {
+              onSuccess: () => {
+                setStep('success')
+              },
+              onError: (err: any) => {
+                toastError(err?.message || 'Registration failed')
+              },
+            })
+          }
         },
         onError: (err: any) => {
-          toastError(err?.message || 'Registration failed')
-        }
+          toastError(err?.message || 'Invalid or expired verification code')
+        },
       },
     )
   }

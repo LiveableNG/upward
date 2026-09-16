@@ -26,6 +26,8 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       pmType: model.pmType,
       phone: model.phone ? this.encryption.decrypt(model.phone) : undefined,
       phoneHash: model.phoneHash,
+      personalEmail: model.personalEmail ? this.encryption.decrypt(model.personalEmail) : undefined,
+      personalPhone: model.personalPhone ? this.encryption.decrypt(model.personalPhone) : undefined,
       profilePic: model.profilePic,
       country: model.country,
       companyAddress: model.companyAddress,
@@ -84,20 +86,25 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       return this.update(pm.id, pm)
     }
 
+    const firstName = pm.firstName || ''
+    const lastName = pm.lastName || ''
+
     const record = await (this.prisma as any).upward_property_manager.create({
       data: {
         uuid: pm.uuid,
         email: this.encryption.encrypt(pm.email),
         emailHash: this.encryption.hash(pm.email),
         passwordHash: pm.passwordHash,
-        firstName: this.encryption.encrypt(pm.firstName),
-        firstNameHash: pm.firstNameHash ?? this.encryption.hash(pm.firstName),
-        lastName: this.encryption.encrypt(pm.lastName),
-        lastNameHash: pm.lastNameHash ?? this.encryption.hash(pm.lastName),
+        firstName: this.encryption.encrypt(firstName),
+        firstNameHash: pm.firstNameHash ?? this.encryption.hash(firstName),
+        lastName: this.encryption.encrypt(lastName),
+        lastNameHash: pm.lastNameHash ?? this.encryption.hash(lastName),
         businessName: pm.businessName ? this.encryption.encrypt(pm.businessName) : null,
         pmType: pm.pmType,
         phone: pm.phone ? this.encryption.encrypt(pm.phone) : null,
         phoneHash: pm.phone ? this.encryption.hash(pm.phone) : null,
+        personalEmail: pm.personalEmail ? this.encryption.encrypt(pm.personalEmail) : null,
+        personalPhone: pm.personalPhone ? this.encryption.encrypt(pm.personalPhone) : null,
         profilePic: pm.profilePic,
         country: pm.country,
         companyAddress: pm.companyAddress,
@@ -131,23 +138,29 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       updateData.email = this.encryption.encrypt(data.email)
       updateData.emailHash = this.encryption.hash(data.email)
     }
-    if (data.firstName) {
+    if (data.firstName !== undefined) {
       updateData.firstName = this.encryption.encrypt(data.firstName)
       updateData.firstNameHash = this.encryption.hash(data.firstName)
     }
-    if (data.lastName) {
+    if (data.lastName !== undefined) {
       updateData.lastName = this.encryption.encrypt(data.lastName)
       updateData.lastNameHash = this.encryption.hash(data.lastName)
     }
-    if (data.businessName) {
-      updateData.businessName = this.encryption.encrypt(data.businessName)
+    if (data.businessName !== undefined) {
+      updateData.businessName = data.businessName ? this.encryption.encrypt(data.businessName) : null
     }
     if (data.pmType !== undefined) {
       updateData.pmType = data.pmType
     }
-    if (data.phone) {
-      updateData.phone = this.encryption.encrypt(data.phone)
-      updateData.phoneHash = this.encryption.hash(data.phone)
+    if (data.phone !== undefined) {
+      updateData.phone = data.phone ? this.encryption.encrypt(data.phone) : null
+      updateData.phoneHash = data.phone ? this.encryption.hash(data.phone) : null
+    }
+    if (data.personalEmail !== undefined) {
+      updateData.personalEmail = data.personalEmail ? this.encryption.encrypt(data.personalEmail) : null
+    }
+    if (data.personalPhone !== undefined) {
+      updateData.personalPhone = data.personalPhone ? this.encryption.encrypt(data.personalPhone) : null
     }
     if (data.profilePic !== undefined) updateData.profilePic = data.profilePic
     if (data.country !== undefined) updateData.country = data.country

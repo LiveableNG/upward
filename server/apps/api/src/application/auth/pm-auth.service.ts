@@ -133,10 +133,12 @@ export class PmAuthService extends BaseAuthService {
   async signup(dto: {
     email: string
     password: string
-    firstName: string
-    lastName: string
+    firstName?: string
+    lastName?: string
+    fullName?: string
     pmType?: string
     businessName?: string
+    companyName?: string
     phone?: string
     country?: string
     cacNumber?: string
@@ -148,6 +150,24 @@ export class PmAuthService extends BaseAuthService {
       throw new ConflictException('Property manager with this email already exists')
     }
 
+    let firstName = dto.firstName?.trim()
+    let lastName = dto.lastName?.trim()
+
+    if (!firstName && dto.fullName) {
+      const parts = dto.fullName.trim().split(/\s+/)
+      firstName = parts[0]
+      lastName = parts.slice(1).join(' ') || ''
+    }
+
+    if (!firstName) {
+      throw new BadRequestException('First name is required')
+    }
+    if (lastName === undefined || lastName === null) {
+      lastName = ''
+    }
+
+    const businessName = dto.businessName?.trim() || dto.companyName?.trim() || null
+
     const passwordHash = await bcrypt.hash(dto.password, 10)
 
     const pmData: Partial<PropertyManager> = {
@@ -155,18 +175,18 @@ export class PmAuthService extends BaseAuthService {
       email: dto.email,
       emailHash: this.encryption.hash(dto.email),
       passwordHash,
-      firstName: dto.firstName,
-      firstNameHash: this.encryption.hash(dto.firstName),
-      lastName: dto.lastName,
-      lastNameHash: this.encryption.hash(dto.lastName),
-      pmType: dto.pmType,
-      businessName: dto.businessName,
-      phone: dto.phone,
+      firstName,
+      firstNameHash: this.encryption.hash(firstName),
+      lastName,
+      lastNameHash: lastName ? this.encryption.hash(lastName) : null,
+      pmType: dto.pmType || 'Property Manager',
+      businessName,
+      phone: dto.phone || null,
       phoneHash: dto.phone ? this.encryption.hash(dto.phone) : null,
       country: dto.country || null,
       cacNumber: dto.cacNumber || null,
-      personalEmail: dto.personalEmail ? this.encryption.encrypt(dto.personalEmail) : null,
-      personalPhone: dto.personalPhone ? this.encryption.encrypt(dto.personalPhone) : null,
+      personalEmail: dto.personalEmail || null,
+      personalPhone: dto.personalPhone || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

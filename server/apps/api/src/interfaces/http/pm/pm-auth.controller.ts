@@ -94,10 +94,12 @@ export class PmAuthController {
     @Body() body: {
       email: string;
       password: string;
-      firstName: string;
-      lastName: string;
+      firstName?: string;
+      lastName?: string;
+      fullName?: string;
       pmType?: string;
       businessName?: string;
+      companyName?: string;
       phone?: string;
       country?: string;
       cacNumber?: string;
