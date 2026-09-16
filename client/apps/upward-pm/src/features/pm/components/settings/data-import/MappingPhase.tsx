@@ -23,6 +23,8 @@ interface MappingPhaseProps {
   removeFieldColumn?: (sheetName: string, fieldKey: string, userColumn: string) => void
   swapNameOrder?: boolean
   setSwapNameOrder?: (v: boolean) => void
+  swapLandlordNameOrder?: boolean
+  setSwapLandlordNameOrder?: (v: boolean) => void
   dateOrder?: DateOrder
   setDateOrder?: (v: DateOrder) => void
   toggleSplit: (userColumn: string) => void
@@ -48,7 +50,6 @@ const QUESTIONS: Record<string, string> = {
   unitName: 'The flat or unit name',
   propertyName: 'The property name',
   landlordFirstName: "The landlord's name",
-  landlordLastName: "The landlord's surname",
   landlordEmail: "The landlord's email",
   landlordPhone: "The landlord's phone number",
 }
@@ -61,6 +62,7 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
   columns, userColumns, mappings, activeSheet, workbook,
   setFieldColumn, addFieldColumn, removeFieldColumn,
   swapNameOrder = false, setSwapNameOrder,
+  swapLandlordNameOrder = false, setSwapLandlordNameOrder,
   dateOrder = 'dmy', setDateOrder,
   toggleSplit, updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
   setWorkbook, setActiveSheet
@@ -106,7 +108,9 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
   const columnFor = (fieldKey: string) => columnsFor(fieldKey)[0] || null
 
   const required = columns.filter(c => c.required && !c.readOnly)
-  const optional = columns.filter(c => !c.required && !c.readOnly && c.key !== 'tenantLastName')
+  const optional = columns.filter(
+    c => !c.required && !c.readOnly && c.key !== 'tenantLastName' && c.key !== 'landlordLastName' && c.key !== 'landlordFirstName'
+  )
   const nameField = columns.find(c => c.key === 'tenantFirstName')
 
   const nameAnswered = columnsFor('tenantFirstName').length > 0
@@ -283,6 +287,97 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
                       swap
                     </button>
                   </>}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderLandlordNameRow = () => {
+    const landlordNameField = columns.find(c => c.key === 'landlordFirstName' || c.key === 'landlordName')
+    if (!landlordNameField) return null
+    const nameColumns = columnsFor('landlordFirstName')
+    const samples = nameColumns.map(c => (rawByColumn[c] || [])[0] || '')
+    const joined = samples.filter(Boolean).join(' ')
+
+    let preview: { first: string; last: string; corporate: string } | null = null
+    if (nameColumns.length === 1 && samples[0]) {
+      preview = splitPersonName(samples[0], swapLandlordNameOrder)
+    } else if (nameColumns.length > 1 && joined) {
+      const parts = samples.filter(Boolean)
+      preview = swapLandlordNameOrder
+        ? { first: parts.slice(1).join(' '), last: parts[0] || '', corporate: '' }
+        : { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] || '', corporate: '' }
+    }
+
+    const isAnswered = nameColumns.length > 0
+
+    return (
+      <div key="landlord-name" style={rowStyle}>
+        <div style={cellLabel}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>Landlord name</span>
+            {isAnswered && <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--forest)' }}>✓</span>}
+          </div>
+        </div>
+
+        <div style={cellDesc}>First and last name of the landlord</div>
+
+        <div style={cellPick}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 7 }}>
+            Select all the landlord name columns you have.
+          </div>
+
+          {nameColumns.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              {nameColumns.map((c, i) => (
+                <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, background: 'var(--forest-faint)', border: '1px solid var(--forest)', color: 'var(--forest-hover)', borderRadius: 8, padding: '5px 10px' }}>
+                  <span style={{ opacity: 0.6 }}>{i + 1}</span> {c}
+                  <button onClick={() => removeFieldColumn?.(activeSheet, 'landlordFirstName', c)} aria-label={`Remove ${c}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--forest-hover)', padding: 0, display: 'flex' }}>
+                    <X size={13} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {nameColumns.length < 3 && (
+            <FormSelect
+              label="Landlord's Name Column"
+              value=""
+              options={userColumns.filter(c => !nameColumns.includes(c)).map(c => ({
+                label: optionLabel(c),
+                shortLabel: c,
+                value: c
+              }))}
+              onChange={val => { if (val) addFieldColumn?.(activeSheet, 'landlordFirstName', 'landlord', val) }}
+              placeholder={nameColumns.length === 0 ? 'Choose a column…' : 'Add another name column…'}
+              searchable={userColumns.length > 5}
+              portalOnDesktop
+              triggerStyle={{
+                height: 44,
+                borderRadius: 10,
+                border: '1px solid var(--border-strong)',
+                background: 'var(--surface)',
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+              }}
+            />
+          )}
+
+          {preview && (
+            <div style={{ marginTop: 9, fontSize: 12, color: 'var(--text-secondary)' }}>
+              we found{' '}
+              <strong style={{ color: 'var(--dark)' }}>{preview.first}</strong>
+              {preview.last ? <> · <strong style={{ color: 'var(--dark)' }}>{preview.last}</strong></> : null}
+              <button
+                onClick={() => setSwapLandlordNameOrder?.(!swapLandlordNameOrder)}
+                style={{ marginLeft: 10, background: 'none', border: 'none', color: 'var(--clay)', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12 }}
+              >
+                swap
+              </button>
             </div>
           )}
         </div>
@@ -503,7 +598,7 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
           <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Landlord, Unit Name, Notes, etc.</span>
         </div>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>
-          {optional.filter(c => columnFor(c.key)).length} of {optional.length}
+          {optional.filter(c => columnFor(c.key)).length + (columnsFor('landlordFirstName').length > 0 ? 1 : 0)} of {optional.length + (columns.some(c => c.key === 'landlordFirstName') ? 1 : 0)}
           <ChevronDown size={16} style={{ transform: showOptional ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
         </span>
       </button>
@@ -511,6 +606,7 @@ export const MappingPhase: React.FC<MappingPhaseProps> = ({
       {showOptional && (
         <div style={{ marginTop: 18 }}>
           {headerRow}
+          {columns.some(c => c.key === 'landlordFirstName') && renderLandlordNameRow()}
           {optional.map(renderField)}
         </div>
       )}

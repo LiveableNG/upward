@@ -251,6 +251,10 @@ export class FullImportRowDto {
 
   @IsString()
   @IsOptional()
+  landlordName?: string;
+
+  @IsString()
+  @IsOptional()
   landlordEmail?: string;
 
   @IsString()

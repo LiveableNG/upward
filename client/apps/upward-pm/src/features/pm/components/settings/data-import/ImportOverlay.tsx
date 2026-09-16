@@ -37,6 +37,8 @@ interface ImportOverlayProps {
   removeFieldColumn?: (sheetName: string, fieldKey: string, userColumn: string) => void
   swapNameOrder?: boolean
   setSwapNameOrder?: (v: boolean) => void
+  swapLandlordNameOrder?: boolean
+  setSwapLandlordNameOrder?: (v: boolean) => void
   dateOrder?: 'dmy' | 'mdy' | 'iso' | 'unknown'
   setDateOrder?: (v: 'dmy' | 'mdy' | 'iso' | 'unknown') => void
   workbook: XLSX.WorkBook | null
@@ -68,7 +70,7 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
   reviewJob, handleSaveDraft, isSavingDraft, hasDirtyEdits, setHasDirtyEdits,
   columns, userColumns, mappings, splitConfigs, activeSheet,
   setFieldColumn, addFieldColumn, removeFieldColumn,
-  swapNameOrder, setSwapNameOrder, dateOrder, setDateOrder, workbook, setWorkbook, setActiveSheet,
+  swapNameOrder, setSwapNameOrder, swapLandlordNameOrder, setSwapLandlordNameOrder, dateOrder, setDateOrder, workbook, setWorkbook, setActiveSheet,
   savedTemplates, applyTemplate, saveTemplate, updateMapping, toggleSplit,
   updateSplitConfig, updateSplitPart, addSplitPart, removeSplitPart,
   previewRows, validationErrors, amberWarnings, editingCell, setEditingCell,
@@ -299,6 +301,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
             removeFieldColumn={removeFieldColumn}
             swapNameOrder={swapNameOrder}
             setSwapNameOrder={setSwapNameOrder}
+            swapLandlordNameOrder={swapLandlordNameOrder}
+            setSwapLandlordNameOrder={setSwapLandlordNameOrder}
             dateOrder={dateOrder}
             setDateOrder={setDateOrder}
             toggleSplit={toggleSplit}

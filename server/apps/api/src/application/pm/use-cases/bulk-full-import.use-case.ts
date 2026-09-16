@@ -126,9 +126,12 @@ export class BulkFullImportUseCase {
         if (match) {
           property = { id: match.id, uuid: match.uuid };
         } else {
-          const landlordName = row.landlordFirstName
-            ? `${row.landlordFirstName} ${row.landlordLastName || ''}`.trim()
-            : undefined;
+          const landlordName = (
+            row.landlordName ||
+            (row.landlordLastName && !row.landlordFirstName?.toLowerCase().includes(row.landlordLastName.toLowerCase())
+              ? `${row.landlordFirstName} ${row.landlordLastName}`.trim()
+              : row.landlordFirstName?.trim())
+          ) || undefined;
 
           let landlordId: number | null = null;
           if (row.landlordEmail) {

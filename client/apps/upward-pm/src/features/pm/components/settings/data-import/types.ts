@@ -19,8 +19,7 @@ export const FULL_COLUMNS: ColumnDef[] = [
   { key: 'propertyState', description: 'State the property is in', label: 'State', category: 'property' },
   { key: 'propertyArea', description: 'Area or district', label: 'Area', category: 'property' },
   
-  { key: 'landlordFirstName', description: 'First and last name of the landlord', label: 'Landlord First', category: 'landlord' },
-  { key: 'landlordLastName', description: 'Surname of the landlord', label: 'Landlord Last', category: 'landlord' },
+  { key: 'landlordFirstName', description: 'First and last name of the landlord', label: 'Landlord Name', category: 'landlord' },
   { key: 'landlordEmail', description: 'Email address for the landlord', label: 'Landlord Email', category: 'landlord', type: 'email' },
   { key: 'landlordPhone', description: 'Phone number for the landlord', label: 'Landlord Phone', category: 'landlord', type: 'tel' },
 

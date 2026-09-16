@@ -224,6 +224,10 @@ export const suggestMapping = (userColumn: string, columns: ColumnDef[]): { fiel
     }
   }
 
+  if (['landlord', 'landlordname', 'owner', 'landlordfullname', 'landlordsname', 'landlordfirst', 'landlordfirstname'].includes(candidate)) {
+    return { field: 'landlordFirstName', entityType: 'landlord' }
+  }
+
   return null
 }
 
