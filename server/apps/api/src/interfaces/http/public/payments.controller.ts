@@ -332,6 +332,7 @@ export class PaymentsController {
       }
       return result;
     } catch (error: any) {
+      console.error('[PaymentsController] Webhook processing failed:', error);
       if (logRecord) {
         await this.prisma.upward_webhook_log.update({
           where: { id: logRecord.id },
