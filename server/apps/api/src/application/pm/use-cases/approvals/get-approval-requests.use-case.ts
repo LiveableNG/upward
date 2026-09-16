@@ -37,8 +37,9 @@ export class GetApprovalRequestsUseCase {
         proposedData: payload.proposedData || payload,
         rejectionReason: req.rejectionReason || null,
         createdAt: req.createdAt,
-        requester: req.requesterPm || { uuid: '', firstName: '', lastName: '', email: '' }
+        requester: req.requesterEmployee || req.requesterPm || { uuid: '', firstName: '', lastName: '', email: '' }
       };
     });
   }
 }
+

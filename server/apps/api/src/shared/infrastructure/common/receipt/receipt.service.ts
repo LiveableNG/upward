@@ -178,7 +178,14 @@ export class ReceiptService {
         data.isPartial ||
         (data.remainingBalance !== undefined && data.remainingBalance > 0)
 
-      const totalRent = data.rentAmount || data.totalInvoiceAmount || data.amount
+      const isInvoiceTotalDifferentFromRent =
+        data.totalInvoiceAmount !== undefined &&
+        data.rentAmount !== undefined &&
+        data.totalInvoiceAmount !== data.rentAmount
+      const statCardLabel = (data.lineItems && data.lineItems.length > 1) || isInvoiceTotalDifferentFromRent ? 'Total due' : 'Total due'
+      const statCardAmount = isInvoiceTotalDifferentFromRent ? (data.totalInvoiceAmount || data.amount) : (data.rentAmount || data.amount)
+
+      const totalRent = statCardAmount
       const totalPaid = data.totalPaidToDate || data.amount
       const balanceRemaining =
         data.remainingBalance !== undefined
@@ -401,8 +408,8 @@ export class ReceiptService {
 
       doc.restore()
 
-      // Content for Cell 1 (Total Rent)
-      doc.font('Helvetica').fontSize(9).fillColor(inkMuted).text('Total rent', CARD_X + 16, STATS_Y + 12)
+      // Content for Cell 1 (Total Rent / Total Due)
+      doc.font('Helvetica').fontSize(9).fillColor(inkMuted).text(statCardLabel, CARD_X + 16, STATS_Y + 12)
       doc
         .font('Helvetica-Bold')
         .fontSize(13)

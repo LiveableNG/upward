@@ -40,6 +40,8 @@ const PM_ROUTE_PREFIXES = [
   '/home-requests',
   '/subscription',
   '/import',
+  '/team',
+  '/notifications',
 ]
 
 const PAY_ROUTE_PREFIXES = [
@@ -190,6 +192,11 @@ export async function middleware(request: NextRequest) {
           const pmRes = await fetch(`${API_URL}/pm/auth/invite-details/${uuid}`)
           if (pmRes.ok) {
             isPmInvite = true
+          } else {
+            const empRes = await fetch(`${API_URL}/pm/employee/auth/invite-details/${uuid}`)
+            if (empRes.ok) {
+              isPmInvite = true
+            }
           }
         }
       } catch (err) {
@@ -230,6 +237,9 @@ export async function middleware(request: NextRequest) {
     redirectParam.startsWith('/rent-request') ||
     redirectParam.startsWith('/home-requests') ||
     redirectParam.startsWith('/subscription') ||
+    redirectParam.startsWith('/import') ||
+    redirectParam.startsWith('/team') ||
+    redirectParam.startsWith('/notifications') ||
     redirectParam.startsWith('/pm')
 
   const isPmPath =
@@ -245,6 +255,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/home-requests') ||
     pathname.startsWith('/subscription') ||
     pathname.startsWith('/import') ||
+    pathname.startsWith('/team') ||
+    pathname.startsWith('/notifications') ||
     pathname.startsWith('/_upward_pm') ||
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
@@ -369,6 +381,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/home-requests') ||
     pathname.startsWith('/subscription') ||
     pathname.startsWith('/import') ||
+    pathname.startsWith('/team') ||
+    pathname.startsWith('/notifications') ||
     pathname.startsWith('/api/v1')
 
   const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
@@ -549,6 +563,8 @@ export const config = {
     '/home-requests/:path*',
     '/subscription/:path*',
     '/import/:path*',
+    '/team/:path*',
+    '/notifications/:path*',
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',

@@ -14,6 +14,9 @@ import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.s
 import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
 import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
 import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
+import { RentalPeriodService } from '../../../services/rental-period.service';
 
 @Injectable()
 export class InviteTenantUseCase {
@@ -32,9 +35,11 @@ export class InviteTenantUseCase {
     private readonly smsService: SmsService,
     private readonly whatsappService: WhatsappService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly activityLog: ActivityLogService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
-  async execute(pmId: number, tenantUuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP'): Promise<void> {
+  async execute(pmId: number, tenantUuid: string, deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP', actor?: PmActorContext): Promise<void> {
     const tenant = await this.tenantRepo.findByUuid(tenantUuid);
     if (!tenant) {
       throw new NotFoundException('Tenant not found');
@@ -121,6 +126,17 @@ export class InviteTenantUseCase {
         },
         properties: await Promise.all((tenant.units || []).map(async unit => {
           const payments = await this.unitRepo.getRentPayments(unit.uuid);
+          const canonicalUnitStart = this.rentalPeriodService.parseCalendarDate(unit.rentStartDate);
+          const currentPaid = canonicalUnitStart
+            ? payments
+                .filter((p: any) => {
+                  const pStart = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+                  return pStart && pStart.getTime() === canonicalUnitStart.getTime();
+                })
+                .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+            : 0;
+          const isFullyPaid = currentPaid >= (unit.rentAmount || 0) && (unit.rentAmount || 0) > 0;
+
           return {
             location: {
               country: unit.property?.country || 'Nigeria',
@@ -132,6 +148,10 @@ export class InviteTenantUseCase {
               rentAmount: unit.rentAmount,
               rentStartDate: unit.rentStartDate ? new Date(unit.rentStartDate).toISOString() : undefined,
               rentEndDate: unit.rentDueDate ? new Date(unit.rentDueDate).toISOString() : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+              rentType: unit.rentType,
+              leaseYears: (unit as any).leaseYears,
+              initialAmountPaid: currentPaid,
+              isFirstRent: !isFullyPaid,
             },
             rentHistory: payments.map(p => ({
               amount: p.amount,
@@ -209,5 +229,20 @@ export class InviteTenantUseCase {
         frontendUrl: 'https://upward.goodtenants.io',
       },
     });
+
+    await this.activityLog.log({
+      pmId,
+      ownerPmId: tenant.pmId,
+      employeeId: actor?.employeeId,
+      action: ActivityAction.INVITE_TENANT,
+      entityType: 'TENANT',
+      entityId: tenantUuid,
+      description: `Sent tenant onboarding invite to ${displayName}`,
+      metadata: {
+        tenantUuid,
+        displayName,
+        deliveryChannel: deliveryChannel || tenant.channel || 'EMAIL',
+      },
+    }).catch(err => console.error('[InviteTenantUseCase] Failed to log activity:', err));
   }
 }

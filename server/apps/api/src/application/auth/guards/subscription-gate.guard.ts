@@ -30,12 +30,16 @@ export class SubscriptionGateGuard implements CanActivate {
     const pmUuid = request.user?.sub;
     if (!pmUuid) throw new UnauthorizedException('Invalid user context');
 
-    const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: pmUuid },
-    });
-    if (!pm) throw new UnauthorizedException('Property Manager not found');
+    let targetPmId = request.user?.ownerPmId;
+    if (!targetPmId) {
+      const pm = await this.prisma.upward_property_manager.findUnique({
+        where: { uuid: pmUuid },
+      });
+      if (!pm) throw new UnauthorizedException('Property Manager not found');
+      targetPmId = pm.id;
+    }
 
-    const check = await this.subscriptionService.checkAccess(pm.id, requiredFeature);
+    const check = await this.subscriptionService.checkAccess(targetPmId, requiredFeature);
     if (!check.hasAccess) {
       throw new ForbiddenException({
         statusCode: 403,

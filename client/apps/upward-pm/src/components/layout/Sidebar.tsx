@@ -82,6 +82,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
   const totalRequests = (credibilityRequests?.length || 0) + (joinRequests?.length || 0)
   const newHomeRequests = homeRequests.filter((request) => request.status === 'submitted').length
 
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE'
+
   return (
     <>
       <div
@@ -96,7 +98,16 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
         <div className="sidebar__header">
           <Link href="/dashboard" className="sidebar__logo" onClick={onClose}>
             <UpwardLogo size={32} color="var(--forest)" />
-            {(!isCollapsed || isOpen) && <span className="sidebar__brand">{user?.pmType || 'Property Manager'}</span>}
+            {(!isCollapsed || isOpen) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span className="sidebar__brand">
+                  {isEmployee ? (user?.employer?.companyName || 'Property Team') : (user?.pmType || 'Property Manager')}
+                </span>
+                <span className={cn('role-tag', isEmployee ? 'role-tag--employee' : 'role-tag--admin')} style={{ alignSelf: 'flex-start', transform: 'scale(0.88)', transformOrigin: 'left' }}>
+                  {isEmployee ? 'EMPLOYEE' : 'ADMIN'}
+                </span>
+              </div>
+            )}
           </Link>
           {isOpen && (
             <button className="sidebar__close" onClick={onClose}>
@@ -110,20 +121,25 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
             <div className="sidebar__plan-collapsed-wrap">
               <button
                 onClick={() => {
-                  openPricing();
-                  onClose?.();
+                  if (!isEmployee) {
+                    openPricing();
+                    onClose?.();
+                  }
                 }}
                 className={cn(
                   'sidebar__plan-dot-btn',
                   `sidebar__plan-dot-btn--${(subscription?.tier || 'FREE').toLowerCase()}`
                 )}
                 title={
-                  subscription?.tier === 'TIER_3'
-                    ? 'Enterprise Plan (Active)'
-                    : subscription?.tier === 'TIER_2'
-                      ? 'Professional Plan (Active)'
-                      : 'Free Plan (Click to Upgrade)'
+                  isEmployee
+                    ? `Company Plan: ${subscription?.tier === 'TIER_3' ? 'Enterprise' : subscription?.tier === 'TIER_2' ? 'Professional' : 'Free'}`
+                    : subscription?.tier === 'TIER_3'
+                      ? 'Enterprise Plan (Active)'
+                      : subscription?.tier === 'TIER_2'
+                        ? 'Professional Plan (Active)'
+                        : 'Free Plan (Click to Upgrade)'
                 }
+                style={{ cursor: isEmployee ? 'default' : 'pointer' }}
               >
                 <div className="sidebar__plan-dot" />
                 <div className="sidebar__plan-tooltip">
@@ -135,7 +151,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                         : 'Free Plan'}
                   </div>
                   <div style={{ fontSize: 10, opacity: 0.8, marginTop: 2 }}>
-                    {subscription?.tier === 'FREE' ? 'Upgrade →' : 'Active subscription'}
+                    {isEmployee ? 'Inherited from employer' : subscription?.tier === 'FREE' ? 'Upgrade →' : 'Active subscription'}
                   </div>
                 </div>
               </button>
@@ -144,14 +160,17 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
             <div className="sidebar__plan-card-wrap">
               <button
                 onClick={() => {
-                  openPricing();
-                  onClose?.();
+                  if (!isEmployee) {
+                    openPricing();
+                    onClose?.();
+                  }
                 }}
                 className={cn(
                   'sidebar__plan-card',
                   `sidebar__plan-card--${(subscription?.tier || 'FREE').toLowerCase()}`
                 )}
-                title="Manage Subscription"
+                title={isEmployee ? "Company Plan" : "Manage Subscription"}
+                style={{ cursor: isEmployee ? 'default' : 'pointer' }}
               >
                 <div className="sidebar__plan-dot" />
                 <div className="sidebar__plan-info">
@@ -163,7 +182,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                         : 'Free Plan'}
                   </span>
                   <span className="sidebar__plan-action">
-                    {subscription?.tier === 'FREE' ? 'Upgrade →' : 'Active'}
+                    {isEmployee ? 'Company Plan' : subscription?.tier === 'FREE' ? 'Upgrade →' : 'Active'}
                   </span>
                 </div>
               </button>
@@ -267,7 +286,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                                         : 'Free Plan'}
                                   </span>
                                 </div>
-                                {subscription?.tier === 'FREE' && (
+                                {!isEmployee && subscription?.tier === 'FREE' && (
                                   <button
                                     onClick={() => { openPricing(); onClose?.(); setIsSettingsMenuOpen(false); }}
                                     className="sidebar__dropdown-upgrade-btn"

@@ -7,6 +7,7 @@ import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case
 import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
 import { SyncUnitToUpwardUseCase } from './units/sync-unit.use-case';
 import { InviteTenantUseCase } from './tenants/invite-tenant.use-case';
+import { RentalPeriodService } from '../../services/rental-period.service';
 
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
@@ -22,6 +23,38 @@ function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   return cleaned;
 }
 
+function normalizeRentType(val?: string | null): string {
+  if (!val) return 'Annually';
+  const clean = val.toString().trim().toLowerCase();
+  if (['monthly', 'month', 'per month', 'mo', 'm'].includes(clean) || clean.includes('month')) {
+    return 'Monthly';
+  }
+  if (['lease', 'multi-year', 'multi year'].includes(clean) || clean.includes('lease')) {
+    return 'Lease';
+  }
+  if (
+    [
+      'annually',
+      'annual',
+      'yearly',
+      'year',
+      'per annum',
+      'annum',
+      'pa',
+      'p.a.',
+      'yr',
+      '1 year',
+      'per year',
+      '1 yr',
+    ].includes(clean) ||
+    clean.includes('year') ||
+    clean.includes('annu')
+  ) {
+    return 'Annually';
+  }
+  return 'Annually';
+}
+
 @Injectable()
 export class BulkCreateUnitsUseCase {
   constructor(
@@ -34,18 +67,21 @@ export class BulkCreateUnitsUseCase {
     private readonly activityLog: ActivityLogService,
     private readonly syncUnitUseCase: SyncUnitToUpwardUseCase,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
-  async execute(pmId: number, dto: BulkCreateUnitsDto) {
+  async execute(pmId: number, dto: BulkCreateUnitsDto, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const property = await this.propertyRepository.findByUuid(dto.propertyUuid);
     if (!property) {
       throw new Error('Property not found');
     }
 
-    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, property.id);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, property.id, actor);
     if (!hasAccess) {
       throw new Error('Unauthorized to add units to this property');
     }
+
 
     for (const u of dto.units) {
       if (u.tenantPhone) {
@@ -167,14 +203,15 @@ export class BulkCreateUnitsUseCase {
         throw new BadRequestException(`Unit "${u.unitName}" already exists in this property.`);
       }
 
-      let inferredRentType = u.rentType;
-      if (!inferredRentType && u.rentStartDate && u.rentDueDate) {
-        const start = new Date(u.rentStartDate);
-        const due = new Date(u.rentDueDate);
-        const diffDays = Math.ceil(Math.abs(due.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const canonicalStart = this.rentalPeriodService.parseCalendarDate(u.rentStartDate);
+      const canonicalDue = this.rentalPeriodService.parseCalendarDate(u.rentDueDate);
+
+      let inferredRentType = u.rentType ? normalizeRentType(u.rentType) : undefined;
+      if (!inferredRentType && canonicalStart && canonicalDue) {
+        const diffDays = Math.ceil(Math.abs(canonicalDue.getTime() - canonicalStart.getTime()) / (1000 * 60 * 60 * 24));
         inferredRentType = diffDays > 300 ? 'Annually' : 'Monthly';
       } else if (!inferredRentType) {
-        inferredRentType = 'Monthly';
+        inferredRentType = 'Annually';
       }
 
       const newUnit = await this.unitRepository.create({
@@ -182,8 +219,8 @@ export class BulkCreateUnitsUseCase {
         unitName: u.unitName!,
         rentAmount: u.rentAmount,
         managementFee: u.managementFee ?? 0,
-        rentStartDate: u.rentStartDate ? new Date(u.rentStartDate) : null,
-        rentDueDate: u.rentDueDate ? new Date(u.rentDueDate) : null,
+        rentStartDate: canonicalStart,
+        rentDueDate: canonicalDue,
         rentType: inferredRentType,
         currency: u.currency || 'NGN',
         notes: u.notes || null,
@@ -205,27 +242,22 @@ export class BulkCreateUnitsUseCase {
 
       const actualRentAmountPaid = u.isFullyPaid ? u.rentAmount : u.rentAmountPaid;
 
-      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0) {
-        let periodEnd: Date | null = null;
-        if (newUnit.rentStartDate) {
-          periodEnd = new Date(newUnit.rentStartDate);
-          if (newUnit.rentType === 'Monthly') {
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
-          } else {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-          }
-          periodEnd.setDate(periodEnd.getDate() - 1);
-        }
+      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0 && canonicalStart) {
+        const periodEnd = canonicalDue || this.rentalPeriodService.calculatePeriodEnd(
+          canonicalStart,
+          inferredRentType,
+          (u as any).leaseYears,
+        );
 
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: actualRentAmountPaid,
           rentAmountAtPayment: newUnit.rentAmount,
           paymentDate: new Date(),
-          periodStart: newUnit.rentStartDate,
+          periodStart: canonicalStart,
+          periodEnd: periodEnd,
           status: 'SUCCESS',
           method: 'Other',
           notes: 'Imported initial payment',
-          periodEnd: periodEnd,
           tenantId: tenantId,
           reference: null
         });
@@ -236,6 +268,7 @@ export class BulkCreateUnitsUseCase {
     await this.activityLog.log({
         pmId,
         ownerPmId: property.pmId,
+        employeeId: actor?.isEmployee ? actor.employeeId : undefined,
         action: ActivityAction.CREATE_UNIT,
         entityType: 'UNIT',
         description: `Bulk created ${dto.units.length} units in property ${property.name}`,

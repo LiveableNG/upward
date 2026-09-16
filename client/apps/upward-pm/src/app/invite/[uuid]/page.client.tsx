@@ -11,11 +11,14 @@ import {
   ShieldCheck, 
   Eye, 
   EyeOff, 
+  User,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Loader2
 } from 'lucide-react'
 import { request } from '@/lib/api-client'
-import { claimAccount } from '@/features/auth/services/authService'
+import { claimAccount, getEmployeeInviteDetails, acceptEmployeeInvite } from '@/features/auth/services/authService'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
@@ -27,13 +30,14 @@ const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.i
 export default function ClaimAccountPage() {
   const { uuid } = useParams()
   const router = useRouter()
-  const { login: setAuthUser } = useAuth()
+  const { user, isLoggedIn, login: setAuthUser } = useAuth()
   const queryClient = useQueryClient()
   const { success, error } = useToast()
 
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
   const [userData, setUserData] = useState<any>(null)
+  const [isEmployeeInvite, setIsEmployeeInvite] = useState(true)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -41,14 +45,29 @@ export default function ClaimAccountPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   useEffect(() => {
     async function fetchUser() {
       try {
-        const res = await request<any>(`/pm/auth/invite-details/${uuid}`)
-        setUserData(res)
-        setFirstName(res.firstName || '')
-        setLastName(res.lastName || '')
+        // Try employee invite first
+        try {
+          const res = await getEmployeeInviteDetails(uuid as string)
+          if (res) {
+            setUserData(res)
+            setIsEmployeeInvite(true)
+            setFirstName(res.firstName || '')
+            setLastName(res.lastName || '')
+            return
+          }
+        } catch {
+          // Fallback to legacy PM invite
+          const res = await request<any>(`/pm/auth/invite-details/${uuid}`)
+          setUserData(res)
+          setIsEmployeeInvite(false)
+          setFirstName(res.firstName || '')
+          setLastName(res.lastName || '')
+        }
       } catch (err) {
         error('Invalid or expired invitation link.')
       } finally {
@@ -63,22 +82,25 @@ export default function ClaimAccountPage() {
     if (!password) return error('Please enter a password')
     if (password !== confirmPassword) return error('Passwords do not match')
     if (password.length < 6) return error('Password must be at least 6 characters')
+    if (!termsAgreed) return error('Please accept the Terms of Use and Privacy Policy')
 
     setClaiming(true)
     try {
-      const res = await claimAccount(uuid as string, { password, firstName, lastName })
+      let res: any
+      if (isEmployeeInvite) {
+        res = await acceptEmployeeInvite(uuid as string, { password, firstName, lastName })
+      } else {
+        res = await claimAccount(uuid as string, { password, firstName, lastName })
+      }
+
       if (res.user) {
         setAuthUser(res.user)
         queryClient.setQueryData(['user'], res.user)
       }
       success('Account activated successfully! Welcome to Upward.')
-      if (res.user?.pmType === 'INDIVIDUAL_LANDLORD' || res.user?.pmType === 'Landlord') {
-        router.push('/portal')
-      } else {
-        router.push('/dashboard')
-      }
+      router.push('/dashboard')
     } catch (err: any) {
-      error(err.message || 'Failed to claim account')
+      error(err.message || 'Failed to activate account')
     } finally {
       setClaiming(false)
     }
@@ -86,10 +108,10 @@ export default function ClaimAccountPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--ivory,#faf6ec)]">
         <div className="animate-pulse flex flex-col items-center">
-          <UpwardLogo color="var(--forest)" size={48} />
-          <div className="h-4 w-32 bg-[var(--border-strong)] rounded mt-4" />
+          <UpwardLogo color="var(--forest-800)" size={48} />
+          <div className="h-4 w-32 bg-[var(--line,#e4ddc9)] rounded mt-4" />
         </div>
       </div>
     )
@@ -97,22 +119,28 @@ export default function ClaimAccountPage() {
 
   if (!userData) {
     return (
-      <AuthLayout>
-        <div style={{ textAlign: 'center' }}>
-          <UpwardLogo color="var(--forest)" size={48} />
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 16, marginBottom: 8, color: 'var(--dark)' }}>
-            Invitation Expired or Invalid
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
-            This invitation link is invalid or has already been claimed. Please reach out to the person who invited you.
-          </p>
+      <AuthLayout 
+        visualTitle="Welcome to Upward"
+        visualDesc="Manage properties, tenants and collections seamlessly with your team."
+      >
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <AlertCircle size={48} color="var(--error)" />
+          </div>
+          <div className="card-head">
+            <h2>Invitation invalid or expired</h2>
+            <p>
+              This invitation link is invalid or has already expired. Please reach out to the person who invited you.
+            </p>
+          </div>
           <button 
             type="button" 
-            className="btn btn--primary" 
-            style={{ width: '100%', height: 48, borderRadius: 12 }} 
-            onClick={() => router.push('/login')}
+            className="primary-btn" 
+            onClick={() => router.push('/pm-login')}
+            style={{ marginTop: 24 }}
           >
-            Go to Login
+            <span>Go to sign in</span>
+            <ArrowRight size={16} />
           </button>
         </div>
       </AuthLayout>
@@ -120,294 +148,300 @@ export default function ClaimAccountPage() {
   }
 
   const inviter = userData.invitedBy
+  const isEmployee = isEmployeeInvite
+
+  const accountOrCompanyName = isEmployee 
+    ? (inviter?.companyName || inviter?.name || 'Organization Workspace')
+    : (inviter?.companyName || userData.businessName || 'Upward')
+
+  // If already activated / accepted
+  if (userData.isActivated || userData.status === 'ACTIVE') {
+    return (
+      <AuthLayout
+        eyebrow="Account Active"
+        visualTitle={isEmployee ? "Welcome back to your workspace." : "Welcome back to Upward."}
+        visualDesc={
+          isEmployee
+            ? "Your team account is active. Sign in to collaborate and manage properties seamlessly."
+            : "Your Upward account is active. Sign in to manage your properties and rent collections seamlessly."
+        }
+      >
+        <div className="animate-fade-in" style={{ textAlign: 'center', padding: '8px 0' }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'var(--forest-faint)',
+              color: 'var(--forest)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}
+          >
+            <UserCheck size={28} />
+          </div>
+
+          <div className="card-head" style={{ marginBottom: 20 }}>
+            <h2>Account Already Activated</h2>
+            <p>
+              The invitation for <strong style={{ color: 'var(--ink)' }}>{userData.email}</strong> has already been claimed and activated.
+            </p>
+          </div>
+
+          {/* Workspace / Account Card */}
+          <div className="workspace-invite-card" style={{ textAlign: 'left', marginBottom: 24 }}>
+            <div className="workspace-invite-card__icon">
+              <Building2 size={22} />
+            </div>
+            <div className="workspace-invite-card__body">
+              <span className="workspace-invite-card__eyebrow">
+                {isEmployee ? 'Organization Workspace' : 'Upward Account'}
+              </span>
+              <h3 className="workspace-invite-card__title">
+                {accountOrCompanyName}
+              </h3>
+              <div className="workspace-invite-card__meta">
+                <span className="workspace-invite-card__email">
+                  <Mail size={13} />
+                  {userData.email}
+                </span>
+                {userData.jobTitle && (
+                  <span className="workspace-invite-card__inviter">
+                    · {userData.jobTitle}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isLoggedIn ? (
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => router.push('/dashboard')}
+              style={{ width: '100%' }}
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => router.push(`/pm-login?email=${encodeURIComponent(userData.email)}`)}
+              style={{ width: '100%' }}
+            >
+              <span>Sign in to your account</span>
+              <ArrowRight size={16} />
+            </button>
+          )}
+
+          <p className="foot-note" style={{ fontSize: 13, marginTop: 20 }}>
+            {isEmployee
+              ? 'Need help accessing your workspace? Contact your administrator or support.'
+              : 'Need help accessing your account? Contact Upward support.'}
+          </p>
+        </div>
+      </AuthLayout>
+    )
+  }
 
   return (
-    <AuthLayout>
+    <AuthLayout
+      eyebrow={isEmployee ? "Team Invitation" : "Account Invitation"}
+      visualTitle={isEmployee ? "Activate your team member account." : "Activate your Upward account."}
+      visualDesc={
+        isEmployee
+          ? "Join your property management team on Upward to collaborate and manage workflows seamlessly."
+          : "Manage properties, automate rent collection, and connect seamlessly with your tenants and team."
+      }
+    >
       <div className="animate-fade-in">
-        {/* Header with Logo */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 24 }}>
-          <UpwardLogo color="var(--forest)" size={48} />
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 16, marginBottom: 8, color: 'var(--dark)' }}>
-            Activate Your Account
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 440, lineHeight: 1.5 }}>
-            You&apos;ve been invited to Upward. Complete your details below to activate your account and get started.
+        {/* Card Header */}
+        <div className="card-head">
+          <h2>Activate your account</h2>
+          <p>
+            Complete your details below to set your password and access your {isEmployee ? 'workspace' : 'account'}.
           </p>
         </div>
 
-        {/* Invitation Summary Banner */}
-        <div
-          style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 16,
-            padding: 16,
-            marginBottom: 24,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
-          {inviter && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: 'rgba(26, 77, 46, 0.08)',
-                  color: 'var(--forest)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <UserCheck size={20} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                  Invited By
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {inviter.name}
-                  {inviter.companyName && <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}> ({inviter.companyName})</span>}
-                </div>
-              </div>
-              {inviter.accessLevel && (
-                <div
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 100,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: 'var(--forest-faint)',
-                    color: 'var(--forest)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {inviter.accessLevel === 'ALL' ? 'Admin Access' : 'Manager Access'}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: 'rgba(26, 77, 46, 0.08)',
-                color: 'var(--forest)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Mail size={20} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
-                Registered Email
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)', wordBreak: 'break-all' }}>
+        {/* Invitation Card */}
+        <div className="workspace-invite-card">
+          <div className="workspace-invite-card__icon">
+            <Building2 size={22} />
+          </div>
+          <div className="workspace-invite-card__body">
+            <span className="workspace-invite-card__eyebrow">
+              {isEmployee 
+                ? 'Workspace Invitation' 
+                : (inviter?.type === 'TENANT' ? 'Tenant Connection' : 'Account Invitation')}
+            </span>
+            <h3 className="workspace-invite-card__title">
+              {isEmployee
+                ? accountOrCompanyName
+                : (inviter?.companyName || userData.businessName || (inviter?.name ? `Invited by ${inviter.name}` : 'Upward Account'))}
+            </h3>
+            <div className="workspace-invite-card__meta">
+              <span className="workspace-invite-card__email">
+                <Mail size={13} />
                 {userData.email}
-              </div>
+              </span>
+              {inviter?.name && inviter.name !== inviter?.companyName && (
+                <span className="workspace-invite-card__inviter">
+                  · Invited by {inviter.name}
+                </span>
+              )}
+              {inviter?.unitAddress && (
+                <span className="workspace-invite-card__inviter">
+                  · {inviter.unitAddress}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Claim Form */}
-        <form onSubmit={handleClaim} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', marginBottom: 6, display: 'block' }}>
-                First Name
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="First name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 12,
-                  border: '1px solid var(--border)',
-                  padding: '0 14px',
-                  fontSize: 14,
-                  background: '#FFFFFF',
-                }}
-              />
+        <form onSubmit={handleClaim} noValidate>
+          <div className="field-grid-2">
+            <div className="field">
+              <label htmlFor="claim-first-name">First name</label>
+              <div className="input-shell">
+                <User size={17} />
+                <input
+                  id="claim-first-name"
+                  type="text"
+                  required
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="form-group">
-              <label className="form-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', marginBottom: 6, display: 'block' }}>
-                Last Name
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Last name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 12,
-                  border: '1px solid var(--border)',
-                  padding: '0 14px',
-                  fontSize: 14,
-                  background: '#FFFFFF',
-                }}
-              />
+            <div className="field">
+              <label htmlFor="claim-last-name">Last name</label>
+              <div className="input-shell">
+                <User size={17} />
+                <input
+                  id="claim-last-name"
+                  type="text"
+                  required
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', marginBottom: 6, display: 'block' }}>
-              Create Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: 14, top: 15, color: 'var(--text-muted)' }} />
+          <div className="field">
+            <label htmlFor="claim-pass">Create password</label>
+            <div className="input-shell">
+              <Lock size={17} />
               <input
+                id="claim-pass"
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="Create a strong password"
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 12,
-                  border: '1px solid var(--border)',
-                  padding: '0 40px 0 42px',
-                  fontSize: 14,
-                  background: '#FFFFFF',
-                }}
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: 14,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  padding: 2,
-                }}
+                className="icon-btn"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label" style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', marginBottom: 6, display: 'block' }}>
-              Confirm Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Lock size={18} style={{ position: 'absolute', left: 14, top: 15, color: 'var(--text-muted)' }} />
+          <div className="field">
+            <label htmlFor="claim-confirm-pass">Confirm password</label>
+            <div className="input-shell">
+              <Lock size={17} />
               <input
+                id="claim-confirm-pass"
                 type={showConfirmPassword ? 'text' : 'password'}
                 required
                 placeholder="Repeat your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: 48,
-                  borderRadius: 12,
-                  border: '1px solid var(--border)',
-                  padding: '0 40px 0 42px',
-                  fontSize: 14,
-                  background: '#FFFFFF',
-                }}
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{
-                  position: 'absolute',
-                  right: 12,
-                  top: 14,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  padding: 2,
-                }}
+                className="icon-btn"
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
           </div>
 
+          <div className="checkbox-row" style={{ marginTop: 14, marginBottom: 8 }}>
+            <input
+              id="claim-terms"
+              type="checkbox"
+              checked={termsAgreed}
+              onChange={(e) => setTermsAgreed(e.target.checked)}
+              required
+            />
+            <label htmlFor="claim-terms">
+              I agree to Upward's{' '}
+              <a
+                href={`${WEB_URL}/legal/terms`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Terms of Use
+              </a>{' '}
+              and{' '}
+              <a
+                href={`${WEB_URL}/legal/privacy`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </a>
+              {isEmployee ? (
+                <>
+                  , and accept this invitation to join <strong>{accountOrCompanyName}</strong>.
+                </>
+              ) : (
+                <>
+                  , and accept this invitation to activate my Upward account.
+                </>
+              )}
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={claiming}
-            style={{
-              width: '100%',
-              height: 48,
-              borderRadius: 12,
-              background: 'var(--forest)',
-              color: '#FFFFFF',
-              border: 'none',
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: claiming ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              marginTop: 8,
-              transition: 'all 0.2s',
-            }}
+            disabled={claiming || !termsAgreed}
+            className="primary-btn"
+            style={{ marginTop: 12 }}
           >
-            {claiming ? (
-              'Activating Account...'
-            ) : (
-              <>
-                Activate My Account <ArrowRight size={18} />
-              </>
-            )}
+            <span>{claiming ? 'Activating account...' : 'Activate my account'}</span>
+            {claiming ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
           </button>
         </form>
 
-        {/* Legal Footer */}
-        <p
-          style={{
-            textAlign: 'center',
-            fontSize: 12,
-            color: 'var(--text-muted)',
-            marginTop: 24,
-            lineHeight: 1.5,
-          }}
-        >
-          By activating your account, you agree to our{' '}
-          <a
-            href={`${WEB_URL}/legal/terms`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--forest)', fontWeight: 700, textDecoration: 'none' }}
-          >
-            Terms of Use
-          </a>{' '}
-          and{' '}
-          <a
-            href={`${WEB_URL}/legal/privacy`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--forest)', fontWeight: 700, textDecoration: 'none' }}
-          >
-            Privacy Policy
-          </a>
-          .
+        {/* Footnote */}
+        <p className="foot-note" style={{ fontSize: 12.5, marginTop: 18, textAlign: 'center' }}>
+          {isEmployee ? (
+            <>
+              By joining <strong style={{ color: 'var(--ink)' }}>{accountOrCompanyName}</strong>, you will have access to assigned properties and team workflows.
+            </>
+          ) : (
+            <>
+              By activating your account, you will have access to manage properties, track tenancies, and collect payments on Upward.
+            </>
+          )}
         </p>
       </div>
     </AuthLayout>

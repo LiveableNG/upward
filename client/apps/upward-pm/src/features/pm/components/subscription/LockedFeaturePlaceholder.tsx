@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Lock, Sparkles } from 'lucide-react';
+import { useAuth } from '@/features/auth/AuthContext';
 import { FeatureKey } from '@/features/pm/types/subscription';
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal';
 import '@/styles/features/subscription-gate.css';
@@ -14,6 +15,8 @@ interface LockedFeaturePlaceholderProps {
 
 export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: LockedFeaturePlaceholderProps) {
   const { openPricing } = usePricingModal();
+  const { user } = useAuth();
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE';
 
   const getFeatureFriendlyName = () => {
     switch (feature) {
@@ -23,6 +26,8 @@ export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: Lock
         return 'Service Charge Payments';
       case FeatureKey.LISTING_BROKERAGE:
         return 'Listing & Brokerage Announcements';
+      case FeatureKey.BRANDING:
+        return 'Branding & White-labelling';
       default:
         return 'Premium Property Feature';
     }
@@ -30,9 +35,13 @@ export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: Lock
 
   const getWarningText = () => {
     if (reason === 'LOCKED') {
-      return 'Access suspended due to overdue invoice. Please fund your wallet to restore access and retrieve your data.';
+      return isEmployee
+        ? 'Access to this feature is temporarily suspended due to an overdue organization invoice. Please contact your administrator.'
+        : 'Access suspended due to overdue invoice. Please fund your wallet to restore access and retrieve your data.';
     }
-    return `This feature is part of Upward Professional (Tier 2). Upgrade your subscription to restore access and activate data.`;
+    return isEmployee
+      ? `This feature is locked under your organization's current plan. Kindly contact your administrator to activate a subscription.`
+      : `This feature is part of Upward Professional (Tier 2). Upgrade your subscription to restore access and activate data.`;
   };
 
   return (
@@ -49,8 +58,17 @@ export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: Lock
           {getWarningText()}
         </p>
         <button className="subscription-gate__btn" onClick={openPricing}>
-          <Sparkles size={16} />
-          View Subscription Plans
+          {isEmployee ? (
+            <>
+              <Lock size={16} />
+              Contact Administrator
+            </>
+          ) : (
+            <>
+              <Sparkles size={16} />
+              View Subscription Plans
+            </>
+          )}
         </button>
       </div>
     </div>

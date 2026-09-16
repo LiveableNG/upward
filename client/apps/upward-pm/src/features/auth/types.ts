@@ -22,8 +22,23 @@ export interface PropertyManagerProfile {
   isManuallyBlocked?: boolean;
   termsAcceptedAt?: string | null;
   termsVersion?: string | null;
-  /** False for employee-only team collaborators — company settings tabs are hidden. */
+  hasBankDetails?: boolean;
   canManageCompanySettings?: boolean;
+  accountType?: 'PM' | 'PM_EMPLOYEE';
+  jobTitle?: string;
+  accessLevel?: 'ALL' | 'CUSTOM';
+  employer?: {
+    uuid: string;
+    companyName: string;
+    ownerName: string;
+    email: string;
+    logo?: string;
+    hasBankDetails?: boolean;
+    bankName?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+  } | null;
 }
 
 export interface AuthResponse {

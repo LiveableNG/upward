@@ -25,42 +25,6 @@ export interface CarouselItem {
   secondaryActionLink?: string
 }
 
-const defaultItems: CarouselItem[] = [
-  {
-    id: 'add-property',
-    title: 'Onboard Your Properties',
-    description: 'Let\'s get your properties set up.',
-    descriptionExtended: '',
-    icon: Building2,
-    link: '/import',
-    color: 'warning',
-    actionLabel: 'Add Property',
-    priority: 'HIGH PRIORITY'
-  },
-  {
-    id: 'payment-info',
-    title: 'Add Payment Info',
-    description: 'Connect your bank account',
-    descriptionExtended: ' to start receiving rent payments.',
-    icon: CreditCard,
-    link: '/settings?tab=payment',
-    color: 'warning',
-    actionLabel: 'Setup Payouts',
-    priority: 'HIGH PRIORITY'
-  },
-  {
-    id: 'complete-profile',
-    title: 'Complete Profile',
-    description: 'Add your business details',
-    descriptionExtended: ' including company address to build trust and professionalize your dashboard.',
-    icon: UserCircle,
-    link: '/settings?tab=profile',
-    color: 'clay',
-    actionLabel: 'Update Profile',
-    priority: 'MEDIUM PRIORITY'
-  }
-]
-
 export function useActivityTasks() {
   const { user, loading: loadingAuth } = useAuth()
   const { data: properties = [], isLoading: isLoadingProperties } = useProperties()
@@ -80,33 +44,111 @@ export function useActivityTasks() {
   })
   
   const isLoading = loadingAuth || isLoadingProperties || isLoadingCred || isLoadingJoin || isLoadingJobs
+  const isEmployee = user?.accountType === 'PM_EMPLOYEE' || user?.canManageCompanySettings === false
   
-  let dynamicItems = [...defaultItems]
-  
+  const dynamicItems: CarouselItem[] = []
+
+  if (isEmployee) {
+    // 1. Employee-specific setup tasks
+    const isProfileIncomplete = !user?.phone || !user?.firstName || !user?.lastName
+    if (isProfileIncomplete) {
+      dynamicItems.push({
+        id: 'complete-employee-profile',
+        title: 'Update Contact Profile',
+        description: 'Add your phone number and details',
+        descriptionExtended: ' so tenants and team members can easily reach and identify you.',
+        icon: UserCircle,
+        link: '/settings?tab=profile',
+        color: 'clay',
+        actionLabel: 'Update Profile',
+        priority: 'MEDIUM PRIORITY'
+      })
+    }
+
+    if (properties.length === 0) {
+      dynamicItems.push({
+        id: 'employee-properties',
+        title: 'No Properties Assigned',
+        description: 'Create a property or request assignment',
+        descriptionExtended: ' from your account admin to start managing units and tenants.',
+        icon: Building2,
+        link: '/properties',
+        color: 'warning',
+        actionLabel: 'View Properties',
+        priority: 'HIGH PRIORITY'
+      })
+    }
+  } else {
+    // 2. Owner-specific setup tasks
+    if (properties.length === 0) {
+      dynamicItems.push({
+        id: 'add-property',
+        title: 'Onboard Your Properties',
+        description: "Let's get your properties set up.",
+        descriptionExtended: '',
+        icon: Building2,
+        link: '/import',
+        color: 'warning',
+        actionLabel: 'Add Property',
+        priority: 'HIGH PRIORITY'
+      })
+    }
+
+    if (!user?.bankCode) {
+      dynamicItems.push({
+        id: 'payment-info',
+        title: 'Add Payment Info',
+        description: 'Connect your bank account',
+        descriptionExtended: ' to start receiving rent payments.',
+        icon: CreditCard,
+        link: '/settings?tab=payment',
+        color: 'warning',
+        actionLabel: 'Setup Payouts',
+        priority: 'HIGH PRIORITY'
+      })
+    }
+
+    const isOwnerProfileIncomplete = !user?.businessName || !user?.country || !user?.companyAddress
+    if (isOwnerProfileIncomplete) {
+      dynamicItems.push({
+        id: 'complete-profile',
+        title: 'Complete Profile',
+        description: 'Add your business details',
+        descriptionExtended: ' including company address to build trust and professionalize your dashboard.',
+        icon: UserCircle,
+        link: '/settings?tab=profile',
+        color: 'clay',
+        actionLabel: 'Update Profile',
+        priority: 'MEDIUM PRIORITY'
+      })
+    }
+  }
+
+  // 3. Import job status (if applicable)
   const activeJob = importJobs.find(j => j.status !== 'COMPLETED' && j.status !== 'CANCELLED')
   if (activeJob) {
     const isSelfDraft = activeJob.fileUrl === 'self_import_draft' || activeJob.fileUrl === 'self_onboarding_draft'
     const isReady = activeJob.status === 'STAGED_FOR_REVIEW'
     
-    const addPropertyIndex = dynamicItems.findIndex(item => item.id === 'add-property')
+    const addPropertyIndex = dynamicItems.findIndex(item => item.id === 'add-property' || item.id === 'employee-properties')
     if (addPropertyIndex !== -1) {
       if (isSelfDraft) {
         dynamicItems[addPropertyIndex] = {
-          ...dynamicItems[addPropertyIndex],
+          ...dynamicItems[addPropertyIndex]!,
           title: 'Resume Property Import',
           description: 'You have a saved draft waiting to be imported.',
           actionLabel: 'Resume Draft',
         }
       } else if (isReady) {
         dynamicItems[addPropertyIndex] = {
-          ...dynamicItems[addPropertyIndex],
+          ...dynamicItems[addPropertyIndex]!,
           title: 'Review Prepared Properties',
           description: 'Your prepared import is ready for review.',
           actionLabel: 'Review Data',
         }
       } else {
         dynamicItems[addPropertyIndex] = {
-          ...dynamicItems[addPropertyIndex],
+          ...dynamicItems[addPropertyIndex]!,
           title: 'Import Processing',
           description: 'Our team is preparing your properties file.',
           actionLabel: 'Check Status',
@@ -115,12 +157,13 @@ export function useActivityTasks() {
     }
   }
 
+  // 4. Operational tasks (tenant join requests & credibility requests)
   if (joinRequests.length > 0) {
     dynamicItems.unshift({
       id: 'join-requests',
       title: 'New Tenant Requests',
       description: `You have ${joinRequests.length} pending tenant request${joinRequests.length > 1 ? 's' : ''}`,
-      descriptionExtended: ' to join your properties.',
+      descriptionExtended: isEmployee ? ' for your assigned properties.' : ' to join your properties.',
       icon: UserPlus,
       link: '/requests',
       color: 'warning',
@@ -143,12 +186,5 @@ export function useActivityTasks() {
     })
   }
 
-  const tasks = dynamicItems.filter(item => {
-    if (item.id === 'payment-info') return !user?.bankCode
-    if (item.id === 'complete-profile') return !user?.businessName || !user?.country || !user?.companyAddress
-    if (item.id === 'add-property') return properties.length === 0
-    return true
-  })
-
-  return { tasks, isLoading }
+  return { tasks: dynamicItems, isLoading }
 }

@@ -18,11 +18,44 @@ export class UpdatePropertyUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto) {
+  async execute(pmId: number, propertyUuid: string, dto: UpdatePropertyDto, actor?: any) {
     const property = await this.propertyRepository.findByUuid(propertyUuid);
     
     if (!property) {
       throw new NotFoundException('Property not found');
+    }
+
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+
+    if (actor?.isEmployee) {
+      const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, property.id, actor);
+      if (!hasAccess) {
+        throw new ForbiddenException('You do not have access to update this property');
+      }
+
+      // Employee: Queue edit request in upward_pm_approval_request
+      const approval = await this.approvalRepository.create({
+        requesterEmployeeId: actor.employeeId,
+        ownerPmId: property.pmId,
+        type: 'EDIT_PROPERTY',
+        propertyUuid,
+        propertyName: property.name,
+        payload: {
+          currentData: {
+            name: property.name,
+            address: property.address,
+            propertyType: property.propertyType,
+            totalUnits: property.totalUnits,
+          },
+          proposedData: dto
+        }
+      });
+
+      return {
+        requiresApproval: true,
+        approvalUuid: approval.uuid,
+        message: 'Your property edit request has been submitted to the Admin for approval.'
+      };
     }
 
     if (property.pmId !== pmId) {
@@ -60,6 +93,7 @@ export class UpdatePropertyUseCase {
       };
     }
 
+
     let landlordId: number | undefined = undefined;
     if (dto.landlordEmail && dto.landlordEmail !== property.landlordEmail) {
         const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId }, select: { uuid: true } });
@@ -70,6 +104,19 @@ export class UpdatePropertyUseCase {
             pm?.uuid,
         );
         if (landlord && landlord.id) landlordId = landlord.id;
+    }
+
+    let manualAccountId: number | null | undefined = dto.manualAccountId;
+    if (dto.settlementAccountUuid !== undefined) {
+      if (dto.settlementAccountUuid) {
+        const account = await (this.prisma as any).upward_manual_account.findUnique({
+          where: { uuid: dto.settlementAccountUuid },
+          select: { id: true },
+        });
+        manualAccountId = account ? account.id : null;
+      } else {
+        manualAccountId = null;
+      }
     }
 
     const updatedProperty = await this.propertyRepository.update(propertyUuid, {
@@ -85,7 +132,22 @@ export class UpdatePropertyUseCase {
       landlordName: dto.landlordName,
       landlordEmail: dto.landlordEmail,
       landlordPhone: dto.landlordPhone,
+      manualAccountId: manualAccountId !== undefined ? manualAccountId : undefined,
     });
+
+    if (manualAccountId !== undefined && property.id) {
+      const pmUnits = await (this.prisma as any).upward_pm_unit.findMany({
+        where: { propertyId: property.id },
+        select: { id: true },
+      });
+      const pmUnitIds = pmUnits.map((u: any) => u.id);
+      if (pmUnitIds.length > 0) {
+        await (this.prisma as any).upward_user_property.updateMany({
+          where: { pmUnitId: { in: pmUnitIds } },
+          data: { manualAccountId },
+        });
+      }
+    }
 
     if (updatedProperty.imageUrl) {
       updatedProperty.imageUrl = await this.s3Service.getDownloadUrl(updatedProperty.imageUrl);

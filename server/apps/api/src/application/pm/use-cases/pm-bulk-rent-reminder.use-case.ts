@@ -13,29 +13,55 @@ export class PmBulkRentReminderUseCase {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async execute(pmId: number, landlordEmail: string): Promise<{ sentCount: number }> {
-    this.logger.log(`Executing bulk rent reminders for landlord ${landlordEmail} (PM: ${pmId})`);
+  async execute(pmId: number, landlordEmail: string, actor?: any): Promise<{ sentCount: number }> {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+    this.logger.log(`Executing bulk rent reminders for landlord ${landlordEmail} (PM: ${ownerPmId})`);
 
     const pm = await this.prisma.upward_property_manager.findUnique({
-      where: { id: pmId },
+      where: { id: ownerPmId },
       select: { uuid: true, businessName: true, firstName: true, lastName: true },
     });
 
     if (!pm) {
-      throw new Error(`PM not found with ID ${pmId}`);
+      throw new Error(`PM not found with ID ${ownerPmId}`);
     }
 
     const pmName = pm.businessName || `${pm.firstName || ''} ${pm.lastName || ''}`.trim() || 'Property Manager';
 
-    const emailHash = this.encryption.hash(landlordEmail);
-    const properties = await this.prisma.upward_pm_property.findMany({
-      where: {
-        pmId,
+    let propertyFilter: any = {
+      pmId: ownerPmId,
+      landlord: {
+        emailHash: this.encryption.hash(landlordEmail)
+      }
+    };
+
+    if (actor?.isEmployee && actor.accessLevel !== 'ALL') {
+      if (!actor.employeeId) return { sentCount: 0 };
+
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+
+      const propertyIds = assignedLinks.map((al: any) => al.propertyId);
+      if (propertyIds.length === 0) return { sentCount: 0 };
+
+      propertyFilter = {
+        id: { in: propertyIds },
+        pmId: ownerPmId,
         landlord: {
-          emailHash
+          emailHash: this.encryption.hash(landlordEmail)
         }
-      },
+      };
+    }
+
+    const properties = await this.prisma.upward_pm_property.findMany({
+      where: propertyFilter,
       include: {
+
         units: {
           where: {
             status: 'OCCUPIED',

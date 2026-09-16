@@ -13,6 +13,7 @@ import { EncryptionService } from '../shared/infrastructure/common/encryption.se
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
+import { RentalPeriodService } from './services/rental-period.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -245,6 +246,7 @@ import { GetTeamMembersUseCase } from './pm/use-cases/team/get-team-members.use-
 import { TransferTeamPropertiesUseCase } from './pm/use-cases/team/transfer-team-properties.use-case'
 import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case'
 import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case'
+import { GetTeamActivityDashboardUseCase } from './pm/use-cases/team/get-team-activity-dashboard.use-case'
 import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
 import { ActivityLogService } from '../shared/application/activity-log.service'
 import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
@@ -253,6 +255,12 @@ import { PmBulkRentReminderUseCase } from './pm/use-cases/pm-bulk-rent-reminder.
 import { UpdateRentPaymentUseCase } from './pm/use-cases/update-rent-payment.use-case'
 import { DeleteRentPaymentUseCase } from './pm/use-cases/delete-rent-payment.use-case'
 import { AcceptPmTermsUseCase } from './pm/use-cases/accept-pm-terms.use-case'
+import { GetSettlementAccountsUseCase } from './pm/use-cases/settlement-accounts/get-settlement-accounts.use-case'
+import { CreateSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/create-settlement-account.use-case'
+import { UpdateSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/update-settlement-account.use-case'
+import { SetDefaultSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/set-default-settlement-account.use-case'
+import { DeleteSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/delete-settlement-account.use-case'
+import { LinkPropertiesToSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/link-properties-to-settlement-account.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
@@ -389,6 +397,10 @@ import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distri
 import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
+import { GetRentDepositSummaryUseCase } from './use-cases/payments/get-rent-deposit-summary.use-case'
+import { ApplyRentDepositToPaymentRequestUseCase } from './use-cases/payments/apply-rent-deposit-to-payment-request.use-case'
+import { CreditRentDepositUseCase, RecordRentDepositUseCase } from './use-cases/payments/credit-rent-deposit.use-case'
+import { GenerateRentDepositReceiptPdfUseCase } from './use-cases/payments/generate-rent-deposit-receipt-pdf.use-case'
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 import {
   AddManualAccountUseCase,
@@ -673,6 +685,12 @@ const UseCases: any[] = [
   PmBulkRentReminderUseCase,
   UpdateRentPaymentUseCase,
   DeleteRentPaymentUseCase,
+  GetSettlementAccountsUseCase,
+  CreateSettlementAccountUseCase,
+  UpdateSettlementAccountUseCase,
+  SetDefaultSettlementAccountUseCase,
+  DeleteSettlementAccountUseCase,
+  LinkPropertiesToSettlementAccountUseCase,
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
@@ -690,6 +708,7 @@ const UseCases: any[] = [
   GetTeamMembersUseCase,
   UpdateTeamMemberPermissionsUseCase,
   RevokeTeamMemberUseCase,
+  GetTeamActivityDashboardUseCase,
   TransferTeamPropertiesUseCase,
   BulkAddRentHistoryUseCase,
   MarkCredibilityRequestDoneUseCase,
@@ -706,6 +725,11 @@ const UseCases: any[] = [
   SyncPmPaymentStatusUseCase,
   SettlePropertyBalanceUseCase,
   HandlePaymentOverpaymentUseCase,
+  GetRentDepositSummaryUseCase,
+  ApplyRentDepositToPaymentRequestUseCase,
+  CreditRentDepositUseCase,
+  RecordRentDepositUseCase,
+  GenerateRentDepositReceiptPdfUseCase,
   ProcessHourlySettlementsUseCase,
   AddManualAccountUseCase,
   UploadProofOfPaymentUseCase,
@@ -858,6 +882,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,
@@ -891,6 +916,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,

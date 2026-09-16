@@ -17,7 +17,7 @@ export class CreatePropertyUseCase {
     private readonly landlordService: LandlordService,
   ) {}
 
-  async execute(pmId: number, dto: CreatePropertyDto) {
+  async execute(pmId: number, dto: CreatePropertyDto, actor?: any) {
     // Check for duplicate property name for this PM
     const existing = await this.prisma.upward_pm_property.findFirst({
       where: {
@@ -47,6 +47,15 @@ export class CreatePropertyUseCase {
       }
     }
 
+    let manualAccountId = dto.manualAccountId;
+    if (dto.settlementAccountUuid) {
+      const account = await (this.prisma as any).upward_manual_account.findUnique({
+        where: { uuid: dto.settlementAccountUuid },
+        select: { id: true },
+      });
+      if (account) manualAccountId = account.id;
+    }
+
     const property = await this.propertyRepository.create({
       pmId,
       name: dto.name,
@@ -61,28 +70,61 @@ export class CreatePropertyUseCase {
       landlordName: dto.landlordName || null,
       landlordEmail: dto.landlordEmail || null,
       landlordPhone: dto.landlordPhone || null,
+      manualAccountId: manualAccountId || undefined,
     });
 
-    if (dto.collaboratorUuids && dto.collaboratorUuids.length > 0) {
-        const collaborators = await (this.prisma as any).upward_property_manager.findMany({
-            where: { uuid: { in: dto.collaboratorUuids } },
-            select: { id: true }
-        });
-
-        if (collaborators.length > 0) {
-            await (this.prisma as any).upward_pm_property_collaboration.createMany({
-                data: collaborators.map((c: any) => ({
-                    propertyId: property.id,
-                    collaboratorPmId: c.id,
-                    ownerPmId: pmId
-                }))
-            });
+    // If an employee created the property, auto-assign them
+    if (actor?.isEmployee && actor.employeeId) {
+      await (this.prisma as any).upward_pm_employee_property.create({
+        data: {
+          propertyId: property.id,
+          employeeId: actor.employeeId,
+          ownerPmId: pmId,
         }
+      }).catch(() => null);
     }
+
+    if (dto.collaboratorUuids && dto.collaboratorUuids.length > 0) {
+      // 1. Assign employees
+      const employees = await (this.prisma as any).upward_pm_employee.findMany({
+        where: { uuid: { in: dto.collaboratorUuids }, ownerPmId: pmId },
+        select: { id: true },
+      });
+
+      if (employees.length > 0) {
+        await (this.prisma as any).upward_pm_employee_property.createMany({
+          data: employees.map((e: any) => ({
+            propertyId: property.id,
+            employeeId: e.id,
+            ownerPmId: pmId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      // 2. Fallback legacy PM collaborators
+      const collaborators = await (this.prisma as any).upward_property_manager.findMany({
+        where: { uuid: { in: dto.collaboratorUuids } },
+        select: { id: true },
+      });
+
+      if (collaborators.length > 0) {
+        await (this.prisma as any).upward_pm_property_collaboration.createMany({
+          data: collaborators.map((c: any) => ({
+            propertyId: property.id,
+            collaboratorPmId: c.id,
+            ownerPmId: pmId,
+          })),
+        });
+      }
+    }
+
+
 
     await this.activityLog.log({
         pmId,
-        ownerPmId: pmId, 
+        ownerPmId: pmId,
+        employeeId: actor?.isEmployee ? actor.employeeId : undefined,
         action: ActivityAction.CREATE_PROPERTY,
         entityType: 'PROPERTY',
         entityId: property.uuid,

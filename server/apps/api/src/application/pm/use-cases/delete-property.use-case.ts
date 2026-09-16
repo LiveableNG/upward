@@ -13,11 +13,38 @@ export class DeletePropertyUseCase {
     private readonly prisma: PrismaService,
   ) {}
 
-  async execute(pmId: number, propertyUuid: string) {
+  async execute(pmId: number, propertyUuid: string, actor?: any) {
     const property = await this.propertyRepository.findByUuid(propertyUuid);
     
     if (!property) {
       throw new NotFoundException('Property not found');
+    }
+
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+
+    if (actor?.isEmployee) {
+      const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, property.id, actor);
+      if (!hasAccess) {
+        throw new ForbiddenException('You do not have access to delete this property');
+      }
+
+      // Employee: Queue deletion request in upward_pm_approval_request
+      const approval = await this.approvalRepository.create({
+        requesterEmployeeId: actor.employeeId,
+        ownerPmId: property.pmId,
+        type: 'DELETE_PROPERTY',
+        propertyUuid,
+        propertyName: property.name,
+        payload: {
+          address: property.address
+        }
+      });
+
+      return {
+        requiresApproval: true,
+        approvalUuid: approval.uuid,
+        message: 'Your property deletion request has been submitted to the Admin for approval.'
+      };
     }
 
     if (property.pmId !== pmId) {
@@ -48,6 +75,7 @@ export class DeletePropertyUseCase {
         message: 'Your property deletion request has been submitted to the Admin for approval.'
       };
     }
+
 
     return this.propertyRepository.delete(propertyUuid);
   }

@@ -6,7 +6,9 @@ import { useCountries, useCities } from '../../../hooks/useLocation'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { useLandlords } from '@/features/pm/hooks/useProperties'
-import { Check, Users, UserPlus } from 'lucide-react'
+import { useSettlementAccounts } from '@/features/pm/hooks/useSettlementAccounts'
+import { Check, Users, UserPlus, Landmark } from 'lucide-react'
+import { useToast } from '@/components/common/Toast'
 import { cn } from '@/lib/utils'
 
 interface EditPropertyModalProps {
@@ -25,6 +27,7 @@ interface EditPropertyModalProps {
     landlordName?: string;
     landlordEmail?: string;
     landlordPhone?: string;
+    settlementAccountUuid?: string;
   };
   setFormData: (data: any) => void;
   onDelete: () => void;
@@ -33,36 +36,70 @@ interface EditPropertyModalProps {
 export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({ 
   isOpen, onClose, onSave, isPending, formData, setFormData, onDelete
 }) => {
+  const { error: toastError } = useToast()
   const { data: countriesData } = useCountries()
   const { data: citiesData, isLoading: isLoadingCities } = useCities(formData.country || '')
   const { data: existingLandlords = [] } = useLandlords()
+  const { accounts, primaryAccount } = useSettlementAccounts()
   const [landlordMode, setLandlordMode] = React.useState<'NONE' | 'NEW' | 'EXISTING'>(
     formData.landlordEmail ? 'EXISTING' : 'NONE'
   )
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setLandlordMode(formData.landlordEmail ? 'EXISTING' : 'NONE')
+    }
+  }, [isOpen])
+
   const handleToggleLandlordMode = (mode: 'NONE' | 'NEW' | 'EXISTING') => {
-    setLandlordMode(mode === landlordMode ? 'NONE' : mode)
-    if (mode === 'NONE' || mode === landlordMode) {
-        setFormData({
-            ...formData,
-            landlordName: '',
-            landlordEmail: '',
-            landlordPhone: ''
-        })
+    const nextMode = mode === landlordMode ? 'NONE' : mode
+    setLandlordMode(nextMode)
+    if (nextMode === 'NONE') {
+      setFormData({
+        ...formData,
+        landlordName: '',
+        landlordEmail: '',
+        landlordPhone: ''
+      })
     }
   }
 
-
-
-  const phoneError = formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone)
+  const phoneError = (landlordMode === 'NEW' && formData.landlordPhone && !isValidPhoneNumber(formData.landlordPhone))
     ? 'Invalid international phone number'
     : undefined
 
-  const emailError = formData.landlordEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail)
+  const emailError = (landlordMode === 'NEW' && formData.landlordEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail))
     ? 'Invalid email address'
     : undefined
 
-  const isInvalid = !!phoneError || !!emailError || !formData.name || !formData.address
+  const handleSaveClick = () => {
+    if (!formData.name?.trim()) {
+      return toastError('Property Name is required')
+    }
+    if (!formData.address?.trim()) {
+      return toastError('Full Address is required')
+    }
+
+    if (landlordMode === 'NEW') {
+      if (formData.landlordName?.trim() && !formData.landlordEmail?.trim()) {
+        return toastError('Please enter an email address for the new landlord')
+      }
+      if (formData.landlordEmail?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.landlordEmail.trim())) {
+        return toastError('Please enter a valid email address for the landlord')
+      }
+      if (formData.landlordPhone?.trim() && !isValidPhoneNumber(formData.landlordPhone.trim())) {
+        return toastError('Please enter a valid international phone number (e.g. +234...)')
+      }
+    }
+
+    if (landlordMode === 'EXISTING') {
+      if (!formData.landlordEmail?.trim()) {
+        return toastError('Please select an existing landlord or switch to "None"')
+      }
+    }
+
+    onSave()
+  }
 
   if (!isOpen) return null;
 
@@ -81,7 +118,12 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
           <button className="btn btn--secondary" style={{ marginLeft: 'auto', width: 100 }} onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn--primary" style={{ width: 140 }} onClick={onSave} disabled={isPending || isInvalid}>
+          <button 
+            className="btn btn--primary" 
+            style={{ width: 140 }} 
+            onClick={handleSaveClick} 
+            disabled={isPending}
+          >
             {isPending ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
@@ -156,6 +198,31 @@ export const EditPropertyModal: React.FC<EditPropertyModalProps> = ({
               { label: 'Mixed Use', value: 'Mixed Use' }
             ]}
           />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Landmark size={14} color="var(--forest)" /> Settlement Account
+          </label>
+          {accounts.length === 0 ? (
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>No settlement accounts configured in Settings.</p>
+          ) : (
+            <FormSelect
+              value={formData.settlementAccountUuid || ''}
+              onChange={val => setFormData({ ...formData, settlementAccountUuid: val })}
+              options={[
+                { label: `Default (${primaryAccount ? `${primaryAccount.bankName} - ${primaryAccount.accountNumber}` : 'Primary Account'})`, value: '' },
+                ...accounts.map(acc => ({
+                  label: `${acc.bankName} - ${acc.accountNumber} (${acc.accountName})${acc.isPrimary ? ' • Primary' : ''}`,
+                  value: acc.uuid
+                }))
+              ]}
+              placeholder="Select Settlement Account"
+            />
+          )}
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            Rent payments created for this property will route to this account.
+          </p>
         </div>
 
         <div style={{ marginTop: 20, padding: 14, background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>

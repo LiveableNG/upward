@@ -12,6 +12,7 @@ import { SyncUnitToUpwardUseCase } from '../units/sync-unit.use-case';
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { CreatePmPaymentRequestUseCase } from '../payments/create-pm-payment-request.use-case';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 
 @Injectable()
 export class AssignTenantToUnitUseCase {
@@ -30,6 +31,7 @@ export class AssignTenantToUnitUseCase {
     private readonly syncUnitToUpwardUseCase: SyncUnitToUpwardUseCase,
     private readonly encryption: EncryptionService,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
   async execute(
@@ -41,22 +43,25 @@ export class AssignTenantToUnitUseCase {
     rentType?: string,
     rentStartDate?: Date,
     rentDueDate?: Date,
-    isFullyPaid?: boolean
+    isFullyPaid?: boolean,
+    actor?: any
   ): Promise<void> {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepo.findByUuid(unitUuid);
     if (!unit) throw new NotFoundException('Unit not found');
 
     const property = await this.propertyRepo.findById(unit.propertyId);
     if (!property) throw new NotFoundException('Property not found');
 
-    const hasAccess = await this.propertyRepo.hasAccessToProperty(pmId, property.id);
+    const hasAccess = await this.propertyRepo.hasAccessToProperty(ownerPmId, property.id, actor);
     if (!hasAccess) throw new NotFoundException('Unit not found or unauthorized');
 
     if (tenantUuid) {
       const tenant = await this.tenantRepo.findByUuid(tenantUuid);
-      if (!tenant || (tenant.pmId !== pmId && tenant.pmId !== property.pmId)) {
+      if (!tenant || (tenant.pmId !== ownerPmId && tenant.pmId !== property.pmId)) {
         throw new NotFoundException('Tenant not found');
       }
+
       const effectiveRentAmount = rentAmount !== undefined ? rentAmount : unit.rentAmount;
 
       await this.unitRepo.update(unitUuid, {
@@ -175,6 +180,32 @@ export class AssignTenantToUnitUseCase {
       } catch (err) {
         console.error('Failed to resolve pending join request log during assignment:', err);
       }
+
+      try {
+        const tenantName = tenant.firstName
+          ? `${this.encryption.decrypt(tenant.firstName)} ${tenant.lastName ? this.encryption.decrypt(tenant.lastName) : ''}`.trim()
+          : (tenant.email || 'Tenant');
+
+        await this.activityLog.log({
+          pmId: ownerPmId,
+          ownerPmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.ASSIGN_TENANT,
+          entityType: 'UNIT',
+          entityId: unit.id?.toString(),
+          description: `Assigned tenant ${tenantName} to unit ${unit.unitName || ''}`,
+          metadata: {
+            unitUuid,
+            unitName: unit.unitName,
+            tenantUuid: tenant.uuid,
+            tenantName,
+            rentAmount: effectiveRentAmount,
+            rentType: rentType || unit.rentType,
+          },
+        });
+      } catch (logErr) {
+        console.error('Failed to log tenant assignment activity:', logErr);
+      }
     } else {
       if (unit.isSynced && unit.userPropertyUuid) {
         await this.prisma.upward_user_property.updateMany({
@@ -192,6 +223,24 @@ export class AssignTenantToUnitUseCase {
         isSynced: false,
         userPropertyUuid: null
       });
+
+      try {
+        await this.activityLog.log({
+          pmId: ownerPmId,
+          ownerPmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.UPDATE_UNIT,
+          entityType: 'UNIT',
+          entityId: unit.id?.toString(),
+          description: `Unassigned tenant from unit ${unit.unitName || ''}`,
+          metadata: {
+            unitUuid,
+            unitName: unit.unitName,
+          },
+        });
+      } catch (logErr) {
+        console.error('Failed to log unit unassignment activity:', logErr);
+      }
     }
   }
 

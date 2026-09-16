@@ -1,74 +1,68 @@
-
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
 export class GetTeamMembersUseCase {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(ownerPmId: number) {
-    const collaborations = await (this.prisma as any).upward_pm_team_collaboration.findMany({
-      where: { ownerPmId, status: { in: ['ACCEPTED', 'PENDING'] } },
+    const employees = await (this.prisma as any).upward_pm_employee.findMany({
+      where: {
+        ownerPmId,
+        status: { in: ['ACTIVE', 'PENDING', 'SUSPENDED'] },
+      },
       include: {
-        collaboratorPm: {
-          select: {
-            uuid: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            profilePic: true,
-            passwordHash: true,
-          }
-        }
-      }
+        assignedProperties: {
+          include: {
+            property: {
+              select: {
+                uuid: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
 
-    // For each collaborator, get the properties they have access to if CUSTOM
-    const result = await Promise.all(collaborations.map(async (collab: any) => {
-        let properties = [];
-        if (collab.accessLevel === 'CUSTOM') {
-            const propertyCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
-                where: {
-                    ownerPmId,
-                    collaboratorPmId: collab.collaboratorPmId
-                },
-                include: {
-                    property: {
-                        select: {
-                            uuid: true,
-                            name: true
-                        }
-                    }
-                }
-            });
-            properties = propertyCollabs.map((pc: any) => pc.property);
+    const result = await Promise.all(
+      employees.map(async (emp: any) => {
+        let profilePicUrl = emp.profilePic;
+        if (profilePicUrl) {
+          profilePicUrl = await this.s3Service.getDownloadUrl(profilePicUrl);
         }
 
-        const member = collab.collaboratorPm;
         const decryptedMember = {
-            uuid: member.uuid,
-            profilePic: member.profilePic,
-            firstName: this.encryption.decrypt(member.firstName),
-            lastName: this.encryption.decrypt(member.lastName),
-            email: this.encryption.decrypt(member.email)
+          uuid: emp.uuid,
+          profilePic: profilePicUrl,
+          firstName: this.encryption.decrypt(emp.firstName),
+          lastName: this.encryption.decrypt(emp.lastName),
+          email: this.encryption.decrypt(emp.email),
+          phone: emp.phone ? this.encryption.decrypt(emp.phone) : null,
+          jobTitle: emp.jobTitle || 'Property Officer',
         };
 
-        const isPendingInvite = member.passwordHash === 'PENDING_INVITE' || collab.status === 'PENDING';
-        const status = isPendingInvite ? 'PENDING' : 'ACCEPTED';
+        const properties = emp.accessLevel === 'CUSTOM'
+          ? emp.assignedProperties.map((ap: any) => ap.property)
+          : [];
 
         return {
-            uuid: collab.uuid,
-            accessLevel: collab.accessLevel,
-            status,
-            createdAt: collab.createdAt,
-            member: decryptedMember,
-            properties
+          uuid: emp.uuid,
+          accessLevel: emp.accessLevel,
+          status: emp.status,
+          createdAt: emp.createdAt,
+          member: decryptedMember,
+          properties,
         };
-    }));
+      }),
+    );
 
     return result;
   }

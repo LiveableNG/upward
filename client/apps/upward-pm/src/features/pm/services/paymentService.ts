@@ -1,6 +1,36 @@
 import { request } from '@/lib/api-client'
 import { Unit, Tenant } from './propertyService'
 
+export interface SettlementAccount {
+  id: number;
+  uuid: string;
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  bankCode?: string | null;
+  pmId?: number | null;
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+  pmProperties?: { id: number; uuid: string; name: string }[];
+}
+
+export interface CreateSettlementAccountDto {
+  accountNumber: string;
+  accountName: string;
+  bankName: string;
+  bankCode: string;
+  isPrimary?: boolean;
+}
+
+export interface UpdateSettlementAccountDto {
+  accountNumber?: string;
+  accountName?: string;
+  bankName?: string;
+  bankCode?: string;
+  isPrimary?: boolean;
+}
+
 export interface PmPaymentRequest {
   id: number;
   uuid: string;
@@ -27,6 +57,17 @@ export interface PmPaymentRequest {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   transactions?: any[];
+  manualAccountId?: number | null;
+  settlementAccount?: SettlementAccount | null;
+  isSelfPayment?: boolean;
+  createdBy?: {
+    isEmployee?: boolean;
+    isTenant?: boolean;
+    name: string;
+    role: string;
+    id?: number;
+    uuid?: string;
+  };
 }
 
 export interface CreatePaymentRequestDto {
@@ -43,6 +84,8 @@ export interface CreatePaymentRequestDto {
   scheduledAt?: string | null;
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
+  settlementAccountUuid?: string;
+  silent?: boolean;
 }
 
 export interface UpdatePmPaymentRequestDto {
@@ -94,6 +137,44 @@ export const cancelPaymentRequest = (uuid: string) => {
     method: 'DELETE'
   })
 }
+
+export const getSettlementAccounts = () => {
+  return request<SettlementAccount[]>('/pm/settlement-accounts')
+}
+
+export const createSettlementAccount = (data: CreateSettlementAccountDto) => {
+  return request<SettlementAccount>('/pm/settlement-accounts', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const updateSettlementAccount = (uuid: string, data: UpdateSettlementAccountDto) => {
+  return request<SettlementAccount>(`/pm/settlement-accounts/${uuid}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  })
+}
+
+export const setDefaultSettlementAccount = (uuid: string) => {
+  return request<SettlementAccount>(`/pm/settlement-accounts/${uuid}/default`, {
+    method: 'PATCH'
+  })
+}
+
+export const linkPropertiesToSettlementAccount = (uuid: string, propertyUuids: string[]) => {
+  return request<{ success: boolean }>(`/pm/settlement-accounts/${uuid}/link-properties`, {
+    method: 'POST',
+    body: JSON.stringify({ propertyUuids })
+  })
+}
+
+export const deleteSettlementAccount = (uuid: string) => {
+  return request<{ success: boolean }>(`/pm/settlement-accounts/${uuid}`, {
+    method: 'DELETE'
+  })
+}
+
 
 export const getPayouts = () => {
   return request<any[]>('/pm/payouts')

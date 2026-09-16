@@ -14,6 +14,50 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     return {
       ...pr,
       coreRequestUuid: pr.paymentRequest?.uuid || null,
+      employeeId: pr.employeeId || null,
+      manualAccountId: pr.manualAccountId || null,
+      settlementAccount: pr.manualAccount ? {
+        id: pr.manualAccount.id,
+        uuid: pr.manualAccount.uuid,
+        bankName: pr.manualAccount.bankName,
+        bankCode: pr.manualAccount.bankCode,
+        accountNumber: pr.manualAccount.accountNumber,
+        accountName: pr.manualAccount.accountName,
+        isPrimary: Boolean(pr.manualAccount.isPrimary),
+      } : (pr.unit?.property?.manualAccount ? {
+        id: pr.unit.property.manualAccount.id,
+        uuid: pr.unit.property.manualAccount.uuid,
+        bankName: pr.unit.property.manualAccount.bankName,
+        bankCode: pr.unit.property.manualAccount.bankCode,
+        accountNumber: pr.unit.property.manualAccount.accountNumber,
+        accountName: pr.unit.property.manualAccount.accountName,
+        isPrimary: Boolean(pr.unit.property.manualAccount.isPrimary),
+      } : (pr.paymentRequest?.manualAccount ? {
+        id: pr.paymentRequest.manualAccount.id,
+        uuid: pr.paymentRequest.manualAccount.uuid,
+        bankName: pr.paymentRequest.manualAccount.bankName,
+        bankCode: pr.paymentRequest.manualAccount.bankCode,
+        accountNumber: pr.paymentRequest.manualAccount.accountNumber,
+        accountName: pr.paymentRequest.manualAccount.accountName,
+        isPrimary: Boolean(pr.paymentRequest.manualAccount.isPrimary),
+      } : null)),
+      employee: pr.employee ? {
+        id: pr.employee.id,
+        uuid: pr.employee.uuid,
+        firstName: pr.employee.firstName ? this.encryption.decrypt(pr.employee.firstName) : '',
+        lastName: pr.employee.lastName ? this.encryption.decrypt(pr.employee.lastName) : '',
+        jobTitle: pr.employee.jobTitle || 'Property Officer',
+      } : null,
+      createdBy: pr.employee ? {
+        uuid: pr.employee.uuid,
+        name: `${pr.employee.firstName ? this.encryption.decrypt(pr.employee.firstName) : ''} ${pr.employee.lastName ? this.encryption.decrypt(pr.employee.lastName) : ''}`.trim() || 'Employee',
+        role: pr.employee.jobTitle || 'Property Officer',
+        isEmployee: true,
+      } : {
+        name: 'Company Admin',
+        role: 'Admin',
+        isEmployee: false,
+      },
       tenant: pr.tenant ? {
         id: pr.tenant.id,
         uuid: pr.tenant.uuid,
@@ -43,15 +87,102 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     } as any;
   }
 
+  private mapManualPaymentRequest(pr: any, fallbackPmId?: number): PmPaymentRequestEntity {
+    const pmUnit = pr.userProperty?.pmUnit;
+    const pmTenant = pmUnit?.tenant;
+    const tenantFirstName = pmTenant?.firstNameEncrypted ? this.encryption.decrypt(pmTenant.firstNameEncrypted) : '';
+    const tenantLastName = pmTenant?.lastNameEncrypted ? this.encryption.decrypt(pmTenant.lastNameEncrypted) : '';
+    const tenantCommercialName = pmTenant?.commercialNameEncrypted ? this.encryption.decrypt(pmTenant.commercialNameEncrypted) : '';
+    const tenantName = (tenantCommercialName || `${tenantFirstName} ${tenantLastName}`.trim()) || 'Tenant';
+
+    return {
+      uuid: pr.uuid, // Use core UUID
+      amount: pr.amount,
+      currency: pr.currency,
+      description: pr.description || 'Self Payment',
+      dueDate: pr.dueDate,
+      status: pr.status,
+      amountPaid: pr.amountPaid || 0,
+      createdAt: pr.createdAt,
+      updatedAt: pr.updatedAt,
+      pmId: pmUnit?.property?.pmId || fallbackPmId,
+      unitId: pmUnit?.id || null,
+      tenantId: pmTenant?.id || null,
+      isSelfPayment: true,
+      coreRequestUuid: pr.uuid,
+      createdBy: {
+        name: tenantName,
+        role: 'Tenant',
+        isEmployee: false,
+        isTenant: true,
+      },
+      manualAccountId: pr.manualAccountId || null,
+      settlementAccount: pr.manualAccount ? {
+        id: pr.manualAccount.id,
+        uuid: pr.manualAccount.uuid,
+        bankName: pr.manualAccount.bankName,
+        bankCode: pr.manualAccount.bankCode,
+        accountNumber: pr.manualAccount.accountNumber,
+        accountName: pr.manualAccount.accountName,
+        isPrimary: Boolean(pr.manualAccount.isPrimary),
+      } : (pmUnit?.property?.manualAccount ? {
+        id: pmUnit.property.manualAccount.id,
+        uuid: pmUnit.property.manualAccount.uuid,
+        bankName: pmUnit.property.manualAccount.bankName,
+        bankCode: pmUnit.property.manualAccount.bankCode,
+        accountNumber: pmUnit.property.manualAccount.accountNumber,
+        accountName: pmUnit.property.manualAccount.accountName,
+        isPrimary: Boolean(pmUnit.property.manualAccount.isPrimary),
+      } : null),
+
+      unit: pmUnit ? {
+        ...pmUnit,
+        property: pmUnit.property
+      } : null,
+
+      tenant: pmTenant ? {
+        id: pmTenant.id,
+        uuid: pmTenant.uuid,
+        pmId: pmTenant.pmId,
+        firstName: tenantFirstName || null,
+        lastName: tenantLastName || null,
+        commercialName: tenantCommercialName || null,
+        email: pmTenant.emailEncrypted ? this.encryption.decrypt(pmTenant.emailEncrypted) : null,
+        phone: pmTenant.phoneEncrypted ? this.encryption.decrypt(pmTenant.phoneEncrypted) : null,
+        inviteStatus: pmTenant.inviteStatus,
+        inviteSentAt: pmTenant.inviteSentAt
+      } : null,
+
+      lineItems: pr.lineItemRecords?.map((li: any) => ({
+        name: li.name,
+        amount: li.totalAmount,
+        amountPaid: li.amountPaid || 0,
+        status: li.status || 'PENDING',
+      })) || [],
+
+      transactions: pr.transactions?.map((tx: any) => ({
+        uuid: tx.uuid,
+        amount: tx.amount,
+        status: tx.status,
+        method: tx.method || 'Bank Transfer',
+        createdAt: tx.createdAt,
+        reference: tx.reference
+      })) || []
+    } as any;
+  }
+
   async create(data: any, tx?: any): Promise<PmPaymentRequestEntity> {
     const prisma = tx || this.prisma;
     const pr = await prisma.upward_pm_payment_request.create({
       data,
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
+        employee: true,
+        manualAccount: true,
         paymentRequest: {
           include: {
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -65,16 +196,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   }
 
   async findByPmId(pmId: number): Promise<PmPaymentRequestEntity[]> {
-    const requests = await this.prisma.upward_pm_payment_request.findMany({
-      where: { pmId },
-      include: {
-        unit: { include: { property: true } },
-        tenant: true,
-        paymentRequest: { include: { lineItemRecords: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return requests.map(pr => this.mapPmPaymentRequest(pr));
+    return this.findAccessibleByPmId(pmId);
   }
 
   async findAccessibleByPmId(pmId: number): Promise<PmPaymentRequestEntity[]> {
@@ -92,15 +214,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     
     const collabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
 
-    const pmUnitCondition = {
-      OR: [
-        { property: { pmId } },
-        { property: { pmId: { in: ownerPmIds } } },
-        { propertyId: { in: collabPropertyIds } }
-      ]
-    };
-
-    const requests = await this.prisma.upward_pm_payment_request.findMany({
+    const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
       where: {
         OR: [
           { pmId },
@@ -109,28 +223,46 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         ]
       },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
-        paymentRequest: { include: { lineItemRecords: true } }
+        employee: true,
+        manualAccount: true,
+        paymentRequest: {
+          include: {
+            manualAccount: true,
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const mappedPmRequests = requests.map(pr => this.mapPmPaymentRequest(pr));
+    const mappedPmRequests = requests.map((pr: any) => this.mapPmPaymentRequest(pr));
 
-    const manualRequests = await this.prisma.upward_payment_request.findMany({
+    const manualRequests = await (this.prisma as any).upward_payment_request.findMany({
       where: {
         isManual: true,
         userProperty: {
-          pmUnit: pmUnitCondition
+          pmUnit: {
+            OR: [
+              { property: { pmId } },
+              { property: { pmId: { in: ownerPmIds } } },
+              { propertyId: { in: collabPropertyIds } }
+            ]
+          }
         }
       },
       include: {
         userProperty: {
           include: {
-            pmUnit: { include: { property: true, tenant: true } }
+            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
           }
         },
+        manualAccount: true,
         lineItemRecords: true,
         transactions: {
           where: { status: 'SUCCESS' },
@@ -140,75 +272,111 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       orderBy: { createdAt: 'desc' },
     });
 
-    const mappedManualRequests = manualRequests.map(pr => {
-      const pmUnit = pr.userProperty?.pmUnit;
-      const pmTenant = pmUnit?.tenant;
-
-      return {
-        uuid: pr.uuid, // Use core UUID
-        amount: pr.amount,
-        currency: pr.currency,
-        description: pr.description || 'Self Payment',
-        dueDate: pr.dueDate,
-        status: pr.status,
-        amountPaid: pr.amountPaid,
-        createdAt: pr.createdAt,
-        updatedAt: pr.updatedAt,
-        pmId: pmUnit?.property?.pmId || pmId,
-        unitId: pmUnit?.id || null,
-        tenantId: pmTenant?.id || null,
-        isSelfPayment: true,
-        coreRequestUuid: pr.uuid,
-        
-        unit: pmUnit ? {
-          ...pmUnit,
-          property: pmUnit.property
-        } : null,
-        
-        tenant: pmTenant ? {
-          id: pmTenant.id,
-          uuid: pmTenant.uuid,
-          pmId: pmTenant.pmId,
-          firstName: pmTenant.firstNameEncrypted ? this.encryption.decrypt(pmTenant.firstNameEncrypted) : null,
-          lastName: pmTenant.lastNameEncrypted ? this.encryption.decrypt(pmTenant.lastNameEncrypted) : null,
-          commercialName: pmTenant.commercialNameEncrypted ? this.encryption.decrypt(pmTenant.commercialNameEncrypted) : null,
-          email: pmTenant.emailEncrypted ? this.encryption.decrypt(pmTenant.emailEncrypted) : null,
-          phone: pmTenant.phoneEncrypted ? this.encryption.decrypt(pmTenant.phoneEncrypted) : null,
-          inviteStatus: pmTenant.inviteStatus,
-          inviteSentAt: pmTenant.inviteSentAt
-        } : null,
-
-        lineItems: pr.lineItemRecords?.map((li: any) => ({
-          name: li.name,
-          amount: li.totalAmount,
-          amountPaid: li.amountPaid || 0,
-          status: li.status || 'PENDING',
-        })) || [],
-
-        transactions: pr.transactions?.map((tx: any) => ({
-          uuid: tx.uuid,
-          amount: tx.amount,
-          status: tx.status,
-          method: tx.method || 'Bank Transfer',
-          createdAt: tx.createdAt,
-          reference: tx.reference
-        })) || []
-      } as any;
-    });
+    const mappedManualRequests = manualRequests.map((pr: any) => this.mapManualPaymentRequest(pr, pmId));
 
     const allRequests = [...mappedPmRequests, ...mappedManualRequests];
     allRequests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     return allRequests;
   }
 
+  async findAccessibleForActor(actor: any): Promise<PmPaymentRequestEntity[]> {
+    if (!actor || !actor.isEmployee) {
+      const pmId = actor?.ownerPmId || actor;
+      return this.findAccessibleByPmId(pmId);
+    }
+
+    if (!actor.employeeId) return [];
+
+    let propertyIds: number[] = [];
+    if (actor.accessLevel === 'ALL') {
+      const ownedProps = await this.prisma.upward_pm_property.findMany({
+        where: { pmId: actor.ownerPmId },
+        select: { id: true },
+      });
+      propertyIds = ownedProps.map(p => p.id);
+    } else {
+      const assignedLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: {
+          employeeId: actor.employeeId,
+          ownerPmId: actor.ownerPmId,
+        },
+        select: { propertyId: true },
+      });
+      propertyIds = assignedLinks.map((al: any) => al.propertyId);
+    }
+
+    if (propertyIds.length === 0) return [];
+
+    const requests = await (this.prisma as any).upward_pm_payment_request.findMany({
+      where: {
+        pmId: actor.ownerPmId,
+        unit: { propertyId: { in: propertyIds } },
+      },
+      include: {
+        unit: { include: { property: { include: { manualAccount: true } } } },
+        tenant: true,
+        employee: true,
+        manualAccount: true,
+        paymentRequest: {
+          include: {
+            manualAccount: true,
+            lineItemRecords: true,
+            transactions: {
+              where: { status: 'SUCCESS' },
+              orderBy: { createdAt: 'desc' }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const mappedPmRequests = requests.map((pr: any) => this.mapPmPaymentRequest(pr));
+
+    const manualRequests = await (this.prisma as any).upward_payment_request.findMany({
+      where: {
+        isManual: true,
+        userProperty: {
+          pmUnit: {
+            propertyId: { in: propertyIds }
+          }
+        }
+      },
+      include: {
+        userProperty: {
+          include: {
+            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
+          }
+        },
+        manualAccount: true,
+        lineItemRecords: true,
+        transactions: {
+          where: { status: 'SUCCESS' },
+          orderBy: { createdAt: 'desc' }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const mappedManualRequests = manualRequests.map((pr: any) => this.mapManualPaymentRequest(pr, actor.ownerPmId));
+
+    const allRequests = [...mappedPmRequests, ...mappedManualRequests];
+    allRequests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return allRequests;
+  }
+
+
   async findByUuid(uuid: string): Promise<PmPaymentRequestEntity | null> {
-    const pr = await this.prisma.upward_pm_payment_request.findUnique({
+    const pr = await (this.prisma as any).upward_pm_payment_request.findUnique({
       where: { uuid },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
+        employee: true,
+        manualAccount: true,
         paymentRequest: { 
           include: { 
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -221,14 +389,15 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     if (pr) return this.mapPmPaymentRequest(pr);
 
     // Fallback: Check if it's a manual core request (Self Payment)
-    const manualPr = await this.prisma.upward_payment_request.findUnique({
+    const manualPr = await (this.prisma as any).upward_payment_request.findUnique({
       where: { uuid },
       include: {
         userProperty: {
           include: {
-            pmUnit: { include: { property: true, tenant: true } }
+            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
           }
         },
+        manualAccount: true,
         lineItemRecords: true,
         transactions: {
           where: { status: 'SUCCESS' },
@@ -238,59 +407,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     });
 
     if (manualPr && manualPr.isManual && manualPr.userProperty?.pmUnit) {
-      const pmUnit = manualPr.userProperty.pmUnit;
-      const pmTenant = pmUnit.tenant;
-
-      return {
-        uuid: manualPr.uuid,
-        amount: manualPr.amount,
-        currency: manualPr.currency,
-        description: manualPr.description || 'Self Payment',
-        dueDate: manualPr.dueDate,
-        status: manualPr.status,
-        amountPaid: manualPr.amountPaid,
-        createdAt: manualPr.createdAt,
-        updatedAt: manualPr.updatedAt,
-        pmId: pmUnit.property.pmId,
-        unitId: pmUnit.id,
-        tenantId: pmTenant?.id || null,
-        isSelfPayment: true,
-        coreRequestUuid: manualPr.uuid,
-        
-        unit: {
-          ...pmUnit,
-          property: pmUnit.property
-        },
-        
-        tenant: pmTenant ? {
-          id: pmTenant.id,
-          uuid: pmTenant.uuid,
-          pmId: pmTenant.pmId,
-          firstName: pmTenant.firstNameEncrypted ? this.encryption.decrypt(pmTenant.firstNameEncrypted) : null,
-          lastName: pmTenant.lastNameEncrypted ? this.encryption.decrypt(pmTenant.lastNameEncrypted) : null,
-          commercialName: pmTenant.commercialNameEncrypted ? this.encryption.decrypt(pmTenant.commercialNameEncrypted) : null,
-          email: pmTenant.emailEncrypted ? this.encryption.decrypt(pmTenant.emailEncrypted) : null,
-          phone: pmTenant.phoneEncrypted ? this.encryption.decrypt(pmTenant.phoneEncrypted) : null,
-          inviteStatus: pmTenant.inviteStatus,
-          inviteSentAt: pmTenant.inviteSentAt
-        } : null,
-
-        lineItems: manualPr.lineItemRecords?.map((li: any) => ({
-          name: li.name,
-          amount: li.totalAmount,
-          amountPaid: li.amountPaid || 0,
-          status: li.status || 'PENDING',
-        })) || [],
-
-        transactions: manualPr.transactions?.map((tx: any) => ({
-          uuid: tx.uuid,
-          amount: tx.amount,
-          status: tx.status,
-          method: tx.method || 'Bank Transfer',
-          createdAt: tx.createdAt,
-          reference: tx.reference
-        })) || []
-      } as any;
+      return this.mapManualPaymentRequest(manualPr);
     }
 
     return null;
@@ -298,13 +415,16 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
 
   async findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<PmPaymentRequestEntity | null> {
     const prisma = tx || this.prisma;
-    const pr = await prisma.upward_pm_payment_request.findFirst({
+    const pr = await (prisma as any).upward_pm_payment_request.findFirst({
       where: { paymentRequestId },
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
+        employee: true,
+        manualAccount: true,
         paymentRequest: { 
           include: { 
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
@@ -319,14 +439,17 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
 
   async update(uuid: string, data: any, tx?: any): Promise<PmPaymentRequestEntity> {
     const prisma = tx || this.prisma;
-    const pr = await prisma.upward_pm_payment_request.update({
+    const pr = await (prisma as any).upward_pm_payment_request.update({
       where: { uuid },
       data,
       include: {
-        unit: { include: { property: true } },
+        unit: { include: { property: { include: { manualAccount: true } } } },
         tenant: true,
+        employee: true,
+        manualAccount: true,
         paymentRequest: {
           include: {
+            manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },

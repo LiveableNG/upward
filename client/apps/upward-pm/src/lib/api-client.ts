@@ -54,7 +54,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
   const url = finalPath.startsWith('http') ? finalPath : `${API_BASE}${finalPath}`
 
-  const makeRequest = async (token: string | null): Promise<T> => {
+  const makeRequest = async (token: string | null, isRetry = false): Promise<T> => {
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {}),
     }
@@ -92,6 +92,36 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     const isPublicAuthRoute = path.includes('/auth/') && !path.includes('/auth/me')
 
     if (res.status === 401 && !isPublicAuthRoute) {
+      if (isRetry) {
+        // Already refreshed once and still unauthorized — prevent infinite loop
+        const isAuthRoute = !path.includes('/auth/') || path.includes('/auth/me')
+        if (isAuthRoute && typeof window !== 'undefined') {
+          sessionStorage.removeItem('upward_session_active')
+          const isPortal = window.location.pathname.startsWith('/portal')
+          const loginPath = isPortal ? '/portal/login' : '/pm-login'
+          const isPublicPage =
+            window.location.pathname === '/' ||
+            window.location.pathname === '/welcome' ||
+            window.location.pathname === '/login' ||
+            window.location.pathname === '/signup' ||
+            window.location.pathname === '/pm-login' ||
+            window.location.pathname === '/pm-signup' ||
+            window.location.pathname === '/forgot-password' ||
+            window.location.pathname === '/pm-forgot-password' ||
+            window.location.pathname.startsWith('/invite') ||
+            window.location.pathname.startsWith('/pm-invite') ||
+            window.location.pathname.startsWith('/reset-password') ||
+            (isPortal &&
+              (window.location.pathname === '/portal/login' ||
+                window.location.pathname === '/portal/signup'))
+
+          if (!isPublicPage) {
+            window.location.href = `${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`
+          }
+        }
+        throw new Error('Unauthorized')
+      }
+
       if (!isRefreshing) {
         isRefreshing = true
         const isPortal =
@@ -102,9 +132,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
       const newToken = await refreshPromise
       if (newToken) {
-        return makeRequest(newToken)
+        return makeRequest(newToken, true)
       } else {
-        // If it's a 401 on an authenticated route and refresh failed, we don't always want a loud error
+        // If it's a 401 on an authenticated route and refresh failed, redirect to login
         const isAuthRoute = !path.includes('/auth/') || path.includes('/auth/me')
         if (isAuthRoute) {
           if (typeof window !== 'undefined') {

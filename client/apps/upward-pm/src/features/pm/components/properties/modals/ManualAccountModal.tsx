@@ -1,183 +1,244 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Modal } from '@/components/ui/Modal/Modal'
-import { FormSelect } from '@/components/ui/Select/FormSelect'
-import { useForm, useWatch } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import { addManualAccount } from '../../../services/paymentService'
 import { useToast } from '@/components/common/Toast'
-import { dedupeBanksByCode } from '@/lib/utils'
-import { Loader2, CheckCircle2, Building } from 'lucide-react'
-
-const manualAccountSchema = z.object({
-  bankCode: z.string().min(1, 'Please select a bank'),
-  accountNumber: z.string().length(10, 'Account number must be 10 digits'),
-  accountName: z.string().min(1, 'Account name is required'),
-  bankName: z.string().min(1, 'Bank name is required'),
-})
-
-type ManualAccountForm = z.infer<typeof manualAccountSchema>
+import { useSettlementAccounts } from '../../../hooks/useSettlementAccounts'
+import { useUpdateProperty } from '../../../hooks/useProperties'
+import { Building, CreditCard, Landmark, ArrowRight, ExternalLink } from 'lucide-react'
+import { SettlementAccount } from '../../../services/paymentService'
 
 interface ManualAccountModalProps {
   isOpen: boolean
   onClose: () => void
   propertyId: number
+  propertyUuid: string
   propertyName: string
+  currentManualAccount?: SettlementAccount | null
+  currentManualAccountId?: number | null
 }
 
-export function ManualAccountModal({ isOpen, onClose, propertyId, propertyName }: ManualAccountModalProps) {
+export function ManualAccountModal({
+  isOpen,
+  onClose,
+  propertyId,
+  propertyUuid,
+  propertyName,
+  currentManualAccount,
+  currentManualAccountId,
+}: ManualAccountModalProps) {
+  const router = useRouter()
   const { success, error } = useToast()
-  const queryClient = useQueryClient()
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [isConfirmed, setIsConfirmed] = useState(false)
+  const { accounts, primaryAccount, isLoading } = useSettlementAccounts()
+  const updatePropertyMutation = useUpdateProperty()
 
-  const { register, handleSubmit, setValue, control, reset, formState: { errors, isDirty } } = useForm<ManualAccountForm>({
-    resolver: zodResolver(manualAccountSchema),
-    defaultValues: {
-      bankCode: '',
-      accountNumber: '',
-      accountName: '',
-      bankName: '',
-    }
-  })
-
-  const selectedBankCode = useWatch({ control, name: 'bankCode' })
-  const accountNumber = useWatch({ control, name: 'accountNumber' })
-  const accountName = useWatch({ control, name: 'accountName' })
-
-  const { data: banks = [] } = useQuery<{ name: string, code: string }[]>({
-    queryKey: ['banks'],
-    queryFn: api.getBanks,
-    enabled: isOpen
-  })
+  const [selectedAccountUuid, setSelectedAccountUuid] = useState<string>('')
 
   useEffect(() => {
-    if (selectedBankCode) {
-      const bank = banks.find(b => b.code === selectedBankCode)
-      if (bank) setValue('bankName', bank.name)
-    }
-  }, [selectedBankCode, banks, setValue])
+    if (!isOpen) return
 
-  useEffect(() => {
-    if (isDirty) {
-      setIsConfirmed(false)
+    if (currentManualAccount?.uuid) {
+      setSelectedAccountUuid(currentManualAccount.uuid)
+    } else if (currentManualAccountId) {
+      const match = accounts.find(a => a.id === currentManualAccountId)
+      if (match) setSelectedAccountUuid(match.uuid)
+      else if (primaryAccount) setSelectedAccountUuid(primaryAccount.uuid)
+      else if (accounts.length > 0) setSelectedAccountUuid(accounts[0].uuid)
+    } else if (primaryAccount) {
+      setSelectedAccountUuid(primaryAccount.uuid)
+    } else if (accounts.length > 0) {
+      setSelectedAccountUuid(accounts[0].uuid)
     }
-  }, [selectedBankCode, accountNumber, isDirty])
+  }, [isOpen, currentManualAccount, currentManualAccountId, accounts, primaryAccount])
 
-  useEffect(() => {
-    if (selectedBankCode && accountNumber?.length === 10) {
-      const timer = setTimeout(() => {
-        handleVerify()
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [selectedBankCode, accountNumber])
+  const handleSave = () => {
+    if (!propertyUuid) return
 
-  const handleVerify = async () => {
-    if (!selectedBankCode || accountNumber.length !== 10) return
-    
-    setIsVerifying(true)
-    try {
-      const data = await api.verifyPmBank(accountNumber, selectedBankCode)
-      const name = data.account_name || data.accountName
-      if (name) {
-        setValue('accountName', name, { shouldValidate: true })
-        setIsConfirmed(true)
-        success(`Account verified: ${name}`)
-      } else {
-        throw new Error('Could not find account name')
+    updatePropertyMutation.mutate({
+      uuid: propertyUuid,
+      data: {
+        settlementAccountUuid: selectedAccountUuid,
+      } as any
+    }, {
+      onSuccess: () => {
+        success('Property settlement account updated successfully')
+        onClose()
+      },
+      onError: (err: any) => {
+        error(err?.message || 'Failed to update settlement account')
       }
-    } catch (err: any) {
-      error(err.message || 'Invalid account details')
-      setIsConfirmed(false)
-    } finally {
-      setIsVerifying(false)
-    }
+    })
   }
 
-  const { mutate: addAccount, isPending } = useMutation({
-    mutationFn: (data: ManualAccountForm) => addManualAccount({ ...data, propertyId }),
-    onSuccess: () => {
-      success('Manual payment account configured successfully')
-      queryClient.invalidateQueries({ queryKey: ['pm-properties'] })
-      queryClient.invalidateQueries({ queryKey: ['pm-property'] })
-      reset()
-      onClose()
-    },
-    onError: (err: any) => {
-      error(err.message || 'Failed to configure manual account')
-    }
-  })
+  if (accounts.length === 0 && !isLoading) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Settlement Account"
+        icon={Landmark}
+        maxWidth={460}
+        footer={
+          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+            <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              style={{ flex: 1.4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              onClick={() => {
+                onClose()
+                router.push('/settings?tab=payment')
+              }}
+            >
+              Go to Settings <ArrowRight size={15} />
+            </button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '12px 0 8px', gap: 14 }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            background: 'var(--ivory-dim, #fbfaf8)',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--clay)'
+          }}>
+            <Landmark size={24} />
+          </div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>
+            No Settlement Accounts Configured
+          </h3>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+            You have not configured any settlement bank accounts yet. To link an account to <strong>{propertyName}</strong>, please configure your bank details in the Settings tab.
+          </p>
+        </div>
+      </Modal>
+    )
+  }
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title="Configure Manual Payment"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Property Settlement Account"
+      subtitle={`Choose which bank account receives payouts for ${propertyName}.`}
+      icon={Landmark}
+      maxWidth={520}
       footer={
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', width: '100%' }}>
-          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={isPending}>
+          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={updatePropertyMutation.isPending}>
             Cancel
           </button>
-          <button type="button" className="btn btn--primary" onClick={handleSubmit((data) => addAccount(data))} disabled={isPending || !isConfirmed}>
-            {isPending ? 'Saving...' : 'Save Account'}
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={handleSave}
+            disabled={updatePropertyMutation.isPending || !selectedAccountUuid}
+          >
+            {updatePropertyMutation.isPending ? 'Saving...' : 'Save Assignment'}
           </button>
         </div>
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ background: 'var(--surface)', padding: 16, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Building size={20} color="var(--text-muted)" />
+        <div style={{ background: 'var(--surface-hover, #fbfaf8)', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Building size={20} color="var(--clay)" />
           <div>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{propertyName}</p>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>Configure a bank account for direct rent transfers.</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{propertyName}</p>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>All payment requests for this property will default to the selected account.</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit((data) => addAccount(data))}>
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <label className="form-label" style={{ fontSize: 13, fontWeight: 700 }}>Select Bank</label>
-            <FormSelect 
-              value={selectedBankCode || ''}
-              onChange={val => setValue('bankCode', val, { shouldValidate: true })}
-              options={dedupeBanksByCode(banks).map(bank => ({ label: bank.name, value: bank.code }))}
-              placeholder="Choose a bank..."
-            />
-            {errors.bankCode && <span style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, display: 'block' }}>{errors.bankCode.message}</span>}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Available Settlement Accounts
+          </label>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
+            {accounts.map((acc) => {
+              const isSelected = selectedAccountUuid === acc.uuid
+              return (
+                <div
+                  key={acc.uuid}
+                  onClick={() => setSelectedAccountUuid(acc.uuid)}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    border: `1.5px solid ${isSelected ? 'var(--forest, #166534)' : 'var(--border, #E7E3DB)'}`,
+                    background: isSelected ? 'var(--forest-faint, #f0fdf4)' : '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="settlementAccount"
+                    checked={isSelected}
+                    onChange={() => setSelectedAccountUuid(acc.uuid)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--forest)' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>{acc.bankName}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                        •••• {acc.accountNumber.slice(-4)}
+                      </span>
+                      {acc.isPrimary && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                          Primary Default
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {acc.accountName}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
+        </div>
 
-          <div className="form-group" style={{ marginBottom: 16 }}>
-            <label className="form-label" style={{ fontSize: 13, fontWeight: 700 }}>Account Number</label>
-            <input 
-              {...register('accountNumber')} 
-              className="form-input" 
-              style={{ fontFamily: 'monospace' }}
-              placeholder="0000000000"
-              maxLength={10}
-            />
-            {errors.accountNumber && <span style={{ color: 'var(--error)', fontSize: 11, marginTop: 4, display: 'block' }}>{errors.accountNumber.message}</span>}
-          </div>
-
-          {isVerifying && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--clay)' }}>
-              <Loader2 size={16} className="animate-spin" /> Verifying account...
-            </div>
-          )}
-
-          {isConfirmed && !isVerifying && (
-            <div style={{ background: 'var(--success-faint)', color: 'var(--success)', padding: 12, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #bbf7d0' }}>
-              <CheckCircle2 size={18} />
-              <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-semibold">Account Verified</p>
-                <p className="text-sm truncate font-bold">{accountName}</p>
-              </div>
-            </div>
-          )}
-        </form>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '8px 0',
+          borderTop: '1px solid var(--border)',
+          fontSize: 12
+        }}>
+          <span style={{ color: 'var(--text-muted)' }}>Need a new settlement bank?</span>
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              router.push('/settings?tab=payment')
+            }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--forest, #166534)',
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            Manage Accounts <ExternalLink size={12} />
+          </button>
+        </div>
       </div>
     </Modal>
   )

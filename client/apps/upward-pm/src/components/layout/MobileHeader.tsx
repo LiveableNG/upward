@@ -24,7 +24,7 @@ export function MobileHeader({ onMenuClick }: { onMenuClick: () => void }) {
       
       <div className="mobile-header__logo">
         <UpwardLogo size={32} />
-        <span className="mobile-header__brand">{user?.businessName || 'Property Manager'}</span>
+        <span className="mobile-header__brand">{user?.employer?.companyName || user?.businessName || 'Property Manager'}</span>
         {user && (
           user.isVerified ? (
             <div 

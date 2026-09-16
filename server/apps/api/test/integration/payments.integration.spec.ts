@@ -168,7 +168,7 @@ describe('Payments Webhook (Integration)', () => {
           },
         });
 
-        expect(response.statusCode).toBe(HttpStatus.CREATED || HttpStatus.OK);
+        expect([HttpStatus.CREATED, HttpStatus.OK]).toContain(response.statusCode);
 
         // 7. Verify database transition: Transaction must be seeded, Payment Request must be paid
         const updatedPaymentRequest = await prisma.upward_payment_request.findUnique({

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { 
   PM_DOCUMENT_REPOSITORY, IPmDocumentRepository,
@@ -15,9 +15,10 @@ import { SmsService } from '../../../../shared/infrastructure/sms/sms.service';
 import { WhatsappService } from '../../../../shared/infrastructure/whatsapp/whatsapp.service';
 import { UnifiedCommunicationService } from '../../../../shared/infrastructure/communication/unified-communication.service';
 import * as crypto from 'crypto';
-
+import { PmActorContext } from '../../../../domains/pm/types/pm-actor-context';
 
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
 import {
   EMPTY_PLACEHOLDER,
@@ -72,9 +73,10 @@ export class SendDocumentUseCase {
     private readonly whatsappService: WhatsappService,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly encryption: EncryptionService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
-  async execute(actorPmId: number, data: SendDocumentDto) {
+  async execute(actorPmId: number, data: SendDocumentDto, actor?: PmActorContext) {
     let tenantId: number | null = null;
     let unitId: number | null = null;
     let content = data.content;
@@ -147,6 +149,23 @@ export class SendDocumentUseCase {
     if (data.unitUuid && !unit && !isEdit) {
       unit = await this.unitRepo.findByUuid(data.unitUuid);
       if (unit) unitId = unit.id;
+    }
+
+    // Strict Employee Access Guard
+    if (actor?.isEmployee && actor?.accessLevel !== 'ALL') {
+      const propertyId = unit?.propertyId || (unit?.property as any)?.id;
+      if (propertyId) {
+        const assigned = await (this.prisma as any).upward_pm_employee_property.findFirst({
+          where: {
+            employeeId: actor.employeeId,
+            propertyId: propertyId,
+            ownerPmId: actor.ownerPmId,
+          }
+        });
+        if (!assigned) {
+          throw new ForbiddenException('You do not have access to send documents for this property');
+        }
+      }
     }
 
     // Resolve ownerPmId from unit or tenant first to support team collaboration settings
@@ -516,6 +535,7 @@ export class SendDocumentUseCase {
         pmId,
         tenantId,
         unitId,
+        employeeId: actor?.isEmployee ? actor.employeeId : null,
         subject: data.subject,
         content: finalContent,
         documentType: data.documentType,
@@ -527,11 +547,39 @@ export class SendDocumentUseCase {
 
       if (finalStatus === 'FAILED') throw finalError;
 
-      if (finalStatus === 'SENT' && tenantId && (data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here')) {
-        await this.prisma.upward_pm_tenant.update({
-          where: { id: tenantId },
-          data: { hasReceivedWelcomeTemplate: true }
-        });
+      if (finalStatus === 'SENT') {
+        const isWelcome = !!(data.isWelcomeTemplate || data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here');
+        const actionDesc = isWelcome 
+          ? `Sent welcome onboarding documents to ${data.recipientName}`
+          : `Sent document "${data.subject}" to ${data.recipientName}`;
+
+        this.activityLog.log({
+          pmId: actorPmId,
+          ownerPmId: pmId,
+          employeeId: actor?.employeeId,
+          action: ActivityAction.SEND_DOCUMENT,
+          entityType: 'DOCUMENT',
+          entityId: sentUuid,
+          description: actionDesc,
+          metadata: {
+            sentUuid,
+            subject: data.subject,
+            recipientName: data.recipientName,
+            recipientEmail: data.recipientEmail,
+            documentType: data.documentType,
+            deliveryChannel: data.deliveryChannel || 'EMAIL',
+            isWelcomeTemplate: isWelcome,
+            unitName: unit?.unitName,
+            propertyName: unit?.property?.name,
+          },
+        }).catch((err) => console.error('Failed to log send document activity:', err));
+
+        if (tenantId && isWelcome) {
+          await this.prisma.upward_pm_tenant.update({
+            where: { id: tenantId },
+            data: { hasReceivedWelcomeTemplate: true }
+          });
+        }
       }
 
       return { ...(result as any), pdfUrl: pdfS3Url };

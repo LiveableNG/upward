@@ -44,72 +44,58 @@ export class GetPmDashboardSummaryUseCase {
     return 1;
   }
 
-  async execute(pmId: number, query: any = {}) {
+  async execute(pmId: number, query: any = {}, actor?: any) {
     const { startDate, endDate, managerUuid, propertyUuid } = query || {};
 
-    // 1. Get owned property IDs
-    const ownedProps = await this.prisma.upward_pm_property.findMany({
-      where: { pmId },
-      select: { id: true, uuid: true, name: true }
-    });
-    const ownedPropertyIds = ownedProps.map(p => p.id);
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
+    const isEmployee = actor ? actor.isEmployee : false;
+    const employeeId = actor?.employeeId;
+    const accessLevel = actor?.accessLevel;
 
-    // 2. Get team collaborations (ALL access)
-    const teamCollabs = await (this.prisma as any).upward_pm_team_collaboration.findMany({
-      where: { collaboratorPmId: pmId, status: 'ACCEPTED', accessLevel: 'ALL' },
-      select: { ownerPmId: true }
-    });
-    const ownerPmIds = teamCollabs.map((tc: any) => tc.ownerPmId);
+    // Determine user role (Admin vs Employee)
+    const isCompanyAdmin = !isEmployee;
+    let effectiveEmployeeId: number | null = null;
 
-    const collabOwnerProps = ownerPmIds.length > 0 ? await this.prisma.upward_pm_property.findMany({
-      where: { pmId: { in: ownerPmIds } },
-      select: { id: true, uuid: true, name: true }
-    }) : [];
-    const collabOwnerPropertyIds = collabOwnerProps.map(p => p.id);
+    let accessiblePropertyIds: number[] = [];
 
-    // 3. Get custom property collaborations
-    const propCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
-      where: { collaboratorPmId: pmId },
-      select: { propertyId: true }
-    });
-    const customCollabPropertyIds = propCollabs.map((pc: any) => pc.propertyId);
+    if (!isEmployee || accessLevel === 'ALL') {
+      const ownedProps = await this.prisma.upward_pm_property.findMany({
+        where: { pmId: ownerPmId },
+        select: { id: true, uuid: true, name: true }
+      });
+      accessiblePropertyIds = ownedProps.map(p => p.id);
+    } else if (isEmployee && employeeId) {
+      const assignedProps = await (this.prisma as any).upward_pm_employee_property.findMany({
+        where: { employeeId, ownerPmId },
+        select: { propertyId: true }
+      });
+      accessiblePropertyIds = assignedProps.map((ap: any) => ap.propertyId);
+    }
 
-    // Consolidated list of accessible property IDs
-    let accessiblePropertyIds = Array.from(new Set([
-      ...ownedPropertyIds,
-      ...collabOwnerPropertyIds,
-      ...customCollabPropertyIds
-    ]));
-
-    // Determine user role (Admin vs Manager)
-    const isCompanyAdmin = ownedProps.length > 0 || ownerPmIds.length === 0;
+    if (isEmployee && employeeId) {
+      effectiveEmployeeId = employeeId;
+    }
 
     // Handle Manager Filter (if Admin filters by specific Manager)
     let filteredManagerName = null;
     if (isCompanyAdmin && managerUuid) {
-      const targetManager = await (this.prisma as any).upward_property_manager.findUnique({
-        where: { uuid: managerUuid },
-        select: { id: true, firstName: true, lastName: true, businessName: true }
+      const targetEmployee = await (this.prisma as any).upward_pm_employee.findFirst({
+        where: { uuid: managerUuid, ownerPmId },
+        select: { id: true, firstName: true, lastName: true, accessLevel: true }
       });
 
-      if (targetManager) {
-        filteredManagerName = `${this.encryption.decrypt(targetManager.firstName) || ''} ${this.encryption.decrypt(targetManager.lastName) || ''}`.trim() || targetManager.businessName;
-        // Get custom property collabs for this manager
-        const managerPropCollabs = await (this.prisma as any).upward_pm_property_collaboration.findMany({
-          where: { collaboratorPmId: targetManager.id, ownerPmId: pmId },
-          select: { propertyId: true }
-        });
-        const managerPropIds = managerPropCollabs.map((pc: any) => pc.propertyId);
+      if (targetEmployee) {
+        effectiveEmployeeId = targetEmployee.id;
+        const fn = targetEmployee.firstName ? this.encryption.decrypt(targetEmployee.firstName) : '';
+        const ln = targetEmployee.lastName ? this.encryption.decrypt(targetEmployee.lastName) : '';
+        filteredManagerName = `${fn} ${ln}`.trim() || 'Team Manager';
 
-        // Check if manager has ALL access
-        const managerTeamCollab = await (this.prisma as any).upward_pm_team_collaboration.findFirst({
-          where: { collaboratorPmId: targetManager.id, ownerPmId: pmId, status: 'ACCEPTED' },
-          select: { accessLevel: true }
-        });
-
-        if (managerTeamCollab?.accessLevel === 'ALL') {
-          // Keep all owned property IDs
-        } else {
+        if (targetEmployee.accessLevel !== 'ALL') {
+          const managerPropLinks = await (this.prisma as any).upward_pm_employee_property.findMany({
+            where: { employeeId: targetEmployee.id, ownerPmId },
+            select: { propertyId: true }
+          });
+          const managerPropIds = managerPropLinks.map((pc: any) => pc.propertyId);
           accessiblePropertyIds = accessiblePropertyIds.filter(id => managerPropIds.includes(id));
         }
       }
@@ -123,71 +109,104 @@ export class GetPmDashboardSummaryUseCase {
       });
       if (targetProp && accessiblePropertyIds.includes(targetProp.id)) {
         accessiblePropertyIds = [targetProp.id];
+      } else {
+        accessiblePropertyIds = [];
       }
     }
 
     // 4. Fetch all properties to compute propertyCount and top 3 properties
-    const allAccessibleProperties = await this.prisma.upward_pm_property.findMany({
-      where: { id: { in: accessiblePropertyIds } },
-      orderBy: { createdAt: 'desc' }
-    });
+    const allAccessibleProperties = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_property.findMany({
+          where: { id: { in: accessiblePropertyIds } },
+          orderBy: { createdAt: 'desc' }
+        })
+      : [];
 
     const propertiesCount = allAccessibleProperties.length;
 
     // 5. Fetch all units for these properties
-    const units = await this.prisma.upward_pm_unit.findMany({
-      where: { propertyId: { in: accessiblePropertyIds } },
-      include: {
-        tenant: true
-      }
-    });
+    const units = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_unit.findMany({
+          where: { propertyId: { in: accessiblePropertyIds } },
+          include: {
+            tenant: true
+          }
+        })
+      : [];
 
     const totalUnits = units.length;
 
     // 6. Fetch all tenants accessible
-    const tenants = await this.prisma.upward_pm_tenant.findMany({
-      where: {
-        OR: [
-          { pmId },
-          { pmId: { in: ownerPmIds } },
-          { units: { some: { propertyId: { in: accessiblePropertyIds } } } }
-        ]
-      }
-    });
+    const tenants = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_tenant.findMany({
+          where: {
+            pmId: ownerPmId,
+            units: { some: { propertyId: { in: accessiblePropertyIds } } }
+          }
+        })
+      : [];
+
 
     const activeTenantsCount = tenants.filter(t => t.inviteStatus === 'ON_UPWARD' || t.inviteStatus === 'ACCEPTED').length;
     const pendingInvites = tenants.filter(t => t.inviteStatus === 'PENDING' || t.inviteStatus === 'SENT').length;
     const vacantUnits = units.filter(u => u.status === 'VACANT').length;
     const occupiedUnits = units.filter(u => u.status === 'OCCUPIED').length;
 
-    // 7. Fetch all recorded rent payments (actual collections)
-    const rentPayments = await this.prisma.upward_pm_rent_payment.findMany({
-      where: {
-        unit: { propertyId: { in: accessiblePropertyIds } },
-        status: 'SUCCESS'
-      },
-      include: {
-        unit: { include: { property: true } },
-        tenant: true
-      },
-      orderBy: { paymentDate: 'desc' }
-    });
+    // 7. Fetch all recorded rent payments (actual collections for accessible properties)
+    const rentPayments = accessiblePropertyIds.length > 0
+      ? await this.prisma.upward_pm_rent_payment.findMany({
+          where: {
+            unit: { propertyId: { in: accessiblePropertyIds } },
+            status: 'SUCCESS'
+          },
+          include: {
+            unit: { include: { property: true } },
+            tenant: true
+          },
+          orderBy: { paymentDate: 'desc' }
+        })
+      : [];
 
-    // 8. Fetch payment requests
-    const paymentRequests = await this.prisma.upward_pm_payment_request.findMany({
-      where: {
-        unit: { propertyId: { in: accessiblePropertyIds } }
-      },
-      include: {
-        unit: { include: { property: true } },
-        tenant: true,
-        paymentRequest: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    // 8. Fetch payment requests for accessible properties
+    const paymentRequests = accessiblePropertyIds.length > 0
+      ? await (this.prisma as any).upward_pm_payment_request.findMany({
+          where: {
+            pmId: ownerPmId,
+            unit: { propertyId: { in: accessiblePropertyIds } }
+          },
+          include: {
+            unit: { include: { property: true } },
+            tenant: true,
+            employee: true,
+            paymentRequest: true
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+      : [];
+
+    const manualPaymentRequests = accessiblePropertyIds.length > 0
+      ? await (this.prisma as any).upward_payment_request.findMany({
+          where: {
+            isManual: true,
+            userProperty: {
+              pmUnit: {
+                propertyId: { in: accessiblePropertyIds }
+              }
+            }
+          },
+          include: {
+            userProperty: {
+              include: {
+                pmUnit: { include: { property: true, tenant: true } }
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+      : [];
 
     // Map payment requests
-    const mappedRequests = paymentRequests.map(r => ({
+    const mappedPmRequests = paymentRequests.map((r: any) => ({
       uuid: r.uuid,
       amount: r.amount,
       amountPaid: r.amountPaid,
@@ -200,6 +219,17 @@ export class GetPmDashboardSummaryUseCase {
       periodEnd: r.rentEndDate || null,
       method: 'Online',
       coreRequestUuid: r.paymentRequest?.uuid || null,
+      employeeId: r.employeeId || null,
+      createdBy: r.employee ? {
+        uuid: r.employee.uuid,
+        name: `${r.employee.firstName ? this.encryption.decrypt(r.employee.firstName) : ''} ${r.employee.lastName ? this.encryption.decrypt(r.employee.lastName) : ''}`.trim() || 'Employee',
+        role: r.employee.jobTitle || 'Property Officer',
+        isEmployee: true,
+      } : {
+        name: 'Company Admin',
+        role: 'Admin',
+        isEmployee: false,
+      },
       tenant: this.decryptTenant(r.tenant),
       unit: {
         id: r.unit.id,
@@ -218,6 +248,57 @@ export class GetPmDashboardSummaryUseCase {
         }
       }
     }));
+
+    const mappedManualRequests = manualPaymentRequests.map((r: any) => {
+      const pmUnit = r.userProperty?.pmUnit;
+      const pmTenant = pmUnit?.tenant;
+      const tenantDecrypted = this.decryptTenant(pmTenant);
+      const tenantName = tenantDecrypted
+        ? (tenantDecrypted.commercialName || `${tenantDecrypted.firstName || ''} ${tenantDecrypted.lastName || ''}`.trim())
+        : 'Tenant';
+
+      return {
+        uuid: r.uuid,
+        amount: r.amount,
+        amountPaid: r.amountPaid || 0,
+        status: r.status,
+        dueDate: r.dueDate,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        paymentDate: r.updatedAt || r.createdAt,
+        periodStart: r.rentStartDate || null,
+        periodEnd: r.rentEndDate || null,
+        method: 'Bank Transfer',
+        coreRequestUuid: r.uuid,
+        employeeId: null,
+        isSelfPayment: true,
+        createdBy: {
+          name: tenantName || 'Tenant',
+          role: 'Tenant',
+          isEmployee: false,
+          isTenant: true,
+        },
+        tenant: tenantDecrypted,
+        unit: pmUnit ? {
+          id: pmUnit.id,
+          uuid: pmUnit.uuid,
+          unitName: pmUnit.unitName,
+          isSynced: pmUnit.isSynced,
+          rentAmount: pmUnit.rentAmount,
+          rentStartDate: pmUnit.rentStartDate,
+          rentDueDate: pmUnit.rentDueDate,
+          rentType: pmUnit.rentType,
+          managementFee: pmUnit.managementFee,
+          property: {
+            id: pmUnit.property.id,
+            uuid: pmUnit.property.uuid,
+            name: pmUnit.property.name
+          }
+        } : null
+      };
+    });
+
+    const mappedRequests = [...mappedPmRequests, ...mappedManualRequests];
 
     // Map rent payments into completed payment structures
     const mappedRentPayments = rentPayments.map(p => ({
@@ -254,7 +335,7 @@ export class GetPmDashboardSummaryUseCase {
     }));
 
     // Find active payment requests (pending / partial)
-    const activeRequests = mappedRequests.filter(r => r.status === 'PENDING' || r.status === 'PARTIAL');
+    const activeRequests = mappedRequests.filter((r: any) => r.status === 'PENDING' || r.status === 'PARTIAL');
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -268,13 +349,13 @@ export class GetPmDashboardSummaryUseCase {
 
     // Combine completed payments from rentPayments and any standalone paid payment requests
     const rentPaymentUuids = new Set(mappedRentPayments.map(p => p.uuid));
-    const standalonePaidRequests = mappedRequests.filter(r => r.status === 'PAID' && !rentPaymentUuids.has(r.uuid));
-    let completedPayments = [...mappedRentPayments, ...standalonePaidRequests]
+    const standalonePaidRequests = mappedRequests.filter((r: any) => r.status === 'PAID' && !rentPaymentUuids.has(r.uuid));
+    let completedPayments: any[] = [...mappedRentPayments, ...standalonePaidRequests]
       .sort((a, b) => new Date(b.paymentDate || b.updatedAt || b.createdAt).getTime() - new Date(a.paymentDate || a.updatedAt || a.createdAt).getTime());
 
     // Filter completed payments by payment date if date filters applied
     if (filterStart || filterEnd) {
-      completedPayments = completedPayments.filter(p => {
+      completedPayments = completedPayments.filter((p: any) => {
         const d = new Date(p.paymentDate || p.updatedAt || p.createdAt);
         if (filterStart && d < filterStart) return false;
         if (filterEnd && d > filterEnd) return false;
@@ -283,12 +364,12 @@ export class GetPmDashboardSummaryUseCase {
     }
 
     // Calculate total rent collected
-    const totalCollected = completedPayments.reduce((sum, p) => sum + (p.amountPaid || p.amount || 0), 0);
+    const totalCollected = completedPayments.reduce((sum: number, p: any) => sum + (p.amountPaid || p.amount || 0), 0);
 
     // Find unbilled units: occupied units with tenant and rentDueDate that don't have an active pending payment request
     const unbilledUnits = units.filter(u => {
       if (u.status !== 'OCCUPIED' || !u.tenantId || !u.rentDueDate) return false;
-      return !activeRequests.some(r => r.unit.id === u.id);
+      return !activeRequests.some((r: any) => r.unit.id === u.id);
     });
 
     const unbilledArrears: any[] = [];
@@ -357,8 +438,8 @@ export class GetPmDashboardSummaryUseCase {
     }
 
     // Active PRs separated into overdue and upcoming
-    const activeOverdueRequests = activeRequests.filter(r => new Date(r.dueDate) < today);
-    const activeUpcomingRequests = activeRequests.filter(r => new Date(r.dueDate) >= today);
+    const activeOverdueRequests = activeRequests.filter((r: any) => new Date(r.dueDate) < today);
+    const activeUpcomingRequests = activeRequests.filter((r: any) => new Date(r.dueDate) >= today);
 
     let overduePayments = [...activeOverdueRequests, ...unbilledArrears]
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
@@ -368,14 +449,14 @@ export class GetPmDashboardSummaryUseCase {
 
     // Apply date filters to Arrears and Upcoming if specified
     if (filterStart || filterEnd) {
-      overduePayments = overduePayments.filter(r => {
+      overduePayments = overduePayments.filter((r: any) => {
         const d = new Date(r.dueDate);
         if (filterStart && d < filterStart) return false;
         if (filterEnd && d > filterEnd) return false;
         return true;
       });
 
-      upcomingPayments = upcomingPayments.filter(r => {
+      upcomingPayments = upcomingPayments.filter((r: any) => {
         const d = new Date(r.dueDate);
         if (filterStart && d < filterStart) return false;
         if (filterEnd && d > filterEnd) return false;
@@ -385,22 +466,22 @@ export class GetPmDashboardSummaryUseCase {
 
     // Total Owing calculation:
     // 1) All arrears (past due overdue amounts)
-    const arrearsOwing = overduePayments.reduce((sum, r) => sum + (r.amount - (r.amountPaid || 0)), 0);
+    const arrearsOwing = overduePayments.reduce((sum: number, r: any) => sum + (r.amount - (r.amountPaid || 0)), 0);
     // 2) If looking at 'all' (all expiry dates), total owing is arrears + active pending invoices
     // If looking at a date preset / range, total owing includes upcoming renewals due within that window
     let upcomingOwing = 0;
     if (filterStart || filterEnd) {
-      upcomingOwing = upcomingPayments.reduce((sum, r) => {
+      upcomingOwing = upcomingPayments.reduce((sum: number, r: any) => {
         const owing = r.remainingOwing !== undefined ? r.remainingOwing : (r.amount - (r.amountPaid || 0));
         return sum + owing;
       }, 0);
     } else {
-      upcomingOwing = activeUpcomingRequests.reduce((sum, r) => sum + (r.amount - (r.amountPaid || 0)), 0);
+      upcomingOwing = activeUpcomingRequests.reduce((sum: number, r: any) => sum + (r.amount - (r.amountPaid || 0)), 0);
     }
 
     const totalOwing = arrearsOwing + upcomingOwing;
     const totalExpected = totalCollected + totalOwing;
-    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 100;
+    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
     // 9. Properties portfolio summary (top 3 properties)
     const topProperties = allAccessibleProperties.slice(0, 3);

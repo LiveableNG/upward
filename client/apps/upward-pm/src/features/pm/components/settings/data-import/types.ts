@@ -19,8 +19,7 @@ export const FULL_COLUMNS: ColumnDef[] = [
   { key: 'propertyState', description: 'State the property is in', label: 'State', category: 'property' },
   { key: 'propertyArea', description: 'Area or district', label: 'Area', category: 'property' },
   
-  { key: 'landlordFirstName', description: 'First and last name of the landlord', label: 'Landlord First', category: 'landlord' },
-  { key: 'landlordLastName', description: 'Surname of the landlord', label: 'Landlord Last', category: 'landlord' },
+  { key: 'landlordFirstName', description: 'First and last name of the landlord', label: 'Landlord Name', category: 'landlord' },
   { key: 'landlordEmail', description: 'Email address for the landlord', label: 'Landlord Email', category: 'landlord', type: 'email' },
   { key: 'landlordPhone', description: 'Phone number for the landlord', label: 'Landlord Phone', category: 'landlord', type: 'tel' },
 
@@ -34,7 +33,7 @@ export const FULL_COLUMNS: ColumnDef[] = [
   { key: 'unitName', description: 'Flat or unit name — we make one up if missing', label: 'Unit Name', category: 'unit' },
   { key: 'unitRentAmount', description: 'Full rent for the period', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
   { key: 'unitRentAmountPaid', description: 'How much they have paid so far', label: 'Amount Paid', category: 'unit', required: true, type: 'number' },
-  { key: 'unitRentType', description: 'Monthly, annually or a lease', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'], required: true },
+  { key: 'unitRentType', description: 'Monthly, annually or a lease (defaults to Annually)', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'] },
   { key: 'leaseYears', description: 'How many years the lease runs', label: 'Lease Years', category: 'unit', type: 'number' },
   { key: 'unitCurrency', description: 'Currency the rent is in', label: 'Currency', category: 'unit', type: 'select', options: ['NGN', 'USD', 'GBP', 'EUR'] },
   { key: 'unitRentStartDate', description: 'When this rent period began', label: 'Rent Start Date', category: 'unit', type: 'date', required: true },
@@ -55,7 +54,7 @@ export const UNIT_COLUMNS: ColumnDef[] = [
   { key: 'rentAmount', label: 'Rent Amount', category: 'unit', required: true, type: 'number' },
   { key: 'rentAmountPaid', label: 'Amount Paid', category: 'unit', required: true, type: 'number' },
   { key: 'rentStartDate', label: 'Start Date', category: 'unit', type: 'date' },
-  { key: 'rentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'], required: true },
+  { key: 'rentType', label: 'Rent Type', category: 'unit', type: 'select', options: ['Monthly', 'Annually', 'Lease'] },
   { key: 'leaseYears', description: 'How many years the lease runs', label: 'Lease Years', category: 'unit', type: 'number' },
   { key: 'rentDueDate', label: 'Rent End Date', category: 'unit', type: 'date', readOnly: true },
   { key: 'managementFee', label: 'Mgmt Fee', category: 'unit', type: 'number' },

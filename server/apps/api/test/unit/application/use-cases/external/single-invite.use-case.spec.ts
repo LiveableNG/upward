@@ -15,6 +15,7 @@ import { EncryptionService } from '@shared/infrastructure/common/encryption.serv
 import { NotificationService } from '@shared/infrastructure/common/notification.service'
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '@domains/auth/verification-token.repository'
 import { IPaymentGateway } from '@domains/payments/payment.repository'
+import { RentalPeriodService } from '@application/services/rental-period.service'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -152,10 +153,12 @@ describe('SingleInviteUseCase', () => {
   let resolveDedicatedAccount: any
   let addManualAccountUseCase: any
   let eventBus: any
+  let rentalPeriodService: RentalPeriodService
 
   beforeEach(() => {
     prisma = {} as any
     encryption = { encrypt: jest.fn(), decrypt: jest.fn() } as any
+    rentalPeriodService = new RentalPeriodService()
 
     userRepository = {
       findByEmail: jest.fn(),
@@ -178,12 +181,14 @@ describe('SingleInviteUseCase', () => {
       findById: jest.fn(),
       findByUuid: jest.fn(),
       findByEmail: jest.fn(),
+      findByPhone: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
     } as any
 
     companyUserRepository = {
       findByCompanyAndUser: jest.fn(),
+      findByUserId: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
     } as any
@@ -192,6 +197,7 @@ describe('SingleInviteUseCase', () => {
       findById: jest.fn(),
       findByUuid: jest.fn(),
       findByUserId: jest.fn().mockResolvedValue([]),
+      findByPlatformUnit: jest.fn().mockResolvedValue(null),
       save: jest.fn(),
       update: jest.fn(),
     } as any
@@ -246,6 +252,7 @@ describe('SingleInviteUseCase', () => {
       resolveDedicatedAccount,
       addManualAccountUseCase,
       eventBus,
+      rentalPeriodService,
     )
   })
 
@@ -658,7 +665,7 @@ describe('SingleInviteUseCase', () => {
       expect(saved.rentStartDate).toBeInstanceOf(Date)
     })
 
-    it('should set rentStartDate as undefined when not provided', async () => {
+    it('should default rentStartDate when not provided', async () => {
       setupPre()
       locationRepository.save.mockResolvedValue(makeLocation() as any)
       propertyRepository.save.mockResolvedValue(makeProperty() as any)
@@ -669,7 +676,7 @@ describe('SingleInviteUseCase', () => {
       await useCase.setupInviteContext(payload)
 
       const saved = propertyRepository.save.mock.calls[0]![0] as any
-      expect(saved.rentStartDate).toBeUndefined()
+      expect(saved.rentStartDate).toBeInstanceOf(Date)
     })
 
     it('should throw BadRequestException when rentAmount is missing', async () => {

@@ -8,6 +8,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/payment.repository';
 import * as crypto from 'crypto';
 
+import { RentalPeriodService } from '../../services/rental-period.service';
+
 type UnitDetails = {
   uuid?: string;
   address: string;
@@ -44,6 +46,7 @@ export class SubmitUnitRequestUseCase {
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(
@@ -92,6 +95,7 @@ export class SubmitUnitRequestUseCase {
           passwordHash: 'PENDING_INVITE',
           pmType: pmType || 'Property Manager',
           businessName: companyName || null,
+          invitedByUserId: fullUser?.id || null,
         };
 
         pm = await this.pmRepository.save(newPmData as any);
@@ -172,46 +176,60 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
-    const tenancyStatus = unitDetails.tenancyStatus || 'NEW_CYCLE';
-    let initialPaid = 0;
-    let amountPaid = 0;
-    let amountRemaining = unitDetails.rentAmount;
-    let startDate = new Date(unitDetails.rentStartDate);
-    let endDate = new Date(unitDetails.rentEndDate);
+    const rentalState = this.rentalPeriodService.initializeRentalState({
+      rentStartDate: new Date(unitDetails.rentStartDate),
+      rentEndDate: new Date(unitDetails.rentEndDate),
+      rentAmount: unitDetails.rentAmount,
+      rentType: unitDetails.rentType || 'Annually',
+      initialAmountPaid: unitDetails.initialAmountPaid,
+      tenancyStatus: unitDetails.tenancyStatus,
+    });
 
-    if (tenancyStatus === 'PAYING_BALANCE' && unitDetails.initialAmountPaid) {
-      initialPaid = Math.min(unitDetails.rentAmount, Math.max(0, unitDetails.initialAmountPaid));
-      amountPaid = initialPaid;
-      amountRemaining = Math.max(0, unitDetails.rentAmount - initialPaid);
-    } else if (tenancyStatus === 'ALREADY_PAID') {
-      initialPaid = unitDetails.rentAmount;
-      // Advance to next cycle
-      const nextStart = new Date(endDate);
-      nextStart.setDate(nextStart.getDate() + 1);
-      const nextEnd = new Date(nextStart);
-      if (unitDetails.rentType === 'Monthly') {
-        nextEnd.setMonth(nextEnd.getMonth() + 1);
-      } else {
-        nextEnd.setFullYear(nextEnd.getFullYear() + 1);
-      }
-      nextEnd.setDate(nextEnd.getDate() - 1);
+    // Resolve or create location record
+    let locationId: number | undefined;
 
-      startDate = nextStart;
-      endDate = nextEnd;
-      amountPaid = 0;
-      amountRemaining = unitDetails.rentAmount;
+    let existingProperty: any = null;
+    if (unitDetails.uuid) {
+      existingProperty = await this.prisma.upward_user_property.findFirst({
+        where: { uuid: unitDetails.uuid, userId: fullUser.id }
+      });
+    }
+
+    if (existingProperty?.locationId) {
+      await this.prisma.upward_location.update({
+        where: { id: existingProperty.locationId },
+        data: {
+          address: unitDetails.address,
+          area: unitDetails.area,
+          subarea: unitDetails.subarea || '',
+          state: unitDetails.state,
+          country: unitDetails.country,
+        }
+      });
+      locationId = existingProperty.locationId;
+    } else {
+      const loc = await this.prisma.upward_location.create({
+        data: {
+          address: unitDetails.address,
+          area: unitDetails.area,
+          subarea: unitDetails.subarea || '',
+          state: unitDetails.state,
+          country: unitDetails.country,
+        }
+      });
+      locationId = loc.id;
     }
 
     const propertyBaseData: any = {
-      user: { connect: { id: fullUser.id } },
+      location: { connect: { id: locationId } },
       rentAmount: unitDetails.rentAmount,
-      rentStartDate: startDate,
-      rentEndDate: endDate,
+      rentStartDate: rentalState.rentStartDate,
+      rentEndDate: rentalState.rentEndDate,
       rentType: unitDetails.rentType || 'Annually',
-      amountPaid,
-      amountRemaining,
-      initialAmountPaid: initialPaid,
-      isFirstRent: initialPaid > 0 ? false : tenancyStatus === 'NEW_CYCLE',
+      amountPaid: rentalState.amountPaid,
+      amountRemaining: rentalState.amountRemaining,
+      initialAmountPaid: rentalState.initialAmountPaid,
+      isFirstRent: rentalState.isFirstRent,
     };
 
     if (pm) {
@@ -237,78 +255,71 @@ export class SubmitUnitRequestUseCase {
 
     let savedProperty: any = null;
 
-    if (unitDetails.uuid) {
-      const existing = await this.prisma.upward_user_property.findUnique({
-        where: { uuid: unitDetails.uuid }
-      });
-
-      if (existing && (existing.isVerified || existing.pmUnitId)) {
+    if (existingProperty) {
+      if (existingProperty.isVerified || existingProperty.pmUnitId) {
         // STRICT LOCK: If property is verified/managed, lock lease details
-        propertyBaseData.rentAmount = existing.rentAmount;
-        propertyBaseData.rentStartDate = existing.rentStartDate;
-        propertyBaseData.rentEndDate = existing.rentEndDate;
-        propertyBaseData.rentType = existing.rentType;
-        propertyBaseData.amountPaid = existing.amountPaid;
-        propertyBaseData.amountRemaining = existing.amountRemaining;
-        propertyBaseData.initialAmountPaid = existing.initialAmountPaid;
+        propertyBaseData.rentAmount = existingProperty.rentAmount;
+        propertyBaseData.rentStartDate = existingProperty.rentStartDate;
+        propertyBaseData.rentEndDate = existingProperty.rentEndDate;
+        propertyBaseData.rentType = existingProperty.rentType;
+        propertyBaseData.amountPaid = existingProperty.amountPaid;
+        propertyBaseData.amountRemaining = existingProperty.amountRemaining;
+        propertyBaseData.initialAmountPaid = existingProperty.initialAmountPaid;
         delete propertyBaseData.pm;
         delete propertyBaseData.subaccount;
       }
 
-      savedProperty = await (this.prisma as any).upward_user_property.update({
-        where: { uuid: unitDetails.uuid, userId: fullUser.id },
-        data: {
-          ...propertyBaseData,
-          location: {
-            update: {
-              address: unitDetails.address,
-              area: unitDetails.area,
-              subarea: unitDetails.subarea,
-              state: unitDetails.state,
-              country: unitDetails.country,
-            }
-          }
-        }
+      savedProperty = await this.prisma.upward_user_property.update({
+        where: { id: existingProperty.id },
+        data: propertyBaseData,
       });
     } else {
-      savedProperty = await (this.prisma as any).upward_user_property.create({
+      savedProperty = await this.prisma.upward_user_property.create({
         data: {
           ...propertyBaseData,
-          location: {
-            create: {
-              address: unitDetails.address,
-              area: unitDetails.area,
-              subarea: unitDetails.subarea,
-              state: unitDetails.state,
-              country: unitDetails.country,
-            }
-          }
-        }
+          user: { connect: { id: fullUser.id } },
+        },
       });
     }
 
     // Upsert manual payment account for self-managed property if paymentDetails provided
     if (savedProperty?.id && paymentDetails?.accountNumber && paymentDetails?.bankCode) {
-      await this.prisma.upward_manual_account.upsert({
-        where: { userPropertyId: savedProperty.id },
-        create: {
-          userPropertyId: savedProperty.id,
-          accountNumber: paymentDetails.accountNumber,
-          accountName: paymentDetails.accountName || 'Landlord',
-          bankName: paymentDetails.bankName || '',
-          bankCode: paymentDetails.bankCode,
-        },
-        update: {
-          accountNumber: paymentDetails.accountNumber,
-          accountName: paymentDetails.accountName || 'Landlord',
-          bankName: paymentDetails.bankName || '',
-          bankCode: paymentDetails.bankCode,
+      try {
+        const existingProperty = await this.prisma.upward_user_property.findUnique({
+          where: { id: savedProperty.id },
+          select: { id: true, manualAccountId: true }
+        })
+        if (existingProperty?.manualAccountId) {
+          await this.prisma.upward_manual_account.update({
+            where: { id: existingProperty.manualAccountId },
+            data: {
+              accountNumber: paymentDetails.accountNumber,
+              accountName: paymentDetails.accountName || 'Landlord',
+              bankName: paymentDetails.bankName || '',
+              bankCode: paymentDetails.bankCode,
+            }
+          })
+        } else {
+          const account = await this.prisma.upward_manual_account.create({
+            data: {
+              accountNumber: paymentDetails.accountNumber,
+              accountName: paymentDetails.accountName || 'Landlord',
+              bankName: paymentDetails.bankName || '',
+              bankCode: paymentDetails.bankCode,
+            }
+          })
+          await this.prisma.upward_user_property.update({
+            where: { id: savedProperty.id },
+            data: { manualAccountId: account.id }
+          })
         }
-      }).catch((e: any) => this.logger.warn(`Failed to save manual account: ${e.message}`));
+      } catch (e: any) {
+        this.logger.warn(`Failed to save manual account: ${e.message}`)
+      }
     }
 
-    // Record initial offline payment entry if initialPaid > 0 (marked PENDING_APPROVAL until PM verifies)
-    if (savedProperty?.id && initialPaid > 0) {
+    // Record initial offline payment entry if initialAmountPaid > 0 (marked PENDING_APPROVAL until PM verifies)
+    if (savedProperty?.id && rentalState.initialAmountPaid > 0) {
       const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
         where: { userPropertyId: savedProperty.id, notes: 'Initial Onboarding Payment' }
       });
@@ -316,7 +327,7 @@ export class SubmitUnitRequestUseCase {
         await this.prisma.upward_platform_rent_payment.create({
           data: {
             userPropertyId: savedProperty.id,
-            amount: initialPaid,
+            amount: rentalState.initialAmountPaid,
             rentAmountAtPayment: unitDetails.rentAmount,
             paymentDate: new Date(),
             method: 'INITIAL_ONBOARDING',

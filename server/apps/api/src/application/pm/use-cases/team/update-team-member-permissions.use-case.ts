@@ -1,4 +1,3 @@
-
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 import { UpdateTeamMemberPermissionsDto, TeamAccessLevel } from '../../dtos/team.dto';
@@ -7,51 +6,43 @@ import { UpdateTeamMemberPermissionsDto, TeamAccessLevel } from '../../dtos/team
 export class UpdateTeamMemberPermissionsUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
-  async execute(ownerPmId: number, collaborationUuid: string, dto: UpdateTeamMemberPermissionsDto) {
-    const collaboration = await (this.prisma as any).upward_pm_team_collaboration.findUnique({
-      where: { uuid: collaborationUuid, ownerPmId }
+  async execute(ownerPmId: number, employeeUuid: string, dto: UpdateTeamMemberPermissionsDto) {
+    const employee = await (this.prisma as any).upward_pm_employee.findFirst({
+      where: { uuid: employeeUuid, ownerPmId },
     });
 
-    if (!collaboration) {
-      throw new NotFoundException('Team member collaboration not found');
+    if (!employee) {
+      throw new NotFoundException('Team member not found');
     }
 
-    // 1. Update global access level
-    await (this.prisma as any).upward_pm_team_collaboration.update({
-      where: { id: collaboration.id },
-      data: { accessLevel: dto.accessLevel }
+    // 1. Update access level
+    await (this.prisma as any).upward_pm_employee.update({
+      where: { id: employee.id },
+      data: { accessLevel: dto.accessLevel },
     });
 
     // 2. Handle property links
-    if (dto.accessLevel === TeamAccessLevel.CUSTOM && dto.propertyUuids) {
-        // Clear old ones
-        await (this.prisma as any).upward_pm_property_collaboration.deleteMany({
-            where: {
-                ownerPmId,
-                collaboratorPmId: collaboration.collaboratorPmId
-            }
-        });
+    await (this.prisma as any).upward_pm_employee_property.deleteMany({
+      where: {
+        employeeId: employee.id,
+        ownerPmId,
+      },
+    });
 
-        const properties = await (this.prisma as any).upward_pm_property.findMany({
-            where: { uuid: { in: dto.propertyUuids }, pmId: ownerPmId }
-        });
+    if (dto.accessLevel === TeamAccessLevel.CUSTOM && dto.propertyUuids && dto.propertyUuids.length > 0) {
+      const properties = await (this.prisma as any).upward_pm_property.findMany({
+        where: { uuid: { in: dto.propertyUuids }, pmId: ownerPmId },
+      });
 
-        if (properties.length > 0) {
-            await (this.prisma as any).upward_pm_property_collaboration.createMany({
-                data: properties.map((p: any) => ({
-                    propertyId: p.id,
-                    collaboratorPmId: collaboration.collaboratorPmId,
-                    ownerPmId
-                }))
-            });
-        }
-    } else if (dto.accessLevel === TeamAccessLevel.ALL) {
-        await (this.prisma as any).upward_pm_property_collaboration.deleteMany({
-            where: {
-                ownerPmId,
-                collaboratorPmId: collaboration.collaboratorPmId
-            }
+      if (properties.length > 0) {
+        await (this.prisma as any).upward_pm_employee_property.createMany({
+          data: properties.map((p: any) => ({
+            propertyId: p.id,
+            employeeId: employee.id,
+            ownerPmId,
+          })),
         });
+      }
     }
 
     return { success: true };

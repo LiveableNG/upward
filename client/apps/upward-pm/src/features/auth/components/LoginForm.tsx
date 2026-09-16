@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { Capacitor } from '@capacitor/core'
 import { 
@@ -10,29 +10,81 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  Loader2
+  Loader2,
+  AlertCircle,
+  Sparkles,
+  CheckCircle2,
+  Users,
+  Building2,
+
 } from 'lucide-react'
-import { UpwardLogo } from '../../../components/common/UpwardLogo'
-import { useLogin } from '../hooks/useLogin'
-import { useRequestOTP, useOtpLogin } from '../hooks/useOtp'
+import { useLogin, useEmployeeLogin } from '../hooks/useLogin'
+import { 
+  useRequestOTP, 
+  useOtpLogin, 
+  useEmployeeRequestOTP, 
+  useEmployeeVerifyOTP, 
+  useEmployeeOtpLogin 
+} from '../hooks/useOtp'
 import { useToast } from '@/components/common/Toast'
+import { checkEmployeeEmail } from '../services/authService'
 
 export const LoginForm = () => {
-  const { error: toastError } = useToast()
+  const { error: toastError, success: toastSuccess } = useToast()
+  const [accountType, setAccountType] = useState<'manager' | 'staff'>('manager')
   const [loginMethod, setLoginMethod] = useState<'password' | 'code'>('password')
   const [otpStage, setOtpStage] = useState<'request' | 'verify'>('request')
+  const [otpContext, setOtpContext] = useState<'LOGIN' | 'INVITE'>('LOGIN')
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [signupHref, setSignupHref] = useState(Capacitor.isNativePlatform() ? '/signup' : '/pm-signup')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  // Silent search state for employee login
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false)
+  const [staffCheckResult, setStaffCheckResult] = useState<{
+    checked: boolean;
+    exists: boolean;
+    isInvited?: boolean;
+    hasPassword?: boolean;
+    inviteToken?: string;
+    employerName?: string;
+    jobTitle?: string;
+  }>({ checked: false, exists: false })
+  const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const loginMutation = useLogin()
+  const employeeLoginMutation = useEmployeeLogin()
   const requestOtpMutation = useRequestOTP()
   const otpLoginMutation = useOtpLogin()
+  const employeeRequestOtpMutation = useEmployeeRequestOTP()
+  const employeeVerifyOtpMutation = useEmployeeVerifyOTP()
+  const employeeOtpLoginMutation = useEmployeeOtpLogin()
 
-  const loading = loginMutation.isPending || requestOtpMutation.isPending || otpLoginMutation.isPending
+  const isCurrentOtpError = accountType === 'staff'
+    ? (otpContext === 'INVITE' ? employeeVerifyOtpMutation.isError : employeeOtpLoginMutation.isError)
+    : otpLoginMutation.isError
+
+  const currentOtpErrorMessage = accountType === 'staff'
+    ? (otpContext === 'INVITE' ? (employeeVerifyOtpMutation.error as any)?.message : (employeeOtpLoginMutation.error as any)?.message)
+    : (otpLoginMutation.error as any)?.message
+
+  const isResending = requestOtpMutation.isPending || employeeRequestOtpMutation.isPending
+  const isVerifying = otpLoginMutation.isPending || employeeVerifyOtpMutation.isPending || employeeOtpLoginMutation.isPending
+  const isLoggingIn = accountType === 'staff' ? employeeLoginMutation.isPending : loginMutation.isPending
+  const loading = isLoggingIn || isResending || isVerifying
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
 
   const clearFieldError = (field: string) => {
     setFieldErrors((current) => {
@@ -45,10 +97,49 @@ export const LoginForm = () => {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform() || typeof window === 'undefined') return
-    const pmType = new URLSearchParams(window.location.search).get('pmType')
+    const params = new URLSearchParams(window.location.search)
+    const roleParam = params.get('role')
+    if (roleParam === 'staff' || roleParam === 'employee') {
+      setAccountType('staff')
+    }
+    const pmType = params.get('pmType')
     if (!pmType) return
     setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)
   }, [])
+
+  // Silent email checking for staff logins
+  useEffect(() => {
+    setStaffCheckResult({ checked: false, exists: false })
+    if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
+
+    if (accountType === 'staff' && email && email.includes('@') && email.length > 5) {
+      setIsCheckingEmail(true)
+      emailCheckTimeout.current = setTimeout(async () => {
+        try {
+          const res = await checkEmployeeEmail(email.trim())
+          setStaffCheckResult({
+            checked: true,
+            exists: res.exists,
+            isInvited: res.isInvited,
+            hasPassword: res.hasPassword,
+            inviteToken: res.inviteToken,
+            employerName: res.employerName,
+            jobTitle: res.jobTitle,
+          })
+        } catch (err) {
+          console.error('Staff email check failed', err)
+        } finally {
+          setIsCheckingEmail(false)
+        }
+      }, 500)
+    } else {
+      setIsCheckingEmail(false)
+    }
+
+    return () => {
+      if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
+    }
+  }, [email, accountType])
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,7 +151,11 @@ export const LoginForm = () => {
       nextErrors.email = 'Please enter a valid email address'
     }
 
-    if (!password) {
+    if (accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists) {
+      nextErrors.email = 'No staff invitation found for this email address'
+    }
+
+    if (!password && (!staffCheckResult.isInvited || accountType !== 'staff')) {
       nextErrors.password = 'This field is required'
     }
 
@@ -70,7 +165,25 @@ export const LoginForm = () => {
     }
 
     setFieldErrors({})
-    loginMutation.mutate({ email, password })
+    if (accountType === 'staff') {
+      employeeLoginMutation.mutate({ email, password })
+    } else {
+      loginMutation.mutate({ email, password })
+    }
+  }
+
+  const handleStaffInviteVerify = () => {
+    setOtpContext('INVITE')
+    employeeRequestOtpMutation.mutate(
+      { email, context: 'INVITE' },
+      {
+        onSuccess: () => {
+          setOtpStage('verify')
+          setResendCooldown(30)
+          setOtp(['', '', '', '', '', ''])
+        }
+      }
+    )
   }
 
   const handleRequestOtp = async (e: React.FormEvent) => {
@@ -89,19 +202,64 @@ export const LoginForm = () => {
     }
 
     setFieldErrors({})
-    requestOtpMutation.mutate(
-      { email, context: 'LOGIN' },
-      {
-        onSuccess: () => {
-          setOtpStage('verify')
+    setOtpContext('LOGIN')
+
+    if (accountType === 'staff') {
+      employeeRequestOtpMutation.mutate(
+        { email, context: 'LOGIN' },
+        {
+          onSuccess: () => {
+            setOtpStage('verify')
+            setResendCooldown(30)
+          }
         }
-      }
-    )
+      )
+    } else {
+      requestOtpMutation.mutate(
+        { email, context: 'LOGIN' },
+        {
+          onSuccess: () => {
+            setOtpStage('verify')
+            setResendCooldown(30)
+          }
+        }
+      )
+    }
+  }
+
+  const handleResendOtp = () => {
+    if (resendCooldown > 0 || isResending) return
+    if (accountType === 'staff') {
+      employeeRequestOtpMutation.mutate(
+        { email, context: otpContext },
+        {
+          onSuccess: () => {
+            setResendCooldown(30)
+            toastSuccess?.('Verification code resent successfully!')
+          }
+        }
+      )
+    } else {
+      requestOtpMutation.mutate(
+        { email, context: 'LOGIN' },
+        {
+          onSuccess: () => {
+            setResendCooldown(30)
+            toastSuccess?.('Verification code resent successfully!')
+          }
+        }
+      )
+    }
+  }
+
+  const resetOtpErrors = () => {
+    if (otpLoginMutation.isError) otpLoginMutation.reset()
+    if (employeeVerifyOtpMutation.isError) employeeVerifyOtpMutation.reset()
+    if (employeeOtpLoginMutation.isError) employeeOtpLoginMutation.reset()
   }
 
   const handleOtpChange = (index: number, value: string) => {
-    if (otpLoginMutation.isError) otpLoginMutation.reset()
-    
+    resetOtpErrors()
     const digitsOnly = value.replace(/\D/g, '')
 
     if (digitsOnly.length > 1) {
@@ -135,7 +293,7 @@ export const LoginForm = () => {
 
   const handleOtpPaste = (e: React.ClipboardEvent, index: number) => {
     e.preventDefault()
-    if (otpLoginMutation.isError) otpLoginMutation.reset()
+    resetOtpErrors()
     const pastedData = e.clipboardData.getData('text')
     const digitsOnly = pastedData.replace(/\D/g, '').slice(0, 6)
     if (!digitsOnly) return
@@ -160,21 +318,48 @@ export const LoginForm = () => {
     const otpCode = otpArray.join('')
     if (otpCode.length !== 6) return
 
-    otpLoginMutation.mutate(
-      { email, otp: otpCode },
-      {
-        onSuccess: () => {
-          window.location.href = '/dashboard'
-        }
+    if (accountType === 'staff') {
+      if (otpContext === 'INVITE') {
+        employeeVerifyOtpMutation.mutate(
+          { email, otp: otpCode, context: 'INVITE' },
+          {
+            onSuccess: (res) => {
+              const token = res?.inviteToken || staffCheckResult.inviteToken
+              if (token) {
+                window.location.href = `/invite/${token}`
+              } else {
+                window.location.href = '/dashboard'
+              }
+            }
+          }
+        )
+      } else {
+        employeeOtpLoginMutation.mutate(
+          { email, otp: otpCode },
+          {
+            onSuccess: () => {
+              window.location.href = '/dashboard'
+            }
+          }
+        )
       }
-    )
+    } else {
+      otpLoginMutation.mutate(
+        { email, otp: otpCode },
+        {
+          onSuccess: () => {
+            window.location.href = '/dashboard'
+          }
+        }
+      )
+    }
   }
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const otpCode = otp.join('')
     if (otpCode.length !== 6) {
-      toastError("Please enter a complete 6-digit verification code")
+      toastError('Please enter a complete 6-digit verification code')
       return
     }
     triggerVerification(otp)
@@ -182,154 +367,56 @@ export const LoginForm = () => {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '24px' }}>
-        <UpwardLogo color="var(--forest)" size={48} />
-        <h2 className="auth-card__title" style={{ fontSize: '24px', fontWeight: 800, marginTop: '16px', marginBottom: '8px', color: 'var(--dark)' }}>
-          {otpStage === 'verify' && loginMethod === 'code' ? 'Enter Verification Code' : 'Welcome Back'}
+      {/* ── Role Switcher Tabs ── */}
+      <div className="role-switch">
+        <button
+          type="button"
+          className={`role-tab ${accountType === 'manager' ? 'active' : ''}`}
+          onClick={() => {
+            setAccountType('manager')
+            setLoginMethod('password')
+          }}
+        >
+          <Building2 size={16} />
+          <span>Manager / Owner</span>
+        </button>
+        <button
+          type="button"
+          className={`role-tab ${accountType === 'staff' ? 'active' : ''}`}
+          onClick={() => {
+            setAccountType('staff')
+            setLoginMethod('password')
+          }}
+        >
+          <Users size={16} />
+          <span>Staff / Employee</span>
+        </button>
+      </div>
+
+      {/* ── Heading ── */}
+      <div className="card-head">
+        <h2>
+          {otpStage === 'verify'
+            ? 'Verify your email'
+            : (accountType === 'staff' ? 'Staff Portal Sign In' : 'Welcome back')}
         </h2>
-        <p className="auth-card__subtitle" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-          {loginMethod === 'code' && otpStage === 'verify' ? (
+        <p>
+          {otpStage === 'verify' ? (
             <>
-              We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. If you don&apos;t see it after a few minutes, check your Spam or Promotions folder or request a new code.
+              Enter the 6-digit verification code sent to <strong>{email}</strong>.
             </>
+          ) : accountType === 'staff' ? (
+            'Sign in to access your assigned properties and organization workflow.'
           ) : (
-            'Sign in to access your properties, tenants, and collections.'
+            'Sign in to access your properties, tenants and collections.'
           )}
         </p>
       </div>
 
-      <div className="auth-method-toggle" style={{ marginBottom: '24px' }}>
-        <button
-          type="button"
-          className={`auth-method-toggle__option ${loginMethod === 'password' ? 'is-active' : ''}`}
-          onClick={() => {
-            setLoginMethod('password')
-            setOtpStage('request')
-          }}
-        >
-          <Lock size={15} />
-          <span>Password</span>
-        </button>
-        <button
-          type="button"
-          className={`auth-method-toggle__option ${loginMethod === 'code' ? 'is-active' : ''}`}
-          onClick={() => setLoginMethod('code')}
-        >
-          <ShieldCheck size={15} />
-          <span>Email Code</span>
-        </button>
-      </div>
-
-      {loginMethod === 'password' ? (
-        <form onSubmit={handlePasswordLogin} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Email Address</label>
-            <div className="input-wrapper">
-              <Mail size={18} className="input-icon" />
-              <input 
-                type="email" 
-                className={`form-input form-input--with-icon ${fieldErrors.email ? 'form-input--error' : ''}`}
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => {
-                  clearFieldError('email')
-                  setEmail(e.target.value)
-                }}
-                required
-              />
-            </div>
-            {fieldErrors.email && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
-          </div>
-
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <label className="form-label" style={{ marginBottom: 0 }}>Password</label>
-              <Link href={Capacitor.isNativePlatform() ? '/forgot-password' : '/pm-forgot-password'} style={{ fontSize: 13, color: 'var(--forest)', fontWeight: 600 }}>
-                Forgot Password?
-              </Link>
-            </div>
-            <div className="input-wrapper" style={{ position: 'relative' }}>
-              <Lock size={18} className="input-icon" />
-              <input 
-                type={showPassword ? 'text' : 'password'} 
-                className={`form-input form-input--with-icon ${fieldErrors.password ? 'form-input--error' : ''}`}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  clearFieldError('password')
-                  setPassword(e.target.value)
-                }}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '14px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            {fieldErrors.password && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.password}</p>}
-          </div>
-
-          <button 
-            type="submit" 
-            className="auth-btn auth-btn--primary auth-btn--large" 
-            disabled={loading}
-            style={{ marginTop: '10px' }}
-          >
-            <span>{loading ? "Signing in..." : "Sign In"}</span>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-          </button>
-        </form>
-      ) : otpStage === 'request' ? (
-        <form onSubmit={handleRequestOtp} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Email Address</label>
-            <div className="input-wrapper">
-              <Mail size={18} className="input-icon" />
-              <input 
-                type="email" 
-                className={`form-input form-input--with-icon ${fieldErrors.email ? 'form-input--error' : ''}`}
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => {
-                  clearFieldError('email')
-                  setEmail(e.target.value)
-                }}
-                required
-              />
-            </div>
-            {fieldErrors.email && <p className="form-error-text" style={{ color: 'var(--error)', fontSize: '12px', marginTop: '6px', fontWeight: 500 }}>{fieldErrors.email}</p>}
-            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.4, margin: '8px 0 0 0' }}>
-              We&apos;ll send a 6-digit verification code to your email address.
-            </p>
-          </div>
-
-          <button 
-            type="submit" 
-            className="auth-btn auth-btn--primary auth-btn--large" 
-            disabled={loading}
-            style={{ marginTop: '10px' }}
-          >
-            <span>{loading ? "Sending Code..." : "Send Verification Code"}</span>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-          </button>
-        </form>
-      ) : (
-        <form onSubmit={handleOtpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className={`otp-group ${otpLoginMutation.isError ? 'otp-group--error' : ''}`} style={{ marginBottom: 0 }}>
+      {/* ── OTP Verification View ── */}
+      {otpStage === 'verify' ? (
+        <form onSubmit={handleOtpSubmit} noValidate autoComplete="off">
+          <div className={`otp-row ${isCurrentOtpError ? 'otp-row--error' : ''}`}>
             {otp.map((digit, i) => (
               <input
                 key={i}
@@ -339,7 +426,7 @@ export const LoginForm = () => {
                 pattern="[0-9]*"
                 maxLength={1}
                 autoComplete="one-time-code"
-                className="otp-input"
+                className="otp-box"
                 value={digit}
                 onChange={(e) => handleOtpChange(i, e.target.value)}
                 onPaste={(e) => handleOtpPaste(e, i)}
@@ -352,47 +439,278 @@ export const LoginForm = () => {
             ))}
           </div>
 
-          {otpLoginMutation.isError && (
-            <p style={{ color: '#ef4444', fontSize: '13px', textAlign: 'center', margin: 0, fontWeight: 500 }}>
-              {(otpLoginMutation.error as any)?.message || 'Invalid verification code'}
+          {isCurrentOtpError && (
+            <p className="field-error-text" style={{ textAlign: 'center', marginBottom: 12 }}>
+              {currentOtpErrorMessage || 'Invalid verification code'}
             </p>
           )}
 
-          <button
-            type="submit"
-            className="auth-btn auth-btn--primary auth-btn--large"
-            disabled={loading}
-            style={{ marginTop: '10px' }}
-          >
-            <span>{loading ? 'Verifying...' : 'Verify & Sign In'}</span>
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
-          </button>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', fontSize: '13px' }}>
+          <div className="otp-meta">
+            <span>
+              Wrong email?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setOtpStage('request')
+                  setLoginMethod('password')
+                  setOtp(['', '', '', '', '', ''])
+                  resetOtpErrors()
+                }}
+              >
+                Change it
+              </button>
+            </span>
             <button
               type="button"
-              onClick={() => {
-                setOtpStage('request')
-                setOtp(['', '', '', '', '', ''])
+              onClick={handleResendOtp}
+              disabled={resendCooldown > 0 || isResending || isVerifying}
+              style={{
+                cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                opacity: resendCooldown > 0 ? 0.6 : 1,
               }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 500 }}
             >
-              Change Email
-            </button>
-            <button
-              type="button"
-              onClick={() => requestOtpMutation.mutate({ email, context: 'LOGIN' })}
-              disabled={requestOtpMutation.isPending}
-              style={{ background: 'none', border: 'none', color: 'var(--forest)', cursor: 'pointer', fontWeight: 700 }}
-            >
-              Resend Code
+              {isResending ? 'Sending code...' : (resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code')}
             </button>
           </div>
+
+          <button
+            type="submit"
+            className="primary-btn"
+            disabled={isVerifying || isResending}
+          >
+            <span>{isVerifying ? 'Verifying code...' : (otpContext === 'INVITE' ? 'Verify & Continue' : 'Verify & Sign In')}</span>
+            {isVerifying ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+          </button>
         </form>
+      ) : (
+        <>
+          {/* ── Method Switcher (Manager Role Only) ── */}
+          {accountType === 'manager' && (
+            <div className="method-switch">
+              <button
+                type="button"
+                className={`method-btn ${loginMethod === 'password' ? 'active' : ''}`}
+                onClick={() => {
+                  setLoginMethod('password')
+                  setOtpStage('request')
+                }}
+              >
+                <Lock size={14} />
+                <span>Password</span>
+              </button>
+              <button
+                type="button"
+                className={`method-btn ${loginMethod === 'code' ? 'active' : ''}`}
+                onClick={() => setLoginMethod('code')}
+              >
+                <Mail size={14} />
+                <span>Email code</span>
+              </button>
+            </div>
+          )}
+
+          {loginMethod === 'password' ? (
+            <form onSubmit={handlePasswordLogin} noValidate autoComplete="off">
+              <div className="field">
+                <label htmlFor="login-email">Email address</label>
+                <div className={`input-shell ${fieldErrors.email ? 'input-shell--error' : ''}`}>
+                  <Mail size={17} />
+                  <input 
+                    id="login-email"
+                    type="email" 
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => {
+                      clearFieldError('email')
+                      setEmail(e.target.value)
+                    }}
+                    required
+                    autoComplete="off"
+                  />
+                  {accountType === 'staff' && (
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      {isCheckingEmail ? (
+                        <Loader2 size={16} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+                      ) : staffCheckResult.checked && staffCheckResult.exists ? (
+                        <CheckCircle2 size={16} color="var(--forest-500)" />
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+                {fieldErrors.email && <p className="field-error-text">{fieldErrors.email}</p>}
+
+                {/* Staff Verified Active Status */}
+                {accountType === 'staff' && staffCheckResult.checked && staffCheckResult.exists && staffCheckResult.hasPassword && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--forest-700)', fontWeight: 600, marginTop: '8px' }}>
+                    <CheckCircle2 size={14} />
+                    <span>Verified staff member at {staffCheckResult.employerName}</span>
+                  </div>
+                )}
+
+                {/* Staff Not Found Callout */}
+                {accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists && !isCheckingEmail && (
+                  <div
+                    style={{
+                      background: 'rgba(179, 64, 47, 0.06)',
+                      border: '1px solid rgba(179, 64, 47, 0.2)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '12px 14px',
+                      marginTop: '10px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px'
+                    }}
+                  >
+                    <AlertCircle size={16} color="var(--error)" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <div style={{ fontSize: '12.5px', color: 'var(--error)', lineHeight: 1.45 }}>
+                      <strong style={{ display: 'block', marginBottom: '2px' }}>No staff invitation found</strong>
+                      <span style={{ color: 'var(--ink-soft)' }}>
+                        No staff record matches <strong>{email}</strong>. Please ask your Property Manager to invite you.
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Staff: Pending Invitation Card */}
+              {accountType === 'staff' && staffCheckResult.checked && staffCheckResult.exists && staffCheckResult.isInvited && staffCheckResult.inviteToken ? (
+                <div className="invite-card" role="region" aria-label="Staff invitation details">
+                  <div className="invite-card__header">
+                    <div className="invite-card__avatar">
+                      <Building2 size={18} />
+                    </div>
+                    <div className="invite-card__org">
+                      <span className="invite-card__label">Team Invitation</span>
+                      <h3 className="invite-card__title">{staffCheckResult.employerName || 'Your Organization'}</h3>
+                    </div>
+                    <span className="invite-card__badge">
+                      <span className="invite-card__dot" />
+                      Pending
+                    </span>
+                  </div>
+
+                  <div className="invite-card__details">
+                    <div className="invite-card__detail-item">
+                      <span className="invite-card__detail-label">Assigned Role</span>
+                      <span className="invite-card__detail-value">{staffCheckResult.jobTitle || 'Property Officer'}</span>
+                    </div>
+                    <div className="invite-card__detail-item">
+                      <span className="invite-card__detail-label">Workspace Access</span>
+                      <span className="invite-card__detail-value">Staff Portal</span>
+                    </div>
+                  </div>
+
+                  <p className="invite-card__hint">
+                    Authenticate your email with a 6-digit verification code to set your password and join your workspace.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleStaffInviteVerify}
+                    disabled={loading}
+                    className="primary-btn invite-card__btn"
+                  >
+                    <span>{employeeRequestOtpMutation.isPending ? 'Sending verification code...' : 'Accept & Set Password'}</span>
+                    {employeeRequestOtpMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="field">
+                    <div className="field-row">
+                      <label htmlFor="login-pass">Password</label>
+                      <Link href={Capacitor.isNativePlatform() ? '/forgot-password' : '/pm-forgot-password'}>
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <div className={`input-shell ${fieldErrors.password ? 'input-shell--error' : ''}`}>
+                      <Lock size={17} />
+                      <input 
+                        id="login-pass"
+                        type={showPassword ? 'text' : 'password'} 
+                        placeholder="Enter your password"
+                        value={password}
+                        disabled={accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists}
+                        onChange={(e) => {
+                          clearFieldError('password')
+                          setPassword(e.target.value)
+                        }}
+                        required
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="icon-btn"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      </button>
+                    </div>
+                    {fieldErrors.password && <p className="field-error-text">{fieldErrors.password}</p>}
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    className="primary-btn" 
+                    disabled={loading || (accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists)}
+                  >
+                    <span>{loading ? 'Signing in...' : 'Sign in'}</span>
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                  </button>
+                </>
+              )}
+            </form>
+          ) : (
+            <form onSubmit={handleRequestOtp} noValidate autoComplete="off">
+              <div className="field">
+                <label htmlFor="login-otp-email">Email address</label>
+                <div className={`input-shell ${fieldErrors.email ? 'input-shell--error' : ''}`}>
+                  <Mail size={17} />
+                  <input 
+                    id="login-otp-email"
+                    type="email" 
+                    placeholder="you@company.com"
+                    value={email}
+                    onChange={(e) => {
+                      clearFieldError('email')
+                      setEmail(e.target.value)
+                    }}
+                    required
+                    autoComplete="off"
+                  />
+                </div>
+                {fieldErrors.email && <p className="field-error-text">{fieldErrors.email}</p>}
+                <p style={{ fontSize: '13px', color: 'var(--ink-soft)', marginTop: '8px', lineHeight: 1.45 }}>
+                  We&apos;ll send a 6-digit verification code to your email address.
+                </p>
+              </div>
+
+              <button 
+                type="submit" 
+                className="primary-btn" 
+                disabled={loading}
+              >
+                <span>{loading ? 'Sending code...' : 'Send verification code'}</span>
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+              </button>
+            </form>
+          )}
+        </>
       )}
 
-      <div className="auth-footer" style={{ marginTop: '28px', textAlign: 'center' }}>
-        Don&apos;t have an account? <Link href={signupHref}>Create one for free</Link>
+      {/* ── Footer ── */}
+      <div className="foot-note">
+        {accountType === 'staff' ? (
+          <>
+            Invited by your organization?{' '}
+            <span style={{ color: 'var(--forest-700)', fontWeight: 600 }}>Check your inbox for your activation link</span>
+          </>
+        ) : (
+          <>
+            Don&apos;t have an account? <Link href={signupHref}>Create one for free</Link>
+          </>
+        )}
       </div>
     </div>
   )

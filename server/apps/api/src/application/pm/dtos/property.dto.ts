@@ -48,6 +48,14 @@ export class CreatePropertyDto {
   @IsArray()
   @IsString({ each: true })
   collaboratorUuids?: string[];
+
+  @IsString()
+  @IsOptional()
+  settlementAccountUuid?: string;
+
+  @IsNumber()
+  @IsOptional()
+  manualAccountId?: number;
 }
 
 export class UpdatePropertyDto {
@@ -94,6 +102,14 @@ export class UpdatePropertyDto {
   @IsString()
   @IsOptional()
   landlordPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  settlementAccountUuid?: string;
+
+  @IsNumber()
+  @IsOptional()
+  manualAccountId?: number;
 }
 
 // --- Mode B: Units-only import for an existing property ---
@@ -232,6 +248,10 @@ export class FullImportRowDto {
   @IsString()
   @IsOptional()
   landlordLastName?: string;
+
+  @IsString()
+  @IsOptional()
+  landlordName?: string;
 
   @IsString()
   @IsOptional()

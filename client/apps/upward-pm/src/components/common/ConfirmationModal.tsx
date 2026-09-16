@@ -6,11 +6,13 @@ import { Modal } from '@/components/ui/Modal/Modal'
 
 interface ConfirmationModalProps {
   isOpen: boolean
-  onClose: () => void
+  onClose?: () => void
+  onCancel?: () => void
   onConfirm: () => void
   title: string
   message: React.ReactNode
   confirmText?: string
+  confirmLabel?: string
   cancelText?: string
   type?: 'danger' | 'primary'
   isPending?: boolean
@@ -21,10 +23,12 @@ interface ConfirmationModalProps {
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
   onClose,
+  onCancel,
   onConfirm,
   title,
   message,
   confirmText = 'Confirm',
+  confirmLabel,
   cancelText = 'Cancel',
   type = 'primary',
   isPending = false,
@@ -33,11 +37,13 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 }) => {
   const activePending = isPending || isLoading || false
   const activeVariant = confirmVariant || type
+  const activeClose = onClose || onCancel || (() => {})
+  const activeConfirmText = confirmLabel || confirmText
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={activeClose}
       title={title}
       icon={AlertCircle}
       maxWidth={420}
@@ -47,7 +53,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             type="button" 
             className="btn btn--secondary" 
             style={{ flex: 1, height: 48 }} 
-            onClick={onClose}
+            onClick={activeClose}
             disabled={activePending}
           >
             {cancelText}
@@ -59,7 +65,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             onClick={onConfirm}
             disabled={activePending}
           >
-            {activePending ? 'Processing...' : confirmText}
+            {activePending ? 'Processing...' : activeConfirmText}
           </button>
         </>
       }

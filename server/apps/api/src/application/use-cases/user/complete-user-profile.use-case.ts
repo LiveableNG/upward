@@ -7,6 +7,7 @@ import { UserAuthService } from '../../../application/auth/user-auth.service'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { RentalPeriodService } from '../../services/rental-period.service'
 
 @Injectable()
 export class CompleteUserProfileUseCase {
@@ -20,6 +21,7 @@ export class CompleteUserProfileUseCase {
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(WAITLIST_REPOSITORY) private readonly waitlistRepository: WaitlistRepository,
     private readonly emailService: EmailService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(dto: {
@@ -291,13 +293,13 @@ export class CompleteUserProfileUseCase {
         companyId: propertyCompanyId,
         managerId: propertyManagerId,
         rentAmount: prop.rentAmount || 0,
-        rentEndDate: prop.rentEndDate ? new Date(prop.rentEndDate) : null,
+        rentEndDate: this.rentalPeriodService.parseCalendarDate(prop.rentEndDate),
         isPastTenancy: !!prop.isPastTenancy,
         rentType: prop.rentType || 'Annually',
       }
 
       if (prop.rentStartDate) {
-        propertyData.rentStartDate = new Date(prop.rentStartDate)
+        propertyData.rentStartDate = this.rentalPeriodService.parseCalendarDate(prop.rentStartDate)
       }
       if (prop.rentAmount !== undefined) {
          const paid = existingProperty?.amountPaid || 0;

@@ -12,6 +12,7 @@ import {
   Param,
 } from '@nestjs/common'
 import { PmAuthService } from '../../../application/auth/pm-auth.service'
+import { PmEmployeeAuthService } from '../../../application/auth/pm-employee-auth.service'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { AcceptPmTermsUseCase } from '../../../application/pm/use-cases/accept-pm-terms.use-case'
 
@@ -84,6 +85,7 @@ export class PmAuthController {
   constructor(
     private readonly pmAuthService: PmAuthService,
     private readonly acceptPmTermsUseCase: AcceptPmTermsUseCase,
+    private readonly employeeAuthService: PmEmployeeAuthService,
   ) {}
 
   @Post('signup')
@@ -92,10 +94,12 @@ export class PmAuthController {
     @Body() body: {
       email: string;
       password: string;
-      firstName: string;
-      lastName: string;
+      firstName?: string;
+      lastName?: string;
+      fullName?: string;
       pmType?: string;
       businessName?: string;
+      companyName?: string;
       phone?: string;
       country?: string;
       cacNumber?: string;
@@ -130,7 +134,13 @@ export class PmAuthController {
     }
 
     try {
-      const { refreshToken, ...rest } = await this.pmAuthService.refreshAccessToken(token)
+      let result: any
+      try {
+        result = await this.pmAuthService.refreshAccessToken(token)
+      } catch (pmErr) {
+        result = await this.employeeAuthService.refreshAccessToken(token)
+      }
+      const { refreshToken, ...rest } = result
       setPmAuthCookies(reply, rest.accessToken, refreshToken)
       reply.status(HttpStatus.OK).send(rest)
     } catch (err: any) {
@@ -149,7 +159,16 @@ export class PmAuthController {
   async logout(@Req() req: FastifyRequest, @Res({ passthrough: false }) reply: FastifyReply) {
     const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME]
     if (refreshToken) {
-      await this.pmAuthService.revokeSession(refreshToken)
+      try {
+        await this.pmAuthService.revokeSession(refreshToken)
+      } catch {
+        // Ignore
+      }
+      try {
+        await this.employeeAuthService.revokeSession(refreshToken)
+      } catch {
+        // Ignore
+      }
     }
 
     clearPmAuthCookies(reply)
@@ -161,9 +180,16 @@ export class PmAuthController {
   @HttpCode(HttpStatus.OK)
   async me(@Req() req: FastifyRequest) {
     if (!req.user?.sub) {
-      throw new UnauthorizedException('No PM in request')
+      throw new UnauthorizedException('No user in request')
     }
-    return this.pmAuthService.getProfile(req.user.sub)
+    if (req.user.role === 'PM_EMPLOYEE') {
+      return this.employeeAuthService.getProfile(req.user.sub)
+    }
+    try {
+      return await this.pmAuthService.getProfile(req.user.sub)
+    } catch {
+      return await this.employeeAuthService.getProfile(req.user.sub)
+    }
   }
 
   @Post('request-otp')

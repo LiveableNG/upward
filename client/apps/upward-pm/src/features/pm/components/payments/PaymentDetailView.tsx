@@ -322,87 +322,120 @@ export const PaymentDetailView: React.FC = () => {
 
               {/* Tab 1: Overview - Invoice Parties */}
               {activeTab === 'overview' && (
-                <div className="animate-fade-in" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                  
-                  {/* Tenant Card */}
-                  <div className="checkout-card" style={{ padding: '24px' }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <User size={16} color="var(--forest)" /> Tenant Information
-                    </h3>
-                    {request.tenant ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>NAME</span>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>
-                            {request.tenant.firstName} {request.tenant.lastName}
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>EMAIL</span>
-                          <span style={{ fontWeight: 500, fontSize: 13, color: '#5D5954' }}>
-                            {request.tenant.email?.endsWith('@upward.com') ? 'N/A' : request.tenant.email}
-                          </span>
-                        </div>
-                        
-                        {/* Instant messaging / quick action shortcuts */}
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                          {request.tenant.email && !request.tenant.email.endsWith('@upward.com') && (
-                            <a href={`mailto:${request.tenant.email}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
-                              <Mail size={12} /> Email
-                            </a>
-                          )}
-                          {request.tenant.phone && (
-                            <a href={`tel:${request.tenant.phone}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
-                              <Phone size={12} /> Call
-                            </a>
-                          )}
-                        </div>
+                <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                    {/* Tenant Card */}
+                    <div className="checkout-card" style={{ padding: '24px' }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <User size={16} color="var(--forest)" /> Tenant Information
+                      </h3>
+                      {request.tenant ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          <div>
+                            <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>NAME</span>
+                            <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>
+                              {request.tenant.firstName} {request.tenant.lastName}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>EMAIL</span>
+                            <span style={{ fontWeight: 500, fontSize: 13, color: '#5D5954' }}>
+                              {request.tenant.email?.endsWith('@upward.com') ? 'N/A' : request.tenant.email}
+                            </span>
+                          </div>
+                          
+                          {/* Instant messaging / quick action shortcuts */}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            {request.tenant.email && !request.tenant.email.endsWith('@upward.com') && (
+                              <a href={`mailto:${request.tenant.email}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
+                                <Mail size={12} /> Email
+                              </a>
+                            )}
+                            {request.tenant.phone && (
+                              <a href={`tel:${request.tenant.phone}`} className="copy-pill-button" style={{ border: '1px solid #E7E3DB', color: '#5D5954' }}>
+                                <Phone size={12} /> Call
+                              </a>
+                            )}
+                          </div>
 
-                        {!isPortal && (
-                          <Link
-                            href={`/tenants/view?uuid=${request.tenant.uuid}`}
-                            style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 12 }}
-                          >
-                            View Profile <ExternalLink size={12} />
-                          </Link>
-                        )}
-                      </div>
-                    ) : (
-                      <p style={{ color: '#8A857F', fontSize: 13 }}>No tenant information associated.</p>
-                    )}
+                          {!isPortal && (
+                            <Link
+                              href={`/tenants/view?uuid=${request.tenant.uuid}`}
+                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 12 }}
+                            >
+                              View Profile <ExternalLink size={12} />
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <p style={{ color: '#8A857F', fontSize: 13 }}>No tenant information associated.</p>
+                      )}
+                    </div>
+
+                    {/* Property Card */}
+                    <div className="checkout-card" style={{ padding: '24px' }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Building2 size={16} color="var(--forest)" /> Property & Unit
+                      </h3>
+                      {request.unit ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          <div>
+                            <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>PROPERTY</span>
+                            <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>
+                              {request.unit.property?.name || 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>UNIT REFERENCE</span>
+                            <span style={{ fontWeight: 600, fontSize: 13, color: '#5D5954' }}>
+                              {request.unit.unitName}
+                            </span>
+                          </div>
+                          
+                          {!isPortal && (
+                            <Link
+                              href={`/properties/units/view?uuid=${request.unit.uuid}`}
+                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 24 }}
+                            >
+                              View Unit Details <ExternalLink size={12} />
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <p style={{ color: '#8A857F', fontSize: 13 }}>No unit information associated.</p>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Property Card */}
+                  {/* Settlement Destination Card */}
                   <div className="checkout-card" style={{ padding: '24px' }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Building2 size={16} color="var(--forest)" /> Property & Unit
-                    </h3>
-                    {request.unit ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <CreditCard size={16} color="var(--forest)" /> Settlement Bank Account
+                      </h3>
+                      {request.settlementAccount?.isPrimary && (
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                          Primary Account
+                        </span>
+                      )}
+                    </div>
+                    {request.settlementAccount ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                         <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>PROPERTY</span>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>
-                            {request.unit.property?.name || 'N/A'}
-                          </span>
+                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>BANK NAME</span>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>{request.settlementAccount.bankName}</span>
                         </div>
                         <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>UNIT REFERENCE</span>
-                          <span style={{ fontWeight: 600, fontSize: 13, color: '#5D5954' }}>
-                            {request.unit.unitName}
-                          </span>
+                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>ACCOUNT NUMBER</span>
+                          <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17', letterSpacing: '0.05em' }}>{request.settlementAccount.accountNumber}</span>
                         </div>
-                        
-                        {!isPortal && (
-                          <Link
-                            href={`/properties/units/view?uuid=${request.unit.uuid}`}
-                            style={{ fontSize: 12, fontWeight: 700, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 24 }}
-                          >
-                            View Unit Details <ExternalLink size={12} />
-                          </Link>
-                        )}
+                        <div>
+                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>ACCOUNT HOLDER</span>
+                          <span style={{ fontWeight: 600, fontSize: 13, color: '#5D5954' }}>{request.settlementAccount.accountName}</span>
+                        </div>
                       </div>
                     ) : (
-                      <p style={{ color: '#8A857F', fontSize: 13 }}>No unit information associated.</p>
+                      <p style={{ color: '#8A857F', fontSize: 13, margin: 0 }}>Settlement routed to organization default payout account.</p>
                     )}
                   </div>
                 </div>
@@ -518,7 +551,9 @@ export const PaymentDetailView: React.FC = () => {
                         <span className="timeline-date">{formatDate(request.createdAt)}</span>
                       </div>
                       <p className="timeline-desc">
-                        Rent request initialized for {request.unit?.unitName || 'selected unit'} by Property Manager.
+                        {request.isSelfPayment || request.createdBy?.isTenant || request.createdBy?.role === 'Tenant'
+                          ? `Payment self-initiated for ${request.unit?.unitName || 'selected unit'} by tenant (${request.createdBy?.name || (request.tenant ? (request.tenant.commercialName || `${request.tenant.firstName || ''} ${request.tenant.lastName || ''}`.trim()) : '') || 'Tenant'}).`
+                          : `Rent request initialized for ${request.unit?.unitName || 'selected unit'} by ${request.createdBy?.isEmployee ? `${request.createdBy.name} (${request.createdBy.role})` : (request.createdBy?.name || 'Company Admin')}.`}
                       </p>
                     </div>
                   </div>
@@ -536,9 +571,29 @@ export const PaymentDetailView: React.FC = () => {
               
               <div className="checkout-breakdown" style={{ gap: 16 }}>
                 <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
+                  <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Created By</span>
+                  <span className="checkout-breakdown__value" style={{ fontSize: 12, fontWeight: 600, color: '#1A1A17' }}>
+                    {request.createdBy?.isEmployee 
+                      ? `${request.createdBy.name} (${request.createdBy.role})` 
+                      : (request.isSelfPayment || request.createdBy?.isTenant || request.createdBy?.role === 'Tenant')
+                      ? `${request.createdBy?.name || (request.tenant ? (request.tenant.commercialName || `${request.tenant.firstName || ''} ${request.tenant.lastName || ''}`.trim()) : '') || 'Tenant'} (Tenant)`
+                      : (request.createdBy?.name || 'Company Admin')}
+                  </span>
+                </div>
+
+                <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
                   <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Currency</span>
                   <span className="checkout-breakdown__value" style={{ fontSize: 12 }}>{request.currency || 'NGN'}</span>
                 </div>
+
+                {request.settlementAccount && (
+                  <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
+                    <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Settlement Bank</span>
+                    <span className="checkout-breakdown__value" style={{ fontSize: 12, fontWeight: 600, color: '#1A1A17' }}>
+                      {request.settlementAccount.bankName} (•••• {request.settlementAccount.accountNumber?.slice(-4)})
+                    </span>
+                  </div>
+                )}
                 
                 <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
                   <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Partial Payments</span>

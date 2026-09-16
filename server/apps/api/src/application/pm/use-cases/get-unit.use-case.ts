@@ -10,18 +10,20 @@ export class GetUnitUseCase {
     private readonly propertyRepository: IPropertyRepository,
   ) {}
 
-  async execute(pmId: number, uuid: string) {
+  async execute(pmId: number, uuid: string, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepository.findByUuid(uuid);
     
     if (!unit) {
       throw new NotFoundException('Unit not found');
     }
 
-    const hasAccess = await this.propertyRepository.hasAccessToProperty(pmId, unit.propertyId);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, unit.propertyId, actor);
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this unit');
     }
 
     return unit;
   }
+
 }

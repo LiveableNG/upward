@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   ExceptionFilter,
   Catch,
@@ -6,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
 } from '@nestjs/common'
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
@@ -37,6 +37,8 @@ function shouldExcludeFromBugsnag(
 @Catch()
 @Injectable()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
@@ -51,14 +53,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const status = isHttp ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
     const message = isHttp ? exception.getResponse() : exception.message || 'Internal server error'
 
-    const isTest = process.env.NODE_ENV === 'test' || !!process.env.DATABASE_URL_TEST
+    const isTest = process.env.NODE_ENV === 'test'
 
-    // Temporary debug logging
+    // Always log errors in dev/prod to console
     if (!isTest) {
-      console.error('--- EXCEPTION CAUGHT BY FILTER ---')
-      console.error(exception)
-      if (exception.stack) console.error(exception.stack)
-      console.error('----------------------------------')
+      const msgStr = typeof message === 'object' ? JSON.stringify(message) : String(message)
+      if (status >= 500) {
+        this.logger.error(
+          `[500 Internal Server Error] ${request.method} ${request.url} - ${msgStr}`,
+          exception?.stack || (exception as any)?.message,
+        )
+      } else {
+        this.logger.warn(`[${status}] ${request.method} ${request.url} - ${msgStr}`)
+      }
     }
 
     // 1. Log to Bugsnag — skip noisy/expected errors

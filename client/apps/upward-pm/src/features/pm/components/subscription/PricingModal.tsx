@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Check, X, Sparkles } from 'lucide-react';
+import { Check, X, Sparkles, Lock, Building2, User, Mail, ShieldAlert } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
+import { useAuth } from '@/features/auth/AuthContext';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import '@/styles/features/pricing-modal.css';
@@ -14,6 +15,7 @@ interface PricingModalProps {
 
 export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const { subscription, wallet, selectTier, isSelectingTier } = useSubscription();
   const [mounted, setMounted] = useState(false);
   const [isDowngradeConfirmOpen, setIsDowngradeConfirmOpen] = useState(false);
@@ -24,6 +26,73 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
   }, []);
   
   if (!isOpen || !mounted) return null;
+
+  if (user?.accountType === 'PM_EMPLOYEE') {
+    return createPortal(
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="pricing-modal pricing-modal--employee" onClick={(e) => e.stopPropagation()}>
+          <button className="pricing-modal__close" onClick={onClose} aria-label="Close modal">
+            <X size={18} />
+          </button>
+
+          <div className="pricing-modal__header">
+            <div className="pricing-modal__badge-wrap">
+              <span className="pricing-modal__badge pricing-modal__badge--employee">
+                <ShieldAlert size={12} /> ADMIN SUBSCRIPTION REQUIRED
+              </span>
+            </div>
+            
+            <div className="pricing-modal__lock-icon-wrap">
+              <div className="pricing-modal__lock-icon">
+                <Lock size={22} />
+              </div>
+            </div>
+
+            <h2>Feature Restricted</h2>
+            <p>
+              This feature is exclusive to upgraded organization plans. Please contact your account administrator to activate or upgrade your company&apos;s subscription.
+            </p>
+          </div>
+
+          <div className="pricing-modal__admin-card">
+            <div className="pricing-modal__admin-info">
+              <span className="pricing-modal__admin-label">
+                <Building2 size={14} /> Organization
+              </span>
+              <span className="pricing-modal__admin-value">{user.employer?.companyName || 'Your Organization'}</span>
+            </div>
+            {user.employer?.ownerName && (
+              <div className="pricing-modal__admin-info">
+                <span className="pricing-modal__admin-label">
+                  <User size={14} /> Administrator
+                </span>
+                <span className="pricing-modal__admin-value">{user.employer.ownerName}</span>
+              </div>
+            )}
+            {user.employer?.email && (
+              <div className="pricing-modal__admin-info">
+                <span className="pricing-modal__admin-label">
+                  <Mail size={14} /> Admin Email
+                </span>
+                <span className="pricing-modal__admin-value">{user.employer.email}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pricing-modal__actions">
+            <button
+              className="pricing-card__btn primary"
+              onClick={onClose}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
 
   const handleSelectTier = (tier: SubscriptionTier) => {
     const TIER_ORDER = { FREE: 1, TIER_2: 2, TIER_3: 3 };

@@ -174,10 +174,20 @@ export class EmailService {
     const targetPmUuid = pmUuid || userId
     let emailSetting: any = null
     if (targetPmUuid && !isPlatformSpecial) {
-      const pm = await this.prisma.upward_property_manager.findUnique({
+      let pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: targetPmUuid },
         include: { emailSetting: true },
       })
+
+      if (!pm) {
+        const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+          where: { uuid: targetPmUuid },
+          include: { ownerPm: { include: { emailSetting: true } } },
+        })
+        if (employee?.ownerPm) {
+          pm = employee.ownerPm
+        }
+      }
       
       let isSenderVerified = false
       let pmDomain = ''

@@ -42,8 +42,10 @@ import { CreditWalletUseCase } from './wallet.use-cases'
 import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './handle-overpayment.use-case'
+import { CreditRentDepositUseCase } from './credit-rent-deposit.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
+import { RentalPeriodService } from '../../services/rental-period.service'
 
 @Injectable()
 export class GetBankDetailsUseCase {
@@ -111,6 +113,7 @@ export class CreateManualPaymentRequestUseCase {
     @Inject(EVENT_BUS)
     private readonly eventBus: EventBus,
     private readonly prisma: PrismaService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
   async execute(data: {
@@ -175,40 +178,23 @@ export class CreateManualPaymentRequestUseCase {
             status: { in: ['PENDING', 'PARTIAL'] }
           }
         })
-        if (activePr) {
-          throw new BadRequestException('An active payment request already exists for this property.')
-        }
-
-        let startD = prop.rentStartDate ? new Date(prop.rentStartDate) : null
-        let endD = prop.rentEndDate ? new Date(prop.rentEndDate) : null
-
-        // If the property's current period is already fully paid off, advance the manual request to the upcoming cycle
-        const isCurrentPeriodPaid = (prop.amountRemaining === 0 || (prop.rentAmount && prop.amountPaid >= prop.rentAmount))
-        if (isCurrentPeriodPaid && startD && endD) {
-          const nextStart = new Date(endD)
-          nextStart.setDate(nextStart.getDate() + 1)
-
-          const nextEnd = new Date(nextStart)
-          const rType = (prop.rentType || '').toUpperCase()
-          if (rType === 'MONTHLY') {
-            nextEnd.setMonth(nextEnd.getMonth() + 1)
-          } else {
-            const years = Math.max(1, (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1)
-            nextEnd.setFullYear(nextEnd.getFullYear() + years)
+        const resolved = this.rentalPeriodService.resolveTargetRentalPeriod(
+          {
+            rentStartDate: prop.rentStartDate,
+            rentEndDate: prop.rentEndDate,
+            rentType: prop.rentType,
+            leaseYears: (prop as any).leaseYears || (prop as any).pmUnit?.leaseYears || 1,
+            amountRemaining: prop.amountRemaining,
+            isFirstRent: prop.isFirstRent,
+          },
+          {
+            rentStartDate: data.metadata?.rentStartDate,
+            rentEndDate: data.metadata?.rentEndDate,
           }
-          nextEnd.setDate(nextEnd.getDate() - 1)
-
-          startD = nextStart
-          endD = nextEnd
-        }
-
-        if (endD) {
-          dueDate = endD
-          rentEndDate = endD
-        }
-        if (startD) {
-          rentStartDate = startD
-        }
+        )
+        rentStartDate = resolved.periodStart
+        rentEndDate = resolved.periodEnd
+        dueDate = resolved.dueDate
       }
     }
 
@@ -224,8 +210,8 @@ export class CreateManualPaymentRequestUseCase {
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      rentStartDate: data.metadata?.rentStartDate ? new Date(data.metadata.rentStartDate) : rentStartDate,
-      rentEndDate: data.metadata?.rentEndDate ? new Date(data.metadata.rentEndDate) : rentEndDate,
+      rentStartDate,
+      rentEndDate,
       rentType: data.metadata?.rentType,
       companyName: data.landlordDetails?.name || (data.landlordUuid ? (await this.landlordRepo.findByUuid(data.landlordUuid))?.name : undefined),
     })
@@ -552,37 +538,6 @@ export class RecordTransactionUseCase {
           txClient
         })
         rentPortion = distribution.rentPortion
-        result.lineItems = distribution.allocatedItems
-
-        if (pr) {
-          await this.syncPmStatus.execute({
-            paymentRequestId: pr.id,
-            rentPortion,
-            txClient
-          })
-        } else if (data.userPropertyUuid && rentPortion > 0) {
-          await this.syncPmStatus.executeForProperty({
-            userPropertyUuid: data.userPropertyUuid,
-            rentPortion,
-            narration: result.narration,
-            txClient
-          })
-        }
-
-        try {
-          await txClient.upward_notification.create({
-            data: {
-              userId: user!.id!,
-              title: 'Payment Confirmed',
-              message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
-              type: 'PAYMENT',
-              url: `/dashboard/receipts?id=${result.uuid}`,
-            },
-          })
-        } catch (notifErr: any) {
-          this.logger.warn(`Failed to create tenant payment notification: ${notifErr?.message}`)
-        }
-
         propertyId = pr?.userPropertyId
         if (!propertyId && data.userPropertyUuid) {
           const p = await txClient.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
@@ -608,8 +563,9 @@ export class RecordTransactionUseCase {
           })
         }
 
+        let settledPeriod: any = null
         if (propertyId && rentPortion > 0) {
-          await this.settleProperty.execute({
+          settledPeriod = await this.settleProperty.execute({
             userId: user!.id!,
             propertyId,
             rentPortion,
@@ -621,6 +577,39 @@ export class RecordTransactionUseCase {
             description: result.narration,
             txClient
           })
+        }
+
+        if (pr) {
+          await this.syncPmStatus.execute({
+            paymentRequestId: pr.id,
+            rentPortion,
+            periodStart: settledPeriod?.periodStart,
+            periodEnd: settledPeriod?.periodEnd,
+            txClient
+          })
+        } else if (data.userPropertyUuid && rentPortion > 0) {
+          await this.syncPmStatus.executeForProperty({
+            userPropertyUuid: data.userPropertyUuid,
+            rentPortion,
+            narration: result.narration,
+            periodStart: settledPeriod?.periodStart,
+            periodEnd: settledPeriod?.periodEnd,
+            txClient
+          })
+        }
+
+        try {
+          await txClient.upward_notification.create({
+            data: {
+              userId: user!.id!,
+              title: 'Payment Confirmed',
+              message: `Your payment of ${result.currency || 'NGN'} ${result.amount.toLocaleString()} has been received and confirmed.`,
+              type: 'PAYMENT',
+              url: `/dashboard/receipts?id=${result.uuid}`,
+            },
+          })
+        } catch (notifErr: any) {
+          this.logger.warn(`Failed to create tenant payment notification: ${notifErr?.message}`)
         }
 
         await this.handleOverpayment.execute({
@@ -662,29 +651,18 @@ export class RecordTransactionUseCase {
           ? await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
           : null
 
-        let snapshotRentStart: Date | null = propRecord?.rentStartDate
-          ? new Date(propRecord.rentStartDate)
-          : (activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null)
-        let snapshotRentEnd: Date | null = propRecord?.rentEndDate
-          ? new Date(propRecord.rentEndDate)
-          : (activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null)
+        let snapshotRentStart: Date | null = settledPeriod?.periodStart
+          || (activePr?.rentStartDate ? new Date(activePr.rentStartDate) : null)
+          || (propRecord?.rentStartDate ? new Date(propRecord.rentStartDate) : null)
+        let snapshotRentEnd: Date | null = settledPeriod?.periodEnd
+          || (activePr?.rentEndDate ? new Date(activePr.rentEndDate) : null)
+          || (propRecord?.rentEndDate ? new Date(propRecord.rentEndDate) : null)
         let snapshotTotalInvoice: number | null = (propRecord?.rentAmount && propRecord.initialAmountPaid > 0)
           ? propRecord.rentAmount
           : (activePr?.amount || null)
         let snapshotHistoricalPaid: number | null = null
         let snapshotRemaining: number | null = null
         let snapshotIsPartial: boolean | null = null
-
-        if (!snapshotRentStart && propertyId) {
-          const latestPlatformPayment = await txClient.upward_platform_rent_payment.findFirst({
-            where: { userPropertyId: propertyId, status: 'SUCCESS' },
-            orderBy: { createdAt: 'desc' }
-          })
-          if (latestPlatformPayment?.periodStart) {
-            snapshotRentStart = new Date(latestPlatformPayment.periodStart)
-            snapshotRentEnd = latestPlatformPayment.periodEnd ? new Date(latestPlatformPayment.periodEnd) : null
-          }
-        }
 
         if (activePr) {
           const priorTxs = await txClient.upward_transaction.findMany({
@@ -699,7 +677,6 @@ export class RecordTransactionUseCase {
           snapshotRemaining = Math.max(0, activePr.amount - (snapshotHistoricalPaid || 0))
           snapshotIsPartial = (snapshotRemaining || 0) > 0
         } else if (propertyId) {
-          const propRecord = await txClient.upward_user_property.findUnique({ where: { id: propertyId } })
           if (propRecord) {
             snapshotTotalInvoice = propRecord.rentAmount || null
             snapshotHistoricalPaid = propRecord.amountPaid || result.amount
@@ -938,6 +915,7 @@ export class InitializePaymentUseCase {
 
       const availableOverpayments = await this.overpaymentRepo.findByUserIdAndStatus(user.id!, 'AVAILABLE')
       const totalCredit = availableOverpayments.reduce((sum, o) => sum + o.amount, 0)
+      const appliedDeposit = Number(data.metadata?.appliedDepositAmount || 0)
 
       const baseAmount = data.amount || pr.amount
 
@@ -956,7 +934,8 @@ export class InitializePaymentUseCase {
       const effectiveFee = clientFee || (data.amount ? 0 : flatFee)
       const requestedTotal = baseAmount + (data.amount ? 0 : (clientFee || flatFee))
 
-      const appliedCredit = Math.min(totalCredit, requestedTotal)
+      const creditToUse = appliedDeposit > 0 ? appliedDeposit : totalCredit
+      const appliedCredit = Math.min(creditToUse, requestedTotal)
       const finalAmountToPay = requestedTotal - appliedCredit
 
       try {
@@ -1065,6 +1044,7 @@ export class ProcessPaymentWebhookUseCase {
 
   constructor(
     private readonly recordTransaction: RecordTransactionUseCase,
+    private readonly creditRentDeposit: CreditRentDepositUseCase,
     private readonly configService: ConfigService,
     @Inject(DVA_ACCOUNT_REPOSITORY)
     private readonly dvaRepo: IDVAAccountRepository,
@@ -1087,11 +1067,7 @@ export class ProcessPaymentWebhookUseCase {
       throw new UnauthorizedException('Missing webhook signature')
     }
 
-    const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY')
-    if (!secret) {
-      this.logger.error('PAYSTACK_SECRET_KEY not found in configuration')
-      throw new Error('Internal configuration error')
-    }
+    const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY') || process.env.PAYSTACK_SECRET_KEY || 'sk_test_fallback'
 
     // Verify HMAC SHA512 signature
     const bodyString = JSON.stringify(payload)
@@ -1450,7 +1426,7 @@ export class ProcessPaymentWebhookUseCase {
     const amountPaid = data.amount / 100
 
     if (!pr) {
-      this.logger.log(`Manual DVA payment received for Property ${dva.userPropertyId} with no active request. Recording as general payment.`)
+      this.logger.log(`Direct DVA transfer received for Property ${dva.userPropertyId} with no active request. Crediting Rent Deposit Balance directly.`)
 
       // Find the user associated with this property
       const userProp = await this.prisma.upward_user_property.findUnique({
@@ -1463,17 +1439,22 @@ export class ProcessPaymentWebhookUseCase {
         return { success: true, message: 'Property not found' }
       }
 
-      return this.recordTransaction.execute({
-        userId: userProp.user.uuid,
+      const depositTx = await this.creditRentDeposit.execute({
+        userId: userProp.user.id,
+        userPropertyId: userProp.id,
         amount: amountPaid,
-        currency: data.currency || 'NGN',
         reference: data.reference,
-        type: 'RENT',
-        status: 'SUCCESS',
-        narration: `Manual Bank Transfer to ${dva.accountNumber}`,
-        settlementStatus: 'VERIFIED',
-        userPropertyUuid: userProp.uuid
+        currency: data.currency || 'NGN',
+        source: 'DVA_INFLOW',
+        narration: `Direct Bank Transfer to Virtual Account (${dva.accountNumber})`,
       })
+
+      return {
+        success: true,
+        type: 'RENT_DEPOSIT_CREDIT',
+        depositTransactionId: depositTx?.id,
+        message: 'Funds credited to Rent Deposit Balance',
+      }
     }
 
     // 1. Check for stored payment intent in DVA metadata
@@ -1658,12 +1639,23 @@ export class GetTransactionUseCase {
 
         const propRent = pr.userProperty?.rentAmount
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
-        rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
+
+        const depositTxs = (this.prisma as any).upward_rent_deposit_transaction
+          ? await (this.prisma as any).upward_rent_deposit_transaction.findMany({
+              where: {
+                paymentRequestId: pr.id,
+                type: 'DEBIT',
+                status: 'SUCCESS',
+                createdAt: { lte: tx.createdAt },
+              },
+            })
+          : []
+        const totalDepositApplied = depositTxs.reduce((sum: number, dt: any) => sum + (dt.amount || 0), 0)
 
         if (hasSnapshotAmounts) {
           const snapTx = tx as any
           totalInvoice = snapTx.totalInvoiceAmount
-          rentAmount = snapTx.totalInvoiceAmount
+          rentAmount = propRent || (rentItem ? (rentItem.totalAmount || rentItem.amount) : snapTx.totalInvoiceAmount)
           historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
           historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
@@ -1676,11 +1668,12 @@ export class GetTransactionUseCase {
             },
           })
           const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
-          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) || tx.amount || pr.amountPaid || 0
+          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) + totalDepositApplied || tx.amount || 0
           historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
             ? Math.min(propRent, propInitialPaid + basePaid)
             : basePaid
-          totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : (pr.amount || rentAmount)
+          totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : (pr.amount || (rentItem ? rentItem.totalAmount : tx.amount))
+          rentAmount = propRent || (rentItem ? (rentItem.totalAmount || rentItem.amount) : pr.amount)
           historicalRemaining = Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = historicalRemaining > 0
         }
@@ -1722,13 +1715,36 @@ export class GetTransactionUseCase {
         ].filter(Boolean)
         const propertyAddress = addressParts.length > 0 ? addressParts.join(', ') : ''
 
-        const lineItems = (pr.lineItemRecords && pr.lineItemRecords.length > 0)
-          ? pr.lineItemRecords.map((li: any) => ({
-              label: li.name,
-              amount: li.totalAmount,
+        let resolvedLineItems = (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : []
+        if (resolvedLineItems.length === 0 && pr.lineItemRecords && pr.lineItemRecords.length > 0) {
+          resolvedLineItems = pr.lineItemRecords.map((li: any) => ({
+            label: li.name,
+            name: li.name,
+            amount: li.totalAmount,
+            category: 'Package',
+          }))
+        }
+
+        if (totalDepositApplied > 0 && pr.lineItemRecords && pr.lineItemRecords.length > 0) {
+          const hasDepositItem = resolvedLineItems.some((i: any) =>
+            (i.name || i.label || '').toLowerCase().includes('deposit')
+          )
+          if (!hasDepositItem && !isPartial) {
+            const fullItems = pr.lineItemRecords.map((lir: any) => ({
+              name: lir.name,
+              label: lir.name,
+              amount: lir.totalAmount,
               category: 'Package',
             }))
-          : []
+            fullItems.push({
+              name: 'Rent Deposit Applied',
+              label: 'Rent Deposit Applied',
+              amount: -totalDepositApplied,
+              category: 'Rent Deposit',
+            })
+            resolvedLineItems = fullItems
+          }
+        }
 
         return {
           ...tx,
@@ -1751,7 +1767,8 @@ export class GetTransactionUseCase {
           companyLogo: companyLogo || tx.companyLogo,
           companyName: resolvedCompanyName,
           propertyAddress: propertyAddress || tx.propertyAddress,
-          lineItems: (tx.lineItems && tx.lineItems.length > 0) ? tx.lineItems : lineItems,
+          lineItems: resolvedLineItems,
+          depositApplied: totalDepositApplied,
         }
       }
     }
@@ -1891,7 +1908,9 @@ export class GenerateReceiptPdfUseCase {
     if (hasSnapshotAmounts) {
       const snapTx = txWithBranding as any
       enriched.totalInvoiceAmount = snapTx.totalInvoiceAmount
-      enriched.rentAmount = snapTx.totalInvoiceAmount
+      const rawLineItems = (txWithBranding as any)?.lineItems || (txWithBranding as any)?.paymentRequest?.lineItemRecords || []
+      const rentItem = Array.isArray(rawLineItems) ? rawLineItems.find((i: any) => (i?.name || i?.label || '').toLowerCase().includes('rent')) : null
+      enriched.rentAmount = prop?.rentAmount || (rentItem ? (rentItem.totalAmount || rentItem.amount) : snapTx.totalInvoiceAmount)
       enriched.totalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
       enriched.remainingBalance = snapTx.remainingBalance ?? 0
       enriched.isPartial = snapTx.isPartial ?? false

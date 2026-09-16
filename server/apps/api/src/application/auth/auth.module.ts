@@ -6,6 +6,7 @@ import { BaseAuthService } from './base-auth.service'
 import { AdminAuthService } from './admin-auth.service'
 import { UserAuthService } from './user-auth.service'
 import { PmAuthService } from './pm-auth.service'
+import { PmEmployeeAuthService } from './pm-employee-auth.service'
 import { LandlordAuthService } from './landlord-auth.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { PrismaModule } from '../../shared/infrastructure/prisma/prisma.module'
@@ -29,7 +30,7 @@ import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/init
       }),
     }),
   ],
-  providers: [AdminAuthService, UserAuthService, PmAuthService, LandlordAuthService, BaseAuthService, JwtStrategy, InitializeUserSequenceUseCase, InitializeEmailSequenceUseCase],
-  exports: [AdminAuthService, UserAuthService, PmAuthService, LandlordAuthService, BaseAuthService, JwtModule],
+  providers: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtStrategy, InitializeUserSequenceUseCase, InitializeEmailSequenceUseCase],
+  exports: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtModule],
 })
 export class AuthModule {}

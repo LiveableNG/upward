@@ -136,3 +136,30 @@
   transform: translateY(-1px);
 }
 
+.role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  user-select: none;
+  line-height: 1;
+}
+
+.role-tag--admin {
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+  color: var(--clay, #d97757);
+  border: 1px solid rgba(217, 119, 87, 0.25);
+}
+
+.role-tag--employee {
+  background: var(--forest-faint, rgba(22, 101, 52, 0.08));
+  color: var(--forest, #166534);
+  border: 1px solid rgba(22, 101, 52, 0.22);
+}
+
+

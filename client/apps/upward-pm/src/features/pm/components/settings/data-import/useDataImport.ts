@@ -15,6 +15,7 @@ import {
   validateCell,
   parseDateString,
   calculateRentEndDateAndWarning,
+  normalizeRentType,
   type DateOrder,
 } from './utils'
 import { useToast } from '@/components/common/Toast'
@@ -37,6 +38,7 @@ export const useDataImport = (
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null)
   const [activeSheet, setActiveSheet] = useState<string>('')
   const [swapNameOrder, setSwapNameOrder] = useState(false)
+  const [swapLandlordNameOrder, setSwapLandlordNameOrder] = useState(false)
   const [dateOrder, setDateOrder] = useState<DateOrder>('dmy')
   const [dateOrderIsAmbiguous, setDateOrderIsAmbiguous] = useState(false)
   const [userColumns, setUserColumns] = useState<string[]>([])
@@ -463,6 +465,35 @@ export const useDataImport = (
         }
       }
 
+      // Landlord name columns (supports single full name column or multiple first/last columns)
+      const landlordNameColumns = sheetMappings
+        .filter((m) => m.systemField === 'landlordFirstName' || m.systemField === 'landlordName')
+        .map((m) => headers.indexOf(m.userColumn))
+        .filter((i) => i !== -1)
+
+      if (landlordNameColumns.length > 0) {
+        const parts = landlordNameColumns.map((i) => stripContacts(scrub(row[i]))).filter(Boolean)
+
+        if (landlordNameColumns.length === 1) {
+          const { first, last } = splitPersonName(
+            scrub(row[landlordNameColumns[0]]),
+            swapLandlordNameOrder,
+          )
+          mappedRow.landlordFirstName = [first, last].filter(Boolean).join(' ')
+          mappedRow.landlordLastName = last
+        } else if (swapLandlordNameOrder) {
+          const first = parts.slice(1).join(' ')
+          const last = parts[0] || ''
+          mappedRow.landlordFirstName = [first, last].filter(Boolean).join(' ')
+          mappedRow.landlordLastName = last
+        } else {
+          const first = parts.slice(0, -1).join(' ')
+          const last = parts[parts.length - 1] || ''
+          mappedRow.landlordFirstName = [first, last].filter(Boolean).join(' ')
+          mappedRow.landlordLastName = last
+        }
+      }
+
       sheetSplits.forEach((split) => {
         const colIndex = headers.indexOf(split.userColumn)
         if (colIndex !== -1 && row[colIndex] !== undefined) {
@@ -491,14 +522,7 @@ export const useDataImport = (
       })
 
       const rentTypeKey = mode === 'full' ? 'unitRentType' : 'rentType'
-      const hasTenant = !!(
-        mappedRow.tenantFirstName?.trim() ||
-        mappedRow.tenantLastName?.trim() ||
-        mappedRow.tenantCommercialName?.trim()
-      )
-      if (hasTenant && !mappedRow[rentTypeKey]) {
-        mappedRow[rentTypeKey] = 'Annually'
-      }
+      mappedRow[rentTypeKey] = normalizeRentType(mappedRow[rentTypeKey])
 
       const hasTenantName = !!(
         mappedRow.tenantFirstName?.trim() || mappedRow.tenantLastName?.trim()
@@ -820,6 +844,8 @@ export const useDataImport = (
     setDateOrderIsAmbiguous,
     swapNameOrder,
     setSwapNameOrder,
+    swapLandlordNameOrder,
+    setSwapLandlordNameOrder,
     dateOrder,
     setDateOrder,
     dateOrderIsAmbiguous,

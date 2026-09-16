@@ -26,7 +26,6 @@ const COMPULSORY_KEYS = [
   'unitRentAmount',
   'unitRentAmountPaid',
   'unitRentStartDate',
-  'unitRentType',
 ] as const
 
 const OPTIONAL_EXAMPLES: Record<string, string> = {
@@ -35,8 +34,7 @@ const OPTIONAL_EXAMPLES: Record<string, string> = {
   propertyCountry: 'Nigeria',
   propertyState: 'Lagos',
   propertyArea: 'Lekki',
-  landlordFirstName: 'Adebayo',
-  landlordLastName: 'Alabi',
+  landlordFirstName: 'Adebayo Alabi',
   landlordEmail: 'adebayo@email.com',
   landlordPhone: '08098765432',
   tenantCommercialName: 'Upward Ltd',
@@ -44,6 +42,8 @@ const OPTIONAL_EXAMPLES: Record<string, string> = {
   tenantEmail: 'daniel@email.com',
   tenantAdditionalPhone: '08033334444',
   unitName: 'Flat 3',
+  unitRentType: 'Annually',
+  rentType: 'Annually',
   leaseYears: '2',
   unitCurrency: 'NGN',
   unitRentDueDate: '15/01/2026',

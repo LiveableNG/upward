@@ -46,13 +46,28 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: AdminJwtPayload) {
     let isBlocked = false
     let isManuallyBlocked = false
+    let ownerPmId: number | undefined = undefined
+    let employeeId: number | undefined = undefined
+
     if ((payload.role as string) === 'PM') {
       const pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: payload.sub },
-        select: { isBlocked: true, isManuallyBlocked: true } as any,
+        select: { id: true, isBlocked: true, isManuallyBlocked: true } as any,
       })
       isBlocked = (pm as any)?.isBlocked ?? false
       isManuallyBlocked = (pm as any)?.isManuallyBlocked ?? false
+      ownerPmId = (pm as any)?.id
+    } else if ((payload.role as string) === 'PM_EMPLOYEE') {
+      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+        where: { uuid: payload.sub },
+        include: { ownerPm: { select: { isBlocked: true, isManuallyBlocked: true } } },
+      })
+      if (employee) {
+        employeeId = employee.id
+        ownerPmId = employee.ownerPmId
+        isBlocked = employee.status === 'SUSPENDED' || employee.status === 'REVOKED' || (employee.ownerPm?.isBlocked ?? false)
+        isManuallyBlocked = employee.ownerPm?.isManuallyBlocked ?? false
+      }
     }
 
     return {
@@ -60,6 +75,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       sub: payload.sub,
       email: payload.email,
       role: payload.role,
+      ownerPmId,
+      employeeId,
       mustChangePassword: payload.mustChangePassword,
       isBlocked,
       isManuallyBlocked,

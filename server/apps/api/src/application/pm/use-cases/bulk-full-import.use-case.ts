@@ -14,6 +14,8 @@ import { BulkInviteTenantsUseCase } from './tenants/bulk-invite-tenants.use-case
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { LandlordService } from '../services/landlord.service';
 
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
+
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
   if (cleaned.startsWith('0') && cleaned.length === 11) {
@@ -28,6 +30,38 @@ function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   return cleaned;
 }
 
+function normalizeRentType(val?: string | null): string {
+  if (!val) return 'Annually';
+  const clean = val.toString().trim().toLowerCase();
+  if (['monthly', 'month', 'per month', 'mo', 'm'].includes(clean) || clean.includes('month')) {
+    return 'Monthly';
+  }
+  if (['lease', 'multi-year', 'multi year'].includes(clean) || clean.includes('lease')) {
+    return 'Lease';
+  }
+  if (
+    [
+      'annually',
+      'annual',
+      'yearly',
+      'year',
+      'per annum',
+      'annum',
+      'pa',
+      'p.a.',
+      'yr',
+      '1 year',
+      'per year',
+      '1 yr',
+    ].includes(clean) ||
+    clean.includes('year') ||
+    clean.includes('annu')
+  ) {
+    return 'Annually';
+  }
+  return 'Annually';
+}
+
 @Injectable()
 export class BulkFullImportUseCase {
   constructor(
@@ -39,9 +73,10 @@ export class BulkFullImportUseCase {
     private readonly bulkInviteUseCase: BulkInviteTenantsUseCase,
     private readonly prisma: PrismaService,
     private readonly landlordService: LandlordService,
+    private readonly activityLog: ActivityLogService,
   ) {}
 
-  async execute(pmId: number, dto: BulkFullImportDto) {
+  async execute(pmId: number, dto: BulkFullImportDto, actor?: any) {
     const { rows, inviteAfterImport } = dto;
 
     for (const row of rows) {
@@ -91,9 +126,12 @@ export class BulkFullImportUseCase {
         if (match) {
           property = { id: match.id, uuid: match.uuid };
         } else {
-          const landlordName = row.landlordFirstName
-            ? `${row.landlordFirstName} ${row.landlordLastName || ''}`.trim()
-            : undefined;
+          const landlordName = (
+            row.landlordName ||
+            (row.landlordLastName && !row.landlordFirstName?.toLowerCase().includes(row.landlordLastName.toLowerCase())
+              ? `${row.landlordFirstName} ${row.landlordLastName}`.trim()
+              : row.landlordFirstName?.trim())
+          ) || undefined;
 
           let landlordId: number | null = null;
           if (row.landlordEmail) {
@@ -125,6 +163,40 @@ export class BulkFullImportUseCase {
             landlordPhone: row.landlordPhone || null,
           });
           property = { id: created.id, uuid: created.uuid };
+
+          if (actor?.employeeId && created.id) {
+            await (this.prisma as any).upward_pm_employee_property.upsert({
+              where: {
+                employeeId_propertyId: {
+                  employeeId: actor.employeeId,
+                  propertyId: created.id,
+                },
+              },
+              create: {
+                employeeId: actor.employeeId,
+                propertyId: created.id,
+                ownerPmId: pmId,
+              },
+              update: {},
+            }).catch(() => {});
+          }
+        }
+
+        if (actor?.employeeId && property?.id) {
+          await (this.prisma as any).upward_pm_employee_property.upsert({
+            where: {
+              employeeId_propertyId: {
+                employeeId: actor.employeeId,
+                propertyId: property.id,
+              },
+            },
+            create: {
+              employeeId: actor.employeeId,
+              propertyId: property.id,
+              ownerPmId: pmId,
+            },
+            update: {},
+          }).catch(() => {});
         }
 
         propertyCache.set(propertyKey, property);
@@ -211,7 +283,7 @@ export class BulkFullImportUseCase {
         continue;
       }
 
-      let inferredRentType = row.unitRentType;
+      let inferredRentType = row.unitRentType ? normalizeRentType(row.unitRentType) : undefined;
       if (!inferredRentType && row.unitRentStartDate && row.unitRentDueDate) {
         const start = new Date(row.unitRentStartDate);
         const due = new Date(row.unitRentDueDate);
@@ -281,6 +353,21 @@ export class BulkFullImportUseCase {
       });
       bulkInviteId = result.bulkInviteId;
     }
+
+    const ownerPmId = actor?.ownerPmId || pmId;
+    await this.activityLog.log({
+      pmId: actor?.isEmployee ? ownerPmId : pmId,
+      ownerPmId,
+      employeeId: actor?.isEmployee ? actor.employeeId : undefined,
+      action: ActivityAction.BULK_FULL_IMPORT,
+      entityType: 'PROPERTY_IMPORT',
+      description: `Bulk imported ${propertyCache.size} properties and ${rows.length} units with tenant records`,
+      metadata: {
+        propertiesCount: propertyCache.size,
+        unitsCount: rows.length,
+        tenantsCount: createdTenantUuids.length,
+      }
+    });
 
     return {
       success: true,

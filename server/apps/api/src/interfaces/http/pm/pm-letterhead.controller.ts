@@ -44,6 +44,22 @@ export class PmLetterheadController {
 
   private async getActorPm(req: FastifyRequest) {
     if (!req.user?.sub) throw new UnauthorizedException()
+    if (req.user.role === 'PM_EMPLOYEE') {
+      let ownerPmId = (req.user as any).ownerPmId
+      if (!ownerPmId) {
+        const employee = await (this.prisma as any).upward_pm_employee.findUnique({
+          where: { uuid: req.user.sub },
+          select: { ownerPmId: true },
+        })
+        ownerPmId = employee?.ownerPmId
+      }
+      if (ownerPmId) {
+        const pm = await this.prisma.upward_property_manager.findUnique({
+          where: { id: ownerPmId },
+        })
+        if (pm) return pm
+      }
+    }
     const pm = await this.prisma.upward_property_manager.findUnique({
       where: { uuid: req.user.sub },
     })

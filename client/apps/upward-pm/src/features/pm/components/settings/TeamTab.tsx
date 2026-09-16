@@ -1,20 +1,23 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { 
   Users, 
   UserPlus, 
   Shield, 
   Trash2, 
-  Settings2,
-  Building2,
-  CheckCircle2,
-  Clock,
-  Info,
-  History,
-  ArrowRightLeft,
-  Send
+  Settings2, 
+  Building2, 
+  CheckCircle2, 
+  Clock, 
+  Info, 
+  History, 
+  ArrowRightLeft, 
+  Send,
+  Activity
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { useTeam, useRevokeMember, useResendTeamInvite } from '@/features/pm/hooks/useTeam'
 import { InviteMemberModal } from './modals/InviteMemberModal'
 import { UpdatePermissionsModal } from './modals/UpdatePermissionsModal'
@@ -74,9 +77,10 @@ export function TeamTab() {
     {
       header: 'Role',
       render: (collab) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
-          <Shield size={16} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className={cn('role-tag', collab.accessLevel === 'ALL' ? 'role-tag--admin' : 'role-tag--employee')}>
+            {collab.accessLevel === 'ALL' ? 'ADMIN' : (collab.member?.jobTitle || 'EMPLOYEE')}
+          </span>
         </div>
       )
     },
@@ -240,8 +244,9 @@ export function TeamTab() {
         color: 'var(--text-secondary)' 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-          <Shield size={14} color={collab.accessLevel === 'ALL' ? 'var(--accent)' : 'var(--forest)'} />
-          {collab.accessLevel === 'ALL' ? 'Admin' : 'Manager'}
+          <span className={cn('role-tag', collab.accessLevel === 'ALL' ? 'role-tag--admin' : 'role-tag--employee')} style={{ transform: 'scale(0.9)', transformOrigin: 'left' }}>
+            {collab.accessLevel === 'ALL' ? 'ADMIN' : (collab.member?.jobTitle || 'EMPLOYEE')}
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Building2 size={14} />
@@ -313,6 +318,13 @@ export function TeamTab() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: 'max-content' }} className="team-header-actions">
+          <Link
+            href="/team/activity"
+            className="btn btn--secondary"
+            style={{ borderRadius: 12, height: 42, padding: '0 14px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, flex: '1 1 auto', justifyContent: 'center', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          >
+            <Activity size={16} color="var(--forest)" /> Activity Dashboard
+          </Link>
           <button
             className="btn btn--secondary"
             onClick={() => {
@@ -349,13 +361,16 @@ export function TeamTab() {
           <Info size={18} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 4px', color: 'var(--dark)' }}>How Collaboration Works</h4>
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0, maxWidth: 800 }}>
-            You can invite other PMs to manage your properties. Collaborators can manage rent, edit unit details, and create payment requests.
-            Choose <strong>Admin</strong> for access to all properties (including ones added later), or <strong>Manager</strong> for assigned properties only (you can invite first and assign later).
+          <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 4px', color: 'var(--dark)' }}>Team Roles & Permissions</h4>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0, maxWidth: 850 }}>
+            Invite team members to collaborate on your property portfolio. Collaborators can record rent payments, manage units, and issue invoices.
           </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, margin: '8px 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div>• <strong>Admin:</strong> Full access across all current and future properties in your organization.</div>
+            <div>• <strong>Manager:</strong> Scoped access restricted only to properties you explicitly assign (you can assign properties now or update them at any time).</div>
+          </div>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '8px 0 0' }}>
-            <strong>Privacy Note:</strong> If an invited manager creates a new property of their own, you will not have access to it unless they invite you back. Access is strictly per-property.
+            <strong>Access & Security:</strong> Managers can only view and manage the properties assigned to them. All properties, units, and payment records created by team members belong to your company workspace.
           </p>
         </div>
       </div>

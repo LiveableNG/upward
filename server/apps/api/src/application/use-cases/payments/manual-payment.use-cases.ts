@@ -24,25 +24,74 @@ export class AddManualAccountUseCase {
       throw new Error('Must provide either userPropertyId or pmPropertyId')
     }
 
-    return this.prisma.upward_manual_account.upsert({
-      where: data.userPropertyId 
-        ? { userPropertyId: data.userPropertyId } 
-        : { pmPropertyId: data.pmPropertyId },
-      create: {
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        bankName: data.bankName,
-        bankCode: data.bankCode,
-        userPropertyId: data.userPropertyId,
-        pmPropertyId: data.pmPropertyId,
-      },
-      update: {
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        bankName: data.bankName,
-        bankCode: data.bankCode,
+    if (data.userPropertyId) {
+      const prop = await this.prisma.upward_user_property.findUnique({
+        where: { id: data.userPropertyId },
+        select: { id: true, manualAccountId: true }
+      })
+      if (!prop) throw new NotFoundException('User property not found')
+
+      if ((prop as any)?.manualAccountId) {
+        return this.prisma.upward_manual_account.update({
+          where: { id: (prop as any).manualAccountId },
+          data: {
+            accountNumber: data.accountNumber,
+            accountName: data.accountName,
+            bankName: data.bankName,
+            bankCode: data.bankCode,
+          }
+        })
+      } else {
+        const account = await this.prisma.upward_manual_account.create({
+          data: {
+            accountNumber: data.accountNumber,
+            accountName: data.accountName,
+            bankName: data.bankName,
+            bankCode: data.bankCode,
+          }
+        })
+        await (this.prisma as any).upward_user_property.update({
+          where: { id: data.userPropertyId },
+          data: { manualAccountId: account.id }
+        })
+        return account
       }
-    })
+    }
+
+    if (data.pmPropertyId) {
+      const pmProp = await this.prisma.upward_pm_property.findUnique({
+        where: { id: data.pmPropertyId },
+        select: { id: true, manualAccountId: true, pmId: true } as any
+      })
+      if (!pmProp) throw new NotFoundException('PM property not found')
+
+      if ((pmProp as any)?.manualAccountId) {
+        return this.prisma.upward_manual_account.update({
+          where: { id: (pmProp as any).manualAccountId },
+          data: {
+            accountNumber: data.accountNumber,
+            accountName: data.accountName,
+            bankName: data.bankName,
+            bankCode: data.bankCode,
+          }
+        })
+      } else {
+        const account = await this.prisma.upward_manual_account.create({
+          data: {
+            accountNumber: data.accountNumber,
+            accountName: data.accountName,
+            bankName: data.bankName,
+            bankCode: data.bankCode,
+            pmId: (pmProp as any)?.pmId ?? null,
+          }
+        })
+        await this.prisma.upward_pm_property.update({
+          where: { id: data.pmPropertyId },
+          data: { manualAccountId: account.id }
+        })
+        return account
+      }
+    }
   }
 }
 

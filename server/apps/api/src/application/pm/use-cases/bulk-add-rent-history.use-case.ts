@@ -1,5 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { IUnitRepository, PM_UNIT_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { IUnitRepository, PM_UNIT_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository';
 import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
@@ -7,12 +7,16 @@ import { BulkAddRentHistoryDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { SingleInviteUseCase } from '../../use-cases/external/single-invite.use-case';
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
+import { ActivityLogService, ActivityAction } from '../../../shared/application/activity-log.service';
+import { RentalPeriodService } from '../../services/rental-period.service';
 
 @Injectable()
 export class BulkAddRentHistoryUseCase {
   constructor(
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
+    @Inject(PM_PROPERTY_REPOSITORY)
+    private readonly propertyRepository: IPropertyRepository,
     @Inject(PM_TENANT_REPOSITORY)
     private readonly tenantRepository: ITenantRepository,
     @Inject(USER_REPOSITORY)
@@ -23,16 +27,25 @@ export class BulkAddRentHistoryUseCase {
     private readonly encryption: EncryptionService,
     private readonly singleInviteUseCase: SingleInviteUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly activityLog: ActivityLogService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
-  async execute(pmId: number, dto: BulkAddRentHistoryDto) {
+  async execute(pmId: number, dto: BulkAddRentHistoryDto, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepository.findByUuid(dto.unitUuid);
     if (!unit) {
       throw new NotFoundException('Unit not found');
     }
 
-    const pm = await this.pmRepo.findById(pmId);
+    const hasAccess = await this.propertyRepository.hasAccessToProperty(ownerPmId, unit.propertyId, actor);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this unit');
+    }
+
+    const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
+
 
     const results = {
       total: dto.rows.length,
@@ -46,37 +59,32 @@ export class BulkAddRentHistoryUseCase {
 
     for (const row of dto.rows) {
       try {
-        const email = row.tenantEmail.trim().toLowerCase();
-        const emailHash = this.encryption.hash(email);
+        const email = row.tenantEmail?.trim();
+        const emailHash = email ? this.encryption.hash(email) : null;
         
         // 1. Check if it's the current tenant or a past one
-        const isCurrentTenant = unit.tenant?.email?.toLowerCase() === email;
+        const isCurrentTenant = unit.tenant && emailHash && unit.tenant.emailHash === emailHash;
         const tenant = isCurrentTenant 
           ? unit.tenant 
-          : await this.tenantRepository.findByEmailHash(pmId, emailHash);
+          : (emailHash ? await this.tenantRepository.findByEmailHash(pmId, emailHash) : null);
 
         // 2. Add Rent Payment on PM Side
-        let periodEnd: Date | null = row.periodEnd ? new Date(row.periodEnd) : null;
-        if (!periodEnd) {
-          const start = new Date(row.periodStart);
-          periodEnd = new Date(start);
-          if (unit.rentType === 'Monthly') {
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
-          } else if (unit.rentType === 'Lease') {
-            const years = Math.max(1, (unit as any).leaseYears || 1);
-            periodEnd.setFullYear(periodEnd.getFullYear() + years);
-          } else {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-          }
-          periodEnd.setDate(periodEnd.getDate() - 1);
-
+        const start = this.rentalPeriodService.parseCalendarDate(row.periodStart);
+        let periodEnd = this.rentalPeriodService.parseCalendarDate(row.periodEnd);
+        if (!periodEnd && start) {
+          periodEnd = this.rentalPeriodService.calculateNextPeriod(
+            start,
+            start,
+            unit.rentType,
+            (unit as any).leaseYears,
+          ).nextEnd;
         }
 
         const payment = await this.unitRepository.addRentPayment(dto.unitUuid, {
           amount: row.amount,
           rentAmountAtPayment: unit.rentAmount,
           paymentDate: new Date(row.paymentDate),
-          periodStart: new Date(row.periodStart),
+          periodStart: start,
           periodEnd,
           method: row.method || 'Bank Transfer',
           reference: null,
@@ -132,22 +140,6 @@ export class BulkAddRentHistoryUseCase {
                 });
               }
 
-              // 4. Create Rent Cycle record linked to the user's property link
-              await this.prisma.upward_rent_cycle.create({
-                data: {
-                  userId: user.id!,
-                  userPropertyId: userProperty.id,
-                  amountOwed: row.amount,
-                  amountPaid: row.amount,
-                  currency: unit.currency || 'NGN',
-                  dueDate: row.periodEnd ? new Date(row.periodEnd) : new Date(row.paymentDate),
-                  paidAt: new Date(row.paymentDate),
-                  status: 'PAID',
-                  description: row.notes || `Rent record added by ${pm.businessName || 'Manager'}`,
-                  source: 'PM_SYNC',
-                }
-              });
-
               if (!emailedUsers.has(email)) {
                 const isShadowUser = user.passwordHash === PASS_PLACEHOLDERS.INVITED || user.passwordHash === PASS_PLACEHOLDERS.SHADOW;
                 const propertyAddress = unit.property?.address || unit.property?.name || 'your rental property';
@@ -184,49 +176,29 @@ export class BulkAddRentHistoryUseCase {
     // Recalculate unit's active occupancy period based on all payments after bulk import
     if (unit.tenantId) {
       try {
-        const allPaymentsAfter = await this.unitRepository.getRentPayments(dto.unitUuid);
-        const tenantPayments = allPaymentsAfter.filter(p => p.tenantId === unit.tenantId && p.periodStart);
-
-        const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number; amountDue: number }>();
-        for (const p of tenantPayments) {
-          const key = new Date(p.periodStart!).toISOString().split('T')[0]!;
-          if (!periodMap.has(key)) {
-            periodMap.set(key, {
-              periodStart: new Date(p.periodStart!),
-              periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart!),
-              total: 0,
-              amountDue: p.rentAmountAtPayment
-            });
-          }
-          periodMap.get(key)!.total += p.amount;
-        }
-
-        const sortedPeriods = Array.from(periodMap.values()).sort(
-          (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
-        );
-
-        const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= p.amountDue);
-
-        if (fullyPaidPeriods.length > 0) {
-          const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
-          await this.unitRepository.update(dto.unitUuid, {
-            rentStartDate: latestFullyPaid.periodStart,
-            rentDueDate: latestFullyPaid.periodEnd
-          });
-
-          if (unit.isSynced && unit.userPropertyUuid) {
-            await this.prisma.upward_user_property.updateMany({
-              where: { uuid: unit.userPropertyUuid },
-              data: {
-                rentStartDate: latestFullyPaid.periodStart,
-                rentEndDate: latestFullyPaid.periodEnd
-              }
-            });
-          }
-        }
+        await this.rentalPeriodService.syncUnitPropertyState(unit.id);
       } catch (err) {
-        console.error('Failed to recalculate unit dates after bulk rent history import:', err);
+        console.error('Failed to sync unit property state after bulk rent history import:', err);
       }
+    }
+
+    if (results.success > 0) {
+      await this.activityLog.log({
+        pmId,
+        ownerPmId,
+        employeeId: actor?.employeeId,
+        action: ActivityAction.ADD_RENT_HISTORY,
+        entityType: 'RENT_PAYMENT',
+        entityId: unit.uuid,
+        description: `Imported ${results.success} rent payment records for unit ${unit.unitName || unit.uuid}`,
+        metadata: {
+          unitUuid: unit.uuid,
+          unitName: unit.unitName,
+          propertyName: unit.property?.name,
+          successCount: results.success,
+          totalRows: dto.rows.length,
+        },
+      }).catch(err => console.error('[BulkAddRentHistoryUseCase] Failed to log activity:', err));
     }
 
     return results;
