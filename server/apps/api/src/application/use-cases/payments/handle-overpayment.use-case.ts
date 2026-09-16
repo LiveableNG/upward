@@ -40,7 +40,7 @@ export class HandlePaymentOverpaymentUseCase {
     let resolvedUserPropertyId = userPropertyId
 
     if (!resolvedUserPropertyId && paymentRequestId) {
-      const pr = await client.upward_pm_payment_request.findUnique({
+      const pr = await client.upward_payment_request.findUnique({
         where: { id: paymentRequestId },
         select: { userPropertyId: true },
       })
