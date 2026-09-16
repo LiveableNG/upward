@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import {
   Sparkles,
@@ -9,15 +10,21 @@ import {
   Check,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeft,
   CreditCard,
   Download,
   Loader2,
+  Wallet,
+  TrendingUp,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import '@/styles/deposit-balance.css'
 
 export default function RentDepositBalancePage() {
+  const router = useRouter()
   const [copied, setCopied] = useState(false)
   const [downloadingUuid, setDownloadingUuid] = useState<string | null>(null)
 
@@ -74,18 +81,33 @@ export default function RentDepositBalancePage() {
 
   return (
     <div className="deposit-balance-page">
-      {/* Top Title */}
-      <div className="deposit-balance__header">
-        <h1 className="deposit-balance__title">Rent Deposit Balance</h1>
-        <p className="deposit-balance__subtitle">
-          Manage advance deposits, overpayment credits, and top-ups linked to your tenancy.
-        </p>
+      {/* Top Header with Back Navigation */}
+      <div className="deposit-balance__header-wrap">
+        <button
+          type="button"
+          className="deposit-balance__back-button"
+          onClick={() => router.push('/dashboard')}
+          aria-label="Back to Dashboard"
+          title="Back to Dashboard"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div className="deposit-balance__header-text">
+          <h1 className="deposit-balance__title">Rent Deposit Balance</h1>
+          <p className="deposit-balance__subtitle">
+            Manage advance deposits, overpayment credits, and top-ups linked to your tenancy.
+          </p>
+        </div>
       </div>
 
       {/* Grid: Left Balance + Right DVA Top-Up */}
       <div className="deposit-balance__grid">
         {/* Left: Hero Balance Card */}
         <div className="deposit-hero-card">
+          <div className="deposit-hero-card__watermark">
+            <Wallet size={160} />
+          </div>
+
           <div className="deposit-hero-card__top">
             <span className="deposit-hero-card__label">Available Deposit</span>
             <div className="deposit-hero-card__badge">
@@ -94,7 +116,7 @@ export default function RentDepositBalancePage() {
             </div>
           </div>
 
-          <div>
+          <div className="deposit-hero-card__content">
             <div className="deposit-hero-card__amount">
               {formatCurrency(availableBalance, currency || 'NGN')}
             </div>
@@ -159,37 +181,63 @@ export default function RentDepositBalancePage() {
         </div>
       </div>
 
-      {/* How It Works Explainer */}
-      <div className="deposit-explainer">
-        <h3 className="deposit-explainer__title">
-          <Sparkles size={18} style={{ color: 'var(--clay)' }} />
-          How Rent Deposit Balance Works
-        </h3>
+      {/* Coming Soon: Rent Savings & Score Growth */}
+      <div className="deposit-roadmap-card">
+        <div className="deposit-roadmap-card__header">
+          <div className="deposit-roadmap-card__title-wrap">
+            <div className="deposit-roadmap-card__icon">
+              <TrendingUp size={20} />
+            </div>
+            <div>
+              <div className="deposit-roadmap-card__tag-row">
+                <h3 className="deposit-roadmap-card__title">Savings Towards Future Rent</h3>
+                <span className="deposit-roadmap-card__badge">Coming Soon</span>
+              </div>
+              <p className="deposit-roadmap-card__subtitle">
+                How your stored balance will soon work harder for your tenancy and credit health.
+              </p>
+            </div>
+          </div>
+        </div>
 
-        <div className="deposit-explainer__steps">
-          <div className="deposit-step">
-            <div className="deposit-step__number">1</div>
-            <h4 className="deposit-step__heading">Transfer Anytime</h4>
-            <p className="deposit-step__body">
-              Send any amount to your Dedicated Virtual Account or pay above your invoice total.
-            </p>
+        <div className="deposit-roadmap-card__grid">
+          <div className="deposit-roadmap-item">
+            <div className="deposit-roadmap-item__icon-box">
+              <Sparkles size={16} />
+            </div>
+            <div className="deposit-roadmap-item__content">
+              <h4 className="deposit-roadmap-item__heading">Credit Score & Credibility Boost</h4>
+              <p className="deposit-roadmap-item__body">
+                Maintaining advance deposits will count directly toward your tenant credibility,
+                accelerating credit score growth for landlords and future lenders.
+              </p>
+            </div>
           </div>
 
-          <div className="deposit-step">
-            <div className="deposit-step__number">2</div>
-            <h4 className="deposit-step__heading">Held Safely in Balance</h4>
-            <p className="deposit-step__body">
-              All hanging or excess funds are instantly stored in your verified Rent Deposit Balance.
-            </p>
+          <div className="deposit-roadmap-item">
+            <div className="deposit-roadmap-item__icon-box">
+              <Clock size={16} />
+            </div>
+            <div className="deposit-roadmap-item__content">
+              <h4 className="deposit-roadmap-item__heading">Automated Invoice Settlement</h4>
+              <p className="deposit-roadmap-item__body">
+                When your next rent bill is issued, your verified balance will automatically settle
+                or discount your payment without manual transfer steps.
+              </p>
+            </div>
           </div>
 
-          <div className="deposit-step">
-            <div className="deposit-step__number">3</div>
-            <h4 className="deposit-step__heading">Apply During Rent Checkout</h4>
-            <p className="deposit-step__body">
-              When a rent invoice is issued, you decide how much of your balance to apply towards your
-              bill or specific line items during payment checkout.
-            </p>
+          <div className="deposit-roadmap-item">
+            <div className="deposit-roadmap-item__icon-box">
+              <ShieldCheck size={16} />
+            </div>
+            <div className="deposit-roadmap-item__content">
+              <h4 className="deposit-roadmap-item__heading">Zero Late Fees & Tenancy Security</h4>
+              <p className="deposit-roadmap-item__body">
+                Your capital stays 100% secure, dedicated to your home, protecting your on-time
+                payment record against unexpected bank delays.
+              </p>
+            </div>
           </div>
         </div>
       </div>

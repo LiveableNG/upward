@@ -182,7 +182,7 @@ export class ReceiptService {
         data.totalInvoiceAmount !== undefined &&
         data.rentAmount !== undefined &&
         data.totalInvoiceAmount !== data.rentAmount
-      const statCardLabel = (data.lineItems && data.lineItems.length > 1) || isInvoiceTotalDifferentFromRent ? 'Total due' : 'Total rent'
+      const statCardLabel = (data.lineItems && data.lineItems.length > 1) || isInvoiceTotalDifferentFromRent ? 'Total due' : 'Total due'
       const statCardAmount = isInvoiceTotalDifferentFromRent ? (data.totalInvoiceAmount || data.amount) : (data.rentAmount || data.amount)
 
       const totalRent = statCardAmount

@@ -18,59 +18,59 @@ export function RentDepositCard() {
   if (!summary) return null
 
   const { availableBalance, currency, property } = summary
-  const hasBalance = availableBalance > 0
-  const hasDva = !!property?.dva?.accountNumber
+  const hasBalance = (availableBalance || 0) > 0
 
-  if (!hasBalance && !hasDva) return null
+  // Strictly only show if the user actually has a deposit balance (e.g. from an overpayment)
+  if (!hasBalance) return null
 
   return (
     <div
       className="dashboard__deposit-card"
       onClick={() => router.push('/dashboard/deposit-balance')}
       style={{
-        background: hasBalance
-          ? 'linear-gradient(135deg, #18181b 0%, #27272a 100%)'
-          : 'var(--surface)',
+        background: '#ffffff',
         border: hasBalance
-          ? '1px solid rgba(217, 119, 87, 0.3)'
-          : '1px solid var(--border)',
+          ? '1px solid rgba(217, 119, 87, 0.25)'
+          : '1px solid var(--border-solid, #ebe4da)',
         borderRadius: '16px',
-        padding: '20px 24px',
+        padding: '16px 20px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         cursor: 'pointer',
         transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
         boxShadow: hasBalance
-          ? '0 8px 24px rgba(0, 0, 0, 0.12)'
+          ? '0 4px 16px -2px rgba(217, 119, 87, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02)'
           : '0 2px 8px rgba(0, 0, 0, 0.02)',
-        marginBottom: '20px',
+        marginBottom: '14px',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
         <div
           style={{
-            width: '44px',
-            height: '44px',
+            width: '42px',
+            height: '42px',
             borderRadius: '12px',
-            background: hasBalance ? 'rgba(217, 119, 87, 0.18)' : 'var(--clay-faint)',
+            background: 'var(--clay-faint)',
             color: 'var(--clay)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
+            boxShadow: 'inset 0 0 0 1px rgba(217, 119, 87, 0.15)',
           }}
         >
-          {hasBalance ? <Sparkles size={22} /> : <Building size={22} />}
+          {hasBalance ? <Sparkles size={20} /> : <Building size={20} />}
         </div>
 
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
             <span
               style={{
                 fontSize: '14px',
-                fontWeight: 600,
-                color: hasBalance ? '#ffffff' : 'var(--text)',
+                fontWeight: 700,
+                color: 'var(--text)',
+                letterSpacing: '-0.01em',
               }}
             >
               Rent Deposit Balance
@@ -79,37 +79,41 @@ export function RentDepositCard() {
               <span
                 style={{
                   fontSize: '11px',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   padding: '2px 8px',
-                  background: 'rgba(34, 197, 94, 0.15)',
-                  color: '#4ade80',
+                  background: 'rgba(34, 197, 94, 0.12)',
+                  color: '#15803d',
                   borderRadius: '12px',
                 }}
               >
-                Available for Rent
+                Active & Ready
               </span>
             )}
           </div>
           <p
             style={{
               fontSize: '12.5px',
-              color: hasBalance ? 'rgba(255, 255, 255, 0.7)' : 'var(--text-muted)',
+              color: 'var(--text-muted)',
+              lineHeight: 1.35,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {hasBalance
-              ? `${formatCurrency(availableBalance, currency)} available for upcoming rent`
+              ? `${formatCurrency(availableBalance, currency)} stored for upcoming rent`
               : 'Direct Nuban DVA top-up ready'}
           </p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, marginLeft: '12px' }}>
         {hasBalance && (
           <span
             style={{
-              fontSize: '18px',
-              fontWeight: 700,
-              color: '#ffffff',
+              fontSize: '16px',
+              fontWeight: 800,
+              color: 'var(--text)',
               letterSpacing: '-0.02em',
             }}
           >
@@ -118,17 +122,18 @@ export function RentDepositCard() {
         )}
         <div
           style={{
-            width: '32px',
-            height: '32px',
+            width: '30px',
+            height: '30px',
             borderRadius: '8px',
-            background: hasBalance ? 'rgba(255, 255, 255, 0.1)' : 'var(--surface2)',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: hasBalance ? '#ffffff' : 'var(--text-secondary)',
+            color: 'var(--text-secondary)',
           }}
         >
-          <ArrowUpRight size={16} />
+          <ArrowUpRight size={15} />
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ interface RentDepositApplicationCardProps {
     appliedAmount: number,
     allocations?: Array<{ lineItemId: number; amount: number }>,
   ) => void
-  onSettledSuccess?: (isFullSettlement?: boolean) => void
+  onSettledSuccess?: (isFullSettlement?: boolean, transactionUuid?: string) => void
 }
 
 export function RentDepositApplicationCard({
@@ -213,9 +213,13 @@ export function RentDepositApplicationCard({
       queryClient.invalidateQueries({ queryKey: ['rent-deposit-summary'] })
       queryClient.invalidateQueries({ queryKey: ['payment-request'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['score-profile'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-counts'] })
+
+      const txUuid = res?.data?.transactionUuid || res?.transactionUuid
 
       setSuccessMessage('Deposit applied successfully!')
-      onSettledSuccess?.(isFullSettlement)
+      onSettledSuccess?.(isFullSettlement, txUuid)
     } catch (err: any) {
       setErrorMessage(
         err?.message || 'Failed to apply rent deposit balance. Please try again.',

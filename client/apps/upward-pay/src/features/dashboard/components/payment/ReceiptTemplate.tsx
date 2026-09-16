@@ -120,7 +120,7 @@ export default function ReceiptTemplate({
   const statCardLabel =
     (receipt.lineItems && receipt.lineItems.length > 1) || isInvoiceTotalDifferentFromRent
       ? 'Total due'
-      : 'Total rent'
+      : 'Total due'
   const statCardAmount = isInvoiceTotalDifferentFromRent
     ? (receipt.totalInvoiceAmount ?? receipt.amount)
     : (receipt.rentAmount ?? receipt.totalInvoiceAmount ?? receipt.amount)

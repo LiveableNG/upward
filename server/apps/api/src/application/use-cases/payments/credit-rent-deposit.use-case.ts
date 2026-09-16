@@ -4,6 +4,8 @@ import {
   IRentDepositBalanceRepository,
 } from '../../../domains/payments/rent-deposit.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 
 @Injectable()
 export class CreditRentDepositUseCase {
@@ -13,6 +15,8 @@ export class CreditRentDepositUseCase {
     @Inject(RENT_DEPOSIT_BALANCE_REPOSITORY)
     private readonly depositRepo: IRentDepositBalanceRepository,
     private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+    private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
   async execute(params: {
@@ -96,13 +100,72 @@ export class CreditRentDepositUseCase {
         data: {
           userId,
           title: 'Rent Deposit Received',
-          message: `₦${amount.toLocaleString()} has been added to your Rent Deposit Balance. Updated balance: ₦${balanceAfter.toLocaleString()}.`,
+          message: `${currency} ${amount.toLocaleString()} has been added to your Rent Deposit Balance. Updated balance: ${currency} ${balanceAfter.toLocaleString()}.`,
           type: 'PAYMENT',
           url: '/dashboard/deposit-balance',
         },
       })
     } catch (notifErr: any) {
       this.logger.warn(`Failed to create deposit notification: ${notifErr.message}`)
+    }
+
+    // Send dedicated email notification to the tenant
+    try {
+      const user = await this.prisma.upward_user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true, email: true, phone: true },
+      })
+
+      if (user && user.email) {
+        const decryptedEmail = this.encryption.decrypt(user.email)
+        const decryptedPhone = user.phone ? this.encryption.decrypt(user.phone) : null
+        const firstName = user.firstName ? this.encryption.decrypt(user.firstName) : ''
+        const lastName = user.lastName ? this.encryption.decrypt(user.lastName) : ''
+        const fullName = `${firstName} ${lastName}`.trim() || 'Tenant'
+
+        let propertyAddress = ''
+        if (userPropertyId) {
+          const prop = await this.prisma.upward_user_property.findUnique({
+            where: { id: userPropertyId },
+            include: {
+              pmUnit: { include: { property: true } },
+              location: true,
+            },
+          })
+          propertyAddress =
+            prop?.pmUnit?.property?.name ||
+            prop?.pmUnit?.property?.address ||
+            prop?.location?.address ||
+            ''
+        }
+
+        const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
+        const depositLink = `${baseUrl}/dashboard/deposit-balance`
+        const commType = source === 'OVERPAYMENT_EXCESS' ? 'RENT_OVERPAYMENT_RECEIVED' : 'RENT_DEPOSIT_CREDITED'
+
+        await this.unifiedCommService.processCommunication({
+          userId: String(userId),
+          recipientEmail: decryptedEmail,
+          recipientName: fullName,
+          recipientPhone: decryptedPhone || undefined,
+          recipientRole: 'TENANT',
+          type: commType,
+          context: {
+            displayName: firstName || fullName,
+            tenantName: fullName,
+            amount,
+            formattedAmount: amount.toLocaleString(),
+            currency,
+            newBalance: balanceAfter,
+            formattedNewBalance: balanceAfter.toLocaleString(),
+            propertyAddress,
+            reference,
+            depositLink,
+          },
+        })
+      }
+    } catch (commErr: any) {
+      this.logger.warn(`Failed to dispatch deposit communication: ${commErr.message}`)
     }
 
     this.logger.log(
@@ -114,3 +177,4 @@ export class CreditRentDepositUseCase {
 }
 
 export { CreditRentDepositUseCase as RecordRentDepositUseCase }
+

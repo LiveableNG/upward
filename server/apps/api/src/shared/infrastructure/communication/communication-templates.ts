@@ -19,6 +19,8 @@ import {
   buildSequenceDay9Html,
   buildSequenceDay14Html,
   buildGlobalLayoutHtml,
+  buildRentOverpaymentEmailHtml,
+  buildRentDepositCreditedHtml,
 } from '../email/email.helper';
 
 export type RecipientRole = 'TENANT' | 'PM' | 'LANDLORD' | 'ADMIN';
@@ -579,5 +581,43 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     recipientRole: 'LANDLORD',
     subjectTemplate: 'Property Performance Report',
     plainTextTemplate: 'Please view the performance report in your landlord dashboard.',
+  },
+  
+  RENT_OVERPAYMENT_RECEIVED: {
+    recipientRole: 'TENANT',
+    subjectTemplate: 'Extra payment of {{currency}} {{formattedAmount}} saved to your Rent Deposit',
+    plainTextTemplate:
+      'Hi {{displayName}}, we noticed you made an overpayment of {{currency}} {{formattedAmount}} for {{propertyAddress}}. Your excess funds have been securely credited to your Rent Deposit Balance (Updated Balance: {{currency}} {{formattedNewBalance}}). View your balance: {{depositLink}}',
+    buildHtml: (ctx) =>
+      buildRentOverpaymentEmailHtml({
+        tenantName: ctx.displayName || ctx.tenantName || 'Tenant',
+        amount: ctx.amount || 0,
+        formattedAmount: ctx.formattedAmount || '0',
+        currency: ctx.currency || 'NGN',
+        newBalance: ctx.newBalance || 0,
+        formattedNewBalance: ctx.formattedNewBalance || '0',
+        propertyAddress: ctx.propertyAddress || '',
+        reference: ctx.reference || '',
+        depositLink: ctx.depositLink || 'https://upward.goodtenants.io/dashboard/deposit-balance',
+      }),
+  },
+
+  RENT_DEPOSIT_CREDITED: {
+    recipientRole: 'TENANT',
+    subjectTemplate: 'Rent deposit of {{currency}} {{formattedAmount}} received',
+    plainTextTemplate:
+      'Hi {{displayName}}, your deposit of {{currency}} {{formattedAmount}} has been received and added to your Rent Deposit Balance (Total Balance: {{currency}} {{formattedNewBalance}}). View your balance: {{depositLink}}',
+    buildHtml: (ctx) =>
+      buildRentDepositCreditedHtml({
+        tenantName: ctx.displayName || ctx.tenantName || 'Tenant',
+        amount: ctx.amount || 0,
+        formattedAmount: ctx.formattedAmount || '0',
+        currency: ctx.currency || 'NGN',
+        newBalance: ctx.newBalance || 0,
+        formattedNewBalance: ctx.formattedNewBalance || '0',
+        propertyAddress: ctx.propertyAddress || '',
+        reference: ctx.reference || '',
+        depositLink: ctx.depositLink || 'https://upward.goodtenants.io/dashboard/deposit-balance',
+      }),
   },
 };

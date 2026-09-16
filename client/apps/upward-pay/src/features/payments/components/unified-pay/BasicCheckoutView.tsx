@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, ShieldAlert, Info, ShieldCheck } from 'lucide-react'
+import { Lock, ShieldAlert, Info } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   PayFlowPrimaryButton,
@@ -13,8 +13,6 @@ import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginBu
 import { CheckoutRecipientCard } from './CheckoutRecipientCard'
 import { CheckoutAmountHero, parseRentInput } from './CheckoutAmountHero'
 import { CheckoutReceipt, type CheckoutReceiptRow } from './CheckoutReceipt'
-import { CheckoutComparisonCards } from '@/features/premium/components/CheckoutComparisonCards'
-import { RentDepositApplicationCard } from './RentDepositApplicationCard'
 
 const FEE_NAMES = new Set(['Processing Fee', 'Transaction Fee', 'Upward Benefits'])
 const FEE_IDS = new Set([-2, -3])
@@ -56,17 +54,9 @@ interface BasicCheckoutViewProps {
   authUser: { isIdentityVerified?: boolean } | null
   executeLogin: (email: string, pass: string) => void
   handleAllocationChange: (id: number, amount: number) => void
-  onPayClick: (depositInfo?: {
-    amount: number
-    allocations?: Array<{ lineItemId: number; amount: number }>
-  }) => Promise<void> | void
+  onPayClick: () => Promise<void> | void
   onReloadDetails?: () => Promise<void> | void
   onSettledSuccess?: (isFullSettlement?: boolean) => void
-  showPremiumOptions?: boolean
-  isPremiumSelected?: boolean
-  benefitsAlreadyActive?: boolean
-  onSelectStandard?: () => void
-  onSelectPremium?: () => void
   onManualPayClick?: () => void
   onCancelRequest?: () => void
   cancelLoading?: boolean
@@ -94,18 +84,12 @@ export function BasicCheckoutView({
   onPayClick,
   onReloadDetails,
   onSettledSuccess,
-  showPremiumOptions = false,
-  isPremiumSelected = false,
-  benefitsAlreadyActive = false,
-  onSelectStandard,
-  onSelectPremium,
   onManualPayClick,
   onCancelRequest,
   cancelLoading = false,
 }: BasicCheckoutViewProps) {
   const router = useRouter()
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
-  const [isApplyingDeposit, setIsApplyingDeposit] = useState(false)
 
   const loginRequired = paymentData.hasPassword && !authUser
   const isGuest = !paymentData.hasPassword
@@ -146,68 +130,14 @@ export function BasicCheckoutView({
     )
     return feeAlloc?.allocated ?? (rentSubtotal > 0 ? rates.transactionFee : 0)
   }, [visibleAllocs, rentSubtotal, rates.transactionFee])
-  const benefitsFeeAmount = useMemo(() => {
-    const benefitsAlloc = visibleAllocs.find(
-      (a) =>
-        a.id === -3 ||
-        a.name === 'Upward Benefits' ||
-        a.name === 'Rent Protection Insurance',
-    )
-    return benefitsAlloc?.allocated ?? 0
-  }, [visibleAllocs])
 
   const heroEditable =
     canPayPartial && rentLineItems.length === 1 && !isPendingRefund
 
-  const [appliedDepositAmount, setAppliedDepositAmount] = useState(0)
-  const [depositAllocations, setDepositAllocations] = useState<
-    Array<{ lineItemId: number; amount: number }>
-  >([])
-
-  const netPayable = Math.max(0, parsedAmount - appliedDepositAmount)
-
-  const handleDepositApplied = (
-    amount: number,
-    allocations?: Array<{ lineItemId: number; amount: number }>,
-  ) => {
-    setAppliedDepositAmount(amount)
-    setDepositAllocations(allocations || [])
-  }
+  const netPayable = parsedAmount
 
   const handleProceedToPay = async () => {
-    if (appliedDepositAmount > 0) {
-      setIsApplyingDeposit(true)
-      try {
-        await onPayClick({
-          amount: appliedDepositAmount,
-          allocations: depositAllocations.length > 0 ? depositAllocations : undefined,
-        })
-      } finally {
-        setIsApplyingDeposit(false)
-      }
-    } else {
-      onPayClick()
-    }
-  }
-
-  const handleDepositSettledSuccess = async (isFull?: boolean) => {
-    if (isFull) {
-      if (onSettledSuccess) {
-        onSettledSuccess(true)
-      } else if (authUser) {
-        router.replace('/dashboard')
-      } else {
-        window.location.reload()
-      }
-    } else {
-      if (onReloadDetails) {
-        await onReloadDetails()
-      } else {
-        window.location.reload()
-      }
-      setAppliedDepositAmount(0)
-      setDepositAllocations([])
-    }
+    onPayClick()
   }
 
   const receiptRows: CheckoutReceiptRow[] = useMemo(() => {
@@ -237,21 +167,6 @@ export function BasicCheckoutView({
         amount: transactionFeeAmount,
       })
     }
-    if (benefitsFeeAmount > 0) {
-      rows.push({
-        id: -3,
-        name: 'Rent Protection Insurance',
-        amount: benefitsFeeAmount,
-      })
-    }
-
-    if (appliedDepositAmount > 0) {
-      rows.push({
-        id: -99,
-        name: 'Rent Deposit Applied',
-        amount: -appliedDepositAmount,
-      })
-    }
 
     return rows
   }, [
@@ -260,9 +175,6 @@ export function BasicCheckoutView({
     canPayPartial,
     rentLineItems.length,
     transactionFeeAmount,
-    benefitsFeeAmount,
-    rentSubtotal,
-    appliedDepositAmount,
   ])
 
   const handleRentHeroChange = (value: string) => {
@@ -275,18 +187,15 @@ export function BasicCheckoutView({
 
   const ctaLabel = () => {
     if (isPendingRefund) return 'Refund pending'
-    if (netPayable === 0 && appliedDepositAmount > 0) {
-      return `Settle with Rent Deposit (${formatCurrency(appliedDepositAmount, currency)})`
-    }
     if (netPayable === 0) return 'Enter amount to continue'
     if (isBelowMin) return `Minimum is ${formatCurrency(minRequired, currency)}`
-    if (isUnderpaying && appliedDepositAmount === 0) {
+    if (isUnderpaying) {
       return `Full payment required — ${formatCurrency(totalOwed, currency)}`
     }
     return `Pay ${formatCurrency(netPayable, currency)} now`
   }
 
-  const ctaDisabled = (!isValidAmount && appliedDepositAmount === 0) || (isUnderpaying && appliedDepositAmount === 0) || isPendingRefund
+  const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund
 
   const handleBack = () => {
     if (authUser) {
@@ -307,8 +216,7 @@ export function BasicCheckoutView({
           <div className="pay-flow__checkout-footer">
             <PayFlowPrimaryButton
               onClick={handleProceedToPay}
-              disabled={ctaDisabled || cancelLoading || isApplyingDeposit}
-              loading={isApplyingDeposit}
+              disabled={ctaDisabled || cancelLoading}
             >
               {ctaLabel()}
             </PayFlowPrimaryButton>
@@ -398,27 +306,6 @@ export function BasicCheckoutView({
             </div>
           ) : null}
 
-          {showPremiumOptions ? (
-            <CheckoutComparisonCards
-              currency={currency}
-              transactionFee={rates.transactionFee}
-              benefitsFee={rates.benefitsFee}
-              isPremiumSelected={isPremiumSelected}
-              onSelectStandard={onSelectStandard || (() => {})}
-              onSelectPremium={onSelectPremium || (() => {})}
-            />
-          ) : null}
-
-          {!showPremiumOptions && benefitsAlreadyActive ? (
-            <div className="benefits-page__badge is-active" style={{ marginBottom: 12 }}>
-              <ShieldCheck size={18} />
-              <div>
-                <strong>Upward Benefits active</strong>
-                <p>Rent Protection is already included on your account this year.</p>
-              </div>
-            </div>
-          ) : null}
-
           {canPayPartial ? (
             <CheckoutAmountHero
               currency={currency}
@@ -431,19 +318,6 @@ export function BasicCheckoutView({
               onRentChange={handleRentHeroChange}
             />
           ) : null}
-
-          {isLoggedIn && (
-            <RentDepositApplicationCard
-              paymentRequestUuid={uuid}
-              propertyUuid={paymentData.property?.uuid}
-              totalOwed={totalOwed}
-              currency={currency}
-              lineItems={visibleAllocs}
-              canPayPartial={canPayPartial}
-              onDepositApplied={handleDepositApplied}
-              onSettledSuccess={handleDepositSettledSuccess}
-            />
-          )}
 
           <CheckoutReceipt
             rows={receiptRows}
@@ -489,3 +363,4 @@ export function BasicCheckoutView({
     </PayPageShell>
   )
 }
+

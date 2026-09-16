@@ -13,6 +13,9 @@ import {
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { SettlePropertyBalanceUseCase } from './settle-property.use-case'
 import { SyncPmPaymentStatusUseCase } from './sync-pm-status.use-case'
+import { CalculateRentScoreUseCase } from '../user/calculate-rent-score.use-case'
+import { EVENT_BUS, EventBus } from '../../events/domain-event'
+import { PaymentSucceededEvent } from '../../events/definition/payment-succeeded.event'
 
 @Injectable()
 export class ApplyRentDepositToPaymentRequestUseCase {
@@ -24,6 +27,9 @@ export class ApplyRentDepositToPaymentRequestUseCase {
     private readonly prisma: PrismaService,
     private readonly settleProperty: SettlePropertyBalanceUseCase,
     private readonly syncPmStatus: SyncPmPaymentStatusUseCase,
+    private readonly calculateRentScore: CalculateRentScoreUseCase,
+    @Inject(EVENT_BUS)
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute(params: {
@@ -51,7 +57,9 @@ export class ApplyRentDepositToPaymentRequestUseCase {
       where: { uuid: paymentRequestUuid },
       include: {
         user: true,
-        userProperty: true,
+        userProperty: {
+          include: { subaccount: true, company: true },
+        },
         lineItemRecords: { orderBy: { sortOrder: 'asc' } },
       },
     })
@@ -109,13 +117,14 @@ export class ApplyRentDepositToPaymentRequestUseCase {
       }
     }
 
-    return this.prisma.$transaction(async (txClient: any) => {
+    const transactionResult = await this.prisma.$transaction(async (txClient: any) => {
       const balanceBefore = depositBalance.balance
       const balanceAfter = balanceBefore - amountToApply
 
       const reference = `RD_DEBIT_${pr.uuid.slice(0, 8)}_${Date.now()}`
 
-      await this.depositRepo.createTransaction(
+      // 1. Record deposit debit transaction
+      const depositTx = await this.depositRepo.createTransaction(
         {
           depositBalanceId: depositBalance.id,
           userId: effectiveUserId,
@@ -135,8 +144,10 @@ export class ApplyRentDepositToPaymentRequestUseCase {
 
       await this.depositRepo.updateBalance(depositBalance.id, balanceAfter, txClient)
 
-      // Update line items
+      // 2. Update line items
       let rentPortion = 0
+      const resolvedLineItems: any[] = []
+
       if (lineItemAllocations && lineItemAllocations.length > 0) {
         for (const alloc of lineItemAllocations) {
           if (!alloc.amount || alloc.amount <= 0) continue
@@ -154,6 +165,13 @@ export class ApplyRentDepositToPaymentRequestUseCase {
             if (!['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(lineItem.name)) {
               rentPortion += alloc.amount
             }
+            resolvedLineItems.push({
+              id: lineItem.id,
+              name: lineItem.name,
+              label: lineItem.name,
+              amount: alloc.amount,
+              category: (lineItem as any).category || (['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(lineItem.name) ? 'Fee' : 'Rent'),
+            })
           }
         }
       } else {
@@ -179,6 +197,13 @@ export class ApplyRentDepositToPaymentRequestUseCase {
           if (!['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name)) {
             rentPortion += allocated
           }
+          resolvedLineItems.push({
+            id: item.id,
+            name: item.name,
+            label: item.name,
+            amount: allocated,
+            category: (item as any).category || (['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(item.name) ? 'Fee' : 'Rent'),
+          })
           remainingToDistribute -= allocated
         }
       }
@@ -196,52 +221,136 @@ export class ApplyRentDepositToPaymentRequestUseCase {
         },
       })
 
-      // Sync PM status and property settlement for rent portion
-      try {
-        await this.syncPmStatus.execute({
-          paymentRequestId: pr.id,
-          rentPortion: amountToApply,
-          txClient,
-        })
-
-        await this.settleProperty.execute({
+      // 3. Settle property balance and advance rental period
+      let settledPeriod: any = null
+      if (rentPortion > 0) {
+        settledPeriod = await this.settleProperty.execute({
           userId: effectiveUserId,
           propertyId: pr.userPropertyId!,
-          rentPortion: amountToApply,
+          rentPortion,
           paymentRequestId: pr.id,
           dueDate: pr.dueDate,
           rentEndDate: pr.rentEndDate ?? undefined,
           rentType: pr.rentType ?? undefined,
           currency: pr.currency,
-          description: `Rent Deposit applied to PR #${pr.uuid.slice(0, 8)}`,
+          description: narration || `Rent Deposit applied to PR #${pr.uuid.slice(0, 8)}`,
           txClient,
         })
-      } catch (syncErr: any) {
-        this.logger.warn(`Secondary sync warning during deposit application: ${syncErr.message}`)
       }
 
+      // 4. Sync PM status if unit is managed
+      if (pr) {
+        try {
+          await this.syncPmStatus.execute({
+            paymentRequestId: pr.id,
+            rentPortion,
+            periodStart: settledPeriod?.periodStart,
+            periodEnd: settledPeriod?.periodEnd,
+            txClient,
+          })
+        } catch (syncErr: any) {
+          this.logger.warn(`PM status sync notice during deposit application: ${syncErr.message}`)
+        }
+      }
+
+      // 5. Create official upward_transaction record so receipts and rent cycles resolve
+      const snapshotRentStart = settledPeriod?.periodStart
+        || (pr.rentStartDate ? new Date(pr.rentStartDate) : null)
+      const snapshotRentEnd = settledPeriod?.periodEnd
+        || (pr.rentEndDate ? new Date(pr.rentEndDate) : null)
+
+      const txRecord = await txClient.upward_transaction.create({
+        data: {
+          userId: effectiveUserId,
+          amount: amountToApply,
+          currency: pr.currency || 'NGN',
+          reference,
+          type: 'RENT',
+          status: 'SUCCESS',
+          paymentRequestId: pr.id,
+          narration: narration || `Rent Deposit applied to ${pr.description || `PR #${pr.uuid.slice(0, 8)}`}`,
+          landlordId: pr.userProperty?.subaccount?.uuid || undefined,
+          settlementStatus: 'SETTLED',
+          lineItems: resolvedLineItems.length > 0 ? resolvedLineItems : (pr.lineItemRecords || []),
+          rentStartDate: snapshotRentStart,
+          rentEndDate: snapshotRentEnd,
+          totalInvoiceAmount: pr.amount,
+          historicalPaidToDate: newTotalPaid,
+          remainingBalance: Math.max(0, pr.amount - newTotalPaid),
+          isPartial: !isFullySettled,
+        },
+      })
+
+      // 6. Tenant in-app notification with receipt link
       await txClient.upward_notification.create({
         data: {
           userId: effectiveUserId,
           title: isFullySettled ? 'Rent Invoice Fully Paid' : 'Rent Deposit Applied',
           message: `₦${amountToApply.toLocaleString()} from your Rent Deposit Balance was applied to your invoice. Remaining invoice balance: ₦${Math.max(0, pr.amount - newTotalPaid).toLocaleString()}.`,
           type: 'PAYMENT',
-          url: `/dashboard/payment?id=${pr.uuid}`,
+          url: `/dashboard/receipts?id=${txRecord.uuid}`,
         },
       })
 
       this.logger.log(
-        `Applied ₦${amountToApply} from Rent Deposit (Balance: ${balanceAfter}) to PR ${pr.uuid}. New PR Status: ${newStatus}`
+        `Applied ₦${amountToApply} from Rent Deposit (Balance: ${balanceAfter}) to PR ${pr.uuid}. Tx ID: ${txRecord.id}, New PR Status: ${newStatus}`
       )
 
       return {
-        success: true,
-        amountApplied: amountToApply,
-        remainingInvoiceBalance: Math.max(0, pr.amount - newTotalPaid),
-        newDepositBalance: balanceAfter,
-        paymentRequestStatus: newStatus,
-        transactionReference: reference,
+        txRecord,
+        depositTx,
+        rentPortion,
+        newTotalPaid,
+        balanceAfter,
+        newStatus,
+        reference,
+        isFullySettled,
       }
     })
+
+    // 7. Post-transaction actions: Refresh credit score and publish payment succeeded event
+    try {
+      await this.calculateRentScore.execute(user.uuid)
+      this.logger.log(`Recalculated rent credit score for user ${user.uuid} after deposit application`)
+    } catch (scoreErr: any) {
+      this.logger.warn(`Failed to recalculate credit score after deposit application: ${scoreErr?.message}`)
+    }
+
+    try {
+      const userProperty = pr.userProperty
+      const effectivePlatformId = userProperty?.platformId || userProperty?.company?.platformId || undefined
+
+      this.eventBus.publish(
+        new PaymentSucceededEvent({
+          transactionId: transactionResult.txRecord.id,
+          userId: effectiveUserId,
+          propertyId: userProperty?.id,
+          externalUnitId: userProperty?.externalUnitId,
+          platformId: effectivePlatformId,
+          amount: amountToApply,
+          rentPortion: transactionResult.rentPortion,
+          paymentRequestId: pr.id,
+          paymentRequestUuid: pr.uuid,
+          reference: transactionResult.reference,
+          currency: pr.currency || 'NGN',
+          email: user.email!,
+          narration: narration || `Applied Rent Deposit to #${pr.description || pr.uuid.slice(0, 8)}`,
+          excess: 0,
+        }),
+      )
+    } catch (eventErr: any) {
+      this.logger.warn(`Failed to publish PaymentSucceededEvent after deposit application: ${eventErr?.message}`)
+    }
+
+    return {
+      success: true,
+      amountApplied: amountToApply,
+      remainingInvoiceBalance: Math.max(0, pr.amount - transactionResult.newTotalPaid),
+      newDepositBalance: transactionResult.balanceAfter,
+      paymentRequestStatus: transactionResult.newStatus,
+      transactionReference: transactionResult.reference,
+      transactionUuid: transactionResult.txRecord.uuid,
+    }
   }
 }
+
