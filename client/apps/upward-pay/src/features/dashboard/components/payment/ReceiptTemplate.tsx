@@ -108,12 +108,23 @@ export default function ReceiptTemplate({
   onShare?: () => void
 }) {
   const isPartial =
-    receipt.isPartial ??
-    (receipt.remainingBalance !== undefined
-      ? receipt.remainingBalance > 0
-      : receipt.status === 'PARTIAL')
+    receipt.status === 'PARTIAL' ||
+    Boolean(receipt.isPartial) ||
+    (receipt.remainingBalance !== undefined && receipt.remainingBalance > 0)
 
-  const totalRent = receipt.rentAmount ?? receipt.totalInvoiceAmount ?? receipt.amount
+  const isInvoiceTotalDifferentFromRent =
+    receipt.totalInvoiceAmount !== undefined &&
+    receipt.rentAmount !== undefined &&
+    receipt.totalInvoiceAmount !== receipt.rentAmount
+  const statCardLabel =
+    (receipt.lineItems && receipt.lineItems.length > 1) || isInvoiceTotalDifferentFromRent
+      ? 'Total due'
+      : 'Total due'
+  const statCardAmount = isInvoiceTotalDifferentFromRent
+    ? (receipt.totalInvoiceAmount ?? receipt.amount)
+    : (receipt.rentAmount ?? receipt.totalInvoiceAmount ?? receipt.amount)
+
+  const totalRent = statCardAmount
   const totalPaid = receipt.totalPaidToDate ?? receipt.amount
   const balanceRemaining =
     receipt.remainingBalance !== undefined
@@ -219,7 +230,7 @@ export default function ReceiptTemplate({
             {/* Floating 2x2 Stats Card */}
             <div className="stats">
               <div className="stat">
-                <div className="stat-label">Total rent</div>
+                <div className="stat-label">{statCardLabel}</div>
                 <div className="stat-value">
                   {formatMoney(totalRent, receipt.currency)}
                 </div>

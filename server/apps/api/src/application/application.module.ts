@@ -13,6 +13,7 @@ import { EncryptionService } from '../shared/infrastructure/common/encryption.se
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
+import { RentalPeriodService } from './services/rental-period.service'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -396,6 +397,10 @@ import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distri
 import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
 import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-property.use-case'
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
+import { GetRentDepositSummaryUseCase } from './use-cases/payments/get-rent-deposit-summary.use-case'
+import { ApplyRentDepositToPaymentRequestUseCase } from './use-cases/payments/apply-rent-deposit-to-payment-request.use-case'
+import { CreditRentDepositUseCase, RecordRentDepositUseCase } from './use-cases/payments/credit-rent-deposit.use-case'
+import { GenerateRentDepositReceiptPdfUseCase } from './use-cases/payments/generate-rent-deposit-receipt-pdf.use-case'
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 import {
   AddManualAccountUseCase,
@@ -720,6 +725,11 @@ const UseCases: any[] = [
   SyncPmPaymentStatusUseCase,
   SettlePropertyBalanceUseCase,
   HandlePaymentOverpaymentUseCase,
+  GetRentDepositSummaryUseCase,
+  ApplyRentDepositToPaymentRequestUseCase,
+  CreditRentDepositUseCase,
+  RecordRentDepositUseCase,
+  GenerateRentDepositReceiptPdfUseCase,
   ProcessHourlySettlementsUseCase,
   AddManualAccountUseCase,
   UploadProofOfPaymentUseCase,
@@ -872,6 +882,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,
@@ -905,6 +916,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
     TriggerSequencesUseCase,

@@ -8,6 +8,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/payment.repository';
 import * as crypto from 'crypto';
 
+import { RentalPeriodService } from '../../services/rental-period.service';
+
 type UnitDetails = {
   uuid?: string;
   address: string;
@@ -44,6 +46,7 @@ export class SubmitUnitRequestUseCase {
     @Inject(PAYMENT_GATEWAY)
     private readonly paymentGateway: IPaymentGateway,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(
@@ -173,35 +176,14 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
-    const tenancyStatus = unitDetails.tenancyStatus || 'NEW_CYCLE';
-    let initialPaid = 0;
-    let amountPaid = 0;
-    let amountRemaining = unitDetails.rentAmount;
-    let startDate = new Date(unitDetails.rentStartDate);
-    let endDate = new Date(unitDetails.rentEndDate);
-
-    if (tenancyStatus === 'PAYING_BALANCE' && unitDetails.initialAmountPaid) {
-      initialPaid = Math.min(unitDetails.rentAmount, Math.max(0, unitDetails.initialAmountPaid));
-      amountPaid = initialPaid;
-      amountRemaining = Math.max(0, unitDetails.rentAmount - initialPaid);
-    } else if (tenancyStatus === 'ALREADY_PAID') {
-      initialPaid = unitDetails.rentAmount;
-      // Advance to next cycle
-      const nextStart = new Date(endDate);
-      nextStart.setDate(nextStart.getDate() + 1);
-      const nextEnd = new Date(nextStart);
-      if (unitDetails.rentType === 'Monthly') {
-        nextEnd.setMonth(nextEnd.getMonth() + 1);
-      } else {
-        nextEnd.setFullYear(nextEnd.getFullYear() + 1);
-      }
-      nextEnd.setDate(nextEnd.getDate() - 1);
-
-      startDate = nextStart;
-      endDate = nextEnd;
-      amountPaid = 0;
-      amountRemaining = unitDetails.rentAmount;
-    }
+    const rentalState = this.rentalPeriodService.initializeRentalState({
+      rentStartDate: new Date(unitDetails.rentStartDate),
+      rentEndDate: new Date(unitDetails.rentEndDate),
+      rentAmount: unitDetails.rentAmount,
+      rentType: unitDetails.rentType || 'Annually',
+      initialAmountPaid: unitDetails.initialAmountPaid,
+      tenancyStatus: unitDetails.tenancyStatus,
+    });
 
     // Resolve or create location record
     let locationId: number | undefined;
@@ -241,13 +223,13 @@ export class SubmitUnitRequestUseCase {
     const propertyBaseData: any = {
       location: { connect: { id: locationId } },
       rentAmount: unitDetails.rentAmount,
-      rentStartDate: startDate,
-      rentEndDate: endDate,
+      rentStartDate: rentalState.rentStartDate,
+      rentEndDate: rentalState.rentEndDate,
       rentType: unitDetails.rentType || 'Annually',
-      amountPaid,
-      amountRemaining,
-      initialAmountPaid: initialPaid,
-      isFirstRent: initialPaid > 0 ? false : tenancyStatus === 'NEW_CYCLE',
+      amountPaid: rentalState.amountPaid,
+      amountRemaining: rentalState.amountRemaining,
+      initialAmountPaid: rentalState.initialAmountPaid,
+      isFirstRent: rentalState.isFirstRent,
     };
 
     if (pm) {
@@ -336,8 +318,8 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
-    // Record initial offline payment entry if initialPaid > 0 (marked PENDING_APPROVAL until PM verifies)
-    if (savedProperty?.id && initialPaid > 0) {
+    // Record initial offline payment entry if initialAmountPaid > 0 (marked PENDING_APPROVAL until PM verifies)
+    if (savedProperty?.id && rentalState.initialAmountPaid > 0) {
       const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
         where: { userPropertyId: savedProperty.id, notes: 'Initial Onboarding Payment' }
       });
@@ -345,7 +327,7 @@ export class SubmitUnitRequestUseCase {
         await this.prisma.upward_platform_rent_payment.create({
           data: {
             userPropertyId: savedProperty.id,
-            amount: initialPaid,
+            amount: rentalState.initialAmountPaid,
             rentAmountAtPayment: unitDetails.rentAmount,
             paymentDate: new Date(),
             method: 'INITIAL_ONBOARDING',

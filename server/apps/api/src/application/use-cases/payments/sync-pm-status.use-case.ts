@@ -9,6 +9,7 @@ import {
   PAYMENT_LINE_ITEM_REPOSITORY,
   IPaymentLineItemRepository,
 } from '../../../domains/payments/payment.repository'
+import { RentalPeriodService } from '../../services/rental-period.service'
 
 @Injectable()
 export class SyncPmPaymentStatusUseCase {
@@ -21,14 +22,17 @@ export class SyncPmPaymentStatusUseCase {
     private readonly paymentRequestRepo: IPaymentRequestRepository,
     @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
     private readonly lineItemRepo: IPaymentLineItemRepository,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(params: {
     paymentRequestId: number
     rentPortion: number
+    periodStart?: Date
+    periodEnd?: Date
     txClient: any
   }) {
-    const { paymentRequestId, rentPortion, txClient } = params
+    const { paymentRequestId, rentPortion, periodStart, periodEnd, txClient } = params
 
     try {
       const pmPr = await this.pmPaymentRepo.findByPaymentRequestId(paymentRequestId, txClient)
@@ -67,63 +71,38 @@ export class SyncPmPaymentStatusUseCase {
         return
       }
 
-
       await txClient.upward_pm_payment_request.updateMany({
         where: { paymentRequestId },
         data: {
-          amountPaid: pr.amountPaid, // Status and amountPaid come from the core PR which was already updated
+          amountPaid: pr.amountPaid,
           status: pr.status,
         }
       })
 
       if (rentPortion > 0) {
         const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
-        let effectivePeriodStart = pr.rentStartDate
-          ? new Date(pr.rentStartDate)
-          : (unit?.rentStartDate ? new Date(unit.rentStartDate) : (pr.dueDate ? new Date(pr.dueDate) : null))
-        let effectivePeriodEnd = pr.rentEndDate
-          ? new Date(pr.rentEndDate)
-          : (unit?.rentDueDate ? new Date(unit.rentDueDate) : null)
+        
+        let effectivePeriodStart: Date | null = periodStart || this.rentalPeriodService.parseCalendarDate(pr.rentStartDate)
+        let effectivePeriodEnd: Date | null = periodEnd || this.rentalPeriodService.parseCalendarDate(pr.rentEndDate)
 
-        if (effectivePeriodStart && unit?.rentAmount) {
-          const existingPayments = await txClient.upward_pm_rent_payment.findMany({
-            where: { unitId: unit.id, tenantId: tenantId || undefined, status: 'SUCCESS' }
-          })
-
-          const currentPeriodKey = effectivePeriodStart.toISOString().split('T')[0]!
-          const currentPeriodPaid = existingPayments
-            .filter((p: any) => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === currentPeriodKey)
-            .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
-
-          if (currentPeriodPaid >= (unit.rentAmount - 1) && effectivePeriodEnd) {
-            const nextStart = new Date(effectivePeriodEnd)
-            nextStart.setDate(nextStart.getDate() + 1)
-
-            const nextEnd = new Date(nextStart)
-            if (unit.rentType === 'Monthly') {
-              nextEnd.setMonth(nextEnd.getMonth() + 1)
-            } else {
-              const years = (unit as any).leaseYears || 1
-              nextEnd.setFullYear(nextEnd.getFullYear() + years)
+        if (!effectivePeriodStart || !effectivePeriodEnd) {
+          const resolved = this.rentalPeriodService.resolveTargetRentalPeriod(
+            {
+              rentStartDate: unit?.rentStartDate,
+              rentEndDate: unit?.rentDueDate,
+              rentType: unit?.rentType,
+              leaseYears: (unit as any)?.leaseYears,
+            },
+            {
+              rentStartDate: pr.rentStartDate,
+              rentEndDate: pr.rentEndDate,
             }
-            nextEnd.setDate(nextEnd.getDate() - 1)
-
-            effectivePeriodStart = nextStart
-            effectivePeriodEnd = nextEnd
-          } else if (!effectivePeriodEnd) {
-            const endD = new Date(effectivePeriodStart)
-            if (unit.rentType === 'Monthly') {
-              endD.setMonth(endD.getMonth() + 1)
-            } else {
-              const years = (unit as any).leaseYears || 1
-              endD.setFullYear(endD.getFullYear() + years)
-            }
-            endD.setDate(endD.getDate() - 1)
-            effectivePeriodEnd = endD
-          }
+          )
+          effectivePeriodStart = resolved.periodStart
+          effectivePeriodEnd = resolved.periodEnd
         }
 
-        // Update the core PR and PM PR records to match the resolved effective period
+        // Update the core PR and PM PR records to match the resolved canonical period
         if (effectivePeriodStart && effectivePeriodEnd) {
           await txClient.upward_payment_request.update({
             where: { id: paymentRequestId },
@@ -144,7 +123,7 @@ export class SyncPmPaymentStatusUseCase {
           })
         }
 
-        // Record in PM Rent History
+        // Record in PM Rent History with exact period
         await txClient.upward_pm_rent_payment.create({
           data: {
             unitId: unitId,
@@ -160,55 +139,8 @@ export class SyncPmPaymentStatusUseCase {
           }
         })
 
-        // Recalculate and sync active tenancy dates to latest fully paid period
-        if (unit) {
-          const tenantPayments = await txClient.upward_pm_rent_payment.findMany({
-            where: { unitId: unit.id, tenantId: tenantId || undefined, status: 'SUCCESS' }
-          });
-
-          const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>();
-          for (const p of tenantPayments) {
-            if (!p.periodStart) continue;
-            const key = new Date(p.periodStart).toISOString().split('T')[0]!;
-            if (!periodMap.has(key)) {
-              periodMap.set(key, {
-                periodStart: new Date(p.periodStart),
-                periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart),
-                total: 0
-              });
-            }
-            periodMap.get(key)!.total += p.amount;
-          }
-
-          const sortedPeriods = Array.from(periodMap.values()).sort(
-            (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
-          );
-
-          const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0));
-
-          if (fullyPaidPeriods.length > 0) {
-            const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!;
-
-            await txClient.upward_pm_unit.update({
-              where: { id: unit.id },
-              data: {
-                rentStartDate: latestFullyPaid.periodStart,
-                rentDueDate: latestFullyPaid.periodEnd
-              }
-            });
-
-            if (unit.isSynced && unit.userPropertyUuid) {
-              await txClient.upward_user_property.updateMany({
-                where: { uuid: unit.userPropertyUuid },
-                data: {
-                  rentStartDate: latestFullyPaid.periodStart,
-                  rentEndDate: latestFullyPaid.periodEnd,
-                }
-              });
-            }
-            this.logger.log(`Synced active tenancy dates for unit ${unit.id} to latest fully paid period: ${latestFullyPaid.periodStart.toISOString()} - ${latestFullyPaid.periodEnd.toISOString()}`);
-          }
-        }
+        // Synchronize PM unit and linked User Property state
+        await this.rentalPeriodService.syncUnitPropertyState(unitId, txClient)
 
         if (pmPr && pmPr.isRecurring && pmPr.recurrenceInterval) {
           const interval = pmPr.recurrenceInterval;
@@ -220,9 +152,9 @@ export class SyncPmPaymentStatusUseCase {
 
           const advanceDate = (date: Date, intervalStr: string): Date => {
             const d = new Date(date);
-            if (intervalStr === 'MONTHLY') d.setMonth(d.getMonth() + 1);
-            else if (intervalStr === 'QUARTERLY') d.setMonth(d.getMonth() + 3);
-            else if (intervalStr === 'YEARLY') d.setFullYear(d.getFullYear() + 1);
+            if (intervalStr === 'MONTHLY') d.setUTCMonth(d.getUTCMonth() + 1);
+            else if (intervalStr === 'QUARTERLY') d.setUTCMonth(d.getUTCMonth() + 3);
+            else if (intervalStr === 'YEARLY') d.setUTCFullYear(d.getUTCFullYear() + 1);
             return d;
           };
 
@@ -269,9 +201,11 @@ export class SyncPmPaymentStatusUseCase {
     userPropertyUuid: string
     rentPortion: number
     narration?: string
+    periodStart?: Date
+    periodEnd?: Date
     txClient: any
   }) {
-    const { userPropertyUuid, rentPortion, narration, txClient } = params
+    const { userPropertyUuid, rentPortion, narration, periodStart, periodEnd, txClient } = params
     try {
       const userProp = await txClient.upward_user_property.findUnique({
         where: { uuid: userPropertyUuid }
@@ -292,46 +226,20 @@ export class SyncPmPaymentStatusUseCase {
       const unit = await txClient.upward_pm_unit.findUnique({ where: { id: unitId } })
       if (!unit) return
 
-      let effectivePeriodStart = unit.rentStartDate ? new Date(unit.rentStartDate) : null
-      let effectivePeriodEnd = unit.rentDueDate ? new Date(unit.rentDueDate) : null
+      let effectivePeriodStart: Date | null = periodStart || this.rentalPeriodService.parseCalendarDate(userProp.rentStartDate)
+      let effectivePeriodEnd: Date | null = periodEnd || this.rentalPeriodService.parseCalendarDate(userProp.rentEndDate)
 
-      if (effectivePeriodStart && unit.rentAmount) {
-        const existingPayments = await txClient.upward_pm_rent_payment.findMany({
-          where: { unitId: unit.id, tenantId: unit.tenantId || undefined, status: 'SUCCESS' }
+      if (!effectivePeriodStart || !effectivePeriodEnd) {
+        const resolved = this.rentalPeriodService.resolveTargetRentalPeriod({
+          rentStartDate: unit.rentStartDate,
+          rentEndDate: unit.rentDueDate,
+          rentType: unit.rentType,
+          leaseYears: (unit as any)?.leaseYears,
+          amountRemaining: userProp.amountRemaining,
+          isFirstRent: userProp.isFirstRent,
         })
-
-        const currentPeriodKey = effectivePeriodStart.toISOString().split('T')[0]!
-        const currentPeriodPaid = existingPayments
-          .filter((p: any) => p.periodStart && new Date(p.periodStart).toISOString().split('T')[0] === currentPeriodKey)
-          .reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
-
-        // If the current cycle is ALREADY fully paid off, this manual payment applies to the UPCOMING cycle
-        if (currentPeriodPaid >= unit.rentAmount && effectivePeriodEnd) {
-          const nextStart = new Date(effectivePeriodEnd)
-          nextStart.setDate(nextStart.getDate() + 1)
-
-          const nextEnd = new Date(nextStart)
-          if (unit.rentType === 'Monthly') {
-            nextEnd.setMonth(nextEnd.getMonth() + 1)
-          } else {
-            const years = (unit as any).leaseYears || 1
-            nextEnd.setFullYear(nextEnd.getFullYear() + years)
-          }
-          nextEnd.setDate(nextEnd.getDate() - 1)
-
-          effectivePeriodStart = nextStart
-          effectivePeriodEnd = nextEnd
-        } else if (!effectivePeriodEnd) {
-          const endD = new Date(effectivePeriodStart)
-          if (unit.rentType === 'Monthly') {
-            endD.setMonth(endD.getMonth() + 1)
-          } else {
-            const years = (unit as any).leaseYears || 1
-            endD.setFullYear(endD.getFullYear() + years)
-          }
-          endD.setDate(endD.getDate() - 1)
-          effectivePeriodEnd = endD
-        }
+        effectivePeriodStart = resolved.periodStart
+        effectivePeriodEnd = resolved.periodEnd
       }
 
       await txClient.upward_pm_rent_payment.create({
@@ -349,51 +257,8 @@ export class SyncPmPaymentStatusUseCase {
         }
       })
 
-      const tenantPayments = await txClient.upward_pm_rent_payment.findMany({
-        where: { unitId: unit.id, tenantId: unit.tenantId || undefined, status: 'SUCCESS' }
-      })
-
-      const periodMap = new Map<string, { periodStart: Date; periodEnd: Date; total: number }>()
-      for (const p of tenantPayments) {
-        if (!p.periodStart) continue
-        const key = new Date(p.periodStart).toISOString().split('T')[0]!
-        if (!periodMap.has(key)) {
-          periodMap.set(key, {
-            periodStart: new Date(p.periodStart),
-            periodEnd: p.periodEnd ? new Date(p.periodEnd) : new Date(p.periodStart),
-            total: 0
-          })
-        }
-        periodMap.get(key)!.total += p.amount
-      }
-
-      const sortedPeriods = Array.from(periodMap.values()).sort(
-        (a, b) => a.periodStart.getTime() - b.periodStart.getTime()
-      )
-
-      const fullyPaidPeriods = sortedPeriods.filter(p => p.total >= (unit.rentAmount || 0))
-
-      if (fullyPaidPeriods.length > 0) {
-        const latestFullyPaid = fullyPaidPeriods[fullyPaidPeriods.length - 1]!
-
-        await txClient.upward_pm_unit.update({
-          where: { id: unit.id },
-          data: {
-            rentStartDate: latestFullyPaid.periodStart,
-            rentDueDate: latestFullyPaid.periodEnd
-          }
-        })
-
-        if (unit.isSynced && unit.userPropertyUuid) {
-          await txClient.upward_user_property.updateMany({
-            where: { uuid: unit.userPropertyUuid },
-            data: {
-              rentStartDate: latestFullyPaid.periodStart,
-              rentEndDate: latestFullyPaid.periodEnd,
-            }
-          })
-        }
-      }
+      // Synchronize PM unit and linked User Property state
+      await this.rentalPeriodService.syncUnitPropertyState(unit.id, txClient)
     } catch (err) {
       this.logger.error(`Failed to sync PM payment status for property ${userPropertyUuid}:`, err)
     }

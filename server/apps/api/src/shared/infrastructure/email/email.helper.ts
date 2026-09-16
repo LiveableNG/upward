@@ -833,3 +833,105 @@ export function buildDailyAnalyticsHtml(params: {
     contentHtml: content,
   });
 }
+
+export function buildRentOverpaymentEmailHtml(params: {
+  tenantName: string;
+  amount: number;
+  formattedAmount: string;
+  currency: string;
+  newBalance: number;
+  formattedNewBalance: string;
+  propertyAddress?: string;
+  reference?: string;
+  depositLink: string;
+}): string {
+  const content = `
+    <p>Hi ${params.tenantName},</p>
+    <p>We noticed you made an overpayment of <strong>${params.currency} ${params.formattedAmount}</strong> during your recent transaction${params.propertyAddress ? ` for <strong>${params.propertyAddress}</strong>` : ''}.</p>
+    
+    <div style="background-color: #fdfbf7; border: 1px solid #ebd9cf; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; color: #d97757; font-size: 15px; letter-spacing: -0.2px;">Rent Deposit Balance Update</h3>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px;">
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Excess Credited:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 700; color: #16a34a;">+ ${params.currency} ${params.formattedAmount}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Updated Deposit Balance:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 800; color: #111827; font-size: 15px;">${params.currency} ${params.formattedNewBalance}</td>
+        </tr>
+        ${params.reference ? `
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Transaction Ref:</td>
+          <td align="right" style="padding: 6px 0; font-family: monospace; color: #374151;">${params.reference}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    <p style="font-weight: 700; color: #111827; margin-bottom: 6px;">Where is my money and how is it used?</p>
+    <ul style="padding-left: 20px; margin-top: 0; color: #4b5563; line-height: 1.6;">
+      <li><strong>100% Safe & Dedicated:</strong> Your funds are securely held in your personal Rent Deposit Balance linked to your tenancy.</li>
+      <li><strong>Savings Towards Future Rent:</strong> Your deposit balance will automatically apply towards upcoming rent bills or can be used on your next invoice.</li>
+      <li><strong>Boost Your Credibility Score:</strong> Maintaining advance deposit savings actively strengthens your tenant credibility track record on Upward.</li>
+    </ul>
+
+    <p style="color: #4b5563; margin-top: 20px;">You can view and track your complete deposit balance and transaction history anytime on your dashboard.</p>
+  `;
+
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Extra Payment Saved to Rent Deposit',
+    contentHtml: content,
+    buttonText: 'View Rent Deposit Balance',
+    buttonUrl: params.depositLink,
+  });
+}
+
+export function buildRentDepositCreditedHtml(params: {
+  tenantName: string;
+  amount: number;
+  formattedAmount: string;
+  currency: string;
+  newBalance: number;
+  formattedNewBalance: string;
+  propertyAddress?: string;
+  reference?: string;
+  depositLink: string;
+}): string {
+  const content = `
+    <p>Hi ${params.tenantName},</p>
+    <p>We received your advance rent deposit of <strong>${params.currency} ${params.formattedAmount}</strong>${params.propertyAddress ? ` for <strong>${params.propertyAddress}</strong>` : ''}.</p>
+    
+    <div style="background-color: #fdfbf7; border: 1px solid #ebd9cf; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; color: #d97757; font-size: 15px; letter-spacing: -0.2px;">Rent Deposit Balance Update</h3>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px;">
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Deposit Received:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 700; color: #16a34a;">+ ${params.currency} ${params.formattedAmount}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Total Deposit Balance:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 800; color: #111827; font-size: 15px;">${params.currency} ${params.formattedNewBalance}</td>
+        </tr>
+        ${params.reference ? `
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Reference:</td>
+          <td align="right" style="padding: 6px 0; font-family: monospace; color: #374151;">${params.reference}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    <p style="color: #4b5563;">Your deposit is stored safely and ready to be used toward upcoming rent invoices.</p>
+  `;
+
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: 'Rent Deposit Received',
+    contentHtml: content,
+    buttonText: 'View Rent Deposit Balance',
+    buttonUrl: params.depositLink,
+  });
+}
+
