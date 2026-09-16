@@ -323,6 +323,10 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsString()
   recurrenceInterval?: string
+
+  @IsOptional()
+  @IsNumber()
+  manualAccountId?: number
 }
 
 export class UpdateExternalPaymentRequestPayloadDto {
