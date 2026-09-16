@@ -77,7 +77,27 @@ export class LocationInfoDto {
   address?: string
 }
 
+export function normalizeRentType(val: any): string | undefined {
+  if (val === undefined || val === null || val === '') return undefined
+  if (typeof val !== 'string') return val
+  const trimmed = val.trim().toLowerCase()
+  if (['yearly', 'annual', 'annually', 'year', 'per annum', 'per_annum', 'p.a.', 'lease', 'long lease', 'fixed lease'].includes(trimmed)) {
+    return 'Annually'
+  }
+  if (['monthly', 'month', 'per month', 'per_month', 'p.m.', 'short let', 'shortlet'].includes(trimmed)) {
+    return 'Monthly'
+  }
+  if (['quarterly', 'quarter', 'per quarter'].includes(trimmed)) {
+    return 'Quarterly'
+  }
+  if (['bi-annually', 'biannually', 'semi-annually', 'semi-annual', 'biannual'].includes(trimmed)) {
+    return 'Bi-Annually'
+  }
+  return val
+}
+
 export class RentInfoDto {
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
   @IsNumber()
   rentAmount!: number
 
@@ -89,18 +109,22 @@ export class RentInfoDto {
   rentEndDate!: string
 
   @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value === 'true' : value))
   @IsBoolean()
   isFirstRent?: boolean
 
   @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
   @IsNumber()
   initialAmountPaid?: number
 
   @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
   @IsNumber()
   leaseYears?: number
 
   @IsOptional()
+  @Transform(({ value }) => normalizeRentType(value))
   @IsString()
   rentType?: string
 }
@@ -194,11 +218,16 @@ export class UserPropertyContextDto {
 }
 
 export class RentHistoryDto {
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
   @IsNumber()
   amount!: number
 
   @IsDateString()
   paymentDate!: string
+
+  @IsOptional()
+  @IsDateString()
+  dueDate?: string
 
   @IsOptional()
   @IsDateString()
@@ -210,7 +239,18 @@ export class RentHistoryDto {
 
   @IsOptional()
   @IsString()
+  method?: string
+
+  @IsOptional()
+  @IsString()
   notes?: string
+}
+
+export class IngestExternalRentHistoryDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RentHistoryDto)
+  records!: RentHistoryDto[]
 }
 
 export class InviteContextDto {
@@ -245,6 +285,7 @@ export class LineItemDto {
   @IsNotEmpty()
   name!: string
 
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
   @IsNumber()
   amount!: number
 }
@@ -305,6 +346,7 @@ export class ExternalPaymentRequestPayloadDto {
   rentEndDate?: string
 
   @IsOptional()
+  @Transform(({ value }) => normalizeRentType(value))
   @IsString()
   rentType?: string
 
@@ -355,6 +397,7 @@ export class UpdateExternalPaymentRequestPayloadDto {
   rentEndDate?: string
 
   @IsOptional()
+  @Transform(({ value }) => normalizeRentType(value))
   @IsString()
   rentType?: string
 

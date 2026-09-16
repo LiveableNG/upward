@@ -25,6 +25,7 @@ import { randomUUID } from 'crypto'
 import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { TenantSyncedEvent } from '../../events/definition/tenant-synced.event'
 import { RentalPeriodService } from '../../services/rental-period.service'
+import { IngestExternalRentHistoryUseCase } from './ingest-external-rent-history.use-case'
 
 import {
   InviteRequestDto as InviteRequest,
@@ -57,6 +58,7 @@ export class SingleInviteUseCase {
     private readonly addManualAccountUseCase: AddManualAccountUseCase,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     private readonly rentalPeriodService: RentalPeriodService,
+    private readonly ingestExternalRentHistoryUseCase: IngestExternalRentHistoryUseCase,
   ) { }
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
@@ -179,7 +181,27 @@ export class SingleInviteUseCase {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
-      
+    } else {
+      // User exists: Only backfill missing fields (if value exists on user, preserve it)
+      const userUpdate: any = {}
+      const isPlaceholderEmail = user.email && user.email.endsWith('@upward.com') && (user.phone ? user.email.startsWith(user.phone.replace('+', '')) : true)
+
+      if ((!user.email || isPlaceholderEmail) && userData.email && !userData.email.endsWith('@upward.com')) {
+        userUpdate.email = userData.email.trim()
+      }
+      if (!user.phone && userData.phone) {
+        userUpdate.phone = userData.phone.trim()
+      }
+      if (!user.firstName && userData.firstName) {
+        userUpdate.firstName = userData.firstName.trim()
+      }
+      if (!user.lastName && userData.lastName) {
+        userUpdate.lastName = userData.lastName.trim()
+      }
+
+      if (Object.keys(userUpdate).length > 0) {
+        user = await this.userRepository.update(user.id!, userUpdate)
+      }
     }
 
     const existingLink = await this.companyUserRepository.findByCompanyAndUser(company.id!, user.id!)
@@ -370,6 +392,10 @@ export class SingleInviteUseCase {
             }
           })
         }
+      }
+
+      if (propData.rentHistory && propData.rentHistory.length > 0 && property.id) {
+        await this.ingestExternalRentHistoryUseCase.execute(property.id, propData.rentHistory, platformId)
       }
 
 

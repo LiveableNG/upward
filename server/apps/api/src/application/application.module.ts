@@ -173,6 +173,7 @@ import { IdentifyExternalPropertyUseCase } from './use-cases/external/identify-p
 import { RenewPropertyUseCase } from './use-cases/external/renew-property.use-case'
 import { CancelExternalPaymentRequestUseCase } from './use-cases/external/cancel-payment-request.use-case'
 import { UpdateExternalPaymentRequestUseCase } from './use-cases/external/update-payment-request.use-case'
+import { IngestExternalRentHistoryUseCase } from './use-cases/external/ingest-external-rent-history.use-case'
 import { ProcessScheduledExternalPaymentRequestsUseCase } from './use-cases/external/process-scheduled-payments.use-case'
 import { UpdatePmProfileUseCase } from './use-cases/pm/update-pm-profile.use-case'
 import { UpdatePmBankInfoUseCase } from './use-cases/pm/update-pm-bank-info.use-case'
@@ -583,6 +584,7 @@ const UseCases: any[] = [
   RenewPropertyUseCase,
   CancelExternalPaymentRequestUseCase,
   UpdateExternalPaymentRequestUseCase,
+  IngestExternalRentHistoryUseCase,
   ProcessScheduledExternalPaymentRequestsUseCase,
   GetCredibilityRequestDetailsUseCase,
   FulfillCredibilityRequestUseCase,
