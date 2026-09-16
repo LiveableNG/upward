@@ -1142,7 +1142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     onClick={() => setPropertyFilter('withProperty')}
                     className={`date-chip ${propertyFilter === 'withProperty' ? 'active' : ''}`}
                   >
-                    🏠 With Property ({propertyCounts.withProperty})
+                    With Property ({propertyCounts.withProperty})
                   </button>
                   <button
                     onClick={() => setPropertyFilter('withoutProperty')}

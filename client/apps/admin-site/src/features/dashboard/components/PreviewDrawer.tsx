@@ -304,9 +304,12 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                   {entity.properties.map((p, idx) => (
                     <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', background: 'var(--surface-hover)' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>
-                          🏠 {p.address || 'Property'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Building2 size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>
+                            {p.address || 'Property'}
+                          </span>
+                        </div>
                         {p.unitName && (
                           <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'var(--clay-faint)', color: 'var(--clay)' }}>
                             Unit: {p.unitName}

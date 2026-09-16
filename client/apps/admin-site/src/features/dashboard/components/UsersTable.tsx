@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Copy, Trash2, Mail, UserPlus } from 'lucide-react'
+import { Eye, Copy, Trash2, Mail, UserPlus, Building2 } from 'lucide-react'
 import { DataTable, type ColumnDef, type ActionItem, StatusBadge } from '../../../components/common'
 
 import type { PropertySummary } from '../types'
@@ -197,7 +197,8 @@ const UserPropertyBadge: React.FC<{ properties?: PropertySummary[] }> = ({ prope
         }}
         className="pm-badge-hover"
       >
-        <span>🏠 {properties.length === 1 ? '1 Property' : `${properties.length} Properties`}</span>
+        <Building2 size={12} style={{ flexShrink: 0 }} />
+        <span>{properties.length === 1 ? '1 Property' : `${properties.length} Properties`}</span>
       </button>
 
       {open && (
