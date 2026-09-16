@@ -108,10 +108,9 @@ export default function ReceiptTemplate({
   onShare?: () => void
 }) {
   const isPartial =
-    receipt.isPartial ??
-    (receipt.remainingBalance !== undefined
-      ? receipt.remainingBalance > 0
-      : receipt.status === 'PARTIAL')
+    receipt.status === 'PARTIAL' ||
+    Boolean(receipt.isPartial) ||
+    (receipt.remainingBalance !== undefined && receipt.remainingBalance > 0)
 
   const isInvoiceTotalDifferentFromRent =
     receipt.totalInvoiceAmount !== undefined &&

@@ -1643,29 +1643,24 @@ export class GetTransactionUseCase {
 
         const propRent = pr.userProperty?.rentAmount
         const rentItem = (pr.lineItemRecords as any[])?.find((i: any) => i.name?.toLowerCase().includes('rent'))
-        rentAmount = propRent || (rentItem ? rentItem.totalAmount : pr.amount)
 
-        const depositTxs = await this.prisma.upward_rent_deposit_transaction.findMany({
-          where: {
-            paymentRequestId: pr.id,
-            type: 'DEBIT',
-            status: 'SUCCESS',
-          },
-        })
-        const totalDepositApplied = depositTxs.reduce((sum, dt) => sum + (dt.amount || 0), 0)
-        const isPrPaid = pr.status === 'PAID'
+        const depositTxs = (this.prisma as any).upward_rent_deposit_transaction
+          ? await (this.prisma as any).upward_rent_deposit_transaction.findMany({
+              where: {
+                paymentRequestId: pr.id,
+                type: 'DEBIT',
+                status: 'SUCCESS',
+                createdAt: { lte: tx.createdAt },
+              },
+            })
+          : []
+        const totalDepositApplied = depositTxs.reduce((sum: number, dt: any) => sum + (dt.amount || 0), 0)
 
-        if (isPrPaid) {
-          totalInvoice = pr.amount
-          rentAmount = pr.amount
-          historicalPaidToDate = pr.amount
-          historicalRemaining = 0
-          isPartial = false
-        } else if (hasSnapshotAmounts) {
+        if (hasSnapshotAmounts) {
           const snapTx = tx as any
           totalInvoice = snapTx.totalInvoiceAmount
-          rentAmount = snapTx.totalInvoiceAmount
-          historicalPaidToDate = Math.max(pr.amountPaid || 0, (snapTx.historicalPaidToDate ?? snapTx.amount) + totalDepositApplied)
+          rentAmount = propRent || (rentItem ? (rentItem.totalAmount || rentItem.amount) : snapTx.totalInvoiceAmount)
+          historicalPaidToDate = snapTx.historicalPaidToDate ?? snapTx.amount
           historicalRemaining = snapTx.remainingBalance ?? Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = snapTx.isPartial ?? (historicalRemaining > 0)
         } else {
@@ -1677,11 +1672,12 @@ export class GetTransactionUseCase {
             },
           })
           const propInitialPaid = pr.userProperty?.initialAmountPaid || 0
-          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) + totalDepositApplied || tx.amount || pr.amountPaid || 0
+          const basePaid = priorTxs.reduce((sum, t) => sum + (t.amount || 0), 0) + totalDepositApplied || tx.amount || 0
           historicalPaidToDate = (propInitialPaid > 0 && propRent && propRent > pr.amount)
             ? Math.min(propRent, propInitialPaid + basePaid)
             : basePaid
-          totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : (pr.amount || rentAmount)
+          totalInvoice = (propInitialPaid > 0 && propRent) ? propRent : (pr.amount || (rentItem ? rentItem.totalAmount : tx.amount))
+          rentAmount = propRent || (rentItem ? (rentItem.totalAmount || rentItem.amount) : pr.amount)
           historicalRemaining = Math.max(0, totalInvoice - historicalPaidToDate)
           isPartial = historicalRemaining > 0
         }
@@ -1737,7 +1733,7 @@ export class GetTransactionUseCase {
           const hasDepositItem = resolvedLineItems.some((i: any) =>
             (i.name || i.label || '').toLowerCase().includes('deposit')
           )
-          if (!hasDepositItem && isPrPaid) {
+          if (!hasDepositItem && !isPartial) {
             const fullItems = pr.lineItemRecords.map((lir: any) => ({
               name: lir.name,
               label: lir.name,

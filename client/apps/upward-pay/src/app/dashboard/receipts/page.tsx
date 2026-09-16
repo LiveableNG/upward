@@ -65,21 +65,25 @@ export default function ReceiptsPage() {
 
         const pr = tx.paymentRequest
         const fullRentAmount = tx.rentAmount ?? tx.totalInvoiceAmount ?? propInfo?.rentAmount ?? pr?.amount
-        const totalInvoiceAmount = tx.totalInvoiceAmount !== undefined ? tx.totalInvoiceAmount : (fullRentAmount || pr?.amount)
+        const totalInvoiceAmount = (tx.totalInvoiceAmount !== undefined && tx.totalInvoiceAmount !== null)
+          ? tx.totalInvoiceAmount
+          : (fullRentAmount || pr?.amount)
         const initialPaid = propInfo?.initialAmountPaid || 0
-        const totalPaidToDate = tx.totalPaidToDate !== undefined
+        const totalPaidToDate = (tx.totalPaidToDate !== undefined && tx.totalPaidToDate !== null)
           ? tx.totalPaidToDate
-          : (tx.historicalPaidToDate !== undefined 
+          : ((tx.historicalPaidToDate !== undefined && tx.historicalPaidToDate !== null)
             ? tx.historicalPaidToDate 
             : ((pr?.amountPaid || 0) + (initialPaid && tx.amount < (fullRentAmount || 0) ? initialPaid : 0)))
-        const remainingBalance = tx.remainingBalance !== undefined
+        const remainingBalance = (tx.remainingBalance !== undefined && tx.remainingBalance !== null)
           ? tx.remainingBalance
-          : (tx.historicalRemaining !== undefined
+          : ((tx.historicalRemaining !== undefined && tx.historicalRemaining !== null)
             ? tx.historicalRemaining
             : (totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
               ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
               : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined)))
-        const isPartial = tx.isPartial !== undefined ? tx.isPartial : (remainingBalance !== undefined ? remainingBalance > 0 : (pr?.status === 'PARTIAL'))
+        const isPartial = (tx.isPartial !== undefined && tx.isPartial !== null)
+          ? Boolean(tx.isPartial)
+          : (remainingBalance !== undefined ? remainingBalance > 0 : (tx.status === 'PARTIAL' || pr?.status === 'PARTIAL'))
 
         const cleanDisplayName = (name?: string | null, fallback = 'Upward') => {
           if (!name) return fallback
@@ -117,7 +121,7 @@ export default function ReceiptsPage() {
           channel: tx.channel || 'Paystack',
           paystackReference: tx.reference,
           type: 'debit',
-          status: isPartial ? 'PARTIAL' : (tx.paymentRequest?.status || (tx.status === 'SUCCESS' ? 'PAID' : 'PENDING')),
+          status: isPartial ? 'PARTIAL' : (tx.status === 'SUCCESS' ? 'PAID' : (tx.paymentRequest?.status || 'PENDING')),
           isPartial: !!isPartial,
           rentAmount: tx.rentAmount,
           totalInvoiceAmount,
@@ -287,6 +291,11 @@ export default function ReceiptsPage() {
       channel: data.channel,
       type: data.type === 'credit' ? 'SAVINGS' : 'RENT',
       status: data.status,
+      isPartial: data.isPartial,
+      totalInvoiceAmount: data.totalInvoiceAmount,
+      totalPaidToDate: data.totalPaidToDate,
+      remainingBalance: data.remainingBalance,
+      rentAmount: data.rentAmount,
       lineItems: data.lineItems,
       tenancyPeriod: data.tenancyPeriod,
     }
