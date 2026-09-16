@@ -326,18 +326,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 6. Explicit /pm-login, /pm-signup, and /pm-forgot-password rewrites
-  if (pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/pm-forgot-password') {
-    const targetPath =
-      pathname === '/pm-login'
-        ? '/login'
-        : pathname === '/pm-signup'
-          ? '/signup'
-          : '/forgot-password'
-
-    return proxyAssetRewrite(request, targetPath, search, PM_URL, protocol, 'pm')
-  }
-
+  // 6. Redirect logged-in users away from auth pages
   const isPmAuthPage =
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
@@ -360,11 +349,22 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(dashboardUrl)
       }
       
-      
       if (isPayAuthPage && hasActivePayToken) {
         return NextResponse.redirect(dashboardUrl)
       }
     }
+  }
+
+  // 7. Explicit /pm-login, /pm-signup, and /pm-forgot-password rewrites
+  if (pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/pm-forgot-password') {
+    const targetPath =
+      pathname === '/pm-login'
+        ? '/login'
+        : pathname === '/pm-signup'
+          ? '/signup'
+          : '/forgot-password'
+
+    return proxyAssetRewrite(request, targetPath, search, PM_URL, protocol, 'pm')
   }
 
   // 8. Protected Routes Logic

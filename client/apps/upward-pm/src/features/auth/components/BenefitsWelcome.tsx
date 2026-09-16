@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, TrendingUp, Shield, BarChart3, UserPlus, LogIn } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useRouter } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
 
 const BENEFITS = [
   {
@@ -87,7 +88,7 @@ export function BenefitsWelcome() {
         <button 
           type="button" 
           className="auth-btn auth-btn--primary" 
-          onClick={() => router.push('/signup')}
+          onClick={() => router.push(Capacitor.isNativePlatform() ? '/signup' : '/pm-signup')}
         >
           <UserPlus size={18} />
           Create Account
@@ -95,7 +96,7 @@ export function BenefitsWelcome() {
         <button 
           type="button" 
           className="auth-btn auth-btn--secondary" 
-          onClick={() => router.push('/login')}
+          onClick={() => router.push(Capacitor.isNativePlatform() ? '/login' : '/pm-login')}
         >
           <LogIn size={18} />
           Log In

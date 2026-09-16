@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
 import { AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Sidebar } from "@/components/layout/Sidebar"
@@ -59,7 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   
   useEffect(() => {
     if (!loading && !isLoggedIn && !isAuthPage && !isPublicPage && !isPortalPage) {
-      router.replace('/login')
+      router.replace(Capacitor.isNativePlatform() ? '/login' : '/pm-login')
     }
     if (process.env.NEXT_PUBLIC_DISABLE_SUBSCRIPTIONS === 'true' && pathname?.startsWith('/subscription')) {
       router.replace('/dashboard')

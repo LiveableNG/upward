@@ -60,6 +60,11 @@ const nextConfig: NextConfig = {
         destination: `${PM_URL}/pm-signup`,
         permanent: false,
       },
+      {
+        source: '/pm-forgot-password',
+        destination: `${PM_URL}/pm-forgot-password`,
+        permanent: false,
+      },
     ]
   },
 }

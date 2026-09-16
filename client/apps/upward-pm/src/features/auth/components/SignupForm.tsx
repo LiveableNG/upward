@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Capacitor } from '@capacitor/core'
 import {
   Mail,
   Lock,
@@ -109,6 +110,9 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
   const [businessPhoneCountry, setBusinessPhoneCountry] = useState('Nigeria')
   const [personalPhoneCountry, setPersonalPhoneCountry] = useState('Nigeria')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [loginHref, setLoginHref] = useState(
+    Capacitor.isNativePlatform() ? '/login' : '/pm-login'
+  )
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [resendCooldown, setResendCooldown] = useState(0)
 
@@ -178,16 +182,25 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    const prefillPmType = resolvePmTypePrefill(new URLSearchParams(window.location.search).get('pmType'))
-    if (!prefillPmType) return
-
-    setFormData((current) => {
-      if (current.pmType && current.pmType !== 'Property Manager') return current
-      return {
-        ...current,
-        pmType: prefillPmType,
-      }
-    })
+    const isNative = Capacitor.isNativePlatform()
+    const searchParams = new URLSearchParams(window.location.search)
+    const pmType = searchParams.get('pmType')
+    const prefillPmType = resolvePmTypePrefill(pmType)
+    if (prefillPmType) {
+      setFormData((current) => {
+        if (current.pmType && current.pmType !== 'Property Manager') return current
+        return {
+          ...current,
+          pmType: prefillPmType,
+        }
+      })
+    }
+    const baseHref = isNative ? '/login' : '/pm-login'
+    if (pmType) {
+      setLoginHref(`${baseHref}?pmType=${encodeURIComponent(pmType)}`)
+    } else {
+      setLoginHref(baseHref)
+    }
   }, [])
 
   const clearFieldError = (field: string) => {
@@ -323,12 +336,8 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
       otpLoginMutation.mutate(
         { email: formData.email.trim(), otp: otpCode },
         {
-          onSuccess: (res: OtpLoginResult) => {
-            if (res.user?.pmType === 'INDIVIDUAL_LANDLORD') {
-              window.location.href = '/portal'
-            } else {
-              window.location.href = '/dashboard'
-            }
+          onSuccess: () => {
+            window.location.href = '/dashboard'
           },
         },
       )
@@ -590,7 +599,10 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
               {emailExists && (
                 <p className="field-error-text">
                   This email is already registered.{' '}
-                  <Link href="/login" style={{ color: 'var(--forest-700)', fontWeight: 600, textDecoration: 'underline' }}>
+                  <Link 
+                    href={`${loginHref}${loginHref.includes('?') ? '&' : '?'}email=${encodeURIComponent(formData.email.trim())}`} 
+                    style={{ color: 'var(--forest-700)', fontWeight: 600, textDecoration: 'underline' }}
+                  >
                     Sign in?
                   </Link>
                 </p>
@@ -967,7 +979,7 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
       {step !== 'success' && (
         <p className="foot-note">
           Already have an account?{' '}
-          <Link href="/login">
+          <Link href={loginHref}>
             Sign in
           </Link>
         </p>

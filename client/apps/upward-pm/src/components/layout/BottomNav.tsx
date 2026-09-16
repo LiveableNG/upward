@@ -25,7 +25,16 @@ export function BottomNav() {
   const pathname = usePathname()
 
   // Don't show on auth pages
-  if (pathname === '/signup' || pathname === '/login') return null
+  if (
+    pathname === '/signup' ||
+    pathname === '/login' ||
+    pathname === '/pm-login' ||
+    pathname === '/pm-signup' ||
+    pathname === '/forgot-password' ||
+    pathname === '/pm-forgot-password' ||
+    pathname === '/welcome' ||
+    pathname?.startsWith('/portal')
+  ) return null
 
   return (
     <nav className="bottom-nav">

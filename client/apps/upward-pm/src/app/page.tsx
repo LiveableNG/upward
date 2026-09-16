@@ -15,7 +15,7 @@ export default function RootPage() {
       if (Capacitor.isNativePlatform()) {
         router.replace('/welcome')
       } else {
-        router.replace('/login')
+        router.replace('/pm-login')
       }
     }, 4000)
 
@@ -29,7 +29,7 @@ export default function RootPage() {
         if (Capacitor.isNativePlatform()) {
           router.replace('/welcome')
         } else {
-          router.replace('/login')
+          router.replace('/pm-login')
         }
       }
     }, 1500)

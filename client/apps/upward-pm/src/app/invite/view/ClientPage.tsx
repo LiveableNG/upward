@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
 import Link from 'next/link'
 import { KeyRound, ArrowRight, Mail } from 'lucide-react'
 import { request } from '@/lib/api-client'
@@ -79,7 +80,7 @@ function InviteContent() {
   if (!userData) {
     return (
       <AuthLayout title="Invalid Link" subtitle="This invitation link has expired or is invalid. Please contact the person who invited you.">
-        <button className="auth-btn auth-btn--primary" onClick={() => router.push('/login')}>Go to Login</button>
+        <button className="auth-btn auth-btn--primary" onClick={() => router.push(Capacitor.isNativePlatform() ? '/login' : '/pm-login')}>Go to Login</button>
       </AuthLayout>
     )
   }

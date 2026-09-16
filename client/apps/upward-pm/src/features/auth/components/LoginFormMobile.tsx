@@ -105,10 +105,15 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
   useEffect(() => {
     if (nativePlatform || typeof window === 'undefined') return
-    const pmType = new URLSearchParams(window.location.search).get('pmType')
+    const params = new URLSearchParams(window.location.search)
+    const emailParam = params.get('email')
+    if (emailParam) {
+      setValue('email', emailParam)
+    }
+    const pmType = params.get('pmType')
     if (!pmType) return
     setSignupHref(`/pm-signup?pmType=${encodeURIComponent(pmType)}`)
-  }, [nativePlatform])
+  }, [nativePlatform, setValue])
 
   const handleRoleSelect = (role: 'manager' | 'landlord') => {
     setSelectedRole(role)
