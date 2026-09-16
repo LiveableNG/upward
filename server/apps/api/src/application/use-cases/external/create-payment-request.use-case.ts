@@ -81,6 +81,7 @@ export class CreateExternalPaymentRequestUseCase {
     }
 
     let subaccountId: number | undefined = property.subaccountId || undefined
+    let manualAccountId: number | undefined = payload.manualAccountId || property.manualAccountId || property.pmUnit?.property?.manualAccountId || undefined
 
     if (payload.bankCode || payload.accountNumber) {
       if (!payload.bankCode || !payload.accountNumber) {
@@ -131,6 +132,7 @@ export class CreateExternalPaymentRequestUseCase {
         minAmount: payload.minAmount !== undefined ? payload.minAmount : paymentRequest.minAmount,
         rentType: payload.rentType || paymentRequest.rentType,
         subaccountId: subaccountId,
+        manualAccountId: manualAccountId !== undefined ? manualAccountId : paymentRequest.manualAccountId,
         status: isScheduled ? 'SCHEDULED' : paymentRequest.status,
         scheduledAt: payload.scheduledAt ? new Date(payload.scheduledAt) : paymentRequest.scheduledAt,
         isRecurring: payload.isRecurring !== undefined ? payload.isRecurring : paymentRequest.isRecurring,
@@ -201,6 +203,7 @@ export class CreateExternalPaymentRequestUseCase {
         status: isScheduled ? 'SCHEDULED' : 'PENDING',
         reference: `EXT_${randomUUID()}_${Date.now()}`,
         subaccountId: subaccountId,
+        manualAccountId: manualAccountId,
         allowPartial: payload.allowPartial ?? false,
         minAmount: payload.minAmount || undefined,
         rentType: payload.rentType,
