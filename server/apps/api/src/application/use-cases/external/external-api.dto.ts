@@ -156,17 +156,33 @@ export class PaymentAccountDto {
   @IsString()
   bank_name?: string
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  bank_code!: string
+  bankName?: string
+
+  @IsOptional()
+  @IsString()
+  bank_code?: string
+
+  @IsOptional()
+  @IsString()
+  bankCode?: string
 
   @IsOptional()
   @IsString()
   account_name?: string
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  account_number!: string
+  accountName?: string
+
+  @IsOptional()
+  @IsString()
+  account_number?: string
+
+  @IsOptional()
+  @IsString()
+  accountNumber?: string
 }
 
 export class UserPropertyContextDto {
@@ -465,3 +481,48 @@ export class FulfillCredibilityRequestDto {
   @Type(() => CredibilityRecordDto)
   records!: CredibilityRecordDto[]
 }
+
+export class VerifyAndAssignPropertyDto {
+  @IsString()
+  @IsNotEmpty()
+  externalUnitId!: string
+
+  @IsOptional()
+  @IsString()
+  externalPropertyId?: string
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== '' && value !== null && value !== undefined ? Number(value) : undefined))
+  @IsNumber()
+  rentAmount?: number
+
+  @IsOptional()
+  @IsDateString()
+  rentStartDate?: string
+
+  @IsOptional()
+  @IsDateString()
+  rentEndDate?: string
+
+  @IsOptional()
+  @Transform(({ value }) => normalizeRentType(value))
+  @IsString()
+  rentType?: string
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== '' && value !== null && value !== undefined ? Number(value) : undefined))
+  @IsNumber()
+  leaseYears?: number
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PaymentAccountDto)
+  settlementAccount?: PaymentAccountDto
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RentHistoryDto)
+  rentHistory?: RentHistoryDto[]
+}
+

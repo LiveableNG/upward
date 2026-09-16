@@ -238,7 +238,64 @@ If a user is already registered or has been invited, you can add more properties
 
 ---
 
-## 4. Payment Requests
+## 4. Ingesting Rent History
+External platforms can upload past rent payment records for a property. Ingested records automatically create ledger entries, populate `upward_rent_cycle` scoring records (boosting tenant Upward Score), and synchronize active rental cycle dates.
+
+**Method**: `POST`  
+**Endpoint**: `/api/v1/platform/properties/:propertyUuid/rent-history`
+
+#### Authentication
+| Header | Value |
+| :--- | :--- |
+| `x-api-key` | `your_raw_api_key_here` |
+
+#### Request Body Schema
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `records` | `Array<Object>` | **Yes** | Array of past payment records. |
+
+#### Record Object
+| Field | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `amount` | `number` | **Yes** | Total amount paid. |
+| `paymentDate` | `string` | **Yes** | ISO-8601 date when payment was made. |
+| `dueDate` | `string` | No | ISO-8601 date when payment was due. Defaults to `periodEnd` or `paymentDate`. |
+| `periodStart` | `string` | No | ISO-8601 date for period start. |
+| `periodEnd` | `string` | No | ISO-8601 date for period end. |
+| `method` | `string` | No | Payment method (e.g., "Bank Transfer"). |
+| `notes` | `string` | No | Optional notes / memo. |
+
+#### Request Example
+```json
+{
+  "records": [
+    {
+      "amount": 2000000,
+      "paymentDate": "2024-01-10",
+      "dueDate": "2024-01-15",
+      "periodStart": "2024-01-01",
+      "periodEnd": "2025-01-01",
+      "method": "Bank Transfer",
+      "notes": "2024 Annual Rent"
+    }
+  ]
+}
+```
+
+#### Response Example
+```json
+{
+  "success": true,
+  "message": "Successfully ingested 1 rent payment record(s).",
+  "recordsIngested": 1,
+  "propertyUuid": "5cab404a-...",
+  "userUuid": "b7a71853-..."
+}
+```
+
+---
+
+## 5. Payment Requests
 Generate a payment link for a tenant based on an existing property or by initiating an auto-invite.
 
 **Method**: `POST`  
@@ -520,22 +577,112 @@ Triggered whenever a payment is made towards a request. Use the `status` field t
 ```
 
 ### Event: `invite.accepted`
-Triggered when a tenant successfully signs up and activates their account via the invite link.
+### Event: `property_verification.requested`
+Triggered when a tenant in the Upward app claims a tenancy and requests verification from your platform/company/manager.
 
 #### Payload Structure
-*   **Company/Manager Resolution**: 
-    *   Providing a `uuid` will attempt to link to an existing record.
-    *   If no `uuid` is provided, `name` (for companies) or `email` (for managers) is used to find or create the record. Full details are required for creation.
-    *   **Properties Managed by Company Only**: If the `manager` object is omitted, the property is linked directly to the company, and settlement routing falls back to the company's business name.
+```json
+{
+  "event": "property_verification.requested",
+  "data": {
+    "propertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
+    "targetContext": {
+      "company": {
+        "uuid": "comp_6e84d632-411a-4c40-9706-5a5078516da8",
+        "name": "Apex Real Estate Ltd",
+        "email": "contact@apexrealestate.com"
+      },
+      "manager": {
+        "uuid": "mgr_12345678-411a-4c40-9706-5a5078516da8",
+        "name": "Adeola Johnson",
+        "email": "adeola@apexrealestate.com",
+        "phone": "+2348012345678"
+      }
+    },
+    "tenant": {
+      "userUuid": "usr_99182341-2d7a-4399-af09-115a6c1406ce",
+      "firstName": "Emeka",
+      "lastName": "Okafor",
+      "email": "emeka.okafor@example.com",
+      "phone": "+2348099887766"
+    },
+    "claimedDetails": {
+      "address": "Flat 4B, Silver Valley Estate",
+      "area": "Lekki Phase 1",
+      "subarea": "Freedom Way",
+      "state": "Lagos",
+      "country": "NG",
+      "rentAmount": 3500000,
+      "rentType": "Annually",
+      "rentStartDate": "2025-01-01",
+      "rentEndDate": "2026-01-01",
+      "initialAmountPaid": 3500000,
+      "tenancyStatus": "NEW_CYCLE"
+    },
+    "createdAt": "2026-09-16T17:00:00.000Z"
+  }
+}
+```
 
-### Payment Requests
-*   **Sum Validation**: If you provide `lineItems`, their total sum **must match** the main `amount` field. This prevents reconciliation errors.
-*   **Settlement Routing**: `bankCode` and `accountNumber` are optional. If provided, they override the property-level settlement account for this payment. If omitted, settlement routes to the property manager or company's primary settlement account.
-*   **Idempotency (Upsert)**: Sending a payment request with the same `userPropertyUuid`, `amount`, and `dueDate` as a pending one will **update** the existing request rather than creating a duplicate.
+---
 
-### Credibility Verification
-*   **Sequential Records**: Ensure records are provided in a logical chronological order for best user experience on the tenant's profile.
-*   **Data Accuracy**: Fulfilling a request marks it as `COMPLETED`. This data is used to calculate the user's Rent Score.
+## 8. Verify & Assign Property Endpoint
+
+Verify a tenant's tenancy claim, map it to your internal unit identifier, configure the settlement payout account, and backfill historical rent payment records.
+
+*   **Method**: `POST`
+*   **Endpoint**: `/api/v1/platform/properties/:propertyUuid/verify-and-assign`
+*   **Authentication**: Required (`x-api-key`)
+
+#### Request Body
+```json
+{
+  "externalUnitId": "UNIT-LK-402",
+  "externalPropertyId": "PROP-SV-ESTATE",
+  "rentAmount": 3500000,
+  "rentStartDate": "2025-01-01",
+  "rentEndDate": "2026-01-01",
+  "rentType": "Annually",
+  "leaseYears": 1,
+  "settlementAccount": {
+    "account_number": "0123456789",
+    "bank_code": "058",
+    "account_name": "Silver Valley Management Ltd",
+    "bank_name": "Guaranty Trust Bank"
+  },
+  "rentHistory": [
+    {
+      "amount": 3500000,
+      "paymentDate": "2025-01-02",
+      "dueDate": "2025-01-01",
+      "periodStart": "2025-01-01",
+      "periodEnd": "2026-01-01",
+      "method": "Direct Bank Transfer",
+      "notes": "Verified initial lease rent payment"
+    }
+  ]
+}
+```
+
+#### Response
+```json
+{
+  "success": true,
+  "message": "Property successfully verified and assigned.",
+  "data": {
+    "propertyUuid": "5cab404a-df37-4408-826b-e8b820e26fac",
+    "externalUnitId": "UNIT-LK-402",
+    "externalPropertyId": "PROP-SV-ESTATE",
+    "isVerified": true,
+    "verificationStatus": "VERIFIED",
+    "rentAmount": 3500000,
+    "rentStartDate": "2025-01-01T00:00:00.000Z",
+    "rentEndDate": "2026-01-01T00:00:00.000Z",
+    "rentType": "Annually",
+    "recordsIngested": 1
+  }
+}
+```
 
 ---
 

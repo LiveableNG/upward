@@ -6,6 +6,7 @@ import { UnifiedCommunicationService } from '../../../shared/infrastructure/comm
 import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/payment.repository';
+import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service';
 import * as crypto from 'crypto';
 
 import { RentalPeriodService } from '../../services/rental-period.service';
@@ -47,6 +48,7 @@ export class SubmitUnitRequestUseCase {
     private readonly paymentGateway: IPaymentGateway,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly rentalPeriodService: RentalPeriodService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   async execute(
@@ -57,6 +59,8 @@ export class SubmitUnitRequestUseCase {
     companyName: string | undefined,
     unitDetails: UnitDetails,
     paymentDetails?: PaymentDetails,
+    companyUuid?: string,
+    managerUuid?: string,
   ) {
 
     const fullUser = await this.prisma.upward_user.findUnique({
@@ -67,11 +71,68 @@ export class SubmitUnitRequestUseCase {
       throw new Error('Authenticated user profile not found in database');
     }
 
-    let pm: Awaited<ReturnType<PropertyManagerRepository['findByEmail']>> = null;
-    let isNewShadowPm = false;
     const trimmedPmEmail = pmEmail?.trim();
 
-    if (trimmedPmEmail) {
+    // Check if selecting an external platform company or manager
+    let matchedCompany: any = null;
+    let matchedManager: any = null;
+    let matchedPlatformId: number | null = null;
+
+    if (companyUuid) {
+      matchedCompany = await this.prisma.upward_company.findUnique({
+        where: { uuid: companyUuid },
+      });
+      if (matchedCompany?.platformId) {
+        matchedPlatformId = matchedCompany.platformId;
+      }
+    }
+
+    if (managerUuid) {
+      matchedManager = await this.prisma.upward_manager.findUnique({
+        where: { uuid: managerUuid },
+        include: { company: true },
+      });
+      if (matchedManager?.company) {
+        if (!matchedCompany) matchedCompany = matchedManager.company;
+        if (matchedManager.company.platformId) {
+          matchedPlatformId = matchedManager.company.platformId;
+        }
+      }
+    }
+
+    if (!matchedCompany && !matchedManager && trimmedPmEmail) {
+      const emailHash = this.encryption.hash(trimmedPmEmail);
+      const phoneHash = this.encryption.hash(trimmedPmEmail);
+
+      matchedManager = await this.prisma.upward_manager.findFirst({
+        where: {
+          OR: [{ emailHash }, { phoneHash }],
+          company: { platformId: { not: null } },
+        },
+        include: { company: true },
+      });
+
+      if (matchedManager?.company) {
+        matchedCompany = matchedManager.company;
+        matchedPlatformId = matchedManager.company.platformId;
+      } else {
+        matchedCompany = await this.prisma.upward_company.findFirst({
+          where: {
+            OR: [{ emailHash }, { phoneHash }],
+            platformId: { not: null },
+          },
+        });
+        if (matchedCompany?.platformId) {
+          matchedPlatformId = matchedCompany.platformId;
+        }
+      }
+    }
+
+    let pm: Awaited<ReturnType<PropertyManagerRepository['findByEmail']>> = null;
+    let isNewShadowPm = false;
+
+    // Only handle Upward PM repository lookup/creation if not an external platform PM
+    if (!matchedCompany && !matchedManager && trimmedPmEmail) {
       pm = await this.pmRepository.findByEmail(trimmedPmEmail);
       if (!pm) {
         pm = await this.pmRepository.findByPhone(trimmedPmEmail);
@@ -235,6 +296,15 @@ export class SubmitUnitRequestUseCase {
     if (pm) {
       propertyBaseData.pm = { connect: { id: pm.id } };
     }
+    if (matchedCompany) {
+      propertyBaseData.company = { connect: { id: matchedCompany.id } };
+    }
+    if (matchedManager) {
+      propertyBaseData.manager = { connect: { id: matchedManager.id } };
+    }
+    if (matchedPlatformId) {
+      propertyBaseData.platformId = matchedPlatformId;
+    }
 
     const paymentSubaccountId = await this.resolvePaymentSubaccountId(paymentDetails);
     if (paymentSubaccountId) {
@@ -340,6 +410,62 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
+    // If linked to an external platform company, dispatch property_verification.requested webhook
+    if (matchedPlatformId && matchedCompany && savedProperty?.uuid) {
+      const decryptedUserEmail = fullUser.email ? (this.encryption.decrypt(fullUser.email).includes('@') ? this.encryption.decrypt(fullUser.email) : fullUser.email) : '';
+      const decryptedUserPhone = fullUser.phone ? this.encryption.decrypt(fullUser.phone) : null;
+      const decryptedCompName = matchedCompany.name ? this.encryption.decrypt(matchedCompany.name) : '';
+      const decryptedCompEmail = matchedCompany.email ? this.encryption.decrypt(matchedCompany.email) : null;
+      const decryptedMgrFirst = matchedManager?.firstName ? this.encryption.decrypt(matchedManager.firstName) : '';
+      const decryptedMgrLast = matchedManager?.lastName ? this.encryption.decrypt(matchedManager.lastName) : '';
+      const decryptedMgrEmail = matchedManager?.email ? this.encryption.decrypt(matchedManager.email) : null;
+      const decryptedMgrPhone = matchedManager?.phone ? this.encryption.decrypt(matchedManager.phone) : null;
+
+      const webhookPayload = {
+        propertyUuid: savedProperty.uuid,
+        targetContext: {
+          company: {
+            uuid: matchedCompany.uuid,
+            name: decryptedCompName,
+            email: decryptedCompEmail,
+          },
+          manager: matchedManager ? {
+            uuid: matchedManager.uuid,
+            name: `${decryptedMgrFirst} ${decryptedMgrLast}`.trim() || 'Property Manager',
+            email: decryptedMgrEmail,
+            phone: decryptedMgrPhone,
+          } : null,
+        },
+        tenant: {
+          userUuid: fullUser.uuid,
+          firstName: decryptedFirstName,
+          lastName: decryptedLastName,
+          email: decryptedUserEmail,
+          phone: decryptedUserPhone,
+        },
+        claimedDetails: {
+          address: unitDetails.address,
+          area: unitDetails.area,
+          subarea: unitDetails.subarea || '',
+          state: unitDetails.state,
+          country: unitDetails.country,
+          rentAmount: unitDetails.rentAmount,
+          rentType: unitDetails.rentType || 'Annually',
+          rentStartDate: unitDetails.rentStartDate,
+          rentEndDate: unitDetails.rentEndDate,
+          initialAmountPaid: unitDetails.initialAmountPaid || 0,
+          tenancyStatus: unitDetails.tenancyStatus || 'NEW_CYCLE',
+        },
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.webhookService.sendWebhook(
+        matchedPlatformId,
+        'property_verification.requested',
+        webhookPayload,
+      ).catch((err: any) => this.logger.error(`Failed to send property_verification.requested webhook: ${err.message}`));
+    }
+
     if (pm) {
       const decryptedUser = {
         ...fullUser,
@@ -357,7 +483,11 @@ export class SubmitUnitRequestUseCase {
 
     return {
       success: true,
-      message: pm
+      userProperty: {
+        id: savedProperty.id,
+        uuid: savedProperty.uuid,
+      },
+      message: (pm || matchedCompany)
         ? 'Unit details saved and property manager notified.'
         : 'Property details saved successfully.',
     };

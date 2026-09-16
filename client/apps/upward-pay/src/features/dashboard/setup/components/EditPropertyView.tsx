@@ -76,7 +76,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const [companyName, setCompanyName] = useState('')
   const [pmInviteEmail, setPmInviteEmail] = useState('')
   const [pmFound, setPmFound] = useState(false)
-  const [pmDetails, setPmDetails] = useState<{ id?: number; name?: string; businessName?: string } | null>(null)
+  const [pmDetails, setPmDetails] = useState<{ id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null>(null)
 
   const [activeProof, setActiveProof] = useState<any | null>(null)
   const [isDeletingProof, setIsDeletingProof] = useState(false)
@@ -257,6 +257,12 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         if (targetEmail) {
           payload.pmEmail = targetEmail
           payload.pmName = pmFound ? pmDetails?.name : pmName.trim()
+          if (pmDetails?.companyUuid) {
+            payload.companyUuid = pmDetails.companyUuid
+          }
+          if (pmDetails?.managerUuid) {
+            payload.managerUuid = pmDetails.managerUuid
+          }
           if (!pmFound) {
             payload.pmType = pmType
             if (pmType === 'Property Manager' && companyName.trim()) {
@@ -357,7 +363,9 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               <Lock size={20} style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
                 <strong style={{ display: 'block', fontSize: 14, marginBottom: 2 }}>
-                  Managed Property ({managerLabel})
+                  {isExternalUnit || property?.isPlatformLinked || (property as any)?.company?.platformId
+                    ? `Verified by External Platform (${managerLabel})`
+                    : `Verified by Upward PM (${managerLabel})`}
                 </strong>
                 <span style={{ fontSize: 13, lineHeight: 1.45, opacity: 0.9 }}>
                   Tenancy dates, rent amounts, and payout accounts are locked because this property is verified or has active rent payments.

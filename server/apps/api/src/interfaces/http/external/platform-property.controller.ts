@@ -2,13 +2,15 @@ import { Controller, Patch, Post, Body, Param, UseGuards, Req } from '@nestjs/co
 import { ApiKeyGuard } from './api-key.guard'
 import { IdentifyExternalPropertyUseCase } from '../../../application/use-cases/external/identify-property.use-case'
 import { IngestExternalRentHistoryUseCase } from '../../../application/use-cases/external/ingest-external-rent-history.use-case'
-import { IdentifyPropertyPayloadDto, IngestExternalRentHistoryDto } from '../../../application/use-cases/external/external-api.dto'
+import { VerifyAndAssignExternalPropertyUseCase } from '../../../application/use-cases/external/verify-and-assign-property.use-case'
+import { IdentifyPropertyPayloadDto, IngestExternalRentHistoryDto, VerifyAndAssignPropertyDto } from '../../../application/use-cases/external/external-api.dto'
 
 @Controller('platform/properties')
 export class PlatformPropertyController {
   constructor(
     private readonly identifyExternalPropertyUseCase: IdentifyExternalPropertyUseCase,
     private readonly ingestExternalRentHistoryUseCase: IngestExternalRentHistoryUseCase,
+    private readonly verifyAndAssignExternalPropertyUseCase: VerifyAndAssignExternalPropertyUseCase,
   ) { }
 
   @Patch(':uuid/identify')
@@ -31,6 +33,18 @@ export class PlatformPropertyController {
   ) {
     const platformId = req.platformId
     const result = await this.ingestExternalRentHistoryUseCase.execute(uuid, payload.records, platformId)
+    return result
+  }
+
+  @Post(':uuid/verify-and-assign')
+  @UseGuards(ApiKeyGuard)
+  async verifyAndAssign(
+    @Param('uuid') uuid: string,
+    @Body() payload: VerifyAndAssignPropertyDto,
+    @Req() req: any
+  ) {
+    const platform = { id: req.platformId }
+    const result = await this.verifyAndAssignExternalPropertyUseCase.execute(uuid, payload, platform)
     return result
   }
 }
