@@ -154,11 +154,19 @@ describe('SingleInviteUseCase', () => {
   let addManualAccountUseCase: any
   let eventBus: any
   let rentalPeriodService: RentalPeriodService
+  let ingestExternalRentHistoryUseCase: any
 
   beforeEach(() => {
     prisma = {} as any
     encryption = { encrypt: jest.fn(), decrypt: jest.fn() } as any
     rentalPeriodService = new RentalPeriodService()
+    ingestExternalRentHistoryUseCase = {
+      execute: jest.fn().mockResolvedValue({
+        success: true,
+        recordsIngested: 0,
+        propertyUuid: 'property-uuid-001',
+      }),
+    }
 
     userRepository = {
       findByEmail: jest.fn(),
@@ -253,6 +261,7 @@ describe('SingleInviteUseCase', () => {
       addManualAccountUseCase,
       eventBus,
       rentalPeriodService,
+      ingestExternalRentHistoryUseCase,
     )
   })
 
