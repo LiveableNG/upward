@@ -21,6 +21,7 @@ const pathMetadata: Record<string, { name: string; category?: string }> = {
   '/announcements': { name: 'Announcements', category: 'Communications' },
   '/blog': { name: 'Blog', category: 'Communications' },
   '/support': { name: 'Support Tickets', category: 'Operations & Support' },
+  '/settlements': { name: 'Settlements & Payouts', category: 'Operations & Support' },
   '/verifications': { name: 'Verifications', category: 'Operations & Support' },
   '/demo-requests': { name: 'Demo Requests', category: 'Operations & Support' },
   '/stories': { name: 'Fairness Stories', category: 'Operations & Support' },

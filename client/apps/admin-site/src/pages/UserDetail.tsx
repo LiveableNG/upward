@@ -16,6 +16,11 @@ import {
   ChevronDown,
   ChevronUp,
   Compass,
+  Clock,
+  History,
+  CheckCircle2,
+  AlertCircle,
+  CalendarRange,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -100,6 +105,14 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<UserDetailData | null>(null)
   const [expandedReqId, setExpandedReqId] = useState<number | null>(null)
+  const [expandedPropHistory, setExpandedPropHistory] = useState<Record<number, boolean>>({})
+
+  const togglePropHistory = (propId: number) => {
+    setExpandedPropHistory((prev) => ({
+      ...prev,
+      [propId]: !prev[propId],
+    }))
+  }
 
   // Notification Form State
   const [notifTitle, setNotifTitle] = useState('')
@@ -1026,104 +1039,521 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '12px',
-                  maxHeight: '400px',
+                  gap: '16px',
+                  maxHeight: '600px',
                   overflowY: 'auto',
                   paddingRight: '4px',
                 }}
               >
-                {user.properties.map((prop: any) => (
-                  <div
-                    key={prop.id}
-                    style={{
-                      padding: '16px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--surface-hover)',
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontWeight: 600, display: 'block', fontSize: '14px' }}>
-                        {prop.pmUnit?.property?.address ||
-                          prop.location?.address ||
-                          'Property Tenancy'}
-                      </span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
-                        {[
-                          prop.location?.subarea,
-                          prop.location?.area || prop.pmUnit?.property?.area,
-                          prop.location?.state || prop.pmUnit?.property?.state,
-                          prop.location?.country
-                        ]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>
-                        Managed by:{' '}
-                        {prop.pm ? (
-                          <Link
-                            to={`/pms/${prop.pm.uuid}`}
+                {user.properties.map((prop: any) => {
+                  const isHistoryOpen = !!expandedPropHistory[prop.id]
+                  const periods = prop.tenancyPeriods || []
+                  const hasPeriods = periods.length > 0
+                  const isSettled = prop.amountRemaining === 0 && prop.isFirstRent === false
+                  const isPartial = (prop.amountPaid || 0) > 0 && (prop.amountRemaining || 0) > 0
+                  const isFirstRent = prop.isFirstRent
+
+                  const rentAmount = prop.rentAmount || 0
+                  const amountPaid = prop.amountPaid || 0
+                  const amountRemaining = prop.amountRemaining || 0
+                  const paidPercent = rentAmount > 0 ? Math.min(100, Math.round((amountPaid / rentAmount) * 100)) : 0
+
+                  const formatPeriodDate = (d: any) => {
+                    if (!d) return '—'
+                    const date = new Date(d)
+                    return isNaN(date.getTime())
+                      ? '—'
+                      : date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                  }
+
+                  return (
+                    <div
+                      key={prop.id}
+                      style={{
+                        borderRadius: 'var(--radius-lg, 10px)',
+                        backgroundColor: 'var(--surface-hover)',
+                        border: '1px solid var(--border)',
+                        overflow: 'hidden',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {/* Property Header */}
+                      <div
+                        style={{
+                          padding: '16px 20px',
+                          borderBottom: '1px solid var(--border)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: '16px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 600, fontSize: '15px' }}>
+                              {prop.pmUnit?.property?.address ||
+                                prop.location?.address ||
+                                prop.address ||
+                                'Property Tenancy'}
+                            </span>
+                            {prop.pmUnit && (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                  color: '#6366f1',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Unit: {prop.pmUnit.unitName}
+                              </span>
+                            )}
+                          </div>
+                          <span
                             style={{
-                              color: 'var(--accent)',
-                              textDecoration: 'none',
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)',
+                              display: 'block',
+                              marginTop: '3px',
+                            }}
+                          >
+                            {[
+                              prop.location?.subarea,
+                              prop.location?.area || prop.pmUnit?.property?.area || prop.city,
+                              prop.location?.state || prop.pmUnit?.property?.state || prop.state,
+                              prop.location?.country || 'Nigeria',
+                            ]
+                              .filter(Boolean)
+                              .join(', ')}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '12px',
+                              color: 'var(--text-muted)',
+                              display: 'block',
+                              marginTop: '4px',
+                            }}
+                          >
+                            Managed by:{' '}
+                            {prop.pm ? (
+                              <Link
+                                to={`/pms/${prop.pm.uuid}`}
+                                style={{
+                                  color: 'var(--accent)',
+                                  textDecoration: 'none',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {prop.pm.businessName || 'Property Manager'}
+                              </Link>
+                            ) : (
+                              prop.company?.name || 'Upward Platform'
+                            )}
+                          </span>
+
+                          {(prop.externalPropertyId || prop.externalUnitId) && (
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                              {prop.externalPropertyId && (
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                    color: 'var(--text-secondary)',
+                                    border: '1px solid var(--border)',
+                                    fontFamily: 'monospace',
+                                  }}
+                                >
+                                  Ext Prop: {prop.externalPropertyId}
+                                </span>
+                              )}
+                              {prop.externalUnitId && (
+                                <span
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                    color: 'var(--text-secondary)',
+                                    border: '1px solid var(--border)',
+                                    fontFamily: 'monospace',
+                                  }}
+                                >
+                                  Ext Unit: {prop.externalUnitId}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tenancy Lifespan Summary Tag */}
+                        <div
+                          style={{
+                            textAlign: 'right',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '4px',
+                          }}
+                        >
+                          {prop.tenancyDurationMonths > 0 && (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                color: '#10b981',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              <Clock size={12} />
+                              <span>
+                                Tenancy: {prop.tenancyDurationYears} yrs ({prop.tenancyDurationMonths} mos)
+                              </span>
+                            </div>
+                          )}
+                          {prop.initialStartDate && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              Onboarded: {formatPeriodDate(prop.initialStartDate)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Active Rental Cycle Box */}
+                      <div style={{ padding: '16px 20px', backgroundColor: 'rgba(0, 0, 0, 0.01)' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CalendarRange size={14} style={{ color: 'var(--accent)' }} />
+                            <span style={{ fontSize: '13px', fontWeight: 600 }}>Active Rental Cycle</span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              ({formatPeriodDate(prop.rentStartDate)} — {formatPeriodDate(prop.rentEndDate)})
+                            </span>
+                          </div>
+                          <div>
+                            {isSettled ? (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '3px 8px',
+                                  borderRadius: '12px',
+                                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                  color: '#10b981',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <CheckCircle2 size={12} /> Fully Settled
+                              </span>
+                            ) : isFirstRent ? (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '3px 8px',
+                                  borderRadius: '12px',
+                                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                  color: '#f59e0b',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <AlertCircle size={12} /> Onboarding Cycle
+                              </span>
+                            ) : isPartial ? (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '3px 8px',
+                                  borderRadius: '12px',
+                                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                  color: '#3b82f6',
+                                  fontWeight: 600,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <Activity size={12} /> Partially Paid ({paidPercent}%)
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  padding: '3px 8px',
+                                  borderRadius: '12px',
+                                  backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                                  color: 'var(--text-muted)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                Active
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Progress Bar & Amount Metrics */}
+                        <div style={{ marginTop: '8px' }}>
+                          <div
+                            style={{
+                              height: '6px',
+                              width: '100%',
+                              backgroundColor: 'var(--border)',
+                              borderRadius: '3px',
+                              overflow: 'hidden',
+                              marginBottom: '8px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: '100%',
+                                width: `${paidPercent}%`,
+                                backgroundColor: isSettled ? '#10b981' : 'var(--accent)',
+                                borderRadius: '3px',
+                                transition: 'width 0.3s ease',
+                              }}
+                            />
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(3, 1fr)',
+                              gap: '12px',
+                              marginTop: '10px',
+                              padding: '10px 12px',
+                              backgroundColor: 'var(--surface)',
+                              borderRadius: 'var(--radius-md, 8px)',
+                              border: '1px solid var(--border)',
+                            }}
+                          >
+                            <div>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>
+                                Rent Amount
+                              </span>
+                              <span style={{ fontSize: '13px', fontWeight: 600 }}>₦{rentAmount.toLocaleString()}</span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>
+                                Amount Paid
+                              </span>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#10b981' }}>
+                                ₦{amountPaid.toLocaleString()}
+                              </span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>
+                                Remaining Balance
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: amountRemaining > 0 ? '#ef4444' : 'var(--text-muted)',
+                                }}
+                              >
+                                ₦{amountRemaining.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tenancy History Accordion */}
+                      {hasPeriods && (
+                        <div style={{ borderTop: '1px solid var(--border)' }}>
+                          <button
+                            type="button"
+                            onClick={() => togglePropHistory(prop.id)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 20px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--text)',
+                              fontSize: '13px',
                               fontWeight: 600,
                             }}
                           >
-                            {prop.pm.businessName || 'Property Manager'}
-                          </Link>
-                        ) : (
-                          prop.company?.name || 'Upward Platform'
-                        )}
-                        {prop.pmUnit && ` • Unit: ${prop.pmUnit.unitName}`}
-                      </span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <History size={14} style={{ color: 'var(--accent)' }} />
+                              Tenancy Periods History ({periods.length} {periods.length === 1 ? 'cycle' : 'cycles'})
+                            </span>
+                            <span
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontSize: '12px',
+                                color: 'var(--accent)',
+                              }}
+                            >
+                              {isHistoryOpen ? 'Hide History' : 'View Timeline'}
+                              {isHistoryOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </span>
+                          </button>
 
-                      {(prop.externalPropertyId || prop.externalUnitId) && (
-                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                          {prop.externalPropertyId && (
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              color: 'var(--text-secondary)',
-                              border: '1px solid var(--border)',
-                              fontFamily: 'monospace'
-                            }}>
-                              Ext Prop: {prop.externalPropertyId}
-                            </span>
-                          )}
-                          {prop.externalUnitId && (
-                            <span style={{
-                              fontSize: '10px',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              color: 'var(--text-secondary)',
-                              border: '1px solid var(--border)',
-                              fontFamily: 'monospace'
-                            }}>
-                              Ext Unit: {prop.externalUnitId}
-                            </span>
+                          {isHistoryOpen && (
+                            <div
+                              style={{
+                                padding: '0 20px 16px 20px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px',
+                              }}
+                            >
+                              {periods.map((tp: any, idx: number) => {
+                                const isTpSettled = tp.status === 'SETTLED'
+                                const isLatest = idx === periods.length - 1
+                                return (
+                                  <div
+                                    key={tp.id || idx}
+                                    style={{
+                                      padding: '12px 14px',
+                                      borderRadius: 'var(--radius-md, 8px)',
+                                      backgroundColor: 'var(--surface)',
+                                      border: '1px solid var(--border)',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '8px',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span
+                                          style={{
+                                            fontSize: '11px',
+                                            fontWeight: 700,
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                            color: 'var(--text)',
+                                          }}
+                                        >
+                                          Cycle #{tp.sequenceNumber || idx + 1}
+                                        </span>
+                                        <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                                          {formatPeriodDate(tp.startDate)} — {formatPeriodDate(tp.endDate)}
+                                        </span>
+                                        {tp.isInitial && (
+                                          <span
+                                            style={{
+                                              fontSize: '10px',
+                                              color: 'var(--text-muted)',
+                                              fontWeight: 500,
+                                            }}
+                                          >
+                                            (Initial Onboarding)
+                                          </span>
+                                        )}
+                                        {isLatest && !tp.isInitial && (
+                                          <span style={{ fontSize: '10px', color: 'var(--accent)', fontWeight: 600 }}>
+                                            (Current Active)
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span style={{ fontWeight: 600, fontSize: '13px' }}>
+                                          ₦{(tp.rentAmount || rentAmount).toLocaleString()}
+                                        </span>
+                                        <span
+                                          style={{
+                                            fontSize: '10px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontWeight: 600,
+                                            backgroundColor: isTpSettled
+                                              ? 'rgba(16, 185, 129, 0.1)'
+                                              : 'rgba(59, 130, 246, 0.1)',
+                                            color: isTpSettled ? '#10b981' : '#3b82f6',
+                                          }}
+                                        >
+                                          {tp.status || (isTpSettled ? 'SETTLED' : 'ACTIVE')}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Associated Payments List */}
+                                    {tp.payments && tp.payments.length > 0 && (
+                                      <div
+                                        style={{
+                                          marginTop: '4px',
+                                          paddingTop: '6px',
+                                          borderTop: '1px dashed var(--border)',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '4px',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            fontSize: '11px',
+                                            color: 'var(--text-muted)',
+                                            fontWeight: 600,
+                                          }}
+                                        >
+                                          Applied Payments ({tp.payments.length}):
+                                        </span>
+                                        {tp.payments.map((pay: any, pIdx: number) => (
+                                          <div
+                                            key={pay.id || pIdx}
+                                            style={{
+                                              fontSize: '11px',
+                                              display: 'flex',
+                                              justifyContent: 'space-between',
+                                              color: 'var(--text-secondary)',
+                                            }}
+                                          >
+                                            <span>
+                                              ₦{(pay.amount || 0).toLocaleString()} • {formatPeriodDate(pay.paymentDate)}
+                                              {pay.notes && ` • ${pay.notes}`}
+                                            </span>
+                                            <span style={{ color: '#10b981', fontWeight: 500 }}>
+                                              {pay.status || 'SUCCESS'}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
                           )}
                         </div>
                       )}
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--accent)' }}>
-                        ₦{prop.rentAmount ? prop.rentAmount.toLocaleString() : '0'}
-                      </span>
-                      <span
-                        style={{ fontSize: '11px', display: 'block', color: 'var(--text-muted)' }}
-                      >
-                        Remaining: ₦
-                        {prop.amountRemaining ? prop.amountRemaining.toLocaleString() : '0'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>

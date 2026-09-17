@@ -694,6 +694,7 @@ export class RecordTransactionUseCase {
             historicalPaidToDate: snapshotHistoricalPaid,
             remainingBalance: snapshotRemaining,
             isPartial: snapshotIsPartial,
+            tenancyPeriodId: settledPeriod?.tenancyPeriodId,
           } as any
         })
       }

@@ -55,6 +55,13 @@ import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from './use-cases/admin/get-invitation-tracker.use-case'
 import { UpdateAdminDetailsUseCase } from './use-cases/admin/update-admin-details.use-case'
 import { GetEmailClickTrackingStatsUseCase } from './use-cases/admin/get-email-click-tracking-stats.use-case'
+import {
+  GetSettlementStatsUseCase,
+  GetSettlementBatchesUseCase,
+  GetFlaggedSettlementsUseCase,
+  GetSettlementTransactionsUseCase,
+  ResolveFlaggedSettlementUseCase,
+} from './use-cases/admin/admin-settlements.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetInviteDataUseCase } from './use-cases/invite/get-invite-data.use-case'
@@ -478,6 +485,11 @@ const UseCases: any[] = [
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
+  GetSettlementStatsUseCase,
+  GetSettlementBatchesUseCase,
+  GetFlaggedSettlementsUseCase,
+  GetSettlementTransactionsUseCase,
+  ResolveFlaggedSettlementUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,

@@ -40,16 +40,25 @@ export class GetAdminUserDetailUseCase {
 
   async execute(uuid: string) {
     // 1. Try finding upward_user first
-    const u = await this.prisma.upward_user.findUnique({
+    const u: any = await (this.prisma.upward_user as any).findUnique({
       where: { uuid },
       include: {
         properties: {
           include: {
             company: true,
             pm: true,
+            location: true,
             pmUnit: {
               include: {
                 property: true,
+              },
+            },
+            tenancyPeriods: {
+              orderBy: { startDate: 'asc' },
+              include: {
+                platformPayments: {
+                  orderBy: { paymentDate: 'desc' },
+                },
               },
             },
           },
@@ -196,13 +205,13 @@ export class GetAdminUserDetailUseCase {
       })
 
       // Fetch user property locations
-      const propertyIds = decryptedUser.properties.map((p: any) => p.locationId)
+      const propertyIds = decryptedUser.properties.map((p: any) => p.locationId).filter(Boolean)
       const locations = propertyIds.length > 0
         ? await this.prisma.upward_location.findMany({ where: { id: { in: propertyIds } } })
         : []
 
       const resolvedProperties = decryptedUser.properties.map((p: any) => {
-        const loc = locations.find((l: any) => l.id === p.locationId)
+        const loc = locations.find((l: any) => l.id === p.locationId) || p.location
         const company = p.company
           ? {
               ...p.company,
@@ -219,13 +228,71 @@ export class GetAdminUserDetailUseCase {
               email: p.pm.email ? this.encryption.decrypt(p.pm.email) : '',
             }
           : null
+
+        // Calculate Tenancy Lifespan from Tenancy Periods or Property Rent Dates
+        const periods = p.tenancyPeriods || []
+        let initialStartDate: Date | null = p.rentStartDate ? new Date(p.rentStartDate) : null
+        let latestEndDate: Date | null = p.rentEndDate ? new Date(p.rentEndDate) : null
+
+        if (periods.length > 0) {
+          initialStartDate = new Date(periods[0].startDate)
+          latestEndDate = new Date(periods[periods.length - 1].endDate)
+        }
+
+        let tenancyDurationMonths = 0
+        let tenancyDurationYears = 0
+        if (initialStartDate && latestEndDate) {
+          const diffMs = Math.max(0, latestEndDate.getTime() - initialStartDate.getTime())
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+          tenancyDurationMonths = Math.round(diffDays / 30.4375)
+          tenancyDurationYears = parseFloat((diffDays / 365.25).toFixed(1))
+        }
+
         return {
           id: p.id,
+          uuid: p.uuid,
           name: p.name,
           address: p.address,
+          location: loc,
           city: loc?.area || p.city,
           state: loc?.state || p.state,
           rentAmount: p.rentAmount,
+          amountPaid: p.amountPaid ?? 0,
+          amountRemaining: p.amountRemaining ?? 0,
+          rentStartDate: p.rentStartDate,
+          rentEndDate: p.rentEndDate,
+          isFirstRent: p.isFirstRent,
+          isPastTenancy: p.isPastTenancy,
+          rentType: p.rentType,
+          leaseYears: p.leaseYears,
+          currency: (p as any).currency || 'NGN',
+          externalPropertyId: p.externalPropertyId,
+          externalUnitId: p.externalUnitId,
+          tenancyDurationMonths,
+          tenancyDurationYears,
+          initialStartDate,
+          latestEndDate,
+          tenancyPeriods: periods.map((tp: any) => ({
+            id: tp.id,
+            uuid: tp.uuid,
+            startDate: tp.startDate,
+            endDate: tp.endDate,
+            rentAmount: tp.rentAmount,
+            currency: tp.currency,
+            sequenceNumber: tp.sequenceNumber,
+            isInitial: tp.isInitial,
+            status: tp.status,
+            createdAt: tp.createdAt,
+            payments: (tp.platformPayments || []).map((pay: any) => ({
+              id: pay.id,
+              uuid: pay.uuid,
+              amount: pay.amount,
+              rentAmountAtPayment: pay.rentAmountAtPayment,
+              paymentDate: pay.paymentDate,
+              status: pay.status,
+              notes: pay.notes,
+            })),
+          })),
           company,
           pm,
           pmUnit: p.pmUnit,
