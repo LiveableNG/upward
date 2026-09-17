@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -17,6 +17,7 @@ import {
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
 
 const PROPERTY_TYPES = ['apartment', 'studio', 'house', 'duplex', 'terrace', 'any'] as const
 
@@ -114,7 +115,12 @@ export class SubmitHomeRequestDto {
 
 @Injectable()
 export class SubmitHomeRequestUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(SubmitHomeRequestUseCase.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async execute(dto: SubmitHomeRequestDto) {
     const rawType = (dto.requestType || 'RENT').toUpperCase()
@@ -159,6 +165,28 @@ export class SubmitHomeRequestUseCase {
         status: 'submitted',
       } as any,
     })
+
+    // Alert admins who have receivesSystemAlerts=true enabled
+    try {
+      await this.emailService.sendHomeRequestAlertToAdmins({
+        uuid: request.uuid,
+        requestType,
+        fullName: dto.fullName?.trim() || null,
+        email,
+        phone,
+        locations: dto.locations,
+        budgetMin,
+        budgetMax,
+        savedAmount: dto.savedAmount ?? null,
+        overallBudget: dto.overallBudget ?? null,
+        propertyTypes: dto.propertyTypes,
+        beds: dto.beds,
+        moveInDate: dto.moveInDate ? new Date(dto.moveInDate) : null,
+        notes: dto.notes?.trim() || null,
+      })
+    } catch (err) {
+      this.logger.error('Failed to send admin notification for home request', err)
+    }
 
     return {
       uuid: request.uuid,

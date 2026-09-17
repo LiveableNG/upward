@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import {
   Inbox,
@@ -211,6 +212,15 @@ export default function Requests({ token }: { token: string }) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Prevent background scrolling when preview drawer is open
+  const isAnyDrawerOpen = !!selectedHomeRequest || !!selectedDemoRequest
+  useEffect(() => {
+    document.body.style.overflow = isAnyDrawerOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isAnyDrawerOpen])
 
   // Status Handlers
   const handleHomeStatusChange = async (id: number, newStatus: string) => {
@@ -1005,39 +1015,44 @@ export default function Requests({ token }: { token: string }) {
       )}
 
       {/* SLIDE-OVER DETAIL DRAWER FOR HOME REQUEST (BUY OR RENT) */}
-      {selectedHomeRequest && (
-        <>
-          <div
-            onClick={() => setSelectedHomeRequest(null)}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(15, 23, 42, 0.4)',
-              backdropFilter: 'blur(4px)',
-              zIndex: 999,
-            }}
-          />
+      {selectedHomeRequest &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              onClick={() => setSelectedHomeRequest(null)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(15, 23, 42, 0.45)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                zIndex: 99998,
+                animation: 'fadeIn 0.2s ease-out',
+              }}
+            />
 
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: '100%',
-              maxWidth: '580px',
-              background: 'var(--surface)',
-              boxShadow: '-8px 0 24px rgba(0, 0, 0, 0.15)',
-              zIndex: 1000,
-              display: 'flex',
-              flexDirection: 'column',
-              animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              overflowY: 'auto',
-            }}
-          >
+            {/* Drawer Panel */}
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                width: '100%',
+                maxWidth: '600px',
+                height: '100vh',
+                background: 'var(--surface)',
+                boxShadow: '-12px 0 40px rgba(0, 0, 0, 0.25)',
+                zIndex: 99999,
+                display: 'flex',
+                flexDirection: 'column',
+                animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                overflowY: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Drawer Header */}
             <div
               style={{
@@ -1564,278 +1579,285 @@ export default function Requests({ token }: { token: string }) {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
 
       {/* SLIDE-OVER DETAIL DRAWER FOR DEMO REQUEST */}
-      {selectedDemoRequest && (
-        <>
-          <div
-            onClick={() => setSelectedDemoRequest(null)}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(15, 23, 42, 0.4)',
-              backdropFilter: 'blur(4px)',
-              zIndex: 999,
-            }}
-          />
+      {selectedDemoRequest &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              onClick={() => setSelectedDemoRequest(null)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(15, 23, 42, 0.45)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                zIndex: 99998,
+                animation: 'fadeIn 0.2s ease-out',
+              }}
+            />
 
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              width: '100%',
-              maxWidth: '560px',
-              background: 'var(--surface)',
-              boxShadow: '-8px 0 24px rgba(0, 0, 0, 0.15)',
-              zIndex: 1000,
-              display: 'flex',
-              flexDirection: 'column',
-              animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              overflowY: 'auto',
-            }}
-          >
-            {/* Header */}
+            {/* Drawer Panel */}
             <div
               style={{
-                padding: '24px',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                background: 'var(--surface)',
-                position: 'sticky',
+                position: 'fixed',
                 top: 0,
-                zIndex: 10,
+                right: 0,
+                width: '100%',
+                maxWidth: '580px',
+                height: '100vh',
+                background: 'var(--surface)',
+                boxShadow: '-12px 0 40px rgba(0, 0, 0, 0.25)',
+                zIndex: 99999,
+                display: 'flex',
+                flexDirection: 'column',
+                animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                overflowY: 'auto',
               }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      background: `${getDemoStatusColor(selectedDemoRequest.status)}18`,
-                      color: getDemoStatusColor(selectedDemoRequest.status),
-                    }}
-                  >
-                    {selectedDemoRequest.status}
-                  </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    ID #{selectedDemoRequest.id}
-                  </span>
-                </div>
-                <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-                  {selectedDemoRequest.name}
-                </h2>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Submitted on {new Date(selectedDemoRequest.createdAt).toLocaleString()}
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedDemoRequest(null)}
+              {/* Header */}
+              <div
                 style={{
-                  padding: '8px',
-                  borderRadius: '10px',
-                  background: 'var(--surface-hover)',
-                  color: 'var(--text-muted)',
+                  padding: '24px',
+                  borderBottom: '1px solid var(--border)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  background: 'var(--surface)',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10,
                 }}
               >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Outreach */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '8px',
-                }}
-              >
-                <a
-                  href={`mailto:${selectedDemoRequest.email}`}
-                  className="btn btn-secondary"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px 12px',
-                    fontSize: '13px',
-                    borderRadius: '10px',
-                    color: 'var(--text)',
-                  }}
-                >
-                  <Mail size={15} />
-                  Email
-                </a>
-                <a
-                  href={`tel:${selectedDemoRequest.phone}`}
-                  className="btn btn-secondary"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px 12px',
-                    fontSize: '13px',
-                    borderRadius: '10px',
-                    color: 'var(--text)',
-                  }}
-                >
-                  <Phone size={15} />
-                  Call
-                </a>
-                <a
-                  href={`https://wa.me/${cleanPhoneForWhatsApp(selectedDemoRequest.phone)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-secondary"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px 12px',
-                    fontSize: '13px',
-                    borderRadius: '10px',
-                    color: '#25D366',
-                  }}
-                >
-                  <MessageSquare size={15} />
-                  WhatsApp
-                </a>
-              </div>
-
-              {/* Status Update */}
-              <div
-                style={{
-                  padding: '16px',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface-hover)',
-                }}
-              >
-                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  UPDATE DEMO STATUS
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
-                  {['PENDING', 'CONTACTED', 'COMPLETED'].map((statusOption) => (
-                    <button
-                      key={statusOption}
-                      disabled={isUpdatingStatus}
-                      onClick={() => handleDemoStatusChange(selectedDemoRequest.id, statusOption)}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span
                       style={{
-                        padding: '8px 4px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        borderRadius: '8px',
-                        border: '1px solid',
-                        borderColor:
-                          selectedDemoRequest.status === statusOption
-                            ? getDemoStatusColor(statusOption)
-                            : 'var(--border)',
-                        background:
-                          selectedDemoRequest.status === statusOption
-                            ? `${getDemoStatusColor(statusOption)}15`
-                            : 'var(--surface)',
-                        color:
-                          selectedDemoRequest.status === statusOption
-                            ? getDemoStatusColor(statusOption)
-                            : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: `${getDemoStatusColor(selectedDemoRequest.status)}18`,
+                        color: getDemoStatusColor(selectedDemoRequest.status),
                       }}
                     >
-                      {selectedDemoRequest.status === statusOption && <Check size={12} />}
-                      {statusOption}
-                    </button>
-                  ))}
+                      {selectedDemoRequest.status}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      ID #{selectedDemoRequest.id}
+                    </span>
+                  </div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                    {selectedDemoRequest.name}
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Submitted on {new Date(selectedDemoRequest.createdAt).toLocaleString()}
+                  </div>
                 </div>
-              </div>
 
-              {/* Demo Details */}
-              <div
-                style={{
-                  padding: '20px',
-                  borderRadius: '14px',
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                }}
-              >
-                <h3
+                <button
+                  onClick={() => setSelectedDemoRequest(null)}
                   style={{
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
+                    padding: '8px',
+                    borderRadius: '10px',
+                    background: 'var(--surface-hover)',
                     color: 'var(--text-muted)',
-                    margin: '0 0 16px 0',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    justifyContent: 'center',
                   }}
                 >
-                  <CalendarClock size={16} />
-                  Demo Booking Details
-                </h3>
+                  <X size={20} />
+                </button>
+              </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      REQUESTED DEMO TIME
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>
-                      {new Date(selectedDemoRequest.demoDate).toLocaleString('en-US', {
-                        dateStyle: 'full',
-                        timeStyle: 'short',
-                      })}
-                    </div>
+              {/* Body */}
+              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Outreach */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '8px',
+                  }}
+                >
+                  <a
+                    href={`mailto:${selectedDemoRequest.email}`}
+                    className="btn btn-secondary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      borderRadius: '10px',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <Mail size={15} />
+                    Email
+                  </a>
+                  <a
+                    href={`tel:${selectedDemoRequest.phone}`}
+                    className="btn btn-secondary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      borderRadius: '10px',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <Phone size={15} />
+                    Call
+                  </a>
+                  <a
+                    href={`https://wa.me/${cleanPhoneForWhatsApp(selectedDemoRequest.phone)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-secondary"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '10px 12px',
+                      fontSize: '13px',
+                      borderRadius: '10px',
+                      color: '#25D366',
+                    }}
+                  >
+                    <MessageSquare size={15} />
+                    WhatsApp
+                  </a>
+                </div>
+
+                {/* Status Update */}
+                <div
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-hover)',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    UPDATE DEMO STATUS
                   </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {['PENDING', 'CONTACTED', 'COMPLETED'].map((statusOption) => (
+                      <button
+                        key={statusOption}
+                        disabled={isUpdatingStatus}
+                        onClick={() => handleDemoStatusChange(selectedDemoRequest.id, statusOption)}
+                        style={{
+                          padding: '8px 4px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          borderRadius: '8px',
+                          border: '1px solid',
+                          borderColor:
+                            selectedDemoRequest.status === statusOption
+                              ? getDemoStatusColor(statusOption)
+                              : 'var(--border)',
+                          background:
+                            selectedDemoRequest.status === statusOption
+                              ? `${getDemoStatusColor(statusOption)}15`
+                              : 'var(--surface)',
+                          color:
+                            selectedDemoRequest.status === statusOption
+                              ? getDemoStatusColor(statusOption)
+                              : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        {selectedDemoRequest.status === statusOption && <Check size={12} />}
+                        {statusOption}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {/* Demo Details */}
+                <div
+                  style={{
+                    padding: '20px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: 'var(--text-muted)',
+                      margin: '0 0 16px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <CalendarClock size={16} />
+                    Demo Booking Details
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        ESTIMATED PORTFOLIO / TENANTS
+                        REQUESTED DEMO TIME
                       </div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginTop: '2px' }}>
-                        {selectedDemoRequest.tenants}
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>
+                        {new Date(selectedDemoRequest.demoDate).toLocaleString('en-US', {
+                          dateStyle: 'full',
+                          timeStyle: 'short',
+                        })}
                       </div>
                     </div>
 
-                    <div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        LAST UPDATED
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          ESTIMATED PORTFOLIO / TENANTS
+                        </div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginTop: '2px' }}>
+                          {selectedDemoRequest.tenants}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        {new Date(selectedDemoRequest.updatedAt).toLocaleDateString()}
+
+                      <div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          LAST UPDATED
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          {new Date(selectedDemoRequest.updatedAt).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
 
       {/* Global CSS for animation keyframes */}
       <style>{`
