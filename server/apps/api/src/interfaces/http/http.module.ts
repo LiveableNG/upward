@@ -89,6 +89,7 @@ import {
 import { PmAiDocumentController } from './controllers/pm-ai-document.controller'
 import { DemoRequestController } from './public/demo-request.controller'
 import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
+import { HomeRequestAdminController } from './admin/home-request-admin.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -187,6 +188,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     AdminBulkImportController,
     DemoRequestController,
     DemoRequestAdminController,
+    HomeRequestAdminController,
   ],
 })
 export class HttpModule {}

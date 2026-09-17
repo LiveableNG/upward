@@ -35,6 +35,11 @@ export class HomeRequestLocationDto {
 }
 
 export class SubmitHomeRequestDto {
+  @IsOptional()
+  @IsString()
+  @IsIn(['RENT', 'BUY', 'rent', 'buy'])
+  requestType?: string
+
   @IsEmail()
   email!: string
 
@@ -55,15 +60,29 @@ export class SubmitHomeRequestDto {
   @Type(() => HomeRequestLocationDto)
   locations!: HomeRequestLocationDto[]
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  budgetMin!: number
+  budgetMin?: number
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  budgetMax!: number
+  budgetMax?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  savedAmount?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  overallBudget?: number
 
   @IsArray()
   @ArrayMinSize(1)
@@ -98,8 +117,22 @@ export class SubmitHomeRequestUseCase {
   constructor(private readonly prisma: PrismaService) {}
 
   async execute(dto: SubmitHomeRequestDto) {
-    if (dto.budgetMax < dto.budgetMin) {
-      throw new BadRequestException('Maximum budget must be greater than or equal to minimum budget')
+    const rawType = (dto.requestType || 'RENT').toUpperCase()
+    const requestType = rawType === 'BUY' ? 'BUY' : 'RENT'
+
+    let budgetMin = dto.budgetMin ?? 0
+    let budgetMax = dto.budgetMax ?? 0
+
+    if (requestType === 'RENT') {
+      if (budgetMax < budgetMin) {
+        throw new BadRequestException('Maximum budget must be greater than or equal to minimum budget')
+      }
+    } else {
+      // For BUY requests, default min/max to overallBudget if not provided
+      if (dto.overallBudget) {
+        budgetMin = budgetMin || dto.overallBudget
+        budgetMax = budgetMax || dto.overallBudget
+      }
     }
 
     const phone = dto.phone.trim()
@@ -108,12 +141,15 @@ export class SubmitHomeRequestUseCase {
 
     const request = await this.prisma.upward_home_request.create({
       data: {
+        requestType,
         email,
         phone,
         fullName: dto.fullName?.trim() || null,
         locations: dto.locations as any,
-        budgetMin: dto.budgetMin,
-        budgetMax: dto.budgetMax,
+        budgetMin,
+        budgetMax,
+        savedAmount: dto.savedAmount ?? null,
+        overallBudget: dto.overallBudget ?? null,
         propertyType: dto.propertyTypes as any,
         beds: dto.beds,
         moveInDate: dto.moveInDate ? new Date(dto.moveInDate) : null,
@@ -121,11 +157,12 @@ export class SubmitHomeRequestUseCase {
         notes: dto.notes?.trim() || null,
         source: 'website',
         status: 'submitted',
-      },
+      } as any,
     })
 
     return {
       uuid: request.uuid,
+      requestType: (request as any).requestType || requestType,
       status: request.status,
       createdAt: request.createdAt,
     }

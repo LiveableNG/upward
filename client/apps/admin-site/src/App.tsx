@@ -34,7 +34,7 @@ import WhatsappSequences from './pages/WhatsappSequences'
 import EmailSequences from './pages/EmailSequences'
 import { BulkImportQueue } from './pages/BulkImportQueue'
 import { BulkImportDetail } from './pages/BulkImportDetail'
-import DemoRequests from './pages/DemoRequests'
+import Requests from './pages/Requests'
 import UpwardUniversity from './pages/UpwardUniversity'
 import Settlements from './pages/Settlements'
 
@@ -109,7 +109,9 @@ function AppRoutes() {
           <Route path="/settlements" element={<Settlements token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
-          <Route path="/demo-requests" element={<DemoRequests token={auth.token} />} />
+          <Route path="/requests" element={<Requests token={auth.token} />} />
+          <Route path="/demo-requests" element={<Navigate to="/requests?tab=sales" replace />} />
+          <Route path="/home-requests" element={<Navigate to="/requests?tab=home" replace />} />
           <Route
             path="/university-early-access"
             element={<UpwardUniversity token={auth.token} adminRole={auth.user.role} />}

@@ -137,6 +137,8 @@ import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-c
 import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
 import { GetDemoRequestsUseCase } from './use-cases/admin/get-demo-requests.use-case'
 import { UpdateDemoRequestStatusUseCase } from './use-cases/admin/update-demo-request-status.use-case'
+import { GetAdminHomeRequestsUseCase } from './use-cases/admin/get-admin-home-requests.use-case'
+import { UpdateAdminHomeRequestStatusUseCase } from './use-cases/admin/update-admin-home-request-status.use-case'
 
 import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
 import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
@@ -538,6 +540,8 @@ const UseCases: any[] = [
   SubmitDemoRequestUseCase,
   GetDemoRequestsUseCase,
   UpdateDemoRequestStatusUseCase,
+  GetAdminHomeRequestsUseCase,
+  UpdateAdminHomeRequestStatusUseCase,
   CreateFairnessStoryUseCase,
   GetFairnessStoriesUseCase,
   DeleteFairnessStoryUseCase,

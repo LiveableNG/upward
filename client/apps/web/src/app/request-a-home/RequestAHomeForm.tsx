@@ -18,6 +18,10 @@ import {
   Sparkles,
   MessageSquare,
   Check,
+  Building,
+  Coins,
+  BadgePercent,
+  Key,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import type { RequestHomeLocation } from '@/lib/request-home-locations'
@@ -55,19 +59,81 @@ function todayIsoDate(): string {
 
 const schema = z
   .object({
+    requestType: z.enum(['RENT', 'BUY']),
     fullName: z.string().max(120).optional().or(z.literal('')),
     email: z.string().email('Enter a valid email'),
     phone: z.string().min(7, 'Enter a valid phone number').max(40, 'Phone number is too long'),
-    budgetMin: z.coerce.number().min(1, 'Enter a minimum budget'),
-    budgetMax: z.coerce.number().min(1, 'Enter a maximum budget'),
-    beds: z.coerce.number().int().min(1).max(6),
+    // Rent fields
+    budgetMin: z.coerce.number().optional(),
+    budgetMax: z.coerce.number().optional(),
     moveInDate: z.string().optional().or(z.literal('')),
+    // Buy fields
+    savedAmount: z.coerce.number().optional(),
+    overallBudget: z.coerce.number().optional(),
+    // Shared
+    beds: z.coerce.number().int().min(1).max(6),
     notes: z.string().max(2000).optional().or(z.literal('')),
   })
-  .refine((data) => data.budgetMax >= data.budgetMin, {
-    message: 'Max budget must be at least the min budget',
-    path: ['budgetMax'],
-  })
+  .refine(
+    (data) => {
+      if (data.requestType === 'RENT') {
+        return (data.budgetMin ?? 0) > 0
+      }
+      return true
+    },
+    {
+      message: 'Enter a minimum rental budget',
+      path: ['budgetMin'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.requestType === 'RENT') {
+        return (data.budgetMax ?? 0) > 0
+      }
+      return true
+    },
+    {
+      message: 'Enter a maximum rental budget',
+      path: ['budgetMax'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.requestType === 'RENT' && data.budgetMin && data.budgetMax) {
+        return data.budgetMax >= data.budgetMin
+      }
+      return true
+    },
+    {
+      message: 'Max budget must be at least the min budget',
+      path: ['budgetMax'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.requestType === 'BUY') {
+        return (data.overallBudget ?? 0) > 0
+      }
+      return true
+    },
+    {
+      message: 'Enter your overall purchase budget',
+      path: ['overallBudget'],
+    },
+  )
+  .refine(
+    (data) => {
+      if (data.requestType === 'BUY' && data.savedAmount && data.overallBudget) {
+        return data.savedAmount <= data.overallBudget * 2
+      }
+      return true
+    },
+    {
+      message: 'Saved amount cannot exceed double the total budget',
+      path: ['savedAmount'],
+    },
+  )
   .refine((data) => !data.moveInDate || data.moveInDate >= todayIsoDate(), {
     message: 'Move-in date cannot be in the past',
     path: ['moveInDate'],
@@ -84,6 +150,7 @@ function scrollToFirstError() {
 
 export function RequestAHomeForm() {
   const toast = useToast()
+  const [requestType, setRequestType] = useState<'RENT' | 'BUY'>('RENT')
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [submitError, setSubmitError] = useState('')
   const [selectedLocations, setSelectedLocations] = useState<RequestHomeLocation[]>([])
@@ -100,12 +167,15 @@ export function RequestAHomeForm() {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      requestType: 'RENT',
       beds: 2,
       fullName: '',
       email: '',
       phone: '',
       budgetMin: undefined,
       budgetMax: undefined,
+      savedAmount: undefined,
+      overallBudget: undefined,
       moveInDate: '',
       notes: '',
     },
@@ -114,7 +184,14 @@ export function RequestAHomeForm() {
   const beds = watch('beds')
   const budgetMin = watch('budgetMin')
   const budgetMax = watch('budgetMax')
+  const savedAmount = watch('savedAmount')
+  const overallBudget = watch('overallBudget')
   const notes = watch('notes')
+
+  const handleIntentChange = (type: 'RENT' | 'BUY') => {
+    setRequestType(type)
+    setValue('requestType', type, { shouldValidate: true })
+  }
 
   const togglePropertyType = (value: PropertyTypeValue) => {
     setPropertyTypes((prev) => {
@@ -160,15 +237,18 @@ export function RequestAHomeForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          requestType,
           fullName: data.fullName?.trim() || undefined,
           email: data.email.trim(),
           phone: data.phone.trim(),
           locations: selectedLocations,
-          budgetMin: Number(data.budgetMin),
-          budgetMax: Number(data.budgetMax),
+          budgetMin: requestType === 'RENT' ? Number(data.budgetMin) : Number(data.overallBudget || 0),
+          budgetMax: requestType === 'RENT' ? Number(data.budgetMax) : Number(data.overallBudget || 0),
+          savedAmount: requestType === 'BUY' && data.savedAmount ? Number(data.savedAmount) : undefined,
+          overallBudget: requestType === 'BUY' && data.overallBudget ? Number(data.overallBudget) : undefined,
           propertyTypes,
           beds: Number(data.beds),
-          moveInDate: data.moveInDate || undefined,
+          moveInDate: requestType === 'RENT' ? data.moveInDate || undefined : undefined,
           amenities,
           notes: data.notes?.trim() || undefined,
         }),
@@ -186,7 +266,7 @@ export function RequestAHomeForm() {
 
       toast.success('Request received. We’ll reach out on email or phone.')
       setStatus('success')
-      reset()
+      reset({ requestType })
       setSelectedLocations([])
       setPropertyTypes(['apartment'])
       setAmenities([])
@@ -210,23 +290,26 @@ export function RequestAHomeForm() {
         <div className="rah-success__icon">
           <CheckCircle2 size={44} />
         </div>
-        <h1 className="rah-success__title">Request received</h1>
+        <h1 className="rah-success__title">
+          {requestType === 'BUY' ? 'Home Purchase Request Received' : 'Rental Request Received'}
+        </h1>
         <p className="rah-success__text">
-          A verified agent will review your brief and contact you by email or phone with matching
-          options.
+          {requestType === 'BUY'
+            ? 'A verified property advisor will review your buying brief and reach out with matching verified properties.'
+            : 'A verified agent will review your brief and contact you with matching rental options.'}
         </p>
         <ul className="rah-success__steps">
           <li>
             <span className="rah-success__step-num">1</span>
-            We match your brief to verified listings
+            We match your brief to verified listings across Nigeria
           </li>
           <li>
-            <span className="rah-success__step-num">2</span>A NIESV-verified agent reaches out to
-            you
+            <span className="rah-success__step-num">2</span>
+            A NIESV-verified agent or advisor reaches out to you
           </li>
           <li>
             <span className="rah-success__step-num">3</span>
-            You review options — no browsing required
+            You review options — no browsing or endless agent calls required
           </li>
         </ul>
         <button type="button" className="rah-success__btn" onClick={() => setStatus('idle')}>
@@ -238,15 +321,46 @@ export function RequestAHomeForm() {
 
   return (
     <div className="rah">
+      {/* PropertyPro style Rent vs Buy Switcher */}
+      <div className="rah-intent-switcher" role="tablist" aria-label="Choose Rent or Buy">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={requestType === 'RENT'}
+          className={`rah-intent-tab${requestType === 'RENT' ? ' rah-intent-tab--active' : ''}`}
+          onClick={() => handleIntentChange('RENT')}
+        >
+          <Key size={16} aria-hidden />
+          Rent a Home
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={requestType === 'BUY'}
+          className={`rah-intent-tab${requestType === 'BUY' ? ' rah-intent-tab--active' : ''}`}
+          onClick={() => handleIntentChange('BUY')}
+        >
+          <Building size={16} aria-hidden />
+          Buy a Home (Sale)
+        </button>
+      </div>
+
       <span className="rah__badge">
         <Home size={14} aria-hidden />
-        Request a home
+        {requestType === 'BUY' ? 'Buy a Property (Sale)' : 'Request a Rental Home'}
       </span>
+
       <h1 className="rah__title">
-        Tell us what you <span className="rah__title-accent">need.</span>
+        Tell us what you{' '}
+        <span className="rah__title-accent">
+          {requestType === 'BUY' ? 'want to buy.' : 'need to rent.'}
+        </span>
       </h1>
+
       <p className="rah__lead">
-        Share your brief once. Verified agents match you to apartments — no browsing required.
+        {requestType === 'BUY'
+          ? 'Share your purchase criteria, savings, and overall budget once. Verified advisors match you directly with inspected homes.'
+          : 'Share your rental brief once. Verified agents match you to verified apartments — zero stress.'}
       </p>
 
       <div className="rah__trust">
@@ -265,6 +379,7 @@ export function RequestAHomeForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit, scrollToFirstError)} className="rah-form" noValidate>
+        {/* Contact Info Card */}
         <div className="rah-card">
           <div className="rah-card__header">
             <span className="rah-icon">
@@ -321,13 +436,16 @@ export function RequestAHomeForm() {
           </div>
         </div>
 
+        {/* Preferred Locations Card */}
         <div className="rah-card">
           <div className="rah-card__header">
             <span className="rah-icon">
               <MapPin size={18} aria-hidden />
             </span>
             <div>
-              <h2 className="rah-card__title">Preferred locations</h2>
+              <h2 className="rah-card__title">
+                {requestType === 'BUY' ? 'Target purchase areas' : 'Preferred rental locations'}
+              </h2>
               <p className="rah-card__hint">
                 Search and add up to 3 areas — e.g. Yaba, Lekki Phase 1, Wuse 2.
               </p>
@@ -339,14 +457,15 @@ export function RequestAHomeForm() {
           )}
         </div>
 
+        {/* Home Details Card */}
         <div className="rah-card">
           <div className="rah-card__header">
             <span className="rah-icon">
               <Home size={18} aria-hidden />
             </span>
             <div>
-              <h2 className="rah-card__title">Home details</h2>
-              <p className="rah-card__hint">Property type and bedrooms.</p>
+              <h2 className="rah-card__title">Property details</h2>
+              <p className="rah-card__hint">Property type and number of bedrooms.</p>
             </div>
           </div>
 
@@ -391,70 +510,134 @@ export function RequestAHomeForm() {
           </div>
         </div>
 
-        <div className="rah-card">
-          <div className="rah-card__header">
-            <span className="rah-icon">
-              <Wallet size={18} aria-hidden />
-            </span>
-            <div>
-              <h2 className="rah-card__title">Budget</h2>
-              <p className="rah-card__hint">Annual rent range in Naira.</p>
+        {/* Financial & Budget Card: Dynamic for Rent vs Buy */}
+        {requestType === 'RENT' ? (
+          <div className="rah-card">
+            <div className="rah-card__header">
+              <span className="rah-icon">
+                <Wallet size={18} aria-hidden />
+              </span>
+              <div>
+                <h2 className="rah-card__title">Rental budget</h2>
+                <p className="rah-card__hint">Annual rent range in Naira.</p>
+              </div>
+            </div>
+            <BudgetGuidance
+              locations={selectedLocations}
+              bedrooms={beds}
+              onApplyRange={(min, max) => {
+                setValue('budgetMin', min as FormData['budgetMin'], {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+                setValue('budgetMax', max as FormData['budgetMax'], {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }}
+            />
+            <div className="rah-grid rah-grid--2">
+              <div className="rah-field">
+                <label className="rah-label" htmlFor="rah-budget-min">
+                  Minimum (₦ / year)
+                </label>
+                <AmountInput
+                  id="rah-budget-min"
+                  value={budgetMin}
+                  placeholder="Enter minimum amount"
+                  aria-invalid={Boolean(errors.budgetMin)}
+                  onChange={(value) =>
+                    setValue('budgetMin', value as FormData['budgetMin'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+                {errors.budgetMin && <span className="rah-error">{errors.budgetMin.message}</span>}
+              </div>
+              <div className="rah-field">
+                <label className="rah-label" htmlFor="rah-budget-max">
+                  Maximum (₦ / year)
+                </label>
+                <AmountInput
+                  id="rah-budget-max"
+                  value={budgetMax}
+                  placeholder="Enter maximum amount"
+                  aria-invalid={Boolean(errors.budgetMax)}
+                  onChange={(value) =>
+                    setValue('budgetMax', value as FormData['budgetMax'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+                {errors.budgetMax && <span className="rah-error">{errors.budgetMax.message}</span>}
+              </div>
             </div>
           </div>
-          <BudgetGuidance
-            locations={selectedLocations}
-            bedrooms={beds}
-            onApplyRange={(min, max) => {
-              setValue('budgetMin', min as FormData['budgetMin'], {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-              setValue('budgetMax', max as FormData['budgetMax'], {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }}
-          />
-          <div className="rah-grid rah-grid--2">
-            <div className="rah-field">
-              <label className="rah-label" htmlFor="rah-budget-min">
-                Minimum (₦ / year)
-              </label>
-              <AmountInput
-                id="rah-budget-min"
-                value={budgetMin}
-                placeholder="Enter minimum amount"
-                aria-invalid={Boolean(errors.budgetMin)}
-                onChange={(value) =>
-                  setValue('budgetMin', value as FormData['budgetMin'], {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              />
-              {errors.budgetMin && <span className="rah-error">{errors.budgetMin.message}</span>}
+        ) : (
+          <div className="rah-card">
+            <div className="rah-card__header">
+              <span className="rah-icon">
+                <Coins size={18} aria-hidden />
+              </span>
+              <div>
+                <h2 className="rah-card__title">Purchase budget & savings</h2>
+                <p className="rah-card__hint">
+                  Tell us your current savings towards the purchase and your overall target budget.
+                </p>
+              </div>
             </div>
-            <div className="rah-field">
-              <label className="rah-label" htmlFor="rah-budget-max">
-                Maximum (₦ / year)
-              </label>
-              <AmountInput
-                id="rah-budget-max"
-                value={budgetMax}
-                placeholder="Enter maximum amount"
-                aria-invalid={Boolean(errors.budgetMax)}
-                onChange={(value) =>
-                  setValue('budgetMax', value as FormData['budgetMax'], {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  })
-                }
-              />
-              {errors.budgetMax && <span className="rah-error">{errors.budgetMax.message}</span>}
-            </div>
-          </div>
-        </div>
 
+            <div className="rah-grid rah-grid--2">
+              <div className="rah-field">
+                <label className="rah-label" htmlFor="rah-saved-amount">
+                  How much have you saved? <span className="rah-optional">(Deposit / Equity in ₦)</span>
+                </label>
+                <AmountInput
+                  id="rah-saved-amount"
+                  value={savedAmount}
+                  placeholder="e.g. 15,000,000"
+                  aria-invalid={Boolean(errors.savedAmount)}
+                  onChange={(value) =>
+                    setValue('savedAmount', value as FormData['savedAmount'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+                <p className="rah-field-hint">Your liquid cash or deposit currently set aside.</p>
+                {errors.savedAmount && (
+                  <span className="rah-error">{errors.savedAmount.message}</span>
+                )}
+              </div>
+
+              <div className="rah-field">
+                <label className="rah-label" htmlFor="rah-overall-budget">
+                  Overall purchase budget (₦)
+                </label>
+                <AmountInput
+                  id="rah-overall-budget"
+                  value={overallBudget}
+                  placeholder="e.g. 60,000,000"
+                  aria-invalid={Boolean(errors.overallBudget)}
+                  onChange={(value) =>
+                    setValue('overallBudget', value as FormData['overallBudget'], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
+                />
+                <p className="rah-field-hint">Maximum target property acquisition price.</p>
+                {errors.overallBudget && (
+                  <span className="rah-error">{errors.overallBudget.message}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Amenities Card */}
         <div className="rah-card">
           <div className="rah-card__header">
             <span className="rah-icon">
@@ -464,7 +647,7 @@ export function RequestAHomeForm() {
               <h2 className="rah-card__title">
                 Amenities <span className="rah-optional">(optional)</span>
               </h2>
-              <p className="rah-card__hint">Pick must-haves for the apartment.</p>
+              <p className="rah-card__hint">Pick must-haves for the property.</p>
             </div>
           </div>
           <div className="rah-chips" role="group" aria-label="Amenities">
@@ -486,6 +669,7 @@ export function RequestAHomeForm() {
           </div>
         </div>
 
+        {/* Timing / Notes Card */}
         <div className="rah-card">
           <div className="rah-card__header">
             <span className="rah-icon">
@@ -493,37 +677,47 @@ export function RequestAHomeForm() {
             </span>
             <div>
               <h2 className="rah-card__title">
-                Anything else <span className="rah-optional">(optional)</span>
+                {requestType === 'BUY' ? 'Purchase timeline & notes' : 'Move-in date & preferences'}
               </h2>
-              <p className="rah-card__hint">Move-in date and any other preferences.</p>
+              <p className="rah-card__hint">
+                {requestType === 'BUY'
+                  ? 'Let us know if you need mortgage assistance or have specific estate preferences.'
+                  : 'Move-in date and any other preferences.'}
+              </p>
             </div>
           </div>
 
-          <div className="rah-field">
-            <label className="rah-label" htmlFor="rah-move-in">
-              Move-in date
-            </label>
-            <input
-              id="rah-move-in"
-              type="date"
-              className="rah-input"
-              min={todayIsoDate()}
-              aria-invalid={Boolean(errors.moveInDate)}
-              {...register('moveInDate')}
-            />
-            {errors.moveInDate && <span className="rah-error">{errors.moveInDate.message}</span>}
-          </div>
+          {requestType === 'RENT' && (
+            <div className="rah-field">
+              <label className="rah-label" htmlFor="rah-move-in">
+                Move-in date <span className="rah-optional">(optional)</span>
+              </label>
+              <input
+                id="rah-move-in"
+                type="date"
+                className="rah-input"
+                min={todayIsoDate()}
+                aria-invalid={Boolean(errors.moveInDate)}
+                {...register('moveInDate')}
+              />
+              {errors.moveInDate && <span className="rah-error">{errors.moveInDate.message}</span>}
+            </div>
+          )}
 
-          <div className="rah-field rah-field--spaced">
+          <div className={`rah-field${requestType === 'RENT' ? ' rah-field--spaced' : ''}`}>
             <label className="rah-label" htmlFor="rah-notes">
-              Notes
+              {requestType === 'BUY' ? 'Special requirements or financing preferences' : 'Notes'}
             </label>
             <textarea
               id="rah-notes"
               className="rah-textarea"
               rows={4}
               maxLength={2000}
-              placeholder="Anything else — pets, work-from-home, estate preferences…"
+              placeholder={
+                requestType === 'BUY'
+                  ? 'e.g. Looking for brand new building, Governor’s consent title, payment plans accepted…'
+                  : 'Anything else — pets, work-from-home, estate preferences…'
+              }
               {...register('notes')}
             />
             <span className="rah-charcount">{notes?.length || 0}/2000</span>
@@ -541,7 +735,7 @@ export function RequestAHomeForm() {
             <span className="rah-spinner" aria-hidden />
           ) : (
             <>
-              Submit request <Send size={18} />
+              {requestType === 'BUY' ? 'Submit purchase request' : 'Submit rental request'} <Send size={18} />
             </>
           )}
         </button>
