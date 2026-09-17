@@ -393,7 +393,7 @@ export class RentalPeriodService {
     txClient?: any;
   }): Promise<any> {
     const prisma = params.txClient || this.prisma;
-    if (!prisma) return null;
+    if (!prisma || !prisma.upward_tenancy_period) return null;
 
     const start = this.parseCalendarDate(params.startDate);
     const end = this.parseCalendarDate(params.endDate);
@@ -463,7 +463,7 @@ export class RentalPeriodService {
 
   async getTenancyHistory(userPropertyId: number, txClient?: any): Promise<any[]> {
     const prisma = txClient || this.prisma;
-    if (!prisma) return [];
+    if (!prisma || !prisma.upward_tenancy_period) return [];
     return await prisma.upward_tenancy_period.findMany({
       where: { userPropertyId },
       orderBy: { startDate: 'asc' },
