@@ -36,6 +36,7 @@ import { BulkImportQueue } from './pages/BulkImportQueue'
 import { BulkImportDetail } from './pages/BulkImportDetail'
 import DemoRequests from './pages/DemoRequests'
 import UpwardUniversity from './pages/UpwardUniversity'
+import Settlements from './pages/Settlements'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -105,6 +106,7 @@ function AppRoutes() {
           <Route path="/bulk-imports/:uuid" element={<BulkImportDetail token={auth.token} />} />
 
           <Route path="/area-price-guide" element={<AreaPriceGuide token={auth.token} />} />
+          <Route path="/settlements" element={<Settlements token={auth.token} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           <Route path="/demo-requests" element={<DemoRequests token={auth.token} />} />
