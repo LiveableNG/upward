@@ -25,17 +25,20 @@ model upward_transaction {
   historicalPaidToDate Float?
   remainingBalance     Float?
   isPartial            Boolean?
+  tenancyPeriodId      Int?
   benefitsSubscriptions upward_benefits_subscription[]
   overpayments          upward_overpayment[]
   proof                 upward_payment_proof?
   refundLogs            upward_refund_log[]
   paymentRequest        upward_payment_request?        @relation(fields: [paymentRequestId], references: [id])
   settlementBatch       upward_settlement_batch?       @relation(fields: [settlementBatchId], references: [id])
+  tenancyPeriod         upward_tenancy_period?         @relation(fields: [tenancyPeriodId], references: [id])
   user                  upward_user                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([reference])
   @@index([paymentRequestId])
+  @@index([tenancyPeriodId])
 }
 
 model upward_benefits_subscription {
@@ -91,12 +94,14 @@ model upward_payment_request {
   isRecurring        Boolean                     @default(false)
   recurrenceInterval String?
   scheduledAt        DateTime?
+  tenancyPeriodId    Int?
   overpayments       upward_overpayment[]
   lineItemRecords    upward_payment_line_item[]
   paymentProofs      upward_payment_proof[]
   manualAccountId    Int?
   manualAccount      upward_manual_account?      @relation(fields: [manualAccountId], references: [id])
   subaccount         upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
+  tenancyPeriod      upward_tenancy_period?      @relation(fields: [tenancyPeriodId], references: [id])
   user               upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userProperty       upward_user_property?       @relation(fields: [userPropertyId], references: [id])
   pmPaymentRequests  upward_pm_payment_request[]
@@ -106,6 +111,7 @@ model upward_payment_request {
 
   @@index([userId])
   @@index([status])
+  @@index([tenancyPeriodId])
 }
 
 model upward_rent_deposit_balance {

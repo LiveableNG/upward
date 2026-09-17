@@ -306,18 +306,30 @@ export class CompleteUserProfileUseCase {
          propertyData.amountRemaining = Math.max(0, prop.rentAmount - Number(paid));
       }
 
+      let userPropertyRecord: any;
       if (existingProperty) {
-        await this.prisma.upward_user_property.update({
+        userPropertyRecord = await this.prisma.upward_user_property.update({
           where: { id: existingProperty.id },
           data: propertyData
         })
       } else {
-        await this.prisma.upward_user_property.create({
+        userPropertyRecord = await this.prisma.upward_user_property.create({
           data: {
             ...propertyData,
             uuid: crypto.randomUUID()
           }
         })
+      }
+
+      if (userPropertyRecord?.id && userPropertyRecord.rentStartDate && userPropertyRecord.rentEndDate) {
+        await this.rentalPeriodService.ensureInitialTenancyPeriod({
+          userPropertyId: userPropertyRecord.id,
+          startDate: userPropertyRecord.rentStartDate,
+          endDate: userPropertyRecord.rentEndDate,
+          rentAmount: userPropertyRecord.rentAmount,
+          currency: userPropertyRecord.currency || 'NGN',
+          txClient: this.prisma,
+        });
       }
     }
   }
