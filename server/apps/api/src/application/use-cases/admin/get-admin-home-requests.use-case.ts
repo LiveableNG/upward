@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { Prisma } from '@prisma/client'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 export type AdminHomeRequestLocation = {
   state: string
@@ -70,7 +70,10 @@ function asLocations(value: unknown): AdminHomeRequestLocation[] {
 
 @Injectable()
 export class GetAdminHomeRequestsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async execute(params: {
     page?: string
@@ -146,9 +149,9 @@ export class GetAdminHomeRequestsUseCase {
       id: row.id,
       uuid: row.uuid,
       requestType: row.requestType || 'RENT',
-      fullName: row.fullName,
-      email: row.email,
-      phone: row.phone,
+      fullName: row.fullName ? this.encryption.decrypt(row.fullName) : null,
+      email: this.encryption.decrypt(row.email),
+      phone: this.encryption.decrypt(row.phone),
       locations: asLocations(row.locations),
       budgetMin: row.budgetMin,
       budgetMax: row.budgetMax,
@@ -166,20 +169,34 @@ export class GetAdminHomeRequestsUseCase {
       revealCount: row.contactReveals.length,
       contactReveals: row.contactReveals.map((rev: any) => {
         const pm = pmMap.get(rev.pmId)
+        if (!pm) {
+          return {
+            id: rev.id,
+            uuid: rev.uuid,
+            createdAt: rev.createdAt.toISOString(),
+            pm: null,
+          }
+        }
+
+        const fn = pm.firstName ? this.encryption.decrypt(pm.firstName) : ''
+        const ln = pm.lastName ? this.encryption.decrypt(pm.lastName) : ''
+        const pmName = `${fn} ${ln}`.trim() || 'Property Manager'
+        const businessName = pm.businessName ? this.encryption.decrypt(pm.businessName) : null
+        const email = pm.email ? this.encryption.decrypt(pm.email) : ''
+        const phone = pm.phone ? this.encryption.decrypt(pm.phone) : null
+
         return {
           id: rev.id,
           uuid: rev.uuid,
           createdAt: rev.createdAt.toISOString(),
-          pm: pm
-            ? {
-                id: pm.id,
-                uuid: pm.uuid,
-                name: `${pm.firstName} ${pm.lastName}`.trim(),
-                businessName: pm.businessName,
-                email: pm.email,
-                phone: pm.phone,
-              }
-            : null,
+          pm: {
+            id: pm.id,
+            uuid: pm.uuid,
+            name: pmName,
+            businessName,
+            email,
+            phone,
+          },
         }
       }),
     }))
