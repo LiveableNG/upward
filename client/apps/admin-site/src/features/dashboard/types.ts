@@ -9,6 +9,22 @@ export interface PropertySummary {
   isVerified?: boolean
 }
 
+export type ExpiryPreset =
+  | 'all'
+  | 'next30'
+  | 'next60'
+  | 'next90'
+  | 'thisYear'
+  | 'nextYear'
+  | 'custom'
+
+export interface ExpiryMonthYearRange {
+  fromMonth: number // 0 = Jan, 11 = Dec
+  fromYear: number
+  toMonth: number // 0 = Jan, 11 = Dec
+  toYear: number
+}
+
 export interface WaitlistRecord {
   id: string
   uuid: string
