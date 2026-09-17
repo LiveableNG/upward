@@ -1096,6 +1096,11 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                                   </span>
                                 )}
                               </div>
+                              {unit.rentStartDate && unit.rentDueDate && (
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                  Period: {new Date(unit.rentStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} — {new Date(unit.rentDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                </div>
+                              )}
                             </div>
                             <div
                               style={{
