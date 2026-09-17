@@ -19,6 +19,7 @@ import {
   MapPin,
   MousePointer,
   Sparkles,
+  Inbox,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -65,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Settlements & Payouts', path: '/settlements', icon: Landmark },
     { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
     { name: 'Verifications', path: '/verifications', icon: ShieldCheck },
-    { name: 'Demo Requests', path: '/demo-requests', icon: CalendarClock },
+    { name: 'Requests Hub', path: '/requests', icon: Inbox },
     { name: 'Bulk Import Queue', path: '/bulk-imports', icon: FileText },
     { name: 'Area Price Guide', path: '/area-price-guide', icon: MapPin },
   ]

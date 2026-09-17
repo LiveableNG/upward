@@ -690,3 +690,43 @@
     transform: translateY(0);
   }
 }
+
+/* PropertyPro inspired Rent vs Buy intent switcher */
+.rah-intent-switcher {
+  display: inline-flex;
+  background: var(--landing-slate-100, #f1f5f9);
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--landing-slate-200, #e2e8f0);
+  margin-bottom: 1.5rem;
+  gap: 4px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.rah-intent-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--landing-slate-600, #64748b);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rah-intent-tab:hover {
+  color: var(--landing-slate-900, #0f172a);
+}
+
+.rah-intent-tab--active {
+  background: #ffffff;
+  color: var(--landing-terracotta-600, #d97757);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}

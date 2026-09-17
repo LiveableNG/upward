@@ -350,12 +350,15 @@ model upward_feedback {
 model upward_home_request {
   id             Int                                  @id @default(autoincrement())
   uuid           String                               @unique @default(uuid())
+  requestType    String                               @default("RENT") // "RENT" | "BUY"
   email          String
   phone          String
   fullName       String?
   locations      Json
-  budgetMin      Float
-  budgetMax      Float
+  budgetMin      Float                                @default(0)
+  budgetMax      Float                                @default(0)
+  savedAmount    Float?                               // "How much have you saved" for purchase
+  overallBudget  Float?                               // "Overall budget" for purchase
   propertyType   Json
   beds           Int
   moveInDate     DateTime?
@@ -367,6 +370,7 @@ model upward_home_request {
   updatedAt      DateTime                             @updatedAt
   contactReveals upward_home_request_contact_reveal[]
 
+  @@index([requestType])
   @@index([email])
   @@index([phone])
   @@index([status])

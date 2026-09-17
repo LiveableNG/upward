@@ -19,6 +19,10 @@ import SkeletonStyles, {
 
 import { DataDeletionSection } from '../features/dashboard/components/DataDeletionSection'
 import type { EligibleAccount } from '../features/dashboard/components/PermanentDeleteUserModal'
+import {
+  TenancyExpiryFilter,
+  type ExpiryFilterCounts,
+} from '../features/dashboard/components/TenancyExpiryFilter'
 
 // Feature Types
 import type {
@@ -27,6 +31,8 @@ import type {
   InvitedRecord,
   PmRecord,
   MetricsSummary,
+  ExpiryPreset,
+  ExpiryMonthYearRange,
 } from '../features/dashboard/types'
 import { flattenMetrics } from '../features/dashboard/types'
 
@@ -50,6 +56,76 @@ function writeLocalPref(key: string, value: unknown) {
   } catch {
     /* ignore */
   }
+}
+
+function getRentExpiryDate(u: UnifiedUserRecord): Date | null {
+  const raw =
+    u.rentExpiryDate ||
+    u.rentEndDate ||
+    u.properties?.[0]?.rentEndDate ||
+    u.rawRecord?.rentEndDate ||
+    u.rawRecord?.rentExpiryDate
+  if (!raw) return null
+  const d = new Date(raw)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function checkExpiryMatch(
+  userDate: Date | null,
+  preset: ExpiryPreset,
+  customRange: ExpiryMonthYearRange | null
+): boolean {
+  if (preset === 'all' && !customRange) return true
+  if (!userDate) return false
+
+  const now = new Date()
+
+  if (preset === 'next30') {
+    const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    return userDate >= now && userDate <= end
+  }
+  if (preset === 'next60') {
+    const end = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
+    return userDate >= now && userDate <= end
+  }
+  if (preset === 'next90') {
+    const end = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
+    return userDate >= now && userDate <= end
+  }
+  if (preset === 'thisYear') {
+    const y = now.getFullYear()
+    const start = new Date(y, 0, 1, 0, 0, 0, 0)
+    const end = new Date(y, 11, 31, 23, 59, 59, 999)
+    return userDate >= start && userDate <= end
+  }
+  if (preset === 'nextYear') {
+    const y = now.getFullYear() + 1
+    const start = new Date(y, 0, 1, 0, 0, 0, 0)
+    const end = new Date(y, 11, 31, 23, 59, 59, 999)
+    return userDate >= start && userDate <= end
+  }
+  if (preset === 'custom' && customRange) {
+    const start = new Date(
+      customRange.fromYear,
+      customRange.fromMonth,
+      1,
+      0,
+      0,
+      0,
+      0
+    )
+    const end = new Date(
+      customRange.toYear,
+      customRange.toMonth + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    )
+    return userDate >= start && userDate <= end
+  }
+  return true
 }
 
 interface DashboardProps {
@@ -121,6 +197,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     | 'withoutStartDate'
     | 'noDates'
   >('all')
+  const [expiryPreset, setExpiryPreset] = useState<ExpiryPreset>('all')
+  const [expiryCustomRange, setExpiryCustomRange] =
+    useState<ExpiryMonthYearRange | null>(null)
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
@@ -537,6 +616,150 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     }
   }, [usersFilteredByPm, originFilter, contactFilter])
 
+  const availableExpiryYears = useMemo(() => {
+    const set = new Set<number>()
+    usersFilteredByPm.forEach((u) => {
+      const d = getRentExpiryDate(u)
+      if (d) set.add(d.getFullYear())
+    })
+    return Array.from(set).sort((a, b) => a - b)
+  }, [usersFilteredByPm])
+
+  const expiryFilterCounts = useMemo<ExpiryFilterCounts>(() => {
+    let next30 = 0
+    let next60 = 0
+    let next90 = 0
+    let thisYear = 0
+    let nextYear = 0
+    let custom = 0
+
+    const baseFiltered = usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (propertyFilter === 'withProperty' && !hasProp) return false
+      if (propertyFilter === 'withoutProperty' && hasProp) return false
+
+      // Tenancy Date Hygiene
+      const hasStart = !!(u.rentStartDate || u.properties?.[0]?.rentStartDate)
+      const hasEnd = !!(u.rentExpiryDate || u.rentEndDate || u.properties?.[0]?.rentEndDate)
+
+      if (tenancyDateFilter === 'withBothDates' && (!hasStart || !hasEnd)) return false
+      if (tenancyDateFilter === 'withStartDate' && !hasStart) return false
+      if (tenancyDateFilter === 'withoutStartDate' && hasStart) return false
+      if (tenancyDateFilter === 'withExpiryDate' && !hasEnd) return false
+      if (tenancyDateFilter === 'withoutExpiryDate' && hasEnd) return false
+      if (tenancyDateFilter === 'noDates' && (hasStart || hasEnd)) return false
+
+      return true
+    })
+
+    const now = new Date()
+    const thisYearNum = now.getFullYear()
+    const nextYearNum = thisYearNum + 1
+
+    baseFiltered.forEach((u) => {
+      const d = getRentExpiryDate(u)
+      if (d) {
+        if (d >= now && d <= new Date(now.getTime() + 30 * 86400000)) next30++
+        if (d >= now && d <= new Date(now.getTime() + 60 * 86400000)) next60++
+        if (d >= now && d <= new Date(now.getTime() + 90 * 86400000)) next90++
+        if (d.getFullYear() === thisYearNum) thisYear++
+        if (d.getFullYear() === nextYearNum) nextYear++
+        if (expiryCustomRange) {
+          const start = new Date(
+            expiryCustomRange.fromYear,
+            expiryCustomRange.fromMonth,
+            1,
+            0,
+            0,
+            0,
+            0
+          )
+          const end = new Date(
+            expiryCustomRange.toYear,
+            expiryCustomRange.toMonth + 1,
+            0,
+            23,
+            59,
+            59,
+            999
+          )
+          if (d >= start && d <= end) custom++
+        }
+      }
+    })
+
+    return {
+      all: baseFiltered.length,
+      next30,
+      next60,
+      next90,
+      thisYear,
+      nextYear,
+      custom,
+    }
+  }, [
+    usersFilteredByPm,
+    originFilter,
+    contactFilter,
+    propertyFilter,
+    tenancyDateFilter,
+    expiryCustomRange,
+  ])
+
+  const previewExpiryRangeCount = (range: ExpiryMonthYearRange) => {
+    const start = new Date(range.fromYear, range.fromMonth, 1, 0, 0, 0, 0)
+    const end = new Date(range.toYear, range.toMonth + 1, 0, 23, 59, 59, 999)
+
+    return usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (propertyFilter === 'withProperty' && !hasProp) return false
+      if (propertyFilter === 'withoutProperty' && hasProp) return false
+
+      const d = getRentExpiryDate(u)
+      return d ? d >= start && d <= end : false
+    }).length
+  }
+
   const tenancyDateCounts = useMemo(() => {
     let withBothDates = 0
     let withStartDate = 0
@@ -570,6 +793,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       if (propertyFilter === 'withProperty' && !hasProp) return false
       if (propertyFilter === 'withoutProperty' && hasProp) return false
 
+      // Expiry Match
+      const expiryDate = getRentExpiryDate(u)
+      if (!checkExpiryMatch(expiryDate, expiryPreset, expiryCustomRange)) return false
+
       return true
     })
 
@@ -594,7 +821,14 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       withoutExpiryDate,
       noDates,
     }
-  }, [usersFilteredByPm, originFilter, contactFilter, propertyFilter])
+  }, [
+    usersFilteredByPm,
+    originFilter,
+    contactFilter,
+    propertyFilter,
+    expiryPreset,
+    expiryCustomRange,
+  ])
 
   const filteredUsers = useMemo(() => {
     return usersFilteredByPm.filter((u) => {
@@ -625,7 +859,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       if (propertyFilter === 'withProperty' && !hasProp) return false
       if (propertyFilter === 'withoutProperty' && hasProp) return false
 
-      // 4. Tenancy Date Filter
+      // 4. Tenancy Date Hygiene Filter
       const hasStart = !!(u.rentStartDate || u.properties?.[0]?.rentStartDate)
       const hasEnd = !!(u.rentExpiryDate || u.rentEndDate || u.properties?.[0]?.rentEndDate)
 
@@ -636,9 +870,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       if (tenancyDateFilter === 'withoutExpiryDate' && hasEnd) return false
       if (tenancyDateFilter === 'noDates' && (hasStart || hasEnd)) return false
 
+      // 5. Tenancy Expiry Window Filter
+      const expiryDate = getRentExpiryDate(u)
+      if (!checkExpiryMatch(expiryDate, expiryPreset, expiryCustomRange)) return false
+
       return true
     })
-  }, [usersFilteredByPm, originFilter, contactFilter, propertyFilter, tenancyDateFilter])
+  }, [
+    usersFilteredByPm,
+    originFilter,
+    contactFilter,
+    propertyFilter,
+    tenancyDateFilter,
+    expiryPreset,
+    expiryCustomRange,
+  ])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -1153,7 +1399,27 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                 </div>
               )}
 
-              {/* Tenancy Dates Filter */}
+              {/* Tenancy Rent Expiry Window Filter */}
+              {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
+                <div
+                  style={{
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                  }}
+                >
+                  <TenancyExpiryFilter
+                    preset={expiryPreset}
+                    onPresetChange={setExpiryPreset}
+                    customRange={expiryCustomRange}
+                    onCustomRangeChange={setExpiryCustomRange}
+                    counts={expiryFilterCounts}
+                    availableYears={availableExpiryYears}
+                    previewCount={previewExpiryRangeCount}
+                  />
+                </div>
+              )}
+
+              {/* Tenancy Dates Hygiene Status Filter */}
               {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
                 <div
                   style={{
@@ -1162,6 +1428,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                     flexWrap: 'wrap',
                     borderTop: '1px solid var(--border)',
                     paddingTop: '12px',
+                    alignItems: 'center',
                   }}
                 >
                   <span
@@ -1174,13 +1441,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                       fontWeight: 600,
                     }}
                   >
-                    Tenancy Dates:
+                    Data Status:
                   </span>
                   <button
                     onClick={() => setTenancyDateFilter('all')}
                     className={`date-chip ${tenancyDateFilter === 'all' ? 'active' : ''}`}
                   >
-                    All Dates ({tenancyDateCounts.all})
+                    All Status ({tenancyDateCounts.all})
                   </button>
                   <button
                     onClick={() => setTenancyDateFilter('withBothDates')}
