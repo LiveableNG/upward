@@ -20,7 +20,6 @@ import {
   Check,
   Building,
   Coins,
-  BadgePercent,
   Key,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
