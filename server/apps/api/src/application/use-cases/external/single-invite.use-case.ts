@@ -351,6 +351,17 @@ export class SingleInviteUseCase {
         } as any)
       }
 
+      if (property.id && rentalState.rentStartDate && rentalState.rentEndDate) {
+        await this.rentalPeriodService.ensureInitialTenancyPeriod({
+          userPropertyId: property.id,
+          startDate: rentalState.rentStartDate,
+          endDate: rentalState.rentEndDate,
+          rentAmount: rentData.rentAmount,
+          currency: (rentData as any).currency || 'NGN',
+          txClient: this.prisma,
+        });
+      }
+
       if (rentalState.initialAmountPaid > 0 && property.id) {
         const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
           where: { userPropertyId: property.id, notes: 'Initial Onboarding Payment' }

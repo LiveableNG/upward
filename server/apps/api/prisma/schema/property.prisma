@@ -41,6 +41,7 @@ model upward_user_property {
   rentCycles             upward_rent_cycle[]
   rentDepositBalances     upward_rent_deposit_balance[]
   rentDepositTransactions upward_rent_deposit_transaction[]
+  tenancyPeriods         upward_tenancy_period[]
   contracts              upward_user_contract[]
   company                upward_company?                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   location               upward_location?                  @relation(fields: [locationId], references: [id])
@@ -54,22 +55,51 @@ model upward_user_property {
   @@index([platformId, externalPropertyId])
 }
 
+model upward_tenancy_period {
+  id               Int                           @id @default(autoincrement())
+  uuid             String                        @unique @default(uuid())
+  userPropertyId   Int
+  startDate        DateTime
+  endDate          DateTime
+  rentAmount       Float?
+  currency         String                        @default("NGN")
+  sequenceNumber   Int                           @default(1)
+  isInitial        Boolean                       @default(false)
+  status           String                        @default("ACTIVE") // ACTIVE, SETTLED, PAST, UPCOMING
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+
+  userProperty     upward_user_property          @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  paymentRequests  upward_payment_request[]
+  transactions     upward_transaction[]
+  platformPayments upward_platform_rent_payment[]
+
+  @@unique([userPropertyId, startDate, endDate])
+  @@index([userPropertyId])
+  @@index([userPropertyId, startDate])
+  @@index([userPropertyId, endDate])
+}
+
 model upward_platform_rent_payment {
-  id                  Int                  @id @default(autoincrement())
-  uuid                String               @unique @default(uuid())
+  id                  Int                    @id @default(autoincrement())
+  uuid                String                 @unique @default(uuid())
   userPropertyId      Int
   amount              Float
-  rentAmountAtPayment Float                @default(0)
-  paymentDate         DateTime             @default(now())
-  method              String               @default("PAYSTACK")
-  status              String               @default("SUCCESS")
+  rentAmountAtPayment Float                  @default(0)
+  paymentDate         DateTime               @default(now())
+  method              String                 @default("PAYSTACK")
+  status              String                 @default("SUCCESS")
   notes               String?
   periodStart         DateTime?
   periodEnd           DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  tenancyPeriodId     Int?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
 
-  userProperty        upward_user_property @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  userProperty        upward_user_property   @relation(fields: [userPropertyId], references: [id], onDelete: Cascade)
+  tenancyPeriod       upward_tenancy_period? @relation(fields: [tenancyPeriodId], references: [id])
+
+  @@index([tenancyPeriodId])
 }
 
 model upward_manual_account {

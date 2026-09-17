@@ -407,4 +407,138 @@ describe('RentalPeriodService', () => {
       expect(propertyInDb.rentStartDate.toISOString()).toBe('2027-09-19T00:00:00.000Z');
     });
   });
+
+  describe('Tenancy Period History Management', () => {
+    let tenancyPeriodsDb: any[] = [];
+
+    const mockTxClient: any = {
+      upward_tenancy_period: {
+        findFirst: jest.fn().mockImplementation(({ where }) => {
+          return Promise.resolve(
+            tenancyPeriodsDb.find((p) => {
+              if (where.userPropertyId && p.userPropertyId !== where.userPropertyId) return false;
+              if (where.startDate && p.startDate.getTime() !== where.startDate.getTime()) return false;
+              if (where.endDate && p.endDate.getTime() !== where.endDate.getTime()) return false;
+              if (where.isInitial !== undefined && p.isInitial !== where.isInitial) return false;
+              return true;
+            }) || null,
+          );
+        }),
+        findMany: jest.fn().mockImplementation(({ where }) => {
+          return Promise.resolve(
+            tenancyPeriodsDb.filter((p) => p.userPropertyId === where.userPropertyId),
+          );
+        }),
+        create: jest.fn().mockImplementation(({ data }) => {
+          const newPeriod = { id: tenancyPeriodsDb.length + 1, ...data };
+          tenancyPeriodsDb.push(newPeriod);
+          return Promise.resolve(newPeriod);
+        }),
+        update: jest.fn().mockImplementation(({ where, data }) => {
+          const idx = tenancyPeriodsDb.findIndex((p) => p.id === where.id);
+          if (idx !== -1) {
+            tenancyPeriodsDb[idx] = { ...tenancyPeriodsDb[idx], ...data };
+            return Promise.resolve(tenancyPeriodsDb[idx]);
+          }
+          return Promise.resolve(null);
+        }),
+      },
+    };
+
+    beforeEach(() => {
+      tenancyPeriodsDb = [];
+    });
+
+    it('Test 1: Initial onboarding creates exactly one initial tenancy period (isInitial: true, sequenceNumber: 1)', async () => {
+      const p1 = await service.ensureInitialTenancyPeriod({
+        userPropertyId: 100,
+        startDate: '2025-08-01',
+        endDate: '2026-07-31',
+        rentAmount: 1000000,
+        txClient: mockTxClient,
+      });
+
+      expect(p1).toBeDefined();
+      expect(p1.sequenceNumber).toBe(1);
+      expect(p1.isInitial).toBe(true);
+      expect(p1.startDate.toISOString()).toBe('2025-08-01T00:00:00.000Z');
+      expect(p1.endDate.toISOString()).toBe('2026-07-31T00:00:00.000Z');
+      expect(tenancyPeriodsDb.length).toBe(1);
+    });
+
+    it('Test 2 & 3: Multiple renewals append sequential periods (2025->2026, 2026->2027, 2027->2028)', async () => {
+      // Period 1
+      await service.ensureInitialTenancyPeriod({
+        userPropertyId: 100,
+        startDate: '2025-08-01',
+        endDate: '2026-07-31',
+        rentAmount: 1000000,
+        txClient: mockTxClient,
+      });
+
+      // Period 2 (Renewal Year 1)
+      const p2 = await service.ensureTenancyPeriod({
+        userPropertyId: 100,
+        startDate: '2026-08-01',
+        endDate: '2027-07-31',
+        rentAmount: 1200000,
+        isInitial: false,
+        txClient: mockTxClient,
+      });
+
+      expect(p2.sequenceNumber).toBe(2);
+      expect(p2.isInitial).toBe(false);
+
+      // Period 3 (Renewal Year 2)
+      const p3 = await service.ensureTenancyPeriod({
+        userPropertyId: 100,
+        startDate: '2027-08-01',
+        endDate: '2028-07-31',
+        rentAmount: 1500000,
+        isInitial: false,
+        txClient: mockTxClient,
+      });
+
+      expect(p3.sequenceNumber).toBe(3);
+      expect(p3.isInitial).toBe(false);
+      expect(tenancyPeriodsDb.length).toBe(3);
+
+      // History check
+      const history = await service.getTenancyHistory(100, mockTxClient);
+      expect(history.length).toBe(3);
+      expect(history[0].isInitial).toBe(true);
+      expect(history[0].sequenceNumber).toBe(1);
+      expect(history[1].sequenceNumber).toBe(2);
+      expect(history[2].sequenceNumber).toBe(3);
+
+      // Duration check
+      const duration = await service.getTenancyDuration(100, mockTxClient);
+      expect(duration.years).toBe(3);
+      expect(duration.startDate?.toISOString()).toBe('2025-08-01T00:00:00.000Z');
+      expect(duration.endDate?.toISOString()).toBe('2028-07-31T00:00:00.000Z');
+    });
+
+    it('Test 4 & 5: Idempotency & Partial payments do not duplicate periods', async () => {
+      // Payment 1 for 2026-2027
+      const p1 = await service.ensureTenancyPeriod({
+        userPropertyId: 100,
+        startDate: '2026-08-01',
+        endDate: '2027-07-31',
+        rentAmount: 1000000,
+        txClient: mockTxClient,
+      });
+
+      // Partial payment 2 for the exact same period
+      const p2 = await service.ensureTenancyPeriod({
+        userPropertyId: 100,
+        startDate: '2026-08-01',
+        endDate: '2027-07-31',
+        rentAmount: 1000000,
+        txClient: mockTxClient,
+      });
+
+      expect(p1.id).toBe(p2.id);
+      expect(tenancyPeriodsDb.length).toBe(1);
+    });
+  });
 });
