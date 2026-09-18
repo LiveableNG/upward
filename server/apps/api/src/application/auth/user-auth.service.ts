@@ -1156,15 +1156,33 @@ export class UserAuthService extends BaseAuthService {
       const appleClientIdConfig = this.configService.get<string>('APPLE_CLIENT_ID') || 'com.goodtenants.upward'
       const allowedAppleClientIds = appleClientIdConfig.split(',').map(id => id.trim())
 
-      const decoded = this.jwtService.decode(idToken, { complete: true }) as {
-        header?: { kid?: string; alg?: string }
-      } | null
+      const [headerB64, payloadB64, signatureB64] = idToken.split('.')
+      if (!headerB64 || !payloadB64 || !signatureB64) {
+        throw new UnauthorizedException('Invalid Apple sign-in token structure')
+      }
 
-      if (!decoded?.header?.kid) {
+      let header: { kid?: string; alg?: string }
+      let payload: {
+        sub?: string
+        email?: string
+        email_verified?: boolean | string
+        iss?: string
+        aud?: string | string[]
+        exp?: number
+      }
+
+      try {
+        header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8'))
+        payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'))
+      } catch {
+        throw new UnauthorizedException('Invalid Apple sign-in token format')
+      }
+
+      if (!header?.kid) {
         throw new UnauthorizedException('Apple sign-in token missing key identifier')
       }
 
-      const kid = decoded.header.kid
+      const kid = header.kid
 
       let keys = await this.getApplePublicKeys()
       let matchingKey = keys.find(k => k.kid === kid)
@@ -1178,30 +1196,29 @@ export class UserAuthService extends BaseAuthService {
         throw new UnauthorizedException('Apple public key not found for token')
       }
 
-      let pem: string
+      let isSignatureValid = false
       try {
-        const pubKey = crypto.createPublicKey({ key: matchingKey as any, format: 'jwk' })
-        pem = pubKey.export({ type: 'spki', format: 'pem' }) as string
-      } catch (err) {
-        throw new UnauthorizedException('Failed to process Apple public key')
-      }
-
-      let payload: {
-        sub?: string
-        email?: string
-        email_verified?: boolean | string
-        iss?: string
-        aud?: string | string[]
-        exp?: number
-      }
-
-      try {
-        payload = await this.jwtService.verifyAsync(idToken, {
-          publicKey: pem,
-          algorithms: ['RS256'],
+        const pubKey = crypto.createPublicKey({
+          key: {
+            kty: matchingKey.kty,
+            n: matchingKey.n,
+            e: matchingKey.e,
+          } as any,
+          format: 'jwk',
         })
+        const signedData = Buffer.from(`${headerB64}.${payloadB64}`)
+        const signature = Buffer.from(signatureB64, 'base64url')
+        isSignatureValid = crypto.verify('RSA-SHA256', signedData, pubKey, signature)
       } catch (err) {
         throw new UnauthorizedException('Invalid Apple sign-in token signature')
+      }
+
+      if (!isSignatureValid) {
+        throw new UnauthorizedException('Invalid Apple sign-in token signature')
+      }
+
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        throw new UnauthorizedException('Apple sign-in token has expired')
       }
 
       if (payload.iss !== 'https://appleid.apple.com') {
@@ -1258,7 +1275,7 @@ export class UserAuthService extends BaseAuthService {
       }
 
       const updates: Partial<User> = {}
-      if (!user.providerId) updates.providerId = providerId
+      if (!user.providerId || provider === 'apple') updates.providerId = providerId
 
       // Only update first name if current is empty or looks like an email,
       // and the social name is valid (non-empty & not an email)
