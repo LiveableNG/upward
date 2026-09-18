@@ -29,7 +29,12 @@ export async function signup(data: {
   })
 }
 
-export async function socialSignIn(data: { provider: 'google'; idToken: string }) {
+export async function socialSignIn(data: {
+  provider: 'google' | 'apple'
+  idToken: string
+  firstName?: string
+  lastName?: string
+}) {
   return request<AuthResponse>('/user/auth/social', {
     method: 'POST',
     body: JSON.stringify(data),

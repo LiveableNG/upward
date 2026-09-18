@@ -18,8 +18,38 @@ import { UnifiedCommunicationService } from '../../shared/infrastructure/communi
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
 
+interface AppleJwkKey {
+  kty: string
+  kid: string
+  use?: string
+  alg?: string
+  n: string
+  e: string
+}
+
 @Injectable()
 export class UserAuthService extends BaseAuthService {
+  private appleKeysCache: { keys: AppleJwkKey[]; expiresAt: number } | null = null
+
+  private async getApplePublicKeys(): Promise<AppleJwkKey[]> {
+    const now = Date.now()
+    if (this.appleKeysCache && this.appleKeysCache.expiresAt > now) {
+      return this.appleKeysCache.keys
+    }
+    try {
+      const res = await fetch('https://appleid.apple.com/auth/keys')
+      const data = await res.json()
+      this.appleKeysCache = {
+        keys: data.keys || [],
+        expiresAt: now + 24 * 60 * 60 * 1000,
+      }
+      return this.appleKeysCache.keys
+    } catch {
+      if (this.appleKeysCache?.keys) return this.appleKeysCache.keys
+      throw new UnauthorizedException('Failed to retrieve Apple public keys')
+    }
+  }
+
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
@@ -413,9 +443,10 @@ export class UserAuthService extends BaseAuthService {
       })
     }
 
-    if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google') {
+    if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google' || user.authProvider === 'apple') {
+      const providerLabel = user.authProvider === 'apple' ? 'Apple' : 'Google'
       throw new ForbiddenException({
-        message: 'This account uses Google sign-in. Please continue with Google.',
+        message: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel}.`,
         code: 'SOCIAL_AUTH_REQUIRED',
       })
     }
@@ -920,7 +951,7 @@ export class UserAuthService extends BaseAuthService {
     const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
                      !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
-    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google'
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google' || user.authProvider === 'apple'
     return {
       exists: true,
       isInvited: isShadow,
@@ -1053,65 +1084,160 @@ export class UserAuthService extends BaseAuthService {
   }
 
   async socialSignIn(
-    provider: 'google',
+    provider: 'google' | 'apple',
     idToken: string,
+    profileData?: { firstName?: string; lastName?: string },
   ): Promise<UserAuthResponse & { refreshToken: string }> {
-    if (provider !== 'google') {
+    if (provider !== 'google' && provider !== 'apple') {
       throw new BadRequestException('Unsupported social provider')
     }
 
-    const googleClientIdConfig = this.configService.get<string>('GOOGLE_CLIENT_ID')
-    if (!googleClientIdConfig) {
-      throw new BadRequestException('Google sign-in is not configured')
+    let providerId: string
+    let email: string
+    let firstName: string
+    let lastName: string
+
+    if (provider === 'google') {
+      const googleClientIdConfig = this.configService.get<string>('GOOGLE_CLIENT_ID')
+      if (!googleClientIdConfig) {
+        throw new BadRequestException('Google sign-in is not configured')
+      }
+
+      const allowedClientIds = googleClientIdConfig.split(',').map(id => id.trim())
+
+      let payload: {
+        sub?: string
+        email?: string
+        email_verified?: string | boolean
+        given_name?: string
+        family_name?: string
+        name?: string
+        aud?: string
+        error?: string
+      }
+
+      try {
+        const response = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+        )
+        payload = await response.json()
+      } catch {
+        throw new UnauthorizedException('Invalid Google sign-in token')
+      }
+
+      if (payload.error || !payload.aud || !allowedClientIds.includes(payload.aud)) {
+        throw new UnauthorizedException('Invalid Google sign-in token')
+      }
+
+      const rawSub = payload.sub
+      const rawEmail = payload.email?.toLowerCase().trim()
+
+      if (!rawSub || !rawEmail) {
+        throw new UnauthorizedException('Google account is missing required profile information')
+      }
+
+      if (payload.email_verified === false || payload.email_verified === 'false') {
+        throw new UnauthorizedException('Google email is not verified')
+      }
+
+      providerId = rawSub
+      email = rawEmail
+
+      const nameParts = (payload.name || '').trim().split(/\s+/).filter(Boolean)
+      const rawFirstName = payload.given_name || nameParts[0] || 'User'
+      const rawLastName = payload.family_name || nameParts.slice(1).join(' ') || ''
+
+      // Sanitise names to prevent email strings from being stored
+      const isEmail = (val: string) => val.includes('@')
+      firstName = isEmail(rawFirstName) ? 'User' : rawFirstName
+      lastName = isEmail(rawLastName) ? '' : rawLastName
+    } else {
+      // Apple Sign-In
+      const appleClientIdConfig = this.configService.get<string>('APPLE_CLIENT_ID') || 'com.goodtenants.upward'
+      const allowedAppleClientIds = appleClientIdConfig.split(',').map(id => id.trim())
+
+      const decoded = this.jwtService.decode(idToken, { complete: true }) as {
+        header?: { kid?: string; alg?: string }
+      } | null
+
+      if (!decoded?.header?.kid) {
+        throw new UnauthorizedException('Apple sign-in token missing key identifier')
+      }
+
+      const kid = decoded.header.kid
+
+      let keys = await this.getApplePublicKeys()
+      let matchingKey = keys.find(k => k.kid === kid)
+      if (!matchingKey) {
+        this.appleKeysCache = null
+        keys = await this.getApplePublicKeys()
+        matchingKey = keys.find(k => k.kid === kid)
+      }
+
+      if (!matchingKey) {
+        throw new UnauthorizedException('Apple public key not found for token')
+      }
+
+      let pem: string
+      try {
+        const pubKey = crypto.createPublicKey({ key: matchingKey as any, format: 'jwk' })
+        pem = pubKey.export({ type: 'spki', format: 'pem' }) as string
+      } catch (err) {
+        throw new UnauthorizedException('Failed to process Apple public key')
+      }
+
+      let payload: {
+        sub?: string
+        email?: string
+        email_verified?: boolean | string
+        iss?: string
+        aud?: string | string[]
+        exp?: number
+      }
+
+      try {
+        payload = await this.jwtService.verifyAsync(idToken, {
+          publicKey: pem,
+          algorithms: ['RS256'],
+        })
+      } catch (err) {
+        throw new UnauthorizedException('Invalid Apple sign-in token signature')
+      }
+
+      if (payload.iss !== 'https://appleid.apple.com') {
+        throw new UnauthorizedException('Invalid Apple token issuer')
+      }
+
+      const audMatches = Array.isArray(payload.aud)
+        ? payload.aud.some(a => allowedAppleClientIds.includes(a))
+        : allowedAppleClientIds.includes(payload.aud || '')
+
+      if (!audMatches) {
+        throw new UnauthorizedException('Invalid Apple token audience')
+      }
+
+      if (!payload.sub) {
+        throw new UnauthorizedException('Apple account is missing user identifier')
+      }
+
+      providerId = payload.sub
+      const tokenEmail = payload.email?.toLowerCase().trim()
+
+      const existingByProvider = await this.userRepository.findByProviderId(providerId)
+      if (existingByProvider) {
+        email = existingByProvider.email
+      } else if (tokenEmail) {
+        email = tokenEmail
+      } else {
+        throw new UnauthorizedException('Apple account is missing email. Please try signing in again.')
+      }
+
+      const rawFirstName = profileData?.firstName || 'User'
+      const rawLastName = profileData?.lastName || ''
+      const isEmail = (val: string) => val.includes('@')
+      firstName = isEmail(rawFirstName) ? 'User' : rawFirstName
+      lastName = isEmail(rawLastName) ? '' : rawLastName
     }
-
-    const allowedClientIds = googleClientIdConfig.split(',').map(id => id.trim())
-
-    let payload: {
-      sub?: string
-      email?: string
-      email_verified?: string | boolean
-      given_name?: string
-      family_name?: string
-      name?: string
-      aud?: string
-      error?: string
-    }
-
-    try {
-      const response = await fetch(
-        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
-      )
-      payload = await response.json()
-    } catch {
-      throw new UnauthorizedException('Invalid Google sign-in token')
-    }
-
-    if (payload.error || !payload.aud || !allowedClientIds.includes(payload.aud)) {
-      throw new UnauthorizedException('Invalid Google sign-in token')
-    }
-
-    const providerId = payload.sub
-    const email = payload.email?.toLowerCase().trim()
-
-    if (!providerId || !email) {
-      throw new UnauthorizedException('Google account is missing required profile information')
-    }
-
-
-
-    if (payload.email_verified === false || payload.email_verified === 'false') {
-      throw new UnauthorizedException('Google email is not verified')
-    }
-
-    const nameParts = (payload.name || '').trim().split(/\s+/).filter(Boolean)
-    const rawFirstName = payload.given_name || nameParts[0] || 'User'
-    const rawLastName = payload.family_name || nameParts.slice(1).join(' ') || ''
-
-    // Sanitise names to prevent email strings from being stored
-    const isEmail = (val: string) => val.includes('@')
-    const firstName = isEmail(rawFirstName) ? 'User' : rawFirstName
-    const lastName = isEmail(rawLastName) ? '' : rawLastName
 
     let user = await this.userRepository.findByProviderId(providerId)
     if (!user) {
@@ -1135,23 +1261,23 @@ export class UserAuthService extends BaseAuthService {
       if (!user.providerId) updates.providerId = providerId
 
       // Only update first name if current is empty or looks like an email,
-      // and the Google name is valid (non-empty & not an email)
-      const currentFirstEmptyOrEmail = !user.firstName?.trim() || isEmail(user.firstName)
-      const newFirstValid = firstName.trim() !== '' && !isEmail(firstName)
+      // and the social name is valid (non-empty & not an email)
+      const currentFirstEmptyOrEmail = !user.firstName?.trim() || (user.firstName.includes('@'))
+      const newFirstValid = firstName.trim() !== '' && !firstName.includes('@')
       if (currentFirstEmptyOrEmail && newFirstValid) {
         updates.firstName = firstName
       }
 
       // Only update last name if current is empty or looks like an email,
-      // and the Google name is valid (non-empty & not an email)
-      const currentLastEmptyOrEmail = !user.lastName?.trim() || isEmail(user.lastName)
-      const newLastValid = lastName.trim() !== '' && !isEmail(lastName)
+      // and the social name is valid (non-empty & not an email)
+      const currentLastEmptyOrEmail = !user.lastName?.trim() || (user.lastName.includes('@'))
+      const newLastValid = lastName.trim() !== '' && !lastName.includes('@')
       if (currentLastEmptyOrEmail && newLastValid) {
         updates.lastName = lastName
       }
 
       if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL) {
-        updates.authProvider = 'google'
+        updates.authProvider = provider
       }
 
       if (Object.keys(updates).length > 0) {
@@ -1170,7 +1296,7 @@ export class UserAuthService extends BaseAuthService {
         uuid: crypto.randomUUID(),
         email,
         passwordHash: PASS_PLACEHOLDERS.SOCIAL,
-        authProvider: 'google',
+        authProvider: provider,
         providerId,
         firstName,
         lastName,
@@ -1181,7 +1307,7 @@ export class UserAuthService extends BaseAuthService {
 
       await this.userRepository.save(userData as User)
       user = await this.userRepository.findByEmail(email)
-      if (!user) throw new Error('Failed to create user after Google sign-in')
+      if (!user) throw new Error(`Failed to create user after ${provider} sign-in`)
       await this.syncTenantStatuses(email)
 
       this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
@@ -1225,7 +1351,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (!user) {
-      throw new Error('Failed to resolve user after Google sign-in')
+      throw new Error(`Failed to resolve user after ${provider} sign-in`)
     }
 
     return this.generateFullAuthResponse(user)

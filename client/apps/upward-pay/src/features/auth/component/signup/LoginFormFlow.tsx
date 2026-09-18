@@ -23,6 +23,7 @@ import { useToast } from '@/components/common/Toast'
 import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 type LoginMethod = 'password' | 'code' | null
 
@@ -83,6 +84,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const { error: toastError } = useToast()
 
   const isGoogleOnly = authProvider === 'google' && emailExists
+  const isAppleOnly = authProvider === 'apple' && emailExists
   const isSpecialAccount = isInvited || isWaitlist
   const isBusy = loginLoading || isRequestingOTP || isCheckingEmail
 
@@ -238,7 +240,8 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     !!loginPassword &&
     emailExists &&
     !isSpecialAccount &&
-    !isGoogleOnly
+    !isGoogleOnly &&
+    !isAppleOnly
 
   const canContinueCode =
     ((identifierType === 'email' && !!loginEmail) || (identifierType === 'phone' && !!loginPhone)) &&
@@ -340,10 +343,13 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
       <div className="auth-stage">
         <div className="auth-stage__header">
           <h1 className="auth-stage__title">Welcome back</h1>
-          <p className="auth-stage__subtitle">Sign in with Google, password, or a verification code.</p>
+          <p className="auth-stage__subtitle">Sign in with Apple, Google, password, or a verification code.</p>
         </div>
 
-        <GoogleSignInButton />
+        <div className="auth-social-stack">
+          <AppleSignInButton />
+          <GoogleSignInButton />
+        </div>
 
         <div className="auth-divider">
           <span>OR</span>
@@ -473,7 +479,13 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
               {isGoogleOnly && loginMethod === 'password' && (
                 <div className="auth-field-hint auth-field-hint--accent">
-                  <AlertCircle size={12} /> This account uses Google sign-in. Use the button above.
+                  <AlertCircle size={12} /> This account uses Google sign-in. Use the Google button above.
+                </div>
+              )}
+
+              {isAppleOnly && loginMethod === 'password' && (
+                <div className="auth-field-hint auth-field-hint--accent">
+                  <AlertCircle size={12} /> This account uses Apple sign-in. Use the Apple button above.
                 </div>
               )}
 
