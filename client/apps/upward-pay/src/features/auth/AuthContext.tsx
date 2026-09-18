@@ -5,7 +5,7 @@ import { type UserProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { setAccessToken, setRefreshToken, initStoredTokens } from '@/lib/auth-token'
+import { setAccessToken, setRefreshToken, getAccessToken, getRefreshToken, initStoredTokens } from '@/lib/auth-token'
 import { deleteCookie } from '@/lib/cookie-utils'
 import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
 import { App } from '@capacitor/app'
@@ -26,8 +26,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(() => {
     if (typeof window !== 'undefined') {
-      const isSessionActive = sessionStorage.getItem('upward_session_active') === 'true'
-      if (!isSessionActive) return null
       try {
         const cached = localStorage.getItem('upward_cached_user_profile')
         return cached ? JSON.parse(cached) : null
@@ -129,7 +127,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(profile)
       userRef.current = profile
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('upward_session_active', 'true')
         localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
       }
     } catch (err: any) {
@@ -140,8 +137,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null)
         userRef.current = null
+        setAccessToken(null)
+        setRefreshToken(null)
+        deleteCookie('pay_access_token')
         if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('upward_session_active')
           localStorage.removeItem('upward_cached_user_profile')
         }
       }
@@ -152,41 +151,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initSession = async () => {
-      console.log('[Auth] Initializing session...')
+      console.log('[Auth] Initializing persistent session...')
+      await initStoredTokens()
 
-      // Option 1: Logout on App Close / Termination
-      // If sessionStorage doesn't have the active session flag, the app process was freshly started (exited/closed).
-      const isSessionActive = typeof window !== 'undefined' && sessionStorage.getItem('upward_session_active') === 'true'
+      const token = getAccessToken()
+      const refreshToken = getRefreshToken()
 
-      if (!isSessionActive) {
-        console.log('[Auth] App launched fresh after close. Starting in logged-out state...')
-        setAccessToken(null)
-        setRefreshToken(null)
-        deleteCookie('pay_access_token')
+      if (!token && !refreshToken) {
+        console.log('[Auth] No stored tokens found. Starting in logged-out state.')
         setUser(null)
         userRef.current = null
         if (typeof window !== 'undefined') {
           localStorage.removeItem('upward_cached_user_profile')
-          localStorage.removeItem('app_backgrounded_at')
         }
         setLoading(false)
         return
       }
 
-      await initStoredTokens()
-
       if (Capacitor.isNativePlatform()) {
         await App.addListener('appStateChange', async (state) => {
-          if (!state.isActive) {
-            console.log('[Auth] App went to background')
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('app_backgrounded_at', Date.now().toString())
-            }
-          } else {
+          if (state.isActive) {
             console.log('[Auth] App resumed from background')
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('app_backgrounded_at')
-            }
             await refreshUser()
             queryClient.invalidateQueries()
           }
@@ -210,7 +195,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userRef.current = newUser
     setLoading(false)
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('upward_session_active', 'true')
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
     }
   }
@@ -247,9 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'upward_pay_access_token',
           'upward_pay_refresh_token',
           'app_banner_dismissed',
-          'upward_session_active',
           'upward_cached_user_profile',
-          'app_backgrounded_at',
           'exclusive_home_applications',
           'exclusive_home_requests',
         ]
