@@ -28,6 +28,7 @@ import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -313,7 +314,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           <p className="auth-stage__subtitle">Name, email, and password — takes under a minute.</p>
         </div>
 
-        <GoogleSignInButton />
+        <div className="auth-social-stack">
+          <AppleSignInButton />
+          <GoogleSignInButton />
+        </div>
 
         <div className="auth-divider">
           <span>OR</span>
