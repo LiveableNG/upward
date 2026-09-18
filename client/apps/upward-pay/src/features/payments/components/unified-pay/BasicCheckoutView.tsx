@@ -9,7 +9,6 @@ import {
   PayPageShell,
 } from '@/features/dashboard/components/payment/PayPageShell'
 import { CapacitorGuard } from '@/components/common/CapacitorGuard'
-import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginButton'
 import { CheckoutRecipientCard } from './CheckoutRecipientCard'
 import { CheckoutAmountHero, parseRentInput } from './CheckoutAmountHero'
 import { CheckoutReceipt, type CheckoutReceiptRow } from './CheckoutReceipt'
@@ -287,9 +286,6 @@ export function BasicCheckoutView({
             <Lock size={16} />
             {loginLoading ? 'Logging in…' : 'Log in to pay'}
           </button>
-          <CapacitorGuard>
-            <BiometricLoginButton onAuthenticated={(email, pass) => executeLogin(email, pass)} />
-          </CapacitorGuard>
         </div>
       ) : (
         <>

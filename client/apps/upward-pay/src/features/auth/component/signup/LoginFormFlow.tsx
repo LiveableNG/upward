@@ -18,7 +18,6 @@ import {
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
-import { BiometricsService } from '@/features/auth/services/biometricsService'
 import { useToast } from '@/components/common/Toast'
 import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
