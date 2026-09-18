@@ -17,7 +17,6 @@ import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/Pa
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import { CapacitorGuard } from '@/components/common/CapacitorGuard'
-import { BiometricLoginButton } from '@/features/auth/component/BiometricLoginButton'
 
 import { InvoiceHeader } from '@/features/payments/components/unified-pay/InvoiceHeader'
 import { AmountDetailCard } from '@/features/payments/components/unified-pay/AmountDetailCard'
