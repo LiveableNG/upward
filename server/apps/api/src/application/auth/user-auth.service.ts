@@ -16,6 +16,7 @@ import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.s
 import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
 
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { SyncUserSequenceChannelUseCase } from '../use-cases/sequence/sync-user-sequence-channel.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
 
 interface AppleJwkKey {
@@ -60,6 +61,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
+    private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
     private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
@@ -579,6 +581,34 @@ export class UserAuthService extends BaseAuthService {
     }
 
     await this.userRepository.update(user.id!, data as any)
+
+    if (data.phone) {
+      const updatedUser = await this.userRepository.findById(user.id!)
+      if (updatedUser?.phone) {
+        let pmName: string | undefined = undefined
+        if (updatedUser.companyUsers && updatedUser.companyUsers.length > 0) {
+          pmName = updatedUser.companyUsers[0].company?.name
+        }
+        if (!pmName && updatedUser.properties && updatedUser.properties.length > 0) {
+          const prop = updatedUser.properties[0]
+          if (prop.company?.name) {
+            pmName = prop.company.name
+          } else if (prop.manager) {
+            pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
+          }
+        }
+
+        this.syncUserSequenceChannelUseCase
+          .execute({
+            userId: updatedUser.id!,
+            firstName: updatedUser.firstName,
+            phoneEncrypted: updatedUser.phone,
+            phoneHash: updatedUser.phoneHash || this.encryption.hash(updatedUser.phone),
+            pmName,
+          })
+          .catch(e => console.error('Failed to sync sequence channel on profile update', e))
+      }
+    }
 
     // Sync Property logic
     const propertyList = (data as any).properties || []

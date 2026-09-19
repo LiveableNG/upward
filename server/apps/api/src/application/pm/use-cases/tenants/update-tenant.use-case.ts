@@ -1,5 +1,8 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PM_TENANT_REPOSITORY, ITenantRepository, TenantEntity } from '../../../../domains/pm/IPropertyRepository';
+import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../../domains/users/user.repository';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
+import { SyncUserSequenceChannelUseCase } from '../../../use-cases/sequence/sync-user-sequence-channel.use-case';
 import { InviteTenantUseCase } from './invite-tenant.use-case';
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service';
 
@@ -27,6 +30,10 @@ export class UpdateTenantUseCase {
   constructor(
     @Inject(PM_TENANT_REPOSITORY)
     private readonly tenantRepo: ITenantRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
+    private readonly encryption: EncryptionService,
+    private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
     private readonly prisma: PrismaService,
   ) {}
@@ -115,6 +122,31 @@ export class UpdateTenantUseCase {
     }
 
     const updatedTenant = await this.tenantRepo.update(uuid, data);
+
+    if (data.phone && updatedTenant.email) {
+      try {
+        let user = await this.userRepo.findByEmail(updatedTenant.email);
+
+        if (user && !user.phone) {
+          await this.userRepo.update(user.id!, {
+            phone: data.phone,
+            phoneHash: this.encryption.hash(data.phone),
+          });
+          user = await this.userRepo.findById(user.id!);
+
+          if (user && user.passwordHash !== PASS_PLACEHOLDERS.INVITED) {
+            await this.syncUserSequenceChannelUseCase.execute({
+              userId: user.id!,
+              firstName: user.firstName || updatedTenant.firstName || '',
+              phoneEncrypted: user.phone || data.phone,
+              phoneHash: user.phoneHash || this.encryption.hash(data.phone),
+            });
+          }
+        }
+      } catch (err: any) {
+        console.error(`Failed to sync sequence for updated tenant ${uuid}:`, err?.message || err);
+      }
+    }
 
     if (
       oldEmail?.endsWith('@upward.com') &&

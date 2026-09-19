@@ -325,6 +325,7 @@ import { SubmitUnitRequestUseCase } from './use-cases/tenant-pm-connection/submi
 import { DiscoverLinkedPropertiesUseCase } from './use-cases/tenant-pm-connection/discover-linked-properties.use-case'
 import { SearchPmUseCase } from './use-cases/tenant-pm-connection/search-pm.use-case'
 import { InitializeUserSequenceUseCase } from './use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { SyncUserSequenceChannelUseCase } from './use-cases/sequence/sync-user-sequence-channel.use-case'
 import { ProcessPendingSequencesUseCase } from './use-cases/whatsapp-sequence/process-pending-sequences.use-case'
 import { RetrySequenceUseCase } from './use-cases/whatsapp-sequence/retry-sequence.use-case'
 import { GetSequenceLogsUseCase } from './use-cases/whatsapp-sequence/get-sequence-logs.use-case'
@@ -787,6 +788,7 @@ const UseCases: any[] = [
   DeleteBlogPostUseCase,
   UploadBlogImageUseCase,
   InitializeUserSequenceUseCase,
+  SyncUserSequenceChannelUseCase,
   ProcessPendingSequencesUseCase,
   RetrySequenceUseCase,
   GetSequenceLogsUseCase,

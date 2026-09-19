@@ -16,6 +16,7 @@ import { NotificationService } from '@shared/infrastructure/common/notification.
 import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '@domains/auth/verification-token.repository'
 import { IPaymentGateway } from '@domains/payments/payment.repository'
 import { RentalPeriodService } from '@application/services/rental-period.service'
+import { SyncUserSequenceChannelUseCase } from '@application/use-cases/sequence/sync-user-sequence-channel.use-case'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ describe('SingleInviteUseCase', () => {
   let addManualAccountUseCase: any
   let eventBus: any
   let rentalPeriodService: RentalPeriodService
+  let syncUserSequenceChannelUseCase: any
 
   beforeEach(() => {
     prisma = {} as any
@@ -237,6 +239,10 @@ describe('SingleInviteUseCase', () => {
       publish: jest.fn(),
     }
 
+    syncUserSequenceChannelUseCase = {
+      execute: jest.fn().mockResolvedValue({}),
+    }
+
     useCase = new SingleInviteUseCase(
       prisma,
       encryption,
@@ -253,6 +259,7 @@ describe('SingleInviteUseCase', () => {
       addManualAccountUseCase,
       eventBus,
       rentalPeriodService,
+      syncUserSequenceChannelUseCase,
     )
   })
 
