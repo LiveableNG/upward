@@ -920,6 +920,37 @@ export class UserAuthService extends BaseAuthService {
     return { success: true }
   }
 
+  getPhoneVariants(rawPhone: string): string[] {
+    if (!rawPhone) return []
+    const cleaned = rawPhone.trim().replace(/[\s\-\(\)]/g, '')
+    const variants = new Set<string>()
+    if (cleaned) variants.add(cleaned)
+    if (rawPhone.trim()) variants.add(rawPhone.trim())
+
+    if (cleaned.startsWith('+234')) {
+      const national = cleaned.slice(4)
+      variants.add(`0${national}`)
+      variants.add(national)
+      variants.add(`234${national}`)
+    } else if (cleaned.startsWith('234') && cleaned.length >= 12) {
+      const national = cleaned.slice(3)
+      variants.add(`+234${national}`)
+      variants.add(`0${national}`)
+      variants.add(national)
+    } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+      const national = cleaned.slice(1)
+      variants.add(`+234${national}`)
+      variants.add(`234${national}`)
+      variants.add(national)
+    } else if (cleaned.length === 10) {
+      variants.add(`+234${cleaned}`)
+      variants.add(`0${cleaned}`)
+      variants.add(`234${cleaned}`)
+    }
+
+    return Array.from(variants)
+  }
+
   async checkEmail(identifier: string, type: 'email' | 'phone' = 'email'): Promise<{ 
     exists: boolean; 
     hasPassword?: boolean; 
@@ -936,8 +967,11 @@ export class UserAuthService extends BaseAuthService {
     }
     
     if (!user) {
+      const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
+        where: type === 'phone'
+          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+          : { email: identifier, role: { not: 'OWNER' } }
       })
       if (waitlistEntry) {
         return { 
@@ -975,11 +1009,15 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('No account found with this identifier.')
     }
 
+    let waitlistEntry: any = null;
     if (context === 'WAITLIST') {
-      const entry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
+      const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
+      waitlistEntry = await this.prisma.upward_waitlist.findFirst({
+        where: type === 'phone'
+          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+          : { email: identifier, role: { not: 'OWNER' } }
       })
-      if (!entry) throw new ForbiddenException('You are not on the priority waitlist.')
+      if (!waitlistEntry) throw new ForbiddenException('You are not on the priority waitlist.')
     }
 
     if (context === 'SIGNUP' && existing && existing.passwordHash && existing.passwordHash !== 'INVITED') {
@@ -1004,15 +1042,18 @@ export class UserAuthService extends BaseAuthService {
 
     // 4. Send via Unified Communication Architecture
     await this.unifiedCommService.processCommunication({
-      recipientEmail: type === 'email' ? identifier : undefined,
-      recipientPhone: type === 'phone' ? identifier : undefined,
+      recipientEmail: type === 'email' ? identifier : waitlistEntry?.email,
+      recipientPhone: type === 'phone' ? identifier : (waitlistEntry?.phone || undefined),
+      recipientName: waitlistEntry?.firstName || existing?.firstName || undefined,
       recipientRole: 'TENANT',
       type: 'AUTH_OTP',
       forceChannel: type === 'phone' ? (channel === 'WHATSAPP' ? 'WHATSAPP' : 'SMS') : 'EMAIL',
       context: {
         otp,
         context: effectiveContext,
-        title: effectiveContext === 'SIGNUP' ? 'Verify your email' : 'Login Verification',
+        firstName: waitlistEntry?.firstName || existing?.firstName || 'there',
+        displayName: waitlistEntry?.firstName || existing?.firstName || 'there',
+        title: effectiveContext === 'SIGNUP' ? 'Verify your email' : effectiveContext === 'WAITLIST' ? 'Claim Your Waitlist Spot' : 'Login Verification',
       },
     });
     return { context: effectiveContext }
@@ -1056,8 +1097,11 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (context === 'WAITLIST') {
+      const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
+        where: type === 'phone'
+          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+          : { email: identifier, role: { not: 'OWNER' } }
       })
       if (entry) {
         return { success: true, inviteToken: entry.uuid, user }

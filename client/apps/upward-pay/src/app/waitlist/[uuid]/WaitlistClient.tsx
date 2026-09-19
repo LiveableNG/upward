@@ -51,6 +51,7 @@ export default function WaitlistClient({ overrideUuid }: WaitlistClientProps = {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   })
@@ -79,7 +80,9 @@ export default function WaitlistClient({ overrideUuid }: WaitlistClientProps = {
           ...formData,
           firstName: res.firstName || '',
           lastName: res.lastName || '',
-          email: res.email || ''
+          email: res.email || '',
+          phone: res.phone || '',
+          isPhoneOnly: res.isPhoneOnly || (res.email && res.email.endsWith('@upward.com')) || false,
         })
       }
     } catch (err) {
@@ -105,7 +108,8 @@ export default function WaitlistClient({ overrideUuid }: WaitlistClientProps = {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email
+        email: formData.email,
+        phone: formData.phone || undefined,
       })
 
       if (res.success) {

@@ -217,6 +217,12 @@ export class UnifiedCommunicationService {
           } else {
             channelsToTry = ['WHATSAPP', 'SMS'];
           }
+        } else if (preferredChannel === 'SMS') {
+          if (hasEmail && hasPhone) {
+            channelsToTry = ['SMS', 'WHATSAPP', 'EMAIL'];
+          } else {
+            channelsToTry = ['SMS', 'WHATSAPP'];
+          }
         } else {
           channelsToTry = [preferredChannel];
         }
@@ -313,7 +319,7 @@ export class UnifiedCommunicationService {
               );
             }
           }
-        } else if (channel === 'SMS' && hasPhone && phone && phone.startsWith('+234')) {
+        } else if (channel === 'SMS' && hasPhone && phone) {
           const smsRes = await this.smsService.sendSms({
             to: phone,
             message: plainText,
