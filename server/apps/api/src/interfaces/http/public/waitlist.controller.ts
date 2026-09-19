@@ -108,6 +108,7 @@ export class WaitlistController {
 
     const response = await this.userAuthService.signup({
       ...data,
+      phone: data.phone || waitlistEntry.phone,
       isFromWaitlist: true
     })
 

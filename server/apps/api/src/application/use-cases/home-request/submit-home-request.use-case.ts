@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -17,6 +17,7 @@ import {
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EmailService } from '../../../shared/infrastructure/email/email.service'
 
 const PROPERTY_TYPES = ['apartment', 'studio', 'house', 'duplex', 'terrace', 'any'] as const
 
@@ -35,6 +36,11 @@ export class HomeRequestLocationDto {
 }
 
 export class SubmitHomeRequestDto {
+  @IsOptional()
+  @IsString()
+  @IsIn(['RENT', 'BUY', 'rent', 'buy'])
+  requestType?: string
+
   @IsEmail()
   email!: string
 
@@ -55,15 +61,29 @@ export class SubmitHomeRequestDto {
   @Type(() => HomeRequestLocationDto)
   locations!: HomeRequestLocationDto[]
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  budgetMin!: number
+  budgetMin?: number
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  budgetMax!: number
+  budgetMax?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  savedAmount?: number
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  overallBudget?: number
 
   @IsArray()
   @ArrayMinSize(1)
@@ -95,11 +115,30 @@ export class SubmitHomeRequestDto {
 
 @Injectable()
 export class SubmitHomeRequestUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(SubmitHomeRequestUseCase.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async execute(dto: SubmitHomeRequestDto) {
-    if (dto.budgetMax < dto.budgetMin) {
-      throw new BadRequestException('Maximum budget must be greater than or equal to minimum budget')
+    const rawType = (dto.requestType || 'RENT').toUpperCase()
+    const requestType = rawType === 'BUY' ? 'BUY' : 'RENT'
+
+    let budgetMin = dto.budgetMin ?? 0
+    let budgetMax = dto.budgetMax ?? 0
+
+    if (requestType === 'RENT') {
+      if (budgetMax < budgetMin) {
+        throw new BadRequestException('Maximum budget must be greater than or equal to minimum budget')
+      }
+    } else {
+      // For BUY requests, default min/max to overallBudget if not provided
+      if (dto.overallBudget) {
+        budgetMin = budgetMin || dto.overallBudget
+        budgetMax = budgetMax || dto.overallBudget
+      }
     }
 
     const phone = dto.phone.trim()
@@ -108,12 +147,15 @@ export class SubmitHomeRequestUseCase {
 
     const request = await this.prisma.upward_home_request.create({
       data: {
+        requestType,
         email,
         phone,
         fullName: dto.fullName?.trim() || null,
         locations: dto.locations as any,
-        budgetMin: dto.budgetMin,
-        budgetMax: dto.budgetMax,
+        budgetMin,
+        budgetMax,
+        savedAmount: dto.savedAmount ?? null,
+        overallBudget: dto.overallBudget ?? null,
         propertyType: dto.propertyTypes as any,
         beds: dto.beds,
         moveInDate: dto.moveInDate ? new Date(dto.moveInDate) : null,
@@ -121,11 +163,34 @@ export class SubmitHomeRequestUseCase {
         notes: dto.notes?.trim() || null,
         source: 'website',
         status: 'submitted',
-      },
+      } as any,
     })
+
+    // Alert admins who have receivesSystemAlerts=true enabled
+    try {
+      await this.emailService.sendHomeRequestAlertToAdmins({
+        uuid: request.uuid,
+        requestType,
+        fullName: dto.fullName?.trim() || null,
+        email,
+        phone,
+        locations: dto.locations,
+        budgetMin,
+        budgetMax,
+        savedAmount: dto.savedAmount ?? null,
+        overallBudget: dto.overallBudget ?? null,
+        propertyTypes: dto.propertyTypes,
+        beds: dto.beds,
+        moveInDate: dto.moveInDate ? new Date(dto.moveInDate) : null,
+        notes: dto.notes?.trim() || null,
+      })
+    } catch (err) {
+      this.logger.error('Failed to send admin notification for home request', err)
+    }
 
     return {
       uuid: request.uuid,
+      requestType: (request as any).requestType || requestType,
       status: request.status,
       createdAt: request.createdAt,
     }

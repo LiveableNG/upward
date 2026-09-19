@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { TrendingUp, Gift, Shield, CheckCircle2, UserPlus, LogIn } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
+import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 const BENEFITS = [
   {
@@ -88,6 +89,7 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
       </div>
 
       <div className="auth-shell__ctas">
+        <AppleSignInButton />
         <GoogleSignInButton />
         <div className="auth-divider auth-divider--compact">
           <span>OR</span>

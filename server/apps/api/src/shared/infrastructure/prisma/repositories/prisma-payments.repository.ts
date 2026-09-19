@@ -380,6 +380,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
   private get paymentRequestInclude() {
     return {
       subaccount: true,
+      manualAccount: true,
       userProperty: {
         include: {
           company: {
@@ -431,6 +432,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       userPropertyId: res.userPropertyId ?? undefined,
       subaccountId: res.subaccountId ?? undefined,
       subaccount: res.subaccount as unknown as PaystackSubaccount,
+      manualAccountId: res.manualAccountId ?? undefined,
+      manualAccount: res.manualAccount ?? undefined,
       platformId: res.userProperty?.company?.platform?.id || res.userProperty?.company?.platformId,
       platformName,
       userPropertyUuid: res.userProperty?.uuid,
@@ -471,6 +474,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         minAmount: data.minAmount,
         reference: data.reference,
         subaccountId: data.subaccountId,
+        manualAccountId: data.manualAccountId,
         isManual: data.isManual,
         rentStartDate: data.rentStartDate,
         rentEndDate: data.rentEndDate,
@@ -551,6 +555,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         recurrenceInterval: data.recurrenceInterval,
         userPropertyId: data.userPropertyId,
         subaccountId: data.subaccountId,
+        manualAccountId: data.manualAccountId,
       },
       include: this.paymentRequestInclude,
     })

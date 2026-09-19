@@ -138,7 +138,13 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async socialSignIn(
     @Req() req: any,
-    @Body() body: { provider: 'google'; idToken: string },
+    @Body()
+    body: {
+      provider: 'google' | 'apple'
+      idToken: string
+      firstName?: string
+      lastName?: string
+    },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     const ipAddress = req.headers['x-forwarded-for']
@@ -146,7 +152,11 @@ export class UserController {
       : req.ip
     const userAgent = req.headers['user-agent']
     const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
-    const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(body.provider, body.idToken)
+    const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(
+      body.provider,
+      body.idToken,
+      { firstName: body.firstName, lastName: body.lastName },
+    )
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }

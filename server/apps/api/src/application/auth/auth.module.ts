@@ -14,6 +14,7 @@ import { S3Module } from '../../shared/infrastructure/common/s3/s3.module'
 
 import { SmsModule } from '../../shared/infrastructure/sms/sms.module'
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { SyncUserSequenceChannelUseCase } from '../use-cases/sequence/sync-user-sequence-channel.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
 
 @Module({
@@ -30,7 +31,7 @@ import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/init
       }),
     }),
   ],
-  providers: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtStrategy, InitializeUserSequenceUseCase, InitializeEmailSequenceUseCase],
-  exports: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtModule],
+  providers: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtStrategy, InitializeUserSequenceUseCase, SyncUserSequenceChannelUseCase, InitializeEmailSequenceUseCase],
+  exports: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtModule, SyncUserSequenceChannelUseCase],
 })
 export class AuthModule {}

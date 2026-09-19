@@ -539,6 +539,171 @@ export class EmailService {
     )
   }
 
+  async sendHomeRequestAlertToAdmins(request: {
+    uuid: string
+    requestType?: string
+    fullName?: string | null
+    email: string
+    phone: string
+    locations?: Array<{ state: string; area: string; subArea?: string }>
+    budgetMin?: number
+    budgetMax?: number
+    savedAmount?: number | null
+    overallBudget?: number | null
+    propertyTypes?: string[]
+    beds?: number
+    moveInDate?: Date | null
+    notes?: string | null
+  }) {
+    const alertAdmins = await this.prisma.upward_admin.findMany({
+      where: { receivesSystemAlerts: true },
+      select: { email: true },
+    })
+
+    if (alertAdmins.length === 0) {
+      this.logger.warn('No admins with receivesSystemAlerts=true — skipping home request alert')
+      return
+    }
+
+    const isBuy = (request.requestType || 'RENT').toUpperCase() === 'BUY'
+    const typeLabel = isBuy ? 'Home Purchase (For Sale)' : 'Rental Request'
+    const badgeColor = isBuy ? '#10b981' : '#3b82f6'
+    const prospectName = request.fullName || 'Anonymous Prospect'
+
+    const formatCurrency = (amt?: number | null) => {
+      if (!amt || isNaN(amt)) return '₦0'
+      return '₦' + Number(amt).toLocaleString('en-NG')
+    }
+
+    const locationsStr =
+      request.locations && request.locations.length > 0
+        ? request.locations.map((l) => (l.area ? `${l.area}, ${l.state}` : l.state)).join(' | ')
+        : 'Any Area'
+
+    const adminSiteUrl = (
+      this.configService.get<string>('ADMIN_SITE_URL') || 'https://admin.upward.goodtenants.io'
+    )
+      .split(',')[0]!
+      .trim()
+    const requestsHubUrl = `${adminSiteUrl}/requests?tab=home`
+
+    const subject = `[New Request] ${typeLabel} - ${prospectName}`
+
+    let financialSection = ''
+    if (isBuy) {
+      const overall = formatCurrency(request.overallBudget || request.budgetMax)
+      const saved = formatCurrency(request.savedAmount)
+      const coverage =
+        request.overallBudget && request.savedAmount
+          ? `${Math.round((request.savedAmount / request.overallBudget) * 100)}%`
+          : 'N/A'
+
+      financialSection = `
+        <tr>
+          <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #e2e8f0; width: 140px; color: #555;">Purchase Budget:</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0f172a;">${overall}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #555;">Saved / Deposit:</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; color: #10b981; font-weight: 700;">${saved} (Coverage: ${coverage})</td>
+        </tr>
+      `
+    } else {
+      const minB = formatCurrency(request.budgetMin)
+      const maxB = formatCurrency(request.budgetMax)
+      const moveIn = request.moveInDate
+        ? new Date(request.moveInDate).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : 'Immediate / Flexible'
+
+      financialSection = `
+        <tr>
+          <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #e2e8f0; width: 140px; color: #555;">Annual Rent Budget:</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #0f172a;">${minB} – ${maxB} / year</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #555;">Move-in Date:</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #e2e8f0;">${moveIn}</td>
+        </tr>
+      `
+    }
+
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <div style="margin-bottom: 20px;">
+          <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; background: ${badgeColor}18; color: ${badgeColor};">
+            ${typeLabel}
+          </span>
+          <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 12px 0 4px 0;">
+            ${prospectName}
+          </h2>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">
+            A new property brief has been submitted on Upward.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; width: 140px; color: #555; border-bottom: 1px solid #e2e8f0;">Email:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;"><a href="mailto:${request.email}" style="color: #d97757; text-decoration: none; font-weight: 600;">${request.email}</a></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555; border-bottom: 1px solid #e2e8f0;">Phone:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;"><a href="tel:${request.phone}" style="color: #0f172a; text-decoration: none; font-weight: 600;">${request.phone}</a></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555; border-bottom: 1px solid #e2e8f0;">Target Locations:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${locationsStr}</td>
+            </tr>
+            ${financialSection}
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555; border-bottom: 1px solid #e2e8f0;">Bedrooms:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">${request.beds || 1} Bed(s)</td>
+            </tr>
+            ${
+              request.propertyTypes && request.propertyTypes.length > 0
+                ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555; border-bottom: 1px solid #e2e8f0;">Property Type:</td>
+              <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; text-transform: capitalize;">${request.propertyTypes.join(', ')}</td>
+            </tr>
+            `
+                : ''
+            }
+            ${
+              request.notes
+                ? `
+            <tr>
+              <td style="padding: 8px 0; font-weight: bold; color: #555; vertical-align: top;">Notes / Details:</td>
+              <td style="padding: 8px 0; color: #334155; font-style: italic;">${request.notes}</td>
+            </tr>
+            `
+                : ''
+            }
+          </table>
+        </div>
+
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${requestsHubUrl}" style="background-color: #d97757; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+            Open Requests Hub in Admin Portal
+          </a>
+        </div>
+      </div>
+    `
+
+    const text = `New ${typeLabel} Alert!\nProspect: ${prospectName}\nEmail: ${request.email}\nPhone: ${request.phone}\nLocations: ${locationsStr}\nView in Admin: ${requestsHubUrl}`
+
+    await Promise.allSettled(
+      alertAdmins.map(({ email }) =>
+        this.sendEmailWithRetry({ email, subject, html, text, type: 'SYSTEM_ALERT' }),
+      ),
+    )
+  }
+
   private async sendViaSmtp(emailSetting: any, mailData: any): Promise<string> {
     let host = 'smtp.gmail.com'
     let port = 465

@@ -160,6 +160,8 @@ export interface PaymentRequest {
   propertyLocation?: string
   subaccountId?: number
   subaccount?: PaystackSubaccount
+  manualAccountId?: number
+  manualAccount?: any
   webhookUrl?: string
   platformName?: string
   platformId?: number

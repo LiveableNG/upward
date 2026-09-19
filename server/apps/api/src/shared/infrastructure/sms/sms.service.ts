@@ -42,8 +42,11 @@ export class SmsService {
     }
 
     try {
-      // Termii requires phone numbers without the '+' sign
-      const sanitizedPhone = options.to.replace('+', '');
+      // Termii requires phone numbers in international format without the '+' sign
+      let sanitizedPhone = options.to.replace(/\D/g, '');
+      if (sanitizedPhone.startsWith('0') && sanitizedPhone.length === 11) {
+        sanitizedPhone = '234' + sanitizedPhone.substring(1);
+      }
 
       const payload = {
         to: sanitizedPhone,

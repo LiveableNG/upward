@@ -35,6 +35,7 @@ export interface ProcessRentPaymentResult {
   isAdvancing: boolean;
   amountPaid: number;
   amountRemaining: number;
+  tenancyPeriodId?: number;
 }
 
 export interface ResolvedTargetPeriod {
@@ -319,6 +320,25 @@ export class RentalPeriodService {
       );
     }
 
+    // ── Ensure Tenancy Period Record Exists
+    let tenancyPeriodRecord: any = null;
+    try {
+      tenancyPeriodRecord = await this.ensureTenancyPeriod({
+        userPropertyId: prop.id,
+        startDate: periodStart,
+        endDate: periodEnd,
+        rentAmount,
+        currency: params.currency || (prop as any).currency || 'NGN',
+        isInitial: !isAdvancing && (prop.isFirstRent === true || (prop.initialAmountPaid || 0) > 0),
+        status: newAmountRemaining === 0 ? 'SETTLED' : 'ACTIVE',
+        txClient,
+      });
+    } catch (tpErr: any) {
+      this.logger.warn(`Failed to record tenancy period for property ${prop.id}: ${tpErr?.message}`);
+    }
+
+    const tenancyPeriodId = tenancyPeriodRecord?.id;
+
     // ── Create Platform Rent Payment Ledger Record (for platform properties)
     if (rentPortion > 0 && !prop.pmUnitId) {
       await txClient.upward_platform_rent_payment.create({
@@ -332,11 +352,12 @@ export class RentalPeriodService {
           notes: description || (prop.uuid ? `Rent Payment for property ${prop.uuid.slice(-8)}` : `Rent Payment for property ${prop.id}`),
           periodStart,
           periodEnd,
+          tenancyPeriodId,
         },
       });
     }
 
-    // ── Update Payment Request dates if linked
+    // ── Update Payment Request dates & tenancyPeriodId if linked
     if (paymentRequestId && periodStart && periodEnd) {
       await txClient.upward_payment_request.update({
         where: { id: paymentRequestId },
@@ -344,6 +365,7 @@ export class RentalPeriodService {
           rentStartDate: periodStart,
           rentEndDate: periodEnd,
           dueDate: periodEnd,
+          tenancyPeriodId,
         },
       });
     }
@@ -355,9 +377,117 @@ export class RentalPeriodService {
       isAdvancing,
       amountPaid: newAmountPaid,
       amountRemaining: newAmountRemaining,
+      tenancyPeriodId,
     };
   }
 
+  async ensureTenancyPeriod(params: {
+    userPropertyId: number;
+    startDate: Date | string;
+    endDate: Date | string;
+    rentAmount?: number | null;
+    currency?: string;
+    isInitial?: boolean;
+    status?: string;
+    sequenceNumber?: number;
+    txClient?: any;
+  }): Promise<any> {
+    const prisma = params.txClient || this.prisma;
+    if (!prisma || !prisma.upward_tenancy_period) return null;
+
+    const start = this.parseCalendarDate(params.startDate);
+    const end = this.parseCalendarDate(params.endDate);
+    if (!start || !end) return null;
+
+    const existing = await prisma.upward_tenancy_period.findFirst({
+      where: {
+        userPropertyId: params.userPropertyId,
+        startDate: start,
+        endDate: end,
+      },
+    });
+
+    if (existing) {
+      if (params.status && existing.status !== params.status && params.status === 'SETTLED') {
+        return await prisma.upward_tenancy_period.update({
+          where: { id: existing.id },
+          data: { status: params.status },
+        });
+      }
+      return existing;
+    }
+
+    let sequenceNumber = params.sequenceNumber;
+    if (!sequenceNumber) {
+      const existingPeriods = await prisma.upward_tenancy_period.findMany({
+        where: { userPropertyId: params.userPropertyId },
+        orderBy: { startDate: 'asc' },
+      });
+      sequenceNumber = existingPeriods.length + 1;
+    }
+
+    return await prisma.upward_tenancy_period.create({
+      data: {
+        userPropertyId: params.userPropertyId,
+        startDate: start,
+        endDate: end,
+        rentAmount: params.rentAmount,
+        currency: params.currency || 'NGN',
+        sequenceNumber,
+        isInitial: params.isInitial ?? (sequenceNumber === 1),
+        status: params.status || 'ACTIVE',
+      },
+    });
+  }
+
+  async ensureInitialTenancyPeriod(params: {
+    userPropertyId: number;
+    startDate: Date | string;
+    endDate: Date | string;
+    rentAmount?: number | null;
+    currency?: string;
+    txClient?: any;
+  }): Promise<any> {
+    return this.ensureTenancyPeriod({
+      userPropertyId: params.userPropertyId,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      rentAmount: params.rentAmount,
+      currency: params.currency,
+      isInitial: true,
+      sequenceNumber: 1,
+      status: 'ACTIVE',
+      txClient: params.txClient,
+    });
+  }
+
+  async getTenancyHistory(userPropertyId: number, txClient?: any): Promise<any[]> {
+    const prisma = txClient || this.prisma;
+    if (!prisma || !prisma.upward_tenancy_period) return [];
+    return await prisma.upward_tenancy_period.findMany({
+      where: { userPropertyId },
+      orderBy: { startDate: 'asc' },
+    });
+  }
+
+  async getTenancyDuration(userPropertyId: number, txClient?: any): Promise<{
+    months: number;
+    years: number;
+    startDate: Date | null;
+    endDate: Date | null;
+  }> {
+    const history = await this.getTenancyHistory(userPropertyId, txClient);
+    if (history.length === 0) {
+      return { months: 0, years: 0, startDate: null, endDate: null };
+    }
+    const initialStart = history[0]!.startDate;
+    const latestEnd = history[history.length - 1]!.endDate;
+    const diffTime = latestEnd.getTime() - initialStart.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const months = Math.round(diffDays / 30.4375);
+    const years = parseFloat((diffDays / 365.25).toFixed(1));
+    return { months, years, startDate: initialStart, endDate: latestEnd };
+  }
 
   async syncUnitPropertyState(unitId: number, txClient?: any): Promise<void> {
     const prisma = txClient || this.prisma;
@@ -423,6 +553,27 @@ export class RentalPeriodService {
     const sortedPeriods = Array.from(periodMap.values()).sort(
       (a, b) => a.periodStart.getTime() - b.periodStart.getTime(),
     );
+
+    // Ensure all discovered unit periods are represented in upward_tenancy_period
+    if (userProperty && sortedPeriods.length > 0) {
+      for (let i = 0; i < sortedPeriods.length; i++) {
+        const p = sortedPeriods[i]!;
+        try {
+          await this.ensureTenancyPeriod({
+            userPropertyId: userProperty.id,
+            startDate: p.periodStart,
+            endDate: p.periodEnd,
+            rentAmount: p.amountDue,
+            sequenceNumber: i + 1,
+            isInitial: i === 0,
+            status: p.totalPaid >= p.amountDue ? 'SETTLED' : 'ACTIVE',
+            txClient: prisma,
+          });
+        } catch (e: any) {
+          this.logger.warn(`Failed to ensure tenancy period during unit sync: ${e?.message}`);
+        }
+      }
+    }
 
     let activeStart: Date;
     let activeEnd: Date;

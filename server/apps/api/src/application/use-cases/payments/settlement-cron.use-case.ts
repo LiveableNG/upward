@@ -6,6 +6,15 @@ import { PaymentConfigurationService } from '../../../shared/infrastructure/comm
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import * as crypto from 'crypto';
 
+export interface ResolvedSettlementDestination {
+  key: string;
+  accountNumber: string;
+  bankCode: string;
+  accountName?: string;
+  sourceType: 'MANUAL_ACCOUNT' | 'SUBACCOUNT';
+  sourceId: number;
+}
+
 @Injectable()
 export class ProcessHourlySettlementsUseCase {
   private readonly logger = new Logger(ProcessHourlySettlementsUseCase.name);
@@ -28,6 +37,54 @@ export class ProcessHourlySettlementsUseCase {
     this.logger.log('Hourly processing completed.');
   }
 
+  resolveSettlementDestination(tx: any): ResolvedSettlementDestination | null {
+    const pr = tx.paymentRequest;
+    if (!pr) return null;
+
+    // 1. Primary Domain Settlement Account (manualAccount) bound to the Payment Request
+    if (pr.manualAccount) {
+      const rawAccNum = pr.manualAccount.accountNumber;
+      const accNum = rawAccNum ? (rawAccNum.includes(':') ? this.encryption.decrypt(rawAccNum) : rawAccNum).trim() : '';
+      const bankCode = pr.manualAccount.bankCode ? String(pr.manualAccount.bankCode).trim() : '';
+      const rawAccName = pr.manualAccount.accountName;
+      const accName = rawAccName ? (rawAccName.includes(':') ? this.encryption.decrypt(rawAccName) : rawAccName).trim() : undefined;
+
+      if (accNum && bankCode) {
+        return {
+          key: `${bankCode}:${accNum}`,
+          accountNumber: accNum,
+          bankCode,
+          accountName: accName,
+          sourceType: 'MANUAL_ACCOUNT',
+          sourceId: pr.manualAccount.id,
+        };
+      }
+    }
+
+    // 2. Legacy Provider Subaccount (subaccount) bound to the Payment Request
+    if (pr.subaccount) {
+      const rawAccNum = pr.subaccount.accountNumber;
+      const accNum = rawAccNum ? (rawAccNum.includes(':') ? this.encryption.decrypt(rawAccNum) : rawAccNum).trim() : '';
+      const bankCode = pr.subaccount.bankCode ? String(pr.subaccount.bankCode).trim() : '';
+      const rawBusName = pr.subaccount.businessName;
+      const busName = rawBusName ? (rawBusName.includes(':') ? this.encryption.decrypt(rawBusName) : rawBusName).trim() : undefined;
+
+      if (accNum && bankCode) {
+        return {
+          key: `${bankCode}:${accNum}`,
+          accountNumber: accNum,
+          bankCode,
+          accountName: busName,
+          sourceType: 'SUBACCOUNT',
+          sourceId: pr.subaccount.id,
+        };
+      }
+    }
+
+    // Never guess or fall back to current property relationships at runtime.
+    return null;
+  }
+
   private async processVerifiedSettlements() {
     // 1. Find all verified transactions ready for settlement
     const transactions = await this.prisma.upward_transaction.findMany({
@@ -38,9 +95,10 @@ export class ProcessHourlySettlementsUseCase {
       include: {
         paymentRequest: {
           include: {
+            manualAccount: true,
             subaccount: true,
             userProperty: {
-              include: { subaccount: true, pmUnit: true }
+              include: { pmUnit: true }
             }
           }
         },
@@ -50,21 +108,26 @@ export class ProcessHourlySettlementsUseCase {
 
     if (transactions.length === 0) return;
 
-    // 2. Group by Landlord (Subaccount)
-    const groups = new Map<string, typeof transactions>();
+    // 2. Group by Payment-Bound Settlement Destination Key (bankCode:accountNumber)
+    const groups = new Map<string, { destination: ResolvedSettlementDestination; txs: typeof transactions }>();
+
     for (const tx of transactions) {
-      const sub = tx.paymentRequest?.subaccount || tx.paymentRequest?.userProperty?.subaccount;
-      const subaccountCode = sub?.subaccountCode;
-      if (!subaccountCode) {
-        this.logger.error(`Transaction ${tx.reference} is VERIFIED but has no subaccount linked. Skipping.`);
+      const destination = this.resolveSettlementDestination(tx);
+      if (!destination) {
+        this.logger.error(
+          `[FLAGGED_FOR_REVIEW] Transaction ${tx.reference} (ID: ${tx.id}, PR: ${tx.paymentRequestId}) has NO valid bound settlement destination. Skipping automated settlement until destination is configured.`
+        );
         continue;
       }
-      if (!groups.has(subaccountCode)) groups.set(subaccountCode, []);
-      groups.get(subaccountCode)!.push(tx);
+
+      if (!groups.has(destination.key)) {
+        groups.set(destination.key, { destination, txs: [] });
+      }
+      groups.get(destination.key)!.txs.push(tx);
     }
 
     // 3. Process each group (Bundled Settlement)
-    for (const [subaccountCode, txs] of groups.entries()) {
+    for (const [destKey, { destination, txs }] of groups.entries()) {
       let batch: any = null;
       try {
         let totalRentToSettle = 0;
@@ -96,9 +159,6 @@ export class ProcessHourlySettlementsUseCase {
 
         if (totalRentToSettle <= 0) continue;
 
-        const sub = txs[0]?.paymentRequest?.subaccount || txs[0]?.paymentRequest?.userProperty?.subaccount;
-        if (!sub) continue;
-
         // Generate a deterministic reference based on sorted transaction IDs to ensure gateway idempotency
         const sortedTxIds = txs.map(t => t.id).sort().join(',');
         const hash = crypto.createHash('md5').update(sortedTxIds).digest('hex').substring(0, 16);
@@ -128,7 +188,6 @@ export class ProcessHourlySettlementsUseCase {
             continue;
           }
 
-          
           const retrySuffix = `-RETRY-${Date.now()}`;
           finalReference = `${transferReference}${retrySuffix}`;
         }
@@ -146,7 +205,7 @@ export class ProcessHourlySettlementsUseCase {
 
         if (lockResult.count !== txs.length) {
           this.logger.warn(
-            `Could not lock all transactions for subaccount ${subaccountCode}. Expected: ${txs.length}, Got: ${lockResult.count}. Skipping.`
+            `Could not lock all transactions for destination ${destKey}. Expected: ${txs.length}, Got: ${lockResult.count}. Skipping.`
           );
           if (lockResult.count > 0) {
             // Revert the ones we did lock
@@ -167,7 +226,7 @@ export class ProcessHourlySettlementsUseCase {
         try {
           batch = await this.prisma.upward_settlement_batch.create({
             data: {
-              landlordId: subaccountCode,
+              landlordId: destKey,
               totalAmount: totalRentToSettle,
               status: 'PENDING',
               transferReference: finalReference
@@ -175,7 +234,7 @@ export class ProcessHourlySettlementsUseCase {
           });
         } catch (dbError: any) {
           this.logger.error(
-            `Failed to create settlement batch record for ${subaccountCode} (possible duplicate): ${dbError.message}`
+            `Failed to create settlement batch record for ${destKey} (possible duplicate): ${dbError.message}`
           );
           // Revert transactions to VERIFIED
           await this.prisma.upward_transaction.updateMany({
@@ -190,8 +249,8 @@ export class ProcessHourlySettlementsUseCase {
           continue;
         }
 
-        // Initiate ONE Bundled Transfer to Landlord
-        this.logger.log(`Settling batch ${batch.uuid}: ₦${totalRentToSettle} for ${txs.length} transactions to ${sub.accountNumber}`);
+        // Initiate ONE Bundled Transfer to Landlord Bank Destination
+        this.logger.log(`Settling batch ${batch.uuid}: ₦${totalRentToSettle} for ${txs.length} transactions to ${destination.accountNumber} (${destination.bankCode})`);
         
         let finalNarration = `Upward Batch Settlement: ${txs.length} properties`
         if (txs.length === 1) {
@@ -201,8 +260,8 @@ export class ProcessHourlySettlementsUseCase {
           
           let tenantName = 'Tenant'
           if (tenant) {
-            const fName = tenant.firstName ? this.encryption.decrypt(tenant.firstName) : ''
-            const lName = tenant.lastName ? this.encryption.decrypt(tenant.lastName) : ''
+            const fName = tenant.firstName ? (tenant.firstName.includes(':') ? this.encryption.decrypt(tenant.firstName) : tenant.firstName) : ''
+            const lName = tenant.lastName ? (tenant.lastName.includes(':') ? this.encryption.decrypt(tenant.lastName) : tenant.lastName) : ''
             tenantName = `${fName} ${lName}`.trim() || 'Tenant'
           }
           
@@ -215,8 +274,8 @@ export class ProcessHourlySettlementsUseCase {
 
         await this.paymentGateway.initiateTransfer({
           amount: totalRentToSettle,
-          accountNumber: sub.accountNumber,
-          bankCode: sub.bankCode,
+          accountNumber: destination.accountNumber,
+          bankCode: destination.bankCode,
           reference: finalReference,
           narration: finalNarration
         });
@@ -239,7 +298,7 @@ export class ProcessHourlySettlementsUseCase {
         this.logger.log(`Revenue Captured: ₦${totalUpwardFees} from batch ${batch.uuid}`);
         
       } catch (e: any) {
-        this.logger.error(`Failed to process settlement for ${subaccountCode}: ${e.message}`);
+        this.logger.error(`Failed to process settlement for ${destKey}: ${e.message}`);
         // Revert transactions to VERIFIED if locked
         await this.prisma.upward_transaction.updateMany({
           where: {

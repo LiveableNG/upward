@@ -8,6 +8,7 @@ import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { RentalPeriodService } from '../../services/rental-period.service'
+import { SyncUserSequenceChannelUseCase } from '../sequence/sync-user-sequence-channel.use-case'
 
 @Injectable()
 export class CompleteUserProfileUseCase {
@@ -22,6 +23,7 @@ export class CompleteUserProfileUseCase {
     @Inject(WAITLIST_REPOSITORY) private readonly waitlistRepository: WaitlistRepository,
     private readonly emailService: EmailService,
     private readonly rentalPeriodService: RentalPeriodService,
+    private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
   ) {}
 
   async execute(dto: {
@@ -159,6 +161,30 @@ export class CompleteUserProfileUseCase {
       }
 
       this.userAuthService.sendWelcomeMessages(user, dto.fullName, pmName).catch(e => this.logger.error('Failed to send welcome messages', e));
+    }
+
+    if (user.phone) {
+      let pmName: string | undefined = undefined;
+      if (user.companyUsers && user.companyUsers.length > 0) {
+        pmName = user.companyUsers[0].company?.name;
+      } else if (user.properties && user.properties.length > 0) {
+        const prop = user.properties[0];
+        if (prop.company?.name) {
+          pmName = prop.company.name;
+        } else if (prop.manager) {
+          pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+        }
+      }
+
+      this.syncUserSequenceChannelUseCase
+        .execute({
+          userId: user.id!,
+          firstName: user.firstName,
+          phoneEncrypted: user.phone,
+          phoneHash: user.phoneHash || this.encryption.hash(user.phone),
+          pmName,
+        })
+        .catch(e => this.logger.error('Failed to sync sequence channel on complete profile', e));
     }
 
     // Reuse UserAuthService login logic to create session and tokens
@@ -306,18 +332,30 @@ export class CompleteUserProfileUseCase {
          propertyData.amountRemaining = Math.max(0, prop.rentAmount - Number(paid));
       }
 
+      let userPropertyRecord: any;
       if (existingProperty) {
-        await this.prisma.upward_user_property.update({
+        userPropertyRecord = await this.prisma.upward_user_property.update({
           where: { id: existingProperty.id },
           data: propertyData
         })
       } else {
-        await this.prisma.upward_user_property.create({
+        userPropertyRecord = await this.prisma.upward_user_property.create({
           data: {
             ...propertyData,
             uuid: crypto.randomUUID()
           }
         })
+      }
+
+      if (userPropertyRecord?.id && userPropertyRecord.rentStartDate && userPropertyRecord.rentEndDate) {
+        await this.rentalPeriodService.ensureInitialTenancyPeriod({
+          userPropertyId: userPropertyRecord.id,
+          startDate: userPropertyRecord.rentStartDate,
+          endDate: userPropertyRecord.rentEndDate,
+          rentAmount: userPropertyRecord.rentAmount,
+          currency: userPropertyRecord.currency || 'NGN',
+          txClient: this.prisma,
+        });
       }
     }
   }

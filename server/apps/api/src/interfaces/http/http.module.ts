@@ -22,6 +22,7 @@ import { UserController } from './user/user.controller'
 import { WalletController } from './user/wallet.controller'
 import { PaymentsController } from './public/payments.controller'
 import { AdminAnnouncementsController } from './admin/announcements.controller'
+import { AdminSettlementsController } from './admin/admin-settlements.controller'
 import { UserNotificationsController } from './user/notifications.controller'
 import { ContractController } from './user/contract.controller'
 import { PublicProfileController } from './public/public-profile.controller'
@@ -88,6 +89,7 @@ import {
 import { PmAiDocumentController } from './controllers/pm-ai-document.controller'
 import { DemoRequestController } from './public/demo-request.controller'
 import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
+import { HomeRequestAdminController } from './admin/home-request-admin.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -124,6 +126,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     WalletController,
     PaymentsController,
     AdminAnnouncementsController,
+    AdminSettlementsController,
     UserNotificationsController,
     ContractController,
     PublicProfileController,
@@ -185,6 +188,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     AdminBulkImportController,
     DemoRequestController,
     DemoRequestAdminController,
+    HomeRequestAdminController,
   ],
 })
 export class HttpModule {}

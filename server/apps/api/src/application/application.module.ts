@@ -55,6 +55,13 @@ import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
 import { GetInvitationTrackerUseCase } from './use-cases/admin/get-invitation-tracker.use-case'
 import { UpdateAdminDetailsUseCase } from './use-cases/admin/update-admin-details.use-case'
 import { GetEmailClickTrackingStatsUseCase } from './use-cases/admin/get-email-click-tracking-stats.use-case'
+import {
+  GetSettlementStatsUseCase,
+  GetSettlementBatchesUseCase,
+  GetFlaggedSettlementsUseCase,
+  GetSettlementTransactionsUseCase,
+  ResolveFlaggedSettlementUseCase,
+} from './use-cases/admin/admin-settlements.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetInviteDataUseCase } from './use-cases/invite/get-invite-data.use-case'
@@ -130,6 +137,8 @@ import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-c
 import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
 import { GetDemoRequestsUseCase } from './use-cases/admin/get-demo-requests.use-case'
 import { UpdateDemoRequestStatusUseCase } from './use-cases/admin/update-demo-request-status.use-case'
+import { GetAdminHomeRequestsUseCase } from './use-cases/admin/get-admin-home-requests.use-case'
+import { UpdateAdminHomeRequestStatusUseCase } from './use-cases/admin/update-admin-home-request-status.use-case'
 
 import { GetCampaignsUseCase } from './use-cases/campaign/get-campaigns.use-case'
 import { GetCampaignByWeekUseCase } from './use-cases/campaign/get-campaign-by-week.use-case'
@@ -318,6 +327,7 @@ import { SubmitUnitRequestUseCase } from './use-cases/tenant-pm-connection/submi
 import { DiscoverLinkedPropertiesUseCase } from './use-cases/tenant-pm-connection/discover-linked-properties.use-case'
 import { SearchPmUseCase } from './use-cases/tenant-pm-connection/search-pm.use-case'
 import { InitializeUserSequenceUseCase } from './use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { SyncUserSequenceChannelUseCase } from './use-cases/sequence/sync-user-sequence-channel.use-case'
 import { ProcessPendingSequencesUseCase } from './use-cases/whatsapp-sequence/process-pending-sequences.use-case'
 import { RetrySequenceUseCase } from './use-cases/whatsapp-sequence/retry-sequence.use-case'
 import { GetSequenceLogsUseCase } from './use-cases/whatsapp-sequence/get-sequence-logs.use-case'
@@ -480,6 +490,11 @@ const UseCases: any[] = [
   GetFeeOverridesUseCase,
   UpsertFeeOverrideUseCase,
   DeleteFeeOverrideUseCase,
+  GetSettlementStatsUseCase,
+  GetSettlementBatchesUseCase,
+  GetFlaggedSettlementsUseCase,
+  GetSettlementTransactionsUseCase,
+  ResolveFlaggedSettlementUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,
@@ -528,6 +543,8 @@ const UseCases: any[] = [
   SubmitDemoRequestUseCase,
   GetDemoRequestsUseCase,
   UpdateDemoRequestStatusUseCase,
+  GetAdminHomeRequestsUseCase,
+  UpdateAdminHomeRequestStatusUseCase,
   CreateFairnessStoryUseCase,
   GetFairnessStoriesUseCase,
   DeleteFairnessStoryUseCase,
@@ -775,6 +792,7 @@ const UseCases: any[] = [
   DeleteBlogPostUseCase,
   UploadBlogImageUseCase,
   InitializeUserSequenceUseCase,
+  SyncUserSequenceChannelUseCase,
   ProcessPendingSequencesUseCase,
   RetrySequenceUseCase,
   GetSequenceLogsUseCase,
