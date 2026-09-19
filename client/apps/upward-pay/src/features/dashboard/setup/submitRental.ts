@@ -75,6 +75,12 @@ export async function submitRentalRequest(draft: SetupDraft) {
 
     payload.pmEmail = targetEmail
     payload.pmName = pmFound ? pmDetails?.name : formData.pmName
+    if (pmDetails?.companyUuid) {
+      payload.companyUuid = pmDetails.companyUuid
+    }
+    if (pmDetails?.managerUuid) {
+      payload.managerUuid = pmDetails.managerUuid
+    }
     if (!pmFound) {
       payload.pmType = pmType
       if (pmType === 'Property Manager' && companyName) {
