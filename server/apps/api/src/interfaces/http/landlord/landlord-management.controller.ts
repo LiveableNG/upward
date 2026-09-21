@@ -1,7 +1,8 @@
 import { Controller, Post, Get, Patch, Body, UseGuards, Req, Param, Inject, UnauthorizedException, NotFoundException, BadRequestException, Delete, Query, Res } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { PROPERTY_MANAGER_REPOSITORY, PropertyManagerRepository } from '../../../domains/pm/property-manager.repository';
+import { GetElevatedLandlordPmUseCase } from '../../../application/pm/use-cases/landlord/get-elevated-landlord-pm.use-case';
+import { SubmitPmVerificationUseCase } from '../../../application/pm/use-cases/verification/submit-pm-verification.use-case';
+import { GetPmVerificationStatusUseCase } from '../../../application/pm/use-cases/verification/get-pm-verification-status.use-case';
 import { CreatePmPaymentRequestUseCase, CreatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/create-pm-payment-request.use-case';
 import { UpdatePmPaymentRequestUseCase, UpdatePmPaymentRequestDto } from '../../../application/pm/use-cases/payments/update-pm-payment-request.use-case';
 import { GetPmPaymentRequestsUseCase } from '../../../application/pm/use-cases/payments/get-pm-payment-requests.use-case';
@@ -58,8 +59,9 @@ import { BulkFullImportUseCase } from '../../../application/pm/use-cases/bulk-fu
 @UseGuards(JwtAuthGuard)
 export class LandlordManagementController {
   constructor(
-    private readonly prisma: PrismaService,
-    @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
+    private readonly getElevatedLandlordPmUseCase: GetElevatedLandlordPmUseCase,
+    private readonly submitVerificationUseCase: SubmitPmVerificationUseCase,
+    private readonly getVerificationStatusUseCase: GetPmVerificationStatusUseCase,
     private readonly createPropertyUseCase: CreatePropertyUseCase,
     private readonly updatePropertyUseCase: UpdatePropertyUseCase,
     private readonly deletePropertyUseCase: DeletePropertyUseCase,
@@ -121,39 +123,8 @@ export class LandlordManagementController {
    * This is the "Shadow PM" bridge.
    */
   private async getElevatedPmId(req: any): Promise<number> {
-    const email = req.user?.email;
-    if (!email) throw new UnauthorizedException('Invalid landlord context');
-
-    // 1. Find or Create a PM profile for this Landlord email
-    let pm = await this.pmRepository.findByEmail(email);
-    
-    if (!pm) {
-      // Auto-elevate landlord to a managing PM profile if they don't have one
-      const landlord = await this.prisma.upward_pm_landlord.findUnique({
-        where: { emailHash: this.hashEmail(email) }
-      });
-      
-      if (!landlord) throw new UnauthorizedException('Landlord record not found');
-
-      const newPm = await this.prisma.upward_property_manager.create({
-        data: {
-          email: email,
-          emailHash: this.hashEmail(email),
-          passwordHash: landlord.passwordHash, // Sync password
-          firstName: landlord.firstName || 'Landlord',
-          lastName: landlord.lastName || 'User',
-          businessName: `${landlord.firstName}'s Portfolio`,
-          pmType: 'INDIVIDUAL_LANDLORD'
-        }
-      });
-      return newPm.id;
-    }
-
+    const pm = await this.getElevatedLandlordPmUseCase.execute(req.user?.email);
     return pm.id!;
-  }
-
-  private hashEmail(email: string): string {
-    return require('crypto').createHash('sha256').update(email.toLowerCase()).digest('hex');
   }
 
   // --- Properties ---
@@ -471,9 +442,7 @@ export class LandlordManagementController {
 
   @Patch('profile/bank-info')
   async updateBankInfo(@Req() req: any, @Body() dto: any) {
-    const pmId = await this.getElevatedPmId(req);
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { id: pmId } });
-    if (!pm) throw new NotFoundException('PM record not found');
+    const pm = await this.getElevatedLandlordPmUseCase.execute(req.user?.email);
     return this.updateBankInfoUseCase.execute(pm.uuid, dto);
   }
 
@@ -492,31 +461,18 @@ export class LandlordManagementController {
   @Post('profile/verification')
   async submitVerification(@Req() req: any, @Body() body: any) {
     const pmId = await this.getElevatedPmId(req);
-    return this.prisma.upward_pm_verification.upsert({
-      where: { pmId },
-      create: {
-        pmId,
-        idType: body.idType,
-        idNumber: body.idNumber,
-        idImage: body.idImage,
-        status: 'PENDING',
-      },
-      update: {
-        idType: body.idType,
-        idNumber: body.idNumber,
-        idImage: body.idImage,
-        status: 'PENDING',
-      }
+    return this.submitVerificationUseCase.execute({
+      pmId,
+      idType: body.idType,
+      idNumber: body.idNumber,
+      idImage: body.idImage,
     });
   }
 
   @Get('profile/verification')
   async getVerificationStatus(@Req() req: any) {
     const pmId = await this.getElevatedPmId(req);
-    const verification = await this.prisma.upward_pm_verification.findUnique({
-      where: { pmId }
-    });
-    return verification || { status: 'NOT_SUBMITTED' };
+    return this.getVerificationStatusUseCase.execute(pmId);
   }
 
   // --- Payouts ---

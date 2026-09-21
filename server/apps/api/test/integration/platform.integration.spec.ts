@@ -56,8 +56,10 @@ describe('Platform API Key Validation (Integration)', () => {
   });
 
   afterAll(async () => {
-    if (app) {
+    if (prisma) {
       await prisma.$disconnect();
+    }
+    if (app) {
       await app.close();
     }
   });

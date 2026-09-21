@@ -3,15 +3,17 @@ import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-au
 import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import { GetDevEmailsAdminUseCase } from '../../../application/use-cases/admin/dev-email/get-dev-emails.use-case'
+import { GetDevEmailDetailsAdminUseCase } from '../../../application/use-cases/admin/dev-email/get-dev-email-details.use-case'
+import { ClearDevEmailsAdminUseCase } from '../../../application/use-cases/admin/dev-email/clear-dev-emails.use-case'
 
 @Controller('admin/dev-emails')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 export class DevEmailAdminController {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
+    private readonly getDevEmailsUseCase: GetDevEmailsAdminUseCase,
+    private readonly getDevEmailDetailsUseCase: GetDevEmailDetailsAdminUseCase,
+    private readonly clearDevEmailsUseCase: ClearDevEmailsAdminUseCase,
   ) {}
 
   @Get()
@@ -21,89 +23,18 @@ export class DevEmailAdminController {
     @Query('limit') limit?: string,
     @Query('search') search?: string,
   ) {
-    const pageNum = page ? parseInt(page) : 1
-    const limitNum = limit ? parseInt(limit) : 50
-    const skip = (pageNum - 1) * limitNum
-
-    const where: any = {}
-
-    if (search) {
-      where.OR = [
-        { to: { contains: search, mode: 'insensitive' } },
-        { subject: { contains: search, mode: 'insensitive' } },
-        { html: { contains: search, mode: 'insensitive' } },
-      ]
-    }
-
-    const [items, total] = await Promise.all([
-      this.prisma.upward_dev_email_preview.findMany({
-        where,
-        skip,
-        take: limitNum,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.upward_dev_email_preview.count({ where }),
-    ])
-
-    return {
-      data: items,
-      meta: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum),
-      },
-    }
+    return this.getDevEmailsUseCase.execute({ page, limit, search })
   }
 
   @Get(':uuid')
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async getDevEmailDetails(@Param('uuid') uuid: string) {
-    const email = (await this.prisma.upward_dev_email_preview.findUnique({
-      where: { uuid },
-    })) as any
-
-    if (!email) return null
-
-    if (email.html && !email.html.includes(' ') && email.html.startsWith('dev-emails/')) {
-      try {
-        email.html = await this.s3Service.getFileContent(email.html)
-      } catch (err) {
-        console.error('Failed to get email HTML from S3:', err)
-      }
-    }
-
-    if (email.attachments && Array.isArray(email.attachments)) {
-      const resolvedAttachments = []
-      for (const att of email.attachments as any[]) {
-        let url = att.url || ''
-        if (!url && att.s3Key) {
-          try {
-            url = await this.s3Service.getDownloadUrl(att.s3Key)
-          } catch {
-            url = ''
-          }
-        }
-        if (!url && att.content) {
-          const mime = att.contentType || 'application/pdf'
-          url = att.content.startsWith('data:') ? att.content : `data:${mime};base64,${att.content}`
-        }
-        resolvedAttachments.push({
-          filename: att.filename,
-          url,
-        })
-      }
-      ;(email as any).attachments = resolvedAttachments
-    }
-
-    return email
+    return this.getDevEmailDetailsUseCase.execute(uuid)
   }
 
   @Delete()
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   async clearAllDevEmails() {
-    await this.prisma.upward_dev_email_preview.deleteMany()
-    await this.s3Service.deleteObjectsWithPrefix('dev-emails/')
-    return { success: true, message: 'All dev preview emails have been cleared.' }
+    return this.clearDevEmailsUseCase.execute()
   }
 }

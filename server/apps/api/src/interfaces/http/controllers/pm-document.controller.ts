@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Patch, Body, UseGuards, Request, Inject, UnauthorizedException, Res, Param, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Res, Param, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard';
 import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator';
 import { FeatureKey, SubscriptionService } from '../../../domains/subscription/subscription.service';
+import { CurrentPmActor, CurrentPmId } from '../../../application/auth/decorators/current-pm-actor.decorator';
+import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { GetPmDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-pm-documents.use-case';
 import { GetTenantUploadedDocumentsUseCase } from '../../../application/pm/use-cases/documents/get-tenant-uploaded-documents.use-case';
 import { SaveDocumentTemplateUseCase, SaveDocumentTemplateDto } from '../../../application/pm/use-cases/documents/save-document-template.use-case';
@@ -10,9 +12,6 @@ import { SendDocumentUseCase, SendDocumentDto } from '../../../application/pm/us
 import { SendBulkDocumentUseCase, BulkSendDocumentDto } from '../../../application/pm/use-cases/documents/send-bulk-document.use-case';
 import { GenerateDocumentPdfUseCase } from '../../../application/pm/use-cases/documents/generate-document-pdf.use-case';
 import { SendToTenantVaultUseCase } from '../../../application/pm/use-cases/documents/send-to-tenant-vault.use-case';
-import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 
 @Controller('pm/documents')
 @UseGuards(JwtAuthGuard)
@@ -26,77 +25,27 @@ export class PmDocumentController {
     private readonly generatePdfUseCase: GenerateDocumentPdfUseCase,
     private readonly sendToVaultUseCase: SendToTenantVaultUseCase,
     private readonly subscriptionService: SubscriptionService,
-    private readonly prisma: PrismaService,
-    @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
 
-  private async getPmId(req: any): Promise<number> {
-    if (req.user?.role === 'PM_EMPLOYEE') {
-      if (req.user?.ownerPmId) return req.user.ownerPmId;
-      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
-        where: { uuid: req.user.sub },
-        select: { ownerPmId: true }
-      });
-      if (employee?.ownerPmId) return employee.ownerPmId;
-    }
-    const uuid = req.user?.sub;
-    if (!uuid) throw new UnauthorizedException('Invalid user context');
-    const pm = await this.pmRepository.findByUuid(uuid);
-    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
-    return pm.id;
-  }
-
-  private async getActorContext(req: any): Promise<PmActorContext> {
-    if (req.user?.role === 'PM_EMPLOYEE') {
-      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
-        where: { uuid: req.user.sub },
-        select: { id: true, ownerPmId: true, accessLevel: true }
-      });
-      const ownerPmId = req.user.ownerPmId || employee?.ownerPmId;
-      if (ownerPmId) {
-        return {
-          ownerPmId,
-          isEmployee: true,
-          employeeId: req.user.employeeId || employee?.id,
-          employeeUuid: req.user.sub,
-          accessLevel: employee?.accessLevel || 'CUSTOM',
-        };
-      }
-    }
-    const uuid = req.user?.sub;
-    if (!uuid) throw new UnauthorizedException('Invalid user context');
-    const pm = await this.pmRepository.findByUuid(uuid);
-    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
-    return {
-      ownerPmId: pm.id,
-      isEmployee: false,
-    };
-  }
-
   @Get()
-  async getDocuments(@Request() req: any) {
-    const actor = await this.getActorContext(req);
+  async getDocuments(@CurrentPmActor() actor: PmActorContext) {
     return this.getDocumentsUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Get('tenant-uploaded/:unitUuid')
-  async getTenantUploadedDocuments(@Request() req: any, @Param('unitUuid') unitUuid: string) {
-    const actor = await this.getActorContext(req);
+  async getTenantUploadedDocuments(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string) {
     return this.getTenantUploadedDocumentsUseCase.execute(actor.ownerPmId, unitUuid, actor);
   }
-
 
   @Post('templates')
   @UseGuards(SubscriptionGateGuard)
   @RequireFeature(FeatureKey.DOCUMENT_MANAGEMENT)
-  async saveTemplate(@Request() req: any, @Body() data: SaveDocumentTemplateDto) {
-    const actor = await this.getActorContext(req);
+  async saveTemplate(@CurrentPmActor() actor: PmActorContext, @Body() data: SaveDocumentTemplateDto) {
     return this.saveTemplateUseCase.execute(actor.ownerPmId, data, actor);
   }
 
   @Post('send')
-  async sendDocument(@Request() req: any, @Body() data: SendDocumentDto) {
-    const actor = await this.getActorContext(req);
+  async sendDocument(@CurrentPmActor() actor: PmActorContext, @Body() data: SendDocumentDto) {
     const pmId = actor.ownerPmId;
     const isFreeTemplate = 
       data.subject === 'Welcome to Upward — A Better Rental Experience Starts Here' ||
@@ -122,8 +71,11 @@ export class PmDocumentController {
   }
 
   @Post('send-bulk')
-  async sendBulkDocument(@Request() req: any, @Body() data: BulkSendDocumentDto) {
-    const pmId = await this.getPmId(req);
+  async sendBulkDocument(
+    @CurrentPmId() pmId: number,
+    @Request() req: any,
+    @Body() data: BulkSendDocumentDto,
+  ) {
     const pmUuid = req.user?.sub;
 
     const isFreeTemplate = 
@@ -152,8 +104,7 @@ export class PmDocumentController {
   }
 
   @Post('send-to-vault')
-  async sendFileToVault(@Request() req: any) {
-    const pmId = await this.getPmId(req);
+  async sendFileToVault(@CurrentPmId() pmId: number, @Request() req: any) {
     if (!req.isMultipart || !req.isMultipart()) {
       throw new Error('Request must be multipart/form-data');
     }
@@ -177,16 +128,18 @@ export class PmDocumentController {
   @UseGuards(SubscriptionGateGuard)
   @RequireFeature(FeatureKey.DOCUMENT_MANAGEMENT)
   async sendTemplateToVault(
-    @Request() req: any,
+    @CurrentPmId() pmId: number,
     @Body() body: { content: string; subject: string; includeLetterhead?: boolean; tenantUuid?: string; unitUuid?: string },
   ) {
-    const pmId = await this.getPmId(req);
     return this.sendToVaultUseCase.executeTemplate(pmId, body);
   }
 
   @Post('generate-pdf')
-  async generatePdf(@Request() req: any, @Body() data: { content: string; tenantUuid?: string; unitUuid?: string; recipientName?: string; includeLetterhead?: boolean }, @Res() res: any) {
-    const pmId = await this.getPmId(req);
+  async generatePdf(
+    @CurrentPmId() pmId: number,
+    @Body() data: { content: string; tenantUuid?: string; unitUuid?: string; recipientName?: string; includeLetterhead?: boolean },
+    @Res() res: any,
+  ) {
     const buffer = await this.generatePdfUseCase.execute({
       content: data.content,
       pmId,

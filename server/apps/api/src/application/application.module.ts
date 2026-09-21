@@ -49,6 +49,7 @@ import {
   BulkUpsertAreaPriceGuideUseCase,
 } from './use-cases/admin/area-price-guide.use-cases'
 import { GetAppActivityLogsUseCase } from './use-cases/admin/get-app-activity-logs.use-case'
+import { GetAppActivityStatsUseCase } from './use-cases/admin/get-app-activity-stats.use-case'
 import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accounts.use-case'
 import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
@@ -124,6 +125,8 @@ import { TrackInteractionUseCase } from './use-cases/analytics/track-interaction
 import { SendBulkEmailUseCase } from './use-cases/email/send-bulk-email.use-case'
 import { ResendConfirmationEmailUseCase } from './use-cases/email/resend-confirmation-email.use-case'
 import { GetEmailLogsUseCase } from './use-cases/email/get-email-logs.use-case'
+import { ResolveEmailClickUseCase } from './use-cases/email/resolve-email-click.use-case'
+import { TrackEmailOpenUseCase } from './use-cases/email/track-email-open.use-case'
 import { GetSystemEmailUseCase } from './use-cases/email/get-system-email.use-case'
 import { UpsertSystemEmailUseCase } from './use-cases/email/upsert-system-email.use-case'
 import { SendTestEmailsUseCase } from './use-cases/email/send-test-emails.use-case'
@@ -154,6 +157,13 @@ import { GetStoryUploadUrlsUseCase } from './use-cases/fairness-story/get-story-
 import { GetAdminLogsUseCase } from './use-cases/admin-log/get-admin-logs.use-case'
 import { LogAdminActionUseCase } from './use-cases/admin-log/log-admin-action.use-case'
 import { GetWebhookLogsUseCase } from './use-cases/admin/get-webhook-logs.use-case'
+import { GetAdminLoginSessionsUseCase } from './use-cases/admin/get-admin-login-sessions.use-case'
+import { GetPmVerificationsUseCase } from './use-cases/admin/pm-verification/get-pm-verifications.use-case'
+import { ApprovePmVerificationUseCase } from './use-cases/admin/pm-verification/approve-pm-verification.use-case'
+import { RejectPmVerificationUseCase } from './use-cases/admin/pm-verification/reject-pm-verification.use-case'
+import { GetDevEmailsAdminUseCase } from './use-cases/admin/dev-email/get-dev-emails.use-case'
+import { GetDevEmailDetailsAdminUseCase } from './use-cases/admin/dev-email/get-dev-email-details.use-case'
+import { ClearDevEmailsAdminUseCase } from './use-cases/admin/dev-email/clear-dev-emails.use-case'
 import { RetryWebhookUseCase } from './use-cases/admin/retry-webhook.use-case'
 import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
@@ -258,6 +268,7 @@ import { TransferTeamPropertiesUseCase } from './pm/use-cases/team/transfer-team
 import { UpdateTeamMemberPermissionsUseCase } from './pm/use-cases/team/update-team-member-permissions.use-case'
 import { RevokeTeamMemberUseCase } from './pm/use-cases/team/revoke-team-member.use-case'
 import { GetTeamActivityDashboardUseCase } from './pm/use-cases/team/get-team-activity-dashboard.use-case'
+import { GetCollaboratorActivitiesUseCase } from './pm/use-cases/team/get-collaborator-activities.use-case'
 import { SendLandlordReportUseCase } from './pm/use-cases/send-landlord-report.use-case'
 import { ActivityLogService } from '../shared/application/activity-log.service'
 import { GetLandlordReportsUseCase } from './pm/use-cases/get-landlord-reports.use-case'
@@ -273,6 +284,8 @@ import { SetDefaultSettlementAccountUseCase } from './pm/use-cases/settlement-ac
 import { DeleteSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/delete-settlement-account.use-case'
 import { LinkPropertiesToSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/link-properties-to-settlement-account.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
+import { GetFeedbackAdminUseCase } from './use-cases/feedback/get-feedback-admin.use-case'
+import { GetFeedbackStatsAdminUseCase } from './use-cases/feedback/get-feedback-stats-admin.use-case'
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
 import { SendHomeRequestDigestUseCase } from './use-cases/home-request/send-home-request-digest.use-case'
@@ -289,12 +302,29 @@ import { LandlordService } from './pm/services/landlord.service'
 import { GetPmLandlordsUseCase } from './pm/use-cases/landlord/get-pm-landlords.use-case'
 import { CreatePmLandlordUseCase } from './pm/use-cases/landlord/create-pm-landlord.use-case'
 import { GetLandlordPropertyDetailsUseCase } from './pm/use-cases/landlord/get-landlord-property-details.use-case'
+import { GetElevatedLandlordPmUseCase } from './pm/use-cases/landlord/get-elevated-landlord-pm.use-case'
 import {
   GetPmNotificationsUseCase,
   MarkPmNotificationReadUseCase,
   MarkAllPmNotificationsReadUseCase,
   GetUnreadPmPopupsUseCase,
 } from './pm/use-cases/notifications/pm-notification.use-cases'
+import {
+  GetDocumentSignatureContextUseCase,
+  UploadPmSignatureUseCase,
+  GetPmSignaturesUseCase,
+  SavePmSignatureUseCase,
+  SetDefaultPmSignatureUseCase,
+  DeletePmSignatureUseCase,
+  GetDocumentLetterheadContextUseCase,
+  GetPmLetterheadsUseCase,
+  SavePmLetterheadUseCase,
+  SetDefaultPmLetterheadUseCase,
+  UpdatePmLetterheadUseCase,
+  DeletePmLetterheadUseCase,
+} from './pm/use-cases/branding'
+import { SubmitPmVerificationUseCase } from './pm/use-cases/verification/submit-pm-verification.use-case'
+import { GetPmVerificationStatusUseCase } from './pm/use-cases/verification/get-pm-verification-status.use-case'
 
 import { RejectCredibilityRequestUseCase } from './use-cases/external/reject-credibility-request.use-case'
 import {
@@ -351,6 +381,7 @@ import {
   UploadRelayDocumentUseCase,
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
+  CancelBulkImportJobUseCase,
 } from './use-cases/pm/bulk-import.use-cases'
 
 import {
@@ -423,6 +454,7 @@ import {
   DeletePaymentProofUseCase,
 } from './use-cases/payments/manual-payment.use-cases'
 import { GetPendingManualPaymentsUseCase } from './use-cases/payments/get-pending-manual-payments.use-case'
+import { GetPlatformPaymentProofFileUseCase } from './use-cases/payments/get-platform-payment-proof-file.use-case'
 import { SendRentReceiptEmailUseCase } from './use-cases/payments/send-rent-receipt-email.use-case'
 import {
   ApplyDailySavingsInterestUseCase,
@@ -474,6 +506,7 @@ const UseCases: any[] = [
   GetAdminRentHistoryRequestsUseCase,
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
+  GetAppActivityStatsUseCase,
   GetInternalAccountsUseCase,
   ToggleInternalAccountUseCase,
   SyncTenantUseCase,
@@ -531,6 +564,8 @@ const UseCases: any[] = [
   SendBulkEmailUseCase,
   ResendConfirmationEmailUseCase,
   GetEmailLogsUseCase,
+  ResolveEmailClickUseCase,
+  TrackEmailOpenUseCase,
   GetSystemEmailUseCase,
   UpsertSystemEmailUseCase,
   SendTestEmailsUseCase,
@@ -559,6 +594,13 @@ const UseCases: any[] = [
   GetAdminLogsUseCase,
   LogAdminActionUseCase,
   GetWebhookLogsUseCase,
+  GetAdminLoginSessionsUseCase,
+  GetPmVerificationsUseCase,
+  ApprovePmVerificationUseCase,
+  RejectPmVerificationUseCase,
+  GetDevEmailsAdminUseCase,
+  GetDevEmailDetailsAdminUseCase,
+  ClearDevEmailsAdminUseCase,
   RetryWebhookUseCase,
   GetCountriesUseCase,
   GetCitiesUseCase,
@@ -583,6 +625,22 @@ const UseCases: any[] = [
   AcceptTermsUseCase,
   AcceptPmTermsUseCase,
   MarkNotificationReadUseCase,
+
+  GetDocumentSignatureContextUseCase,
+  UploadPmSignatureUseCase,
+  GetPmSignaturesUseCase,
+  SavePmSignatureUseCase,
+  SetDefaultPmSignatureUseCase,
+  DeletePmSignatureUseCase,
+  GetDocumentLetterheadContextUseCase,
+  GetPmLetterheadsUseCase,
+  SavePmLetterheadUseCase,
+  SetDefaultPmLetterheadUseCase,
+  UpdatePmLetterheadUseCase,
+  DeletePmLetterheadUseCase,
+  SubmitPmVerificationUseCase,
+  GetPmVerificationStatusUseCase,
+  GetElevatedLandlordPmUseCase,
 
   CreateAnnouncementUseCase,
   GetAdminAnnouncementsUseCase,
@@ -716,6 +774,8 @@ const UseCases: any[] = [
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
   SubmitFeedbackUseCase,
+  GetFeedbackAdminUseCase,
+  GetFeedbackStatsAdminUseCase,
   SubmitHomeRequestUseCase,
   BudgetGuidanceUseCase,
   SendHomeRequestDigestUseCase,
@@ -730,6 +790,7 @@ const UseCases: any[] = [
   UpdateTeamMemberPermissionsUseCase,
   RevokeTeamMemberUseCase,
   GetTeamActivityDashboardUseCase,
+  GetCollaboratorActivitiesUseCase,
   TransferTeamPropertiesUseCase,
   BulkAddRentHistoryUseCase,
   MarkCredibilityRequestDoneUseCase,
@@ -759,6 +820,7 @@ const UseCases: any[] = [
   GetPaymentProofUseCase,
   DeletePaymentProofUseCase,
   GetPendingManualPaymentsUseCase,
+  GetPlatformPaymentProofFileUseCase,
   SendRentReceiptEmailUseCase,
   GetWalletUseCase,
   CreditWalletUseCase,
@@ -833,6 +895,7 @@ const UseCases: any[] = [
   UploadRelayDocumentUseCase,
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
+  CancelBulkImportJobUseCase,
   GetPmEmailSettingsUseCase,
   SavePmEmailConfigUseCase,
   GetPmReceiptSettingsUseCase,

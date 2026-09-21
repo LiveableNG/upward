@@ -60,8 +60,10 @@ describe('Payments Webhook (Integration)', () => {
   });
 
   afterAll(async () => {
-    if (app) {
+    if (prisma) {
       await prisma.$disconnect();
+    }
+    if (app) {
       await app.close();
     }
   });

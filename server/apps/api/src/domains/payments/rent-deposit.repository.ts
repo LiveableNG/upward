@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client'
-
 export interface RentDepositBalance {
   id: number
   uuid: string
@@ -43,18 +41,18 @@ export interface IRentDepositBalanceRepository {
     userId: number,
     userPropertyId: number,
     currency?: string,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositBalance>
 
   findByUserAndProperty(
     userId: number,
     userPropertyId: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositBalance | null>
 
   findByUserId(
     userId: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositBalance[]>
 
   createTransaction(
@@ -74,35 +72,35 @@ export interface IRentDepositBalanceRepository {
       metadata?: any
       receiptUrl?: string | null
     },
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositTransaction>
 
   updateBalance(
     id: number,
     newBalance: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositBalance>
 
   getTransactionsByBalanceId(
     depositBalanceId: number,
     limit?: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositTransaction[]>
 
   getTransactionsByUserId(
     userId: number,
     limit?: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositTransaction[]>
 
   findTransactionByReference(
     reference: string,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositTransaction | null>
 
   findTransactionByUuid(
     uuid: string,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<RentDepositTransaction | null>
 }
 
