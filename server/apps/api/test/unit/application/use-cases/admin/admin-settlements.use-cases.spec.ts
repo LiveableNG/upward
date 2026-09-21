@@ -31,6 +31,9 @@ describe('Admin Settlements Use Cases', () => {
       upward_payment_request: {
         update: jest.fn(),
       },
+      upward_dedicated_virtual_account: {
+        count: jest.fn(),
+      },
     };
 
     mockEncryption = {
@@ -55,6 +58,11 @@ describe('Admin Settlements Use Cases', () => {
         transferReference: 'TRF_123',
         createdAt: new Date(),
       });
+
+      mockPrisma.upward_dedicated_virtual_account.count
+        .mockResolvedValueOnce(8)  // titan
+        .mockResolvedValueOnce(15) // wema
+        .mockResolvedValueOnce(23); // total
 
       // 2 verified txs: 1 with valid destination, 1 with none (flagged)
       mockPrisma.upward_transaction.findMany.mockResolvedValueOnce([
@@ -85,6 +93,9 @@ describe('Admin Settlements Use Cases', () => {
       expect(result.flaggedCount).toBe(1);
       expect(result.totalBatches).toBe(12);
       expect(result.lastBatch?.transferReference).toBe('TRF_123');
+      expect(result.dvaStats?.titanAccounts).toBe(8);
+      expect(result.dvaStats?.wemaAccounts).toBe(15);
+      expect(result.dvaStats?.totalAccounts).toBe(23);
     });
   });
 
