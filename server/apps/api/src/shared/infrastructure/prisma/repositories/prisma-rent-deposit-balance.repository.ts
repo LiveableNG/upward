@@ -34,7 +34,7 @@ export class PrismaRentDepositBalanceRepository implements IRentDepositBalanceRe
       },
       include: {
         userProperty: {
-          include: { location: true, dedicatedAccount: true },
+          include: { location: true, dedicatedAccounts: true },
         },
       },
     })
@@ -56,7 +56,7 @@ export class PrismaRentDepositBalanceRepository implements IRentDepositBalanceRe
       },
       include: {
         userProperty: {
-          include: { location: true, dedicatedAccount: true },
+          include: { location: true, dedicatedAccounts: true },
         },
       },
     })
@@ -72,7 +72,7 @@ export class PrismaRentDepositBalanceRepository implements IRentDepositBalanceRe
       where: { userId },
       include: {
         userProperty: {
-          include: { location: true, dedicatedAccount: true },
+          include: { location: true, dedicatedAccounts: true },
         },
         transactions: {
           orderBy: { createdAt: 'desc' },
@@ -195,7 +195,7 @@ export class PrismaRentDepositBalanceRepository implements IRentDepositBalanceRe
       include: {
         user: true,
         userProperty: {
-          include: { location: true, dedicatedAccount: true },
+          include: { location: true, dedicatedAccounts: true },
         },
         paymentRequest: true,
       },
@@ -213,7 +213,7 @@ export class PrismaRentDepositBalanceRepository implements IRentDepositBalanceRe
       include: {
         user: true,
         userProperty: {
-          include: { location: true, dedicatedAccount: true },
+          include: { location: true, dedicatedAccounts: true },
         },
         paymentRequest: true,
       },

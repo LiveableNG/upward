@@ -30,7 +30,7 @@ model upward_user_property {
   initialAmountPaid      Float                             @default(0)
   leaseYears             Int?                              @default(1)
   benefitsSubscriptions  upward_benefits_subscription[]
-  dedicatedAccount       upward_dedicated_virtual_account?
+  dedicatedAccounts      upward_dedicated_virtual_account[]
   manualAccountId        Int?
   manualAccount          upward_manual_account?            @relation(fields: [manualAccountId], references: [id])
   paymentProofs          upward_payment_proof[]

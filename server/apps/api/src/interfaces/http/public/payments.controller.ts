@@ -38,6 +38,7 @@ import {
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   InitializePaymentUseCase,
+  SwitchDedicatedAccountUseCase,
   ProcessPaymentWebhookUseCase,
   GetBankDetailsUseCase,
   SaveBankDetailsUseCase,
@@ -70,6 +71,7 @@ export class PaymentsController {
     private readonly createManualRequestUc: CreateManualPaymentRequestUseCase,
     private readonly cancelManualRequestUc: CancelManualPaymentRequestUseCase,
     private readonly initializePaymentUc: InitializePaymentUseCase,
+    private readonly switchDedicatedAccountUc: SwitchDedicatedAccountUseCase,
     private readonly processWebhookUc: ProcessPaymentWebhookUseCase,
     private readonly verifyGatewayTransactionUc: VerifyGatewayTransactionUseCase,
     private readonly getBankDetailsUc: GetBankDetailsUseCase,
@@ -293,6 +295,23 @@ export class PaymentsController {
       amount: body.amount,
       paymentRequestUuid: body.paymentRequestUuid,
       metadata: body.metadata,
+    })
+
+    return {
+      status: true,
+      data: result,
+    }
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Post('switch-dva')
+  async switchDedicatedAccount(@Req() req: any, @Body() body: any) {
+    const userId = req.user?.id
+    const result = await this.switchDedicatedAccountUc.execute({
+      userId,
+      userPropertyId: body.userPropertyId ? Number(body.userPropertyId) : undefined,
+      paymentRequestUuid: body.paymentRequestUuid,
+      preferredBank: body.preferredBank,
     })
 
     return {

@@ -268,10 +268,12 @@ model upward_dedicated_virtual_account {
   accountName        String
   bankName           String
   bankCode           String
+  bankSlug           String?
+  isDefault          Boolean              @default(false)
   accountCode        String               @unique
   paystackCustomerId String
   metadata           Json?
-  userPropertyId     Int                  @unique
+  userPropertyId     Int
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   userProperty       upward_user_property @relation(fields: [userPropertyId], references: [id])

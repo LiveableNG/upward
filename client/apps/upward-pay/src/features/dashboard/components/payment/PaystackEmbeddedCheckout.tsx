@@ -165,6 +165,8 @@ export default function PaystackEmbeddedCheckout({
         amount={config.amount}
         reference={config.reference}
         companyName={companyName}
+        paymentRequestUuid={paymentRequestUuid}
+        userPropertyId={config.dva?.userPropertyId || metadata?.userPropertyId}
         onSuccess={onSuccess}
         onClose={onClose}
       />

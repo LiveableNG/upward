@@ -832,3 +832,96 @@
   color: #6b7280;
   margin-top: 4px;
 }
+
+/* Downtime & Bank Switch UI */
+.psk-downtime-card {
+  margin-top: 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border-solid);
+  border-radius: var(--radius-md, 12px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.psk-downtime-card__header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.psk-downtime-card__icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(217, 119, 87, 0.12);
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.psk-downtime-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.psk-downtime-card__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  margin: 0 0 2px;
+}
+
+.psk-downtime-card__desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.psk-downtime-card__action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.psk-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--clay);
+  background: rgba(217, 119, 87, 0.1);
+  border: 1px solid rgba(217, 119, 87, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.psk-switch-btn:hover:not(:disabled) {
+  background: var(--clay);
+  color: #fff;
+  border-color: var(--clay);
+  transform: translateY(-1px);
+}
+
+.psk-switch-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.psk-switch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.psk-switch-btn .animate-spin {
+  animation: pskSpin 0.8s linear infinite;
+}
