@@ -470,7 +470,7 @@ export class ReviewManualPaymentUseCase {
           type: 'RENT',
           status: 'SUCCESS',
           narration: pr?.description ? `${pr.description} (Manual)` : 'Manual Rent Payment',
-          settlementStatus: 'VERIFIED',
+          settlementStatus: 'SETTLED',
           isManual: true,
           sequentialFill: normalizedLineItems ? false : true,
           lineItemPayments: normalizedLineItems,

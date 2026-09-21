@@ -91,6 +91,7 @@ export class ProcessHourlySettlementsUseCase {
       where: {
         settlementStatus: 'VERIFIED',
         status: 'SUCCESS',
+        isManual: false,
       },
       include: {
         paymentRequest: {

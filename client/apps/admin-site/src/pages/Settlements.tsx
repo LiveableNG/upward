@@ -95,6 +95,7 @@ interface SettlementTransaction {
   settlementStatus: string
   status: string
   paymentType: string | null
+  isManual?: boolean
   propertyAddress: string | null
   paidAt: string
   settlementBatch: {
@@ -798,7 +799,18 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px' }}>
-                        {tx.destination ? (
+                        {tx.destination?.type === 'MANUAL_PAYMENT' || tx.isManual ? (
+                          <div>
+                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '11px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563EB', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                                Manual Proof
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              Settled Off-Platform (Direct)
+                            </div>
+                          </div>
+                        ) : tx.destination ? (
                           <div>
                             <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
                               {tx.destination.bankName} • {tx.destination.accountNumber}

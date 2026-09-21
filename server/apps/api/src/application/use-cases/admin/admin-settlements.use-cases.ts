@@ -44,7 +44,7 @@ export class GetSettlementStatsUseCase {
       }),
       this.prisma.upward_transaction.aggregate({
         _sum: { amount: true },
-        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS' },
+        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS', isManual: false },
       }),
       this.prisma.upward_transaction.count({
         where: { settlementStatus: 'SETTLED', status: 'SUCCESS' },
@@ -54,7 +54,7 @@ export class GetSettlementStatsUseCase {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.upward_transaction.findMany({
-        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS' },
+        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS', isManual: false },
         include: {
           paymentRequest: {
             include: {
@@ -118,6 +118,7 @@ export class GetFlaggedSettlementsUseCase {
       where: {
         settlementStatus: 'VERIFIED',
         status: 'SUCCESS',
+        isManual: false,
       },
       include: {
         paymentRequest: {
@@ -399,6 +400,31 @@ export class GetSettlementTransactionsUseCase {
             include: {
               manualAccount: true,
               subaccount: true,
+              userProperty: {
+                include: {
+                  manualAccount: true,
+                  subaccount: true,
+                  pm: {
+                    include: {
+                      manualAccounts: true,
+                    },
+                  },
+                  pmUnit: {
+                    include: {
+                      property: {
+                        include: {
+                          manualAccount: true,
+                          pm: {
+                            include: {
+                              manualAccounts: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -409,7 +435,15 @@ export class GetSettlementTransactionsUseCase {
       const pr = tx.paymentRequest;
       let destination: any = null;
 
-      if (pr?.manualAccount) {
+      if (tx.isManual) {
+        destination = {
+          bankName: 'Manual Payment',
+          bankCode: 'N/A',
+          accountNumber: 'N/A',
+          accountName: 'Settled Off-Platform (Direct)',
+          type: 'MANUAL_PAYMENT',
+        };
+      } else if (pr?.manualAccount) {
         destination = {
           bankName: pr.manualAccount.bankName,
           bankCode: pr.manualAccount.bankCode,
@@ -425,6 +459,31 @@ export class GetSettlementTransactionsUseCase {
           accountName: this.decryptSafe(pr.subaccount.businessName),
           type: 'SUBACCOUNT',
         };
+      } else if (pr?.userProperty) {
+        const prop = pr.userProperty;
+        const manualAcc =
+          prop.manualAccount ||
+          prop.pm?.manualAccounts?.[0] ||
+          prop.pmUnit?.property?.manualAccount ||
+          prop.pmUnit?.property?.pm?.manualAccounts?.[0];
+
+        if (manualAcc) {
+          destination = {
+            bankName: manualAcc.bankName,
+            bankCode: manualAcc.bankCode,
+            accountNumber: this.decryptSafe(manualAcc.accountNumber),
+            accountName: this.decryptSafe(manualAcc.accountName),
+            type: 'MANUAL_ACCOUNT',
+          };
+        } else if (prop.subaccount) {
+          destination = {
+            bankName: 'Paystack Subaccount',
+            bankCode: prop.subaccount.bankCode,
+            accountNumber: this.decryptSafe(prop.subaccount.accountNumber),
+            accountName: this.decryptSafe(prop.subaccount.businessName),
+            type: 'SUBACCOUNT',
+          };
+        }
       }
 
       return {
@@ -435,6 +494,7 @@ export class GetSettlementTransactionsUseCase {
         settlementStatus: tx.settlementStatus,
         status: tx.status,
         paymentType: tx.paymentType,
+        isManual: tx.isManual,
         propertyAddress: tx.propertyAddress,
         paidAt: tx.createdAt,
         settlementBatch: tx.settlementBatch
