@@ -56,6 +56,23 @@ export class CreatePropertyUseCase {
       if (account) manualAccountId = account.id;
     }
 
+    if (!manualAccountId) {
+      const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
+        where: { pmId, isPrimary: true },
+        select: { id: true },
+      });
+      if (primaryAccount) {
+        manualAccountId = primaryAccount.id;
+      } else {
+        const anyAccount = await (this.prisma as any).upward_manual_account.findFirst({
+          where: { pmId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        });
+        if (anyAccount) manualAccountId = anyAccount.id;
+      }
+    }
+
     const property = await this.propertyRepository.create({
       pmId,
       name: dto.name,

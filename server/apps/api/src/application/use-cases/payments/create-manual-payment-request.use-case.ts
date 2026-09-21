@@ -88,6 +88,7 @@ export class CreateManualPaymentRequestUseCase {
     }
 
     let userPropertyId: number | undefined
+    let manualAccountId: number | undefined
     let dueDate = new Date()
     let rentStartDate: Date | undefined
     let rentEndDate: Date | undefined
@@ -96,6 +97,7 @@ export class CreateManualPaymentRequestUseCase {
       const prop = await this.propertyRepo.findByUuid(data.propertyUuid)
       if (prop) {
         userPropertyId = prop.id
+        manualAccountId = prop.manualAccountId || (prop as any).pmUnit?.property?.manualAccountId || (prop as any).pm?.manualAccounts?.[0]?.id
 
         const activePr = await this.prisma.upward_payment_request.findFirst({
           where: {
@@ -132,6 +134,7 @@ export class CreateManualPaymentRequestUseCase {
       status: 'PENDING',
       allowPartial: true,
       subaccountId: subaccountId,
+      manualAccountId: manualAccountId || data.metadata?.manualAccountId,
       userPropertyId,
       isManual: true,
       reference: `MNL_${Date.now()}_${Math.floor(Math.random() * 1000)}`,

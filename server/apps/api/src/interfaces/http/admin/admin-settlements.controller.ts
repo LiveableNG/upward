@@ -63,7 +63,7 @@ export class AdminSettlementsController {
   }
 
   @Post('resolve-flagged')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  @Roles(AdminRole.DEVELOPER)
   async resolveFlagged(@Body() dto: ResolveFlaggedSettlementDto) {
     return this.resolveFlaggedSettlementUseCase.execute(dto);
   }

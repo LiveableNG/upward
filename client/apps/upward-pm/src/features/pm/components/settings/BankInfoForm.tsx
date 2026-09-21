@@ -340,6 +340,21 @@ export function BankInfoForm() {
     p.address?.toLowerCase().includes(propertySearch.toLowerCase())
   )
 
+  const allFilteredSelected =
+    filteredProperties.length > 0 &&
+    filteredProperties.every((p: any) => selectedPropertyUuids.includes(p.uuid))
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      const filteredUuids = new Set(filteredProperties.map((p: any) => p.uuid))
+      setSelectedPropertyUuids(prev => prev.filter(id => !filteredUuids.has(id)))
+    } else {
+      const next = new Set(selectedPropertyUuids)
+      filteredProperties.forEach((p: any) => next.add(p.uuid))
+      setSelectedPropertyUuids(Array.from(next))
+    }
+  }
+
   return (
     <section className="settings__section" id="settlement-accounts">
       <div className="settings__section-header">
@@ -739,6 +754,38 @@ export function BankInfoForm() {
               onChange={e => setPropertySearch(e.target.value)}
             />
           </div>
+
+          {filteredProperties.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--forest, #2d5a27)',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={allFilteredSelected}
+                  onChange={handleToggleSelectAll}
+                  style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
+                />
+                <span>{allFilteredSelected ? 'Deselect All' : `Select All (${filteredProperties.length})`}</span>
+              </button>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {selectedPropertyUuids.length} of {properties.length} selected
+              </span>
+            </div>
+          )}
 
           <div style={{
             maxHeight: 280,

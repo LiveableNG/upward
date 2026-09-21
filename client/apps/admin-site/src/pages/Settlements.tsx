@@ -135,9 +135,11 @@ interface SettlementTransaction {
 
 interface SettlementsProps {
   token: string
+  adminRole?: string
 }
 
-export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
+export const Settlements: React.FC<SettlementsProps> = ({ token, adminRole }) => {
+  const isDeveloper = adminRole === 'DEVELOPER'
   const [activeTab, setActiveTab] = useState<'flagged' | 'batches' | 'transactions'>('flagged')
   const [stats, setStats] = useState<SettlementStats | null>(null)
   const [flaggedData, setFlaggedData] = useState<{
@@ -603,16 +605,27 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                           </span>
                         </td>
                         <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => {
-                              setResolvingTx(item)
-                              setSelectedAccountId(item.availableAccounts[0]?.id || '')
-                            }}
-                            className="btn btn--primary"
-                            style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer' }}
-                          >
-                            Resolve Destination
-                          </button>
+                          {isDeveloper ? (
+                            <button
+                              onClick={() => {
+                                setResolvingTx(item)
+                                setSelectedAccountId(item.availableAccounts[0]?.id || '')
+                              }}
+                              className="btn btn--primary"
+                              style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer' }}
+                            >
+                              Resolve Destination
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              title="Only Developer role can resolve flagged settlement destinations"
+                              className="btn btn--secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', opacity: 0.5, cursor: 'not-allowed' }}
+                            >
+                              Resolve (Dev Only)
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
