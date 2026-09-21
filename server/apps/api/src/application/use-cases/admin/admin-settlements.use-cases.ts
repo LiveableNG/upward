@@ -37,6 +37,9 @@ export class GetSettlementStatsUseCase {
       totalBatches,
       lastBatch,
       verifiedTxs,
+      titanDvaCount,
+      wemaDvaCount,
+      totalDvaCount,
     ] = await Promise.all([
       this.prisma.upward_transaction.aggregate({
         _sum: { amount: true },
@@ -64,6 +67,23 @@ export class GetSettlementStatsUseCase {
           },
         },
       }),
+      this.prisma.upward_dedicated_virtual_account.count({
+        where: {
+          OR: [
+            { bankSlug: 'titan-paystack' },
+            { bankName: { contains: 'Titan', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      this.prisma.upward_dedicated_virtual_account.count({
+        where: {
+          OR: [
+            { bankSlug: 'wema-bank' },
+            { bankName: { contains: 'Wema', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      this.prisma.upward_dedicated_virtual_account.count(),
     ]);
 
     // Calculate unrouted flagged count
@@ -83,6 +103,11 @@ export class GetSettlementStatsUseCase {
       settledTransactionsCount: settledCount,
       flaggedCount,
       totalBatches,
+      dvaStats: {
+        titanAccounts: titanDvaCount,
+        wemaAccounts: wemaDvaCount,
+        totalAccounts: totalDvaCount,
+      },
       lastBatch: lastBatch
         ? {
             id: lastBatch.id,
@@ -386,7 +411,7 @@ export class GetSettlementTransactionsUseCase {
       ];
     }
 
-    const [total, txs] = await Promise.all([
+    const [total, txs]: [number, any[]] = await Promise.all([
       this.prisma.upward_transaction.count({ where: whereClause }),
       this.prisma.upward_transaction.findMany({
         where: whereClause,
@@ -402,6 +427,7 @@ export class GetSettlementTransactionsUseCase {
               subaccount: true,
               userProperty: {
                 include: {
+                  dedicatedAccounts: true,
                   manualAccount: true,
                   subaccount: true,
                   pm: {
@@ -428,7 +454,7 @@ export class GetSettlementTransactionsUseCase {
             },
           },
         },
-      }),
+      } as any),
     ]);
 
     const formatted = txs.map((tx) => {
@@ -486,6 +512,33 @@ export class GetSettlementTransactionsUseCase {
         }
       }
 
+      // Resolve Inbound DVA details (Titan vs Wema vs other)
+      const prop = pr?.userProperty;
+      let dvaAccount: any = null;
+      const dvas = prop?.dedicatedAccounts || prop?.pmUnit?.property?.dedicatedAccounts || [];
+      if (dvas.length > 0) {
+        let matched = dvas.find((d: any) => tx.narration && tx.narration.includes(d.accountNumber));
+        if (!matched) {
+          matched = dvas.find((d: any) => d.isDefault) || dvas[0];
+        }
+        if (matched) {
+          const isTitan = matched.bankSlug === 'titan-paystack' || /titan/i.test(matched.bankName);
+          const isWema = matched.bankSlug === 'wema-bank' || /wema/i.test(matched.bankName);
+          dvaAccount = {
+            bankName: matched.bankName,
+            bankSlug: matched.bankSlug || (isTitan ? 'titan-paystack' : isWema ? 'wema-bank' : 'other'),
+            accountNumber: matched.accountNumber,
+            provider: isTitan ? 'Titan Trust Bank' : isWema ? 'Wema Bank' : matched.bankName,
+          };
+        }
+      } else if (tx.narration) {
+        if (/titan/i.test(tx.narration)) {
+          dvaAccount = { bankName: 'Paystack-Titan', bankSlug: 'titan-paystack', provider: 'Titan Trust Bank' };
+        } else if (/wema/i.test(tx.narration)) {
+          dvaAccount = { bankName: 'Wema Bank', bankSlug: 'wema-bank', provider: 'Wema Bank' };
+        }
+      }
+
       return {
         id: tx.id,
         uuid: tx.uuid,
@@ -497,6 +550,7 @@ export class GetSettlementTransactionsUseCase {
         isManual: tx.isManual,
         propertyAddress: tx.propertyAddress,
         paidAt: tx.createdAt,
+        narration: tx.narration,
         settlementBatch: tx.settlementBatch
           ? {
               id: tx.settlementBatch.id,
@@ -506,6 +560,7 @@ export class GetSettlementTransactionsUseCase {
             }
           : null,
         destination,
+        dvaAccount,
         tenant: {
           id: tx.user?.id,
           name: `${this.decryptSafe(tx.user?.firstName)} ${this.decryptSafe(tx.user?.lastName)}`.trim(),
