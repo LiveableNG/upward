@@ -450,6 +450,18 @@ export class ReviewManualPaymentUseCase {
       const reference = `MNL-APR-${Date.now()}`
       
       try {
+        const rawLineItems = (proof as any).lineItems
+        const normalizedLineItems = Array.isArray(rawLineItems) && rawLineItems.length > 0
+          ? rawLineItems.map((li: any) => ({
+              ...li,
+              id: li.id,
+              name: li.name || li.label || 'Rent',
+              label: li.label || li.name || 'Rent',
+              amount: li.amount || li.amountPaid || 0,
+              amountPaid: li.amountPaid || li.amount || 0,
+            }))
+          : undefined
+
         const txPayload: any = {
           userId: user.uuid,
           amount: amount,
@@ -460,8 +472,8 @@ export class ReviewManualPaymentUseCase {
           narration: pr?.description ? `${pr.description} (Manual)` : 'Manual Rent Payment',
           settlementStatus: 'VERIFIED',
           isManual: true,
-          sequentialFill: (proof as any).lineItems ? false : true,
-          lineItemPayments: (proof as any).lineItems ? (proof as any).lineItems : undefined,
+          sequentialFill: normalizedLineItems ? false : true,
+          lineItemPayments: normalizedLineItems,
           userPropertyUuid: property?.uuid,
         }
         
