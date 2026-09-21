@@ -9,13 +9,20 @@ export class GetSignatureImageUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(uuid: string) {
+  async execute(uuid: string, res?: any) {
     const signature = await (this.prisma as any).upward_pm_signature.findUnique({
       where: { uuid }
     });
 
     if (!signature || !signature.fileKey) {
       throw new NotFoundException('Signature image not found');
+    }
+
+    if (res) {
+      return this.s3Service.streamObject(signature.fileKey, res, {
+        filename: signature.fileKey,
+        cacheControl: 'public, max-age=31536000',
+      });
     }
 
     try {

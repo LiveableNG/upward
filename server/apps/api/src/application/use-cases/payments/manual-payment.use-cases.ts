@@ -344,7 +344,7 @@ export class GetPaymentProofUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(proofIdentifier: number | string) {
+  async execute(proofIdentifier: number | string, res?: any) {
     const isNumeric = typeof proofIdentifier === 'number' || /^\d+$/.test(String(proofIdentifier))
     const proof = await this.prisma.upward_payment_proof.findFirst({
       where: isNumeric ? { id: Number(proofIdentifier) } : { uuid: String(proofIdentifier) },
@@ -356,6 +356,13 @@ export class GetPaymentProofUseCase {
 
     if (!proof.fileUrl) {
       throw new NotFoundException('This payment proof does not have an attached file')
+    }
+
+    if (res) {
+      return this.s3Service.streamObject(proof.fileUrl, res, {
+        filename: proof.fileName || 'payment_proof',
+        cacheControl: 'public, max-age=86400',
+      })
     }
 
     const buffer = await this.s3Service.getFileBuffer(proof.fileUrl)

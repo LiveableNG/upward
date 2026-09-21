@@ -11,7 +11,7 @@ export class DownloadContractUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(userId: string, uuid: string) {
+  async execute(userId: string, uuid: string, res?: any) {
     const user = await this.userRepository.findByUuid(userId)
     if (!user) {
       throw new BadRequestException('User not found')
@@ -24,6 +24,14 @@ export class DownloadContractUseCase {
 
     if (contract.userId !== user.id) {
       throw new ForbiddenException('You do not have permission to download this document')
+    }
+
+    if (res) {
+      return this.s3Service.streamObject(contract.fileUrl, res, {
+        filename: contract.fileName || 'document.pdf',
+        contentType: contract.fileType,
+        isAttachment: true,
+      })
     }
 
     const buffer = await this.s3Service.getFileBuffer(contract.fileUrl)

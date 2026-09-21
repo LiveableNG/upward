@@ -18,7 +18,6 @@ import { GetContractUploadUrlUseCase } from '../../../application/use-cases/cont
 import { GetContractsUseCase } from '../../../application/use-cases/contracts/get-contracts.use-case'
 import { DeleteContractUseCase } from '../../../application/use-cases/contracts/delete-contract.use-case'
 import { DownloadContractUseCase } from '../../../application/use-cases/contracts/download-contract.use-case'
-import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 
 @Controller('user/contracts')
 @UseGuards(JwtAuthGuard)
@@ -108,12 +107,7 @@ export class ContractController {
     @Res({ passthrough: true }) res: any,
   ) {
     const userId = req.user.id
-    const { buffer, fileName, fileType } = await this.downloadContract.execute(userId, uuid)
-
-    return S3Service.streamBuffer(buffer, fileName || 'document.pdf', res, {
-      isAttachment: true,
-      contentType: fileType,
-    })
+    return this.downloadContract.execute(userId, uuid, res)
   }
 
   @Delete(':uuid')

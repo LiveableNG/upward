@@ -9,13 +9,26 @@ export class GetRelayDocumentUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(uuid: string) {
+  async execute(uuid: string, res?: any) {
     const job = await (this.prisma as any).upward_pm_bulk_import_job.findUnique({
       where: { uuid }
     });
 
     if (!job || !job.fileUrl) {
       throw new NotFoundException('Relay document not found');
+    }
+
+    if (res) {
+      if (job.fileUrl.startsWith('data:')) {
+        const base64Data = job.fileUrl.split(',')[1];
+        const mimeTypeMatch = job.fileUrl.match(/^data:([^;]+);/);
+        const contentType = mimeTypeMatch ? mimeTypeMatch[1] : 'application/octet-stream';
+        const buffer = Buffer.from(base64Data, 'base64');
+        return S3Service.streamBuffer(buffer, job.originalFileName || 'file', res, { contentType });
+      }
+      return this.s3Service.streamObject(job.fileUrl, res, {
+        filename: job.originalFileName,
+      });
     }
 
     try {
