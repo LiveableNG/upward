@@ -9,7 +9,6 @@ import {
   ChevronDown,
   ChevronUp,
   ShieldAlert,
-  Wallet,
   Check,
   FileText,
 } from 'lucide-react'
@@ -22,6 +21,11 @@ interface SettlementStats {
   settledTransactionsCount: number
   flaggedCount: number
   totalBatches: number
+  dvaStats?: {
+    titanAccounts: number
+    wemaAccounts: number
+    totalAccounts: number
+  }
   lastBatch: {
     id: number
     uuid: string
@@ -95,8 +99,16 @@ interface SettlementTransaction {
   settlementStatus: string
   status: string
   paymentType: string | null
+  isManual?: boolean
   propertyAddress: string | null
   paidAt: string
+  narration?: string | null
+  dvaAccount?: {
+    bankName: string
+    bankSlug: string
+    accountNumber?: string
+    provider: string
+  } | null
   settlementBatch: {
     id: number
     uuid: string
@@ -410,30 +422,48 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
           </div>
         </div>
 
-        {/* Last Batch Run */}
+        {/* DVA Provider Breakdown Card */}
         <div className="card" style={{ padding: '20px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Last Settlement Run
+              DVA Provider Breakdown
             </span>
-            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)', color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Wallet size={20} />
+            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Landmark size={20} />
             </div>
           </div>
-          <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {stats?.lastBatch ? (
-              <>
-                <span className={`badge ${getStatusBadgeClass(stats.lastBatch.status)}`}>
-                  {stats.lastBatch.status}
-                </span>
-                <span>{formatNaira(stats.lastBatch.totalAmount)}</span>
-              </>
-            ) : (
-              'No batches yet'
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '4px' }}>
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: '700', color: '#10B981' }}>
+                {stats?.dvaStats?.titanAccounts ?? 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                Titan Trust
+              </div>
+            </div>
+            <div style={{ width: '1px', height: '26px', background: 'var(--border)' }} />
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: '700', color: '#6366F1' }}>
+                {stats?.dvaStats?.wemaAccounts ?? 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                Wema Bank
+              </div>
+            </div>
+            <div style={{ width: '1px', height: '26px', background: 'var(--border)' }} />
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {stats?.dvaStats?.totalAccounts ?? 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                Total DVAs
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-            {stats?.lastBatch ? new Date(stats.lastBatch.createdAt).toLocaleString() : 'Cron runs every hour'}
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
+            {stats?.dvaStats?.totalAccounts
+              ? `${Math.round(((stats.dvaStats.titanAccounts || 0) / (stats.dvaStats.totalAccounts || 1)) * 100)}% active on Titan Trust`
+              : 'DVA provider split'}
           </div>
         </div>
       </div>
@@ -762,6 +792,7 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                 <tr style={{ background: 'var(--surface-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                   <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>TX REFERENCE</th>
                   <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>TENANT</th>
+                  <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>PAYMENT SOURCE / DVA</th>
                   <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>PROPERTY ADDRESS</th>
                   <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>AMOUNT</th>
                   <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>SETTLEMENT STATUS</th>
@@ -772,7 +803,7 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
               <tbody>
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+                    <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                       No transactions found matching the filter.
                     </td>
                   </tr>
@@ -786,6 +817,45 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                         <div style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{tx.tenant.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{tx.tenant.email}</div>
                       </td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px' }}>
+                        {tx.isManual || tx.destination?.type === 'MANUAL_PAYMENT' ? (
+                          <span style={{ fontSize: '11px', background: 'rgba(107, 114, 128, 0.1)', color: '#4B5563', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                            Direct Transfer (Offline)
+                          </span>
+                        ) : tx.dvaAccount?.bankSlug === 'titan-paystack' || (tx.dvaAccount?.bankName && /titan/i.test(tx.dvaAccount.bankName)) ? (
+                          <div>
+                            <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.12)', color: '#047857', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              🏛️ Titan Trust DVA
+                            </span>
+                            {tx.dvaAccount.accountNumber && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '2px' }}>
+                                {tx.dvaAccount.accountNumber}
+                              </div>
+                            )}
+                          </div>
+                        ) : tx.dvaAccount?.bankSlug === 'wema-bank' || (tx.dvaAccount?.bankName && /wema/i.test(tx.dvaAccount.bankName)) ? (
+                          <div>
+                            <span style={{ fontSize: '11px', background: 'rgba(99, 102, 241, 0.12)', color: '#4338CA', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              🏦 Wema Bank DVA
+                            </span>
+                            {tx.dvaAccount.accountNumber && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '2px' }}>
+                                {tx.dvaAccount.accountNumber}
+                              </div>
+                            )}
+                          </div>
+                        ) : tx.dvaAccount ? (
+                          <div>
+                            <span style={{ fontSize: '11px', background: 'rgba(59, 130, 246, 0.12)', color: '#1D4ED8', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                              {tx.dvaAccount.provider || tx.dvaAccount.bankName}
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '11px', background: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                            Paystack Checkout
+                          </span>
+                        )}
+                      </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                         {tx.propertyAddress || 'N/A'}
                       </td>
@@ -798,7 +868,18 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px' }}>
-                        {tx.destination ? (
+                        {tx.destination?.type === 'MANUAL_PAYMENT' || tx.isManual ? (
+                          <div>
+                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '11px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563EB', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                                Manual Proof
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                              Settled Off-Platform (Direct)
+                            </div>
+                          </div>
+                        ) : tx.destination ? (
                           <div>
                             <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
                               {tx.destination.bankName} • {tx.destination.accountNumber}

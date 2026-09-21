@@ -37,6 +37,9 @@ export class GetSettlementStatsUseCase {
       totalBatches,
       lastBatch,
       verifiedTxs,
+      titanDvaCount,
+      wemaDvaCount,
+      totalDvaCount,
     ] = await Promise.all([
       this.prisma.upward_transaction.aggregate({
         _sum: { amount: true },
@@ -44,7 +47,7 @@ export class GetSettlementStatsUseCase {
       }),
       this.prisma.upward_transaction.aggregate({
         _sum: { amount: true },
-        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS' },
+        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS', isManual: false },
       }),
       this.prisma.upward_transaction.count({
         where: { settlementStatus: 'SETTLED', status: 'SUCCESS' },
@@ -54,7 +57,7 @@ export class GetSettlementStatsUseCase {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.upward_transaction.findMany({
-        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS' },
+        where: { settlementStatus: 'VERIFIED', status: 'SUCCESS', isManual: false },
         include: {
           paymentRequest: {
             include: {
@@ -64,6 +67,23 @@ export class GetSettlementStatsUseCase {
           },
         },
       }),
+      this.prisma.upward_dedicated_virtual_account.count({
+        where: {
+          OR: [
+            { bankSlug: 'titan-paystack' },
+            { bankName: { contains: 'Titan', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      this.prisma.upward_dedicated_virtual_account.count({
+        where: {
+          OR: [
+            { bankSlug: 'wema-bank' },
+            { bankName: { contains: 'Wema', mode: 'insensitive' } },
+          ],
+        },
+      }),
+      this.prisma.upward_dedicated_virtual_account.count(),
     ]);
 
     // Calculate unrouted flagged count
@@ -83,6 +103,11 @@ export class GetSettlementStatsUseCase {
       settledTransactionsCount: settledCount,
       flaggedCount,
       totalBatches,
+      dvaStats: {
+        titanAccounts: titanDvaCount,
+        wemaAccounts: wemaDvaCount,
+        totalAccounts: totalDvaCount,
+      },
       lastBatch: lastBatch
         ? {
             id: lastBatch.id,
@@ -118,6 +143,7 @@ export class GetFlaggedSettlementsUseCase {
       where: {
         settlementStatus: 'VERIFIED',
         status: 'SUCCESS',
+        isManual: false,
       },
       include: {
         paymentRequest: {
@@ -385,7 +411,7 @@ export class GetSettlementTransactionsUseCase {
       ];
     }
 
-    const [total, txs] = await Promise.all([
+    const [total, txs]: [number, any[]] = await Promise.all([
       this.prisma.upward_transaction.count({ where: whereClause }),
       this.prisma.upward_transaction.findMany({
         where: whereClause,
@@ -399,17 +425,51 @@ export class GetSettlementTransactionsUseCase {
             include: {
               manualAccount: true,
               subaccount: true,
+              userProperty: {
+                include: {
+                  dedicatedAccounts: true,
+                  manualAccount: true,
+                  subaccount: true,
+                  pm: {
+                    include: {
+                      manualAccounts: true,
+                    },
+                  },
+                  pmUnit: {
+                    include: {
+                      property: {
+                        include: {
+                          manualAccount: true,
+                          pm: {
+                            include: {
+                              manualAccounts: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
-      }),
+      } as any),
     ]);
 
     const formatted = txs.map((tx) => {
       const pr = tx.paymentRequest;
       let destination: any = null;
 
-      if (pr?.manualAccount) {
+      if (tx.isManual) {
+        destination = {
+          bankName: 'Manual Payment',
+          bankCode: 'N/A',
+          accountNumber: 'N/A',
+          accountName: 'Settled Off-Platform (Direct)',
+          type: 'MANUAL_PAYMENT',
+        };
+      } else if (pr?.manualAccount) {
         destination = {
           bankName: pr.manualAccount.bankName,
           bankCode: pr.manualAccount.bankCode,
@@ -425,6 +485,58 @@ export class GetSettlementTransactionsUseCase {
           accountName: this.decryptSafe(pr.subaccount.businessName),
           type: 'SUBACCOUNT',
         };
+      } else if (pr?.userProperty) {
+        const prop = pr.userProperty;
+        const manualAcc =
+          prop.manualAccount ||
+          prop.pm?.manualAccounts?.[0] ||
+          prop.pmUnit?.property?.manualAccount ||
+          prop.pmUnit?.property?.pm?.manualAccounts?.[0];
+
+        if (manualAcc) {
+          destination = {
+            bankName: manualAcc.bankName,
+            bankCode: manualAcc.bankCode,
+            accountNumber: this.decryptSafe(manualAcc.accountNumber),
+            accountName: this.decryptSafe(manualAcc.accountName),
+            type: 'MANUAL_ACCOUNT',
+          };
+        } else if (prop.subaccount) {
+          destination = {
+            bankName: 'Paystack Subaccount',
+            bankCode: prop.subaccount.bankCode,
+            accountNumber: this.decryptSafe(prop.subaccount.accountNumber),
+            accountName: this.decryptSafe(prop.subaccount.businessName),
+            type: 'SUBACCOUNT',
+          };
+        }
+      }
+
+      // Resolve Inbound DVA details (Titan vs Wema vs other)
+      const prop = pr?.userProperty;
+      let dvaAccount: any = null;
+      const dvas = prop?.dedicatedAccounts || prop?.pmUnit?.property?.dedicatedAccounts || [];
+      if (dvas.length > 0) {
+        let matched = dvas.find((d: any) => tx.narration && tx.narration.includes(d.accountNumber));
+        if (!matched) {
+          matched = dvas.find((d: any) => d.isDefault) || dvas[0];
+        }
+        if (matched) {
+          const isTitan = matched.bankSlug === 'titan-paystack' || /titan/i.test(matched.bankName);
+          const isWema = matched.bankSlug === 'wema-bank' || /wema/i.test(matched.bankName);
+          dvaAccount = {
+            bankName: matched.bankName,
+            bankSlug: matched.bankSlug || (isTitan ? 'titan-paystack' : isWema ? 'wema-bank' : 'other'),
+            accountNumber: matched.accountNumber,
+            provider: isTitan ? 'Titan Trust Bank' : isWema ? 'Wema Bank' : matched.bankName,
+          };
+        }
+      } else if (tx.narration) {
+        if (/titan/i.test(tx.narration)) {
+          dvaAccount = { bankName: 'Paystack-Titan', bankSlug: 'titan-paystack', provider: 'Titan Trust Bank' };
+        } else if (/wema/i.test(tx.narration)) {
+          dvaAccount = { bankName: 'Wema Bank', bankSlug: 'wema-bank', provider: 'Wema Bank' };
+        }
       }
 
       return {
@@ -435,8 +547,10 @@ export class GetSettlementTransactionsUseCase {
         settlementStatus: tx.settlementStatus,
         status: tx.status,
         paymentType: tx.paymentType,
+        isManual: tx.isManual,
         propertyAddress: tx.propertyAddress,
         paidAt: tx.createdAt,
+        narration: tx.narration,
         settlementBatch: tx.settlementBatch
           ? {
               id: tx.settlementBatch.id,
@@ -446,6 +560,7 @@ export class GetSettlementTransactionsUseCase {
             }
           : null,
         destination,
+        dvaAccount,
         tenant: {
           id: tx.user?.id,
           name: `${this.decryptSafe(tx.user?.firstName)} ${this.decryptSafe(tx.user?.lastName)}`.trim(),

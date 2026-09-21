@@ -18,7 +18,7 @@ export class GetRentDepositSummaryUseCase {
   ) {}
 
   async execute(userUuid: string, propertyUuid?: string) {
-    const user = await this.prisma.upward_user.findUnique({
+    const user: any = await this.prisma.upward_user.findUnique({
       where: { uuid: userUuid },
       include: {
         properties: {
@@ -29,7 +29,7 @@ export class GetRentDepositSummaryUseCase {
           },
           orderBy: { createdAt: 'desc' },
         },
-      },
+      } as any,
     })
 
     if (!user) {
