@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Patch, Body, Query, UseGuards, Req, Param, Inject, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, Query, UseGuards, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
+import { CurrentPmActor } from '../../../application/auth/decorators/current-pm-actor.decorator';
+import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { GetPmTenantsUseCase } from '../../../application/pm/use-cases/tenants/get-pm-tenants.use-case';
 import { InviteTenantUseCase } from '../../../application/pm/use-cases/tenants/invite-tenant.use-case';
 import { CreateTenantUseCase, CreateTenantDto } from '../../../application/pm/use-cases/tenants/create-tenant.use-case';
@@ -12,9 +14,6 @@ import { BulkInviteTenantsUseCase, BulkInviteDto } from '../../../application/pm
 import { GetPendingJoinRequestsUseCase } from '../../../application/pm/use-cases/tenants/get-pending-join-requests.use-case';
 import { DismissJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/dismiss-join-request.use-case';
 import { ResolveDuplicateJoinRequestUseCase } from '../../../application/pm/use-cases/tenants/resolve-duplicate-join-request.use-case';
-import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 
 @Controller('pm/tenants')
 @UseGuards(JwtAuthGuard)
@@ -32,44 +31,7 @@ export class PmTenantController {
     private readonly getPendingJoinRequestsUseCase: GetPendingJoinRequestsUseCase,
     private readonly dismissJoinRequestUseCase: DismissJoinRequestUseCase,
     private readonly resolveDuplicateJoinRequestUseCase: ResolveDuplicateJoinRequestUseCase,
-    private readonly prisma: PrismaService,
-    @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
-
-  private async getPmId(req: any): Promise<number> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
-      return req.user.ownerPmId;
-    }
-    const uuid = req.user?.sub;
-    if (!uuid) throw new UnauthorizedException('Invalid user context');
-    const pm = await this.pmRepository.findByUuid(uuid);
-    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
-    return pm.id;
-  }
-
-  private async getActorContext(req: any): Promise<PmActorContext> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
-      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
-        where: { uuid: req.user.sub },
-        select: { id: true, accessLevel: true }
-      });
-      return {
-        ownerPmId: req.user.ownerPmId,
-        isEmployee: true,
-        employeeId: req.user.employeeId || employee?.id,
-        employeeUuid: req.user.sub,
-        accessLevel: employee?.accessLevel || 'CUSTOM',
-      };
-    }
-    const uuid = req.user?.sub;
-    if (!uuid) throw new UnauthorizedException('Invalid user context');
-    const pm = await this.pmRepository.findByUuid(uuid);
-    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
-    return {
-      ownerPmId: pm.id,
-      isEmployee: false,
-    };
-  }
 
   @Get('lookup-user')
   async lookupUser(@Query('email') email?: string, @Query('phone') phone?: string) {
@@ -77,83 +39,81 @@ export class PmTenantController {
   }
 
   @Get()
-  async getTenants(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getTenants(@CurrentPmActor() actor: PmActorContext) {
     return this.getPmTenantsUseCase.execute(actor.ownerPmId, actor);
   }
 
-
   @Get('join-requests')
-  async getJoinRequests(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getJoinRequests(@CurrentPmActor() actor: PmActorContext) {
     return this.getPendingJoinRequestsUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Post('join-requests/:uuid/dismiss')
-  async dismissJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async dismissJoinRequest(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     return this.dismissJoinRequestUseCase.execute(actor.ownerPmId, uuid);
   }
 
   @Post('join-requests/:uuid/resolve-duplicate')
-  async resolveDuplicateJoinRequest(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async resolveDuplicateJoinRequest(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     return this.resolveDuplicateJoinRequestUseCase.execute(actor.ownerPmId, uuid);
   }
 
   @Get(':uuid')
-  async getTenant(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async getTenant(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     return this.getTenantUseCase.execute(actor.ownerPmId, uuid, actor);
   }
 
   @Post()
-  async createTenant(@Req() req: any, @Body() dto: CreateTenantDto) {
-    const actor = await this.getActorContext(req);
+  async createTenant(@CurrentPmActor() actor: PmActorContext, @Body() dto: CreateTenantDto) {
     return this.createTenantUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Post(':uuid/invite')
-  async inviteTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() body: { deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' }) {
-    const actor = await this.getActorContext(req);
+  async inviteTenant(
+    @CurrentPmActor() actor: PmActorContext,
+    @Param('uuid') uuid: string,
+    @Body() body: { deliveryChannel?: 'EMAIL' | 'SMS' | 'WHATSAPP' },
+  ) {
     return this.inviteTenantUseCase.execute(actor.ownerPmId, uuid, body?.deliveryChannel, actor);
   }
 
   @Post(':uuid/assign')
   async assignTenant(
-    @Req() req: any, 
-    @Param('uuid') tenantUuid: string, 
-    @Body() body: { 
-      unitUuid: string; 
+    @CurrentPmActor() actor: PmActorContext,
+    @Param('uuid') tenantUuid: string,
+    @Body() body: {
+      unitUuid: string;
       rentAmountPaid?: number;
       rentAmount?: number;
       rentType?: string;
       rentStartDate?: string;
       rentDueDate?: string;
       isFullyPaid?: boolean;
-    }
+    },
   ) {
-    const actor = await this.getActorContext(req);
     return this.assignTenantToUnitUseCase.execute(
-      actor.ownerPmId, 
-      body.unitUuid, 
-      tenantUuid, 
+      actor.ownerPmId,
+      body.unitUuid,
+      tenantUuid,
       body.rentAmountPaid,
       body.rentAmount,
       body.rentType,
       body.rentStartDate ? new Date(body.rentStartDate) : undefined,
       body.rentDueDate ? new Date(body.rentDueDate) : undefined,
       body.isFullyPaid,
-      actor
+      actor,
     );
   }
 
   @Post(':uuid/unassign')
-  async unassignTenant(@Req() req: any, @Param('uuid') tenantUuid: string, @Body() body: { unitUuid: string }) {
-    const actor = await this.getActorContext(req);
+  async unassignTenant(
+    @CurrentPmActor() actor: PmActorContext,
+    @Param('uuid') tenantUuid: string,
+    @Body() body: { unitUuid: string },
+  ) {
     return this.assignTenantToUnitUseCase.execute(
-      actor.ownerPmId, 
-      body.unitUuid, 
+      actor.ownerPmId,
+      body.unitUuid,
       null,
       undefined,
       undefined,
@@ -161,19 +121,21 @@ export class PmTenantController {
       undefined,
       undefined,
       undefined,
-      actor
+      actor,
     );
   }
 
   @Patch(':uuid')
-  async updateTenant(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: any) {
-    const actor = await this.getActorContext(req);
+  async updateTenant(
+    @CurrentPmActor() actor: PmActorContext,
+    @Param('uuid') uuid: string,
+    @Body() dto: any,
+  ) {
     return this.updateTenantUseCase.execute(actor.ownerPmId, uuid, dto, actor);
   }
 
   @Post('records/bulk')
-  async bulkCreateRecords(@Req() req: any, @Body() body: any) {
-    const actor = await this.getActorContext(req);
+  async bulkCreateRecords(@CurrentPmActor() actor: PmActorContext, @Body() body: any) {
     return this.bulkCreateTenantRecordsUseCase.execute({
       pmId: actor.ownerPmId,
       propertyAddress: body.propertyAddress,
@@ -182,13 +144,12 @@ export class PmTenantController {
       lastName: body.lastName,
       email: body.email,
       phone: body.phone,
-      records: body.records
+      records: body.records,
     }, actor);
   }
 
   @Post('bulk-invite')
-  async bulkInvite(@Req() req: any, @Body() dto: BulkInviteDto) {
-    const actor = await this.getActorContext(req);
+  async bulkInvite(@CurrentPmActor() actor: PmActorContext, @Body() dto: BulkInviteDto) {
     return this.bulkInviteTenantsUseCase.execute(actor.ownerPmId, dto, actor);
   }
 }

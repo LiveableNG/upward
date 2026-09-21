@@ -1,5 +1,7 @@
-import { Controller, Post, Get, Patch, Body, UseGuards, Req, Query, Param, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, UseGuards, Query, Param, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
+import { CurrentPmActor } from '../../../application/auth/decorators/current-pm-actor.decorator';
+import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { CreatePropertyUseCase } from '../../../application/pm/use-cases/create-property.use-case';
 import { UpdatePropertyUseCase } from '../../../application/pm/use-cases/update-property.use-case';
 import { DeletePropertyUseCase } from '../../../application/pm/use-cases/delete-property.use-case';
@@ -47,10 +49,6 @@ import { CreatePmLandlordUseCase } from '../../../application/pm/use-cases/landl
 import { CreatePmLandlordDto } from '../../../application/pm/dtos/landlord.dto';
 import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase, GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
 import { ResolvePendingRefundUseCase, RefundResolutionAction } from '../../../application/pm/use-cases/payments/resolve-refund.use-case';
-import { PropertyManagerRepository, PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository';
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
-import { Inject, UnauthorizedException, Delete } from '@nestjs/common';
 
 @Controller('pm')
 @UseGuards(JwtAuthGuard)
@@ -101,219 +99,153 @@ export class PmPropertyController {
     private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
     private readonly getPmUnresolvedTransactionsUseCase: GetPmUnresolvedTransactionsUseCase,
     private readonly resolvePendingRefundUseCase: ResolvePendingRefundUseCase,
-    private readonly prisma: PrismaService,
-    @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepository: PropertyManagerRepository,
   ) {}
-
-  private async getPmId(req: any): Promise<number> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
-      return req.user.ownerPmId;
-    }
-    const uuid = req.user?.sub;
-    if (!uuid) throw new UnauthorizedException('Invalid user context');
-    const pm = await this.pmRepository.findByUuid(uuid);
-    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
-    return pm.id;
-  }
-
-  private async getActorContext(req: any): Promise<PmActorContext> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
-      const employee = await (this.prisma as any).upward_pm_employee.findUnique({
-        where: { uuid: req.user.sub },
-        select: { id: true, accessLevel: true }
-      });
-      return {
-        ownerPmId: req.user.ownerPmId,
-        isEmployee: true,
-        employeeId: req.user.employeeId || employee?.id,
-        employeeUuid: req.user.sub,
-        accessLevel: employee?.accessLevel || 'CUSTOM',
-      };
-    }
-    const uuid = req.user?.sub;
-    if (!uuid) throw new UnauthorizedException('Invalid user context');
-    const pm = await this.pmRepository.findByUuid(uuid);
-    if (!pm || !pm.id) throw new UnauthorizedException('Property Manager not found');
-    return {
-      ownerPmId: pm.id,
-      isEmployee: false,
-    };
-  }
 
   @Post('units/:unitUuid/payments/bulk')
   async bulkAddRentHistory(
-    @Req() req: any, 
+    @CurrentPmActor() actor: PmActorContext,
     @Param('unitUuid') unitUuid: string, 
     @Body() dto: any
   ) {
-    const actor = await this.getActorContext(req);
     return this.bulkAddRentHistoryUseCase.execute(actor.ownerPmId, { ...dto, unitUuid }, actor);
   }
 
   @Post('properties')
-  async createProperty(@Req() req: any, @Body() dto: CreatePropertyDto) {
-    const actor = await this.getActorContext(req);
+  async createProperty(@CurrentPmActor() actor: PmActorContext, @Body() dto: CreatePropertyDto) {
     return this.createPropertyUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Patch('properties/:propertyUuid')
-  async updateProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string, @Body() dto: UpdatePropertyDto) {
-    const actor = await this.getActorContext(req);
+  async updateProperty(@CurrentPmActor() actor: PmActorContext, @Param('propertyUuid') propertyUuid: string, @Body() dto: UpdatePropertyDto) {
     return this.updatePropertyUseCase.execute(actor.ownerPmId, propertyUuid, dto, actor);
   }
 
   @Delete('properties/:propertyUuid')
-  async deleteProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
-    const actor = await this.getActorContext(req);
+  async deleteProperty(@CurrentPmActor() actor: PmActorContext, @Param('propertyUuid') propertyUuid: string) {
     return this.deletePropertyUseCase.execute(actor.ownerPmId, propertyUuid, actor);
   }
 
   @Get('dashboard/summary')
-  async getDashboardSummary(@Req() req: any, @Query() query: any) {
-    const actor = await this.getActorContext(req);
+  async getDashboardSummary(@CurrentPmActor() actor: PmActorContext, @Query() query: any) {
     return this.getPmDashboardSummaryUseCase.execute(actor.ownerPmId, query, actor);
   }
 
   @Get('properties')
-  async getProperties(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getProperties(@CurrentPmActor() actor: PmActorContext) {
     return this.getPmPropertiesUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Get('properties/:propertyUuid')
-  async getProperty(@Req() req: any, @Param('propertyUuid') propertyUuid: string) {
-    const actor = await this.getActorContext(req);
+  async getProperty(@CurrentPmActor() actor: PmActorContext, @Param('propertyUuid') propertyUuid: string) {
     return this.getPmPropertyUseCase.execute(actor.ownerPmId, propertyUuid, actor);
   }
 
   @Post('units/bulk')
-  async bulkCreateUnits(@Req() req: any, @Body() dto: BulkCreateUnitsDto) {
-    const actor = await this.getActorContext(req);
+  async bulkCreateUnits(@CurrentPmActor() actor: PmActorContext, @Body() dto: BulkCreateUnitsDto) {
     return this.bulkCreateUnitsUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Post('import/bulk')
-  async bulkFullImport(@Req() req: any, @Body() dto: BulkFullImportDto) {
-    const actor = await this.getActorContext(req);
+  async bulkFullImport(@CurrentPmActor() actor: PmActorContext, @Body() dto: BulkFullImportDto) {
     return this.bulkFullImportUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Get('units')
-  async getUnits(@Req() req: any, @Query('propertyUuid') propertyUuid?: string) {
-    const actor = await this.getActorContext(req);
+  async getUnits(@CurrentPmActor() actor: PmActorContext, @Query('propertyUuid') propertyUuid?: string) {
     return this.getPmUnitsUseCase.execute(actor.ownerPmId, propertyUuid, actor);
   }
 
   @Get('units/:unitUuid')
-  async getUnit(@Req() req: any, @Param('unitUuid') unitUuid: string) {
-    const actor = await this.getActorContext(req);
+  async getUnit(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string) {
     return this.getUnitUseCase.execute(actor.ownerPmId, unitUuid, actor);
   }
 
   @Patch('units/:unitUuid')
-  async updateUnit(@Req() req: any, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
-    const actor = await this.getActorContext(req);
+  async updateUnit(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
     return this.updateUnitUseCase.execute(actor.ownerPmId, unitUuid, dto, actor);
   }
 
   @Delete('units/:unitUuid')
-  async deleteUnit(@Req() req: any, @Param('unitUuid') unitUuid: string) {
-    const actor = await this.getActorContext(req);
+  async deleteUnit(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string) {
     return this.deleteUnitUseCase.execute(actor.ownerPmId, unitUuid, actor);
   }
 
-
   @Get('units/:unitUuid/payments')
-  async getUnitPayments(@Req() req: any, @Param('unitUuid') unitUuid: string) {
-    const actor = await this.getActorContext(req);
+  async getUnitPayments(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string) {
     return this.getUnitPaymentsUseCase.execute(actor.ownerPmId, unitUuid, actor);
   }
 
   @Post('units/:unitUuid/payments')
-  async addUnitPayment(@Req() req: any, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
-    const actor = await this.getActorContext(req);
+  async addUnitPayment(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string, @Body() dto: any) {
     return this.addUnitPaymentUseCase.execute(actor.ownerPmId, unitUuid, dto, actor);
   }
 
   @Patch('units/:unitUuid/payments/:paymentUuid')
-  async updateUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string, @Body() dto: any) {
-    const actor = await this.getActorContext(req);
+  async updateUnitPayment(@CurrentPmActor() actor: PmActorContext, @Param('paymentUuid') paymentUuid: string, @Body() dto: any) {
     return this.updateRentPaymentUseCase.execute(actor.ownerPmId, paymentUuid, dto, actor);
   }
 
   @Delete('units/:unitUuid/payments/:paymentUuid')
-  async deleteUnitPayment(@Req() req: any, @Param('paymentUuid') paymentUuid: string) {
-    const actor = await this.getActorContext(req);
+  async deleteUnitPayment(@CurrentPmActor() actor: PmActorContext, @Param('paymentUuid') paymentUuid: string) {
     return this.deleteRentPaymentUseCase.execute(actor.ownerPmId, paymentUuid, actor);
   }
 
   @Post('units/:unitUuid/sync-to-upward')
-  async syncToUpward(@Req() req: any, @Param('unitUuid') unitUuid: string) {
-    const actor = await this.getActorContext(req);
+  async syncToUpward(@CurrentPmActor() actor: PmActorContext, @Param('unitUuid') unitUuid: string) {
     return this.syncUnitToUpwardUseCase.execute(unitUuid, actor.ownerPmId);
   }
 
   @Post('properties/image-upload-url')
-  async getImageUploadUrl(@Req() req: any, @Body() body: { contentType: string; filename: string }) {
-    const actor = await this.getActorContext(req);
+  async getImageUploadUrl(@CurrentPmActor() actor: PmActorContext, @Body() body: { contentType: string; filename: string }) {
     return this.getPropertyImageUploadUrlUseCase.execute(actor.ownerPmId, body.contentType, body.filename);
   }
 
   @Post('properties/image-upload')
-  async uploadImage(@Req() req: any, @Body() body: { base64Data: string; contentType: string; filename?: string }) {
-    const actor = await this.getActorContext(req);
+  async uploadImage(@CurrentPmActor() actor: PmActorContext, @Body() body: { base64Data: string; contentType: string; filename?: string }) {
     return this.uploadPropertyImageUseCase.execute(actor.ownerPmId, body.base64Data, body.contentType, body.filename);
   }
 
   @Post('payment-requests')
-  async createPaymentRequest(@Req() req: any, @Body() dto: CreatePmPaymentRequestDto) {
-    const actor = await this.getActorContext(req);
+  async createPaymentRequest(@CurrentPmActor() actor: PmActorContext, @Body() dto: CreatePmPaymentRequestDto) {
     return this.createPmPaymentRequestUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Get('payment-requests')
-  async getPaymentRequests(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getPaymentRequests(@CurrentPmActor() actor: PmActorContext) {
     return this.getPmPaymentRequestsUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Get('payment-requests/:uuid')
-  async getPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async getPaymentRequest(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     return this.getPmPaymentRequestUseCase.execute(actor.ownerPmId, uuid);
   }
 
   @Post('payment-requests/:uuid/resend')
   async resendPaymentRequest(
-    @Req() req: any, 
+    @CurrentPmActor() actor: PmActorContext, 
     @Param('uuid') uuid: string,
     @Body() body: { email?: string; channels?: ('EMAIL' | 'WHATSAPP' | 'SMS')[] }
   ) {
-    const actor = await this.getActorContext(req);
     return this.resendPmPaymentRequestUseCase.execute(actor.ownerPmId, uuid, body.email, body.channels);
   }
 
   @Patch('payment-requests/:uuid')
-  async updatePaymentRequest(@Req() req: any, @Param('uuid') uuid: string, @Body() dto: UpdatePmPaymentRequestDto) {
-    const actor = await this.getActorContext(req);
+  async updatePaymentRequest(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string, @Body() dto: UpdatePmPaymentRequestDto) {
     return this.updatePmPaymentRequestUseCase.execute(actor.ownerPmId, uuid, dto);
   }
 
   @Delete('payment-requests/:uuid')
-  async cancelPaymentRequest(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async cancelPaymentRequest(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     return this.cancelPmPaymentRequestUseCase.execute(actor.ownerPmId, uuid, actor);
   }
 
   @Get('landlords')
-  async getLandlords(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getLandlords(@CurrentPmActor() actor: PmActorContext) {
     return this.getPmLandlordsUseCase.execute(actor.ownerPmId, actor);
   }
 
   @Post('landlords')
-  async createLandlord(@Req() req: any, @Body() dto: CreatePmLandlordDto) {
-    const actor = await this.getActorContext(req);
+  async createLandlord(@CurrentPmActor() actor: PmActorContext, @Body() dto: CreatePmLandlordDto) {
     if (actor.isEmployee) {
       throw new ForbiddenException('Employees can only assign or add landlords during property creation or editing');
     }
@@ -321,32 +253,27 @@ export class PmPropertyController {
   }
 
   @Post('landlords/send-report')
-  async sendLandlordReport(@Req() req: any, @Body() dto: SendLandlordReportDto) {
-    const actor = await this.getActorContext(req);
+  async sendLandlordReport(@CurrentPmActor() actor: PmActorContext, @Body() dto: SendLandlordReportDto) {
     return this.sendLandlordReportUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Get('landlords/:landlordEmail/reports')
-  async getLandlordReports(@Req() req: any, @Param('landlordEmail') landlordEmail: string) {
-    const actor = await this.getActorContext(req);
+  async getLandlordReports(@CurrentPmActor() actor: PmActorContext, @Param('landlordEmail') landlordEmail: string) {
     return this.getLandlordReportsUseCase.execute(actor.ownerPmId, landlordEmail, actor);
   }
 
   @Get('landlords/reports/:uuid')
-  async getLandlordReport(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async getLandlordReport(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     return this.getLandlordReportUseCase.execute(actor.ownerPmId, uuid, actor);
   }
 
   @Post('landlords/:landlordEmail/bulk-reminders')
-  async sendBulkReminders(@Req() req: any, @Param('landlordEmail') landlordEmail: string) {
-    const actor = await this.getActorContext(req);
+  async sendBulkReminders(@CurrentPmActor() actor: PmActorContext, @Param('landlordEmail') landlordEmail: string) {
     return this.pmBulkRentReminderUseCase.execute(actor.ownerPmId, landlordEmail, actor);
   }
 
   @Get('payouts')
-  async getPayouts(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getPayouts(@CurrentPmActor() actor: PmActorContext) {
     if (actor.isEmployee) {
       throw new UnauthorizedException('Payouts are only accessible by company administrators');
     }
@@ -354,8 +281,7 @@ export class PmPropertyController {
   }
 
   @Get('payouts/batch/:uuid')
-  async getPayoutBreakdown(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async getPayoutBreakdown(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     if (actor.isEmployee) {
       throw new UnauthorizedException('Payouts are only accessible by company administrators');
     }
@@ -363,8 +289,7 @@ export class PmPropertyController {
   }
 
   @Get('payments/unresolved')
-  async getUnresolvedTransactions(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getUnresolvedTransactions(@CurrentPmActor() actor: PmActorContext) {
     if (actor.isEmployee) {
       throw new UnauthorizedException('Unresolved payment actions are only accessible by company administrators');
     }
@@ -373,11 +298,10 @@ export class PmPropertyController {
 
   @Post('payments/unresolved/:uuid/resolve')
   async resolveTransaction(
-    @Req() req: any, 
+    @CurrentPmActor() actor: PmActorContext, 
     @Param('uuid') uuid: string, 
     @Body() body: { action: RefundResolutionAction }
   ) {
-    const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
       throw new UnauthorizedException('Unresolved payment actions are only accessible by company administrators');
     }
@@ -385,8 +309,7 @@ export class PmPropertyController {
   }
 
   @Post('team/invite')
-  async inviteTeamMember(@Req() req: any, @Body() dto: InviteTeamMemberDto) {
-    const actor = await this.getActorContext(req);
+  async inviteTeamMember(@CurrentPmActor() actor: PmActorContext, @Body() dto: InviteTeamMemberDto) {
     if (actor.isEmployee) {
       throw new UnauthorizedException('Team management is only accessible by company administrators');
     }
@@ -394,8 +317,7 @@ export class PmPropertyController {
   }
 
   @Post('team/:uuid/resend-invite')
-  async resendTeamInvite(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async resendTeamInvite(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     if (actor.isEmployee) {
       throw new ForbiddenException('Team management is only accessible by company administrators');
     }
@@ -403,8 +325,7 @@ export class PmPropertyController {
   }
 
   @Get('team')
-  async getTeamMembers(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getTeamMembers(@CurrentPmActor() actor: PmActorContext) {
     if (actor.isEmployee) {
       return [];
     }
@@ -413,11 +334,10 @@ export class PmPropertyController {
 
   @Patch('team/:uuid/permissions')
   async updateTeamMemberPermissions(
-    @Req() req: any, 
+    @CurrentPmActor() actor: PmActorContext, 
     @Param('uuid') uuid: string, 
     @Body() dto: UpdateTeamMemberPermissionsDto
   ) {
-    const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
       throw new ForbiddenException('Team management is only accessible by company administrators');
     }
@@ -425,8 +345,7 @@ export class PmPropertyController {
   }
 
   @Post('team/transfer')
-  async transferTeamProperties(@Req() req: any, @Body() dto: TransferTeamPropertiesDto) {
-    const actor = await this.getActorContext(req);
+  async transferTeamProperties(@CurrentPmActor() actor: PmActorContext, @Body() dto: TransferTeamPropertiesDto) {
     if (actor.isEmployee) {
       throw new ForbiddenException('Team management is only accessible by company administrators');
     }
@@ -434,8 +353,7 @@ export class PmPropertyController {
   }
 
   @Delete('team/:uuid')
-  async revokeTeamMember(@Req() req: any, @Param('uuid') uuid: string) {
-    const actor = await this.getActorContext(req);
+  async revokeTeamMember(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
     if (actor.isEmployee) {
       throw new ForbiddenException('Team management is only accessible by company administrators');
     }
@@ -443,18 +361,16 @@ export class PmPropertyController {
   }
 
   @Get('approval-requests')
-  async getApprovalRequests(@Req() req: any) {
-    const actor = await this.getActorContext(req);
+  async getApprovalRequests(@CurrentPmActor() actor: PmActorContext) {
     return this.getApprovalRequestsUseCase.execute(actor.ownerPmId);
   }
 
   @Post('approval-requests/:uuid/resolve')
   async resolveApprovalRequest(
-    @Req() req: any,
+    @CurrentPmActor() actor: PmActorContext,
     @Param('uuid') uuid: string,
     @Body() body: { action: 'APPROVE' | 'REJECT'; rejectionReason?: string }
   ) {
-    const actor = await this.getActorContext(req);
     if (actor.isEmployee) {
       throw new UnauthorizedException('Only company administrators can resolve approval requests');
     }
