@@ -34,6 +34,7 @@ export interface UserProfile {
     rentType?: string;
     initialAmountPaid?: number;
     pmId?: number;
+    managerId?: number;
     pmUnitId?: string;
     paymentProofs?: any[];
     isManaged?: boolean;
@@ -42,6 +43,8 @@ export interface UserProfile {
     isPlatformLinked?: boolean;
     platformId?: number;
     company?: any;
+    manager?: any;
+    pm?: any;
     externalUnitId?: string;
     managerName?: string;
     managerPhone?: string;

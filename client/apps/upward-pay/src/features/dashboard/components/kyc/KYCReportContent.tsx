@@ -356,7 +356,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                                  <span className="kyc-report__property-badge kyc-report__property-badge--pending">Pending Connection</span>
                               )}
                               
-                              {isPlatformLinked && (
+                              {isPlatformLinked && p.isVerified && (
                                  <span className="kyc-report__property-badge kyc-report__property-badge--platform">Platform Synced</span>
                               )}
                               

@@ -333,11 +333,20 @@
   gap: 4px;
 }
 
+.pay-flow__badge--pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .pay-flow__badge-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--skin-primary, #c2501f);
+}
+
+.pay-flow__badge-dot--pending {
+  background: #d97706;
 }
 
 /* Property cards */
