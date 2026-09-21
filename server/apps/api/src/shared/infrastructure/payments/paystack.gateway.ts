@@ -357,31 +357,48 @@ export class PaystackGateway implements IPaymentGateway {
   async createDedicatedAccount(data: {
     customerCode: string
     subaccountCode?: string
+    preferredBank?: string
+    disableFallback?: boolean
   }): Promise<any> {
-    try {
-      const isTest = this.secretKey.startsWith('sk_test_')
-      const preferredBank = isTest ? 'test-bank' : 'wema-bank'
-      this.logger.log(`Creating Paystack DVA for customer ${data.customerCode} with preferred bank: ${preferredBank}`)
+    const isTest = this.secretKey.startsWith('sk_test_')
+    const primaryBank = isTest ? 'test-bank' : (data.preferredBank || 'titan-paystack')
+    const fallbackBank = (isTest || data.disableFallback) ? null : (primaryBank === 'titan-paystack' ? 'wema-bank' : 'titan-paystack')
+
+    const attemptCreation = async (bank: string): Promise<any> => {
+      this.logger.log(`Attempting Paystack DVA creation for customer ${data.customerCode} with preferred bank: ${bank}`)
       const res = await fetch(`${this.baseUrl}/dedicated_account`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
           customer: data.customerCode,
           subaccount: data.subaccountCode,
-          preferred_bank: preferredBank,
+          preferred_bank: bank,
         }),
       })
 
       const responseData = await res.json()
-      if (!res.ok) {
-        this.logger.error(`Paystack DVA creation failed: ${res.status} - ${JSON.stringify(responseData)}`)
-        throw new Error(responseData.message || 'DVA creation failed')
+      if (!res.ok || !responseData.status) {
+        throw new Error(responseData.message || `DVA creation failed with HTTP ${res.status}`)
+      }
+      return responseData
+    }
+
+    try {
+      return await attemptCreation(primaryBank)
+    } catch (primaryError: any) {
+      this.logger.warn(`Primary Paystack DVA creation failed with bank ${primaryBank}: ${primaryError?.message}`)
+
+      if (fallbackBank) {
+        try {
+          this.logger.log(`Attempting fallback Paystack DVA creation with bank ${fallbackBank} for customer ${data.customerCode}...`)
+          return await attemptCreation(fallbackBank)
+        } catch (fallbackError: any) {
+          this.logger.error(`Fallback Paystack DVA creation also failed with bank ${fallbackBank}: ${fallbackError?.message}`)
+          throw fallbackError
+        }
       }
 
-      return responseData
-    } catch (error) {
-      this.logger.error('Paystack createDedicatedAccount error:', error)
-      throw error
+      throw primaryError
     }
   }
 

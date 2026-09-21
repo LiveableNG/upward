@@ -265,8 +265,10 @@ export class PrismaTransactionRepository implements ITransactionRepository {
         ...(createdAfter ? { createdAt: { gte: createdAfter } } : {}),
         paymentRequest: {
           userProperty: {
-            dedicatedAccount: {
-              accountNumber: accountNumber
+            dedicatedAccounts: {
+              some: {
+                accountNumber: accountNumber
+              }
             }
           }
         }

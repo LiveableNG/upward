@@ -33,6 +33,7 @@ export const api = {
 
   // Payments
   initializePayment: paymentService.initializePayment,
+  switchDedicatedAccount: paymentService.switchDedicatedAccount,
   guestInitializePayment: paymentService.guestInitializePayment,
   verifyPayment: paymentService.verifyPayment,
   verifyTransaction: paymentService.verifyPayment,
