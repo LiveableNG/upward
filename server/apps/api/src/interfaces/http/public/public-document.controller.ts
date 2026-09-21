@@ -6,6 +6,7 @@ import {
   GetPublicAssetUseCase,
   GetRelayDocumentUseCase,
 } from '../../../application/public/use-cases/documents';
+import { GetPaymentProofUseCase } from '../../../application/use-cases/payments/manual-payment.use-cases';
 
 @Controller('public/documents')
 export class PublicDocumentController {
@@ -14,6 +15,7 @@ export class PublicDocumentController {
     private readonly getSignatureImageUseCase: GetSignatureImageUseCase,
     private readonly getPublicAssetUseCase: GetPublicAssetUseCase,
     private readonly getRelayDocumentUseCase: GetRelayDocumentUseCase,
+    private readonly getPaymentProofUseCase: GetPaymentProofUseCase,
   ) {}
 
   @Get(':uuid/pdf')
@@ -60,5 +62,21 @@ export class PublicDocumentController {
   async getRelayDocument(@Param('uuid') uuid: string, @Res({ passthrough: true }) res: any) {
     const result = await this.getRelayDocumentUseCase.execute(uuid);
     return S3Service.streamBuffer(result.buffer, result.filename, res, { contentType: result.contentType });
+  }
+
+  @Get('payment-proofs/:uuid/file')
+  async getPaymentProofFile(@Param('uuid') uuid: string, @Res({ passthrough: true }) res: any) {
+    const result = await this.getPaymentProofUseCase.execute(uuid);
+    return S3Service.streamBuffer(result.buffer, result.fileName || 'payment_proof', res, {
+      contentType: result.fileType,
+      cacheControl: 'public, max-age=86400',
+    });
+  }
+
+  @Get('users/payment-proofs/:uuid/:filename')
+  async getUserPaymentProof(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
+    const s3Key = `users/${uuid}/payment-proofs/${filename}`;
+    const result = await this.getPublicAssetUseCase.execute(s3Key);
+    return S3Service.streamBuffer(result.buffer, result.filename, res, { cacheControl: result.cacheControl });
   }
 }

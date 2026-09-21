@@ -9,7 +9,7 @@
   - `userPropertyUuid` (string, optional): The UUID of the property this proof is for.
   - `amount` (number): The payment amount specified by the tenant.
   - `currency` (string): The currency used (e.g. `NGN`).
-  - `fileUrl` (string, optional): The S3 key/URL pointing to the uploaded receipt image or PDF (null if manual text entry).
+  - `fileUrl` (string, optional): A publicly accessible direct download/view URL for the uploaded receipt (PDF or image).
   - `fileName` (string, optional): The original name of the uploaded file.
   - `senderName` (string, optional): The name of the person who sent the manual transfer (if text entry was used).
   - `paymentDate` (string, optional): ISO date string of when the payment was made (if text entry was used).
@@ -26,7 +26,7 @@
     "userPropertyUuid": "up_8765dcba4321",
     "amount": 150000,
     "currency": "NGN",
-    "fileUrl": "users/uuid/payment-proofs/receipt.pdf",
+    "fileUrl": "https://api.upward.com/api/v1/public/documents/payment-proofs/39fe99ca-129a-48b0-b155-44d1892f3241/file",
     "fileName": "receipt.pdf",
     "senderName": "John Doe",
     "paymentDate": "2023-10-15T00:00:00.000Z",
