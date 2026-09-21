@@ -47,25 +47,28 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     let isBlocked = false
     let isManuallyBlocked = false
     let ownerPmId: number | undefined = undefined
+    let ownerPmUuid: string | undefined = undefined
     let employeeId: number | undefined = undefined
     let accessLevel: string | undefined = undefined
 
     if ((payload.role as string) === 'PM') {
       const pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: payload.sub },
-        select: { id: true, isBlocked: true, isManuallyBlocked: true } as any,
+        select: { id: true, uuid: true, isBlocked: true, isManuallyBlocked: true } as any,
       })
       isBlocked = (pm as any)?.isBlocked ?? false
       isManuallyBlocked = (pm as any)?.isManuallyBlocked ?? false
       ownerPmId = (pm as any)?.id
+      ownerPmUuid = (pm as any)?.uuid || payload.sub
     } else if ((payload.role as string) === 'PM_EMPLOYEE') {
       const employee = await (this.prisma as any).upward_pm_employee.findUnique({
         where: { uuid: payload.sub },
-        include: { ownerPm: { select: { isBlocked: true, isManuallyBlocked: true } } },
+        include: { ownerPm: { select: { id: true, uuid: true, isBlocked: true, isManuallyBlocked: true } } },
       })
       if (employee) {
         employeeId = employee.id
         ownerPmId = employee.ownerPmId
+        ownerPmUuid = employee.ownerPm?.uuid
         accessLevel = employee.accessLevel || 'CUSTOM'
         isBlocked = employee.status === 'SUSPENDED' || employee.status === 'REVOKED' || (employee.ownerPm?.isBlocked ?? false)
         isManuallyBlocked = employee.ownerPm?.isManuallyBlocked ?? false
@@ -78,6 +81,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       role: payload.role,
       ownerPmId,
+      ownerPmUuid,
       employeeId,
       accessLevel,
       mustChangePassword: payload.mustChangePassword,

@@ -15,6 +15,7 @@ export const CurrentPmActor = createParamDecorator(
       }
       return {
         ownerPmId: user.ownerPmId,
+        ownerPmUuid: user.ownerPmUuid,
         isEmployee: true,
         employeeId: user.employeeId,
         employeeUuid: user.sub,
@@ -28,6 +29,7 @@ export const CurrentPmActor = createParamDecorator(
       }
       return {
         ownerPmId: user.ownerPmId,
+        ownerPmUuid: user.ownerPmUuid || user.sub,
         isEmployee: false,
       };
     }
@@ -36,6 +38,7 @@ export const CurrentPmActor = createParamDecorator(
     if (user.ownerPmId) {
       return {
         ownerPmId: user.ownerPmId,
+        ownerPmUuid: user.ownerPmUuid,
         isEmployee: false,
       };
     }
@@ -57,5 +60,22 @@ export const CurrentPmId = createParamDecorator(
     }
 
     return user.ownerPmId;
+  },
+);
+
+export const CurrentPmUuid = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext): string => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user;
+    if (!user || !user.sub) {
+      throw new UnauthorizedException('Invalid user context');
+    }
+
+    const uuid = user.ownerPmUuid || (user.role === 'PM' ? user.sub : undefined);
+    if (!uuid) {
+      throw new UnauthorizedException('Property Manager organization not found');
+    }
+
+    return uuid;
   },
 );

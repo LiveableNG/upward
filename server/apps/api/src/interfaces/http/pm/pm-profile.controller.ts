@@ -15,7 +15,9 @@ import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { UpdatePmProfileUseCase } from '../../../application/use-cases/pm/update-pm-profile.use-case'
 import { UpdatePmBankInfoUseCase } from '../../../application/use-cases/pm/update-pm-bank-info.use-case'
 import { ChangePmPasswordUseCase } from '../../../application/use-cases/pm/change-pm-password.use-case'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { CurrentPmId } from '../../../application/auth/decorators/current-pm-actor.decorator'
+import { SubmitPmVerificationUseCase } from '../../../application/pm/use-cases/verification/submit-pm-verification.use-case'
+import { GetPmVerificationStatusUseCase } from '../../../application/pm/use-cases/verification/get-pm-verification-status.use-case'
 import { GetPmAvatarUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-avatar-upload-url.use-case'
 import { UploadPmAvatarUseCase } from '../../../application/use-cases/pm/upload-pm-avatar.use-case'
 import { GetPmLetterheadUploadUrlUseCase } from '../../../application/use-cases/pm/get-pm-letterhead-upload-url.use-case'
@@ -45,7 +47,8 @@ export class PmProfileController {
     private readonly verifyAccountUseCase: VerifyAccountUseCase,
     private readonly getBanksUseCase: GetBanksUseCase,
     private readonly employeeAuthService: PmEmployeeAuthService,
-    private readonly prisma: PrismaService,
+    private readonly submitVerificationUseCase: SubmitPmVerificationUseCase,
+    private readonly getVerificationStatusUseCase: GetPmVerificationStatusUseCase,
   ) {}
 
   @Get('banks')
@@ -138,47 +141,21 @@ export class PmProfileController {
 
   @Post('verification')
   @HttpCode(HttpStatus.CREATED)
-  async submitVerification(@Req() req: FastifyRequest, @Body() body: any) {
-    if (!req.user?.sub) throw new UnauthorizedException()
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid: req.user.sub } })
-    if (!pm) throw new UnauthorizedException()
-
-    return this.prisma.upward_pm_verification.upsert({
-      where: { pmId: pm.id },
-      create: {
-        pmId: pm.id,
-        idType: body.idType,
-        idNumber: body.idNumber,
-        idImage: body.idImage,
-        status: 'PENDING',
-      },
-      update: {
-        idType: body.idType,
-        idNumber: body.idNumber,
-        idImage: body.idImage,
-        status: 'PENDING',
-      }
+  async submitVerification(
+    @CurrentPmId() pmId: number,
+    @Body() body: any,
+  ) {
+    return this.submitVerificationUseCase.execute({
+      pmId,
+      idType: body.idType,
+      idNumber: body.idNumber,
+      idImage: body.idImage,
     })
   }
 
   @Get('verification')
   @HttpCode(HttpStatus.OK)
-  async getVerificationStatus(@Req() req: FastifyRequest) {
-    if (!req.user?.sub) throw new UnauthorizedException()
-    let pmId: number | undefined
-    if (req.user?.role === 'PM_EMPLOYEE' && (req.user as any)?.ownerPmId) {
-      pmId = (req.user as any).ownerPmId
-    } else {
-      const pm = await this.prisma.upward_property_manager.findUnique({ 
-        where: { uuid: req.user.sub },
-        select: { id: true }
-      })
-      if (!pm) throw new UnauthorizedException()
-      pmId = pm.id
-    }
-    const verification = await this.prisma.upward_pm_verification.findUnique({
-      where: { pmId }
-    })
-    return verification || { status: 'NOT_SUBMITTED' }
+  async getVerificationStatus(@CurrentPmId() pmId: number) {
+    return this.getVerificationStatusUseCase.execute(pmId)
   }
 }

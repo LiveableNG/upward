@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client'
-
 export interface Property {
   id?: number
   uuid: string
@@ -47,12 +45,12 @@ export interface Location {
 }
 
 export interface PropertyRepository {
-  findById(id: number, tx?: Prisma.TransactionClient): Promise<Property | null>
-  findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Property | null>
-  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<Property[]>
-  save(property: Property, tx?: Prisma.TransactionClient): Promise<Property>
-  update(id: number, data: Partial<Property>, tx?: Prisma.TransactionClient): Promise<Property>
-  findByPlatformUnit(platformId: number, externalUnitId: string, tx?: Prisma.TransactionClient): Promise<Property | null>
+  findById(id: number, tx?: any): Promise<Property | null>
+  findByUuid(uuid: string, tx?: any): Promise<Property | null>
+  findByUserId(userId: number, tx?: any): Promise<Property[]>
+  save(property: Property, tx?: any): Promise<Property>
+  update(id: number, data: Partial<Property>, tx?: any): Promise<Property>
+  findByPlatformUnit(platformId: number, externalUnitId: string, tx?: any): Promise<Property | null>
 }
 
 export interface LocationRepository {

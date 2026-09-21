@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { IBulkImportJobRepository, BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRepository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
@@ -297,3 +297,31 @@ export class CompleteImportJobUseCase {
     return updated
   }
 }
+
+@Injectable()
+export class CancelBulkImportJobUseCase {
+  constructor(
+    @Inject(BULK_IMPORT_JOB_REPOSITORY)
+    private readonly bulkImportJobRepo: IBulkImportJobRepository,
+  ) {}
+
+  async execute(pmId: number, uuid: string) {
+    const job = await this.bulkImportJobRepo.findByUuid(uuid)
+    if (!job || job.pmId !== pmId) {
+      throw new UnauthorizedException('Job not found or unauthorized')
+    }
+
+    await this.bulkImportJobRepo.updateStatus(job.id, 'CANCELLED')
+
+    try {
+      await this.bulkImportJobRepo.addLog({
+        jobId: job.id,
+        action: 'PM_CANCELLED',
+        details: 'Property Manager cancelled the request',
+      })
+    } catch (_) {}
+
+    return { success: true }
+  }
+}
+

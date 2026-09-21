@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client'
-
 export interface RentCycle {
   id?: number
   uuid: string
@@ -19,12 +17,12 @@ export interface RentCycle {
 }
 
 export interface IRentCycleRepository {
-  create(data: Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<RentCycle>
-  update(id: number, data: Partial<RentCycle>, tx?: Prisma.TransactionClient): Promise<RentCycle>
-  findByUserId(userId: number, tx?: Prisma.TransactionClient): Promise<RentCycle[]>
-  findByUserPropertyId(propertyId: number, tx?: Prisma.TransactionClient): Promise<RentCycle[]>
-  findByPaymentRequestId(paymentRequestId: number, tx?: Prisma.TransactionClient): Promise<RentCycle | null>
-  upsertByPaymentRequestId(paymentRequestId: number, data: Partial<Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>>, tx?: Prisma.TransactionClient): Promise<RentCycle>
+  create(data: Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<RentCycle>
+  update(id: number, data: Partial<RentCycle>, tx?: any): Promise<RentCycle>
+  findByUserId(userId: number, tx?: any): Promise<RentCycle[]>
+  findByUserPropertyId(propertyId: number, tx?: any): Promise<RentCycle[]>
+  findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<RentCycle | null>
+  upsertByPaymentRequestId(paymentRequestId: number, data: Partial<Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>>, tx?: any): Promise<RentCycle>
 }
 
 export const RENT_CYCLE_REPOSITORY = Symbol('RENT_CYCLE_REPOSITORY')
