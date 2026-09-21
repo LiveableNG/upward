@@ -51,10 +51,10 @@ export class PrismaUserRepository implements UserRepository {
         currency: p.currency,
         location: p.location,
         unitName: p.pmUnit?.unitName || undefined,
-        isManaged: !!(p.pmId && p.isVerified) || !!p.company?.platformId,
-        isVerified: !!p.isVerified || !!p.company?.platformId,
+        isManaged: !!(p.pmId && p.isVerified) || !!((p.company?.platformId || p.platformId) && p.isVerified),
+        isVerified: !!p.isVerified,
         isPmVerified: p.pm ? !!p.pm.isVerified : false,
-        isPlatformLinked: !!p.company?.platformId,
+        isPlatformLinked: !!(p.company?.platformId || p.platformId),
         externalUnitId: p.externalUnitId ?? undefined,
         isPastTenancy: p.isPastTenancy,
         verificationStatus: p.verificationStatus,
@@ -89,12 +89,27 @@ export class PrismaUserRepository implements UserRepository {
           bankCode: p.subaccount.bankCode,
           businessName: p.subaccount.businessName
         } : undefined,
-        dedicatedAccount: p.dedicatedAccount ? {
-          accountNumber: p.dedicatedAccount.accountNumber,
-          accountName: p.dedicatedAccount.accountName,
-          bankName: p.dedicatedAccount.bankName,
-          bankCode: p.dedicatedAccount.bankCode
-        } : undefined,
+        dedicatedAccount: (() => {
+          const d = Array.isArray(p.dedicatedAccounts)
+            ? (p.dedicatedAccounts.find((acc: any) => acc.isDefault) || p.dedicatedAccounts[0])
+            : p.dedicatedAccount
+          return d ? {
+            accountNumber: d.accountNumber,
+            accountName: d.accountName,
+            bankName: d.bankName,
+            bankCode: d.bankCode,
+            bankSlug: d.bankSlug,
+            isDefault: d.isDefault,
+          } : undefined
+        })(),
+        dedicatedAccounts: Array.isArray(p.dedicatedAccounts) ? p.dedicatedAccounts.map((d: any) => ({
+          accountNumber: d.accountNumber,
+          accountName: d.accountName,
+          bankName: d.bankName,
+          bankCode: d.bankCode,
+          bankSlug: d.bankSlug,
+          isDefault: d.isDefault,
+        })) : [],
         manualAccount: p.manualAccount ? {
           accountNumber: p.manualAccount.accountNumber,
           accountName: p.manualAccount.accountName,
@@ -136,7 +151,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -173,7 +188,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -209,7 +224,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -245,7 +260,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -281,7 +296,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -317,7 +332,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -352,7 +367,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {
@@ -457,7 +472,7 @@ export class PrismaUserRepository implements UserRepository {
             manager: true,
             pm: true,
             subaccount: true,
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             manualAccount: true,
             pmUnit: {
               include: {

@@ -64,7 +64,8 @@ export class GenerateRentDepositReceiptPdfUseCase {
     const propertyAddress = [address, state].filter(Boolean).join(', ') || 'Tenancy Property'
 
     // DVA Details if available
-    const dedicatedAccount = (tx.userProperty as any)?.dedicatedAccount
+    const dedicatedAccount = (tx.userProperty as any)?.dedicatedAccount || 
+      ((tx.userProperty as any)?.dedicatedAccounts?.find((a: any) => a.isDefault) || (tx.userProperty as any)?.dedicatedAccounts?.[0])
     const dvaAccountNumber = dedicatedAccount?.accountNumber
     const dvaBankName = dedicatedAccount?.bankName
 

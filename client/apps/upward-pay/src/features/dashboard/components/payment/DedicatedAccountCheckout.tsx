@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Copy, Check, Info, ShieldCheck, ArrowRight, Loader2, X } from 'lucide-react'
+import { Copy, Check, Info, ShieldCheck, ArrowRight, Loader2, X, RefreshCw, AlertCircle } from 'lucide-react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
+import { useToast } from '@/components/common/Toast'
 
 type VerifyStatus = 'idle' | 'pending' | 'error' | 'refund'
 
@@ -14,20 +15,29 @@ interface DedicatedAccountCheckoutProps {
   amount: number
   reference: string
   companyName: string
+  userPropertyId?: number
+  paymentRequestUuid?: string
   onSuccess: (reference: string) => void
   onClose: () => void
 }
 
 export default function DedicatedAccountCheckout({
-  accountNumber,
-  accountName,
-  bankName,
+  accountNumber: initialAccountNumber,
+  accountName: initialAccountName,
+  bankName: initialBankName,
   amount,
   reference,
   companyName,
+  userPropertyId,
+  paymentRequestUuid,
   onSuccess,
   onClose,
 }: DedicatedAccountCheckoutProps) {
+  const toast = useToast()
+  const [accountNumber, setAccountNumber] = useState(initialAccountNumber)
+  const [accountName, setAccountName] = useState(initialAccountName)
+  const [bankName, setBankName] = useState(initialBankName)
+  const [isSwitching, setIsSwitching] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>('idle')
@@ -42,17 +52,51 @@ export default function DedicatedAccountCheckout({
     isMounted.current = true
     return () => {
       isMounted.current = false
-      // Clean up the auto-close timeout on unmount to prevent state updates on dead component
       if (autoCloseTimeout.current) {
         clearTimeout(autoCloseTimeout.current)
       }
     }
   }, [])
 
+  useEffect(() => {
+    setAccountNumber(initialAccountNumber)
+    setAccountName(initialAccountName)
+    setBankName(initialBankName)
+  }, [initialAccountNumber, initialAccountName, initialBankName])
+
+  const isWema = (bankName || '').toLowerCase().includes('wema')
+  const currentDisplayName = isWema ? 'Wema Bank' : (bankName.toLowerCase().includes('titan') || bankName.toLowerCase().includes('paystack') ? 'Paystack-Titan' : bankName)
+  const alternateDisplayName = isWema ? 'Paystack-Titan' : 'Wema Bank'
+
   const handleCopy = () => {
     navigator.clipboard.writeText(accountNumber)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleSwitchBank = async () => {
+    if (isSwitching) return
+    setIsSwitching(true)
+    try {
+      const res = await api.switchDedicatedAccount({
+        userPropertyId,
+        paymentRequestUuid,
+      })
+      if (res && res.accountNumber) {
+        setAccountNumber(res.accountNumber)
+        if (res.accountName) setAccountName(res.accountName)
+        if (res.bankName) setBankName(res.bankName)
+        setCopied(false)
+        toast.success(`Switched to ${res.bankName || alternateDisplayName} account`)
+      }
+    } catch (err: any) {
+      console.error('Failed to switch bank account:', err)
+      toast.error(err.message || 'Could not generate alternate account. Please try again.')
+    } finally {
+      if (isMounted.current) {
+        setIsSwitching(false)
+      }
+    }
   }
 
   const checkPayment = async (): Promise<boolean> => {
@@ -64,7 +108,6 @@ export default function DedicatedAccountCheckout({
       if (res?.settlementStatus === 'PENDING_REFUND') {
         setVerifyStatus('refund')
         setVerifyMessage('A refund will be triggered for you soon. This window will close automatically in 20s. Further info will be communicated with you soon.')
-        // Store the timeout so we can cancel it if the component unmounts first
         autoCloseTimeout.current = setTimeout(() => {
           if (isMounted.current) onClose()
         }, 20000)
@@ -99,7 +142,6 @@ export default function DedicatedAccountCheckout({
   }, [reference])
 
   const handleConfirm = async () => {
-    // Don't allow re-check once a refund has been triggered
     if (verifyStatus === 'refund') return
 
     setIsVerifying(true)
@@ -108,13 +150,11 @@ export default function DedicatedAccountCheckout({
 
     const found = await checkPayment()
 
-    // Only update state if still mounted and payment not found
     if (!found && isMounted.current) {
       setVerifyStatus('error')
       setVerifyMessage("Payment not detected yet. It might take a few minutes for the bank to process the transfer. We're checking automatically.")
       setIsVerifying(false)
     }
-    // If found, onSuccess() unmounts the component — we do NOT call setIsVerifying(false) to avoid state on unmounted component
   }
 
   const statusColor =
@@ -155,7 +195,7 @@ export default function DedicatedAccountCheckout({
             <div className="psk-account-grid">
               <div className="psk-account-row">
                 <span className="psk-account-label">Bank Name</span>
-                <span className="psk-account-value">{bankName}</span>
+                <span className="psk-account-value">{currentDisplayName}</span>
               </div>
               <div className="psk-account-row">
                 <span className="psk-account-label">Account Name</span>
@@ -173,9 +213,36 @@ export default function DedicatedAccountCheckout({
             </div>
           </div>
 
-          <div className="psk-info-note" style={{ marginTop: 20, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px', background: 'var(--surface2)', borderRadius: '12px' }}>
+          {/* Bank Downtime & Instant Fallback Switcher */}
+          <div className="psk-downtime-card">
+            <div className="psk-downtime-card__header">
+              <div className="psk-downtime-card__icon-wrap">
+                <AlertCircle size={15} />
+              </div>
+              <div className="psk-downtime-card__content">
+                <h4 className="psk-downtime-card__title">Experiencing {currentDisplayName} transfer delays?</h4>
+                <p className="psk-downtime-card__desc">
+                  If bank network downtime is delaying your transfer, you can instantly get an alternate <strong>{alternateDisplayName}</strong> account.
+                </p>
+              </div>
+            </div>
+            <div className="psk-downtime-card__action">
+              <button
+                type="button"
+                className="psk-switch-btn"
+                onClick={handleSwitchBank}
+                disabled={isSwitching}
+                title={`Switch to ${alternateDisplayName}`}
+              >
+                <RefreshCw size={13} className={isSwitching ? 'animate-spin' : ''} />
+                <span>{isSwitching ? 'Switching Bank...' : `Switch to ${alternateDisplayName}`}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="psk-info-note" style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px', background: 'var(--surface2)', borderRadius: '12px' }}>
             <Info size={16} style={{ color: 'var(--clay)', marginTop: 2, flexShrink: 0 }} />
-            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
               Your payment will be automatically detected once the transfer is complete. {pollCount > 0 && <span style={{ color: 'var(--text-muted)' }}>Listening for payment... ({pollCount})</span>}
             </p>
           </div>
@@ -186,7 +253,7 @@ export default function DedicatedAccountCheckout({
              </p>
           )}
 
-          <div className="psk-actions" style={{ marginTop: 32 }}>
+          <div className="psk-actions" style={{ marginTop: 24 }}>
             <button 
               className="btn btn--primary btn--full" 
               onClick={() => handleConfirm()}
@@ -234,3 +301,4 @@ function Banknote({ size }: { size: number }) {
     </svg>
   )
 }
+

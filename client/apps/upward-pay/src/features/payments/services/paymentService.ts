@@ -21,6 +21,18 @@ export async function initializePayment(data: {
   return res.data || res
 }
 
+export async function switchDedicatedAccount(data: {
+  userPropertyId?: number
+  paymentRequestUuid?: string
+  preferredBank?: string
+}) {
+  const res = await request<any>('/payments/switch-dva', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  return res.data || res
+}
+
 export async function guestInitializePayment(data: { paymentToken: string; email: string }) {
   return request<PaymentInitResponse>('/public/pay/guest-initialize', {
     method: 'POST',

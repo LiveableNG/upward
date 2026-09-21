@@ -41,7 +41,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const property = (user?.properties || []).find((p) => p.uuid === propertyUuid)
 
   const isPmVerified = !!(property?.isVerified && (property as any)?.isManaged)
-  const isExternalUnit = !!((property as any)?.pmUnitId || (property as any)?.externalUnitId || property?.isPlatformLinked)
+  const isExternalUnit = !!(((property as any)?.externalUnitId || property?.isPlatformLinked || (property as any)?.pmUnitId) && property?.isVerified)
   
   const onlinePayments = ((property as any)?.platformRentPayments || []).filter(
     (p: any) => p.method !== 'INITIAL_ONBOARDING' && p.status === 'SUCCESS'
@@ -110,7 +110,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         ? `${(property as any).manager.firstName} ${(property as any).manager.lastName || ''}`.trim()
         : '')
     const cmpName = (property as any)?.companyName || (property as any)?.company?.name || ''
-    const hasLinkedPm = !!((property as any)?.pmId || (property as any)?.pm || isPmVerified || isExternalUnit)
+    const hasLinkedPm = !!((property as any)?.pmId || (property as any)?.pm || (property as any)?.company?.uuid || (property as any)?.manager?.uuid || isPmVerified || isExternalUnit)
 
     setPmEmail(mgrEmail)
     setPmName(mgrName)
@@ -118,8 +118,12 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
     setPmFound(hasLinkedPm)
     if (hasLinkedPm || mgrName || cmpName) {
       setPmDetails({
+        id: (property as any)?.pm?.id || (property as any)?.pmId,
         name: mgrName || cmpName || 'Property Manager',
         businessName: cmpName || mgrName,
+        isExternal: !!((property as any)?.company?.platformId || (property as any)?.isPlatformLinked),
+        companyUuid: (property as any)?.company?.uuid,
+        managerUuid: (property as any)?.manager?.uuid,
       })
     } else {
       setPmDetails(null)
@@ -246,7 +250,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             : undefined,
       }
 
-      if (!isManaged && pmEmail.trim()) {
+      if (!isManaged && (pmEmail.trim() || pmDetails?.companyUuid || pmDetails?.managerUuid)) {
         const trimmedPm = pmEmail.trim()
         const targetEmail = pmFound
           ? trimmedPm
@@ -256,18 +260,18 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
         if (targetEmail) {
           payload.pmEmail = targetEmail
-          payload.pmName = pmFound ? pmDetails?.name : pmName.trim()
-          if (pmDetails?.companyUuid) {
-            payload.companyUuid = pmDetails.companyUuid
-          }
-          if (pmDetails?.managerUuid) {
-            payload.managerUuid = pmDetails.managerUuid
-          }
-          if (!pmFound) {
-            payload.pmType = pmType
-            if (pmType === 'Property Manager' && companyName.trim()) {
-              payload.companyName = companyName.trim()
-            }
+        }
+        payload.pmName = pmFound ? pmDetails?.name : pmName.trim()
+        if (pmDetails?.companyUuid) {
+          payload.companyUuid = pmDetails.companyUuid
+        }
+        if (pmDetails?.managerUuid) {
+          payload.managerUuid = pmDetails.managerUuid
+        }
+        if (!pmFound) {
+          payload.pmType = pmType
+          if (pmType === 'Property Manager' && companyName.trim()) {
+            payload.companyName = companyName.trim()
           }
         }
       }
@@ -363,7 +367,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               <Lock size={20} style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
                 <strong style={{ display: 'block', fontSize: 14, marginBottom: 2 }}>
-                  {isExternalUnit || property?.isPlatformLinked || (property as any)?.company?.platformId
+                  {isExternalUnit
                     ? `Verified by External Platform (${managerLabel})`
                     : `Verified by Upward PM (${managerLabel})`}
                 </strong>
@@ -390,6 +394,59 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             >
               Contact Support
             </button>
+          </div>
+        )}
+
+        {/* Pending Verification Notice Banner */}
+        {!isManaged && !property?.isVerified && (property?.isPlatformLinked || (property as any)?.company?.platformId) && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 16px',
+              borderRadius: 14,
+              background: '#fffbeb',
+              border: '1px solid #fef3c7',
+              color: '#92400e',
+              boxSizing: 'border-box',
+            }}
+          >
+            <AlertCircle size={20} color="#b45309" style={{ flexShrink: 0 }} />
+            <div>
+              <strong style={{ display: 'block', fontSize: 13.5, marginBottom: 2 }}>
+                Pending Confirmation from External Platform ({managerLabel})
+              </strong>
+              <span style={{ fontSize: 12.5, lineHeight: 1.45, opacity: 0.9 }}>
+                Your connection request has been sent to your external platform manager. You can update your rental details below anytime until they confirm your tenancy.
+              </span>
+            </div>
+          </div>
+        )}
+
+        {!isManaged && !property?.isVerified && ((property as any)?.pmId || (property as any)?.pm) && !(property?.isPlatformLinked || (property as any)?.company?.platformId) && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '14px 16px',
+              borderRadius: 14,
+              background: '#fffbeb',
+              border: '1px solid #fef3c7',
+              color: '#92400e',
+              boxSizing: 'border-box',
+            }}
+          >
+            <AlertCircle size={20} color="#b45309" style={{ flexShrink: 0 }} />
+            <div>
+              <strong style={{ display: 'block', fontSize: 13.5, marginBottom: 2 }}>
+                Pending Confirmation from Property Manager ({managerLabel})
+              </strong>
+              <span style={{ fontSize: 12.5, lineHeight: 1.45, opacity: 0.9 }}>
+                Your property manager has not confirmed this connection yet. You can update your rental details below anytime.
+              </span>
+            </div>
           </div>
         )}
 

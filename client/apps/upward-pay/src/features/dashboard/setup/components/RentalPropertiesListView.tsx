@@ -112,6 +112,16 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                         <span className="pay-flow__badge-dot" />
                         {prop.isPlatformLinked || prop.platformId || prop.company?.platformId ? 'Verified by External Platform' : 'Verified by Upward PM'}
                       </span>
+                    ) : (prop.isPlatformLinked || prop.platformId || prop.company?.platformId) ? (
+                      <span className="pay-flow__badge pay-flow__badge--pending">
+                        <span className="pay-flow__badge-dot pay-flow__badge-dot--pending" />
+                        Pending External Verification
+                      </span>
+                    ) : (pAny.pmId || pAny.pm || pAny.managerId || pAny.manager || prop.managerName || prop.companyName) ? (
+                      <span className="pay-flow__badge pay-flow__badge--pending">
+                        <span className="pay-flow__badge-dot pay-flow__badge-dot--pending" />
+                        Pending PM Verification
+                      </span>
                     ) : null}
                   </div>
                   <div className="pay-flow__card-meta">{address}</div>
@@ -196,7 +206,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     </div>
                   )}
                   <div style={{ marginTop: 12 }}>
-                    {prop.pmManualAccount || ((prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
+                    {prop.pmManualAccount || (prop.isVerified && (prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
                       <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
                         Bank configured by Property Manager

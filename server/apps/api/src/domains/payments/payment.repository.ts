@@ -104,6 +104,8 @@ export interface IPaymentGateway {
   createDedicatedAccount(data: {
     customerCode: string
     subaccountCode?: string
+    preferredBank?: string
+    disableFallback?: boolean
   }): Promise<any>
   initiateTransfer(data: {
     amount: number
@@ -260,6 +262,8 @@ export interface DVAAccount {
   accountName: string
   bankName: string
   bankCode: string
+  bankSlug?: string | null
+  isDefault?: boolean
   accountCode: string
   paystackCustomerId: string
   userPropertyId: number
@@ -271,6 +275,8 @@ export interface DVAAccount {
 export interface IDVAAccountRepository {
   create(data: Omit<DVAAccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<DVAAccount>
   findByUserPropertyId(userPropertyId: number): Promise<DVAAccount | null>
+  findAllByUserPropertyId(userPropertyId: number): Promise<DVAAccount[]>
+  setDefault(id: number, userPropertyId: number, tx?: any): Promise<void>
   findByAccountNumber(accountNumber: string): Promise<DVAAccount | null>
 }
 

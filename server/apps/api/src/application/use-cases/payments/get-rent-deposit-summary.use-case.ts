@@ -18,18 +18,18 @@ export class GetRentDepositSummaryUseCase {
   ) {}
 
   async execute(userUuid: string, propertyUuid?: string) {
-    const user = await this.prisma.upward_user.findUnique({
+    const user: any = await this.prisma.upward_user.findUnique({
       where: { uuid: userUuid },
       include: {
         properties: {
           where: propertyUuid ? { uuid: propertyUuid } : { isPastTenancy: false },
           include: {
-            dedicatedAccount: true,
+            dedicatedAccounts: true,
             location: true,
           },
           orderBy: { createdAt: 'desc' },
         },
-      },
+      } as any,
     })
 
     if (!user) {
@@ -68,15 +68,16 @@ export class GetRentDepositSummaryUseCase {
         propertyAddress = [addr, area, state].filter(Boolean).join(', ') || 'Primary Residence'
       }
 
-      if (primaryProp.dedicatedAccount) {
-        const accName = primaryProp.dedicatedAccount.accountName
-          ? this.encryption.decrypt(primaryProp.dedicatedAccount.accountName)
+      const dedicatedAccount = primaryProp.dedicatedAccounts?.find((d: any) => d.isDefault) || primaryProp.dedicatedAccounts?.[0]
+      if (dedicatedAccount) {
+        const accName = dedicatedAccount.accountName
+          ? this.encryption.decrypt(dedicatedAccount.accountName)
           : ''
         dvaInfo = {
-          accountNumber: primaryProp.dedicatedAccount.accountNumber,
-          accountName: accName || primaryProp.dedicatedAccount.accountName,
-          bankName: primaryProp.dedicatedAccount.bankName,
-          bankCode: primaryProp.dedicatedAccount.bankCode,
+          accountNumber: dedicatedAccount.accountNumber,
+          accountName: accName || dedicatedAccount.accountName,
+          bankName: dedicatedAccount.bankName,
+          bankCode: dedicatedAccount.bankCode,
         }
       }
     }

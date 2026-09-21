@@ -36,24 +36,10 @@ export class GetPerformanceMetricsUseCase {
           isInternal: false,
           ...(startDate || endDate
             ? {
-                OR: [
-                  {
-                    createdAt: {
-                      ...(startDate ? { gte: new Date(startDate) } : {}),
-                      ...(endDate ? { lte: new Date(endDate) } : {}),
-                    },
-                  },
-                  {
-                    authSessions: {
-                      some: {
-                        createdAt: {
-                          ...(startDate ? { gte: new Date(startDate) } : {}),
-                          ...(endDate ? { lte: new Date(endDate) } : {}),
-                        },
-                      },
-                    },
-                  },
-                ],
+                createdAt: {
+                  ...(startDate ? { gte: new Date(startDate) } : {}),
+                  ...(endDate ? { lte: new Date(endDate) } : {}),
+                },
               }
             : {}),
         },
@@ -71,6 +57,7 @@ export class GetPerformanceMetricsUseCase {
           isFromInvite: true,
           hearAboutUs: true,
           createdAt: true,
+          joinedAt: true,
           updatedAt: true,
           authSessions: {
             orderBy: { createdAt: 'asc' },

@@ -49,4 +49,10 @@ export class EncryptionService {
     // Deterministic hash for indexing/searching
     return crypto.createHash('sha256').update(text.toLowerCase().trim()).digest('hex');
   }
+
+  isEncrypted(text?: string | null): boolean {
+    if (!text || typeof text !== 'string') return false;
+    const parts = text.split(':');
+    return parts.length === 3 && parts.every((p) => p.length > 0 && /^[0-9a-fA-F]+$/.test(p));
+  }
 }

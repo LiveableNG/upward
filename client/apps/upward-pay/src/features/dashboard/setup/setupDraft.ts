@@ -277,7 +277,7 @@ export function draftFromProperty(
   const managerEmail = managerEmailFromProperty(prop)
   const companyName = companyNameFromProperty(prop)
 
-  const isManaged = !!(prop.isManaged || prop.isPlatformLinked || prop.pmUnitId || prop.isVerified)
+  const isManaged = !!(prop.isManaged || ((prop.isPlatformLinked || prop.pmUnitId) && prop.isVerified) || prop.isVerified)
 
   draft.formData = {
     uuid: prop.uuid,
