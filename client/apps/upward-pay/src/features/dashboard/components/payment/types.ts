@@ -25,6 +25,7 @@ export type PayRentStep =
   | 'bank-transfer'
   | 'upload-proof'
 export interface LineItem {
+  id?: number
   label: string
   amount: number
   name?: string

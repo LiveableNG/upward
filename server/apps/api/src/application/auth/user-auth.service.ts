@@ -16,6 +16,7 @@ import { WhatsappService } from '../../shared/infrastructure/whatsapp/whatsapp.s
 import { UnifiedCommunicationService } from '../../shared/infrastructure/communication/unified-communication.service'
 
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
+import { SyncUserSequenceChannelUseCase } from '../use-cases/sequence/sync-user-sequence-channel.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
 
 interface AppleJwkKey {
@@ -60,6 +61,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly encryption: EncryptionService,
     private readonly s3Service: S3Service,
     private readonly initializeUserSequenceUseCase: InitializeUserSequenceUseCase,
+    private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
     private readonly initializeEmailSequenceUseCase: InitializeEmailSequenceUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
@@ -580,6 +582,34 @@ export class UserAuthService extends BaseAuthService {
 
     await this.userRepository.update(user.id!, data as any)
 
+    if (data.phone) {
+      const updatedUser = await this.userRepository.findById(user.id!)
+      if (updatedUser?.phone) {
+        let pmName: string | undefined = undefined
+        if (updatedUser.companyUsers && updatedUser.companyUsers.length > 0) {
+          pmName = updatedUser.companyUsers[0].company?.name
+        }
+        if (!pmName && updatedUser.properties && updatedUser.properties.length > 0) {
+          const prop = updatedUser.properties[0]
+          if (prop.company?.name) {
+            pmName = prop.company.name
+          } else if (prop.manager) {
+            pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
+          }
+        }
+
+        this.syncUserSequenceChannelUseCase
+          .execute({
+            userId: updatedUser.id!,
+            firstName: updatedUser.firstName,
+            phoneEncrypted: updatedUser.phone,
+            phoneHash: updatedUser.phoneHash || this.encryption.hash(updatedUser.phone),
+            pmName,
+          })
+          .catch(e => console.error('Failed to sync sequence channel on profile update', e))
+      }
+    }
+
     // Sync Property logic
     const propertyList = (data as any).properties || []
 
@@ -920,6 +950,37 @@ export class UserAuthService extends BaseAuthService {
     return { success: true }
   }
 
+  getPhoneVariants(rawPhone: string): string[] {
+    if (!rawPhone) return []
+    const cleaned = rawPhone.trim().replace(/[\s\-\(\)]/g, '')
+    const variants = new Set<string>()
+    if (cleaned) variants.add(cleaned)
+    if (rawPhone.trim()) variants.add(rawPhone.trim())
+
+    if (cleaned.startsWith('+234')) {
+      const national = cleaned.slice(4)
+      variants.add(`0${national}`)
+      variants.add(national)
+      variants.add(`234${national}`)
+    } else if (cleaned.startsWith('234') && cleaned.length >= 12) {
+      const national = cleaned.slice(3)
+      variants.add(`+234${national}`)
+      variants.add(`0${national}`)
+      variants.add(national)
+    } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+      const national = cleaned.slice(1)
+      variants.add(`+234${national}`)
+      variants.add(`234${national}`)
+      variants.add(national)
+    } else if (cleaned.length === 10) {
+      variants.add(`+234${cleaned}`)
+      variants.add(`0${cleaned}`)
+      variants.add(`234${cleaned}`)
+    }
+
+    return Array.from(variants)
+  }
+
   async checkEmail(identifier: string, type: 'email' | 'phone' = 'email'): Promise<{ 
     exists: boolean; 
     hasPassword?: boolean; 
@@ -936,8 +997,11 @@ export class UserAuthService extends BaseAuthService {
     }
     
     if (!user) {
+      const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
+        where: type === 'phone'
+          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+          : { email: identifier, role: { not: 'OWNER' } }
       })
       if (waitlistEntry) {
         return { 
@@ -975,11 +1039,15 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('No account found with this identifier.')
     }
 
+    let waitlistEntry: any = null;
     if (context === 'WAITLIST') {
-      const entry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
+      const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
+      waitlistEntry = await this.prisma.upward_waitlist.findFirst({
+        where: type === 'phone'
+          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+          : { email: identifier, role: { not: 'OWNER' } }
       })
-      if (!entry) throw new ForbiddenException('You are not on the priority waitlist.')
+      if (!waitlistEntry) throw new ForbiddenException('You are not on the priority waitlist.')
     }
 
     if (context === 'SIGNUP' && existing && existing.passwordHash && existing.passwordHash !== 'INVITED') {
@@ -1004,15 +1072,18 @@ export class UserAuthService extends BaseAuthService {
 
     // 4. Send via Unified Communication Architecture
     await this.unifiedCommService.processCommunication({
-      recipientEmail: type === 'email' ? identifier : undefined,
-      recipientPhone: type === 'phone' ? identifier : undefined,
+      recipientEmail: type === 'email' ? identifier : waitlistEntry?.email,
+      recipientPhone: type === 'phone' ? identifier : (waitlistEntry?.phone || undefined),
+      recipientName: waitlistEntry?.firstName || existing?.firstName || undefined,
       recipientRole: 'TENANT',
       type: 'AUTH_OTP',
       forceChannel: type === 'phone' ? (channel === 'WHATSAPP' ? 'WHATSAPP' : 'SMS') : 'EMAIL',
       context: {
         otp,
         context: effectiveContext,
-        title: effectiveContext === 'SIGNUP' ? 'Verify your email' : 'Login Verification',
+        firstName: waitlistEntry?.firstName || existing?.firstName || 'there',
+        displayName: waitlistEntry?.firstName || existing?.firstName || 'there',
+        title: effectiveContext === 'SIGNUP' ? 'Verify your email' : effectiveContext === 'WAITLIST' ? 'Claim Your Waitlist Spot' : 'Login Verification',
       },
     });
     return { context: effectiveContext }
@@ -1056,8 +1127,11 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (context === 'WAITLIST') {
+      const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone' ? { phone: identifier, role: { not: 'OWNER' } } : { email: identifier, role: { not: 'OWNER' } }
+        where: type === 'phone'
+          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+          : { email: identifier, role: { not: 'OWNER' } }
       })
       if (entry) {
         return { success: true, inviteToken: entry.uuid, user }

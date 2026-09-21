@@ -24,6 +24,9 @@ export interface SelectedPmData {
   pmType?: string
   companyName?: string
   isInvited?: boolean
+  isExternal?: boolean
+  companyUuid?: string
+  managerUuid?: string
 }
 
 interface PmSearchSelectProps {
@@ -34,7 +37,7 @@ interface PmSearchSelectProps {
     companyName: string
     pmInviteEmail: string
     pmFound: boolean
-    pmDetails: { id?: number; name?: string; businessName?: string } | null
+    pmDetails: { id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null
   }
   onChange: (patch: {
     pmEmail: string
@@ -43,7 +46,7 @@ interface PmSearchSelectProps {
     companyName: string
     pmInviteEmail: string
     pmFound: boolean
-    pmDetails: { id?: number; name?: string; businessName?: string } | null
+    pmDetails: { id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null
     landlordSkipped?: boolean
   }) => void
   disabled?: boolean
@@ -104,14 +107,17 @@ export function PmSearchSelect({
     onChange({
       pmEmail: pm.email || '',
       pmName: pm.name || `${pm.firstName} ${pm.lastName}`.trim(),
-      pmType: pm.pmType || 'Property Manager',
-      companyName: pm.businessName || '',
+      pmType: pm.pmType || (pm.isExternal ? 'External Property Manager' : 'Property Manager'),
+      companyName: pm.companyName || pm.businessName || '',
       pmInviteEmail: '',
       pmFound: true,
       pmDetails: {
         id: pm.id,
         name: pm.name || `${pm.firstName} ${pm.lastName}`.trim(),
-        businessName: pm.businessName || `${pm.firstName} ${pm.lastName}`.trim(),
+        businessName: pm.companyName || pm.businessName || `${pm.firstName} ${pm.lastName}`.trim(),
+        isExternal: !!pm.isExternal,
+        companyUuid: pm.companyUuid,
+        managerUuid: pm.managerUuid,
       },
       landlordSkipped: false,
     })
@@ -177,9 +183,18 @@ export function PmSearchSelect({
             <Building2 size={22} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <strong style={{ fontSize: 14.5, color: '#0f172a' }}>{value.pmDetails?.name}</strong>
               <ShieldCheck size={16} color="#0284c7" />
+              {value.pmDetails?.isExternal ? (
+                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                  External Platform
+                </span>
+              ) : (
+                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                  Upward PM
+                </span>
+              )}
             </div>
             {value.pmDetails?.businessName && value.pmDetails.businessName !== value.pmDetails.name ? (
               <span style={{ fontSize: 12.5, color: '#64748b', display: 'block' }}>{value.pmDetails.businessName}</span>
@@ -361,9 +376,18 @@ export function PmSearchSelect({
                       {pm.businessName ? <Building2 size={18} /> : <User size={18} />}
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <strong style={{ fontSize: 13.5, color: '#0f172a' }}>{pm.name}</strong>
                         {pm.isVerified && <ShieldCheck size={14} color="#0284c7" />}
+                        {pm.isExternal ? (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                            External Platform
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                            Upward PM
+                          </span>
+                        )}
                       </div>
                       {pm.businessName && pm.businessName !== pm.name ? (
                         <span style={{ fontSize: 12, color: '#64748b', display: 'block' }}>{pm.businessName}</span>

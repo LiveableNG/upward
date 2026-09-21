@@ -20,7 +20,7 @@ import {
 import { Observable, merge, interval } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { OptionalJwtAuthGuard } from '../../../application/auth/guards/optional-jwt-auth.guard'
 import {
@@ -81,7 +81,7 @@ export class PaymentsController {
     private readonly getRentDepositSummaryUc: GetRentDepositSummaryUseCase,
     private readonly applyRentDepositUc: ApplyRentDepositToPaymentRequestUseCase,
     private readonly generateRentDepositReceiptPdfUc: GenerateRentDepositReceiptPdfUseCase,
-    private readonly prisma: PrismaService,
+    @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
@@ -303,48 +303,8 @@ export class PaymentsController {
 
   @Post('webhook')
   async handleWebhook(@Body() payload: any, @Req() req: any) {
-    console.log(`[PaymentsController] Webhook POST received: ${payload?.event}`)
     const signature = req.headers['x-paystack-signature']
-    
-    let logRecord;
-    try {
-      logRecord = await this.prisma.upward_webhook_log.create({
-        data: {
-          event: payload?.event || 'UNKNOWN',
-          url: req.url || '/payments/webhook',
-          payload: payload || {},
-          status: 'RECEIVED',
-          direction: 'INCOMING'
-        }
-      });
-    } catch (e) {
-      console.error('[PaymentsController] Failed to create incoming webhook log', e);
-    }
-
-    try {
-      const result = await this.processWebhookUc.execute(payload, signature)
-      
-      if (logRecord) {
-        await this.prisma.upward_webhook_log.update({
-          where: { id: logRecord.id },
-          data: { status: 'SUCCESS', responseCode: 200 }
-        }).catch(() => {});
-      }
-      return result;
-    } catch (error: any) {
-      console.error('[PaymentsController] Webhook processing failed:', error);
-      if (logRecord) {
-        await this.prisma.upward_webhook_log.update({
-          where: { id: logRecord.id },
-          data: { 
-            status: 'FAILED', 
-            errorMessage: error.message || String(error),
-            responseCode: error.status || 500
-          }
-        }).catch(() => {});
-      }
-      throw error;
-    }
+    return this.processWebhookUc.execute(payload, signature, req.url)
   }
 
   @UseGuards(JwtAuthGuard)
@@ -446,10 +406,8 @@ export class PaymentsController {
   sse(@Param('userUuid') userUuid: string): Observable<MessageEvent> {
     const sseObservable = new Observable<MessageEvent>((subscriber) => {
       let userId: number | null = null;
-      this.prisma.upward_user.findUnique({
-        where: { uuid: userUuid }
-      }).then(user => {
-        if (user) {
+      this.userRepo.findByUuid(userUuid).then(user => {
+        if (user?.id != null) {
           userId = user.id;
         }
       }).catch(err => {

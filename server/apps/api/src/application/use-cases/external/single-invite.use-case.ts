@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
+import { UserRepository, USER_REPOSITORY, PASS_PLACEHOLDERS, User } from '../../../domains/users/user.repository'
 import {
   CompanyRepository,
   COMPANY_REPOSITORY,
@@ -25,6 +25,8 @@ import { randomUUID } from 'crypto'
 import { EVENT_BUS, EventBus } from '../../events/domain-event'
 import { TenantSyncedEvent } from '../../events/definition/tenant-synced.event'
 import { RentalPeriodService } from '../../services/rental-period.service'
+import { IngestExternalRentHistoryUseCase } from './ingest-external-rent-history.use-case'
+import { SyncUserSequenceChannelUseCase } from '../sequence/sync-user-sequence-channel.use-case'
 
 import {
   InviteRequestDto as InviteRequest,
@@ -57,6 +59,8 @@ export class SingleInviteUseCase {
     private readonly addManualAccountUseCase: AddManualAccountUseCase,
     @Inject(EVENT_BUS) private readonly eventBus: EventBus,
     private readonly rentalPeriodService: RentalPeriodService,
+    private readonly ingestExternalRentHistoryUseCase: IngestExternalRentHistoryUseCase,
+    private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
   ) { }
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
@@ -145,7 +149,7 @@ export class SingleInviteUseCase {
     const userData = invite.user
     
     let effectiveEmail = userData.email;
-    let user = null;
+    let user: User | null = null;
     
     if (effectiveEmail) {
       user = await this.userRepository.findByEmail(effectiveEmail);
@@ -179,7 +183,85 @@ export class SingleInviteUseCase {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any)
-      
+    } else {
+      // User exists: only backfill missing fields.
+      // Never overwrite data that already exists on the user.
+      const userUpdate: Record<string, unknown> = {}
+
+      const isPlaceholderEmail =
+        user.email &&
+        user.email.endsWith('@upward.com') &&
+        (user.phone
+          ? user.email.startsWith(user.phone.replace('+', ''))
+          : true)
+
+      if (
+        (!user.email || isPlaceholderEmail) &&
+        userData.email &&
+        !userData.email.endsWith('@upward.com')
+      ) {
+        userUpdate.email = userData.email.trim()
+      }
+
+      if (!user.phone && userData.phone) {
+        const phone = userData.phone.trim()
+        userUpdate.phone = phone
+        userUpdate.phoneHash = this.encryption.hash(phone)
+      }
+
+      if (!user.firstName && userData.firstName) {
+        userUpdate.firstName = userData.firstName.trim()
+      }
+
+      if (!user.lastName && userData.lastName) {
+        userUpdate.lastName = userData.lastName.trim()
+      }
+
+      if (Object.keys(userUpdate).length > 0) {
+        const updatedUser = await this.userRepository.update(
+          user.id!,
+          userUpdate,
+        )
+
+        if (updatedUser) {
+          user = updatedUser
+        } else {
+          const reloadedUser = await this.userRepository.findById(user.id!)
+          if (reloadedUser) {
+            user = reloadedUser
+          }
+        }
+      }
+
+      // Existing users with an established password should be synced
+      // to the appropriate sequence channel when a phone number is available.
+      if (
+        user.passwordHash !== PASS_PLACEHOLDERS.INVITED &&
+        (user.phone || userData.phone)
+      ) {
+        const phone = user.phone || userData.phone!
+
+        this.syncUserSequenceChannelUseCase
+          .execute({
+            userId: user.id!,
+            firstName: user.firstName || userData.firstName || '',
+            phoneEncrypted: phone,
+            phoneHash: user.phoneHash || this.encryption.hash(phone),
+            pmName: company?.name
+              ? this.encryption.decrypt(company.name)
+              : undefined,
+          })
+          .catch((e) =>
+            this.logger.error(
+              'Failed to sync sequence channel on single invite',
+              e,
+            ),
+          )
+      }
+    }
+
+    if (!user) {
+      throw new Error('Failed to create or update user')
     }
 
     const existingLink = await this.companyUserRepository.findByCompanyAndUser(company.id!, user.id!)
@@ -381,6 +463,10 @@ export class SingleInviteUseCase {
             }
           })
         }
+      }
+
+      if (propData.rentHistory && propData.rentHistory.length > 0 && property.id) {
+        await this.ingestExternalRentHistoryUseCase.execute(property.id, propData.rentHistory, platformId)
       }
 
 

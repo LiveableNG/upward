@@ -5,7 +5,19 @@ import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.servic
 export class GetPublicAssetUseCase {
   constructor(private readonly s3Service: S3Service) {}
 
-  async execute(s3Key: string) {
+  async execute(
+    s3Key: string,
+    res?: any,
+    options?: { filename?: string; isAttachment?: boolean; cacheControl?: string }
+  ) {
+    if (res) {
+      return this.s3Service.streamObject(s3Key, res, {
+        filename: options?.filename || s3Key,
+        cacheControl: options?.cacheControl || 'public, max-age=31536000',
+        isAttachment: options?.isAttachment,
+      });
+    }
+
     try {
       const buffer = await this.s3Service.getFileBuffer(s3Key);
       return { 

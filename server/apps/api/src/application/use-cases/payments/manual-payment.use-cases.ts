@@ -7,6 +7,7 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import * as crypto from 'crypto'
 import { WebhookService } from '../../../shared/infrastructure/common/webhook/webhook.service'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class AddManualAccountUseCase {
@@ -100,7 +101,8 @@ export class UploadProofOfPaymentUseCase {
   constructor(
     private readonly prisma: PrismaService, 
     private readonly s3Service: S3Service,
-    private readonly webhookService: WebhookService
+    private readonly webhookService: WebhookService,
+    private readonly configService: ConfigService
   ) {}
 
   async execute(data: {
@@ -213,6 +215,14 @@ export class UploadProofOfPaymentUseCase {
       }).catch(err => console.error('Failed to create PM notification for payment proof:', err))
     }
 
+    const baseUrl = this.configService.get<string>('API_URL') || 
+                    this.configService.get<string>('BACKEND_URL') || 
+                    'https://api.upward.com';
+
+    const publicUrl = proof.fileUrl
+      ? `${baseUrl}/api/v1/public/documents/payment-proofs/${proof.uuid}/file`
+      : null;
+
     if (propertyContext?.platformId) {
       await this.webhookService.sendWebhook(propertyContext.platformId, 'payment_proof.uploaded', {
         proofId: proof.id,
@@ -220,7 +230,7 @@ export class UploadProofOfPaymentUseCase {
         userPropertyUuid: data.userPropertyUuid || propertyContext.userPropertyUuid,
         amount: proof.amount,
         currency: proof.currency,
-        fileUrl: proof.fileUrl,
+        fileUrl: publicUrl || proof.fileUrl,
         fileName: proof.fileName,
         senderName: proof.senderName,
         paymentDate: proof.paymentDate,
@@ -229,7 +239,7 @@ export class UploadProofOfPaymentUseCase {
       }).catch(err => console.error('Failed to dispatch webhook for payment proof:', err))
     }
 
-    return proof
+    return { ...proof, publicUrl }
   }
 
   private async resolvePropertyContext(ids: {
@@ -294,6 +304,7 @@ export class GetPaymentProofUploadUrlUseCase {
 
   constructor(
     private readonly s3Service: S3Service,
+    private readonly configService: ConfigService,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
   ) {}
 
@@ -316,7 +327,13 @@ export class GetPaymentProofUploadUrlUseCase {
 
     const uploadUrl = await this.s3Service.getUploadUrl(s3Key, dto.fileType)
 
-    return { uuid, uploadUrl, fileUrl: s3Key }
+    const baseUrl = this.configService.get<string>('API_URL') || 
+                    this.configService.get<string>('BACKEND_URL') || 
+                    'https://api.upward.com';
+
+    const publicUrl = `${baseUrl}/api/v1/public/documents/users/payment-proofs/${folderUuid}/${uuid}.${fileExtension}`;
+
+    return { uuid, uploadUrl, fileUrl: s3Key, publicUrl }
   }
 }
 
@@ -327,9 +344,10 @@ export class GetPaymentProofUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(proofId: number) {
-    const proof = await this.prisma.upward_payment_proof.findUnique({
-      where: { id: proofId },
+  async execute(proofIdentifier: number | string, res?: any) {
+    const isNumeric = typeof proofIdentifier === 'number' || /^\d+$/.test(String(proofIdentifier))
+    const proof = await this.prisma.upward_payment_proof.findFirst({
+      where: isNumeric ? { id: Number(proofIdentifier) } : { uuid: String(proofIdentifier) },
     })
 
     if (!proof) {
@@ -338,6 +356,13 @@ export class GetPaymentProofUseCase {
 
     if (!proof.fileUrl) {
       throw new NotFoundException('This payment proof does not have an attached file')
+    }
+
+    if (res) {
+      return this.s3Service.streamObject(proof.fileUrl, res, {
+        filename: proof.fileName || 'payment_proof',
+        cacheControl: 'public, max-age=86400',
+      })
     }
 
     const buffer = await this.s3Service.getFileBuffer(proof.fileUrl)
@@ -364,9 +389,6 @@ export class DeletePaymentProofUseCase {
 
     await this.prisma.upward_payment_proof.delete({ where: { id: proofId } })
     
-    // Also delete from S3
-    // Assuming S3Service has a deleteFile method or we just leave it for garbage collection, 
-    // but typically we should delete. For now, we'll try to call delete if it exists on S3Service.
     try {
       if (proof.fileUrl && (this.s3Service as any).deleteFile) {
         await (this.s3Service as any).deleteFile(proof.fileUrl)
@@ -428,6 +450,18 @@ export class ReviewManualPaymentUseCase {
       const reference = `MNL-APR-${Date.now()}`
       
       try {
+        const rawLineItems = (proof as any).lineItems
+        const normalizedLineItems = Array.isArray(rawLineItems) && rawLineItems.length > 0
+          ? rawLineItems.map((li: any) => ({
+              ...li,
+              id: li.id,
+              name: li.name || li.label || 'Rent',
+              label: li.label || li.name || 'Rent',
+              amount: li.amount || li.amountPaid || 0,
+              amountPaid: li.amountPaid || li.amount || 0,
+            }))
+          : undefined
+
         const txPayload: any = {
           userId: user.uuid,
           amount: amount,
@@ -438,8 +472,8 @@ export class ReviewManualPaymentUseCase {
           narration: pr?.description ? `${pr.description} (Manual)` : 'Manual Rent Payment',
           settlementStatus: 'VERIFIED',
           isManual: true,
-          sequentialFill: (proof as any).lineItems ? false : true,
-          lineItemPayments: (proof as any).lineItems ? (proof as any).lineItems : undefined,
+          sequentialFill: normalizedLineItems ? false : true,
+          lineItemPayments: normalizedLineItems,
           userPropertyUuid: property?.uuid,
         }
         

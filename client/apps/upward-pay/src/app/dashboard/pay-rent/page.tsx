@@ -101,8 +101,12 @@ export default function PayRentPage() {
         return !['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(name)
       })
       .map((item: any) => ({
+        id: item.id,
+        name: item.name || 'Item',
         label: item.name || 'Item',
         amount: Math.max(0, Number(item.totalAmount || item.amount || 0) - Number(item.amountPaid || 0)),
+        totalAmount: Number(item.totalAmount || item.amount || 0),
+        amountPaid: Number(item.amountPaid || 0),
       }))
       .filter((item: LineItem) => item.amount > 0)
   }

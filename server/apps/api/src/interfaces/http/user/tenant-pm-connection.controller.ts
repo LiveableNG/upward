@@ -69,6 +69,8 @@ export class TenantPmConnectionController {
     @Body('pmName') pmName: string | undefined,
     @Body('pmType') pmType: string | undefined,
     @Body('companyName') companyName: string | undefined,
+    @Body('companyUuid') companyUuid: string | undefined,
+    @Body('managerUuid') managerUuid: string | undefined,
     @Body('unitDetails') unitDetails: any,
     @Body('paymentDetails') paymentDetails?: {
       accountNumber: string;
@@ -86,6 +88,8 @@ export class TenantPmConnectionController {
       companyName,
       unitDetails,
       paymentDetails,
+      companyUuid,
+      managerUuid,
     );
     return { success: true, data: result };
   }

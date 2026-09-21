@@ -2,6 +2,14 @@ import { Injectable, InternalServerErrorException, NotFoundException, Streamable
 import { ConfigService } from '@nestjs/config'
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { Readable } from 'stream'
+
+export interface S3StreamOptions {
+  filename?: string
+  isAttachment?: boolean
+  contentType?: string
+  cacheControl?: string
+}
 
 export function getMimeType(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() || ''
@@ -145,13 +153,73 @@ export class S3Service {
     }
   }
 
+  async streamObject(
+    keyOrUrl: string,
+    res: any,
+    options?: S3StreamOptions
+  ): Promise<StreamableFile> {
+    if (!keyOrUrl) throw new NotFoundException('File key or URL is required')
+    const key = keyOrUrl.includes('amazonaws.com/') ? keyOrUrl.split('amazonaws.com/')[1] : keyOrUrl
+
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      })
+
+      const response = await this.s3Client.send(command)
+      if (!response.Body) {
+        throw new NotFoundException('The requested document file could not be found or is empty.')
+      }
+
+      const filename: string = options?.filename || key || 'file'
+      const contentType = options?.contentType || response.ContentType || getMimeType(filename)
+      const headers: Record<string, string | number> = {
+        'Content-Type': contentType,
+      }
+
+      if (response.ContentLength) {
+        headers['Content-Length'] = response.ContentLength
+      }
+      if (response.ETag) {
+        headers['ETag'] = response.ETag
+      }
+      if (response.LastModified) {
+        headers['Last-Modified'] = response.LastModified.toUTCString()
+      }
+      if (options?.cacheControl) {
+        headers['Cache-Control'] = options.cacheControl
+      }
+
+      const disposition = options?.isAttachment ? 'attachment' : 'inline'
+      const sanitized = encodeURIComponent(filename.split('/').pop() || 'file')
+      headers['Content-Disposition'] = `${disposition}; filename="${sanitized}"`
+
+      if (typeof res?.set === 'function') {
+        res.set(headers)
+      } else if (typeof res?.header === 'function') {
+        for (const [k, v] of Object.entries(headers)) {
+          res.header(k, v)
+        }
+      }
+
+      return new StreamableFile(response.Body as unknown as Readable)
+    } catch (error: any) {
+      if (error instanceof NotFoundException) throw error
+      if (error.name === 'NoSuchKey' || error.code === 'NoSuchKey') {
+        throw new NotFoundException('The requested document file could not be found in storage.')
+      }
+      console.error('Error streaming object from S3:', error)
+      throw new InternalServerErrorException('Could not stream file from storage')
+    }
+  }
+
   async streamFile(
     keyOrUrl: string,
     res: any,
-    options?: { filename?: string; isAttachment?: boolean; contentType?: string; cacheControl?: string }
+    options?: S3StreamOptions
   ): Promise<StreamableFile> {
-    const buffer = await this.getFileBuffer(keyOrUrl)
-    return S3Service.streamBuffer(buffer, options?.filename || keyOrUrl, res, options)
+    return this.streamObject(keyOrUrl, res, options)
   }
 
   static streamBuffer(

@@ -9,7 +9,7 @@ export class GetDocumentPdfUseCase {
     private readonly s3Service: S3Service,
   ) {}
 
-  async execute(uuid: string) {
+  async execute(uuid: string, res?: any) {
     const document = await this.prisma.upward_pm_sent_document.findUnique({
       where: { uuid }
     });
@@ -19,7 +19,14 @@ export class GetDocumentPdfUseCase {
     }
 
     const pdfS3Key = document.content.replace('.html', '.pdf');
-    
+
+    if (res) {
+      return this.s3Service.streamObject(pdfS3Key, res, {
+        filename: 'document.pdf',
+        contentType: 'application/pdf',
+      });
+    }
+
     try {
       const buffer = await this.s3Service.getFileBuffer(pdfS3Key);
       return { 

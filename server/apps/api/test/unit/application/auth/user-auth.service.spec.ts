@@ -8,6 +8,7 @@ import { WhatsappService } from '@shared/infrastructure/whatsapp/whatsapp.servic
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service';
 import { S3Service } from '@shared/infrastructure/common/s3/s3.service';
 import { InitializeUserSequenceUseCase } from '@application/use-cases/whatsapp-sequence/initialize-user-sequence.use-case';
+import { SyncUserSequenceChannelUseCase } from '@application/use-cases/sequence/sync-user-sequence-channel.use-case';
 import { InitializeEmailSequenceUseCase } from '@application/use-cases/email-sequence/initialize-email-sequence.use-case';
 import { UnifiedCommunicationService } from '@shared/infrastructure/communication/unified-communication.service';
 import { JwtService } from '@nestjs/jwt';
@@ -26,6 +27,7 @@ describe('UserAuthService', () => {
   let encryptionService: jest.Mocked<EncryptionService>;
   let s3Service: jest.Mocked<S3Service>;
   let initUserSequence: jest.Mocked<InitializeUserSequenceUseCase>;
+  let syncUserSequenceChannelUseCase: jest.Mocked<SyncUserSequenceChannelUseCase>;
   let initEmailSequence: jest.Mocked<InitializeEmailSequenceUseCase>;
   let unifiedCommService: jest.Mocked<UnifiedCommunicationService>;
   let jwtService: jest.Mocked<JwtService>;
@@ -83,6 +85,10 @@ describe('UserAuthService', () => {
       execute: jest.fn().mockResolvedValue({}),
     } as any;
 
+    syncUserSequenceChannelUseCase = {
+      execute: jest.fn().mockResolvedValue({}),
+    } as any;
+
     initEmailSequence = {
       execute: jest.fn().mockResolvedValue({}),
     } as any;
@@ -114,6 +120,7 @@ describe('UserAuthService', () => {
       encryptionService,
       s3Service,
       initUserSequence,
+      syncUserSequenceChannelUseCase,
       initEmailSequence,
       unifiedCommService,
       jwtService,

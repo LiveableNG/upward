@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, Request, UnauthorizedException, BadRequestException } from '@nestjs/common'
+import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards, BadRequestException, Request } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { CurrentPmId } from '../../../application/auth/decorators/current-pm-actor.decorator'
 import {
   CreateRelayImportJobUseCase,
   GetPmImportJobsUseCase,
@@ -11,9 +12,8 @@ import {
   UploadRelayDocumentUseCase,
   UpdateStagedDataUseCase,
   CompleteImportJobUseCase,
+  CancelBulkImportJobUseCase,
 } from '../../../application/use-cases/pm/bulk-import.use-cases'
-
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Controller('pm/bulk-imports')
 @UseGuards(JwtAuthGuard)
@@ -25,7 +25,7 @@ export class PmBulkImportController {
     private readonly uploadRelayDocumentUseCase: UploadRelayDocumentUseCase,
     private readonly updateStagedDataUseCase: UpdateStagedDataUseCase,
     private readonly completeImportJobUseCase: CompleteImportJobUseCase,
-    private readonly prisma: PrismaService,
+    private readonly cancelBulkImportJobUseCase: CancelBulkImportJobUseCase,
   ) {}
 
   @Post('relay-upload-url')
@@ -41,21 +41,8 @@ export class PmBulkImportController {
     return this.uploadRelayDocumentUseCase.execute(body)
   }
 
-  private async getPmId(req: any): Promise<number> {
-    if (req.user?.role === 'PM_EMPLOYEE' && req.user?.ownerPmId) {
-      return req.user.ownerPmId
-    }
-    const uuid = req.user?.id || req.user?.sub
-    if (!uuid) throw new UnauthorizedException('Invalid user context')
-    const pm = await this.prisma.upward_property_manager.findUnique({ where: { uuid } })
-    if (!pm) throw new UnauthorizedException('PM not found')
-    return pm.id
-  }
-
   @Post('relay')
-  async createRelayJob(@Request() req: any, @Body() body: any) {
-    const pmId = await this.getPmId(req)
-    
+  async createRelayJob(@CurrentPmId() pmId: number, @Body() body: any) {
     return this.createRelayImportJobUseCase.execute({
       pmId,
       targetPropertyUuid: body.targetPropertyUuid,
@@ -67,20 +54,16 @@ export class PmBulkImportController {
   }
 
   @Get()
-  async getPmJobs(@Request() req: any) {
-    const pmId = await this.getPmId(req)
-    
+  async getPmJobs(@CurrentPmId() pmId: number) {
     return this.getPmImportJobsUseCase.execute(pmId)
   }
 
   @Patch(':uuid/staged-data')
   async updateStagedData(
     @Param('uuid') uuid: string,
-    @Request() req: any,
-    @Body() body: { stagedRowsJson: string }
+    @CurrentPmId() pmId: number,
+    @Body() body: { stagedRowsJson: string },
   ) {
-    const pmId = await this.getPmId(req)
-    
     return this.updateStagedDataUseCase.execute({
       pmId,
       jobUuid: uuid,
@@ -91,11 +74,9 @@ export class PmBulkImportController {
   @Patch(':uuid/complete')
   async completeJob(
     @Param('uuid') uuid: string,
-    @Request() req: any,
-    @Body() body: { unitsCreated?: number; propertiesCreated?: number }
+    @CurrentPmId() pmId: number,
+    @Body() body: { unitsCreated?: number; propertiesCreated?: number },
   ) {
-    const pmId = await this.getPmId(req)
-    
     return this.completeImportJobUseCase.execute({
       pmId,
       jobUuid: uuid,
@@ -105,35 +86,8 @@ export class PmBulkImportController {
   }
 
   @Delete(':uuid')
-  async deleteJob(@Param('uuid') uuid: string, @Request() req: any) {
-    const pmId = await this.getPmId(req)
-    
-    // Quick validation to ensure the job belongs to the PM before deleting
-    const job = await (this.prisma as any).upward_pm_bulk_import_job.findUnique({
-      where: { uuid }
-    })
-    
-    if (!job || job.pmId !== pmId) {
-      throw new UnauthorizedException('Job not found or unauthorized')
-    }
-
-    await (this.prisma as any).upward_pm_bulk_import_job.update({
-      where: { id: job.id },
-      data: { status: 'CANCELLED' }
-    })
-    
-    // Log the cancellation — non-critical, don't let a log failure block the response
-    try {
-      await (this.prisma as any).upward_pm_bulk_import_log.create({
-        data: {
-          jobId: job.id,
-          action: 'PM_CANCELLED',
-          details: 'Property Manager cancelled the request'
-        }
-      })
-    } catch (_) {}
-    
-    return { success: true }
+  async deleteJob(@Param('uuid') uuid: string, @CurrentPmId() pmId: number) {
+    return this.cancelBulkImportJobUseCase.execute(pmId, uuid)
   }
 }
 

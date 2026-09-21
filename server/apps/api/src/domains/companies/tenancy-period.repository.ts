@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client';
-
 export interface TenancyPeriod {
   id?: number;
   uuid: string;
@@ -18,39 +16,39 @@ export interface TenancyPeriod {
 export interface ITenancyPeriodRepository {
   create(
     period: Omit<TenancyPeriod, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<TenancyPeriod>;
 
   update(
     id: number,
     data: Partial<TenancyPeriod>,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<TenancyPeriod>;
 
-  findById(id: number, tx?: Prisma.TransactionClient): Promise<TenancyPeriod | null>;
+  findById(id: number, tx?: any): Promise<TenancyPeriod | null>;
 
-  findByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<TenancyPeriod | null>;
+  findByUuid(uuid: string, tx?: any): Promise<TenancyPeriod | null>;
 
   findByUserPropertyId(
     userPropertyId: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<TenancyPeriod[]>;
 
   findInitialPeriod(
     userPropertyId: number,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<TenancyPeriod | null>;
 
   findByDates(
     userPropertyId: number,
     startDate: Date,
     endDate: Date,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<TenancyPeriod | null>;
 
   ensurePeriod(
     data: Omit<TenancyPeriod, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
-    tx?: Prisma.TransactionClient,
+    tx?: any,
   ): Promise<TenancyPeriod>;
 }
 

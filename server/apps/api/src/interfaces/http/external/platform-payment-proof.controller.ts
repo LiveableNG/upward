@@ -1,9 +1,8 @@
-import { Controller, Get, Patch, Body, Param, UseGuards, Req, NotFoundException } from '@nestjs/common'
+import { Controller, Get, Patch, Body, Param, UseGuards, Req } from '@nestjs/common'
 import { ApiKeyGuard } from './api-key.guard'
 import { GetPendingManualPaymentsUseCase } from '../../../application/use-cases/payments/get-pending-manual-payments.use-case'
 import { ReviewManualPaymentUseCase } from '../../../application/use-cases/payments/manual-payment.use-cases'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import { GetPlatformPaymentProofFileUseCase } from '../../../application/use-cases/payments/get-platform-payment-proof-file.use-case'
 
 @Controller('platform/payments/proof')
 @UseGuards(ApiKeyGuard)
@@ -11,8 +10,7 @@ export class PlatformPaymentProofController {
   constructor(
     private readonly getPendingProofsUseCase: GetPendingManualPaymentsUseCase,
     private readonly reviewProofUseCase: ReviewManualPaymentUseCase,
-    private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
+    private readonly getProofFileUseCase: GetPlatformPaymentProofFileUseCase,
   ) {}
 
   @Get()
@@ -21,46 +19,20 @@ export class PlatformPaymentProofController {
     const proofs = await this.getPendingProofsUseCase.execute({ platformId })
     return {
       success: true,
-      data: proofs
+      data: proofs,
     }
   }
 
   @Get(':id')
   async getProofFile(@Req() req: any, @Param('id') id: string) {
-    const proofId = Number(id)
-    const proof = await this.prisma.upward_payment_proof.findUnique({
-      where: { id: proofId },
-      include: {
-        paymentRequest: { include: { userProperty: { include: { company: true } } } },
-        userProperty: { include: { company: true } },
-      },
+    const data = await this.getProofFileUseCase.execute({
+      proofId: Number(id),
+      platformId: req.platformId,
     })
-
-    if (!proof) {
-      throw new NotFoundException('Proof of payment not found')
-    }
-
-    const platformIdOnProof =
-      proof.paymentRequest?.userProperty?.company?.platformId ??
-      proof.userProperty?.company?.platformId
-
-    if (platformIdOnProof !== req.platformId) {
-      throw new NotFoundException('Proof of payment not found')
-    }
-
-    if (!proof.fileUrl) {
-      throw new NotFoundException('This payment proof does not have an attached file')
-    }
-
-    const url = await this.s3Service.getDownloadUrl(proof.fileUrl)
 
     return {
       success: true,
-      data: {
-        url,
-        fileName: proof.fileName,
-        proofId: proof.id,
-      },
+      data,
     }
   }
 
@@ -69,13 +41,13 @@ export class PlatformPaymentProofController {
     const result = await this.reviewProofUseCase.execute({
       proofId: Number(id),
       pmUuid: req.platformId ? `PLATFORM-${req.platformId}` : 'PLATFORM',
-      status: body.status, // 'APPROVED' | 'REJECTED'
+      status: body.status,
       remarks: body.remarks,
     })
 
     return {
       success: true,
-      data: result
+      data: result,
     }
   }
 }

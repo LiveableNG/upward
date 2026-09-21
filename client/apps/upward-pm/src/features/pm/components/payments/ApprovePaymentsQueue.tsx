@@ -221,7 +221,7 @@ export function ApprovePaymentsQueue() {
                   <div className="join-request-card__body">
                     {selectedProof.lineItems.map((item: any, idx: number) => (
                       <div className="join-request-card__row" key={idx}>
-                        <span className="join-request-card__label">{item.name}</span>
+                        <span className="join-request-card__label">{item.name || item.label || 'Rent'}</span>
                         <span className="join-request-card__val font-semibold">
                           {formatCurrency(item.amountPaid || item.amount || 0, selectedProof.currency || 'NGN')}
                         </span>

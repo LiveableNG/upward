@@ -9,14 +9,12 @@ import {
 } from '@nestjs/common'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { AiParseDocumentUseCase } from '../../../application/pm/use-cases/ai/ai-parse-document.use-case'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Controller('pm/ai-document')
 @UseGuards(JwtAuthGuard)
 export class PmAiDocumentController {
   constructor(
     private readonly aiParseUseCase: AiParseDocumentUseCase,
-    private readonly prisma: PrismaService,
   ) {}
 
   @Post('parse')
@@ -32,16 +30,10 @@ export class PmAiDocumentController {
       contextHint?: string
     },
   ) {
-    let pm = await this.prisma.upward_property_manager.findUnique({
-      where: { uuid: req.user.id || req.user.sub },
-    })
-    if (!pm) {
-      const admin = await this.prisma.upward_admin.findUnique({
-        where: { id: req.user.id || req.user.sub },
-      })
-      if (!admin) {
-        throw new UnauthorizedException('Access denied: Caller is neither a PM nor an Admin.')
-      }
+    const role = req.user?.role
+    const allowedRoles = ['PM', 'PM_EMPLOYEE', 'SUPERADMIN', 'ADMIN', 'DEVELOPER', 'CUSTOMER_SUPPORT']
+    if (!role || !allowedRoles.includes(role)) {
+      throw new UnauthorizedException('Access denied: Caller is neither a PM nor an Admin.')
     }
 
     if (!body.base64Data || !body.contentType || !body.fileName) {

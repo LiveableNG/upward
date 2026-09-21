@@ -110,7 +110,7 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     {prop.isVerified ? (
                       <span className="pay-flow__badge">
                         <span className="pay-flow__badge-dot" />
-                        Verified Term
+                        {prop.isPlatformLinked || prop.platformId || prop.company?.platformId ? 'Verified by External Platform' : 'Verified by Upward PM'}
                       </span>
                     ) : null}
                   </div>

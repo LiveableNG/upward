@@ -40,6 +40,8 @@ export interface UserProfile {
     isVerified?: boolean;
     isPmVerified?: boolean;
     isPlatformLinked?: boolean;
+    platformId?: number;
+    company?: any;
     externalUnitId?: string;
     managerName?: string;
     managerPhone?: string;

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
@@ -6,7 +7,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 export class GetPendingManualPaymentsUseCase {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly encryptionService: EncryptionService
+    private readonly encryptionService: EncryptionService,
+    private readonly configService: ConfigService,
   ) {}
 
   async execute(filters?: { pmUuid?: string; platformId?: number }) {
@@ -54,6 +56,10 @@ export class GetPendingManualPaymentsUseCase {
       orderBy: { createdAt: 'asc' }
     })
     
+    const baseUrl = this.configService.get<string>('API_URL') || 
+                    this.configService.get<string>('BACKEND_URL') || 
+                    'https://api.upward.com';
+
     return proofs.map(proof => {
       if (proof.userProperty?.user) {
         proof.userProperty.user.firstName = proof.userProperty.user.firstName ? this.encryptionService.decrypt(proof.userProperty.user.firstName) : proof.userProperty.user.firstName
@@ -67,7 +73,15 @@ export class GetPendingManualPaymentsUseCase {
         proof.paymentRequest.user.firstName = proof.paymentRequest.user.firstName ? this.encryptionService.decrypt(proof.paymentRequest.user.firstName) : proof.paymentRequest.user.firstName
         proof.paymentRequest.user.lastName = proof.paymentRequest.user.lastName ? this.encryptionService.decrypt(proof.paymentRequest.user.lastName) : proof.paymentRequest.user.lastName
       }
-      return proof
+
+      const publicUrl = proof.fileUrl
+        ? `${baseUrl}/api/v1/public/documents/payment-proofs/${proof.uuid}/file`
+        : null;
+
+      return {
+        ...proof,
+        publicUrl,
+      }
     })
   }
 }

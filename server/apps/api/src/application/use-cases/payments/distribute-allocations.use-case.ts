@@ -49,7 +49,7 @@ export class DistributePaymentAllocationsUseCase {
     const isFeeRemoved = process.env.REMOVE_TRANSACTION_FEE === 'true' || this.paymentConfig.getProcessingFee() === 0
     if (upwardFeeAmount > 0 && !isFeeRemoved) {
       const feeInAllocations = lineItemPayments?.find(lp => 
-        lp.name === 'Upward Benefits'
+        (lp.name || (lp as any).label) === 'Upward Benefits'
       )
       
       if (!feeInAllocations) {
@@ -90,19 +90,21 @@ export class DistributePaymentAllocationsUseCase {
       for (const lp of lineItemPayments) {
         if (remainingPayment <= 0) break
 
-        const lpName = (lp.name || '').toLowerCase().trim()
+        const rawName = (lp.name || (lp as any).label || '').trim()
+        const lpName = rawName.toLowerCase()
         const item = currentItems.find(i => {
-          if (i.id === lp.id) return true
+          if (lp.id && i.id === lp.id) return true
           const iName = (i.name || '').toLowerCase().trim()
-          if (iName === lpName) return true
+          if (lpName && iName === lpName) return true
           
           // Handle common abbreviations
           if (lpName === 'mgt fee' && iName === 'management fee') return true
           if (lpName === 'management fee' && iName === 'mgt fee') return true
-          
+
           return false
-        })
-        const isFee = lp.name === 'Upward Benefits' || 
+        }) || (currentItems.length === 1 && currentItems[0] && (lpName.includes('rent') || (currentItems[0].name || '').toLowerCase().includes('rent')) ? currentItems[0] : undefined)
+        const allocatedName = item?.name || rawName || 'Rent'
+        const isFee = lpName === 'upward benefits' || 
                      (item && item.name === 'Upward Benefits')
         
         const lpAmount = Number(lp.amountPaid || lp.amount || 0)
@@ -135,20 +137,20 @@ export class DistributePaymentAllocationsUseCase {
               if (!foundRentItem) { rentPortion = 0; foundRentItem = true }
               rentPortion += paymentToItem
             }
-          } else if (lp.name) {
-            const existingAlloc = allocatedItems.find(a => a.name === lp.name)
+          } else if (allocatedName) {
+            const existingAlloc = allocatedItems.find(a => a.name === allocatedName)
             if (existingAlloc) {
               existingAlloc.amount += paymentToItem
             } else {
               allocatedItems.push({
-                name: lp.name,
-                label: lp.name,
+                name: allocatedName,
+                label: allocatedName,
                 amount: paymentToItem,
                 category: isFee ? 'Fee' : 'Package'
               })
             }
 
-            if (lp.name.toLowerCase().includes('rent')) {
+            if (allocatedName.toLowerCase().includes('rent')) {
               if (!foundRentItem) { rentPortion = 0; foundRentItem = true }
               rentPortion += paymentToItem
             }
