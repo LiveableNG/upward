@@ -295,6 +295,20 @@ export class SubmitUnitRequestUseCase {
 
     if (pm) {
       propertyBaseData.pm = { connect: { id: pm.id } };
+      const effectiveManualAccountId =
+        (await this.prisma.upward_manual_account.findFirst({
+          where: { pmId: pm.id, isPrimary: true },
+          select: { id: true },
+        }))?.id ||
+        (await this.prisma.upward_manual_account.findFirst({
+          where: { pmId: pm.id },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        }))?.id;
+
+      if (effectiveManualAccountId) {
+        propertyBaseData.manualAccount = { connect: { id: effectiveManualAccountId } };
+      }
     }
     if (matchedCompany) {
       propertyBaseData.company = { connect: { id: matchedCompany.id } };

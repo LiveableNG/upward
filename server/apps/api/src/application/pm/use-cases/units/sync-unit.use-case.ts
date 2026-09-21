@@ -241,6 +241,22 @@ export class SyncUnitToUpwardUseCase {
           createData.subaccount = { connect: { id: subaccountId } };
         }
 
+        const effectiveManualAccountId =
+          unit.property?.manualAccountId ||
+          (await tx.upward_manual_account.findFirst({
+            where: { pmId, isPrimary: true },
+            select: { id: true },
+          }))?.id ||
+          (await tx.upward_manual_account.findFirst({
+            where: { pmId },
+            orderBy: { createdAt: 'asc' },
+            select: { id: true },
+          }))?.id;
+
+        if (effectiveManualAccountId) {
+          createData.manualAccount = { connect: { id: effectiveManualAccountId } };
+        }
+
         userProperty = await tx.upward_user_property.create({
           data: createData
         });
