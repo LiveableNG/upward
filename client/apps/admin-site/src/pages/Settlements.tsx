@@ -11,6 +11,9 @@ import {
   ShieldAlert,
   Check,
   FileText,
+  Building2,
+  CreditCard,
+  ArrowDownLeft,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { Modal } from '../components/common/modal/Modal'
@@ -819,13 +822,15 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px' }}>
                         {tx.isManual || tx.destination?.type === 'MANUAL_PAYMENT' ? (
-                          <span style={{ fontSize: '11px', background: 'rgba(107, 114, 128, 0.1)', color: '#4B5563', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                          <span style={{ fontSize: '11px', background: 'rgba(107, 114, 128, 0.1)', color: '#4B5563', padding: '3px 8px', borderRadius: '4px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <ArrowDownLeft size={12} />
                             Direct Transfer (Offline)
                           </span>
                         ) : tx.dvaAccount?.bankSlug === 'titan-paystack' || (tx.dvaAccount?.bankName && /titan/i.test(tx.dvaAccount.bankName)) ? (
                           <div>
                             <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.12)', color: '#047857', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              🏛️ Titan Trust DVA
+                              <Building2 size={12} />
+                              Titan Trust DVA
                             </span>
                             {tx.dvaAccount.accountNumber && (
                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '2px' }}>
@@ -836,7 +841,8 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                         ) : tx.dvaAccount?.bankSlug === 'wema-bank' || (tx.dvaAccount?.bankName && /wema/i.test(tx.dvaAccount.bankName)) ? (
                           <div>
                             <span style={{ fontSize: '11px', background: 'rgba(99, 102, 241, 0.12)', color: '#4338CA', padding: '3px 8px', borderRadius: '4px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              🏦 Wema Bank DVA
+                              <Landmark size={12} />
+                              Wema Bank DVA
                             </span>
                             {tx.dvaAccount.accountNumber && (
                               <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '2px' }}>
@@ -846,12 +852,14 @@ export const Settlements: React.FC<SettlementsProps> = ({ token }) => {
                           </div>
                         ) : tx.dvaAccount ? (
                           <div>
-                            <span style={{ fontSize: '11px', background: 'rgba(59, 130, 246, 0.12)', color: '#1D4ED8', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                            <span style={{ fontSize: '11px', background: 'rgba(59, 130, 246, 0.12)', color: '#1D4ED8', padding: '3px 8px', borderRadius: '4px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Landmark size={12} />
                               {tx.dvaAccount.provider || tx.dvaAccount.bankName}
                             </span>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '11px', background: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9', padding: '3px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                          <span style={{ fontSize: '11px', background: 'rgba(139, 92, 246, 0.1)', color: '#6D28D9', padding: '3px 8px', borderRadius: '4px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <CreditCard size={12} />
                             Paystack Checkout
                           </span>
                         )}
