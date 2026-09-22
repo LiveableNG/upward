@@ -17,6 +17,8 @@
       "@/*": ["./src/*"],
       "@upward/shared-types": ["../../../common/shared-types/src/index.ts"]
     },
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true,
     "isolatedModules": true
   },
