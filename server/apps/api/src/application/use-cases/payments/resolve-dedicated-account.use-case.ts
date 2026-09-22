@@ -71,20 +71,33 @@ export class ResolveDedicatedAccountUseCase {
 
     this.logger.log(`DVA created successfully: ${account.account_number} (${bankName}). Saving to DB...`)
 
+    const existingAccounts = await this.dvaRepo.findAllByUserPropertyId(data.userPropertyId)
+    const hasTitan = existingAccounts.some((a) => {
+      const slug = (a.bankSlug || '').toLowerCase()
+      const name = (a.bankName || '').toLowerCase()
+      return (slug === 'titan-paystack' || name.includes('titan') || name.includes('paystack')) && a.accountNumber !== account.account_number
+    })
+    const isTargetTitan = bankSlug === 'titan-paystack'
+    const shouldBeDefault = isTargetTitan || !hasTitan
+
     const existingByAccount = await this.dvaRepo.findByAccountNumber(account.account_number)
     if (existingByAccount) {
       if (existingByAccount.userPropertyId === data.userPropertyId) {
-        await this.dvaRepo.setDefault(existingByAccount.id, data.userPropertyId)
-        return { ...existingByAccount, isDefault: true }
+        if (shouldBeDefault) {
+          await this.dvaRepo.setDefault(existingByAccount.id, data.userPropertyId)
+        }
+        return { ...existingByAccount, isDefault: shouldBeDefault }
       }
 
       this.logger.warn(`Account ${account.account_number} already exists for another property (${existingByAccount.userPropertyId}). Re-associating to current property (${data.userPropertyId}).`)
       await (this.prisma as any).upward_dedicated_virtual_account.update({
         where: { id: existingByAccount.id },
-        data: { userPropertyId: data.userPropertyId, isDefault: true, bankSlug }
+        data: { userPropertyId: data.userPropertyId, isDefault: shouldBeDefault, bankSlug }
       })
-      await this.dvaRepo.setDefault(existingByAccount.id, data.userPropertyId)
-      return { ...existingByAccount, userPropertyId: data.userPropertyId, isDefault: true, bankSlug }
+      if (shouldBeDefault) {
+        await this.dvaRepo.setDefault(existingByAccount.id, data.userPropertyId)
+      }
+      return { ...existingByAccount, userPropertyId: data.userPropertyId, isDefault: shouldBeDefault, bankSlug }
     }
 
     return await this.dvaRepo.create({
@@ -93,7 +106,7 @@ export class ResolveDedicatedAccountUseCase {
       bankName: bankName,
       bankCode: account.bank?.slug || account.bank?.id?.toString() || '',
       bankSlug: bankSlug,
-      isDefault: true,
+      isDefault: shouldBeDefault,
       accountCode: account.dedicated_account_code || account.account_number,
       paystackCustomerId: customerCode,
       userPropertyId: data.userPropertyId,
