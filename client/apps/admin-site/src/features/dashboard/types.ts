@@ -77,6 +77,7 @@ export interface SignedUpRecord {
   isWaitlist: boolean
   totalPaid: number
   hasPaid: boolean
+  upwardScore?: { score: number; band?: string; color?: string } | null
   benefitsPaid?: number
   hasPaidBenefits?: boolean
   feePaid?: number
@@ -112,6 +113,7 @@ export interface InvitedRecord {
   joinedAt?: string | null
   status: 'INVITED_PENDING' | 'INVITED_SIGNED_UP' | 'GUEST_PAID' | 'SIGNED_UP_PAID'
   totalPaid: number
+  upwardScore?: { score: number; band?: string; color?: string } | null
   hasUserProperty?: boolean
   propertiesCount?: number
   properties?: PropertySummary[]

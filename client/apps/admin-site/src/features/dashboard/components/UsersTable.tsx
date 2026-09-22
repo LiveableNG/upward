@@ -40,6 +40,7 @@ type SortKey =
   | 'origin'
   | 'pmName'
   | 'totalPaid'
+  | 'upwardScore'
   | 'createdAt'
   | 'joinedAt'
   | 'propertiesCount'
@@ -300,6 +301,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       } else if (sortKey === 'totalPaid') {
         va = a.totalPaid
         vb = b.totalPaid
+      } else if (sortKey === 'upwardScore') {
+        const scoreA = (a.upwardScore || a.rawRecord?.upwardScore)?.score || 0
+        const scoreB = (b.upwardScore || b.rawRecord?.upwardScore)?.score || 0
+        if (!scoreA && scoreB) return sortDir === 'asc' ? 1 : -1
+        if (scoreA && !scoreB) return sortDir === 'asc' ? -1 : 1
+        va = scoreA
+        vb = scoreB
       } else if (sortKey === 'createdAt') {
         va = a.createdAt
         vb = b.createdAt

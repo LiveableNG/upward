@@ -12,6 +12,7 @@ export class GetInvitedMetricsUseCase {
     userMap: Map<string, any>,
     waitlistEmails: Set<string> = new Set(),
     inviteChannelMap: Map<string, string> = new Map(),
+    scoreMap: Map<string, { score: number; band: string; color: string }> = new Map(),
   ) {
     const invitedUserDirectory = allUsers
       .filter((u) => u.isFromInvite)
@@ -213,6 +214,7 @@ export class GetInvitedMetricsUseCase {
           joinedAt: u.joinedAt || u.authSessions?.[0]?.createdAt || (hasPassword ? u.createdAt : null),
           status,
           totalPaid,
+          upwardScore: scoreMap.get(u.uuid) || null,
           pms: pmsList,
           hasUserProperty,
           propertiesCount: propertySummaries.length,
@@ -328,6 +330,7 @@ export class GetInvitedMetricsUseCase {
           joinedAt: null,
           status: 'INVITED_PENDING' as const,
           totalPaid: 0,
+          upwardScore: null,
           pms: pmsList,
           hasUserProperty,
           propertiesCount: propertySummaries.length,
