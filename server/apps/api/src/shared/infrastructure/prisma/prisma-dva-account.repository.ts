@@ -66,6 +66,23 @@ export class PrismaDVAAccountRepository implements IDVAAccountRepository {
   }
 
   async findByUserPropertyId(userPropertyId: number): Promise<DVAAccount | null> {
+    // For every user with a Paystack-Titan DVA, default to Paystack-Titan
+    const titanAccount = await (this.prisma as any).upward_dedicated_virtual_account.findFirst({
+      where: {
+        userPropertyId,
+        OR: [
+          { bankSlug: 'titan-paystack' },
+          { bankName: { contains: 'titan', mode: 'insensitive' } },
+          { bankName: { contains: 'paystack', mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    if (titanAccount) {
+      return this.mapToDomain(titanAccount)
+    }
+
     const item = await (this.prisma as any).upward_dedicated_virtual_account.findFirst({
       where: { userPropertyId, isDefault: true },
       orderBy: { updatedAt: 'desc' },

@@ -24,6 +24,8 @@ export interface UnifiedUserRecord {
   hasUserProperty?: boolean
   propertiesCount?: number
   properties?: PropertySummary[]
+  rentAmount?: number | null
+  currency?: string | null
   rentStartDate?: string | null
   rentEndDate?: string | null
   rentExpiryDate?: string
@@ -38,9 +40,11 @@ type SortKey =
   | 'origin'
   | 'pmName'
   | 'totalPaid'
+  | 'upwardScore'
   | 'createdAt'
   | 'joinedAt'
   | 'propertiesCount'
+  | 'rentAmount'
   | 'rentStartDate'
   | 'rentExpiry'
 type SortDir = 'asc' | 'desc'
@@ -233,6 +237,11 @@ const UserPropertyBadge: React.FC<{ properties?: PropertySummary[] }> = ({ prope
             <div key={idx} style={{ borderBottom: idx < properties.length - 1 ? '1px dashed var(--border)' : 'none', paddingBottom: idx < properties.length - 1 ? '4px' : 0 }}>
               <div style={{ fontWeight: 600 }}>{p.address}</div>
               {p.unitName && <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Unit: {p.unitName}</div>}
+              {p.rentAmount != null && Number(p.rentAmount) > 0 && (
+                <div style={{ color: 'var(--clay)', fontSize: '10px', fontWeight: 700, marginTop: '2px' }}>
+                  Rent: ₦{Number(p.rentAmount).toLocaleString()}
+                </div>
+              )}
               {(p.rentStartDate || p.rentEndDate) && (
                 <div style={{ color: 'var(--text-secondary)', fontSize: '10px', marginTop: '2px' }}>
                   {p.rentStartDate ? new Date(p.rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'} — {p.rentEndDate ? new Date(p.rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
@@ -292,6 +301,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       } else if (sortKey === 'totalPaid') {
         va = a.totalPaid
         vb = b.totalPaid
+      } else if (sortKey === 'upwardScore') {
+        const scoreA = (a.upwardScore || a.rawRecord?.upwardScore)?.score || 0
+        const scoreB = (b.upwardScore || b.rawRecord?.upwardScore)?.score || 0
+        if (!scoreA && scoreB) return sortDir === 'asc' ? 1 : -1
+        if (scoreA && !scoreB) return sortDir === 'asc' ? -1 : 1
+        va = scoreA
+        vb = scoreB
       } else if (sortKey === 'createdAt') {
         va = a.createdAt
         vb = b.createdAt
@@ -305,6 +321,14 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         const countB = b.propertiesCount ?? (b.properties?.length || 0)
         va = countA
         vb = countB
+      } else if (sortKey === 'rentAmount') {
+        const getRent = (x: UnifiedUserRecord) => {
+          if (x.rentAmount != null && x.rentAmount > 0) return x.rentAmount
+          const propRent = x.properties?.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0) || 0
+          return propRent
+        }
+        va = getRent(a)
+        vb = getRent(b)
       } else if (sortKey === 'rentStartDate') {
         const startA = a.rentStartDate || a.properties?.[0]?.rentStartDate || ''
         const startB = b.rentStartDate || b.properties?.[0]?.rentStartDate || ''
@@ -596,6 +620,36 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       label: 'Property',
       sortable: true,
       render: (item) => <UserPropertyBadge properties={item.properties} />,
+    },
+    {
+      key: 'rentAmount',
+      label: 'Rent Amount',
+      sortable: true,
+      render: (item) => {
+        const props = item.properties || []
+        const totalRent =
+          item.rentAmount != null && item.rentAmount > 0
+            ? item.rentAmount
+            : props.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+
+        if (!totalRent || totalRent <= 0) {
+          return <span style={{ color: 'var(--text-muted)', opacity: 0.5, fontSize: '13px' }}>—</span>
+        }
+
+        const isMulti = props.length > 1
+        return (
+          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>
+              ₦{totalRent.toLocaleString()}
+            </span>
+            {isMulti && (
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                ({props.length} units total)
+              </span>
+            )}
+          </div>
+        )
+      },
     },
     {
       key: 'rentStartDate',

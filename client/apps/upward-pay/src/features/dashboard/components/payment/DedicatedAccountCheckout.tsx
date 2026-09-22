@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Copy, Check, Info, ShieldCheck, ArrowRight, Loader2, X, RefreshCw, AlertCircle } from 'lucide-react'
+import { Copy, Check, Info, ShieldCheck, ArrowRight, Loader2, X, RefreshCw, ArrowLeftRight } from 'lucide-react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
@@ -81,6 +81,7 @@ export default function DedicatedAccountCheckout({
       const res = await api.switchDedicatedAccount({
         userPropertyId,
         paymentRequestUuid,
+        preferredBank: isWema ? 'titan-paystack' : 'wema-bank',
       })
       if (res && res.accountNumber) {
         setAccountNumber(res.accountNumber)
@@ -217,12 +218,12 @@ export default function DedicatedAccountCheckout({
           <div className="psk-downtime-card">
             <div className="psk-downtime-card__header">
               <div className="psk-downtime-card__icon-wrap">
-                <AlertCircle size={15} />
+                <ArrowLeftRight size={14} />
               </div>
               <div className="psk-downtime-card__content">
-                <h4 className="psk-downtime-card__title">Experiencing {currentDisplayName} transfer delays?</h4>
+                <h4 className="psk-downtime-card__title">Having trouble transferring to {currentDisplayName}?</h4>
                 <p className="psk-downtime-card__desc">
-                  If bank network downtime is delaying your transfer, you can instantly get an alternate <strong>{alternateDisplayName}</strong> account.
+                  If your banking app is unable to send to this account right now, you can switch to an alternate <strong>{alternateDisplayName}</strong> account.
                 </p>
               </div>
             </div>

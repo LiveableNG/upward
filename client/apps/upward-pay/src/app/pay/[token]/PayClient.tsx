@@ -16,6 +16,7 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import PaystackEmbeddedCheckout from '@/features/dashboard/components/payment/PaystackEmbeddedCheckout'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import FallbackSuspense from '@/components/FallbackSuspense'
+import { PayCheckoutSkeleton } from '@/features/payments/components/unified-pay/PayCheckoutSkeleton'
 import { CapacitorGuard } from '@/components/common/CapacitorGuard'
 
 import { InvoiceHeader } from '@/features/payments/components/unified-pay/InvoiceHeader'
@@ -221,7 +222,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
     [isBasicCheckout, isPremiumCheckout, effectiveAllocs, rates.transactionFee],
   )
 
-  if (step === 'loading') return <FallbackSuspense message="Retrieving secure payment details..." />
+  if (step === 'loading') return <PayCheckoutSkeleton />
 
   if (step === 'error') {
     return (
@@ -474,7 +475,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
   if (step === 'processing') return <FallbackSuspense message="Finalizing payment..." />
 
   if (step === 'invoice' && !isCheckoutVariantReady && isPremiumCheckout) {
-    return <FallbackSuspense message="Preparing checkout..." />
+    return <PayCheckoutSkeleton />
   }
 
   if (step === 'invoice' && paymentData) {

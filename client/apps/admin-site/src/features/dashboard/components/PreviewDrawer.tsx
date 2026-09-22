@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock, Compass } from 'lucide-react'
+import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock, Compass, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { PropertySummary } from '../types'
@@ -76,6 +76,12 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
     : '/'
 
   const statusStyle = entity ? getStatusStyle(entity.type) : getStatusStyle('DEFAULT')
+
+  const totalAnnualRent = useMemo(() => {
+    if (!entity?.properties || entity.properties.length === 0) return 0
+    return entity.properties.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+  }, [entity?.properties])
+
 
   return createPortal(
     <>
@@ -282,6 +288,17 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Properties</div>
                   </div>
                 )}
+                {totalAnnualRent > 0 && (
+                  <div style={{ background: 'var(--surface-hover)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: 'var(--clay)' }}>
+                      <Wallet size={16} />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '18px' }}>
+                      ₦{totalAnnualRent >= 1_000_000 ? `${(totalAnnualRent / 1_000_000).toFixed(1)}M` : totalAnnualRent.toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Annual Rent</div>
+                  </div>
+                )}
                 <div style={{ background: 'var(--surface-hover)', borderRadius: '10px', padding: '14px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '6px', color: 'var(--warning)' }}>
                     <Clock size={16} />
@@ -297,9 +314,16 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
             {/* Properties & Tenancy Details */}
             {entity.kind === 'user' && entity.properties && entity.properties.length > 0 && (
               <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-                <span className="section-label" style={{ display: 'block', marginBottom: '14px', fontWeight: 600, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Properties & Tenancy Details ({entity.properties.length})
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <span className="section-label" style={{ fontWeight: 600, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Properties & Tenancy Details ({entity.properties.length})
+                  </span>
+                  {totalAnnualRent > 0 && (
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--clay)', background: 'var(--clay-faint)', padding: '2px 8px', borderRadius: '100px' }}>
+                      Total: ₦{totalAnnualRent.toLocaleString()}
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {entity.properties.map((p, idx) => (
                     <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', background: 'var(--surface-hover)' }}>
@@ -316,7 +340,13 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border)', fontSize: '11px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border)', fontSize: '11px' }}>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Rent Amount</div>
+                          <div style={{ fontWeight: 700, marginTop: '2px', color: p.rentAmount ? 'var(--text)' : 'var(--text-muted)' }}>
+                            {p.rentAmount ? `₦${Number(p.rentAmount).toLocaleString()}` : '—'}
+                          </div>
+                        </div>
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Rent Start</div>
                           <div style={{ fontWeight: 500, marginTop: '2px' }}>
@@ -330,11 +360,6 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                           </div>
                         </div>
                       </div>
-                      {p.rentAmount && (
-                        <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          Rent Amount: <strong>₦{Number(p.rentAmount).toLocaleString()}</strong>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
