@@ -6,6 +6,7 @@ import { GetWaitlistMetricsUseCase } from './get-waitlist-metrics.use-case'
 import { GetSignedUpMetricsUseCase } from './get-signed-up-metrics.use-case'
 import { GetInvitedMetricsUseCase } from './get-invited-metrics.use-case'
 import { GetPmMetricsUseCase } from './get-pm-metrics.use-case'
+import { CalculateRentScoreUseCase } from '../user/calculate-rent-score.use-case'
 
 export interface GetPerformanceMetricsOptions {
   startDate?: string
@@ -25,6 +26,7 @@ export class GetPerformanceMetricsUseCase {
     private readonly getSignedUpMetrics: GetSignedUpMetricsUseCase,
     private readonly getInvitedMetrics: GetInvitedMetricsUseCase,
     private readonly getPmMetrics: GetPmMetricsUseCase,
+    private readonly calculateRentScore: CalculateRentScoreUseCase,
   ) {}
 
   async execute(options: GetPerformanceMetricsOptions = {}) {
@@ -363,6 +365,10 @@ export class GetPerformanceMetricsUseCase {
           }
         }).then(pmCount => tenantCount + pmCount)
       ),
+      this.prisma.upward_rent_cycle.findMany({
+        select: { userId: true },
+        distinct: ['userId'],
+      }),
     ])
 
     const allUsers = _results[0] as any[]
@@ -375,6 +381,8 @@ export class GetPerformanceMetricsUseCase {
     const inviteLogs = _results[7] as any[]
     const emailLogsInTimeframe = _results[8] as any[]
     const activityLogsCountInTimeframe = _results[9] as number
+    const cycleUserRecords = (_results[10] || []) as Array<{ userId: number }>
+    const cycleUserIds = new Set<number>(cycleUserRecords.map((c) => c.userId))
 
     const isDummyEmail = (email: string) => {
       if (!email) return true
@@ -457,10 +465,47 @@ export class GetPerformanceMetricsUseCase {
       userMap.set(u.emailHash, u)
     })
 
+    // Calculate Upward Rent Score for candidate users (users with rent cycles or successful payments)
+    const scoreMap = new Map<string, { score: number; band: string; color: string }>()
+    const candidateUsers = mergedUsers.filter((u) => {
+      const hasCycles = cycleUserIds.has(u.id)
+      const hasSuccessTx = u.transactions && u.transactions.some((tx: any) => tx.status === 'SUCCESS')
+      return hasCycles || hasSuccessTx
+    })
+
+    await Promise.all(
+      candidateUsers.map(async (u) => {
+        try {
+          const scoreRes: any = await this.calculateRentScore.execute(u.uuid)
+          if (scoreRes && scoreRes.success && scoreRes.data && scoreRes.data.isScorable) {
+            const rentScore = scoreRes.data.score || 500
+            const scoreBand = scoreRes.data.band || 'Fair'
+            let bandColor = '#4f46e5'
+            if (rentScore >= 750) {
+              bandColor = '#16a34a'
+            } else if (rentScore >= 650) {
+              bandColor = '#0284c7'
+            } else if (rentScore >= 550) {
+              bandColor = '#4f46e5'
+            } else {
+              bandColor = '#dc2626'
+            }
+            scoreMap.set(u.uuid, {
+              score: rentScore,
+              band: scoreBand,
+              color: bandColor,
+            })
+          }
+        } catch (err: any) {
+          this.logger.warn(`Failed to compute rent score for user ${u.uuid}: ${err?.message || err}`)
+        }
+      })
+    )
+
     const revenueMetrics = this.getRevenueMetrics.execute(successTransactions)
     const waitlistMetrics = this.getWaitlistMetrics.execute(mergedUsers, allWaitlistEntries, userMap, allUserEmailHashes)
-    const signedUpMetrics = this.getSignedUpMetrics.execute(mergedUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap)
-    const invitedMetrics = this.getInvitedMetrics.execute(mergedUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap)
+    const signedUpMetrics = this.getSignedUpMetrics.execute(mergedUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap, scoreMap)
+    const invitedMetrics = this.getInvitedMetrics.execute(mergedUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap, scoreMap)
     const pmMetrics = this.getPmMetrics.execute(allPms, allCompanies, successTransactions, mergedUsers)
 
     const filterList = (list: any[]) => {

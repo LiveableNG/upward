@@ -112,12 +112,22 @@ export class SwitchDedicatedAccountUseCase {
       return slug === targetBank
     })
 
+    const hasTitan = existingAccounts.some((a) => {
+      const slug = (a.bankSlug || '').toLowerCase()
+      const name = (a.bankName || '').toLowerCase()
+      return slug === 'titan-paystack' || name.includes('titan') || name.includes('paystack')
+    })
+    const isTargetTitan = targetBank === 'titan-paystack'
+
     if (matchingExisting && matchingExisting.accountNumber !== currentActive?.accountNumber) {
       this.logger.log(`Activating existing cached DVA for ${targetBank}: ${matchingExisting.accountNumber}`)
-      await this.dvaRepo.setDefault(matchingExisting.id, targetUserPropertyId)
+      // Only set as permanent default if target bank is Titan or if user has no Titan account
+      if (!hasTitan || isTargetTitan) {
+        await this.dvaRepo.setDefault(matchingExisting.id, targetUserPropertyId)
+      }
       return {
         ...matchingExisting,
-        isDefault: true,
+        isDefault: isTargetTitan || !hasTitan,
       }
     }
 

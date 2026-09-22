@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import PayClient from './PayClient'
-import FallbackSuspense from '@/components/FallbackSuspense'
+import { PayCheckoutSkeleton } from '@/features/payments/components/unified-pay/PayCheckoutSkeleton'
 
 export function generateStaticParams() {
   return [{ token: 'placeholder' }]
@@ -8,7 +8,7 @@ export function generateStaticParams() {
 
 export default function UnifiedPayPage() {
   return (
-    <Suspense fallback={<FallbackSuspense />}>
+    <Suspense fallback={<PayCheckoutSkeleton />}>
       <PayClient />
     </Suspense>
   )

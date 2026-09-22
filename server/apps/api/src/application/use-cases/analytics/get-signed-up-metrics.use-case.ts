@@ -12,6 +12,7 @@ export class GetSignedUpMetricsUseCase {
     pmTenants: any[] = [],
     waitlistEmails: Set<string> = new Set(),
     inviteChannelMap: Map<string, string> = new Map(),
+    scoreMap: Map<string, { score: number; band: string; color: string }> = new Map(),
   ) {
     const signedUpDirectory = allUsers
       .filter((u) => !u.isFromInvite)
@@ -196,6 +197,7 @@ export class GetSignedUpMetricsUseCase {
           isWaitlist,
           totalPaid,
           hasPaid: totalPaid > 0,
+          upwardScore: scoreMap.get(u.uuid) || null,
           benefitsPaid,
           hasPaidBenefits: benefitsPaid > 0,
           feePaid,

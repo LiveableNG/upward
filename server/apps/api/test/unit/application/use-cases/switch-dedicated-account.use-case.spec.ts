@@ -144,4 +144,36 @@ describe('SwitchDedicatedAccountUseCase', () => {
       /Unable to provision an alternate Paystack-Titan account/i,
     )
   })
+
+  it('should switch from Titan to existing cached Wema account without overriding Titan as permanent default', async () => {
+    mockPrisma.upward_user_property.findUnique.mockResolvedValue({
+      id: 10,
+      user: { email: 'tenant@upward.ng', firstName: 'John', lastName: 'Doe' },
+    })
+
+    const titanAccount = {
+      id: 2,
+      accountNumber: '2222222222',
+      bankName: 'Paystack-Titan',
+      bankSlug: 'titan-paystack',
+      isDefault: true,
+      userPropertyId: 10,
+    } as any
+    const wemaAccount = {
+      id: 1,
+      accountNumber: '1111111111',
+      bankName: 'Wema Bank',
+      bankSlug: 'wema-bank',
+      isDefault: false,
+      userPropertyId: 10,
+    } as any
+
+    mockDvaRepo.findAllByUserPropertyId.mockResolvedValue([titanAccount, wemaAccount])
+
+    const result = await useCase.execute({ userPropertyId: 10, preferredBank: 'wema-bank' })
+
+    expect(mockDvaRepo.setDefault).not.toHaveBeenCalled()
+    expect(result.accountNumber).toBe('1111111111')
+    expect(result.isDefault).toBe(false)
+  })
 })
