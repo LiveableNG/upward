@@ -1,5 +1,5 @@
-import FallbackSuspense from '@/components/FallbackSuspense'
+import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRentSkeleton'
 
 export default function Loading() {
-  return <FallbackSuspense message="Preparing Payment..." />
+  return <PayRentSkeleton />
 }

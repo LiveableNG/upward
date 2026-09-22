@@ -1,4 +1,7 @@
-import { UpwardLogo } from './PoweredByUpward'
+'use client'
+
+import React from 'react'
+import { Loader2 } from 'lucide-react'
 
 interface FallbackSuspenseProps {
   message?: string
@@ -6,11 +9,10 @@ interface FallbackSuspenseProps {
 
 export default function FallbackSuspense({ message }: FallbackSuspenseProps) {
   return (
-    <div className="pay-page__splash-container">
-      <div className="pay-page__splash">
-        <div className="pay-page__logo-pulse">
-          <UpwardLogo size={52} color="var(--clay)" />
-        </div>
+    <div className="fallback-suspense" aria-busy="true" aria-label={message || 'Loading'}>
+      <div className="fallback-suspense__content">
+        <Loader2 size={32} className="animate-spin fallback-suspense__spinner" />
+        {message ? <p className="fallback-suspense__text">{message}</p> : null}
       </div>
     </div>
   )
