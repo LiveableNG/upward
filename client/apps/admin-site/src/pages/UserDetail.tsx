@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -113,6 +113,11 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
       [propId]: !prev[propId],
     }))
   }
+
+  const totalPropertiesRent = useMemo(() => {
+    if (!user?.properties || user.properties.length === 0) return 0
+    return user.properties.reduce((sum: number, p: any) => sum + (Number(p.rentAmount) || 0), 0)
+  }, [user?.properties])
 
   // Notification Form State
   const [notifTitle, setNotifTitle] = useState('')
@@ -1029,10 +1034,19 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                 fontSize: '15px',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
                 gap: '8px',
               }}
             >
-              <Home size={16} /> Linked Tenancy Properties
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <Home size={16} /> Linked Tenancy Properties ({user.properties?.length || 0})
+              </span>
+              {totalPropertiesRent > 0 && (
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--clay)', background: 'var(--clay-faint)', padding: '2px 10px', borderRadius: '100px' }}>
+                  Total Rent: ₦{totalPropertiesRent.toLocaleString()}
+                </span>
+              )}
             </h4>
             {user.properties && user.properties.length > 0 ? (
               <div
@@ -1350,7 +1364,9 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
                               <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>
                                 Rent Amount
                               </span>
-                              <span style={{ fontSize: '13px', fontWeight: 600 }}>₦{rentAmount.toLocaleString()}</span>
+                              <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                                {rentAmount > 0 ? `₦${rentAmount.toLocaleString()}` : <span style={{ color: 'var(--text-muted)' }}>Not specified</span>}
+                              </span>
                             </div>
                             <div>
                               <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>

@@ -25,6 +25,26 @@ export interface ExpiryMonthYearRange {
   toYear: number
 }
 
+export type RentValueFilter =
+  | 'all'
+  | 'hasRent'
+  | 'under1m'
+  | '1mTo3m'
+  | '3mTo5m'
+  | 'above5m'
+  | 'noRent'
+
+export interface RentFilterCounts {
+  all: number
+  hasRent: number
+  under1m: number
+  '1mTo3m': number
+  '3mTo5m': number
+  above5m: number
+  noRent: number
+}
+
+
 export interface WaitlistRecord {
   id: string
   uuid: string

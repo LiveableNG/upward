@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { RefreshCcw, Clock, LayoutDashboard, GraduationCap } from 'lucide-react'
+import { RefreshCcw, Clock, LayoutDashboard, GraduationCap, Wallet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -33,6 +33,8 @@ import type {
   MetricsSummary,
   ExpiryPreset,
   ExpiryMonthYearRange,
+  RentValueFilter,
+  RentFilterCounts,
 } from '../features/dashboard/types'
 import { flattenMetrics } from '../features/dashboard/types'
 
@@ -201,6 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
   const [expiryCustomRange, setExpiryCustomRange] =
     useState<ExpiryMonthYearRange | null>(null)
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
+  const [rentValueFilter, setRentValueFilter] = useState<RentValueFilter>('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
   const [drawerEntity, setDrawerEntity] = useState<DrawerEntity | null>(null)
@@ -418,7 +421,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     const list: UnifiedUserRecord[] = []
 
     waitlistList.forEach((w) => {
-      const hasProp = !!(w.hasUserProperty || (w.properties && w.properties.length > 0))
+      const wProps = w.properties || []
+      const wTotalRent = wProps.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+      const wRent = wTotalRent > 0 ? wTotalRent : (wProps[0]?.rentAmount ? Number(wProps[0].rentAmount) : null)
+      const hasProp = !!(w.hasUserProperty || wProps.length > 0)
       list.push({
         id: w.id,
         uuid: w.uuid,
@@ -433,8 +439,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         isExWaitlist: false,
         totalPaid: 0,
         hasUserProperty: hasProp,
-        propertiesCount: w.propertiesCount || (w.properties ? w.properties.length : 0),
-        properties: w.properties || [],
+        propertiesCount: w.propertiesCount || wProps.length,
+        properties: wProps,
+        rentAmount: wRent,
         rentStartDate: w.rentStartDate || null,
         rentEndDate: w.rentEndDate || null,
         rentExpiryDate: w.rentEndDate || undefined,
@@ -444,7 +451,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
 
     signedUpList.forEach((u) => {
-      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      const uProps = u.properties || []
+      const uTotalRent = uProps.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+      const uRent = uTotalRent > 0 ? uTotalRent : (uProps[0]?.rentAmount ? Number(uProps[0].rentAmount) : null)
+      const hasProp = !!(u.hasUserProperty || uProps.length > 0)
       list.push({
         id: u.id,
         uuid: u.uuid,
@@ -459,8 +469,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         isExWaitlist: u.origin === 'WAITLIST',
         totalPaid: u.totalPaid,
         hasUserProperty: hasProp,
-        propertiesCount: u.propertiesCount || (u.properties ? u.properties.length : 0),
-        properties: u.properties || [],
+        propertiesCount: u.propertiesCount || uProps.length,
+        properties: uProps,
+        rentAmount: uRent,
         rentStartDate: u.rentStartDate || null,
         rentEndDate: u.rentEndDate || u.rentExpiryDate || null,
         rentExpiryDate: u.rentExpiryDate || u.rentEndDate || undefined,
@@ -471,7 +482,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     })
 
     invitedList.forEach((i) => {
-      const hasProp = !!(i.hasUserProperty || (i.properties && i.properties.length > 0))
+      const iProps = i.properties || []
+      const iTotalRent = iProps.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+      const iRent = iTotalRent > 0 ? iTotalRent : (iProps[0]?.rentAmount ? Number(iProps[0].rentAmount) : null)
+      const hasProp = !!(i.hasUserProperty || iProps.length > 0)
       list.push({
         id: i.id,
         uuid: i.uuid,
@@ -488,8 +502,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         pms: i.pms,
         totalPaid: i.totalPaid,
         hasUserProperty: hasProp,
-        propertiesCount: i.propertiesCount || (i.properties ? i.properties.length : 0),
-        properties: i.properties || [],
+        propertiesCount: i.propertiesCount || iProps.length,
+        properties: iProps,
+        rentAmount: iRent,
         rentStartDate: i.rentStartDate || null,
         rentEndDate: i.rentEndDate || i.rentExpiryDate || null,
         rentExpiryDate: i.rentExpiryDate || i.rentEndDate || undefined,
@@ -500,6 +515,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
 
     return list
   }, [waitlistList, signedUpList, invitedList])
+
+  const getUserRentAmount = (u: UnifiedUserRecord): number => {
+    if (u.rentAmount != null && u.rentAmount > 0) return u.rentAmount
+    if (u.properties && u.properties.length > 0) {
+      return u.properties.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
+    }
+    return 0
+  }
+
 
   const subtabUsers = useMemo(() => {
     return unifiedUsers.filter((u) => {
@@ -830,6 +854,89 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     expiryCustomRange,
   ])
 
+  const rentFilterCounts = useMemo<RentFilterCounts>(() => {
+    let hasRent = 0
+    let under1m = 0
+    let m1To3m = 0
+    let m3To5m = 0
+    let above5m = 0
+    let noRent = 0
+
+    const baseFiltered = usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (propertyFilter === 'withProperty' && !hasProp) return false
+      if (propertyFilter === 'withoutProperty' && hasProp) return false
+
+      // Tenancy Date Hygiene
+      const hasStart = !!(u.rentStartDate || u.properties?.[0]?.rentStartDate)
+      const hasEnd = !!(u.rentExpiryDate || u.rentEndDate || u.properties?.[0]?.rentEndDate)
+
+      if (tenancyDateFilter === 'withBothDates' && (!hasStart || !hasEnd)) return false
+      if (tenancyDateFilter === 'withStartDate' && !hasStart) return false
+      if (tenancyDateFilter === 'withoutStartDate' && hasStart) return false
+      if (tenancyDateFilter === 'withExpiryDate' && !hasEnd) return false
+      if (tenancyDateFilter === 'withoutExpiryDate' && hasEnd) return false
+      if (tenancyDateFilter === 'noDates' && (hasStart || hasEnd)) return false
+
+      // Expiry Match
+      const expiryDate = getRentExpiryDate(u)
+      if (!checkExpiryMatch(expiryDate, expiryPreset, expiryCustomRange)) return false
+
+      return true
+    })
+
+    baseFiltered.forEach((u) => {
+      const rent = getUserRentAmount(u)
+      if (rent > 0) {
+        hasRent++
+        if (rent < 1_000_000) under1m++
+        else if (rent < 3_000_000) m1To3m++
+        else if (rent < 5_000_000) m3To5m++
+        else above5m++
+      } else {
+        noRent++
+      }
+    })
+
+    return {
+      all: baseFiltered.length,
+      hasRent,
+      under1m,
+      '1mTo3m': m1To3m,
+      '3mTo5m': m3To5m,
+      above5m,
+      noRent,
+    }
+  }, [
+    usersFilteredByPm,
+    originFilter,
+    contactFilter,
+    propertyFilter,
+    tenancyDateFilter,
+    expiryPreset,
+    expiryCustomRange,
+  ])
+
   const filteredUsers = useMemo(() => {
     return usersFilteredByPm.filter((u) => {
       // 1. Origin Filter
@@ -874,6 +981,17 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       const expiryDate = getRentExpiryDate(u)
       if (!checkExpiryMatch(expiryDate, expiryPreset, expiryCustomRange)) return false
 
+      // 6. Rent Value Tier Filter
+      if (rentValueFilter !== 'all') {
+        const rent = getUserRentAmount(u)
+        if (rentValueFilter === 'hasRent' && rent <= 0) return false
+        if (rentValueFilter === 'noRent' && rent > 0) return false
+        if (rentValueFilter === 'under1m' && (rent <= 0 || rent >= 1_000_000)) return false
+        if (rentValueFilter === '1mTo3m' && (rent < 1_000_000 || rent >= 3_000_000)) return false
+        if (rentValueFilter === '3mTo5m' && (rent < 3_000_000 || rent >= 5_000_000)) return false
+        if (rentValueFilter === 'above5m' && rent < 5_000_000) return false
+      }
+
       return true
     })
   }, [
@@ -884,7 +1002,44 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     tenancyDateFilter,
     expiryPreset,
     expiryCustomRange,
+    rentValueFilter,
   ])
+
+  const filteredRentSummary = useMemo(() => {
+    let totalRent = 0
+    let propsWithRentCount = 0
+    let usersWithRentCount = 0
+
+    filteredUsers.forEach((u) => {
+      let userRentSum = 0
+      const props = u.properties || []
+      props.forEach((p) => {
+        const amt = Number(p.rentAmount) || 0
+        if (amt > 0) {
+          totalRent += amt
+          userRentSum += amt
+          propsWithRentCount++
+        }
+      })
+      if (props.length === 0 && u.rentAmount && u.rentAmount > 0) {
+        totalRent += u.rentAmount
+        userRentSum += u.rentAmount
+        propsWithRentCount++
+      }
+      if (userRentSum > 0) {
+        usersWithRentCount++
+      }
+    })
+
+    const avgRent = propsWithRentCount > 0 ? Math.round(totalRent / propsWithRentCount) : 0
+
+    return {
+      totalRent,
+      propsWithRentCount,
+      usersWithRentCount,
+      avgRent,
+    }
+  }, [filteredUsers])
 
   // ── Directory list (active tab) ────────────────────────────────
   const currentDirectoryList = useMemo(() => {
@@ -918,6 +1073,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       worksheetData = filteredUsers.map((u) => {
         const source = u.pms?.length ? 'PM' : 'Organic'
         const activity = u.totalPaid > 0 ? 'Payed' : 'None'
+        const rentValue =
+          u.rentAmount ||
+          u.properties?.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0) ||
+          0
 
         return {
           Name: `${u.firstName} ${u.lastName}`.trim(),
@@ -926,6 +1085,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
           Email: u.email,
           Source: source,
           Activity: activity,
+          'Rent Amount (₦)': rentValue,
+          'Properties Count': u.propertiesCount || u.properties?.length || 0,
         }
       })
     } else if (activeTab === 'pms') {
@@ -1219,6 +1380,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                         setUsersSubtab(view)
                         setOriginFilter('all')
                         setContactFilter('all')
+                        setRentValueFilter('all')
                       }}
                       style={{
                         padding: '6px 16px',
@@ -1485,6 +1647,154 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   >
                     No Dates ({tenancyDateCounts.noDates})
                   </button>
+                </div>
+              )}
+
+              {/* Tenancy Rent Value Tier Filter */}
+              {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingRight: '8px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Rent Value:
+                  </span>
+                  <button
+                    onClick={() => setRentValueFilter('all')}
+                    className={`date-chip ${rentValueFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All Rent ({rentFilterCounts.all})
+                  </button>
+                  <button
+                    onClick={() => setRentValueFilter('hasRent')}
+                    className={`date-chip ${rentValueFilter === 'hasRent' ? 'active' : ''}`}
+                  >
+                    Has Rent ({rentFilterCounts.hasRent})
+                  </button>
+                  <button
+                    onClick={() => setRentValueFilter('under1m')}
+                    className={`date-chip ${rentValueFilter === 'under1m' ? 'active' : ''}`}
+                  >
+                    &lt; ₦1M ({rentFilterCounts.under1m})
+                  </button>
+                  <button
+                    onClick={() => setRentValueFilter('1mTo3m')}
+                    className={`date-chip ${rentValueFilter === '1mTo3m' ? 'active' : ''}`}
+                  >
+                    ₦1M – ₦3M ({rentFilterCounts['1mTo3m']})
+                  </button>
+                  <button
+                    onClick={() => setRentValueFilter('3mTo5m')}
+                    className={`date-chip ${rentValueFilter === '3mTo5m' ? 'active' : ''}`}
+                  >
+                    ₦3M – ₦5M ({rentFilterCounts['3mTo5m']})
+                  </button>
+                  <button
+                    onClick={() => setRentValueFilter('above5m')}
+                    className={`date-chip ${rentValueFilter === 'above5m' ? 'active' : ''}`}
+                  >
+                    &gt; ₦5M ({rentFilterCounts.above5m})
+                  </button>
+                  <button
+                    onClick={() => setRentValueFilter('noRent')}
+                    className={`date-chip ${rentValueFilter === 'noRent' ? 'active' : ''}`}
+                  >
+                    No Rent ({rentFilterCounts.noRent})
+                  </button>
+                </div>
+              )}
+
+              {/* Total Filtered Rent Value Aggregate Banner */}
+              {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
+                <div
+                  style={{
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '14px',
+                    marginTop: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
+                        background: 'rgba(217, 119, 87, 0.12)',
+                        color: 'var(--clay)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Wallet size={20} />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          color: 'var(--text-muted)',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        Total Rent in View
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>
+                          ₦{filteredRentSummary.totalRent.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          across <strong>{filteredRentSummary.propsWithRentCount}</strong>{' '}
+                          {filteredRentSummary.propsWithRentCount === 1 ? 'property' : 'properties'}
+                          {filteredRentSummary.usersWithRentCount > 0 &&
+                            ` (${filteredRentSummary.usersWithRentCount} tenants)`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {filteredRentSummary.propsWithRentCount > 0 && (
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '6px 14px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-muted)' }}>Average Rent:</span>
+                      <strong style={{ color: 'var(--text)', fontWeight: 700 }}>
+                        ₦{filteredRentSummary.avgRent.toLocaleString()}
+                      </strong>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
