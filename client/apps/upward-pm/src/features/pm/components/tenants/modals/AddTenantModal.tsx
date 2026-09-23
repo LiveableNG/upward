@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react'
+import { X, UserPlus, Loader2, Building2, Calendar, CreditCard, ChevronDown, MapPin, CheckCircle2, AlertTriangle, Sparkles, Lock } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -16,6 +16,7 @@ import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
+import { calculateRentEndDate, type LeaseDurationUnit } from '../../../utils/rentalDates'
 
 const tenantSchema = z.object({
   tenantType: z.enum(['individual', 'commercial']),
@@ -37,6 +38,7 @@ const tenantSchema = z.object({
   rentAmount: z.string().optional(),
   rentType: z.enum(['Monthly', 'Annually', 'Lease']).optional(),
   leaseYears: z.string().optional(),
+  leaseUnit: z.enum(['years', 'months', 'weeks', 'days']).optional(),
   rentStartDate: z.string().optional(),
   rentEndDate: z.string().optional(),
   isFullyPaid: z.boolean().optional(),
@@ -121,6 +123,9 @@ interface AddTenantModalProps {
       state?: string
       country?: string
       rentAmount?: number
+      rentType?: 'Monthly' | 'Annually' | 'Lease'
+      leaseYears?: string | number
+      leaseUnit?: 'years' | 'months' | 'weeks' | 'days'
       rentStartDate?: string
       rentEndDate?: string
     }
@@ -172,8 +177,9 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       deliveryChannel: undefined,
       unitUuid: '',
       rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
-      rentType: 'Annually',
+      rentType: initialData?.unitDetails?.rentType || 'Annually',
       leaseYears: '1',
+      leaseUnit: 'years',
       rentStartDate: initialData?.unitDetails?.rentStartDate
         ? new Date(initialData.unitDetails.rentStartDate).toISOString().split('T')[0]
         : '',
@@ -188,10 +194,42 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   const selectedUnitUuid = watch('unitUuid')
   const rentStartDate = watch('rentStartDate')
   const rentType = watch('rentType')
+  const leaseYears = watch('leaseYears')
+  const leaseUnit = watch('leaseUnit')
   const tenantType = watch('tenantType')
   const typedEmail = watch('email')
   const typedPhone = watch('phone')
   const { foundUser } = useUserLookup(typedEmail, typedPhone)
+
+  // Reset form with initialData when modal opens
+  useEffect(() => {
+    if (isOpen && initialData) {
+      const start = initialData?.unitDetails?.rentStartDate
+        ? new Date(initialData.unitDetails.rentStartDate).toISOString().split('T')[0]
+        : ''
+      const cycle = initialData?.unitDetails?.rentType || 'Annually'
+      const computedEnd = calculateRentEndDate(start, cycle, '1', 'years')
+      reset({
+        tenantType: initialData?.commercialName ? 'commercial' : 'individual',
+        firstName: initialData?.firstName || '',
+        lastName: initialData?.lastName || '',
+        commercialName: initialData?.commercialName || '',
+        email: (initialData?.email && !initialData.email.endsWith('@upward.com')) ? initialData.email : '',
+        phone: initialData?.phone || '',
+        otherPhone: '',
+        deliveryChannel: undefined,
+        unitUuid: '',
+        rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
+        rentType: cycle,
+        leaseYears: '1',
+        leaseUnit: 'years',
+        rentStartDate: start,
+        rentEndDate: computedEnd || (initialData?.unitDetails?.rentEndDate ? new Date(initialData.unitDetails.rentEndDate).toISOString().split('T')[0] : ''),
+        isFullyPaid: true,
+        rentAmountPaid: '0',
+      })
+    }
+  }, [isOpen, initialData, reset])
 
   // Auto-fill unit based on address if possible (only for existing mode)
   useEffect(() => {
@@ -226,26 +264,20 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
     }
   }, [vacantUnits.length])
 
-  const leaseYears = watch('leaseYears')
-
-  // Auto-calculate End Date if Start Date, Cycle or Lease Years changes
+  // Auto-calculate End Date if Start Date, Cycle, Lease Duration or Unit changes
   useEffect(() => {
     if (rentStartDate && rentType) {
-      const start = new Date(rentStartDate)
-      if (isNaN(start.getTime())) return
-      const end = new Date(start)
-      if (rentType === 'Monthly') {
-        end.setMonth(end.getMonth() + 1)
-      } else if (rentType === 'Lease') {
-        const years = Math.max(1, parseInt(String(leaseYears || '1'), 10) || 1)
-        end.setFullYear(end.getFullYear() + years)
-      } else {
-        end.setFullYear(end.getFullYear() + 1)
+      const computed = calculateRentEndDate(
+        rentStartDate,
+        rentType,
+        leaseYears || '1',
+        (leaseUnit as LeaseDurationUnit) || 'years'
+      )
+      if (computed) {
+        setValue('rentEndDate', computed, { shouldValidate: true })
       }
-      end.setDate(end.getDate() - 1)
-      setValue('rentEndDate', end.toISOString().split('T')[0])
     }
-  }, [rentStartDate, rentType, leaseYears, setValue])
+  }, [rentStartDate, rentType, leaseYears, leaseUnit, setValue])
 
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
@@ -907,14 +939,33 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                       </div>
                       {rentType === 'Lease' && (
                         <div className="form-group animate-fade-in">
-                          <label className="form-label">Lease (Years)</label>
-                          <input
-                            type="number"
-                            min="1"
-                            className={cn("form-input", errors.leaseYears && "form-input--error")}
-                            placeholder="e.g. 1"
-                            {...register('leaseYears')}
-                          />
+                          <label className="form-label">Lease Duration</label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 6 }}>
+                            <input
+                              type="number"
+                              min="1"
+                              className={cn("form-input", errors.leaseYears && "form-input--error")}
+                              placeholder="1"
+                              {...register('leaseYears')}
+                            />
+                            <Controller
+                              name="leaseUnit"
+                              control={control}
+                              render={({ field }) => (
+                                <FormSelect
+                                  value={field.value || 'years'}
+                                  onChange={field.onChange}
+                                  options={[
+                                    { label: 'Years', value: 'years' },
+                                    { label: 'Months', value: 'months' },
+                                    { label: 'Weeks', value: 'weeks' },
+                                    { label: 'Days', value: 'days' }
+                                  ]}
+                                  placeholder="Unit"
+                                />
+                              )}
+                            />
+                          </div>
                           {errors.leaseYears && <span className="form-error-text">{errors.leaseYears.message}</span>}
                         </div>
                       )}
@@ -933,14 +984,22 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                         {errors.rentStartDate && <span className="form-error-text">{errors.rentStartDate.message}</span>}
                       </div>
                       <div className="form-group">
-                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-                          <Calendar size={14} /> End Date
+                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', whiteSpace: 'nowrap' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Calendar size={14} /> End Date</span>
+                          <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600 }}>
+                            <Lock size={10} /> Auto
+                          </span>
                         </label>
-                        <input
-                          type="date"
-                          className={cn("form-input", errors.rentEndDate && "form-input--error")}
-                          {...register('rentEndDate')}
-                        />
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="date"
+                            readOnly
+                            disabled
+                            className={cn("form-input", errors.rentEndDate && "form-input--error")}
+                            style={{ backgroundColor: 'var(--ivory-dim)', borderColor: 'var(--border)', cursor: 'not-allowed', color: 'var(--dark)' }}
+                            {...register('rentEndDate')}
+                          />
+                        </div>
                         {errors.rentEndDate && <span className="form-error-text">{errors.rentEndDate.message}</span>}
                       </div>
                     </div>
