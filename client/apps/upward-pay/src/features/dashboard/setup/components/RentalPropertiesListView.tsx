@@ -211,10 +211,24 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
                         Bank configured by Property Manager
                       </div>
-                    ) : prop.isVerified && !prop.manualAccount ? (
-                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--error)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)' }} />
-                        PM hasn't configured your bank account details for this property
+                    ) : (prop.isPlatformLinked || pAny.pmId || pAny.pm || pAny.managerId || pAny.manager || prop.managerName || prop.companyName || prop.isManaged) ? (
+                      <div style={{ marginTop: 8 }}>
+                        {prop.manualAccount ? (
+                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#92400e' }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+                            <span>Bank: {prop.manualAccount.bankName || 'Bank'} · {prop.manualAccount.accountNumber} {prop.isVerified ? '' : '(Pending PM Confirmation)'}</span>
+                          </div>
+                        ) : prop.isVerified ? (
+                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--error)' }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)', flexShrink: 0 }} />
+                            PM hasn&apos;t configured bank details for this property
+                          </div>
+                        ) : (
+                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7a7268' }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d97706', flexShrink: 0 }} />
+                            Linked to Property Manager (Pending Confirmation)
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
