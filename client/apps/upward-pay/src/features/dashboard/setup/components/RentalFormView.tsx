@@ -20,6 +20,7 @@ import {
   Info,
   Sparkles,
   ShieldCheck,
+  Lock,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { COUNTRIES, STATES } from '@/lib/location-data'
@@ -32,7 +33,7 @@ import {
   PaymentAccountForm,
   isPaymentAccountResolved,
 } from '@/features/dashboard/components/payment/PaymentAccountForm'
-import { toDateInputValue, validateRentDates } from '../rentalDates'
+import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '../rentalDates'
 import { formatCurrency } from '@/lib/utils'
 import { PmSearchSelect } from './PmSearchSelect'
 
@@ -48,6 +49,31 @@ export function RentalFormView() {
   const { isEdit, withMode, returnTo } = useSetupMode()
 
   const [formStep, setFormStep] = useState<RentalFormStep>('location')
+
+  // Auto-calculate end date whenever tenancy parameters change
+  useEffect(() => {
+    if (draft.formData.rentStartDate) {
+      const computed = calculateRentEndDate(
+        draft.formData.rentStartDate,
+        draft.formData.rentType || 'Annually',
+        draft.formData.leaseDuration || '1',
+        draft.formData.leaseUnit || 'years'
+      )
+      if (computed && computed !== draft.formData.rentEndDate) {
+        updateDraft({
+          formData: {
+            ...draft.formData,
+            rentEndDate: computed,
+          },
+        })
+      }
+    }
+  }, [
+    draft.formData.rentStartDate,
+    draft.formData.rentType,
+    draft.formData.leaseDuration,
+    draft.formData.leaseUnit,
+  ])
 
   const hasProof = Boolean(draft.formData.proofFile || draft.formData.proofFileMeta)
   const isFullyPaid = draft.formData.tenancyStatus === 'ALREADY_PAID'
@@ -413,10 +439,18 @@ export function RentalFormView() {
                   className="setup-page__input"
                   value={draft.formData.rentType || 'Annually'}
                   onChange={(e) => {
+                    const newType = e.target.value
+                    const newEnd = calculateRentEndDate(
+                      draft.formData.rentStartDate,
+                      newType,
+                      draft.formData.leaseDuration || '1',
+                      draft.formData.leaseUnit || 'years'
+                    )
                     updateDraft({
                       formData: {
                         ...draft.formData,
-                        rentType: e.target.value,
+                        rentType: newType,
+                        rentEndDate: newEnd || draft.formData.rentEndDate,
                       },
                     })
                   }}
@@ -427,9 +461,69 @@ export function RentalFormView() {
                 </select>
               </div>
 
+              {draft.formData.rentType === 'Lease' && (
+                <div className="setup-page__field">
+                  <label>Lease duration</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
+                    <input
+                      type="number"
+                      min="1"
+                      className="setup-page__input"
+                      placeholder="1"
+                      value={draft.formData.leaseDuration || '1'}
+                      onChange={(e) => {
+                        const newDur = e.target.value
+                        const newEnd = calculateRentEndDate(
+                          draft.formData.rentStartDate,
+                          'Lease',
+                          newDur,
+                          draft.formData.leaseUnit || 'years'
+                        )
+                        updateDraft({
+                          formData: {
+                            ...draft.formData,
+                            leaseDuration: newDur,
+                            rentEndDate: newEnd || draft.formData.rentEndDate,
+                          },
+                        })
+                      }}
+                    />
+                    <select
+                      className="setup-page__input"
+                      value={draft.formData.leaseUnit || 'years'}
+                      onChange={(e) => {
+                        const newUnit = e.target.value as LeaseDurationUnit
+                        const newEnd = calculateRentEndDate(
+                          draft.formData.rentStartDate,
+                          'Lease',
+                          draft.formData.leaseDuration || '1',
+                          newUnit
+                        )
+                        updateDraft({
+                          formData: {
+                            ...draft.formData,
+                            leaseUnit: newUnit,
+                            rentEndDate: newEnd || draft.formData.rentEndDate,
+                          },
+                        })
+                      }}
+                    >
+                      <option value="years">Years</option>
+                      <option value="months">Months</option>
+                      <option value="weeks">Weeks</option>
+                      <option value="days">Days</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <div className="setup-page__field">
                 <label>
-                  {(draft.formData.rentType || 'Annually') === 'Monthly' ? 'Monthly' : 'Yearly'} rent amount
+                  {(draft.formData.rentType || 'Annually') === 'Monthly'
+                    ? 'Monthly rent amount'
+                    : draft.formData.rentType === 'Lease'
+                      ? 'Total lease amount'
+                      : 'Yearly rent amount'}
                 </label>
                 <div className="setup-page__input-row">
                   <span>₦</span>
@@ -670,14 +764,19 @@ export function RentalFormView() {
                   value={draft.formData.rentStartDate}
                   onChange={(e) => {
                     const rentStartDate = toDateInputValue(e.target.value)
-                    const nextFormData = { ...draft.formData, rentStartDate }
-                    if (
-                      nextFormData.rentEndDate &&
-                      !validateRentDates(rentStartDate, nextFormData.rentEndDate)
-                    ) {
-                      nextFormData.rentEndDate = ''
-                    }
-                    updateDraft({ formData: nextFormData })
+                    const computedEnd = calculateRentEndDate(
+                      rentStartDate,
+                      draft.formData.rentType || 'Annually',
+                      draft.formData.leaseDuration || '1',
+                      draft.formData.leaseUnit || 'years'
+                    )
+                    updateDraft({
+                      formData: {
+                        ...draft.formData,
+                        rentStartDate,
+                        rentEndDate: computedEnd,
+                      },
+                    })
                   }}
                 />
               </div>
@@ -689,20 +788,43 @@ export function RentalFormView() {
                       ? 'Current cycle due date'
                       : 'Next rent due date'}
                 </label>
-                <input
-                  className="setup-page__input"
-                  type="date"
-                  min={draft.formData.rentStartDate || undefined}
-                  value={draft.formData.rentEndDate}
-                  onChange={(e) =>
-                    updateDraft({
-                      formData: {
-                        ...draft.formData,
-                        rentEndDate: toDateInputValue(e.target.value),
-                      },
-                    })
-                  }
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="setup-page__input"
+                    type="date"
+                    readOnly
+                    disabled
+                    value={draft.formData.rentEndDate}
+                    style={{
+                      backgroundColor: '#f8f5f0',
+                      borderColor: '#e8e0d5',
+                      cursor: 'not-allowed',
+                      color: '#49423b',
+                      paddingRight: 80,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 12,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#7a7268',
+                      background: '#ede6db',
+                      padding: '3px 7px',
+                      borderRadius: 6,
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <Lock size={11} /> Auto
+                  </div>
+                </div>
               </div>
             </div>
 

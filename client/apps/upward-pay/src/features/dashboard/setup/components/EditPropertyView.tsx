@@ -23,7 +23,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { PaymentAccountForm, isPaymentAccountResolved } from '@/features/dashboard/components/payment/PaymentAccountForm'
-import { toDateInputValue, validateRentDates } from '../rentalDates'
+import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '../rentalDates'
 import { deleteProofOfPayment, uploadProofOfPayment } from '@/features/payments/services/paymentService'
 import { setupRentalListPath, useSetupMode } from '../setupPaths'
 import { PmSearchSelect } from './PmSearchSelect'
@@ -60,6 +60,8 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
   const [rentAmount, setRentAmount] = useState('')
   const [rentType, setRentType] = useState('Annually')
+  const [leaseDuration, setLeaseDuration] = useState('1')
+  const [leaseUnit, setLeaseUnit] = useState<LeaseDurationUnit>('years')
   const [rentStartDate, setRentStartDate] = useState('')
   const [rentEndDate, setRentEndDate] = useState('')
 
@@ -155,6 +157,21 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
     setIsHydrated(true)
   }, [property])
+
+  // Auto-calculate end date whenever tenancy parameters change
+  useEffect(() => {
+    if (rentStartDate && isHydrated) {
+      const computed = calculateRentEndDate(
+        rentStartDate,
+        rentType,
+        leaseDuration,
+        leaseUnit
+      )
+      if (computed) {
+        setRentEndDate(computed)
+      }
+    }
+  }, [rentStartDate, rentType, leaseDuration, leaseUnit, isHydrated])
 
   const handleDeleteProof = async (proofId: number) => {
     if (!confirm('Are you sure you want to remove this proof of payment?')) return
@@ -532,7 +549,12 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                 disabled={isManaged}
                 className="setup-page__input"
                 value={rentType}
-                onChange={(e) => setRentType(e.target.value)}
+                onChange={(e) => {
+                  const newType = e.target.value
+                  setRentType(newType)
+                  const newEnd = calculateRentEndDate(rentStartDate, newType, leaseDuration, leaseUnit)
+                  if (newEnd) setRentEndDate(newEnd)
+                }}
               >
                 <option value="Monthly">Monthly</option>
                 <option value="Annually">Annually</option>
@@ -540,9 +562,47 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               </select>
             </div>
 
+            {rentType === 'Lease' && (
+              <div className="setup-page__field">
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Lease duration</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
+                  <input
+                    disabled={isManaged}
+                    type="number"
+                    min="1"
+                    className="setup-page__input"
+                    placeholder="1"
+                    value={leaseDuration}
+                    onChange={(e) => {
+                      const newDur = e.target.value
+                      setLeaseDuration(newDur)
+                      const newEnd = calculateRentEndDate(rentStartDate, 'Lease', newDur, leaseUnit)
+                      if (newEnd) setRentEndDate(newEnd)
+                    }}
+                  />
+                  <select
+                    disabled={isManaged}
+                    className="setup-page__input"
+                    value={leaseUnit}
+                    onChange={(e) => {
+                      const newUnit = e.target.value as LeaseDurationUnit
+                      setLeaseUnit(newUnit)
+                      const newEnd = calculateRentEndDate(rentStartDate, 'Lease', leaseDuration, newUnit)
+                      if (newEnd) setRentEndDate(newEnd)
+                    }}
+                  >
+                    <option value="years">Years</option>
+                    <option value="months">Months</option>
+                    <option value="weeks">Weeks</option>
+                    <option value="days">Days</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             <div className="setup-page__field">
               <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>
-                {rentType === 'Monthly' ? 'Monthly' : 'Yearly'} rent amount
+                {rentType === 'Monthly' ? 'Monthly' : rentType === 'Lease' ? 'Total Lease' : 'Yearly'} rent amount
               </label>
               <div className="setup-page__input-row">
                 <span>₦</span>
@@ -571,23 +631,51 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                 onChange={(e) => {
                   const val = toDateInputValue(e.target.value)
                   setRentStartDate(val)
-                  if (rentEndDate && !validateRentDates(val, rentEndDate)) {
-                    setRentEndDate('')
-                  }
+                  const newEnd = calculateRentEndDate(val, rentType, leaseDuration, leaseUnit)
+                  if (newEnd) setRentEndDate(newEnd)
                 }}
               />
             </div>
 
             <div className="setup-page__field">
               <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Next rent due date</label>
-              <input
-                disabled={isManaged}
-                className="setup-page__input"
-                type="date"
-                min={rentStartDate || undefined}
-                value={rentEndDate}
-                onChange={(e) => setRentEndDate(toDateInputValue(e.target.value))}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  disabled
+                  readOnly
+                  className="setup-page__input"
+                  type="date"
+                  value={rentEndDate}
+                  style={{
+                    backgroundColor: '#f8f5f0',
+                    borderColor: '#e8e0d5',
+                    cursor: 'not-allowed',
+                    color: '#49423b',
+                    paddingRight: 80,
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#7a7268',
+                    background: '#ede6db',
+                    padding: '3px 7px',
+                    borderRadius: 6,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                  }}
+                >
+                  <Lock size={11} /> Auto
+                </div>
+              </div>
             </div>
           </div>
         </div>

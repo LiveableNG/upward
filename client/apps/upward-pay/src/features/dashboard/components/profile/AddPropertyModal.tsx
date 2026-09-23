@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
-import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight, Globe, Hash } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight, Globe, Hash, Lock } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 import { useToast } from '@/components/common/Toast'
-import { toDateInputValue, validateRentDates } from '@/features/dashboard/setup/rentalDates'
+import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '@/features/dashboard/setup/rentalDates'
 import './AddPropertyModal.css'
 
 interface AddPropertyModalProps {
@@ -24,7 +24,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   const [pmFound, setPmFound] = useState(false)
   const [pmDetails, setPmDetails] = useState<{ id?: number, name?: string, businessName?: string } | null>(null)
   
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     uuid: undefined as string | undefined,
     pmName: '',
     address: '',
@@ -36,10 +36,12 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
     rentStartDate: '',
     rentEndDate: '',
     rentType: 'Annually',
+    leaseDuration: '1',
+    leaseUnit: 'years' as LeaseDurationUnit,
   })
 
   // Initialize from props when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       if (initialData) {
         setPmEmail(initialData.managerEmail || '')
@@ -55,6 +57,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           rentStartDate: toDateInputValue(initialData.rentStartDate),
           rentEndDate: toDateInputValue(initialData.rentEndDate),
           rentType: initialData.rentType || 'Annually',
+          leaseDuration: '1',
+          leaseUnit: 'years',
         })
         setStep('LOOKUP')
         setPmFound(false)
@@ -80,6 +84,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           rentStartDate: '',
           rentEndDate: '',
           rentType: 'Annually',
+          leaseDuration: '1',
+          leaseUnit: 'years',
         })
         setStep('LOOKUP')
         setPmFound(false)
@@ -386,7 +392,11 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                     <select 
                       className="add-property-modal__input add-property-modal__select"
                       value={formData.rentType || 'Annually'}
-                      onChange={e => setFormData({ ...formData, rentType: e.target.value })}
+                      onChange={e => {
+                        const newType = e.target.value
+                        const newEnd = calculateRentEndDate(formData.rentStartDate, newType, formData.leaseDuration, formData.leaseUnit)
+                        setFormData({ ...formData, rentType: newType, rentEndDate: newEnd || formData.rentEndDate })
+                      }}
                       disabled={!!initialData?.isVerified}
                     >
                       <option value="Monthly">Monthly</option>
@@ -395,8 +405,45 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                     </select>
                   </div>
                 </div>
+
+                {formData.rentType === 'Lease' && (
+                  <div className="add-property-modal__input-container">
+                    <label className="add-property-modal__label">Lease Duration</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 6 }}>
+                      <input
+                        type="number"
+                        min="1"
+                        className="add-property-modal__input"
+                        placeholder="1"
+                        value={formData.leaseDuration || '1'}
+                        onChange={e => {
+                          const newDur = e.target.value
+                          const newEnd = calculateRentEndDate(formData.rentStartDate, 'Lease', newDur, formData.leaseUnit)
+                          setFormData({ ...formData, leaseDuration: newDur, rentEndDate: newEnd || formData.rentEndDate })
+                        }}
+                        disabled={!!initialData?.isVerified}
+                      />
+                      <select
+                        className="add-property-modal__input add-property-modal__select"
+                        value={formData.leaseUnit || 'years'}
+                        onChange={e => {
+                          const newUnit = e.target.value as LeaseDurationUnit
+                          const newEnd = calculateRentEndDate(formData.rentStartDate, 'Lease', formData.leaseDuration, newUnit)
+                          setFormData({ ...formData, leaseUnit: newUnit, rentEndDate: newEnd || formData.rentEndDate })
+                        }}
+                        disabled={!!initialData?.isVerified}
+                      >
+                        <option value="years">Years</option>
+                        <option value="months">Months</option>
+                        <option value="weeks">Weeks</option>
+                        <option value="days">Days</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 <div className="add-property-modal__input-container">
-                  <label className="add-property-modal__label">{formData.rentType === 'Monthly' ? 'Monthly Rent' : 'Rent Amount'}</label>
+                  <label className="add-property-modal__label">{formData.rentType === 'Monthly' ? 'Monthly Rent' : formData.rentType === 'Lease' ? 'Total Lease Rent' : 'Rent Amount'}</label>
                   <div className="add-property-modal__input-wrapper">
                     <CreditCard size={16} className="add-property-modal__input-icon" />
                     <input 
@@ -440,11 +487,8 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                       value={formData.rentStartDate}
                       onChange={e => {
                         const rentStartDate = toDateInputValue(e.target.value)
-                        const next = { ...formData, rentStartDate }
-                        if (next.rentEndDate && !validateRentDates(rentStartDate, next.rentEndDate)) {
-                          next.rentEndDate = ''
-                        }
-                        setFormData(next)
+                        const newEnd = calculateRentEndDate(rentStartDate, formData.rentType, formData.leaseDuration, formData.leaseUnit)
+                        setFormData({ ...formData, rentStartDate, rentEndDate: newEnd || formData.rentEndDate })
                       }}
                       required
                       disabled={!!initialData?.isVerified}
@@ -453,19 +497,37 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
                 </div>
                 <div className="add-property-modal__input-container">
                   <label className="add-property-modal__label">End Date</label>
-                  <div className="add-property-modal__input-wrapper">
+                  <div className="add-property-modal__input-wrapper" style={{ position: 'relative' }}>
                     <Calendar size={16} className="add-property-modal__input-icon" />
                     <input 
                       type="date" 
                       className="add-property-modal__input"
-                      min={formData.rentStartDate || undefined}
                       value={formData.rentEndDate}
-                      onChange={e =>
-                        setFormData({ ...formData, rentEndDate: toDateInputValue(e.target.value) })
-                      }
-                      required
-                      disabled={!!initialData?.isVerified}
+                      readOnly
+                      disabled
+                      style={{ backgroundColor: '#f8f5f0', borderColor: '#e8e0d5', cursor: 'not-allowed', color: '#49423b', paddingRight: 75 }}
                     />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: 10,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#7a7268',
+                        background: '#ede6db',
+                        padding: '2px 6px',
+                        borderRadius: 5,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <Lock size={10} /> Auto
+                    </div>
                   </div>
                 </div>
               </div>
