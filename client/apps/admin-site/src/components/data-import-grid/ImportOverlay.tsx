@@ -119,6 +119,21 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
     transformData()
   }
 
+  const handleConfirmClick = () => {
+    if (isPending) return
+    if (!previewRows || previewRows.length === 0) {
+      return showToast('No records found to import.', true)
+    }
+    const errorEntries = Object.entries(validationErrors)
+    if (errorEntries.length > 0) {
+      const [firstKey, firstError] = errorEntries[0]
+      const col = columns.find(c => firstKey.endsWith(`-${c.key}`))
+      const fieldLabel = col ? col.label : 'Field'
+      return showToast(`Please resolve validation errors before saving (${errorEntries.length} issue${errorEntries.length > 1 ? 's' : ''} found: ${fieldLabel} - ${firstError}).`, true)
+    }
+    setShowSaveConfirm(true)
+  }
+
   if (!mounted) return null
 
   const overlayContent = (
@@ -152,8 +167,8 @@ export const ImportOverlay: React.FC<ImportOverlayProps> = ({
               type="button"
               className="btn btn-primary" 
               style={{ borderRadius: 10, height: 40, cursor: isPending ? 'not-allowed' : 'pointer' }}
-              onClick={() => setShowSaveConfirm(true)}
-              disabled={Object.keys(validationErrors).length > 0 || isPending}
+              onClick={handleConfirmClick}
+              disabled={isPending}
             >
               <Save size={16} style={{ marginRight: 8 }}/> 
               {isPending ? 'Saving Staged Data...' : isEditMode ? 'Save & Update Staged Data' : 'Confirm & Complete Import'}
