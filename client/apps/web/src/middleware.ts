@@ -509,6 +509,9 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.rewrite(new URL('/pages/university/lecturers.html', request.url))
   }
+  if (pathname === '/academy/faq' || pathname === '/academy/faqs') {
+    return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
+  }
   if (pathname === '/academy/thank-you') {
     return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
@@ -528,6 +531,9 @@ export async function middleware(request: NextRequest) {
   }
   if (pathname === '/university/scholarships' || pathname === '/university/scholarship') {
     return NextResponse.rewrite(new URL('/pages/university/scholarships.html', request.url))
+  }
+  if (pathname === '/university/faq' || pathname === '/university/faqs') {
+    return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
   }
   if (pathname === '/university/landlord') {
     return NextResponse.rewrite(new URL('/pages/university/landlord.html', request.url))

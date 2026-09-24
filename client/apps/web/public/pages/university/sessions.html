@@ -424,8 +424,19 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
 
   @media(max-width: 980px) {
     .session-layout {
-      grid-template-columns: 1fr;
-      gap: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .session-desktop-details {
+      display: none;
+    }
+    .session-info {
+      gap: 16px;
+    }
+    .session-form-wrap {
+      position: static;
+      width: 100%;
     }
   }
 
@@ -547,19 +558,47 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
     padding: 14px 16px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .slot-item:hover, .slot-item.selected {
+  .slot-item:hover {
+    border-color: var(--rust-light);
+    transform: translateY(-1px);
+  }
+
+  .slot-item.selected {
     border-color: var(--rust);
     background: var(--rust-wash);
+    box-shadow: 0 4px 16px -4px rgba(138, 74, 42, 0.25);
   }
 
-  .slot-item i {
+  .slot-item i.slot-video-icon {
     font-size: 18px;
     color: var(--rust);
+  }
+
+  .slot-check {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--sand);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .slot-item.selected .slot-check {
+    background: var(--rust);
+    border-color: var(--rust);
+    color: var(--white);
   }
 
   .slot-date {
@@ -1142,6 +1181,7 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       <a href="/academy/programme">Curriculum</a>
       <a href="/academy/lecturers">Lecturers</a>
       <a href="/academy/scholarships">Fees &amp; Scholarships</a>
+      <a href="/academy/faq">FAQ</a>
     </div>
     <div class="nav-right">
       <a class="btn-header" href="#sessionFormCard">Reserve Spot</a>
@@ -1173,116 +1213,127 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
         </div>
         <div class="schedule-slots">
           <div class="slot-item selected" data-time="Sat 19 Sep at 9am">
-            <i class="fa-solid fa-video"></i>
-            <div>
-              <span class="slot-date">Sat, 19 Sep · 9:00 AM</span>
-              <span class="slot-type">Live Zoom / Meet · 75 Mins</span>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <i class="fa-solid fa-video slot-video-icon"></i>
+              <div>
+                <span class="slot-date">Sat, 19 Sep · 9:00 AM</span>
+                <span class="slot-type">Live Zoom / Meet · 75 Mins</span>
+              </div>
             </div>
+            <span class="slot-check"><i class="fa-solid fa-check"></i></span>
           </div>
           <div class="slot-item" data-time="Sat Oct 3 at 9am">
-            <i class="fa-solid fa-video"></i>
-            <div>
-              <span class="slot-date">Sat, 3 Oct · 9:00 AM</span>
-              <span class="slot-type">Live Zoom / Meet · 75 Mins</span>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <i class="fa-solid fa-video slot-video-icon"></i>
+              <div>
+                <span class="slot-date">Sat, 3 Oct · 9:00 AM</span>
+                <span class="slot-type">Live Zoom / Meet · 75 Mins</span>
+              </div>
             </div>
+            <span class="slot-check"><i class="fa-solid fa-check"></i></span>
           </div>
         </div>
       </div>
 
-      <!-- What we cover highlights -->
-      <div>
-        <h2 style="font-size:20px; margin-bottom:16px;">What We Cover in This Session</h2>
-        <div class="session-highlights-grid">
-          
-          <div class="highlight-card">
-            <div class="highlight-icon"><i class="fa-solid fa-graduation-cap"></i></div>
-            <h3>10-Week Curriculum Deep Dive</h3>
-            <p>A step-by-step breakdown of property management systems, client acquisition, legal frameworks, and technology tools taught in the course.</p>
-          </div>
+      <!-- DESKTOP EXTRA DETAILS (Hidden on mobile to prioritize fast registration) -->
+      <div class="session-desktop-details">
+        
+        <!-- What we cover highlights -->
+        <div>
+          <h2 style="font-size:20px; margin-bottom:16px;">What We Cover in This Session</h2>
+          <div class="session-highlights-grid">
+            
+            <div class="highlight-card">
+              <div class="highlight-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+              <h3>10-Week Curriculum Deep Dive</h3>
+              <p>A step-by-step breakdown of property management systems, client acquisition, legal frameworks, and technology tools taught in the course.</p>
+            </div>
 
-          <div class="highlight-card">
-            <div class="highlight-icon"><i class="fa-solid fa-chart-line"></i></div>
-            <h3>The ₦10M+ Business Model</h3>
-            <p>Understand how 8–10% property management retainer fees create predictable, compounding monthly income across Lagos, Abuja, and Port Harcourt.</p>
-          </div>
+            <div class="highlight-card">
+              <div class="highlight-icon"><i class="fa-solid fa-chart-line"></i></div>
+              <h3>The ₦10M+ Business Model</h3>
+              <p>Understand how 8–10% property management retainer fees create predictable, compounding monthly income across Lagos, Abuja, and Port Harcourt.</p>
+            </div>
 
-          <div class="highlight-card">
-            <div class="highlight-icon"><i class="fa-solid fa-award"></i></div>
-            <h3>50% Scholarships &amp; Aid</h3>
-            <p>Find out who qualifies for the Upward 50% tuition scholarship, how video applications are reviewed, and key submission deadlines.</p>
-          </div>
+            <div class="highlight-card">
+              <div class="highlight-icon"><i class="fa-solid fa-award"></i></div>
+              <h3>50% Scholarships &amp; Aid</h3>
+              <p>Find out who qualifies for the Upward 50% tuition scholarship, how video applications are reviewed, and key submission deadlines.</p>
+            </div>
 
-          <div class="highlight-card">
-            <div class="highlight-icon"><i class="fa-solid fa-comments"></i></div>
-            <h3>Live Interactive Q&amp;A</h3>
-            <p>Ask anything about workload, part-time feasibility (6–8 hrs/week), mentorship pairing, and guaranteed platform access on GoodTenants.</p>
-          </div>
+            <div class="highlight-card">
+              <div class="highlight-icon"><i class="fa-solid fa-comments"></i></div>
+              <h3>Live Interactive Q&amp;A</h3>
+              <p>Ask anything about workload, part-time feasibility (6–8 hrs/week), mentorship pairing, and guaranteed platform access on GoodTenants.</p>
+            </div>
 
-        </div>
-      </div>
-
-      <!-- Who should attend -->
-      <div class="mentors-strip">
-        <div class="mentors-info">
-          <div class="mentors-avatars">
-            <span>UU</span>
-            <span>GT</span>
-            <span>PM</span>
-          </div>
-          <div class="mentors-text">
-            <strong>Hosted by Upward Founders &amp; Industry Mentors</strong>
-            <span>Direct access to property practitioners and real estate leaders.</span>
           </div>
         </div>
-        <a href="/academy/programme" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px;">View Curriculum →</a>
-      </div>
 
-      <!-- FAQ Section -->
-      <div class="session-faqs">
-        <h3><i class="fa-solid fa-circle-question" style="color:var(--rust);"></i> Frequently Asked Questions</h3>
-        <div class="faq-accordion">
-          
-          <div class="faq-item open">
-            <div class="faq-q">
-              <span>Is this information session free to attend?</span>
-              <i class="fa-solid fa-chevron-down"></i>
+        <!-- Who should attend -->
+        <div class="mentors-strip" style="margin-top:28px;">
+          <div class="mentors-info">
+            <div class="mentors-avatars">
+              <span>UU</span>
+              <span>GT</span>
+              <span>PM</span>
             </div>
-            <div class="faq-a">
-              Yes, 100% free. There is no charge to attend the information and Q&amp;A session. We host these sessions to ensure every candidate understands the commitment and opportunities before applying.
+            <div class="mentors-text">
+              <strong>Hosted by Upward Founders &amp; Industry Mentors</strong>
+              <span>Direct access to property practitioners and real estate leaders.</span>
             </div>
           </div>
-
-          <div class="faq-item">
-            <div class="faq-q">
-              <span>Do I need prior real estate experience to join?</span>
-              <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            <div class="faq-a">
-              No previous experience is required. The programme is designed for beginners as well as active agents looking to transition into structured property management and recurring retainer income.
-            </div>
-          </div>
-
-          <div class="faq-item">
-            <div class="faq-q">
-              <span>How will I receive the meeting link?</span>
-              <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            <div class="faq-a">
-              Once you reserve your spot, we will send the live Zoom/Google Meet link and calendar invite directly to your WhatsApp number and email address before the session starts.
-            </div>
-          </div>
-
-          <div class="faq-item">
-            <div class="faq-q">
-              <span>What if I cannot attend at these times?</span>
-              <i class="fa-solid fa-chevron-down"></i>
-            </div>
-            <div class="faq-a">
-              You can still register and indicate your interest. We will share session summaries and upcoming alternate dates via WhatsApp. You can also contact our team directly.
-            </div>
-          </div>
-
+          <a href="/academy/programme" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px;">View Curriculum →</a>
         </div>
+
+        <!-- FAQ Section -->
+        <div class="session-faqs" style="margin-top:28px;">
+          <h3><i class="fa-solid fa-circle-question" style="color:var(--rust);"></i> Frequently Asked Questions</h3>
+          <div class="faq-accordion">
+            
+            <div class="faq-item open">
+              <div class="faq-q">
+                <span>Is this information session free to attend?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+              <div class="faq-a">
+                Yes, 100% free. There is no charge to attend the information and Q&amp;A session. We host these sessions to ensure every candidate understands the commitment and opportunities before applying.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-q">
+                <span>Do I need prior real estate experience to join?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+              <div class="faq-a">
+                No previous experience is required. The programme is designed for beginners as well as active agents looking to transition into structured property management and recurring retainer income.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-q">
+                <span>How will I receive the meeting link?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+              <div class="faq-a">
+                Once you reserve your spot, we will send the live Zoom/Google Meet link and calendar invite directly to your WhatsApp number and email address before the session starts.
+              </div>
+            </div>
+
+            <div class="faq-item">
+              <div class="faq-q">
+                <span>What if I cannot attend at these times?</span>
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+              <div class="faq-a">
+                You can still register and indicate your interest. We will share session summaries and upcoming alternate dates via WhatsApp. You can also contact our team directly.
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1497,6 +1548,18 @@ src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1"/>
       const timeVal = slot.getAttribute('data-time');
       if (sessionSelect && timeVal) {
         sessionSelect.value = timeVal;
+      }
+      
+      // Smoothly scroll or focus to the form on mobile
+      if (window.innerWidth <= 980) {
+        const formCard = document.getElementById('formCard');
+        if (formCard) {
+          formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        const nameInput = document.getElementById('ea_name');
+        if (nameInput) {
+          setTimeout(() => nameInput.focus({ preventScroll: true }), 350);
+        }
       }
     });
   });
