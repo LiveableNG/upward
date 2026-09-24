@@ -462,35 +462,32 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // Static marketing homepage (see public/landing.html; legacy React UI in src/_archive/homepage/)
+  // Static marketing homepage (see public/pages/landing.html)
   if (pathname === '/') {
-    return NextResponse.rewrite(new URL('/landing.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/landing.html', request.url))
   }
 
   // Static marketing pages for PM, Landlord, and University audiences
   if (pathname === '/for-pm') {
-    return NextResponse.rewrite(new URL('/for-pm.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/for-pm.html', request.url))
   }
   if (pathname === '/for-landlord') {
-    return NextResponse.rewrite(new URL('/for-landlord.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/for-landlord.html', request.url))
   }
   if (pathname === '/university') {
-    return NextResponse.rewrite(new URL('/university.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
-  if (pathname === '/university/apply') {
-    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
-  }
-  if (pathname.startsWith('/university/apply/')) {
-    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
+  if (pathname === '/university/apply' || pathname.startsWith('/university/apply/')) {
+    return NextResponse.rewrite(new URL('/pages/university/apply.html', request.url))
   }
   if (pathname === '/university/programme') {
-    return NextResponse.rewrite(new URL('/university-programme.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/programme.html', request.url))
   }
   if (pathname === '/university/scholarships' || pathname === '/university/scholarship') {
-    return NextResponse.rewrite(new URL('/university-scholarships.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/scholarships.html', request.url))
   }
   if (pathname === '/university/landlord') {
-    return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/landlord.html', request.url))
   }
   if (
     pathname === '/university/sessions' ||
@@ -500,13 +497,13 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/university/sessions/') ||
     pathname.startsWith('/university/session/')
   ) {
-    return NextResponse.rewrite(new URL('/university-sessions.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/sessions.html', request.url))
   }
   if (pathname === '/university/thank-you') {
-    return NextResponse.rewrite(new URL('/university-thank-you.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/university/')) {
-    return NextResponse.rewrite(new URL('/university.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
 
   return NextResponse.next()
