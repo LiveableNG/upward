@@ -124,6 +124,7 @@ export function UniversityClient() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [submittedName, setSubmittedName] = useState('')
+  const [abVariant, setAbVariant] = useState<'A' | 'B'>('A')
 
   const {
     register,
@@ -134,6 +135,9 @@ export function UniversityClient() {
   })
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).getUniversityAbVariant) {
+      setAbVariant((window as any).getUniversityAbVariant())
+    }
     const revealEls = document.querySelectorAll('[data-reveal]')
     const observer = new IntersectionObserver(
       (entries) => {
@@ -168,6 +172,7 @@ export function UniversityClient() {
           experienceLevel: data.exp,
           sessionTime: data.sessionTime,
           interest: data.interest,
+          abVariant,
         }),
       })
 
@@ -197,18 +202,18 @@ export function UniversityClient() {
       {/* Header */}
       <header className="uni-header">
         <nav className="uni-wrap uni-nav">
-          <Link href="/university" className="uni-logo">
+          <Link href="/academy" className="uni-logo">
             <span className="mark">
               <img
                 src="/university-logos/upward_university_logo.jpeg"
-                alt="Upward University Logo"
+                alt="Upward Academy Logo"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
               />
             </span>
             <div>
               UPWARD
               <br />
-              <small>University and Business Accelerator</small>
+              <small>Academy and Business Accelerator</small>
             </div>
           </Link>
 
@@ -228,7 +233,7 @@ export function UniversityClient() {
             <a href="#faq" onClick={() => setNavOpen(false)}>
               FAQ
             </a>
-            <Link href="/university/scholarships" onClick={() => setNavOpen(false)}>
+            <Link href="/academy/scholarships" onClick={() => setNavOpen(false)}>
               Scholarships
             </Link>
           </div>
@@ -283,7 +288,7 @@ export function UniversityClient() {
           <div className="uni-hero-image-card">
             <img
               src="/university-logos/student.png"
-              alt="Upward University Student"
+              alt="Upward Academy Student"
               className="uni-hero-student-img"
             />
           </div>
@@ -486,7 +491,7 @@ export function UniversityClient() {
                 power a real estate business.
               </h2>
               <p className="lead">
-                Every Upward University student learns both Property Management and Brokerage. One
+                Every Upward Academy student learns both Property Management and Brokerage. One
                 combined skillset, not two tracks to choose between.
               </p>
             </div>
@@ -537,7 +542,7 @@ export function UniversityClient() {
               </div>
             </div>
             <p className="uni-skills-note">
-              Every Upward University student learns <em>both</em>. Your specialization comes later.
+              Every Upward Academy student learns <em>both</em>. Your specialization comes later.
             </p>
           </div>
         </div>
@@ -553,7 +558,7 @@ export function UniversityClient() {
               Acquire → Earn → Grow.
             </h2>
             <p className="lead">
-              This isn't classroom-only training. Upward University moves you from learning into the
+              This isn't classroom-only training. Upward Academy moves you from learning into the
               market - with a business identity, prospects and momentum before the programme ends.
             </p>
           </div>
@@ -600,7 +605,7 @@ export function UniversityClient() {
               <span className="uni-eyebrow">Programme Outcome</span>
               <h2>Don't just learn. Launch.</h2>
               <p className="lead">
-                Upward University is designed to move students from classroom learning into the
+                Upward Academy is designed to move students from classroom learning into the
                 market fast.
               </p>
             </div>
@@ -676,7 +681,7 @@ export function UniversityClient() {
         <div className="uni-wrap">
           <div className="uni-sec-head center">
             <span className="uni-eyebrow">Where This Leads</span>
-            <h2>Where can Upward University take you?</h2>
+            <h2>Where can Upward Academy take you?</h2>
             <p className="lead center">
               A job in the industry. A business of your own. Or something that starts part-time and
               becomes both.
@@ -825,7 +830,7 @@ export function UniversityClient() {
               PDF, and you're on your own to find clients, build trust and prove yourself to
               landlords who don't know you.
             </p>
-            <p>Upward University is built differently. Training is the start, not the finish.</p>
+            <p>Upward Academy is built differently. Training is the start, not the finish.</p>
           </div>
           <div className="uni-compare-grid">
             <div className="uni-compare-card plain">
@@ -923,7 +928,7 @@ export function UniversityClient() {
               <h2>Build toward ₦10m+ a year in income.</h2>
             </div>
             <p className="uni-outcome-body">
-              What Upward University gives you is training, an Upward Certified credential, and a
+              What Upward Academy gives you is training, an Upward Certified credential, and a
               professional network — the foundation to build real income, whether that's a salary
               at a leading property company or a business of your own.
             </p>
@@ -1140,7 +1145,7 @@ export function UniversityClient() {
 
                 <div className="uni-field">
                   <label htmlFor="interest">
-                    What interests you most about Upward University? (optional)
+                    What interests you most about Upward Academy? (optional)
                   </label>
                   <input
                     id="interest"
@@ -1195,7 +1200,7 @@ export function UniversityClient() {
                   {submittedName ? `Thank you, ${submittedName.split(' ')[0]}!` : "You're on the list!"}
                 </h3>
                 <p style={{ color: 'var(--uni-ink-soft, #555)', fontSize: '15px', lineHeight: '1.6', maxWidth: '420px', margin: '0 auto 24px' }}>
-                  Your early access request for <b>Upward University 2026 Cohort</b> has been received. Applications open <b>August 28</b>. We will reach out via WhatsApp.
+                  Your early access request for <b>Upward Academy 2026 Cohort</b> has been received. Applications open <b>August 28</b>. We will reach out via WhatsApp.
                 </p>
                 <div style={{ background: '#F8F6EF', borderRadius: '12px', padding: '16px 20px', display: 'inline-block', fontSize: '13.5px', color: '#444' }}>
                   <Check size={16} color="var(--uni-moss, #2D4E35)" style={{ verticalAlign: 'middle', marginRight: '6px' }} />
@@ -1213,9 +1218,9 @@ export function UniversityClient() {
           <div>
             <div className="flogo">
               <span className="mark" style={{ width: '24px', height: '24px', borderRadius: '6px', overflow: 'hidden', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}>
-                <img src="/university-logos/upward_university_logo.jpeg" alt="Upward University Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src="/university-logos/upward_university_logo.jpeg" alt="Upward Academy Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </span>
-              UPWARD UNIVERSITY
+              UPWARD ACADEMY
             </div>
             <p style={{ marginTop: '6px' }}>Part of the Upward housing ecosystem, alongside GoodTenants. Registered in Nigeria.</p>
             <p style={{ marginTop: '8px' }}>
