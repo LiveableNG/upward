@@ -87,7 +87,7 @@ export class GetPendingJoinRequestsUseCase {
           }
         }
 
-        // Look up if this PM already has this tenant assigned to a unit
+        // Look up if this PM already has this tenant assigned to any units
         const pmTenant = await this.prisma.upward_pm_tenant.findFirst({
           where: {
             pmId: ownerPmId,
@@ -103,17 +103,58 @@ export class GetPendingJoinRequestsUseCase {
         });
 
         let existingConnection = null;
+        let isExistingTenant = false;
+        let existingTenancies: any[] = [];
+
         if (pmTenant && pmTenant.units && pmTenant.units.length > 0) {
-          const activeUnit = pmTenant.units.find(u => u.status === 'OCCUPIED');
-          if (activeUnit) {
-            existingConnection = {
-              tenantUuid: pmTenant.uuid,
-              unitUuid: activeUnit.uuid,
-              unitName: activeUnit.unitName,
-              propertyName: activeUnit.property.name,
-              propertyId: activeUnit.propertyId,
-              isSynced: activeUnit.isSynced,
-            };
+          const activeUnits = pmTenant.units.filter(u => u.status === 'OCCUPIED');
+          if (activeUnits.length > 0) {
+            isExistingTenant = true;
+            existingTenancies = activeUnits.map(u => ({
+              unitUuid: u.uuid,
+              unitName: u.unitName,
+              propertyName: u.property?.name || '',
+              propertyAddress: u.property?.address || '',
+              propertyId: u.propertyId,
+            }));
+
+            // Only mark as duplicate if the requested residence matches an existing occupied unit/property
+            const requestedAddress = (metadata.unitDetails?.address || '').toLowerCase().trim();
+            const requestedArea = (metadata.unitDetails?.area || '').toLowerCase().trim();
+            const requestedSubarea = (metadata.unitDetails?.subarea || '').toLowerCase().trim();
+
+            const matchingUnit = activeUnits.find(u => {
+              const propAddress = (u.property?.address || '').toLowerCase().trim();
+              const propName = (u.property?.name || '').toLowerCase().trim();
+              const unitName = (u.unitName || '').toLowerCase().trim();
+
+              const matchesAddress = requestedAddress && propAddress && (
+                requestedAddress === propAddress ||
+                requestedAddress.includes(propAddress) ||
+                propAddress.includes(requestedAddress)
+              );
+              const matchesPropName = requestedAddress && propName && (
+                requestedAddress.includes(propName) ||
+                (requestedArea && (requestedArea === propName || requestedArea.includes(propName) || propName.includes(requestedArea)))
+              );
+              const matchesUnit = requestedSubarea && unitName && (
+                requestedSubarea === unitName ||
+                requestedAddress.includes(unitName)
+              );
+
+              return (matchesAddress || matchesPropName) && (matchesUnit || !requestedSubarea);
+            });
+
+            if (matchingUnit) {
+              existingConnection = {
+                tenantUuid: pmTenant.uuid,
+                unitUuid: matchingUnit.uuid,
+                unitName: matchingUnit.unitName,
+                propertyName: matchingUnit.property?.name || '',
+                propertyId: matchingUnit.propertyId,
+                isSynced: matchingUnit.isSynced,
+              };
+            }
           }
         }
 
@@ -132,37 +173,47 @@ export class GetPendingJoinRequestsUseCase {
 
         let userProperty: any = null;
         if (upwardUser) {
-          userProperty = await this.prisma.upward_user_property.findFirst({
-            where: {
-              userId: upwardUser.id,
-              pmId: ownerPmId,
-            },
-            include: {
-              location: true,
-              manualAccount: true,
-              subaccount: true,
-              tenancyPeriods: {
-                orderBy: { startDate: 'desc' },
+          const requestedAddress = (metadata.unitDetails?.address || '').trim();
+          if (requestedAddress) {
+            userProperty = await this.prisma.upward_user_property.findFirst({
+              where: {
+                userId: upwardUser.id,
+                pmId: ownerPmId,
+                location: {
+                  address: {
+                    contains: requestedAddress,
+                    mode: 'insensitive',
+                  }
+                }
               },
-              paymentRequests: {
-                where: { status: { in: ['PENDING', 'PARTIAL'] } },
-                include: {
-                  lineItemRecords: true,
-                  subaccount: true,
+              include: {
+                location: true,
+                manualAccount: true,
+                subaccount: true,
+                tenancyPeriods: {
+                  orderBy: { startDate: 'desc' },
                 },
-                orderBy: { createdAt: 'desc' },
+                paymentRequests: {
+                  where: { status: { in: ['PENDING', 'PARTIAL'] } },
+                  include: {
+                    lineItemRecords: true,
+                    subaccount: true,
+                  },
+                  orderBy: { createdAt: 'desc' },
+                },
+                platformRentPayments: {
+                  orderBy: { paymentDate: 'desc' },
+                },
               },
-              platformRentPayments: {
-                orderBy: { paymentDate: 'desc' },
-              },
-            },
-          });
+            });
+          }
 
           if (!userProperty) {
             userProperty = await this.prisma.upward_user_property.findFirst({
               where: {
                 userId: upwardUser.id,
-                isPastTenancy: false,
+                pmId: ownerPmId,
+                verificationStatus: 'PENDING',
               },
               include: {
                 location: true,
@@ -184,6 +235,34 @@ export class GetPendingJoinRequestsUseCase {
                 },
               },
               orderBy: { createdAt: 'desc' },
+            });
+          }
+
+          if (!userProperty) {
+            userProperty = await this.prisma.upward_user_property.findFirst({
+              where: {
+                userId: upwardUser.id,
+                pmId: ownerPmId,
+              },
+              include: {
+                location: true,
+                manualAccount: true,
+                subaccount: true,
+                tenancyPeriods: {
+                  orderBy: { startDate: 'desc' },
+                },
+                paymentRequests: {
+                  where: { status: { in: ['PENDING', 'PARTIAL'] } },
+                  include: {
+                    lineItemRecords: true,
+                    subaccount: true,
+                  },
+                  orderBy: { createdAt: 'desc' },
+                },
+                platformRentPayments: {
+                  orderBy: { paymentDate: 'desc' },
+                },
+              },
             });
           }
         }
@@ -299,6 +378,8 @@ export class GetPendingJoinRequestsUseCase {
           paymentDestinationAudit,
           createdAt: log.createdAt,
           existingConnection,
+          isExistingTenant,
+          existingTenancies,
         };
       })
     );

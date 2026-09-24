@@ -242,7 +242,16 @@ export class AssignTenantToUnitUseCase {
         });
       } else if (upwardUser) {
         userPropertyRecord = await this.prisma.upward_user_property.findFirst({
-          where: { userId: upwardUser.id, pmId: ownerPmId },
+          where: {
+            userId: upwardUser.id,
+            pmId: ownerPmId,
+            OR: [
+              ...(freshUnit?.id ? [{ pmUnitId: freshUnit.id }] : []),
+              ...(property?.address ? [{ location: { address: { contains: property.address, mode: 'insensitive' as const } } }] : []),
+              { verificationStatus: 'PENDING' },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
         });
       }
 
@@ -339,7 +348,7 @@ export class AssignTenantToUnitUseCase {
         `;
       }
 
-      // Also clean up any other matching pending join requests for this tenant
+      // Only clean up exact duplicate pending join requests for the same property/residence
       try {
         const logs = await this.prisma.upward_pm_activity_log.findMany({
           where: {
@@ -367,12 +376,19 @@ export class AssignTenantToUnitUseCase {
             }
 
             if (matches) {
-              metadata.status = 'ACCEPTED';
-              metadata.assignedUnitUuid = unitUuid;
-              await this.prisma.upward_pm_activity_log.update({
-                where: { id: log.id },
-                data: { metadata },
-              });
+              const reqAddr = (metadata.unitDetails?.address || '').toLowerCase().trim();
+              const propAddr = (property?.address || '').toLowerCase().trim();
+              const propName = (property?.name || '').toLowerCase().trim();
+              const isSameProperty = !reqAddr || (propAddr && reqAddr.includes(propAddr)) || (propName && reqAddr.includes(propName));
+              
+              if (isSameProperty) {
+                metadata.status = 'ACCEPTED';
+                metadata.assignedUnitUuid = unitUuid;
+                await this.prisma.upward_pm_activity_log.update({
+                  where: { id: log.id },
+                  data: { metadata },
+                });
+              }
             }
           }
         }

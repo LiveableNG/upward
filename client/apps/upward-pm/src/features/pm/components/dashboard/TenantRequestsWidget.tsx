@@ -102,6 +102,11 @@ export function TenantRequestsWidget() {
                     <span>Sync Duplicate: Linked to <strong>{req.existingConnection.propertyName} - Unit {req.existingConnection.unitName}</strong></span>
                   </div>
                 )}
+                {req.isExistingTenant && !req.existingConnection && (
+                  <div className="mt-1.5 bg-[#F0FDF4] p-1.5 px-2 rounded text-[11px] text-[#166534] border border-[#BBF7D0] flex items-center gap-1.5 w-fit">
+                    <span>Existing Tenant · Active at <strong>{req.existingTenancies?.[0]?.propertyName || 'Portfolio'}</strong></span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {req.existingConnection ? (
