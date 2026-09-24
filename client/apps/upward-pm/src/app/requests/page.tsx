@@ -22,7 +22,7 @@ import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityReques
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { format } from 'date-fns'
-import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
+import { VerifyTenantRequestModal } from '@/features/pm/components/tenants/modals/VerifyTenantRequestModal'
 import { useMutation } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
@@ -739,9 +739,8 @@ export default function RequestsPage() {
       />
 
       {isAddModalOpen && selectedJoinReq && (
-        <AddTenantModal
+        <VerifyTenantRequestModal
           isOpen={isAddModalOpen}
-          mode="join-request"
           onClose={() => {
             setIsAddModalOpen(false)
             setSelectedJoinReq(null)

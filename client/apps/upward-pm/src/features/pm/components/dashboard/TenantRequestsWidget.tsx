@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { UserPlus, CheckCircle2, X, AlertCircle } from 'lucide-react';
-import { AddTenantModal } from '../tenants/modals/AddTenantModal';
+import { VerifyTenantRequestModal } from '../tenants/modals/VerifyTenantRequestModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 
 export function TenantRequestsWidget() {
   const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [resolveDuplicateModal, setResolveDuplicateModal] = useState<{
     isOpen: boolean;
     uuid: string;
@@ -52,7 +52,7 @@ export function TenantRequestsWidget() {
 
   const handleApprove = (req: any) => {
     setSelectedRequest(req);
-    setIsAddTenantModalOpen(true);
+    setIsVerifyModalOpen(true);
   };
 
   const handleDismiss = (uuid: string) => {
@@ -139,12 +139,11 @@ export function TenantRequestsWidget() {
         </div>
       </div>
 
-      {isAddTenantModalOpen && selectedRequest && (
-        <AddTenantModal
-          isOpen={isAddTenantModalOpen}
-          mode="join-request"
+      {isVerifyModalOpen && selectedRequest && (
+        <VerifyTenantRequestModal
+          isOpen={isVerifyModalOpen}
           onClose={() => {
-            setIsAddTenantModalOpen(false);
+            setIsVerifyModalOpen(false);
             setSelectedRequest(null);
             queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] });
           }}
