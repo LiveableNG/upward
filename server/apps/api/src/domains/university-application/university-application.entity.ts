@@ -20,6 +20,7 @@ export interface UniversityApplicationProps {
   scholarshipVideoUrl?: string | null
   sessionTime?: string | null
   sourceIdentifier?: string | null
+  abVariant?: string | null
   status?: ApplicationStatus
   applicationFee?: number
   feeStatus?: FeeStatus
@@ -118,6 +119,9 @@ export class UniversityApplication {
   }
   get sourceIdentifier(): string | null | undefined {
     return this.props.sourceIdentifier
+  }
+  get abVariant(): string | null | undefined {
+    return this.props.abVariant
   }
   get status(): ApplicationStatus | undefined {
     return this.props.status

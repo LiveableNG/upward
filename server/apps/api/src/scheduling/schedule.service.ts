@@ -113,7 +113,7 @@ export class ScheduleService implements OnModuleInit {
     })
       .dailyAt('09:00')
       .withoutOverlapping()
-      .description('Daily email digest summarizing yesterday\'s Upward University applications to admins')
+      .description('Daily email digest summarizing yesterday\'s Upward Academy applications to admins')
 
     s.call('cleanupDevEmails', async () => {
       this.logger.log('Starting daily dev-emails S3 and database cleanup task...')

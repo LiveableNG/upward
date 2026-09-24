@@ -38,4 +38,8 @@ export class CreateStudentEarlyAccessDto {
   @IsOptional()
   @IsString()
   sourceIdentifier?: string
+
+  @IsOptional()
+  @IsString()
+  abVariant?: string
 }

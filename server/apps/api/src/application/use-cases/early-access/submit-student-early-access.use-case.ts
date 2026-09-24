@@ -21,6 +21,7 @@ export interface SubmitStudentEarlyAccessCommand {
   interest?: string
   sessionTime?: string
   sourceIdentifier?: string
+  abVariant?: string
 }
 
 @Injectable()
@@ -44,6 +45,7 @@ export class SubmitStudentEarlyAccessUseCase {
       city: command.city,
       ageBracket: command.ageBracket,
       experienceLevel: command.experienceLevel,
+      abVariant: command.abVariant || 'A',
       interest: command.sessionTime
         ? `[Session: ${command.sessionTime}] ${command.interest || ''}`.trim()
         : command.interest,
@@ -63,24 +65,24 @@ export class SubmitStudentEarlyAccessUseCase {
         const firstName = command.name.trim().split(' ')[0] || 'there'
         const contentHtml = `
           <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
-          <p><strong>Welcome to the Upward University Waitlist!</strong></p>
+          <p><strong>Welcome to the Upward Academy Waitlist!</strong></p>
           <p>Thank you for signing up and taking the first step toward building a ₦10M+ property management business.</p>
           <p>Upward helps responsible tenants build a verifiable rental reputation by tracking rent payments and other relevant rental information. This can help tenants access benefits such as rent financing, rewards, discounts, and exclusive homes.</p>
           <p>For landlords and property managers, Upward provides reliable tenant information, including tenant verification, rental history, payment behaviour, and Tenant Scores to help them make smarter rental decisions.</p>
           <p>We have a record of supported reputable firms, including <strong>Diya Fatimilehin & Co.</strong>, <strong>Estatelinks</strong>, and many others, with their property management operations.</p>
           <p>We’re excited to have you on the waitlist. Stay tuned as we share more information about the programme, what to expect, and how you can begin your journey toward building a ₦10M+ property management business.</p>
-          <p><strong>Welcome to Upward University.</strong></p>
+          <p><strong>Welcome to Upward Academy.</strong></p>
           <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Team</strong></p>
         `
 
         const html = buildGlobalLayoutHtml({
           role: 'TENANT',
-          title: 'Welcome to the Upward University Waitlist',
+          title: 'Welcome to the Upward Academy Waitlist',
           contentHtml,
           logoText: 'UPWARD',
-          logoSub: 'UNIVERSITY',
-          buttonText: 'Explore Upward University',
-          buttonUrl: 'https://upward.goodtenants.io/university',
+          logoSub: 'ACADEMY',
+          buttonText: 'Explore Upward Academy',
+          buttonUrl: 'https://upward.goodtenants.io/academy',
         })
 
         await this.emailService.sendEmailWithRetry({
@@ -99,7 +101,7 @@ export class SubmitStudentEarlyAccessUseCase {
       const adminMessage = `
         <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
           <h3 style="color: #d97757; margin-bottom: 12px;">New Student Early Access Application</h3>
-          <p>A new student applicant has just joined the <strong>Upward University Founding Cohort 2026</strong> early access list.</p>
+          <p>A new student applicant has just joined the <strong>Upward Academy Founding Cohort 2026</strong> early access list.</p>
           <table style="width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px;">
             <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; border-bottom: 1px solid #eee;">Name:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.name}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.email || 'None'}</td></tr>

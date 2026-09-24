@@ -33,6 +33,7 @@ export class EarlyAccessController {
       interest: dto.interest,
       sessionTime: dto.sessionTime,
       sourceIdentifier: dto.sourceIdentifier,
+      abVariant: dto.abVariant,
     })
 
     return {

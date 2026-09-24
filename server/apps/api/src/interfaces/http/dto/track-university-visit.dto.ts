@@ -24,4 +24,8 @@ export class TrackUniversityVisitDto {
   @IsOptional()
   @IsString()
   userAgent?: string
+
+  @IsOptional()
+  @IsString()
+  abVariant?: string
 }

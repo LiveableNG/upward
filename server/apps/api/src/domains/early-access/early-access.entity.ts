@@ -15,6 +15,7 @@ export interface EarlyAccessProps {
   propertyCount?: string | null
   landlordStatus?: string | null
   managementStyle?: string | null
+  abVariant?: string | null
   createdAt?: Date
   updatedAt?: Date
 }
@@ -84,6 +85,9 @@ export class EarlyAccessEntry {
   }
   get managementStyle(): string | null | undefined {
     return this.props.managementStyle
+  }
+  get abVariant(): string | null | undefined {
+    return this.props.abVariant
   }
   get createdAt(): Date | undefined {
     return this.props.createdAt

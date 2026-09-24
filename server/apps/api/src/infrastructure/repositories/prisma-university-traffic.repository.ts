@@ -41,6 +41,7 @@ export class PrismaUniversityTrafficRepository implements IUniversityTrafficRepo
       identifier: raw.identifier,
       visitorId: raw.visitorId,
       sessionId: raw.sessionId,
+      abVariant: raw.abVariant || 'A',
       ipHash: raw.ipHash,
       userAgent: raw.userAgent,
       referer: raw.referer,
@@ -183,6 +184,81 @@ export class PrismaUniversityTrafficRepository implements IUniversityTrafficRepo
     const overallConversionRate =
       uniqueViews > 0 ? Math.round((totalConversions / uniqueViews) * 10000) / 100 : 0
 
+    // Compute A/B test statistics
+    const [
+      viewsA,
+      viewsB,
+      uniqueVisitsA,
+      uniqueVisitsB,
+      earlyAccessA,
+      earlyAccessB,
+      appsA,
+      appsB,
+      paidAppsA,
+      paidAppsB,
+    ] = await Promise.all([
+      (this.prisma as any).upward_university_visit.count({
+        where: { OR: [{ abVariant: 'A' }, { abVariant: null }] },
+      }),
+      (this.prisma as any).upward_university_visit.count({
+        where: { abVariant: 'B' },
+      }),
+      (this.prisma as any).upward_university_visit.count({
+        where: { isUnique: true, OR: [{ abVariant: 'A' }, { abVariant: null }] },
+      }),
+      (this.prisma as any).upward_university_visit.count({
+        where: { isUnique: true, abVariant: 'B' },
+      }),
+      (this.prisma as any).upward_early_access.count({
+        where: { type: 'STUDENT', OR: [{ abVariant: 'A' }, { abVariant: null }] },
+      }),
+      (this.prisma as any).upward_early_access.count({
+        where: { type: 'STUDENT', abVariant: 'B' },
+      }),
+      (this.prisma as any).upward_university_application.count({
+        where: { OR: [{ abVariant: 'A' }, { abVariant: null }] },
+      }),
+      (this.prisma as any).upward_university_application.count({
+        where: { abVariant: 'B' },
+      }),
+      (this.prisma as any).upward_university_application.count({
+        where: { feeStatus: 'PAID', OR: [{ abVariant: 'A' }, { abVariant: null }] },
+      }),
+      (this.prisma as any).upward_university_application.count({
+        where: { feeStatus: 'PAID', abVariant: 'B' },
+      }),
+    ])
+
+    const appConvRateA = uniqueVisitsA > 0 ? Math.round((appsA / uniqueVisitsA) * 10000) / 100 : 0
+    const appConvRateB = uniqueVisitsB > 0 ? Math.round((appsB / uniqueVisitsB) * 10000) / 100 : 0
+    const paidConvRateA = appsA > 0 ? Math.round((paidAppsA / appsA) * 10000) / 100 : 0
+    const paidConvRateB = appsB > 0 ? Math.round((paidAppsB / appsB) * 10000) / 100 : 0
+
+    const abTestStats = {
+      variantA: {
+        name: 'Upfront Pricing',
+        views: viewsA,
+        uniqueViews: uniqueVisitsA,
+        earlyAccessCount: earlyAccessA,
+        applicationsCount: appsA,
+        paidApplicationsCount: paidAppsA,
+        applicationConversionRate: appConvRateA,
+        paidConversionRate: paidConvRateA,
+        totalRevenue: paidAppsA * 5000,
+      },
+      variantB: {
+        name: 'Post-Registration Pricing',
+        views: viewsB,
+        uniqueViews: uniqueVisitsB,
+        earlyAccessCount: earlyAccessB,
+        applicationsCount: appsB,
+        paidApplicationsCount: paidAppsB,
+        applicationConversionRate: appConvRateB,
+        paidConversionRate: paidConvRateB,
+        totalRevenue: paidAppsB * 5000,
+      },
+    }
+
     return {
       totalSources: sources.length,
       totalViews,
@@ -190,6 +266,7 @@ export class PrismaUniversityTrafficRepository implements IUniversityTrafficRepo
       totalConversions,
       overallConversionRate,
       channelBreakdown,
+      abTestStats,
     }
   }
 
@@ -264,6 +341,7 @@ export class PrismaUniversityTrafficRepository implements IUniversityTrafficRepo
           identifier: normalizedIdentifier,
           visitorId: data.visitorId,
           sessionId: data.sessionId,
+          abVariant: data.abVariant ? data.abVariant.toUpperCase() : 'A',
           ipHash: data.ipHash,
           userAgent: data.userAgent?.slice(0, 500),
           referer: data.referer?.slice(0, 500),

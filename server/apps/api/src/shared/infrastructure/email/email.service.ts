@@ -168,7 +168,7 @@ export class EmailService {
         from = `"Upward Admin" <upwardadmin@goodtenants.io>`
       }
     } else if (upperType.includes('UNIVERSITY') || upperType.includes('STUDENT')) {
-      from = fromOverride || `"Upward University" <replyupwarduniversity@goodtenants.io>`
+      from = fromOverride || `"Upward Academy" <replyupwarduniversity@goodtenants.io>`
     }
 
     const targetPmUuid = pmUuid || userId

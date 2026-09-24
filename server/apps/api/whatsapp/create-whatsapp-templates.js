@@ -177,14 +177,14 @@ const templates = [
     components: [
       {
         type: 'BODY',
-        text: "Hi {{1}},\n\n*Welcome to the Upward University Waitlist!*\n\nThank you for taking the first step toward building a ₦10M+ property management business.\n\nUpward helps responsible tenants build a verifiable rental reputation by tracking rent payments to unlock benefits like rent financing, rewards, discounts, and exclusive homes.\n\nFor landlords and property managers, Upward provides tenant verification, rental history, payment behaviour, and Tenant Scores for smarter rental decisions.\n\nWe support reputable firms, including *Diya Fatimilehin & Co.*, *Estatelinks*, and many others with their property management operations.\n\nWe’re excited to have you on board! Stay tuned as we share more details about the programme, what to expect, and how to begin your journey.\n\n*Welcome to Upward University.*\n\nBest regards,\n*The Upward Team*",
+        text: "Hi {{1}},\n\n*Welcome to the Upward Academy Waitlist!*\n\nThank you for taking the first step toward building a ₦10M+ property management business.\n\nUpward helps responsible tenants build a verifiable rental reputation by tracking rent payments to unlock benefits like rent financing, rewards, discounts, and exclusive homes.\n\nFor landlords and property managers, Upward provides tenant verification, rental history, payment behaviour, and Tenant Scores for smarter rental decisions.\n\nWe support reputable firms, including *Diya Fatimilehin & Co.*, *Estatelinks*, and many others with their property management operations.\n\nWe’re excited to have you on board! Stay tuned as we share more details about the programme, what to expect, and how to begin your journey.\n\n*Welcome to Upward Academy.*\n\nBest regards,\n*The Upward Team*",
         example: {
           body_text: [['John']]
         }
       },
       {
         type: 'FOOTER',
-        text: 'Upward University'
+        text: 'Upward Academy'
       },
       {
         type: 'BUTTONS',
@@ -192,7 +192,7 @@ const templates = [
           {
             type: 'URL',
             text: 'Explore Upward',
-            url: 'https://upward.goodtenants.io/university'
+            url: 'https://upward.goodtenants.io/academy'
           }
         ]
       }
