@@ -492,6 +492,16 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/university/landlord') {
     return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
   }
+  if (
+    pathname === '/university/sessions' ||
+    pathname === '/university/session' ||
+    pathname === '/university/info-session' ||
+    pathname === '/university/qa-session' ||
+    pathname.startsWith('/university/sessions/') ||
+    pathname.startsWith('/university/session/')
+  ) {
+    return NextResponse.rewrite(new URL('/university-sessions.html', request.url))
+  }
   if (pathname === '/university/thank-you') {
     return NextResponse.rewrite(new URL('/university-thank-you.html', request.url))
   }
