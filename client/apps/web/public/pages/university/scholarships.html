@@ -77,19 +77,41 @@ fbq('track', 'ViewContent', {
   .btn-outline:hover{ border-color:var(--rust); color:var(--rust); }
   .btn-secondary{ background:var(--rust-wash); color:var(--rust); border:1.5px solid rgba(138,74,42,0.32); box-shadow:0 6px 18px -6px rgba(138,74,42,0.22); }
   .btn-secondary:hover{ background:#ebd5c5; border-color:var(--rust); transform:translateY(-2px); box-shadow:0 10px 22px -8px rgba(138,74,42,0.32); }
+
+  .btn-header {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 999px;
+    background: var(--rust);
+    color: var(--white);
+    text-decoration: none;
+    box-shadow: 0 4px 14px -4px rgba(138, 74, 42, 0.4);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-header:hover {
+    background: #723B20;
+    color: var(--white);
+    transform: translateY(-1px);
+  }
   
   .sticky-header-wrapper { position:sticky; top:0; z-index:100; width:100%; }
   header{ position:relative; z-index:50; background:rgba(253,251,245,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--sand); }
   nav.wrap{ display:flex; align-items:center; justify-content:space-between; padding:12px 24px; }
   .logo{ display:flex; align-items:center; gap:10px; font-family:'Inter Tight'; font-weight:800; font-size:16px; letter-spacing:-0.01em; text-decoration:none; color:var(--ink); }
   .logo .mark{ width:48px; height:48px; border-radius:12px; background:var(--rust); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden; }
-  .logo small{ display:block; font-family:'Inter'; font-weight:600; letter-spacing:0.13em; font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; }
-  .nav-links{ display:flex; gap:28px; font-size:13.5px; font-weight:700; color:var(--ink-soft); }
-  .nav-links a{ text-decoration:none; transition:color .18s ease; }
-  .nav-links a:hover, .nav-links a.active{ color:var(--ink); }
+  .logo small{ display:block; font-family:'Inter'; font-weight:600; letter-spacing:0.12em; font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; white-space:nowrap; }
+  .nav-links{ display:flex; align-items:center; gap:clamp(12px, 1.8vw, 24px); font-size:13.5px; font-weight:700; color:var(--ink-soft); }
+  .nav-links a{ text-decoration:none; transition:color .18s ease; white-space:nowrap; }
+  .nav-links a:hover, .nav-links a.active{ color:var(--rust); }
   .nav-links a.active{ color:var(--rust); }
-  .nav-right{ display:flex; align-items:center; gap:14px; }
-  .nav-toggle{ display:none; width:38px; height:38px; border-radius:99px; border:1.5px solid var(--sand); background:#fff; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .nav-right{ display:flex; align-items:center; gap:12px; flex-shrink:0; }
+  .nav-toggle{ display:none; width:38px; height:38px; border-radius:9px; border:1.5px solid var(--sand); background:#fff; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
   .nav-toggle svg{ width:18px; height:18px; }
   
   .nav-home {
@@ -100,24 +122,34 @@ fbq('track', 'ViewContent', {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding-right: 18px;
+    padding-right: 14px;
     border-right: 1px solid var(--sand);
-    margin-right: 4px;
+    margin-right: 2px;
     transition: color 0.2s ease;
   }
   .nav-home:hover { color: #c46648; text-decoration: underline; }
 
-  @media(max-width:900px){
+  @media(max-width:960px){
     .nav-links{
       display:flex; flex-direction:column; gap:0; position:absolute; top:100%; left:0; right:0;
-      background:var(--paper); border-bottom:1px solid var(--sand); padding:6px 24px 14px;
+      background:var(--paper); border-bottom:1px solid var(--sand); padding:6px 24px 16px;
       max-height:0; overflow:hidden; transition:max-height .25s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     }
-    .nav-links.open{ max-height:400px; }
+    .nav-links.open{ max-height:480px; }
     .nav-links a{ padding:12px 0; border-top:1px solid var(--sand); }
     .nav-links a:first-child{ border-top:none; }
     .nav-home{ border-right:none; margin-right:0; padding-right:0; }
     .nav-toggle{ display:flex; }
+  }
+
+  @media(max-width: 600px) {
+    nav.wrap { padding: 8px 16px; }
+    .logo { font-size: 14px; gap: 8px; }
+    .logo .mark { width: 36px; height: 36px; border-radius: 9px; }
+    .logo small { font-size: 8px; letter-spacing: 0.08em; }
+    .nav-right { gap: 8px; }
+    .nav-right .btn-header { padding: 7px 12px; font-size: 11.5px; }
   }
 
   .top-announcement-bar {
@@ -240,8 +272,8 @@ fbq('track', 'ViewContent', {
   <div class="top-announcement-bar">
     <div class="wrap top-announcement-content">
       <span class="top-announcement-badge"><i class="fa-solid fa-graduation-cap"></i> Scholarships</span>
-      <span class="top-announcement-text">Up to <strong>50% Scholarship</strong> Available - Deadline October 4, 2026</span>
-      <a href="/university/apply" class="top-announcement-link">Apply for Scholarship <i class="fa-solid fa-arrow-right"></i></a>
+      <span class="top-announcement-text">Up to <strong>50% Scholarship</strong> Available - 2026 Cohort</span>
+      <a href="/university/sessions" class="top-announcement-link">Reserve Your Spot <i class="fa-solid fa-arrow-right"></i></a>
     </div>
   </div>
 
@@ -253,15 +285,12 @@ fbq('track', 'ViewContent', {
       </a>
       <div class="nav-links" id="navLinks">
         <a href="/" class="nav-home">← Upward Home</a>
-        <a href="/university#outcome">Outcomes</a>
-        <a href="/university/programme">Full Curriculum</a>
-        <a href="/university/scholarships" class="active">Scholarships</a>
-        <a href="/university/sessions">Info &amp; Q&amp;A</a>
+        <a href="/university/programme">Curriculum</a>
         <a href="/university/lecturers">Lecturers</a>
-        <a href="/university#faq">FAQ</a>
+        <a href="/university/scholarships" class="active">Scholarships</a>
       </div>
       <div class="nav-right">
-        <a class="btn btn-primary" href="/university/apply">Apply</a>
+        <a class="btn-header" href="/university/sessions">Info &amp; Q&amp;A</a>
         <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="#15162B" stroke-width="1.8" stroke-linecap="round"/></svg>
         </button>
@@ -279,8 +308,8 @@ fbq('track', 'ViewContent', {
         <h1>Up to 50% scholarship to <em class="serif">build your way in.</em></h1>
         <p class="lead">Your financial situation shouldn't stop you from building a career or business in real estate.</p>
         <div style="margin-top:28px; display:flex; gap:12px; flex-wrap:wrap;">
-          <a class="btn btn-primary" href="/university/apply">Apply before scholarship deadline →</a>
-          <a href="/university/sessions" class="btn btn-secondary"><i class="fa-solid fa-calendar-days" style="font-size:13px; color:var(--rust);"></i> Information &amp; Q&amp;A Sessions</a>
+          <a class="btn btn-primary" href="/university/sessions"><i class="fa-solid fa-calendar-days" style="font-size:13px;"></i> Reserve Free Info &amp; Q&amp;A Spot →</a>
+          <a href="/university/programme" class="btn btn-secondary">Explore Curriculum</a>
         </div>
         <div class="hero-meta">
           <i class="fa-solid fa-clock"></i> SCHOLARSHIP APPLICATION DEADLINE · OCTOBER 4, 2026
@@ -392,13 +421,12 @@ fbq('track', 'ViewContent', {
   <section class="cta-section">
     <div class="wrap">
       <div class="cta-box">
-        <span class="eyebrow">Don't miss the deadline</span>
-        <h2>Apply before scholarship deadline.</h2>
-        <p class="lead">Applications submitted after October 4 may still be considered for admission, but will not be eligible for the scholarship programme.</p>
+        <span class="eyebrow">Next Step</span>
+        <h2>Learn how scholarships work.</h2>
+        <p class="lead">Join a live Information &amp; Q&amp;A session to ask questions about our scholarship criteria, curriculum, and admissions process before the 2026 cohort begins.</p>
         <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-          <a class="btn btn-primary" href="/university/apply">Apply before scholarship deadline →</a>
+          <a class="btn btn-primary" href="/university/sessions"><i class="fa-solid fa-calendar-days"></i> Reserve Free Info &amp; Q&amp;A Spot →</a>
         </div>
-        <p class="fine-print">₦5,000 application fee applies. It is credited toward the programme fee if admitted and refunded if you do not qualify to join the class.</p>
       </div>
     </div>
   </section>
