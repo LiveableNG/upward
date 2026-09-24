@@ -855,12 +855,12 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                 <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
                 <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.35 }}>Toggle off if the tenant is making a partial payment initially.</p>
               </div>
-              <label className="toggle-switch" style={{ flexShrink: 0 }}>
+              <label className="ios-switch">
                 <input 
                   type="checkbox" 
                   {...register('isFullyPaid')}
                 />
-                <span className="toggle-slider"></span>
+                <span className="ios-switch__slider"></span>
               </label>
             </div>
 

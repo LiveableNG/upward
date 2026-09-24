@@ -14,10 +14,12 @@ import {
   Info, 
   Clock, 
   User, 
-  Edit3,
   Loader2,
   Sparkles,
-  PlusCircle
+  PlusCircle,
+  Mail,
+  MessageSquare,
+  Smartphone
 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -217,7 +219,6 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
   const bulkCreateUnitsMutation = useBulkCreateUnits()
   const [successData, setSuccessData] = useState<{ tenantUuid: string; unitUuid?: string } | null>(null)
 
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>('')
   const [unitSelectMode, setUnitSelectMode] = useState<'existing' | 'create'>('create')
   const [newPropertyName, setNewPropertyName] = useState<string>('')
@@ -250,7 +251,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       email: (initialData?.email && !initialData.email.endsWith('@upward.com')) ? initialData.email : '',
       phone: initialData?.phone || '',
       otherPhone: '',
-      deliveryChannel: undefined,
+      deliveryChannel: initialData?.email ? 'EMAIL' : initialData?.phone ? 'SMS' : undefined,
       unitUuid: '',
       rentAmount: initialData?.unitDetails?.rentAmount?.toString() || '',
       rentType: initialData?.unitDetails?.rentType || 'Annually',
@@ -275,6 +276,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
   const tenantType = watch('tenantType')
   const typedEmail = watch('email')
   const typedPhone = watch('phone')
+  const deliveryChannel = watch('deliveryChannel')
   const { foundUser } = useUserLookup(typedEmail, typedPhone)
 
   // Filter vacant units for the selected property
@@ -316,7 +318,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
         email: (initialData?.email && !initialData.email.endsWith('@upward.com')) ? initialData.email : '',
         phone: initialData?.phone || '',
         otherPhone: '',
-        deliveryChannel: undefined,
+        deliveryChannel: initialData?.email ? 'EMAIL' : initialData?.phone ? 'SMS' : undefined,
         unitUuid: '',
         rentAmount: defaultRent ? defaultRent.toString() : '',
         rentType: cycle,
@@ -580,533 +582,6 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
   const requestedLocation = [ud?.address, ud?.area, ud?.state, ud?.country]
     .filter(Boolean).join(', ')
 
-  const renderTenantIdentityFields = () => (
-    <div className="form-section">
-      {tenantType === 'commercial' ? (
-        <div className="form-group" style={{ marginBottom: 16 }}>
-          <label className="form-label">Commercial / Business Name</label>
-          <input
-            type="text"
-            className={cn("form-input", errors.commercialName && "form-input--error")}
-            placeholder="e.g. Acme Holdings Ltd"
-            {...register('commercialName')}
-          />
-          {errors.commercialName && <span className="form-error-text">{errors.commercialName.message}</span>}
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
-          <div className="form-group">
-            <label className="form-label">First Name</label>
-            <input
-              type="text"
-              className={cn("form-input", errors.firstName && "form-input--error")}
-              placeholder="e.g. John"
-              readOnly={!!initialData?.firstName && !isEditingProfile}
-              {...register('firstName')}
-            />
-            {errors.firstName && <span className="form-error-text">{errors.firstName.message}</span>}
-          </div>
-          <div className="form-group">
-            <label className="form-label">Last Name</label>
-            <input
-              type="text"
-              className={cn("form-input", errors.lastName && "form-input--error")}
-              placeholder="e.g. Doe"
-              readOnly={!!initialData?.lastName && !isEditingProfile}
-              {...register('lastName')}
-            />
-            {errors.lastName && <span className="form-error-text">{errors.lastName.message}</span>}
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginTop: 12 }}>
-        <div className="form-group">
-          <label className="form-label">Email Address</label>
-          <input
-            type="email"
-            className={cn("form-input", errors.email && "form-input--error")}
-            placeholder="tenant@example.com"
-            readOnly={!!initialData?.email && !isEditingProfile}
-            {...register('email')}
-          />
-          {errors.email && <span className="form-error-text">{errors.email.message}</span>}
-        </div>
-        <div>
-          <Controller
-            name="phone"
-            control={control}
-            render={({ field }) => (
-              <PhoneInput
-                {...field}
-                label="Phone Number"
-                placeholder="e.g. +234 800 000 0000"
-                error={errors.phone?.message}
-              />
-            )}
-          />
-        </div>
-      </div>
-
-      {/* Silent Search & Smart Suggestion Banner */}
-      {foundUser && ((!typedEmail && foundUser.email) || (!typedPhone && foundUser.phone) || (!watch('firstName') && foundUser.firstName) || (!watch('lastName') && foundUser.lastName)) && (
-        <div style={{
-          marginTop: 12,
-          padding: '12px 14px',
-          borderRadius: 12,
-          background: 'var(--forest-faint)',
-          border: '1px solid rgba(22, 101, 52, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          fontSize: 13
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--forest)' }}>
-            <Sparkles size={16} style={{ flexShrink: 0 }} />
-            <span>
-              Existing Upward account found for <strong>{foundUser.firstName} {foundUser.lastName}</strong>!
-              {typedEmail && foundUser.phone && !typedPhone && ' Autofill their registered phone number?'}
-              {typedPhone && foundUser.email && !typedEmail && ' Autofill their registered email address?'}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (foundUser.phone && !typedPhone) {
-                setValue('phone', foundUser.phone, { shouldValidate: true })
-              }
-              if (foundUser.email && !typedEmail) {
-                setValue('email', foundUser.email, { shouldValidate: true })
-              }
-              if (foundUser.firstName && (!watch('firstName') || watch('firstName')?.trim() === '')) {
-                setValue('firstName', foundUser.firstName, { shouldValidate: true })
-              }
-              if (foundUser.lastName && (!watch('lastName') || watch('lastName')?.trim() === '')) {
-                setValue('lastName', foundUser.lastName, { shouldValidate: true })
-              }
-            }}
-            className="btn btn--primary"
-            style={{
-              padding: '6px 12px',
-              fontSize: 12,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Autofill Details
-          </button>
-        </div>
-      )}
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 12, marginTop: 12 }}>
-        <div>
-          <Controller
-            name="otherPhone"
-            control={control}
-            render={({ field }) => (
-              <PhoneInput
-                {...field}
-                label="Alternative Phone Number"
-                placeholder="e.g. +234 800 000 0000"
-                error={errors.otherPhone?.message}
-              />
-            )}
-          />
-        </div>
-        <div />
-      </div>
-
-      <div style={{ marginTop: 14 }}>
-        <label className="form-label" style={{ marginBottom: 8 }}>Preferred Invite Delivery Method</label>
-        <div className="delivery-options-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8 }}>
-          {!(watch('email') || '').endsWith('@upward.com') && (watch('email') || '').trim() !== '' && (
-            <label 
-              className={cn("delivery-option", watch('deliveryChannel') === 'EMAIL' && "delivery-option--active")}
-            >
-              <input
-                type="radio"
-                value="EMAIL"
-                {...register('deliveryChannel')}
-                className="sr-only"
-              />
-              <span>Email</span>
-            </label>
-          )}
-          <label 
-            className={cn("delivery-option", watch('deliveryChannel') === 'SMS' && "delivery-option--active", !watch('phone') && "delivery-option--disabled")}
-          >
-            <input
-              type="radio"
-              value="SMS"
-              {...register('deliveryChannel')}
-              disabled={!watch('phone')}
-              className="sr-only"
-            />
-            <span>SMS</span>
-          </label>
-          <label 
-            className={cn("delivery-option", watch('deliveryChannel') === 'WHATSAPP' && "delivery-option--active", !watch('phone') && "delivery-option--disabled")}
-          >
-            <input
-              type="radio"
-              value="WHATSAPP"
-              {...register('deliveryChannel')}
-              disabled={!watch('phone')}
-              className="sr-only"
-            />
-            <span>WhatsApp</span>
-          </label>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderUnitAssignmentFields = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* 1. Property Selection */}
-      <div className="form-group" style={{ marginBottom: 0 }}>
-        <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Building2 size={14} /> Select Property
-          </span>
-          {selectedPropertyId === 'NEW' && (
-            <span style={{ fontSize: 11, color: 'var(--forest)', fontWeight: 600 }}>Creating New Property</span>
-          )}
-        </label>
-        <FormSelect
-          value={selectedPropertyId}
-          onChange={(val) => {
-            setSelectedPropertyId(val)
-          }}
-          options={[
-            ...properties.map(p => ({ label: `${p.name}${p.address ? ` (${p.address})` : ''}`, value: p.id.toString() })),
-            { label: '+ Create New Property', value: 'NEW' }
-          ]}
-          placeholder="-- Select Property --"
-        />
-      </div>
-
-      {/* 2. When Creating a New Property */}
-      {selectedPropertyId === 'NEW' && (
-        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--ivory-dim)', padding: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12 }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Property Name</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. Oakwood Heights"
-                value={newPropertyName}
-                onChange={(e) => setNewPropertyName(e.target.value)}
-              />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Property Address</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. 12 Park Avenue"
-                value={newPropertyAddress}
-                onChange={(e) => setNewPropertyAddress(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Unit Name</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="e.g. Flat 1 or Apartment 4B"
-              value={newUnitName}
-              onChange={(e) => setNewUnitName(e.target.value)}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 3. When an Existing Property is Selected */}
-      {selectedPropertyId && selectedPropertyId !== 'NEW' && (
-        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {selectedPropertyVacantUnits.length > 0 ? (
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label className="form-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Building2 size={14} /> Select Unit
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (unitSelectMode === 'existing') {
-                      setUnitSelectMode('create')
-                      setValue('unitUuid', '')
-                    } else {
-                      setUnitSelectMode('existing')
-                      setValue('unitUuid', selectedPropertyVacantUnits[0]?.uuid || '')
-                    }
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    fontSize: 12,
-                    color: 'var(--forest)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  {unitSelectMode === 'existing' ? <><PlusCircle size={13} /> Add New Unit Instead</> : '← Select Existing Vacant Unit'}
-                </button>
-              </div>
-
-              {unitSelectMode === 'existing' ? (
-                <Controller
-                  name="unitUuid"
-                  control={control}
-                  render={({ field }) => (
-                    <FormSelect
-                      className={cn(errors.unitUuid && "form-input--error")}
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      options={selectedPropertyVacantUnits.map(u => ({
-                        label: `Unit ${u.unitName} (Vacant)`,
-                        value: u.uuid
-                      }))}
-                      placeholder="-- Select a vacant unit --"
-                    />
-                  )}
-                />
-              ) : (
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Flat 2 or Apartment 4B"
-                  value={newUnitName}
-                  onChange={(e) => setNewUnitName(e.target.value)}
-                />
-              )}
-              {errors.unitUuid && unitSelectMode === 'existing' && <span className="form-error-text">{errors.unitUuid.message}</span>}
-            </div>
-          ) : (
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label className="form-label" style={{ margin: 0 }}>Unit Name (No vacant units currently exist)</label>
-              </div>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. Flat 1 or Apartment 4B"
-                value={newUnitName}
-                onChange={(e) => setNewUnitName(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 4. Confirmed Rent Terms & Cycle */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))', gap: 12, marginTop: 4 }}>
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-            <CreditCard size={14} /> Confirmed Rent (₦)
-          </label>
-          <input
-            type="number"
-            className={cn("form-input", errors.rentAmount && "form-input--error")}
-            placeholder="e.g. 650000"
-            {...register('rentAmount')}
-          />
-          {errors.rentAmount && <span className="form-error-text">{errors.rentAmount.message}</span>}
-        </div>
-        <div className="form-group">
-          <label className="form-label">Rent Cycle</label>
-          <Controller
-            name="rentType"
-            control={control}
-            render={({ field }) => (
-              <FormSelect
-                value={field.value || 'Annually'}
-                onChange={field.onChange}
-                options={[
-                  { label: 'Annually', value: 'Annually' },
-                  { label: 'Monthly', value: 'Monthly' },
-                  { label: 'Lease', value: 'Lease' }
-                ]}
-                placeholder="Select Rent Cycle"
-              />
-            )}
-          />
-        </div>
-        {rentType === 'Lease' && (
-          <div className="form-group animate-fade-in">
-            <label className="form-label">Lease Duration</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 6 }}>
-              <input
-                type="number"
-                min="1"
-                className={cn("form-input", errors.leaseYears && "form-input--error")}
-                placeholder="1"
-                {...register('leaseYears')}
-              />
-              <Controller
-                name="leaseUnit"
-                control={control}
-                render={({ field }) => (
-                  <FormSelect
-                    value={field.value || 'years'}
-                    onChange={field.onChange}
-                    options={[
-                      { label: 'Years', value: 'years' },
-                      { label: 'Months', value: 'months' },
-                      { label: 'Weeks', value: 'weeks' },
-                      { label: 'Days', value: 'days' }
-                    ]}
-                    placeholder="Unit"
-                  />
-                )}
-              />
-            </div>
-            {errors.leaseYears && <span className="form-error-text">{errors.leaseYears.message}</span>}
-          </div>
-        )}
-      </div>
-
-      {/* 5. Tenancy Dates */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 12, marginTop: 4 }}>
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-            <Calendar size={14} /> Start Date
-          </label>
-          <input
-            type="date"
-            className={cn("form-input", errors.rentStartDate && "form-input--error")}
-            {...register('rentStartDate')}
-          />
-          {errors.rentStartDate && <span className="form-error-text">{errors.rentStartDate.message}</span>}
-        </div>
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', whiteSpace: 'nowrap' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Calendar size={14} /> End Date</span>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600 }}>
-              <Lock size={10} /> Auto
-            </span>
-          </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type="date"
-              readOnly
-              disabled
-              className={cn("form-input", errors.rentEndDate && "form-input--error")}
-              style={{ backgroundColor: 'var(--ivory-dim)', borderColor: 'var(--border)', cursor: 'not-allowed', color: 'var(--dark)' }}
-              {...register('rentEndDate')}
-            />
-          </div>
-          {errors.rentEndDate && <span className="form-error-text">{errors.rentEndDate.message}</span>}
-        </div>
-      </div>
-
-      {/* 6. Payment Reconciliation Card */}
-      <div style={{ marginTop: 8, padding: '12px 14px', background: 'var(--ivory-dim)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: watch('isFullyPaid') ? 0 : 10 }}>
-          <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-            <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.35 }}>Toggle off if the tenant is making a partial payment initially.</p>
-          </div>
-          <label className="toggle-switch" style={{ flexShrink: 0 }}>
-            <input 
-              type="checkbox" 
-              {...register('isFullyPaid')}
-            />
-            <span className="toggle-slider"></span>
-          </label>
-        </div>
-
-        {!watch('isFullyPaid') && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <label className="form-label" style={{ fontSize: 11, margin: 0 }}>PM Acknowledged Amount Paid (₦)</label>
-                {(() => {
-                  const platformCyclePaid = initialData?.platformActivity?.activeCyclePaid ?? initialData?.platformActivity?.currentTenure?.amountPaid;
-                  if (!platformCyclePaid || platformCyclePaid <= 0) return null;
-                  return (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={() => setValue('rentAmountPaid', String(platformCyclePaid))}
-                        className="quick-chip"
-                      >
-                        Credit Platform Paid (₦{platformCyclePaid.toLocaleString()})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setValue('rentAmountPaid', '0')}
-                        className="quick-chip quick-chip--muted"
-                      >
-                        Set ₦0
-                      </button>
-                    </div>
-                  );
-                })()}
-              </div>
-              <input
-                type="number"
-                className="form-input"
-                style={{ fontSize: 13, padding: '9px 12px' }}
-                placeholder="e.g. 500000"
-                {...register('rentAmountPaid')}
-              />
-            </div>
-
-            {(() => {
-              const totalRent = parseFloat(watch('rentAmount') || '0') || 0;
-              const ackPaid = parseFloat(watch('rentAmountPaid') || '0') || 0;
-              const balanceToBill = Math.max(0, totalRent - ackPaid);
-              const isOverpaid = ackPaid > totalRent;
-
-              return (
-                <div style={{ padding: '10px 12px', background: 'white', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Agreed Rent:</span>
-                    <span style={{ fontWeight: 600 }}>₦{totalRent.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>PM Acknowledged:</span>
-                    <span style={{ fontWeight: 600, color: 'var(--forest)' }}>- ₦{ackPaid.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px dashed var(--border)', fontWeight: 700 }}>
-                    <span>Remaining Balance to Bill Tenant:</span>
-                    <span style={{ color: isOverpaid ? 'var(--error)' : 'var(--dark)' }}>
-                      ₦{balanceToBill.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {isOverpaid ? (
-                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <AlertTriangle size={12} />
-                      <span>Acknowledged paid amount cannot exceed total agreed rent.</span>
-                    </div>
-                  ) : balanceToBill > 0 ? (
-                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Info size={12} />
-                      <span>An authoritative balance invoice for ₦{balanceToBill.toLocaleString()} will be issued to the tenant.</span>
-                    </div>
-                  ) : (
-                    <div style={{ marginTop: 6, fontSize: 11, color: 'var(--forest)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <CheckCircle2 size={12} />
-                      <span>Full rent acknowledged. No outstanding payment request will be created.</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-
   if (successData) {
     return (
       <Modal
@@ -1169,7 +644,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       title="Fulfill Tenant Request"
       subtitle="Review the tenant's connection request and assign them to a unit."
       icon={CheckCircle2}
-      maxWidth={660}
+      maxWidth={680}
       footer={
         <div style={{ display: 'flex', gap: 12, width: '100%' }}>
           <button type="button" className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
@@ -1198,451 +673,1126 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
         const firstErrorKey = Object.keys(formErrors)[0];
         const firstErrorMessage = (formErrors as any)[firstErrorKey]?.message || "Please fill in all required fields.";
         toast.error(firstErrorMessage);
-      })} className="animate-fade-in">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 12 }}>
-          {/* 1. Tenancy Overview Card */}
-          <div className="tenancy-overview-card">
-            <div className="tenancy-overview-card__header">
-              <div className="tenancy-overview-card__location">
-                <MapPin size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span className="tenancy-overview-card__address">
-                  {requestedLocation || 'Location not specified in request'}
+      })} className="animate-fade-in verify-form">
+        
+        {/* ── CARD 1: Tenancy Intelligence Summary ── */}
+        <section className="apple-card">
+          <div className="apple-card__header">
+            <div className="apple-card__location">
+              <MapPin size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <span className="apple-card__location-text">
+                {requestedLocation || 'Location not specified in request'}
+              </span>
+            </div>
+            {initialData?.paymentDestinationAudit && (
+              <div>
+                {(initialData.paymentDestinationAudit.isRegisteredPmAccount ?? initialData.paymentDestinationAudit.isDirectToPmAccount) ? (
+                  <span className="apple-pill apple-pill--verified" title="Funds deposited to verified PM account">
+                    <ShieldCheck size={13} style={{ flexShrink: 0 }} />
+                    <span>
+                      Verified PM Payout Account {initialData.paymentDestinationAudit.maskedAccountNumber || initialData.paymentDestinationAudit.destinationAccount ? `(${initialData.paymentDestinationAudit.maskedAccountNumber || initialData.paymentDestinationAudit.destinationAccount})` : ''}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="apple-pill apple-pill--warning" title="Warning: External account detected">
+                    <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                    <span>External Account Detected</span>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="apple-card__grid">
+            <div className="apple-card__col">
+              <div className="apple-card__col-title">
+                <Clock size={13} />
+                <span>Onboarding Request</span>
+              </div>
+              <div className="apple-card__stat-row">
+                <span className="apple-card__stat-label">Claimed Rent:</span>
+                <span className="apple-card__stat-val">
+                  ₦{(initialData?.originalDeclaration?.rentAmount || ud?.rentAmount || 0).toLocaleString()}
                 </span>
               </div>
-              {initialData?.paymentDestinationAudit && (
-                <div>
-                  {(initialData.paymentDestinationAudit.isRegisteredPmAccount ?? initialData.paymentDestinationAudit.isDirectToPmAccount) ? (
-                    <span className="tenancy-overview-card__pill tenancy-overview-card__pill--verified" title="Funds deposited to verified PM account">
-                      <ShieldCheck size={13} style={{ flexShrink: 0 }} />
-                      <span>
-                        Verified PM Account {initialData.paymentDestinationAudit.maskedAccountNumber || initialData.paymentDestinationAudit.destinationAccount ? `(${initialData.paymentDestinationAudit.maskedAccountNumber || initialData.paymentDestinationAudit.destinationAccount} • ${initialData.paymentDestinationAudit.bankName || initialData.paymentDestinationAudit.destinationBank})` : ''}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="tenancy-overview-card__pill tenancy-overview-card__pill--warning" title="Warning: External account detected">
-                      <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-                      <span>External Account Detected</span>
-                    </span>
-                  )}
+              <div className="apple-card__stat-row">
+                <span className="apple-card__stat-label">Initial Period:</span>
+                <span className="apple-card__stat-val apple-card__stat-val--muted">
+                  {(initialData?.originalDeclaration?.rentStartDate || ud?.rentStartDate) ? (
+                    <>
+                      {new Date(initialData?.originalDeclaration?.rentStartDate || ud?.rentStartDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {' → '}
+                      {new Date(initialData?.originalDeclaration?.rentEndDate || ud?.rentEndDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </>
+                  ) : '—'}
+                </span>
+              </div>
+            </div>
+
+            <div className="apple-card__divider" />
+
+            <div className="apple-card__col">
+              <div className="apple-card__col-title">
+                <CreditCard size={13} />
+                <span>Live Upward Pay History</span>
+                {initialData?.platformActivity?.creditScore !== undefined && (
+                  <span className="apple-score-badge">
+                    Score: {initialData.platformActivity.creditScore}
+                  </span>
+                )}
+              </div>
+              <div className="apple-card__stat-row">
+                <span className="apple-card__stat-label">Live Period:</span>
+                <span className="apple-card__stat-val apple-card__stat-val--forest">
+                  {(initialData?.platformActivity?.currentTenure?.rentStartDate || initialData?.platformActivity?.currentTenure?.startDate) 
+                    ? new Date(initialData.platformActivity.currentTenure.rentStartDate || initialData.platformActivity.currentTenure.startDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) 
+                    : 'N/A'}
+                  {' → '}
+                  {(initialData?.platformActivity?.currentTenure?.rentEndDate || initialData?.platformActivity?.currentTenure?.endDate) 
+                    ? new Date(initialData.platformActivity.currentTenure.rentEndDate || initialData.platformActivity.currentTenure.endDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) 
+                    : 'N/A'}
+                </span>
+              </div>
+              <div className="apple-card__stat-row">
+                <span className="apple-card__stat-label">Paid to Date:</span>
+                <span className="apple-card__stat-val">
+                  <strong style={{ color: 'var(--forest)' }}>
+                    ₦{(initialData?.platformActivity?.activeCyclePaid ?? initialData?.platformActivity?.currentTenure?.amountPaid ?? 0).toLocaleString()}
+                  </strong>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
+                    (₦{(initialData?.platformActivity?.totalPlatformPaid || 0).toLocaleString()} total)
+                  </span>
+                </span>
+              </div>
+              {initialData?.activePaymentRequest && (
+                <div className="apple-card__stat-row">
+                  <span className="apple-card__stat-label">Active Invoice:</span>
+                  <span className="apple-card__stat-val" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
+                    ₦{(initialData.activePaymentRequest.amountRemaining ?? initialData.activePaymentRequest.remainingBalance ?? 0).toLocaleString()} ({initialData.activePaymentRequest.status})
+                  </span>
                 </div>
               )}
             </div>
+          </div>
+        </section>
 
-            <div className="tenancy-overview-card__grid">
-              {/* Column 1: Onboarding Request */}
-              <div className="tenancy-overview-card__col">
-                <div className="tenancy-overview-card__col-title">
-                  <Clock size={12} />
-                  <span>Onboarding Request</span>
-                </div>
-                <div className="tenancy-overview-card__stat">
-                  <span className="tenancy-overview-card__stat-label">Agreed Rent</span>
-                  <span className="tenancy-overview-card__stat-val">
-                    ₦{(initialData?.originalDeclaration?.rentAmount || ud?.rentAmount || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="tenancy-overview-card__stat">
-                  <span className="tenancy-overview-card__stat-label">Initial Period</span>
-                  <span className="tenancy-overview-card__stat-val tenancy-overview-card__stat-val--muted">
-                    {(initialData?.originalDeclaration?.rentStartDate || ud?.rentStartDate) ? (
-                      <>
-                        {new Date(initialData?.originalDeclaration?.rentStartDate || ud?.rentStartDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {' → '}
-                        {new Date(initialData?.originalDeclaration?.rentEndDate || ud?.rentEndDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </>
-                    ) : '—'}
-                  </span>
-                </div>
-              </div>
+        {/* ── CARD 2: Match Unit & Confirm Rent Terms ── */}
+        <section className="apple-section-card">
+          <div className="apple-section-header">
+            <div className="apple-section-header__title">
+              <Building2 size={16} className="apple-section-header__icon" />
+              <span>1. Unit Matching & Confirmed Terms</span>
+            </div>
+          </div>
 
-              <div className="tenancy-overview-card__divider" />
-
-              {/* Column 2: Upward Pay Live Activity */}
-              <div className="tenancy-overview-card__col">
-                <div className="tenancy-overview-card__col-header">
-                  <div className="tenancy-overview-card__col-title">
-                    <CreditCard size={12} />
-                    <span>Live on Upward Pay</span>
-                  </div>
-                  {initialData?.platformActivity?.creditScore !== undefined && (
-                    <span className="tenancy-overview-card__score">
-                      Score: {initialData.platformActivity.creditScore}
-                    </span>
-                  )}
-                </div>
-                <div className="tenancy-overview-card__stat">
-                  <span className="tenancy-overview-card__stat-label">Current Live Cycle</span>
-                  <span className="tenancy-overview-card__stat-val tenancy-overview-card__stat-val--forest">
-                    {(initialData?.platformActivity?.currentTenure?.rentStartDate || initialData?.platformActivity?.currentTenure?.startDate) 
-                      ? new Date(initialData.platformActivity.currentTenure.rentStartDate || initialData.platformActivity.currentTenure.startDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) 
-                      : 'N/A'}
-                    {' → '}
-                    {(initialData?.platformActivity?.currentTenure?.rentEndDate || initialData?.platformActivity?.currentTenure?.endDate) 
-                      ? new Date(initialData.platformActivity.currentTenure.rentEndDate || initialData.platformActivity.currentTenure.endDate!).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) 
-                      : 'N/A'}
-                  </span>
-                </div>
-                <div className="tenancy-overview-card__stat">
-                  <span className="tenancy-overview-card__stat-label">Paid to Date</span>
-                  <span className="tenancy-overview-card__stat-val">
-                    <strong style={{ color: 'var(--forest)' }}>
-                      ₦{(initialData?.platformActivity?.activeCyclePaid ?? initialData?.platformActivity?.currentTenure?.amountPaid ?? 0).toLocaleString()}
-                    </strong>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
-                      (₦{(initialData?.platformActivity?.totalPlatformPaid || 0).toLocaleString()} total)
-                    </span>
-                  </span>
-                </div>
-                {initialData?.activePaymentRequest && (
-                  <div className="tenancy-overview-card__stat">
-                    <span className="tenancy-overview-card__stat-label">Active Invoice</span>
-                    <span className="tenancy-overview-card__stat-val" style={{ color: 'var(--text-secondary)', fontSize: 11 }}>
-                      ₦{(initialData.activePaymentRequest.amountRemaining ?? initialData.activePaymentRequest.remainingBalance ?? 0).toLocaleString()} remaining ({initialData.activePaymentRequest.status})
-                    </span>
-                  </div>
+          <div className="apple-form-grid">
+            {/* Property Dropdown */}
+            <div className="apple-field">
+              <label className="apple-field__label">
+                <span>Select Target Property</span>
+                {selectedPropertyId === 'NEW' && (
+                  <span className="apple-badge-action">Creating New Property</span>
                 )}
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Primary Action: Match Unit & Confirm Terms */}
-          <div>
-            <div className="section-header-compact">
-              <Building2 size={16} style={{ color: 'var(--forest)' }} />
-              <span>1. Match Unit & Confirm Rent Terms</span>
-            </div>
-            {renderUnitAssignmentFields()}
-          </div>
-
-          {/* 3. Secondary: Tenant Profile */}
-          <div style={{ paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div className="section-header-compact" style={{ margin: 0 }}>
-                <User size={16} style={{ color: 'var(--forest)' }} />
-                <span>2. Tenant Information</span>
-              </div>
-              <button
-                type="button"
-                className="tenant-profile-card__btn"
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-              >
-                <Edit3 size={12} />
-                <span>{isEditingProfile ? 'Done Editing' : 'Edit Details'}</span>
-              </button>
+              </label>
+              <FormSelect
+                value={selectedPropertyId}
+                onChange={(val) => setSelectedPropertyId(val)}
+                options={[
+                  ...properties.map(p => ({ label: `${p.name}${p.address ? ` (${p.address})` : ''}`, value: p.id.toString() })),
+                  { label: '+ Create New Property', value: 'NEW' }
+                ]}
+                placeholder="-- Select Property --"
+              />
             </div>
 
-            {!isEditingProfile && (
-              <div className="tenant-profile-card">
-                <div className="tenant-profile-card__left">
-                  <div className="tenant-profile-card__avatar">
-                    <User size={15} />
+            {/* When Creating New Property */}
+            {selectedPropertyId === 'NEW' && (
+              <div className="apple-nested-box animate-fade-in">
+                <div className="apple-grid-2">
+                  <div className="apple-field">
+                    <label className="apple-field__label">Property Name</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Oakwood Heights"
+                      value={newPropertyName}
+                      onChange={(e) => setNewPropertyName(e.target.value)}
+                    />
                   </div>
-                  <div>
-                    <div className="tenant-profile-card__name">
-                      {watch('tenantType') === 'commercial'
-                        ? (watch('commercialName') || 'Commercial Tenant')
-                        : `${watch('firstName') || ''} ${watch('lastName') || ''}`.trim() || 'Individual Tenant'}
-                    </div>
-                    <div className="tenant-profile-card__meta">
-                      {watch('email') && <span>{watch('email')}</span>}
-                      {watch('email') && watch('phone') && <span>•</span>}
-                      {watch('phone') && <span>{watch('phone')}</span>}
-                      {watch('deliveryChannel') && <span>• Delivery: {watch('deliveryChannel')}</span>}
-                    </div>
+                  <div className="apple-field">
+                    <label className="apple-field__label">Property Address</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. 12 Park Avenue"
+                      value={newPropertyAddress}
+                      onChange={(e) => setNewPropertyAddress(e.target.value)}
+                    />
                   </div>
+                </div>
+                <div className="apple-field">
+                  <label className="apple-field__label">Unit Name / Apartment Number</label>
+                  <input
+                    type="text"
+                    className="apple-input"
+                    placeholder="e.g. Flat 1 or Apartment 4B"
+                    value={newUnitName}
+                    onChange={(e) => setNewUnitName(e.target.value)}
+                  />
                 </div>
               </div>
             )}
 
-            <div style={{ display: isEditingProfile ? 'block' : 'none', marginTop: 10 }}>
-              {renderTenantIdentityFields()}
+            {/* When Existing Property is Selected */}
+            {selectedPropertyId && selectedPropertyId !== 'NEW' && (
+              <div className="apple-field animate-fade-in">
+                {selectedPropertyVacantUnits.length > 0 ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <label className="apple-field__label" style={{ margin: 0 }}>Select Vacant Unit</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (unitSelectMode === 'existing') {
+                            setUnitSelectMode('create')
+                            setValue('unitUuid', '')
+                          } else {
+                            setUnitSelectMode('existing')
+                            setValue('unitUuid', selectedPropertyVacantUnits[0]?.uuid || '')
+                          }
+                        }}
+                        className="apple-link-btn"
+                      >
+                        {unitSelectMode === 'existing' ? <><PlusCircle size={13} /> Add New Unit Instead</> : '← Select Existing Vacant Unit'}
+                      </button>
+                    </div>
+                    {unitSelectMode === 'existing' ? (
+                      <Controller
+                        name="unitUuid"
+                        control={control}
+                        render={({ field }) => (
+                          <FormSelect
+                            className={cn(errors.unitUuid && "form-input--error")}
+                            value={field.value || ''}
+                            onChange={field.onChange}
+                            options={selectedPropertyVacantUnits.map(u => ({
+                              label: `Unit ${u.unitName} (Vacant)`,
+                              value: u.uuid
+                            }))}
+                            placeholder="-- Choose a vacant unit --"
+                          />
+                        )}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        className="apple-input"
+                        placeholder="e.g. Flat 2 or Apartment 4B"
+                        value={newUnitName}
+                        onChange={(e) => setNewUnitName(e.target.value)}
+                      />
+                    )}
+                    {errors.unitUuid && unitSelectMode === 'existing' && <span className="apple-error-text">{errors.unitUuid.message}</span>}
+                  </>
+                ) : (
+                  <>
+                    <label className="apple-field__label">Unit Name (No vacant units in this property)</label>
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="e.g. Flat 1 or Apartment 4B"
+                      value={newUnitName}
+                      onChange={(e) => setNewUnitName(e.target.value)}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Confirmed Rent Terms Grid */}
+            <div className="apple-grid-2">
+              <div className="apple-field">
+                <label className="apple-field__label">Confirmed Rent (₦)</label>
+                <input
+                  type="number"
+                  className={cn("apple-input", errors.rentAmount && "apple-input--error")}
+                  placeholder="e.g. 650000"
+                  {...register('rentAmount')}
+                />
+                {errors.rentAmount && <span className="apple-error-text">{errors.rentAmount.message}</span>}
+              </div>
+              <div className="apple-field">
+                <label className="apple-field__label">Rent Cycle</label>
+                <Controller
+                  name="rentType"
+                  control={control}
+                  render={({ field }) => (
+                    <FormSelect
+                      value={field.value || 'Annually'}
+                      onChange={field.onChange}
+                      options={[
+                        { label: 'Annually', value: 'Annually' },
+                        { label: 'Monthly', value: 'Monthly' },
+                        { label: 'Lease', value: 'Lease' }
+                      ]}
+                      placeholder="Select Cycle"
+                    />
+                  )}
+                />
+              </div>
+            </div>
+
+            {rentType === 'Lease' && (
+              <div className="apple-grid-2 animate-fade-in">
+                <div className="apple-field">
+                  <label className="apple-field__label">Lease Duration Number</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className={cn("apple-input", errors.leaseYears && "apple-input--error")}
+                    placeholder="1"
+                    {...register('leaseYears')}
+                  />
+                  {errors.leaseYears && <span className="apple-error-text">{errors.leaseYears.message}</span>}
+                </div>
+                <div className="apple-field">
+                  <label className="apple-field__label">Lease Unit</label>
+                  <Controller
+                    name="leaseUnit"
+                    control={control}
+                    render={({ field }) => (
+                      <FormSelect
+                        value={field.value || 'years'}
+                        onChange={field.onChange}
+                        options={[
+                          { label: 'Years', value: 'years' },
+                          { label: 'Months', value: 'months' },
+                          { label: 'Weeks', value: 'weeks' },
+                          { label: 'Days', value: 'days' }
+                        ]}
+                        placeholder="Unit"
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Dates Grid */}
+            <div className="apple-grid-2">
+              <div className="apple-field">
+                <label className="apple-field__label">Tenancy Start Date</label>
+                <input
+                  type="date"
+                  className={cn("apple-input", errors.rentStartDate && "apple-input--error")}
+                  {...register('rentStartDate')}
+                />
+                {errors.rentStartDate && <span className="apple-error-text">{errors.rentStartDate.message}</span>}
+              </div>
+              <div className="apple-field">
+                <label className="apple-field__label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Rent End Date</span>
+                  <span className="apple-auto-badge"><Lock size={10} /> Auto-calculated</span>
+                </label>
+                <input
+                  type="date"
+                  readOnly
+                  disabled
+                  className="apple-input apple-input--disabled"
+                  {...register('rentEndDate')}
+                />
+                {errors.rentEndDate && <span className="apple-error-text">{errors.rentEndDate.message}</span>}
+              </div>
+            </div>
+
+            {/* Apple-style Payment Reconciliation Toggle Box */}
+            <div className="apple-toggle-box">
+              <div className="apple-toggle-box__header">
+                <div>
+                  <h4 className="apple-toggle-box__title">Fully Paid for Current Period?</h4>
+                  <p className="apple-toggle-box__desc">Toggle off if this tenant has an outstanding initial balance to settle.</p>
+                </div>
+                <label className="ios-switch">
+                  <input 
+                    type="checkbox" 
+                    {...register('isFullyPaid')}
+                  />
+                  <span className="ios-switch__slider"></span>
+                </label>
+              </div>
+
+              {!watch('isFullyPaid') && (
+                <div className="apple-reconciliation-panel animate-fade-in">
+                  <div className="apple-field">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <label className="apple-field__label" style={{ margin: 0 }}>PM Acknowledged Amount Paid (₦)</label>
+                      {(() => {
+                        const platformCyclePaid = initialData?.platformActivity?.activeCyclePaid ?? initialData?.platformActivity?.currentTenure?.amountPaid;
+                        if (!platformCyclePaid || platformCyclePaid <= 0) return null;
+                        return (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => setValue('rentAmountPaid', String(platformCyclePaid))}
+                              className="apple-chip"
+                            >
+                              Credit Platform (₦{platformCyclePaid.toLocaleString()})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setValue('rentAmountPaid', '0')}
+                              className="apple-chip apple-chip--muted"
+                            >
+                              Set ₦0
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    <input
+                      type="number"
+                      className="apple-input"
+                      placeholder="e.g. 500000"
+                      {...register('rentAmountPaid')}
+                    />
+                  </div>
+
+                  {(() => {
+                    const totalRent = parseFloat(watch('rentAmount') || '0') || 0;
+                    const ackPaid = parseFloat(watch('rentAmountPaid') || '0') || 0;
+                    const balanceToBill = Math.max(0, totalRent - ackPaid);
+                    const isOverpaid = ackPaid > totalRent;
+
+                    return (
+                      <div className="apple-calculation-card">
+                        <div className="apple-calculation-row">
+                          <span className="apple-calculation-label">Confirmed Rent:</span>
+                          <span className="apple-calculation-val">₦{totalRent.toLocaleString()}</span>
+                        </div>
+                        <div className="apple-calculation-row">
+                          <span className="apple-calculation-label">PM Acknowledged Paid:</span>
+                          <span className="apple-calculation-val" style={{ color: 'var(--forest)' }}>- ₦{ackPaid.toLocaleString()}</span>
+                        </div>
+                        <div className="apple-calculation-row apple-calculation-row--total">
+                          <span>Remaining Balance to Bill Tenant:</span>
+                          <span style={{ color: isOverpaid ? 'var(--error)' : 'var(--dark)' }}>
+                            ₦{balanceToBill.toLocaleString()}
+                          </span>
+                        </div>
+
+                        {isOverpaid ? (
+                          <div className="apple-alert-note apple-alert-note--error">
+                            <AlertTriangle size={13} />
+                            <span>Acknowledged amount cannot exceed total agreed rent.</span>
+                          </div>
+                        ) : balanceToBill > 0 ? (
+                          <div className="apple-alert-note apple-alert-note--info">
+                            <Info size={13} />
+                            <span>An authoritative balance invoice for ₦{balanceToBill.toLocaleString()} will be automatically generated.</span>
+                          </div>
+                        ) : (
+                          <div className="apple-alert-note apple-alert-note--success">
+                            <CheckCircle2 size={13} />
+                            <span>Full rent acknowledged. No outstanding invoice will be created.</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* ── CARD 3: Tenant Profile & Invite Delivery ── */}
+        <section className="apple-section-card">
+          <div className="apple-section-header">
+            <div className="apple-section-header__title">
+              <User size={16} className="apple-section-header__icon" />
+              <span>2. Tenant Identity & Invite Delivery</span>
+            </div>
+          </div>
+
+          <div className="apple-form-grid">
+            {/* Tenant Type Selector */}
+            <div className="apple-segmented-control">
+              <button
+                type="button"
+                className={cn("apple-segmented-item", tenantType === 'individual' && "apple-segmented-item--active")}
+                onClick={() => setValue('tenantType', 'individual')}
+              >
+                Individual Tenant
+              </button>
+              <button
+                type="button"
+                className={cn("apple-segmented-item", tenantType === 'commercial' && "apple-segmented-item--active")}
+                onClick={() => setValue('tenantType', 'commercial')}
+              >
+                Commercial / Corporate
+              </button>
+            </div>
+
+            {tenantType === 'commercial' ? (
+              <div className="apple-field">
+                <label className="apple-field__label">Commercial / Business Name</label>
+                <input
+                  type="text"
+                  className={cn("apple-input", errors.commercialName && "apple-input--error")}
+                  placeholder="e.g. Acme Holdings Ltd"
+                  {...register('commercialName')}
+                />
+                {errors.commercialName && <span className="apple-error-text">{errors.commercialName.message}</span>}
+              </div>
+            ) : (
+              <div className="apple-grid-2">
+                <div className="apple-field">
+                  <label className="apple-field__label">First Name</label>
+                  <input
+                    type="text"
+                    className={cn("apple-input", errors.firstName && "apple-input--error")}
+                    placeholder="e.g. John"
+                    {...register('firstName')}
+                  />
+                  {errors.firstName && <span className="apple-error-text">{errors.firstName.message}</span>}
+                </div>
+                <div className="apple-field">
+                  <label className="apple-field__label">Last Name</label>
+                  <input
+                    type="text"
+                    className={cn("apple-input", errors.lastName && "apple-input--error")}
+                    placeholder="e.g. Doe"
+                    {...register('lastName')}
+                  />
+                  {errors.lastName && <span className="apple-error-text">{errors.lastName.message}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Email & Phone */}
+            <div className="apple-grid-2">
+              <div className="apple-field">
+                <label className="apple-field__label">Email Address</label>
+                <input
+                  type="email"
+                  className={cn("apple-input", errors.email && "apple-input--error")}
+                  placeholder="tenant@example.com"
+                  {...register('email')}
+                />
+                {errors.email && <span className="apple-error-text">{errors.email.message}</span>}
+              </div>
+              <div className="apple-field">
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      label="Primary Phone Number"
+                      placeholder="e.g. +234 800 000 0000"
+                      error={errors.phone?.message}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Smart Account Banner */}
+            {foundUser && ((!typedEmail && foundUser.email) || (!typedPhone && foundUser.phone) || (!watch('firstName') && foundUser.firstName) || (!watch('lastName') && foundUser.lastName)) && (
+              <div className="apple-smart-banner animate-fade-in">
+                <div className="apple-smart-banner__left">
+                  <Sparkles size={16} />
+                  <span>
+                    Existing Upward account found for <strong>{foundUser.firstName} {foundUser.lastName}</strong>!
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (foundUser.phone && !typedPhone) setValue('phone', foundUser.phone, { shouldValidate: true })
+                    if (foundUser.email && !typedEmail) setValue('email', foundUser.email, { shouldValidate: true })
+                    if (foundUser.firstName && !watch('firstName')) setValue('firstName', foundUser.firstName, { shouldValidate: true })
+                    if (foundUser.lastName && !watch('lastName')) setValue('lastName', foundUser.lastName, { shouldValidate: true })
+                  }}
+                  className="apple-chip apple-chip--primary"
+                >
+                  Autofill Details
+                </button>
+              </div>
+            )}
+
+            {/* Alternative Phone */}
+            <div className="apple-grid-2">
+              <div className="apple-field">
+                <Controller
+                  name="otherPhone"
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      {...field}
+                      label="Alternative Phone Number (Optional)"
+                      placeholder="e.g. +234 800 000 0000"
+                      error={errors.otherPhone?.message}
+                    />
+                  )}
+                />
+              </div>
+              <div />
+            </div>
+
+            {/* ── Preferred Invite Delivery Channel Selection ── */}
+            <div className="apple-delivery-section">
+              <label className="apple-field__label">
+                Preferred Invite Delivery Method <span style={{ color: 'var(--forest)' }}>*</span>
+              </label>
+              <div className="apple-delivery-grid">
+                {!(watch('email') || '').endsWith('@upward.com') && (watch('email') || '').trim() !== '' && (
+                  <label className={cn("apple-delivery-card", deliveryChannel === 'EMAIL' && "apple-delivery-card--active")}>
+                    <input
+                      type="radio"
+                      value="EMAIL"
+                      {...register('deliveryChannel')}
+                      className="sr-only"
+                    />
+                    <Mail size={16} className="apple-delivery-card__icon" />
+                    <div>
+                      <div className="apple-delivery-card__title">Email</div>
+                      <div className="apple-delivery-card__sub">Direct to inbox</div>
+                    </div>
+                  </label>
+                )}
+
+                <label className={cn(
+                  "apple-delivery-card", 
+                  deliveryChannel === 'SMS' && "apple-delivery-card--active",
+                  !watch('phone') && "apple-delivery-card--disabled"
+                )}>
+                  <input
+                    type="radio"
+                    value="SMS"
+                    {...register('deliveryChannel')}
+                    disabled={!watch('phone')}
+                    className="sr-only"
+                  />
+                  <Smartphone size={16} className="apple-delivery-card__icon" />
+                  <div>
+                    <div className="apple-delivery-card__title">SMS</div>
+                    <div className="apple-delivery-card__sub">Instant text link</div>
+                  </div>
+                </label>
+
+                <label className={cn(
+                  "apple-delivery-card", 
+                  deliveryChannel === 'WHATSAPP' && "apple-delivery-card--active",
+                  !watch('phone') && "apple-delivery-card--disabled"
+                )}>
+                  <input
+                    type="radio"
+                    value="WHATSAPP"
+                    {...register('deliveryChannel')}
+                    disabled={!watch('phone')}
+                    className="sr-only"
+                  />
+                  <MessageSquare size={16} className="apple-delivery-card__icon" />
+                  <div>
+                    <div className="apple-delivery-card__title">WhatsApp</div>
+                    <div className="apple-delivery-card__sub">Direct chat message</div>
+                  </div>
+                </label>
+              </div>
+              {!watch('phone') && (
+                <p className="apple-hint-text">
+                  Phone number required to enable SMS & WhatsApp delivery.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
       </form>
 
       <style jsx>{`
-        :global(.upward-modal__icon) {
-          background: var(--forest-faint) !important;
-          color: var(--forest) !important;
-        }
-        .form-section {
+        .verify-form {
           display: flex;
           flex-direction: column;
-          gap: 4px;
-        }
-        .form-error-text {
-          color: var(--error);
-          font-size: 12px;
-          margin-top: 4px;
-          display: block;
+          gap: 16px;
+          margin-top: 8px;
         }
 
-        /* Tenancy Overview Card */
-        .tenancy-overview-card {
-          background: var(--surface);
-          border: 1px solid var(--border);
+        /* Card 1: Intelligence Summary */
+        .apple-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.08);
           border-radius: var(--radius-md);
-          box-shadow: var(--shadow-sm);
           overflow: hidden;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
         }
-        .tenancy-overview-card__header {
+        .apple-card__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--ivory);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          flex-wrap: wrap;
+        }
+        .apple-card__location {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--dark);
+        }
+        .apple-card__location-text {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .apple-card__grid {
+          display: grid;
+          grid-template-columns: 1fr 1px 1.2fr;
+          padding: 14px 16px;
+          gap: 16px;
+          align-items: start;
+        }
+        @media (max-width: 600px) {
+          .apple-card__grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .apple-card__divider {
+            display: none;
+          }
+        }
+        .apple-card__divider {
+          background: rgba(0, 0, 0, 0.06);
+          height: 100%;
+        }
+        .apple-card__col {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .apple-card__col-title {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          margin-bottom: 2px;
+        }
+        .apple-card__stat-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          font-size: 12.5px;
+        }
+        .apple-card__stat-label {
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .apple-card__stat-val {
+          font-weight: 600;
+          color: var(--dark);
+          text-align: right;
+        }
+        .apple-card__stat-val--muted {
+          font-size: 11.5px;
+          color: var(--text-secondary);
+        }
+        .apple-card__stat-val--forest {
+          color: var(--forest);
+          font-weight: 600;
+        }
+
+        /* Section Cards */
+        .apple-section-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: var(--radius-md);
+          padding: 18px 20px;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+        }
+        .apple-section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .apple-section-header__title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--dark);
+        }
+        .apple-section-header__icon {
+          color: var(--forest);
+        }
+
+        /* Form Structure */
+        .apple-form-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .apple-grid-2 {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+          gap: 12px;
+        }
+        .apple-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .apple-field__label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .apple-input {
+          width: 100%;
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          border-radius: 10px;
+          padding: 10px 14px;
+          font-size: 13.5px;
+          font-weight: 500;
+          color: var(--dark);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+          transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+          outline: none;
+        }
+        .apple-input:focus {
+          border-color: var(--forest);
+          box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.12);
+        }
+        .apple-input--error {
+          border-color: var(--error) !important;
+          box-shadow: 0 0 0 3px var(--error-bg) !important;
+        }
+        .apple-input--disabled {
+          background: var(--ivory-dim);
+          border-color: rgba(0, 0, 0, 0.06);
+          color: var(--text-muted);
+          cursor: not-allowed;
+        }
+        .apple-error-text {
+          color: var(--error);
+          font-size: 11.5px;
+          font-weight: 500;
+          margin-top: 2px;
+        }
+        .apple-hint-text {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 6px;
+        }
+
+        /* Nested Container */
+        .apple-nested-box {
+          background: var(--ivory);
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          border-radius: 12px;
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        /* Badges & Pills */
+        .apple-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11.5px;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: var(--radius-full);
+          white-space: nowrap;
+        }
+        .apple-pill--verified {
+          background: var(--forest-faint);
+          color: var(--forest);
+          border: 1px solid rgba(22, 101, 52, 0.15);
+        }
+        .apple-pill--warning {
+          background: #fffbeb;
+          color: #b45309;
+          border: 1px solid #fef3c7;
+        }
+        .apple-score-badge {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 6px;
+          background: var(--ivory-dim);
+          color: var(--text-secondary);
+          margin-left: auto;
+        }
+        .apple-badge-action {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--forest);
+        }
+        .apple-auto-badge {
+          font-size: 10.5px;
+          color: var(--text-muted);
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-weight: 500;
+        }
+
+        /* Buttons & Chips */
+        .apple-link-btn {
+          background: transparent;
+          border: none;
+          font-size: 12px;
+          color: var(--forest);
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 0;
+          transition: opacity 0.15s;
+        }
+        .apple-link-btn:hover {
+          opacity: 0.8;
+        }
+        .apple-chip {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 8px;
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+          color: var(--forest);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .apple-chip:hover {
+          background: var(--forest-faint);
+          border-color: rgba(22, 101, 52, 0.2);
+        }
+        .apple-chip:active {
+          transform: scale(0.97);
+        }
+        .apple-chip--muted {
+          color: var(--text-muted);
+        }
+        .apple-chip--muted:hover {
+          background: var(--ivory-dim);
+          color: var(--text-secondary);
+        }
+        .apple-chip--primary {
+          background: var(--forest);
+          color: #ffffff;
+          border: none;
+        }
+        .apple-chip--primary:hover {
+          background: var(--forest-hover);
+        }
+
+        /* Segmented Controls */
+        .apple-segmented-control {
+          display: flex;
+          background: var(--ivory-dim);
+          padding: 4px;
+          border-radius: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          gap: 4px;
+        }
+        .apple-segmented-item {
+          flex: 1;
+          padding: 8px 14px;
+          border-radius: 8px;
+          border: none;
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-muted);
+          background: transparent;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .apple-segmented-item--active {
+          background: #ffffff;
+          color: var(--dark);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Toggle Box */
+        .apple-toggle-box {
+          margin-top: 6px;
+          padding: 14px 16px;
+          background: var(--ivory);
+          border-radius: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .apple-toggle-box__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .apple-toggle-box__title {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: var(--dark);
+          margin: 0;
+        }
+        .apple-toggle-box__desc {
+          font-size: 11.5px;
+          color: var(--text-muted);
+          margin: 2px 0 0;
+        }
+        .apple-reconciliation-panel {
+          margin-top: 14px;
+          padding-top: 14px;
+          border-top: 1px dashed rgba(0, 0, 0, 0.08);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .apple-calculation-card {
+          padding: 12px 14px;
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 10px;
+          font-size: 12px;
+        }
+        .apple-calculation-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+        }
+        .apple-calculation-label {
+          color: var(--text-muted);
+          font-weight: 500;
+        }
+        .apple-calculation-val {
+          font-weight: 600;
+          color: var(--dark);
+        }
+        .apple-calculation-row--total {
+          padding-top: 8px;
+          border-top: 1px dashed rgba(0, 0, 0, 0.08);
+          font-weight: 700;
+          font-size: 13px;
+        }
+        .apple-alert-note {
+          margin-top: 8px;
+          font-size: 11.5px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 10px;
+          border-radius: 6px;
+        }
+        .apple-alert-note--error {
+          background: var(--error-bg);
+          color: var(--error);
+        }
+        .apple-alert-note--info {
+          background: rgba(59, 130, 246, 0.08);
+          color: var(--info);
+        }
+        .apple-alert-note--success {
+          background: var(--forest-faint);
+          color: var(--forest);
+        }
+
+        /* Smart Banner */
+        .apple-smart-banner {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
           padding: 10px 14px;
-          background: var(--ivory);
-          border-bottom: 1px solid var(--border);
-          flex-wrap: wrap;
+          border-radius: 10px;
+          background: var(--forest-faint);
+          border: 1px solid rgba(22, 101, 52, 0.12);
+          font-size: 12.5px;
         }
-        .tenancy-overview-card__location {
+        .apple-smart-banner__left {
           display: flex;
           align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--dark);
-          min-width: 0;
-        }
-        .tenancy-overview-card__address {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .tenancy-overview-card__pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 11px;
-          font-weight: 600;
-          padding: 3px 8px;
-          border-radius: var(--radius-full);
-          white-space: nowrap;
-        }
-        .tenancy-overview-card__pill--verified {
-          background: var(--forest-faint);
+          gap: 8px;
           color: var(--forest);
-          border: 1px solid rgba(22, 101, 52, 0.15);
         }
-        .tenancy-overview-card__pill--warning {
-          background: #fffbeb;
-          color: #b45309;
-          border: 1px solid #fef3c7;
-        }
-        .tenancy-overview-card__grid {
-          display: grid;
-          grid-template-columns: 1fr 1px 1.15fr;
-          padding: 12px 14px;
-          gap: 14px;
-          align-items: start;
-        }
-        @media (max-width: 600px) {
-          .tenancy-overview-card__grid {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-          .tenancy-overview-card__divider {
-            display: none;
-          }
-        }
-        .tenancy-overview-card__divider {
-          background: var(--border);
-          height: 100%;
-        }
-        .tenancy-overview-card__col {
+
+        /* Delivery Channel Cards */
+        .apple-delivery-section {
           display: flex;
           flex-direction: column;
-          gap: 6px;
-        }
-        .tenancy-overview-card__col-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
           gap: 8px;
         }
-        .tenancy-overview-card__col-title {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          color: var(--text-muted);
+        .apple-delivery-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 10px;
         }
-        .tenancy-overview-card__score {
-          font-size: 10px;
-          font-weight: 700;
-          padding: 1px 6px;
-          border-radius: 6px;
-          background: var(--ivory-dim);
-          color: var(--text-secondary);
-        }
-        .tenancy-overview-card__stat {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          font-size: 12px;
-        }
-        .tenancy-overview-card__stat-label {
-          color: var(--text-muted);
-          font-weight: 500;
-          white-space: nowrap;
-        }
-        .tenancy-overview-card__stat-val {
-          font-weight: 600;
-          color: var(--dark);
-          text-align: right;
-        }
-        .tenancy-overview-card__stat-val--muted {
-          font-size: 11px;
-          color: var(--text-secondary);
-          font-weight: 500;
-        }
-        .tenancy-overview-card__stat-val--forest {
-          color: var(--forest);
-          font-weight: 600;
-        }
-
-        /* Section Header Compact */
-        .section-header-compact {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--dark);
-          margin-bottom: 10px;
-        }
-
-        /* Tenant Profile Card */
-        .tenant-profile-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 14px;
-          background: var(--ivory);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-        }
-        .tenant-profile-card__left {
+        .apple-delivery-card {
           display: flex;
           align-items: center;
           gap: 10px;
-          min-width: 0;
-        }
-        .tenant-profile-card__avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          background: var(--ivory-dim);
-          border: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--forest);
-          flex-shrink: 0;
-        }
-        .tenant-profile-card__name {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--dark);
-          line-height: 1.2;
-        }
-        .tenant-profile-card__meta {
-          font-size: 11px;
-          color: var(--text-muted);
-          margin-top: 2px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-        .tenant-profile-card__btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          padding: 5px 10px;
-          font-size: 11px;
-          font-weight: 600;
-          background: white;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
-          color: var(--text-secondary);
+          padding: 12px 14px;
+          background: #ffffff;
+          border: 1.5px solid rgba(0, 0, 0, 0.1);
+          border-radius: 12px;
           cursor: pointer;
-          transition: all 0.15s ease;
-          white-space: nowrap;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          user-select: none;
         }
-        .tenant-profile-card__btn:hover {
-          background: var(--ivory-dim);
-          color: var(--dark);
-          border-color: var(--border-strong);
-        }
-        .tenant-profile-card__btn:active {
-          transform: scale(0.97);
-        }
-
-        /* Quick Action Chips */
-        .quick-chip {
-          font-size: 11px;
-          font-weight: 600;
-          padding: 3px 8px;
-          border-radius: 6px;
-          background: white;
-          border: 1px solid var(--border);
-          color: var(--forest);
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-        .quick-chip:hover {
-          background: var(--forest-faint);
-          border-color: rgba(22, 101, 52, 0.2);
-        }
-        .quick-chip:active {
-          transform: scale(0.97);
-        }
-        .quick-chip--muted {
-          color: var(--text-muted);
-        }
-        .quick-chip--muted:hover {
-          background: var(--ivory-dim);
-          color: var(--text-secondary);
-        }
-
-        .delivery-option {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 10px 14px;
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-muted);
-          transition: all 0.2s;
-          background: #fff;
-        }
-        .delivery-option:hover:not(.delivery-option--disabled) {
+        .apple-delivery-card:hover:not(.apple-delivery-card--disabled) {
           border-color: var(--forest);
-          color: var(--forest);
           background: var(--forest-faint);
         }
-        .delivery-option--active {
+        .apple-delivery-card:active:not(.apple-delivery-card--disabled) {
+          transform: scale(0.98);
+        }
+        .apple-delivery-card--active {
           border-color: var(--forest) !important;
-          background: var(--forest) !important;
-          color: #fff !important;
+          background: var(--forest-faint) !important;
+          box-shadow: 0 0 0 2px rgba(22, 101, 52, 0.12);
         }
-        .delivery-option--active:hover:not(.delivery-option--disabled) {
-          color: #fff !important;
-        }
-        .delivery-option--disabled {
-          opacity: 0.5;
+        .apple-delivery-card--disabled {
+          opacity: 0.45;
           cursor: not-allowed;
           background: var(--ivory-dim);
         }
+        .apple-delivery-card__icon {
+          color: var(--text-secondary);
+        }
+        .apple-delivery-card--active .apple-delivery-card__icon {
+          color: var(--forest);
+        }
+        .apple-delivery-card__title {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--dark);
+        }
+        .apple-delivery-card--active .apple-delivery-card__title {
+          color: var(--forest);
+        }
+        .apple-delivery-card__sub {
+          font-size: 10.5px;
+          color: var(--text-muted);
+        }
+
         .sr-only {
           position: absolute;
           width: 1px;

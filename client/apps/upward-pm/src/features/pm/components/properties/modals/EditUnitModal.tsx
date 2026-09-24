@@ -318,40 +318,15 @@ export const EditUnitModal: React.FC<EditUnitModalProps> = ({
                 <p>Automatically notify tenant before rent expires</p>
               </div>
             </div>
-            <div className="toggle-switch">
+            <label className="ios-switch" style={{ opacity: !hasContactInfo ? 0.6 : 1, cursor: !hasContactInfo ? 'not-allowed' : 'pointer' }}>
               <input
                 type="checkbox"
                 id="rentReminderEnabled"
                 {...register('rentReminderEnabled')}
                 disabled={!hasContactInfo}
-                style={{ display: 'none' }}
               />
-              <label
-                htmlFor="rentReminderEnabled"
-                style={{
-                  width: 44,
-                  height: 22,
-                  background: !hasContactInfo ? 'var(--border)' : (isReminderEnabled ? 'var(--forest)' : '#ccc'),
-                  borderRadius: 11,
-                  display: 'block',
-                  position: 'relative',
-                  cursor: !hasContactInfo ? 'not-allowed' : 'pointer',
-                  transition: '0.3s',
-                  opacity: !hasContactInfo ? 0.6 : 1
-                }}
-              >
-                <div style={{
-                  width: 18,
-                  height: 18,
-                  background: 'white',
-                  borderRadius: '50%',
-                  position: 'absolute',
-                  top: 2,
-                  left: isReminderEnabled ? 24 : 2,
-                  transition: '0.3s'
-                }} />
-              </label>
-            </div>
+              <span className="ios-switch__slider"></span>
+            </label>
           </div>
 
           <div className="edit-unit-form__reminder-inputs">

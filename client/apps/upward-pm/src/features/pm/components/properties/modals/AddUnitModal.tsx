@@ -258,7 +258,7 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
         </div>
 
         {/* Section: Tenant Assignment */}
-        <div className="modal-section" style={{ background: 'var(--bg)', padding: 16, borderRadius: 16, border: '1px solid var(--border)' }}>
+        <div className="modal-section" style={{ background: '#faf9f6', padding: 16, borderRadius: 14, border: '1px solid rgba(0,0,0,0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Users size={16} color="var(--forest)" />
@@ -511,19 +511,19 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                 </div>
 
 
-                <div style={{ marginTop: 16, padding: 12, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+                <div style={{ marginTop: 16, padding: '12px 14px', background: '#faf9f6', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: formData.isFullyPaid ? 0 : 12 }}>
                     <div>
                       <h6 style={{ fontSize: 13, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>Fully Paid for Current Period?</h6>
                       <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>Toggle off if the tenant is making a partial payment initially.</p>
                     </div>
-                    <label className="toggle-switch">
+                    <label className="ios-switch">
                       <input 
                         type="checkbox" 
                         checked={formData.isFullyPaid} 
                         onChange={e => setFormData({ ...formData, isFullyPaid: e.target.checked })} 
                       />
-                      <span className="toggle-slider"></span>
+                      <span className="ios-switch__slider"></span>
                     </label>
                   </div>
 
