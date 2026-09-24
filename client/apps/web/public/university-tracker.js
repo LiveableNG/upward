@@ -78,7 +78,7 @@
     }
 
     // 2. Check path: /university/:identifier
-    var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'sessions', 'session', 'info-session', 'qa-session', 'faq'];
+    var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'sessions', 'session', 'info-session', 'qa-session', 'lecturers', 'lecturer', 'faq'];
     if (pathname.startsWith('/university/apply/')) {
       var applySlug = pathname.replace('/university/apply/', '').split('/')[0];
       if (applySlug && reserved.indexOf(applySlug) === -1) {
@@ -93,6 +93,11 @@
       var sessionSlug = pathname.replace('/university/session/', '').split('/')[0];
       if (sessionSlug && reserved.indexOf(sessionSlug) === -1) {
         return sessionSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/university/lecturers/')) {
+      var lecturersSlug = pathname.replace('/university/lecturers/', '').split('/')[0];
+      if (lecturersSlug && reserved.indexOf(lecturersSlug) === -1) {
+        return lecturersSlug.trim().toLowerCase();
       }
     } else if (pathname.startsWith('/university/')) {
       var slug = pathname.replace('/university/', '').split('/')[0];
