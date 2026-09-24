@@ -144,11 +144,16 @@ export function TenantRequestsWidget() {
             queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] });
           }}
           initialData={{
+            uuid: selectedRequest.uuid,
             firstName: selectedRequest.tenantFirstName,
             lastName: selectedRequest.tenantLastName,
             email: selectedRequest.tenantEmail,
             phone: selectedRequest.tenantPhone || '',
             unitDetails: selectedRequest.unitDetails,
+            originalDeclaration: selectedRequest.originalDeclaration || selectedRequest.unitDetails,
+            platformActivity: selectedRequest.platformActivity,
+            activePaymentRequest: selectedRequest.activePaymentRequest,
+            paymentDestinationAudit: selectedRequest.paymentDestinationAudit,
           }}
         />
       )}

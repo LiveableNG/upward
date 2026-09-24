@@ -59,12 +59,19 @@ export const useTenantActions = () => {
     mutationFn: ({ tenantUuid, unitUuid, ...rentDetails }: { 
       tenantUuid: string, 
       unitUuid: string, 
+      joinRequestUuid?: string,
       rentAmountPaid?: number,
       isFullyPaid?: boolean,
       rentAmount?: number,
       rentType?: string,
       rentStartDate?: string,
-      rentDueDate?: string
+      rentDueDate?: string,
+      pmAcknowledgedAmountPaid?: number,
+      breakdown?: {
+        platformAmount?: number;
+        offlineAmount?: number;
+        platformPaymentIds?: number[];
+      };
     }) => 
       tenantService.assignTenant(tenantUuid, unitUuid, rentDetails),
     onSuccess: (_, variables) => {

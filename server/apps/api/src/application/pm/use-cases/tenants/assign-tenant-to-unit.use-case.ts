@@ -1,9 +1,17 @@
-import { Inject, Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { 
+  Inject, 
+  Injectable, 
+  NotFoundException, 
+  BadRequestException, 
+  ConflictException, 
+  Logger 
+} from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { 
   PM_UNIT_REPOSITORY, 
   IUnitRepository, 
   PM_TENANT_REPOSITORY,
-  ITenantRepository,
+  ITenantRepository, 
   IPropertyRepository, 
   PM_PROPERTY_REPOSITORY 
 } from '../../../../domains/pm/IPropertyRepository';
@@ -32,6 +40,7 @@ export class AssignTenantToUnitUseCase {
     private readonly encryption: EncryptionService,
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
     private readonly activityLog: ActivityLogService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async execute(
@@ -44,8 +53,15 @@ export class AssignTenantToUnitUseCase {
     rentStartDate?: Date,
     rentDueDate?: Date,
     isFullyPaid?: boolean,
-    actor?: any
-  ): Promise<void> {
+    actor?: any,
+    joinRequestUuid?: string,
+    pmAcknowledgedAmountPaid?: number,
+    breakdown?: {
+      platformAmount?: number;
+      offlineAmount?: number;
+      platformPaymentIds?: number[];
+    }
+  ): Promise<any> {
     const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepo.findByUuid(unitUuid);
     if (!unit) throw new NotFoundException('Unit not found');
@@ -62,96 +78,280 @@ export class AssignTenantToUnitUseCase {
         throw new NotFoundException('Tenant not found');
       }
 
+      // ── 1. Race-Safe Atomic Idempotency Check (if join request fulfillment) ──
+      if (joinRequestUuid) {
+        const lockResult: any[] = await this.prisma.$queryRaw`
+          UPDATE upward_pm_activity_log
+          SET metadata = jsonb_set(
+            COALESCE(metadata, '{}'::jsonb),
+            '{status}',
+            '"PROCESSING"'
+          )
+          WHERE uuid = ${joinRequestUuid}
+            AND "ownerPmId" = ${ownerPmId}
+            AND (metadata->>'status' = 'PENDING' OR metadata->>'status' IS NULL)
+          RETURNING id;
+        `;
+
+        if (lockResult.length === 0) {
+          const currentLog = await this.prisma.upward_pm_activity_log.findFirst({
+            where: { uuid: joinRequestUuid, ownerPmId },
+          });
+          const currentMeta = currentLog?.metadata as any;
+          if (currentMeta?.status === 'ACCEPTED') {
+            this.logger.log(`Join request ${joinRequestUuid} already ACCEPTED. Returning idempotent result.`);
+            return {
+              alreadyProcessed: true,
+              unitUuid: currentMeta?.assignedUnitUuid || unitUuid,
+              tenantUuid: currentMeta?.assignedTenantUuid || tenantUuid,
+              status: 'ACCEPTED',
+            };
+          }
+          if (currentMeta?.status === 'PROCESSING') {
+            throw new ConflictException('Assignment is currently processing. Please refresh shortly.');
+          }
+        }
+      }
+
+      // ── 2. Strict Input Validations ──────────────────────────────────────────
       const effectiveRentAmount = rentAmount !== undefined ? rentAmount : unit.rentAmount;
+      if (!effectiveRentAmount || effectiveRentAmount <= 0) {
+        throw new BadRequestException('Confirmed rent amount must be greater than 0.');
+      }
+
+      const acknowledgedTotal = isFullyPaid 
+        ? effectiveRentAmount 
+        : (pmAcknowledgedAmountPaid !== undefined ? pmAcknowledgedAmountPaid : (rentAmountPaid ?? 0));
+
+      if (acknowledgedTotal < 0) {
+        throw new BadRequestException('Acknowledged amount received cannot be negative.');
+      }
+
+      if (acknowledgedTotal > effectiveRentAmount) {
+        throw new BadRequestException(
+          `Acknowledged amount (₦${acknowledgedTotal.toLocaleString()}) cannot exceed confirmed rent (₦${effectiveRentAmount.toLocaleString()}).`
+        );
+      }
+
+      if (breakdown) {
+        const platformAmt = breakdown.platformAmount ?? 0;
+        const offlineAmt = breakdown.offlineAmount ?? 0;
+        if (platformAmt < 0 || offlineAmt < 0) {
+          throw new BadRequestException('Breakdown amounts cannot be negative.');
+        }
+        if (Math.abs(platformAmt + offlineAmt - acknowledgedTotal) > 0.01) {
+          throw new BadRequestException('Sum of platform and offline amounts must equal total acknowledged amount.');
+        }
+      }
+
+      // ── 3. Update Unit State ────────────────────────────────────────────────
+      const activeRentStartDate = rentStartDate || unit.rentStartDate;
+      const activeRentDueDate = rentDueDate || unit.rentDueDate;
+      const activeRentType = rentType || unit.rentType;
 
       await this.unitRepo.update(unitUuid, {
         tenantId: tenant.id,
         status: 'OCCUPIED',
         rentAmount: effectiveRentAmount,
-        rentType: rentType || unit.rentType,
-        rentStartDate: rentStartDate || unit.rentStartDate,
-        rentDueDate: rentDueDate || unit.rentDueDate,
+        rentType: activeRentType,
+        rentStartDate: activeRentStartDate,
+        rentDueDate: activeRentDueDate,
       });
 
-      const actualRentAmountPaid = isFullyPaid ? effectiveRentAmount : rentAmountPaid;
-
-      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0) {
-        const activeRentStartDate = rentStartDate || unit.rentStartDate;
-        const activeRentType = rentType || unit.rentType;
-        
-        let periodEnd: Date | null = null;
-        if (activeRentStartDate) {
-          periodEnd = new Date(activeRentStartDate);
-          if (activeRentType === 'Monthly') {
-            periodEnd.setMonth(periodEnd.getMonth() + 1);
-          } else {
-            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-          }
-          periodEnd.setDate(periodEnd.getDate() - 1);
+      // ── 4. Record PM Rent Payment with Provenance & Deterministic Reference ─
+      if (acknowledgedTotal > 0) {
+        const paymentReference = joinRequestUuid ? `JOIN_ASSIGN_${joinRequestUuid}` : null;
+        let existingPayment = null;
+        if (paymentReference) {
+          existingPayment = await this.prisma.upward_pm_rent_payment.findFirst({
+            where: { reference: paymentReference },
+          });
         }
 
-        await this.unitRepo.addRentPayment(unitUuid, {
-          amount: actualRentAmountPaid,
-          rentAmountAtPayment: effectiveRentAmount,
-          paymentDate: new Date(),
-          periodStart: activeRentStartDate,
-          status: 'SUCCESS',
-          method: 'Other',
-          notes: 'Initial payment recorded during tenant assignment',
-          periodEnd: periodEnd,
-          tenantId: tenant.id,
-          reference: null
-        });
+        if (!existingPayment) {
+          let periodEnd = activeRentDueDate || null;
+          if (!periodEnd && activeRentStartDate) {
+            periodEnd = new Date(activeRentStartDate);
+            if (activeRentType === 'Monthly') {
+              periodEnd.setMonth(periodEnd.getMonth() + 1);
+            } else {
+              periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+            }
+            periodEnd.setDate(periodEnd.getDate() - 1);
+          }
+
+          let paymentMethod = 'Bank Transfer';
+          if (breakdown) {
+            const pAmt = breakdown.platformAmount ?? 0;
+            const oAmt = breakdown.offlineAmount ?? 0;
+            if (pAmt > 0 && oAmt > 0) {
+              paymentMethod = 'Platform + Offline Reconciled';
+            } else if (pAmt > 0) {
+              paymentMethod = 'Platform (Upward Pay)';
+            } else if (oAmt > 0) {
+              paymentMethod = 'Offline / Direct';
+            }
+          }
+
+          const notesObj = {
+            reconciliationType: 'JOIN_REQUEST_VERIFICATION',
+            joinRequestUuid,
+            pmAcknowledgedTotal: acknowledgedTotal,
+            breakdown: breakdown || {
+              platformAmountAcknowledged: 0,
+              offlineAmountAcknowledged: acknowledgedTotal,
+            },
+            decidedByPmId: ownerPmId,
+            decidedAt: new Date().toISOString(),
+          };
+
+          await this.unitRepo.addRentPayment(unitUuid, {
+            amount: acknowledgedTotal,
+            rentAmountAtPayment: effectiveRentAmount,
+            paymentDate: new Date(),
+            periodStart: activeRentStartDate,
+            periodEnd,
+            status: 'SUCCESS',
+            method: paymentMethod,
+            notes: JSON.stringify(notesObj),
+            tenantId: tenant.id,
+            reference: paymentReference,
+          });
+        }
       }
 
-      // ── Resolve Upward user and attempt sync ──────────────────────────────
+      // ── 5. Resolve Upward User and Sync Unit ────────────────────────────────
       const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
-
       let syncSucceeded = false;
       if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
         try {
           await this.syncUnitToUpwardUseCase.execute(unitUuid, pmId);
           syncSucceeded = true;
         } catch (error) {
-          console.error(`Auto-sync failed for unit ${unitUuid} during assignment:`, error);
+          this.logger.error(`Auto-sync failed for unit ${unitUuid} during assignment: ${error}`);
         }
       }
 
-      if (isFullyPaid === false) {
-        const effectivePaid = rentAmountPaid ?? 0;
-        const remainingAmount = effectiveRentAmount - effectivePaid;
+      const freshUnit = await this.unitRepo.findByUuid(unitUuid);
 
-        const freshUnit = await this.unitRepo.findByUuid(unitUuid);
+      // ── 6. Scoped PR Reconciliation & User Property Synchronization ────────
+      let userPropertyRecord: any = null;
+      if (freshUnit?.userPropertyUuid) {
+        userPropertyRecord = await this.prisma.upward_user_property.findUnique({
+          where: { uuid: freshUnit.userPropertyUuid },
+        });
+      } else if (upwardUser) {
+        userPropertyRecord = await this.prisma.upward_user_property.findFirst({
+          where: { userId: upwardUser.id, pmId: ownerPmId },
+        });
+      }
+
+      if (userPropertyRecord) {
+        // Cancel existing active rent PRs for this property
+        const activeRentPRs = await this.prisma.upward_payment_request.findMany({
+          where: {
+            userPropertyId: userPropertyRecord.id,
+            status: { in: ['PENDING', 'PARTIAL'] },
+          },
+        });
+
+        for (const apr of activeRentPRs) {
+          await this.prisma.upward_payment_request.update({
+            where: { id: apr.id },
+            data: {
+              status: 'CANCELLED',
+              description: isFullyPaid
+                ? `${apr.description || 'Rent'} [Settled via PM Assignment]`
+                : `${apr.description || 'Rent'} [Superseded by PM Assignment]`,
+            },
+          });
+          this.logger.log(`Reconciled and cancelled active PR ${apr.uuid} (previous status was ${apr.status})`);
+        }
+
+        // Synchronize upward_user_property with PM confirmed values
+        const remainingAmountDue = Math.max(0, effectiveRentAmount - acknowledgedTotal);
+        await this.prisma.upward_user_property.update({
+          where: { id: userPropertyRecord.id },
+          data: {
+            rentAmount: effectiveRentAmount,
+            rentStartDate: activeRentStartDate,
+            rentEndDate: activeRentDueDate,
+            rentType: activeRentType,
+            amountPaid: acknowledgedTotal,
+            amountRemaining: remainingAmountDue,
+            isVerified: true,
+            verificationStatus: 'VERIFIED',
+            isPastTenancy: false,
+          },
+        });
+      }
+
+      // ── 7. Authoritative Balance PR Generation ─────────────────────────────
+      const remainingAmount = effectiveRentAmount - acknowledgedTotal;
+      if (!isFullyPaid && remainingAmount > 0) {
         const isUnitSynced = freshUnit?.isSynced && !!freshUnit?.userPropertyUuid;
-
         if (syncSucceeded && isUnitSynced) {
-
           await this.autoCreateInitialPR(
-            pmId, unitUuid, remainingAmount,
-            rentType || unit.rentType,
-            rentStartDate || unit.rentStartDate,
-            rentDueDate || unit.rentDueDate,
+            pmId,
+            unitUuid,
+            remainingAmount,
+            activeRentType,
+            activeRentStartDate,
+            activeRentDueDate,
           );
         } else {
           this.logger.log(`Unit ${unitUuid}: deferring initial PR (pendingInitialPrAmount=${remainingAmount})`);
           await this.unitRepo.update(unitUuid, { pendingInitialPrAmount: remainingAmount });
         }
       }
-      // ─────────────────────────────────────────────────────────────────────
 
+      // ── 8. Transition Activity Log to ACCEPTED with Provenance Decision ─────
+      if (joinRequestUuid) {
+        const pmDecisionPayload = {
+          confirmedRentAmount: effectiveRentAmount,
+          rentStartDate: activeRentStartDate ? new Date(activeRentStartDate).toISOString() : null,
+          rentDueDate: activeRentDueDate ? new Date(activeRentDueDate).toISOString() : null,
+          isFullyPaid: !!isFullyPaid,
+          pmAcknowledgedTotal: acknowledgedTotal,
+          breakdown,
+          remainingRentDue: Math.max(0, effectiveRentAmount - acknowledgedTotal),
+          assignedUnitUuid: unitUuid,
+          assignedTenantUuid: tenant.uuid,
+          decidedAt: new Date().toISOString(),
+        };
+
+        await this.prisma.$queryRaw`
+          UPDATE upward_pm_activity_log
+          SET metadata = jsonb_set(
+            jsonb_set(
+              jsonb_set(
+                COALESCE(metadata, '{}'::jsonb),
+                '{status}',
+                '"ACCEPTED"'
+              ),
+              '{assignedUnitUuid}',
+              ${JSON.stringify(unitUuid)}::jsonb
+            ),
+            '{pmDecision}',
+            ${JSON.stringify(pmDecisionPayload)}::jsonb
+          )
+          WHERE uuid = ${joinRequestUuid} AND "ownerPmId" = ${ownerPmId};
+        `;
+      }
+
+      // Also clean up any other matching pending join requests for this tenant
       try {
         const logs = await this.prisma.upward_pm_activity_log.findMany({
           where: {
-            ownerPmId: pmId,
+            ownerPmId: ownerPmId,
             action: 'TENANT_JOIN_REQUEST',
           },
         });
 
         for (const log of logs) {
           const metadata = log.metadata as any;
-          if (metadata && metadata.status === 'PENDING') {
+          if (metadata && metadata.status === 'PENDING' && log.uuid !== joinRequestUuid) {
             let matches = false;
-
             if (tenant.email) {
               try {
                 const decryptedEmail = this.encryption.decrypt(metadata.userEmail);
@@ -162,14 +362,13 @@ export class AssignTenantToUnitUseCase {
                 // ignore decryption error
               }
             }
-
-            // 2. Try matching by userUuid
             if (upwardUser && metadata.userUuid === upwardUser.uuid) {
               matches = true;
             }
 
             if (matches) {
               metadata.status = 'ACCEPTED';
+              metadata.assignedUnitUuid = unitUuid;
               await this.prisma.upward_pm_activity_log.update({
                 where: { id: log.id },
                 data: { metadata },
@@ -178,7 +377,7 @@ export class AssignTenantToUnitUseCase {
           }
         }
       } catch (err) {
-        console.error('Failed to resolve pending join request log during assignment:', err);
+        this.logger.error(`Failed to resolve duplicate pending join request logs during assignment: ${err}`);
       }
 
       try {
@@ -200,20 +399,35 @@ export class AssignTenantToUnitUseCase {
             tenantUuid: tenant.uuid,
             tenantName,
             rentAmount: effectiveRentAmount,
-            rentType: rentType || unit.rentType,
+            rentType: activeRentType,
           },
         });
       } catch (logErr) {
-        console.error('Failed to log tenant assignment activity:', logErr);
+        this.logger.error(`Failed to log tenant assignment activity: ${logErr}`);
       }
+
+      // ── 9. Emit Event for Durable Background Processing ────────────────────
+      this.eventEmitter.emit('pm.tenancy_assigned', {
+        joinRequestUuid,
+        unitUuid,
+        tenantUuid: tenant.uuid,
+        userPropertyUuid: freshUnit?.userPropertyUuid,
+        pmId: ownerPmId,
+      });
+
+      return {
+        success: true,
+        unitUuid,
+        tenantUuid: tenant.uuid,
+      };
     } else {
       if (unit.isSynced && unit.userPropertyUuid) {
         await this.prisma.upward_user_property.updateMany({
           where: { uuid: unit.userPropertyUuid },
           data: {
             isVerified: false,
-            isPastTenancy: true
-          }
+            isPastTenancy: true,
+          },
         });
       }
 
@@ -221,7 +435,7 @@ export class AssignTenantToUnitUseCase {
         tenantId: null,
         status: 'VACANT',
         isSynced: false,
-        userPropertyUuid: null
+        userPropertyUuid: null,
       });
 
       try {
@@ -239,8 +453,14 @@ export class AssignTenantToUnitUseCase {
           },
         });
       } catch (logErr) {
-        console.error('Failed to log unit unassignment activity:', logErr);
+        this.logger.error(`Failed to log unit unassignment activity: ${logErr}`);
       }
+
+      return {
+        success: true,
+        unitUuid,
+        tenantUuid: null,
+      };
     }
   }
 
@@ -261,7 +481,15 @@ export class AssignTenantToUnitUseCase {
         rentStartDate: rentStartDate?.toISOString(),
         rentEndDate: rentDueDate?.toISOString(),
         rentType: rentType || undefined,
-        description: 'Outstanding rent balance — initial payment recorded',
+        description: 'Outstanding Rent Balance',
+        allowPartial: false,
+        lineItems: [
+          {
+            name: 'Rent',
+            amount: remainingAmount,
+          },
+        ],
+        allowSupersede: true,
         silent: true,
         bypassWelcomeCheck: true,
       });

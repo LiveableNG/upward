@@ -328,6 +328,14 @@ export class SyncUnitToUpwardUseCase {
           rentEndDate: unit.rentDueDate?.toISOString(),
           rentType: unit.rentType || undefined,
           description: 'Outstanding rent balance — initial payment recorded',
+          allowPartial: false,
+          lineItems: [
+            {
+              name: 'Rent',
+              amount: remainingAmount,
+            },
+          ],
+          allowSupersede: true,
           silent: true,             // No notification until welcome template is sent
           bypassWelcomeCheck: true, // System-generated PR; bypass welcome template gate
         });

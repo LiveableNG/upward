@@ -385,6 +385,10 @@ export class ExternalPaymentRequestPayloadDto {
   @IsOptional()
   @IsNumber()
   manualAccountId?: number
+
+  @IsOptional()
+  @IsBoolean()
+  allowSupersede?: boolean
 }
 
 export class UpdateExternalPaymentRequestPayloadDto {

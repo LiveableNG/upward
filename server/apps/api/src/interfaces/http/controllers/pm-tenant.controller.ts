@@ -83,12 +83,19 @@ export class PmTenantController {
     @Param('uuid') tenantUuid: string,
     @Body() body: {
       unitUuid: string;
+      joinRequestUuid?: string;
       rentAmountPaid?: number;
       rentAmount?: number;
       rentType?: string;
       rentStartDate?: string;
       rentDueDate?: string;
       isFullyPaid?: boolean;
+      pmAcknowledgedAmountPaid?: number;
+      breakdown?: {
+        platformAmount?: number;
+        offlineAmount?: number;
+        platformPaymentIds?: number[];
+      };
     },
   ) {
     return this.assignTenantToUnitUseCase.execute(
@@ -102,6 +109,9 @@ export class PmTenantController {
       body.rentDueDate ? new Date(body.rentDueDate) : undefined,
       body.isFullyPaid,
       actor,
+      body.joinRequestUuid,
+      body.pmAcknowledgedAmountPaid,
+      body.breakdown,
     );
   }
 

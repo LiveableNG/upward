@@ -726,11 +726,16 @@ export default function RequestsPage() {
             queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
           }}
           initialData={{
+            uuid: selectedJoinReq.uuid,
             firstName: selectedJoinReq.tenantFirstName,
             lastName: selectedJoinReq.tenantLastName,
             email: selectedJoinReq.tenantEmail,
             phone: selectedJoinReq.tenantPhone || '',
             unitDetails: selectedJoinReq.unitDetails,
+            originalDeclaration: selectedJoinReq.originalDeclaration || selectedJoinReq.unitDetails,
+            platformActivity: selectedJoinReq.platformActivity,
+            activePaymentRequest: selectedJoinReq.activePaymentRequest,
+            paymentDestinationAudit: selectedJoinReq.paymentDestinationAudit,
           }}
         />
       )}
