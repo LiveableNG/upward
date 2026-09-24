@@ -75,7 +75,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     const controller = new AbortController()
     const timeoutMs =
-      options.body instanceof FormData || path.includes('/ai-document/') ? 120000 : 15000
+      options.body instanceof FormData || path.includes('/ai-document/') ? 180000 : 60000
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     const fetchOptions: RequestInit = {
@@ -86,8 +86,17 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       signal: controller.signal,
     }
 
-    const res = await fetch(url, fetchOptions)
-    clearTimeout(timeoutId)
+    let res: Response
+    try {
+      res = await fetch(url, fetchOptions)
+    } catch (fetchErr: any) {
+      if (fetchErr?.name === 'AbortError' || String(fetchErr).toLowerCase().includes('abort')) {
+        throw new Error('Request timed out. Please check your connection and try again.')
+      }
+      throw fetchErr
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     const isPublicAuthRoute = path.includes('/auth/') && !path.includes('/auth/me')
 

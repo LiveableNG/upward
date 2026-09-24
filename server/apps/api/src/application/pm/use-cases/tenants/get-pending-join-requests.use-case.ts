@@ -19,10 +19,12 @@ export class GetPendingJoinRequestsUseCase {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter for PENDING logs using the JSON metadata field
+    // Filter for active pending logs (exclude accepted/rejected)
     let pendingLogs = logs.filter((log: any) => {
       const metadata = log.metadata as any;
-      return metadata && metadata.status === 'PENDING';
+      if (!metadata) return true;
+      if (metadata.status === 'ACCEPTED' || metadata.status === 'REJECTED') return false;
+      return true;
     });
 
     let assignedPropertyIds: Set<number> | null = null;

@@ -78,42 +78,7 @@ export class AssignTenantToUnitUseCase {
         throw new NotFoundException('Tenant not found');
       }
 
-      // ── 1. Race-Safe Atomic Idempotency Check (if join request fulfillment) ──
-      if (joinRequestUuid) {
-        const lockResult: any[] = await this.prisma.$queryRaw`
-          UPDATE upward_pm_activity_log
-          SET metadata = jsonb_set(
-            COALESCE(metadata, '{}'::jsonb),
-            '{status}',
-            '"PROCESSING"'
-          )
-          WHERE uuid = ${joinRequestUuid}
-            AND "ownerPmId" = ${ownerPmId}
-            AND (metadata->>'status' = 'PENDING' OR metadata->>'status' IS NULL)
-          RETURNING id;
-        `;
-
-        if (lockResult.length === 0) {
-          const currentLog = await this.prisma.upward_pm_activity_log.findFirst({
-            where: { uuid: joinRequestUuid, ownerPmId },
-          });
-          const currentMeta = currentLog?.metadata as any;
-          if (currentMeta?.status === 'ACCEPTED') {
-            this.logger.log(`Join request ${joinRequestUuid} already ACCEPTED. Returning idempotent result.`);
-            return {
-              alreadyProcessed: true,
-              unitUuid: currentMeta?.assignedUnitUuid || unitUuid,
-              tenantUuid: currentMeta?.assignedTenantUuid || tenantUuid,
-              status: 'ACCEPTED',
-            };
-          }
-          if (currentMeta?.status === 'PROCESSING') {
-            throw new ConflictException('Assignment is currently processing. Please refresh shortly.');
-          }
-        }
-      }
-
-      // ── 2. Strict Input Validations ──────────────────────────────────────────
+      // ── 1. Strict Input Validations ──────────────────────────────────────────
       const effectiveRentAmount = rentAmount !== undefined ? rentAmount : unit.rentAmount;
       if (!effectiveRentAmount || effectiveRentAmount <= 0) {
         throw new BadRequestException('Confirmed rent amount must be greater than 0.');
@@ -133,96 +98,124 @@ export class AssignTenantToUnitUseCase {
         );
       }
 
-      if (breakdown) {
-        const platformAmt = breakdown.platformAmount ?? 0;
-        const offlineAmt = breakdown.offlineAmount ?? 0;
-        if (platformAmt < 0 || offlineAmt < 0) {
-          throw new BadRequestException('Breakdown amounts cannot be negative.');
-        }
-        if (Math.abs(platformAmt + offlineAmt - acknowledgedTotal) > 0.01) {
-          throw new BadRequestException('Sum of platform and offline amounts must equal total acknowledged amount.');
+      // Auto-reconcile breakdown gracefully
+      const rawPlatform = Math.max(0, breakdown?.platformAmount ?? 0);
+      const effectivePlatform = Math.min(acknowledgedTotal, rawPlatform);
+      const effectiveOffline = breakdown?.offlineAmount !== undefined && Math.abs((breakdown.offlineAmount + effectivePlatform) - acknowledgedTotal) < 0.01
+        ? breakdown.offlineAmount
+        : Math.max(0, acknowledgedTotal - effectivePlatform);
+
+      const effectiveBreakdown = {
+        platformAmount: effectivePlatform,
+        offlineAmount: effectiveOffline,
+        platformPaymentIds: breakdown?.platformPaymentIds ?? [],
+      };
+
+      // ── 2. Race-Safe Atomic Idempotency Check (if join request fulfillment) ──
+      if (joinRequestUuid) {
+        const lockResult: any[] = await this.prisma.$queryRaw`
+          UPDATE upward_pm_activity_log
+          SET metadata = jsonb_set(
+            COALESCE(metadata, '{}'::jsonb),
+            '{status}',
+            '"PROCESSING"'
+          )
+          WHERE uuid = ${joinRequestUuid}
+            AND "ownerPmId" = ${ownerPmId}
+            AND (metadata->>'status' = 'PENDING' OR metadata->>'status' = 'PROCESSING' OR metadata->>'status' IS NULL)
+          RETURNING id;
+        `;
+
+        if (lockResult.length === 0) {
+          const currentLog = await this.prisma.upward_pm_activity_log.findFirst({
+            where: { uuid: joinRequestUuid, ownerPmId },
+          });
+          const currentMeta = currentLog?.metadata as any;
+          if (currentMeta?.status === 'ACCEPTED') {
+            this.logger.log(`Join request ${joinRequestUuid} already ACCEPTED. Returning idempotent result.`);
+            return {
+              alreadyProcessed: true,
+              unitUuid: currentMeta?.assignedUnitUuid || unitUuid,
+              tenantUuid: currentMeta?.assignedTenantUuid || tenantUuid,
+              status: 'ACCEPTED',
+            };
+          }
         }
       }
 
-      // ── 3. Update Unit State ────────────────────────────────────────────────
-      const activeRentStartDate = rentStartDate || unit.rentStartDate;
-      const activeRentDueDate = rentDueDate || unit.rentDueDate;
-      const activeRentType = rentType || unit.rentType;
+      try {
+        // ── 3. Update Unit State ────────────────────────────────────────────────
+        const activeRentStartDate = rentStartDate || unit.rentStartDate;
+        const activeRentDueDate = rentDueDate || unit.rentDueDate;
+        const activeRentType = rentType || unit.rentType;
 
-      await this.unitRepo.update(unitUuid, {
-        tenantId: tenant.id,
-        status: 'OCCUPIED',
-        rentAmount: effectiveRentAmount,
-        rentType: activeRentType,
-        rentStartDate: activeRentStartDate,
-        rentDueDate: activeRentDueDate,
-      });
+        await this.unitRepo.update(unitUuid, {
+          tenantId: tenant.id,
+          status: 'OCCUPIED',
+          rentAmount: effectiveRentAmount,
+          rentType: activeRentType,
+          rentStartDate: activeRentStartDate,
+          rentDueDate: activeRentDueDate,
+        });
 
-      // ── 4. Record PM Rent Payment with Provenance & Deterministic Reference ─
-      if (acknowledgedTotal > 0) {
-        const paymentReference = joinRequestUuid ? `JOIN_ASSIGN_${joinRequestUuid}` : null;
-        let existingPayment = null;
-        if (paymentReference) {
-          existingPayment = await this.prisma.upward_pm_rent_payment.findFirst({
-            where: { reference: paymentReference },
-          });
-        }
-
-        if (!existingPayment) {
-          let periodEnd = activeRentDueDate || null;
-          if (!periodEnd && activeRentStartDate) {
-            periodEnd = new Date(activeRentStartDate);
-            if (activeRentType === 'Monthly') {
-              periodEnd.setMonth(periodEnd.getMonth() + 1);
-            } else {
-              periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-            }
-            periodEnd.setDate(periodEnd.getDate() - 1);
+        // ── 4. Record PM Rent Payment with Provenance & Deterministic Reference ─
+        if (acknowledgedTotal > 0) {
+          const paymentReference = joinRequestUuid ? `JOIN_ASSIGN_${joinRequestUuid}` : null;
+          let existingPayment = null;
+          if (paymentReference) {
+            existingPayment = await this.prisma.upward_pm_rent_payment.findFirst({
+              where: { reference: paymentReference },
+            });
           }
 
-          let paymentMethod = 'Bank Transfer';
-          if (breakdown) {
-            const pAmt = breakdown.platformAmount ?? 0;
-            const oAmt = breakdown.offlineAmount ?? 0;
-            if (pAmt > 0 && oAmt > 0) {
+          if (!existingPayment) {
+            let periodEnd = activeRentDueDate || null;
+            if (!periodEnd && activeRentStartDate) {
+              periodEnd = new Date(activeRentStartDate);
+              if (activeRentType === 'Monthly') {
+                periodEnd.setMonth(periodEnd.getMonth() + 1);
+              } else {
+                periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+              }
+              periodEnd.setDate(periodEnd.getDate() - 1);
+            }
+
+            let paymentMethod = 'Bank Transfer';
+            if (effectiveBreakdown.platformAmount > 0 && effectiveBreakdown.offlineAmount > 0) {
               paymentMethod = 'Platform + Offline Reconciled';
-            } else if (pAmt > 0) {
+            } else if (effectiveBreakdown.platformAmount > 0) {
               paymentMethod = 'Platform (Upward Pay)';
-            } else if (oAmt > 0) {
+            } else if (effectiveBreakdown.offlineAmount > 0) {
               paymentMethod = 'Offline / Direct';
             }
+
+            const notesObj = {
+              reconciliationType: 'JOIN_REQUEST_VERIFICATION',
+              joinRequestUuid,
+              pmAcknowledgedTotal: acknowledgedTotal,
+              breakdown: effectiveBreakdown,
+              decidedByPmId: ownerPmId,
+              decidedAt: new Date().toISOString(),
+            };
+
+            await this.unitRepo.addRentPayment(unitUuid, {
+              amount: acknowledgedTotal,
+              rentAmountAtPayment: effectiveRentAmount,
+              paymentDate: new Date(),
+              periodStart: activeRentStartDate,
+              periodEnd,
+              status: 'SUCCESS',
+              method: paymentMethod,
+              notes: JSON.stringify(notesObj),
+              tenantId: tenant.id,
+              reference: paymentReference,
+            });
           }
-
-          const notesObj = {
-            reconciliationType: 'JOIN_REQUEST_VERIFICATION',
-            joinRequestUuid,
-            pmAcknowledgedTotal: acknowledgedTotal,
-            breakdown: breakdown || {
-              platformAmountAcknowledged: 0,
-              offlineAmountAcknowledged: acknowledgedTotal,
-            },
-            decidedByPmId: ownerPmId,
-            decidedAt: new Date().toISOString(),
-          };
-
-          await this.unitRepo.addRentPayment(unitUuid, {
-            amount: acknowledgedTotal,
-            rentAmountAtPayment: effectiveRentAmount,
-            paymentDate: new Date(),
-            periodStart: activeRentStartDate,
-            periodEnd,
-            status: 'SUCCESS',
-            method: paymentMethod,
-            notes: JSON.stringify(notesObj),
-            tenantId: tenant.id,
-            reference: paymentReference,
-          });
         }
-      }
 
-      // ── 5. Resolve Upward User and Sync Unit ────────────────────────────────
-      const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
-      let syncSucceeded = false;
+        // ── 5. Resolve Upward User and Sync Unit ────────────────────────────────
+        const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
+        let syncSucceeded = false;
       if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
         try {
           await this.syncUnitToUpwardUseCase.execute(unitUuid, pmId);
@@ -431,11 +424,25 @@ export class AssignTenantToUnitUseCase {
         pmId: ownerPmId,
       });
 
-      return {
-        success: true,
-        unitUuid,
-        tenantUuid: tenant.uuid,
-      };
+        return {
+          success: true,
+          unitUuid,
+          tenantUuid: tenant.uuid,
+        };
+      } catch (err: any) {
+        if (joinRequestUuid) {
+          await this.prisma.$queryRaw`
+            UPDATE upward_pm_activity_log
+            SET metadata = jsonb_set(
+              COALESCE(metadata, '{}'::jsonb),
+              '{status}',
+              '"PENDING"'
+            )
+            WHERE uuid = ${joinRequestUuid} AND "ownerPmId" = ${ownerPmId} AND metadata->>'status' = 'PROCESSING';
+          `.catch(() => {});
+        }
+        throw err;
+      }
     } else {
       if (unit.isSynced && unit.userPropertyUuid) {
         await this.prisma.upward_user_property.updateMany({

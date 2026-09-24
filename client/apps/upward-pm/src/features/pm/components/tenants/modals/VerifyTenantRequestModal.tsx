@@ -460,6 +460,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       }
 
       setIsCreatingUnit(true)
+      setIsSubmitting(true)
       try {
         let propertyUuid = ''
         if (selectedPropertyId === 'NEW') {
@@ -479,7 +480,6 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
           throw new Error('Property selection failed')
         }
 
-        setIsSubmitting(true)
         const createUnitRes = await bulkCreateUnitsMutation.mutateAsync({
           propertyUuid,
           units: [{
@@ -500,42 +500,28 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
           throw new Error('Failed to retrieve newly created unit')
         }
 
-        createTenant.mutate(tenantPayload, {
-          onSuccess: (tenant) => {
-            assignTenant.mutate({
-              tenantUuid: tenant.uuid,
-              unitUuid: createdUnit.uuid,
-              joinRequestUuid: initialData.uuid,
-              rentAmount: parseFloat(rentAmount || '0') || 0,
-              rentType: rentType || 'Annually',
-              rentStartDate,
-              rentDueDate: rentEndDate,
-              rentAmountPaid: effectiveAcknowledged,
-              pmAcknowledgedAmountPaid: effectiveAcknowledged,
-              isFullyPaid: !!isFullyPaid,
-              breakdown: paymentBreakdown,
-            }, {
-              onSuccess: () => {
-                reset()
-                setIsSubmitting(false)
-                setSuccessData({ tenantUuid: tenant.uuid, unitUuid: createdUnit.uuid })
-              },
-              onError: (err: any) => {
-                setIsSubmitting(false)
-                toast.error(err?.message || 'Failed to assign tenant to unit')
-              }
-            })
-          },
-          onError: (err: any) => {
-            setIsSubmitting(false)
-            toast.error(err?.message || 'Failed to create tenant profile')
-          }
+        const tenant = await createTenant.mutateAsync({ ...tenantPayload, suppressToast: true })
+        await assignTenant.mutateAsync({
+          tenantUuid: tenant.uuid,
+          unitUuid: createdUnit.uuid,
+          joinRequestUuid: initialData.uuid,
+          rentAmount: parseFloat(rentAmount || '0') || 0,
+          rentType: rentType || 'Annually',
+          rentStartDate,
+          rentDueDate: rentEndDate,
+          rentAmountPaid: effectiveAcknowledged,
+          pmAcknowledgedAmountPaid: effectiveAcknowledged,
+          isFullyPaid: !!isFullyPaid,
+          breakdown: paymentBreakdown,
         })
+
+        reset()
+        setSuccessData({ tenantUuid: tenant.uuid, unitUuid: createdUnit.uuid })
       } catch (err: any) {
-        setIsSubmitting(false)
-        toast.error(err.message || 'Failed to create unit and assign tenant')
+        toast.error(err?.message || 'Failed to create unit and assign tenant')
       } finally {
         setIsCreatingUnit(false)
+        setIsSubmitting(false)
       }
     } else {
       if (!unitUuid) {
@@ -544,37 +530,29 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       }
 
       setIsSubmitting(true)
-      createTenant.mutate(tenantPayload, {
-        onSuccess: (tenant) => {
-          assignTenant.mutate({
-            tenantUuid: tenant.uuid,
-            unitUuid,
-            joinRequestUuid: initialData.uuid,
-            rentAmount: parseFloat(rentAmount || '0') || 0,
-            rentType: rentType || 'Annually',
-            rentStartDate,
-            rentDueDate: rentEndDate,
-            rentAmountPaid: effectiveAcknowledged,
-            pmAcknowledgedAmountPaid: effectiveAcknowledged,
-            isFullyPaid: !!isFullyPaid,
-            breakdown: paymentBreakdown,
-          }, {
-            onSuccess: () => {
-              reset()
-              setIsSubmitting(false)
-              setSuccessData({ tenantUuid: tenant.uuid, unitUuid })
-            },
-            onError: (err: any) => {
-              setIsSubmitting(false)
-              toast.error(err?.message || 'Failed to assign tenant to unit')
-            }
-          })
-        },
-        onError: (err: any) => {
-          setIsSubmitting(false)
-          toast.error(err?.message || 'Failed to create tenant profile')
-        }
-      })
+      try {
+        const tenant = await createTenant.mutateAsync({ ...tenantPayload, suppressToast: true })
+        await assignTenant.mutateAsync({
+          tenantUuid: tenant.uuid,
+          unitUuid,
+          joinRequestUuid: initialData.uuid,
+          rentAmount: parseFloat(rentAmount || '0') || 0,
+          rentType: rentType || 'Annually',
+          rentStartDate,
+          rentDueDate: rentEndDate,
+          rentAmountPaid: effectiveAcknowledged,
+          pmAcknowledgedAmountPaid: effectiveAcknowledged,
+          isFullyPaid: !!isFullyPaid,
+          breakdown: paymentBreakdown,
+        })
+
+        reset()
+        setSuccessData({ tenantUuid: tenant.uuid, unitUuid })
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to assign tenant to unit')
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
