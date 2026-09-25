@@ -116,14 +116,26 @@ export class SyncUnitToUpwardUseCase {
 
     // 4. Resolve Subaccount for PM
     let subaccountId: number | undefined;
-    if (pmRecord.accountNumber && pmRecord.bankCode) {
-      const subaccount = await this.paymentGateway.findOrCreateSubaccount({
-        businessName: pmRecord.accountName || pmBusinessName,
-        bankCode: pmRecord.bankCode,
-        accountNumber: pmRecord.accountNumber,
-      });
-      if (subaccount) {
-        subaccountId = subaccount.id;
+    const pmAccountNumber = pmRecord.accountNumber
+      ? (pmRecord.accountNumber.includes(':') ? this.encryption.decrypt(pmRecord.accountNumber) : pmRecord.accountNumber)
+      : '';
+    const pmAccountName = pmRecord.accountName
+      ? (pmRecord.accountName.includes(':') ? this.encryption.decrypt(pmRecord.accountName) : pmRecord.accountName)
+      : pmBusinessName;
+    const pmBankCode = pmRecord.bankCode || '';
+
+    if (pmAccountNumber && pmBankCode) {
+      try {
+        const subaccount = await this.paymentGateway.findOrCreateSubaccount({
+          businessName: pmAccountName,
+          bankCode: pmBankCode,
+          accountNumber: pmAccountNumber,
+        });
+        if (subaccount) {
+          subaccountId = subaccount.id;
+        }
+      } catch (err: any) {
+        this.logger.warn(`Failed to resolve PM subaccount during sync: ${err.message}`);
       }
     }
 
@@ -328,6 +340,14 @@ export class SyncUnitToUpwardUseCase {
           rentEndDate: unit.rentDueDate?.toISOString(),
           rentType: unit.rentType || undefined,
           description: 'Outstanding rent balance — initial payment recorded',
+          allowPartial: false,
+          lineItems: [
+            {
+              name: 'Rent',
+              amount: remainingAmount,
+            },
+          ],
+          allowSupersede: true,
           silent: true,             // No notification until welcome template is sent
           bypassWelcomeCheck: true, // System-generated PR; bypass welcome template gate
         });

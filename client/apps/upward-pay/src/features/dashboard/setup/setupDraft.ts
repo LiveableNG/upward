@@ -1,5 +1,5 @@
 import { STATES } from '@/lib/location-data'
-import { toDateInputValue } from './rentalDates'
+import { toDateInputValue, type LeaseDurationUnit } from './rentalDates'
 
 export type SetupMode = 'onboarding' | 'edit'
 
@@ -17,6 +17,8 @@ export type RentalFormData = {
   rentStartDate: string
   rentEndDate: string
   rentType: string
+  leaseDuration?: string
+  leaseUnit?: LeaseDurationUnit
   tenancyStatus: TenancyStatus
   amountAlreadyPaid: string
   proofFile?: File | null
@@ -65,6 +67,8 @@ export const EMPTY_RENTAL_FORM: RentalFormData = {
   rentStartDate: '',
   rentEndDate: '',
   rentType: 'Annually',
+  leaseDuration: '1',
+  leaseUnit: 'years',
   tenancyStatus: 'NEW_CYCLE',
   amountAlreadyPaid: '',
   proofFile: null,

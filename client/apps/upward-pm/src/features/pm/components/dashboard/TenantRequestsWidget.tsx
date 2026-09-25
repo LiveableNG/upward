@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { UserPlus, CheckCircle2, X, AlertCircle } from 'lucide-react';
-import { AddTenantModal } from '../tenants/modals/AddTenantModal';
+import { VerifyTenantRequestModal } from '../tenants/modals/VerifyTenantRequestModal';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 
 export function TenantRequestsWidget() {
   const queryClient = useQueryClient();
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [resolveDuplicateModal, setResolveDuplicateModal] = useState<{
     isOpen: boolean;
     uuid: string;
@@ -52,7 +52,7 @@ export function TenantRequestsWidget() {
 
   const handleApprove = (req: any) => {
     setSelectedRequest(req);
-    setIsAddTenantModalOpen(true);
+    setIsVerifyModalOpen(true);
   };
 
   const handleDismiss = (uuid: string) => {
@@ -102,6 +102,11 @@ export function TenantRequestsWidget() {
                     <span>Sync Duplicate: Linked to <strong>{req.existingConnection.propertyName} - Unit {req.existingConnection.unitName}</strong></span>
                   </div>
                 )}
+                {req.isExistingTenant && !req.existingConnection && (
+                  <div className="mt-1.5 bg-[#F0FDF4] p-1.5 px-2 rounded text-[11px] text-[#166534] border border-[#BBF7D0] flex items-center gap-1.5 w-fit">
+                    <span>Existing Tenant · Active at <strong>{req.existingTenancies?.[0]?.propertyName || 'Portfolio'}</strong></span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {req.existingConnection ? (
@@ -134,21 +139,25 @@ export function TenantRequestsWidget() {
         </div>
       </div>
 
-      {isAddTenantModalOpen && selectedRequest && (
-        <AddTenantModal
-          isOpen={isAddTenantModalOpen}
-          mode="join-request"
+      {isVerifyModalOpen && selectedRequest && (
+        <VerifyTenantRequestModal
+          isOpen={isVerifyModalOpen}
           onClose={() => {
-            setIsAddTenantModalOpen(false);
+            setIsVerifyModalOpen(false);
             setSelectedRequest(null);
             queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] });
           }}
           initialData={{
+            uuid: selectedRequest.uuid,
             firstName: selectedRequest.tenantFirstName,
             lastName: selectedRequest.tenantLastName,
             email: selectedRequest.tenantEmail,
             phone: selectedRequest.tenantPhone || '',
             unitDetails: selectedRequest.unitDetails,
+            originalDeclaration: selectedRequest.originalDeclaration || selectedRequest.unitDetails,
+            platformActivity: selectedRequest.platformActivity,
+            activePaymentRequest: selectedRequest.activePaymentRequest,
+            paymentDestinationAudit: selectedRequest.paymentDestinationAudit,
           }}
         />
       )}

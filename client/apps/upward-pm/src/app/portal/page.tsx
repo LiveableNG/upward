@@ -35,7 +35,7 @@ import { api } from '@/lib/api'
 import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityRequests'
 import { PayoutsList } from '@/features/pm/components/payments/PayoutsList'
 import { PaymentsView } from '@/features/pm/components/payments/PaymentsView'
-import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
+import { VerifyTenantRequestModal } from '@/features/pm/components/tenants/modals/VerifyTenantRequestModal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 
 export default function LandlordDashboard() {
@@ -758,7 +758,7 @@ export default function LandlordDashboard() {
         />
 
         {isAddTenantOpen && selectedJoinReq && (
-          <AddTenantModal
+          <VerifyTenantRequestModal
             isOpen={isAddTenantOpen}
             onClose={() => {
               setIsAddTenantOpen(false);
@@ -766,10 +766,16 @@ export default function LandlordDashboard() {
               refetch();
             }}
             initialData={{
+              uuid: selectedJoinReq.uuid,
               firstName: selectedJoinReq.tenantFirstName,
               lastName: selectedJoinReq.tenantLastName,
               email: selectedJoinReq.tenantEmail,
+              phone: selectedJoinReq.tenantPhone || '',
               unitDetails: selectedJoinReq.unitDetails,
+              originalDeclaration: selectedJoinReq.originalDeclaration || selectedJoinReq.unitDetails,
+              platformActivity: selectedJoinReq.platformActivity,
+              activePaymentRequest: selectedJoinReq.activePaymentRequest,
+              paymentDestinationAudit: selectedJoinReq.paymentDestinationAudit,
             }}
           />
         )}

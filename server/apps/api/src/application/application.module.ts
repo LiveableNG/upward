@@ -232,6 +232,7 @@ import { UpdateTenantUseCase } from './pm/use-cases/tenants/update-tenant.use-ca
 import { SyncUnitToUpwardUseCase } from './pm/use-cases/units/sync-unit.use-case'
 import { CreatePmPaymentRequestUseCase } from './pm/use-cases/payments/create-pm-payment-request.use-case'
 import { GeneratePmDvaUseCase } from './pm/use-cases/payments/generate-pm-dva.use-case'
+import { PmTenancyAssignedListener } from './pm/events/pm-tenancy-assigned.listener'
 import { GetPmPaymentRequestsUseCase } from './pm/use-cases/payments/get-pm-payment-requests.use-case'
 import { GetPmPaymentRequestUseCase } from './pm/use-cases/payments/get-pm-payment-request.use-case'
 import { ResendPmPaymentRequestUseCase } from './pm/use-cases/payments/resend-pm-payment-request.use-case'
@@ -734,6 +735,7 @@ const UseCases: any[] = [
   SyncUnitToUpwardUseCase,
   CreatePmPaymentRequestUseCase,
   GeneratePmDvaUseCase,
+  PmTenancyAssignedListener,
   GetPmPaymentRequestsUseCase,
   GetPmPaymentRequestUseCase,
   ResendPmPaymentRequestUseCase,

@@ -94,7 +94,7 @@ export function UniversityLandlordClient() {
           <Link href="/academy/landlord" className="uni-logo">
             <span className="mark">
               <img
-                src="/university-logos/upward_university_logo.jpeg"
+                src="/university-logos/upward_university_logo.png"
                 alt="Upward Academy Logo"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }}
               />
@@ -507,7 +507,7 @@ export function UniversityLandlordClient() {
           <div>
             <div className="flogo">
               <span className="mark" style={{ width: '24px', height: '24px', borderRadius: '6px', overflow: 'hidden', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }}>
-                <img src="/university-logos/upward_university_logo.jpeg" alt="Upward Academy Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src="/university-logos/upward_university_logo.png" alt="Upward Academy Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </span>
               UPWARD
             </div>

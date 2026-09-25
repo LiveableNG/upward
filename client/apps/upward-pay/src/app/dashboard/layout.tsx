@@ -40,6 +40,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [searchParams, isLoggedIn])
 
+  // Redirect to login if unauthenticated
+  useEffect(() => {
+    if (!loading && !isLoggedIn && !isPinLocked) {
+      const redirectUrl = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : '/login'
+      router.replace(redirectUrl)
+    }
+  }, [loading, isLoggedIn, isPinLocked, router, pathname])
+
   if (!loading && !isLoggedIn && !isPinLocked) {
     return <FallbackSuspense message="Redirecting to login..." />
   }

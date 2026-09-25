@@ -326,38 +326,19 @@ export const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
             </div>
 
             {/* Collaboration Section */}
-            <div style={{ marginTop: 20, padding: 14, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ marginTop: 20, padding: 14, background: '#faf9f6', borderRadius: 12, border: '1px solid rgba(0,0,0,0.08)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <Users size={18} color="var(--forest)" style={{ flexShrink: 0 }} />
                     <h4 style={{ fontSize: 13, fontWeight: 700, margin: 0 }}>Enable Collaboration</h4>
                 </div>
-                <label className="switch" style={{ cursor: 'pointer' }}>
+                <label className="ios-switch">
                   <input 
                     type="checkbox" 
                     checked={!!formData.collaborationEnabled}
                     onChange={e => setFormData({ ...formData, collaborationEnabled: e.target.checked })}
-                    style={{ display: 'none' }}
                   />
-                  <div style={{ 
-                      width: 40, 
-                      height: 22, 
-                      background: formData.collaborationEnabled ? 'var(--forest)' : 'var(--border)', 
-                      borderRadius: 100,
-                      position: 'relative',
-                      transition: 'background 0.2s'
-                  }}>
-                      <div style={{ 
-                          width: 16, 
-                          height: 16, 
-                          background: 'white', 
-                          borderRadius: '50%', 
-                          position: 'absolute', 
-                          top: 3, 
-                          left: formData.collaborationEnabled ? 21 : 3,
-                          transition: 'left 0.2s'
-                      }} />
-                  </div>
+                  <span className="ios-switch__slider"></span>
                 </label>
               </div>
               

@@ -242,7 +242,8 @@ export class BulkCreateUnitsUseCase {
 
       const actualRentAmountPaid = u.isFullyPaid ? u.rentAmount : u.rentAmountPaid;
 
-      if (actualRentAmountPaid !== undefined && actualRentAmountPaid > 0 && canonicalStart) {
+      // Only record initial rent payment if the unit is explicitly OCCUPIED and has an assigned tenant
+      if (newUnit.status === 'OCCUPIED' && tenantId && actualRentAmountPaid !== undefined && actualRentAmountPaid > 0 && canonicalStart) {
         const periodEnd = canonicalDue || this.rentalPeriodService.calculatePeriodEnd(
           canonicalStart,
           inferredRentType,

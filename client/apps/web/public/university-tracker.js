@@ -78,11 +78,26 @@
     }
 
     // 2. Check path: /academy/:identifier or /university/:identifier
-    var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'faq'];
+    var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'sessions', 'session', 'info-session', 'qa-session', 'lecturers', 'lecturer', 'faq'];
     if (pathname.startsWith('/academy/apply/')) {
       var applySlug = pathname.replace('/academy/apply/', '').split('/')[0];
       if (applySlug && reserved.indexOf(applySlug) === -1) {
         return applySlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/sessions/')) {
+      var sessionsSlug = pathname.replace('/academy/sessions/', '').split('/')[0];
+      if (sessionsSlug && reserved.indexOf(sessionsSlug) === -1) {
+        return sessionsSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/session/')) {
+      var sessionSlug = pathname.replace('/academy/session/', '').split('/')[0];
+      if (sessionSlug && reserved.indexOf(sessionSlug) === -1) {
+        return sessionSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/lecturers/')) {
+      var lecturersSlug = pathname.replace('/academy/lecturers/', '').split('/')[0];
+      if (lecturersSlug && reserved.indexOf(lecturersSlug) === -1) {
+        return lecturersSlug.trim().toLowerCase();
       }
     } else if (pathname.startsWith('/academy/')) {
       var slug = pathname.replace('/academy/', '').split('/')[0];
@@ -94,6 +109,21 @@
       if (applySlug && reserved.indexOf(applySlug) === -1) {
         return applySlug.trim().toLowerCase();
       }
+    } else if (pathname.startsWith('/university/sessions/')) {
+      var sessionsSlug = pathname.replace('/university/sessions/', '').split('/')[0];
+      if (sessionsSlug && reserved.indexOf(sessionsSlug) === -1) {
+        return sessionsSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/university/session/')) {
+      var sessionSlug = pathname.replace('/university/session/', '').split('/')[0];
+      if (sessionSlug && reserved.indexOf(sessionSlug) === -1) {
+        return sessionSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/university/lecturers/')) {
+      var lecturersSlug = pathname.replace('/university/lecturers/', '').split('/')[0];
+      if (lecturersSlug && reserved.indexOf(lecturersSlug) === -1) {
+        return lecturersSlug.trim().toLowerCase();
+      }
     } else if (pathname.startsWith('/university/')) {
       var slug = pathname.replace('/university/', '').split('/')[0];
       if (slug && reserved.indexOf(slug) === -1) {
@@ -104,7 +134,7 @@
     return null;
   }
 
-  // A/B Variant Assignment ('A' = Upfront Pricing, 'B' = Post-Registration Pricing)
+  // A/B Variant Assignment ('A' or 'B')
   function getOrCreateAbVariant() {
     var search = window.location.search || '';
     var params = new URLSearchParams(search);
@@ -144,6 +174,9 @@
   window.getUniversityAbVariant = function() {
     return getOrCreateAbVariant();
   };
+  window.getAcademyAbVariant = function() {
+    return getOrCreateAbVariant();
+  };
 
   // Retrieve stored attribution identifier
   window.getUniversitySource = function() {
@@ -157,6 +190,7 @@
 
     return getCookie('upward_university_source') || '';
   };
+  window.getAcademySource = window.getUniversitySource;
 
   // Main Tracking Execution
   function trackPageVisit() {

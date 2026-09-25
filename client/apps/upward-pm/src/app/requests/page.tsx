@@ -22,7 +22,7 @@ import { useCredibilityRequests } from '@/features/pm/hooks/useCredibilityReques
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { format } from 'date-fns'
-import { AddTenantModal } from '@/features/pm/components/tenants/modals/AddTenantModal'
+import { VerifyTenantRequestModal } from '@/features/pm/components/tenants/modals/VerifyTenantRequestModal'
 import { useMutation } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
@@ -434,6 +434,28 @@ export default function RequestsPage() {
             </div>
           )
         }
+        if (req.isExistingTenant) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 800,
+                padding: '4px 8px',
+                borderRadius: 6,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                background: 'var(--forest-bg, #f0fdf4)',
+                color: 'var(--forest, #166534)',
+                width: 'fit-content'
+              }}>
+                New Property Req
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Active Tenant ({req.existingTenancies?.[0]?.propertyName || 'Existing Portfolio'})
+              </span>
+            </div>
+          )
+        }
         return (
           <span style={{
             fontSize: 10,
@@ -545,7 +567,7 @@ export default function RequestsPage() {
           background: 'var(--forest-bg, #f0fdf4)',
           color: 'var(--forest, #166534)'
         }}>
-          New Connect
+          {req.isExistingTenant ? 'New Property' : 'New Connect'}
         </span>
       </div>
       <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
@@ -717,20 +739,24 @@ export default function RequestsPage() {
       />
 
       {isAddModalOpen && selectedJoinReq && (
-        <AddTenantModal
+        <VerifyTenantRequestModal
           isOpen={isAddModalOpen}
-          mode="join-request"
           onClose={() => {
             setIsAddModalOpen(false)
             setSelectedJoinReq(null)
             queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
           }}
           initialData={{
+            uuid: selectedJoinReq.uuid,
             firstName: selectedJoinReq.tenantFirstName,
             lastName: selectedJoinReq.tenantLastName,
             email: selectedJoinReq.tenantEmail,
             phone: selectedJoinReq.tenantPhone || '',
             unitDetails: selectedJoinReq.unitDetails,
+            originalDeclaration: selectedJoinReq.originalDeclaration || selectedJoinReq.unitDetails,
+            platformActivity: selectedJoinReq.platformActivity,
+            activePaymentRequest: selectedJoinReq.activePaymentRequest,
+            paymentDestinationAudit: selectedJoinReq.paymentDestinationAudit,
           }}
         />
       )}

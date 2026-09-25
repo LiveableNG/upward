@@ -462,69 +462,105 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // Static marketing homepage (see public/landing.html; legacy React UI in src/_archive/homepage/)
+  // Static marketing homepage (see public/pages/landing.html)
   if (pathname === '/') {
-    return NextResponse.rewrite(new URL('/landing.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/landing.html', request.url))
   }
 
   // Static marketing pages for PM, Landlord, and Academy audiences
   if (pathname === '/for-pm') {
-    return NextResponse.rewrite(new URL('/for-pm.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/for-pm.html', request.url))
   }
   if (pathname === '/for-landlord') {
-    return NextResponse.rewrite(new URL('/for-landlord.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/for-landlord.html', request.url))
   }
 
   // Canonical Academy routes
   if (pathname === '/academy') {
-    return NextResponse.rewrite(new URL('/university.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
-  if (pathname === '/academy/apply') {
-    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
-  }
-  if (pathname.startsWith('/academy/apply/')) {
-    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
+  if (pathname === '/academy/apply' || pathname.startsWith('/academy/apply/')) {
+    return NextResponse.rewrite(new URL('/pages/university/apply.html', request.url))
   }
   if (pathname === '/academy/programme') {
-    return NextResponse.rewrite(new URL('/university-programme.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/programme.html', request.url))
   }
   if (pathname === '/academy/scholarships' || pathname === '/academy/scholarship') {
-    return NextResponse.rewrite(new URL('/university-scholarships.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/scholarships.html', request.url))
   }
   if (pathname === '/academy/landlord') {
-    return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/landlord.html', request.url))
+  }
+  if (
+    pathname === '/academy/sessions' ||
+    pathname === '/academy/session' ||
+    pathname === '/academy/info-session' ||
+    pathname === '/academy/qa-session' ||
+    pathname.startsWith('/academy/sessions/') ||
+    pathname.startsWith('/academy/session/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/sessions.html', request.url))
+  }
+  if (
+    pathname === '/academy/lecturers' ||
+    pathname === '/academy/lecturer' ||
+    pathname.startsWith('/academy/lecturers/') ||
+    pathname.startsWith('/academy/lecturer/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/lecturers.html', request.url))
+  }
+  if (pathname === '/academy/faq' || pathname === '/academy/faqs') {
+    return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
   }
   if (pathname === '/academy/thank-you') {
-    return NextResponse.rewrite(new URL('/university-thank-you.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/academy/')) {
-    return NextResponse.rewrite(new URL('/university.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
 
-  // Backward compatibility: Rewrite or handle legacy /university paths
+  // Backward compatibility: Legacy /university routes
   if (pathname === '/university') {
-    return NextResponse.rewrite(new URL('/university.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
-  if (pathname === '/university/apply') {
-    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
-  }
-  if (pathname.startsWith('/university/apply/')) {
-    return NextResponse.rewrite(new URL('/university-apply.html', request.url))
+  if (pathname === '/university/apply' || pathname.startsWith('/university/apply/')) {
+    return NextResponse.rewrite(new URL('/pages/university/apply.html', request.url))
   }
   if (pathname === '/university/programme') {
-    return NextResponse.rewrite(new URL('/university-programme.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/programme.html', request.url))
   }
   if (pathname === '/university/scholarships' || pathname === '/university/scholarship') {
-    return NextResponse.rewrite(new URL('/university-scholarships.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/scholarships.html', request.url))
+  }
+  if (pathname === '/university/faq' || pathname === '/university/faqs') {
+    return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
   }
   if (pathname === '/university/landlord') {
-    return NextResponse.rewrite(new URL('/university-landlord.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/landlord.html', request.url))
+  }
+  if (
+    pathname === '/university/sessions' ||
+    pathname === '/university/session' ||
+    pathname === '/university/info-session' ||
+    pathname === '/university/qa-session' ||
+    pathname.startsWith('/university/sessions/') ||
+    pathname.startsWith('/university/session/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/sessions.html', request.url))
+  }
+  if (
+    pathname === '/university/lecturers' ||
+    pathname === '/university/lecturer' ||
+    pathname.startsWith('/university/lecturers/') ||
+    pathname.startsWith('/university/lecturer/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/lecturers.html', request.url))
   }
   if (pathname === '/university/thank-you') {
-    return NextResponse.rewrite(new URL('/university-thank-you.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/university/')) {
-    return NextResponse.rewrite(new URL('/university.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
 
   return NextResponse.next()

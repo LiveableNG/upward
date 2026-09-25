@@ -297,40 +297,15 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
             <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
               <User size={14} /> Is this for the current tenant?
             </label>
-            <div className="toggle-switch">
+            <label className="ios-switch">
               <input 
                 type="checkbox" 
                 id="isForCurrentTenant"
                 checked={isForCurrentTenant}
                 onChange={(e) => setIsForCurrentTenant(e.target.checked)}
-                style={{ display: 'none' }}
               />
-              <label 
-                htmlFor="isForCurrentTenant"
-                style={{
-                  width: 44,
-                  height: 24,
-                  background: isForCurrentTenant ? 'var(--clay)' : '#cbd5e1',
-                  borderRadius: 12,
-                  display: 'block',
-                  position: 'relative',
-                  cursor: 'pointer',
-                  transition: '0.3s'
-                }}
-              >
-                <div style={{
-                  width: 20,
-                  height: 20,
-                  background: 'white',
-                  borderRadius: '50%',
-                  position: 'absolute',
-                  top: 2,
-                  left: isForCurrentTenant ? 22 : 2,
-                  transition: '0.3s',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
-                }} />
-              </label>
-            </div>
+              <span className="ios-switch__slider"></span>
+            </label>
           </div>
 
           {!isForCurrentTenant && (

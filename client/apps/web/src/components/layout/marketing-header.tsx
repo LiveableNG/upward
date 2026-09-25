@@ -126,6 +126,17 @@ export function MarketingHeader() {
                         Protect your income and property with free, practical training for landlords.
                       </span>
                     </Link>
+                    <Link
+                      href="/university/sessions"
+                      className="marketing-header__dropdown-item"
+                    >
+                      <strong className="marketing-header__dropdown-title">
+                        Information &amp; Q&amp;A Sessions
+                      </strong>
+                      <span className="marketing-header__dropdown-desc">
+                        Attend a live, interactive session to ask questions before applying.
+                      </span>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -355,6 +366,26 @@ export function MarketingHeader() {
                 </div>
                 <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.45, margin: 0, fontWeight: 400 }}>
                   Protect your income and property with free, practical training for landlords.
+                </p>
+              </Link>
+              <Link
+                href="/university/sessions"
+                onClick={() => setUniModalOpen(false)}
+                style={{
+                  display: 'block',
+                  padding: '14px 0',
+                  borderTop: '1px solid #f1f5f9',
+                  textDecoration: 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '15px', color: '#0f172a' }}>
+                    Information &amp; Q&amp;A Sessions
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#64748b' }}>→</span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.45, margin: 0, fontWeight: 400 }}>
+                  Attend a live, interactive session to ask questions before applying.
                 </p>
               </Link>
             </div>
