@@ -10,9 +10,9 @@ export const metadata: Metadata = {
     canonical: '/academy',
   },
   icons: {
-    icon: '/university-logos/upward_university_logo.jpeg',
-    shortcut: '/university-logos/upward_university_logo.jpeg',
-    apple: '/university-logos/upward_university_logo.jpeg',
+    icon: '/university-logos/upward_university_logo.png',
+    shortcut: '/university-logos/upward_university_logo.png',
+    apple: '/university-logos/upward_university_logo.png',
   },
   openGraph: {
     title: 'Upward Academy — Build Your Future in Real Estate',
