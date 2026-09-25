@@ -75,7 +75,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       ...((options.headers as Record<string, string>) || {}),
     }
 
-    if (token && Capacitor.isNativePlatform()) {
+    if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
 

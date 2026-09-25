@@ -27,15 +27,20 @@ export const useTenantActions = () => {
   const toast = useToast()
 
   const createTenant = useMutation({
-    mutationFn: (dto: CreateTenantDto) => tenantService.createTenant(dto),
+    mutationFn: (dto: CreateTenantDto & { suppressToast?: boolean }) => {
+      const { suppressToast, ...payload } = dto
+      return tenantService.createTenant(payload).then(res => ({ ...res, suppressToast }))
+    },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
-      if (data.inviteStatus === 'SENT') {
-        toast.success('Tenant added and invitation sent!')
-      } else if (data.inviteStatus === 'ON_UPWARD') {
-        toast.success('Tenant added (User already on Upward)')
-      } else {
-        toast.success('Tenant added successfully')
+      if (!data.suppressToast) {
+        if (data.inviteStatus === 'SENT') {
+          toast.success('Tenant added and invitation sent!')
+        } else if (data.inviteStatus === 'ON_UPWARD') {
+          toast.success('Tenant added (User already on Upward)')
+        } else {
+          toast.success('Tenant added successfully')
+        }
       }
     },
     onError: (error: any) => {
@@ -56,24 +61,38 @@ export const useTenantActions = () => {
   })
 
   const assignTenant = useMutation({
-    mutationFn: ({ tenantUuid, unitUuid, ...rentDetails }: { 
+    mutationFn: async ({ tenantUuid, unitUuid, ...rentDetails }: { 
       tenantUuid: string, 
       unitUuid: string, 
+      joinRequestUuid?: string,
       rentAmountPaid?: number,
       isFullyPaid?: boolean,
       rentAmount?: number,
       rentType?: string,
       rentStartDate?: string,
-      rentDueDate?: string
-    }) => 
-      tenantService.assignTenant(tenantUuid, unitUuid, rentDetails),
-    onSuccess: (_, variables) => {
+      rentDueDate?: string,
+      pmAcknowledgedAmountPaid?: number,
+      breakdown?: {
+        platformAmount?: number;
+        offlineAmount?: number;
+        platformPaymentIds?: number[];
+      };
+      customSuccessMessage?: string;
+    }) => {
+      await tenantService.assignTenant(tenantUuid, unitUuid, rentDetails)
+      return { customSuccessMessage: rentDetails.customSuccessMessage }
+    },
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenants'] })
       queryClient.invalidateQueries({ queryKey: ['tenant', variables.tenantUuid] })
       queryClient.invalidateQueries({ queryKey: ['pm-units'] })
       queryClient.invalidateQueries({ queryKey: ['pm-unit'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-join-requests'] })
-      toast.success('Tenant assigned successfully')
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+      queryClient.invalidateQueries({ queryKey: ['pending-join-requests'] })
+      
+      const msg = data?.customSuccessMessage || (variables.joinRequestUuid ? 'Tenant verified & assigned successfully!' : 'Tenant assigned successfully')
+      toast.success(msg)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to assign tenant')

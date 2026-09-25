@@ -35,6 +35,7 @@ export interface CreatePmPaymentRequestDto {
   bypassWelcomeCheck?: boolean;
   settlementAccountUuid?: string;
   manualAccountId?: number;
+  allowSupersede?: boolean;
 }
 
 @Injectable()
@@ -154,7 +155,7 @@ export class CreatePmPaymentRequestUseCase {
       (data.lineItems.length === 1 && data.lineItems[0]?.name !== 'Rent')
     );
 
-    const isPremiumFeatureUsed = isScheduled || isRecurring || hasReminders || hasMultipleLineItems;
+    const isPremiumFeatureUsed = (isScheduled || isRecurring || hasReminders || hasMultipleLineItems) && !data.bypassWelcomeCheck;
 
     if (isPremiumFeatureUsed) {
       const check = await this.subscriptionService.checkAccess(ownerPmId, FeatureKey.SERVICE_CHARGE_PAYMENTS);
@@ -196,6 +197,7 @@ export class CreatePmPaymentRequestUseCase {
         rentType: data.rentType || unit.rentType || undefined,
         bankCode: bankCode ?? undefined,
         accountNumber: accountNumber ?? undefined,
+        allowSupersede: data.allowSupersede,
       };
 
       const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 

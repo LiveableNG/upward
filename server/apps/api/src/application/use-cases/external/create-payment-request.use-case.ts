@@ -73,11 +73,16 @@ export class CreateExternalPaymentRequestUseCase {
 
     if (payload.lineItems && payload.lineItems.length > 0) {
       const lineItemsTotal = payload.lineItems.reduce((sum, item) => sum + item.amount, 0)
-      if (Math.abs(lineItemsTotal - amount) !== 0) {
+      if (Math.abs(lineItemsTotal - amount) > 0.01) {
         throw new BadRequestException(
           `The sum of line items (${lineItemsTotal}) must equal the total amount (${amount})`
         )
       }
+    } else {
+      const defaultName = (payload.rentStartDate || payload.rentEndDate || payload.rentType)
+        ? 'Rent'
+        : (payload.description || 'Payment');
+      payload.lineItems = [{ name: defaultName, amount }];
     }
 
     let subaccountId: number | undefined = property.subaccountId || undefined
@@ -179,7 +184,20 @@ export class CreateExternalPaymentRequestUseCase {
         }
       });
       if (partialPR) {
-        throw new BadRequestException('An active payment request already has partial payments on it. Cannot override.');
+        if (payload.allowSupersede) {
+          await this.prisma.upward_payment_request.update({
+            where: { id: partialPR.id },
+            data: {
+              status: 'CANCELLED',
+              description: partialPR.description
+                ? `${partialPR.description} [Superseded by PM Assignment]`
+                : '[Superseded by PM Assignment]',
+            }
+          });
+          this.logger.log(`Superseded existing partial payment request ${partialPR.uuid} for userPropertyId ${property.id}`);
+        } else {
+          throw new BadRequestException('An active payment request already has partial payments on it. Cannot override.');
+        }
       }
 
       await this.prisma.upward_payment_request.updateMany({

@@ -194,7 +194,8 @@ export function BasicCheckoutView({
     return `Pay ${formatCurrency(netPayable, currency)} now`
   }
 
-  const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund
+  const hasNoLineItems = rentLineItems.length === 0 && (paymentData.payment?.amount > 0)
+  const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund || hasNoLineItems
 
   const handleBack = () => {
     if (authUser) {
@@ -289,6 +290,18 @@ export function BasicCheckoutView({
         </div>
       ) : (
         <>
+          {hasNoLineItems ? (
+            <div className="pay-flow__alert pay-flow__alert--error" style={{ marginBottom: 16 }}>
+              <ShieldAlert size={18} />
+              <div>
+                <strong>Invalid Invoice</strong>
+                <p>
+                  This payment request has no line items. Please contact your property manager to regenerate the invoice.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {isPendingRefund ? (
             <div className="pay-flow__alert pay-flow__alert--error">
               <ShieldAlert size={18} />

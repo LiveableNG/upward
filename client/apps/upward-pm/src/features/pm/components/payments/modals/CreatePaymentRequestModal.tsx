@@ -509,12 +509,14 @@ export function CreatePaymentRequestModal({
             {unit.managementFee > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Include Mgt. Fee</span>
-                <input 
-                  type="checkbox" 
-                  checked={includeManagementFee}
-                  onChange={(e) => handleToggleManagementFee(e.target.checked)}
-                  style={{ width: 16, height: 16, cursor: 'pointer' }}
-                />
+                <label className="ios-switch" style={{ transform: 'scale(0.85)', transformOrigin: 'right center' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={includeManagementFee}
+                    onChange={(e) => handleToggleManagementFee(e.target.checked)}
+                  />
+                  <span className="ios-switch__slider"></span>
+                </label>
               </div>
             )}
           </div>

@@ -241,11 +241,19 @@ export class LandlordManagementController {
     @Param('uuid') tenantUuid: string, 
     @Body() body: { 
       unitUuid: string; 
+      joinRequestUuid?: string;
       rentAmountPaid?: number;
       rentAmount?: number;
       rentType?: string;
       rentStartDate?: string;
       rentDueDate?: string;
+      isFullyPaid?: boolean;
+      pmAcknowledgedAmountPaid?: number;
+      breakdown?: {
+        platformAmount?: number;
+        offlineAmount?: number;
+        platformPaymentIds?: number[];
+      };
     }
   ) {
     const pmId = await this.getElevatedPmId(req);
@@ -257,7 +265,12 @@ export class LandlordManagementController {
       body.rentAmount,
       body.rentType,
       body.rentStartDate ? new Date(body.rentStartDate) : undefined,
-      body.rentDueDate ? new Date(body.rentDueDate) : undefined
+      body.rentDueDate ? new Date(body.rentDueDate) : undefined,
+      body.isFullyPaid,
+      undefined,
+      body.joinRequestUuid,
+      body.pmAcknowledgedAmountPaid,
+      body.breakdown,
     );
   }
 
