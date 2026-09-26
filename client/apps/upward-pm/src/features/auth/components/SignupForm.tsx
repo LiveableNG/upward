@@ -28,6 +28,7 @@ import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
+import { isValidEmail } from '@/lib/utils'
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 
 const regionNames = new Intl.DisplayNames(['en'], { type: 'region' })
@@ -154,7 +155,7 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
   // Live silent email check for business work email
   useEffect(() => {
     setEmailExists(false)
-    if (formData.email && formData.email.includes('@') && formData.email.length > 5) {
+    if (formData.email && isValidEmail(formData.email)) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
         setIsCheckingEmail(true)
@@ -222,8 +223,8 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
 
     if (!formData.email.trim()) {
       nextErrors.email = 'Business email address is required'
-    } else if (!formData.email.includes('@')) {
-      nextErrors.email = 'Please enter a valid business email'
+    } else if (!isValidEmail(formData.email)) {
+      nextErrors.email = 'Please enter a valid business email with a valid domain (e.g. name@company.com)'
     } else if (emailExists) {
       nextErrors.email = 'This email is already registered'
     }
@@ -247,8 +248,8 @@ export const SignupForm = ({ onStepChange }: { onStepChange?: (step: number) => 
 
     if (!formData.personalEmail.trim()) {
       nextErrors.personalEmail = 'Personal contact email is required'
-    } else if (!formData.personalEmail.includes('@')) {
-      nextErrors.personalEmail = 'Please enter a valid personal email'
+    } else if (!isValidEmail(formData.personalEmail)) {
+      nextErrors.personalEmail = 'Please enter a valid personal email with a valid domain (e.g. name@example.com)'
     }
 
     if (!formData.personalPhone.trim()) {

@@ -135,10 +135,10 @@ export class CalculateRentScoreUseCase {
             const isLateStatus = status === 'PAID_LATE' || status === 'PARTIAL_LATE'
             const diffTime = tranche.paidAt.getTime() - dueDate.getTime()
             let daysLate = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-            if (isLateStatus && daysLate <= 0) {
-              daysLate = 15 // Apply late penalty band when explicitly evaluated as late
-            } else if ((status === 'PAID_ON_TIME' || status === 'PARTIAL_ON_TIME') && (cycle as any).source === 'PM_ASSIGNMENT') {
-              daysLate = 0 // Explicitly evaluated on-time by PM
+            if (isLateStatus && daysLate <= 0 && !cycle.paymentRequestId) {
+              daysLate = 15 // Apply late penalty band when explicitly evaluated as late without transaction tranches
+            } else if ((status === 'PAID_ON_TIME' || status === 'PARTIAL_ON_TIME') && (cycle as any).source === 'PM_ASSIGNMENT' && !cycle.paymentRequestId) {
+              daysLate = 0 // Explicitly evaluated on-time by PM without transaction tranches
             }
             trancheScore = getBandScore(daysLate)
           } else {
@@ -433,10 +433,10 @@ export class CalculateRentScoreUseCase {
             const isLateStatus = status === 'PAID_LATE' || status === 'PARTIAL_LATE'
             const diffTime = tranche.paidAt.getTime() - dueDate.getTime()
             let daysLate = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-            if (isLateStatus && daysLate <= 0) {
-              daysLate = 15 // Apply late penalty band when explicitly evaluated as late
-            } else if ((status === 'PAID_ON_TIME' || status === 'PARTIAL_ON_TIME') && (cycle as any).source === 'PM_ASSIGNMENT') {
-              daysLate = 0 // Explicitly evaluated on-time by PM
+            if (isLateStatus && daysLate <= 0 && !cycle.paymentRequestId) {
+              daysLate = 15 // Apply late penalty band when explicitly evaluated as late without transaction tranches
+            } else if ((status === 'PAID_ON_TIME' || status === 'PARTIAL_ON_TIME') && (cycle as any).source === 'PM_ASSIGNMENT' && !cycle.paymentRequestId) {
+              daysLate = 0 // Explicitly evaluated on-time by PM without transaction tranches
             }
             trancheScore = getBandScore(daysLate)
           } else {

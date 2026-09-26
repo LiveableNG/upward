@@ -23,6 +23,7 @@ import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth
 import { OTPInput } from '@/components/common/OTPInput'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
+import { isValidEmail } from '@/lib/utils'
 
 type LoginMethod = 'password' | 'code' | null
 
@@ -99,7 +100,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
     setIsWaitlist(false)
     setAuthProvider('email')
 
-    if (identifierType === 'email' && loginEmail && loginEmail.includes('@') && loginEmail.length > 5) {
+    if (identifierType === 'email' && loginEmail && isValidEmail(loginEmail)) {
       setIsCheckingEmail(true)
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
@@ -144,9 +145,15 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
 
   const handleRequestOTP = async (customContext?: 'WAITLIST' | 'INVITE', channel?: 'SMS' | 'WHATSAPP') => {
-    if (identifierType === 'email' && !loginEmail) {
-      toastError('Please enter your email address first.')
-      return
+    if (identifierType === 'email') {
+      if (!loginEmail) {
+        toastError('Please enter your email address first.')
+        return
+      }
+      if (!isValidEmail(loginEmail)) {
+        toastError('Please enter a valid email address with a domain (e.g. name@example.com)')
+        return
+      }
     }
     if (identifierType === 'phone' && !loginPhone) {
       toastError('Please enter your phone number first.')
@@ -172,6 +179,11 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (identifierType === 'email' && !isValidEmail(loginEmail)) {
+      toastError('Please enter a valid email address with a domain (e.g. name@example.com)')
+      return
+    }
 
     const identifier = identifierType === 'phone' ? (loginPhone.startsWith('+') ? loginPhone : `+234${loginPhone.replace(/^0/, '')}`) : loginEmail
 

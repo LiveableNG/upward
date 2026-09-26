@@ -55,3 +55,13 @@ export function dedupeBanksByCode<T extends { code: string }>(banks: T[]): T[] {
   return Array.from(new Map(banks.map((b) => [b.code, b])).values());
 }
 
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+export function isValidEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const trimmed = email.trim()
+  if (trimmed.length > 254) return false
+  return EMAIL_REGEX.test(trimmed)
+}
+
+

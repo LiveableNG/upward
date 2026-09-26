@@ -29,11 +29,14 @@ import { landlordLogin, landlordRequestOTP, checkLandlordExistence } from '@/fea
 import { Capacitor } from '@capacitor/core'
 import { useToast } from '@/components/common/Toast'
 import { BiometricsService } from '../services/biometricsService'
+import { EMAIL_REGEX, isValidEmail } from '@/lib/utils'
 import '@/styles/auth.css'
 import '@/styles/mobile-auth.css'
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().refine((val) => isValidEmail(val), {
+    message: 'Please enter a valid email address with a domain (e.g. name@example.com)'
+  }),
   password: z.string().optional(),
   otp: z.string().optional()
 })
@@ -77,7 +80,7 @@ export const LoginFormMobile: React.FC<LoginFormMobileProps> = ({ initialRole })
 
   // Landlord silent existence check
   useEffect(() => {
-    if (selectedRole !== 'landlord' || !emailValue || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+    if (selectedRole !== 'landlord' || !emailValue || !isValidEmail(emailValue)) {
       setLandlordError(null)
       return
     }

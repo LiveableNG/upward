@@ -28,6 +28,7 @@ import {
 } from '../hooks/useOtp'
 import { useToast } from '@/components/common/Toast'
 import { checkEmployeeEmail } from '../services/authService'
+import { isValidEmail } from '@/lib/utils'
 
 export const LoginForm = () => {
   const { error: toastError, success: toastSuccess } = useToast()
@@ -151,8 +152,8 @@ export const LoginForm = () => {
 
     if (!email) {
       nextErrors.email = 'This field is required'
-    } else if (!email.includes('@')) {
-      nextErrors.email = 'Please enter a valid email address'
+    } else if (!isValidEmail(email)) {
+      nextErrors.email = 'Please enter a valid email address with a valid domain (e.g. name@example.com)'
     }
 
     if (accountType === 'staff' && staffCheckResult.checked && !staffCheckResult.exists) {
@@ -196,8 +197,8 @@ export const LoginForm = () => {
 
     if (!email) {
       nextErrors.email = 'This field is required'
-    } else if (!email.includes('@')) {
-      nextErrors.email = 'Please enter a valid email address'
+    } else if (!isValidEmail(email)) {
+      nextErrors.email = 'Please enter a valid email address with a valid domain (e.g. name@example.com)'
     }
 
     if (Object.keys(nextErrors).length > 0) {
