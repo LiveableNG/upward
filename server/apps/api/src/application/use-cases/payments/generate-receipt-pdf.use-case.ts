@@ -58,11 +58,7 @@ export class GenerateReceiptPdfUseCase {
                     },
                     pmUnit: {
                       include: {
-                        property: {
-                          include: {
-                            location: true,
-                          },
-                        },
+                        property: true,
                       },
                     },
                   },
@@ -84,11 +80,7 @@ export class GenerateReceiptPdfUseCase {
                     },
                     pmUnit: {
                       include: {
-                        property: {
-                          include: {
-                            location: true,
-                          },
-                        },
+                        property: true,
                       },
                     },
                   },
@@ -110,11 +102,7 @@ export class GenerateReceiptPdfUseCase {
                     },
                     pmUnit: {
                       include: {
-                        property: {
-                          include: {
-                            location: true,
-                          },
-                        },
+                        property: true,
                       },
                     },
                   },
@@ -147,11 +135,7 @@ export class GenerateReceiptPdfUseCase {
                 },
                 pmUnit: {
                   include: {
-                    property: {
-                      include: {
-                        location: true,
-                      },
-                    },
+                    property: true,
                   },
                 },
               },
@@ -172,11 +156,7 @@ export class GenerateReceiptPdfUseCase {
                 },
                 pmUnit: {
                   include: {
-                    property: {
-                      include: {
-                        location: true,
-                      },
-                    },
+                    property: true,
                   },
                 },
               },
@@ -280,10 +260,11 @@ export class GenerateReceiptPdfUseCase {
         if (sibling?.pm) pm = sibling.pm
       }
 
-      const loc = prop.location || prop.pmUnit?.property?.location
+      const loc = prop.location
+      const pmProp = prop.pmUnit?.property
       const addressParts = [
         prop.pmUnit?.unitName,
-        loc?.address || prop.pmUnit?.property?.address || loc?.area,
+        loc?.address || pmProp?.address || loc?.area,
         loc?.subarea,
         loc?.area,
         loc?.state,
@@ -382,6 +363,5 @@ export class GenerateReceiptPdfUseCase {
     }
 
     return this.receiptService.generateReceiptPdf(enriched)
-  }
   }
 }

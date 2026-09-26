@@ -67,11 +67,7 @@ export class GetTransactionUseCase {
                 location: true,
                 pmUnit: {
                   include: {
-                    property: {
-                      include: {
-                        location: true,
-                      },
-                    },
+                    property: true,
                   },
                 },
               },
@@ -93,11 +89,7 @@ export class GetTransactionUseCase {
                 location: true,
                 pmUnit: {
                   include: {
-                    property: {
-                      include: {
-                        location: true,
-                      },
-                    },
+                    property: true,
                   },
                 },
               },
@@ -119,11 +111,7 @@ export class GetTransactionUseCase {
                 location: true,
                 pmUnit: {
                   include: {
-                    property: {
-                      include: {
-                        location: true,
-                      },
-                    },
+                    property: true,
                   },
                 },
               },
@@ -156,11 +144,7 @@ export class GetTransactionUseCase {
           location: true,
           pmUnit: {
             include: {
-              property: {
-                include: {
-                  location: true,
-                },
-              },
+              property: true,
             },
           },
         },
@@ -171,7 +155,8 @@ export class GetTransactionUseCase {
     const pm = userProp?.pm
     const company = userProp?.company
     const manager = userProp?.manager
-    const loc = userProp?.location || userProp?.pmUnit?.property?.location
+    const loc = userProp?.location
+    const pmProperty = userProp?.pmUnit?.property
 
     let resolvedCompanyName = ''
 

@@ -169,14 +169,15 @@ export class RecordTransactionUseCase {
         if (!propToAddress && data.userPropertyUuid) {
           propToAddress = await txClient.upward_user_property.findUnique({
             where: { uuid: data.userPropertyUuid },
-            include: { location: true, pmUnit: { include: { property: { include: { location: true } } } } },
+            include: { location: true, pmUnit: { include: { property: true } } },
           })
         }
         if (propToAddress) {
-          const loc = propToAddress.location || propToAddress.pmUnit?.property?.location
+          const loc = propToAddress.location
+          const pmProperty = propToAddress.pmUnit?.property
           const addressParts = [
             propToAddress.pmUnit?.unitName,
-            loc?.address || propToAddress.pmUnit?.property?.address || loc?.area,
+            loc?.address || pmProperty?.address || loc?.area,
             loc?.subarea,
             loc?.area,
             loc?.state,

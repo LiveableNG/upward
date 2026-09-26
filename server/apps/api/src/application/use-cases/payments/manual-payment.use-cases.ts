@@ -446,11 +446,7 @@ export class ReviewManualPaymentUseCase {
                 },
                 pmUnit: {
                   include: {
-                    property: {
-                      include: {
-                        location: true,
-                      },
-                    },
+                    property: true,
                   },
                 },
               },
@@ -471,11 +467,7 @@ export class ReviewManualPaymentUseCase {
             },
             pmUnit: {
               include: {
-                property: {
-                  include: {
-                    location: true,
-                  },
-                },
+                property: true,
               },
             },
           },
@@ -531,10 +523,11 @@ export class ReviewManualPaymentUseCase {
               .filter((li: any) => li.amount > 0)
           : undefined
 
-        const loc = property?.location || property?.pmUnit?.property?.location
+        const loc = property?.location
+        const pmProp = property?.pmUnit?.property
         const addressParts = [
           property?.pmUnit?.unitName,
-          loc?.address || property?.pmUnit?.property?.address || loc?.area,
+          loc?.address || pmProp?.address || loc?.area,
           loc?.subarea,
           loc?.area,
           loc?.state,
