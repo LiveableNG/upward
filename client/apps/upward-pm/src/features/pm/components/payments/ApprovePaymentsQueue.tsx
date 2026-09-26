@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle, XCircle, Eye, FileText, Download, Loader2, User, Building, CreditCard, Calendar, Hash, ExternalLink, ShieldCheck, AlertCircle } from 'lucide-react'
+import { CheckCircle, XCircle, Eye, FileText, Download, Loader2, User, Building, CreditCard, Calendar, Hash, ExternalLink, ShieldCheck, AlertCircle, Edit3 } from 'lucide-react'
 import { getPendingManualPayments, reviewManualPayment, downloadManualPaymentProof } from '../../services/paymentService'
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
@@ -10,11 +10,21 @@ import { DataTable, Column } from '@/components/common/DataTable'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { downloadBlob } from '@/lib/download-helper'
 
+interface EditableLineItem {
+  id?: number
+  name: string
+  label?: string
+  amount: number
+  invoiceAmount?: number
+  remainingAmount?: number
+}
+
 export function ApprovePaymentsQueue() {
   const { success, error } = useToast()
   const queryClient = useQueryClient()
   const [selectedProof, setSelectedProof] = useState<any>(null)
   const [approvedAmount, setApprovedAmount] = useState<string>('')
+  const [editableLineItems, setEditableLineItems] = useState<EditableLineItem[]>([])
   const [remarks, setRemarks] = useState('')
   const [actionType, setActionType] = useState<'APPROVED' | 'REJECTED' | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -27,12 +37,62 @@ export function ApprovePaymentsQueue() {
   useEffect(() => {
     if (selectedProof) {
       const pr = selectedProof.paymentRequest
-      const remaining = pr ? Math.max(0, (pr.amount || 0) - (pr.amountPaid || 0)) : (selectedProof.amount || 0)
-      const initialAmt = selectedProof.amount && selectedProof.amount > 0 
-        ? selectedProof.amount 
-        : (remaining > 0 ? remaining : (pr?.amount || 0))
-      
-      setApprovedAmount(String(initialAmt || ''))
+      const lineItemRecords: any[] = pr?.lineItemRecords || []
+
+      let initialItems: EditableLineItem[] = []
+
+      if (selectedProof.lineItems && Array.isArray(selectedProof.lineItems) && selectedProof.lineItems.length > 0) {
+        initialItems = selectedProof.lineItems.map((li: any) => {
+          const matchPr = lineItemRecords.find(r => r.id === li.id || (r.name && (r.name.toLowerCase() === (li.name || li.label || '').toLowerCase())))
+          const invAmt = matchPr ? Number(matchPr.totalAmount || matchPr.amount || 0) : undefined
+          const remAmt = matchPr ? Math.max(0, invAmt! - Number(matchPr.amountPaid || 0)) : undefined
+          const itemAmt = Number(li.amountAllocated ?? li.amount ?? li.amountPaid ?? 0)
+          return {
+            id: li.id ?? matchPr?.id,
+            name: li.name || li.label || matchPr?.name || 'Rent',
+            label: li.label || li.name || matchPr?.name || 'Rent',
+            amount: itemAmt,
+            invoiceAmount: invAmt,
+            remainingAmount: remAmt,
+          }
+        })
+      } else if (lineItemRecords.length > 0) {
+        const meaningfulRecords = lineItemRecords.filter(r => !['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(r.name))
+        const remainingTotal = pr ? Math.max(0, (pr.amount || 0) - (pr.amountPaid || 0)) : (selectedProof.amount || 0)
+        const targetTotal = selectedProof.amount && selectedProof.amount > 0 ? selectedProof.amount : remainingTotal
+
+        let remainingToDistribute = targetTotal
+        initialItems = meaningfulRecords.map((r: any) => {
+          const invAmt = Number(r.totalAmount || r.amount || 0)
+          const remAmt = Math.max(0, invAmt - Number(r.amountPaid || 0))
+          const alloc = Math.min(remainingToDistribute, remAmt > 0 ? remAmt : remainingToDistribute)
+          remainingToDistribute = Math.max(0, remainingToDistribute - alloc)
+          return {
+            id: r.id,
+            name: r.name || 'Rent',
+            label: r.name || 'Rent',
+            amount: alloc,
+            invoiceAmount: invAmt,
+            remainingAmount: remAmt,
+          }
+        })
+      } else {
+        const remaining = pr ? Math.max(0, (pr.amount || 0) - (pr.amountPaid || 0)) : (selectedProof.amount || 0)
+        const initialAmt = selectedProof.amount && selectedProof.amount > 0 ? selectedProof.amount : (remaining > 0 ? remaining : (pr?.amount || 0))
+        initialItems = [
+          {
+            name: 'Rent',
+            label: 'Rent',
+            amount: initialAmt,
+            invoiceAmount: pr?.amount,
+            remainingAmount: remaining,
+          }
+        ]
+      }
+
+      setEditableLineItems(initialItems)
+      const totalSum = initialItems.reduce((acc, curr) => acc + (curr.amount || 0), 0)
+      setApprovedAmount(totalSum > 0 ? String(totalSum) : String(selectedProof.amount || ''))
       setRemarks('')
       setActionType(null)
     }
@@ -44,8 +104,8 @@ export function ApprovePaymentsQueue() {
   })
 
   const { mutate: reviewProof, isPending } = useMutation({
-    mutationFn: ({ id, status, remarks, amount }: { id: string, status: 'APPROVED' | 'REJECTED', remarks?: string, amount?: number }) => 
-      reviewManualPayment(id, status, remarks, amount),
+    mutationFn: ({ id, status, remarks, amount, lineItems }: { id: string, status: 'APPROVED' | 'REJECTED', remarks?: string, amount?: number, lineItems?: any[] }) => 
+      reviewManualPayment(id, status, remarks, amount, lineItems),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pm-pending-proofs'] })
       queryClient.invalidateQueries({ queryKey: ['pm-payment-requests'] })
@@ -61,6 +121,40 @@ export function ApprovePaymentsQueue() {
       setActionType(null)
     }
   })
+
+  const handleLineItemChange = (index: number, val: number | null) => {
+    const num = val ?? 0
+    const updated = [...editableLineItems]
+    updated[index] = { ...updated[index], amount: num }
+    setEditableLineItems(updated)
+    const newTotal = updated.reduce((acc, it) => acc + (it.amount || 0), 0)
+    setApprovedAmount(newTotal > 0 ? String(newTotal) : '')
+  }
+
+  const handleTotalAmountChange = (val: number | null) => {
+    const newTotal = val ?? 0
+    setApprovedAmount(newTotal > 0 ? String(newTotal) : '')
+    
+    if (editableLineItems.length === 0) return
+
+    let remaining = newTotal
+    const updated = editableLineItems.map((item, idx) => {
+      if (idx === editableLineItems.length - 1) {
+        return { ...item, amount: remaining }
+      }
+      const cap = item.remainingAmount && item.remainingAmount > 0 ? item.remainingAmount : (item.invoiceAmount || remaining)
+      const alloc = Math.min(remaining, cap)
+      remaining = Math.max(0, remaining - alloc)
+      return { ...item, amount: alloc }
+    })
+    setEditableLineItems(updated)
+  }
+
+  const handleFillLineItem = (index: number) => {
+    const item = editableLineItems[index]
+    const target = item.remainingAmount ?? item.invoiceAmount ?? item.amount
+    handleLineItemChange(index, target)
+  }
 
   const handleDownload = async (proof: any) => {
     if (isDownloading) return
@@ -88,7 +182,14 @@ export function ApprovePaymentsQueue() {
       id: selectedProof.id,
       status: 'APPROVED',
       remarks: remarks.trim() || undefined,
-      amount: parsed
+      amount: parsed,
+      lineItems: editableLineItems.map(li => ({
+        id: li.id,
+        name: li.name,
+        label: li.label || li.name,
+        amount: Number(li.amount) || 0,
+        amountPaid: Number(li.amount) || 0,
+      }))
     })
   }
 
@@ -311,7 +412,7 @@ export function ApprovePaymentsQueue() {
             <div className="proof-amount-section">
               <div className="proof-amount-header">
                 <label className="proof-amount-label" htmlFor="approved-amount-input">
-                  Amount to Settle
+                  Amount to Settle (Total)
                 </label>
                 <span className="proof-amount-hint">
                   Tenant Claimed: <strong>{formatCurrency(proofAmountClaimed, currency)}</strong>
@@ -329,34 +430,75 @@ export function ApprovePaymentsQueue() {
                   value={approvedAmount ? formatCurrencyInput(Number(approvedAmount) || 0) : ''}
                   onChange={(e) => {
                     const parsed = parseCurrencyInput(e.target.value)
-                    setApprovedAmount(parsed !== null ? String(parsed) : '')
+                    handleTotalAmountChange(parsed)
                   }}
                 />
               </div>
               <p className="proof-input-help">
-                You can edit this amount if the actual bank deposit was different from the requested or claimed amount.
+                Editing the total will distribute it across the line items below, or you can edit each line item directly.
               </p>
             </div>
 
-            {/* 4. Custom Allocation Breakdown (if provided) */}
-            {selectedProof.lineItems && selectedProof.lineItems.length > 0 && (
+            {/* 4. Editable Line Item Allocation Breakdown */}
+            {editableLineItems.length > 0 && (
               <div className="proof-card">
                 <div className="proof-card__header">
-                  <ShieldCheck size={14} />
-                  <span>Payment Allocation Breakdown</span>
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck size={14} className="text-[var(--clay)]" />
+                    <span>Payment Allocation Breakdown</span>
+                  </div>
+                  <span className="proof-card__header-hint">Editable per line item</span>
                 </div>
                 <div className="proof-card__body">
-                  {selectedProof.lineItems.map((item: any, idx: number) => {
-                    const itemAmt = Number(item.amountAllocated ?? item.amount ?? item.amountPaid ?? 0)
+                  {editableLineItems.map((item, idx) => {
                     return (
-                      <div className="proof-card__row" key={idx}>
-                        <span className="proof-card__label">{item.name || item.label || 'Rent'}</span>
-                        <span className="proof-card__val font-semibold">
-                          {formatCurrency(itemAmt, currency)}
-                        </span>
+                      <div className="proof-lineitem-row" key={idx}>
+                        <div className="proof-lineitem-meta">
+                          <span className="proof-lineitem-name">{item.name || item.label || 'Rent'}</span>
+                          {(item.invoiceAmount !== undefined || item.remainingAmount !== undefined) && (
+                            <span className="proof-lineitem-sub">
+                              {item.invoiceAmount !== undefined && `Inv: ${formatCurrency(item.invoiceAmount, currency)}`}
+                              {item.remainingAmount !== undefined && ` · Due: ${formatCurrency(item.remainingAmount, currency)}`}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="proof-lineitem-input-wrap">
+                          <span className="proof-lineitem-currency">₦</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className="proof-lineitem-input"
+                            placeholder="0"
+                            disabled={isPending}
+                            value={item.amount > 0 ? formatCurrencyInput(item.amount) : ''}
+                            onChange={(e) => {
+                              const parsed = parseCurrencyInput(e.target.value)
+                              handleLineItemChange(idx, parsed)
+                            }}
+                          />
+                          {item.remainingAmount !== undefined && item.remainingAmount > item.amount && (
+                            <button
+                              type="button"
+                              className="proof-lineitem-max-btn"
+                              title="Fill remaining balance"
+                              onClick={() => handleFillLineItem(idx)}
+                              disabled={isPending}
+                            >
+                              Max
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
+
+                  <div className="proof-lineitem-summary-row">
+                    <span>Allocated Sum:</span>
+                    <strong style={{ color: 'var(--text)' }}>
+                      {formatCurrency(editableLineItems.reduce((acc, it) => acc + (it.amount || 0), 0), currency)}
+                    </strong>
+                  </div>
                 </div>
               </div>
             )}
@@ -607,7 +749,7 @@ export function ApprovePaymentsQueue() {
         .proof-card__header {
           display: flex;
           align-items: center;
-          gap: 6px;
+          justify-content: space-between;
           padding: 8px 14px;
           background: var(--surface2, #f8fafc);
           border-bottom: 1px solid var(--border);
@@ -618,11 +760,18 @@ export function ApprovePaymentsQueue() {
           color: var(--text-muted);
         }
 
+        .proof-card__header-hint {
+          font-size: 10px;
+          color: var(--clay);
+          font-weight: 600;
+          text-transform: none;
+        }
+
         .proof-card__body {
           padding: 10px 14px;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
 
         .proof-card__row {
@@ -642,6 +791,102 @@ export function ApprovePaymentsQueue() {
           font-size: 13px;
           font-weight: 600;
           color: var(--text);
+        }
+
+        .proof-lineitem-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 6px 0;
+          border-bottom: 1px dashed var(--border);
+        }
+
+        .proof-lineitem-row:last-of-type {
+          border-bottom: none;
+        }
+
+        .proof-lineitem-meta {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+
+        .proof-lineitem-name {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text);
+        }
+
+        .proof-lineitem-sub {
+          font-size: 11px;
+          color: var(--text-muted);
+        }
+
+        .proof-lineitem-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .proof-lineitem-currency {
+          position: absolute;
+          left: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-muted);
+          pointer-events: none;
+        }
+
+        .proof-lineitem-input {
+          width: 130px;
+          height: 36px;
+          padding: 0 10px 0 24px;
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--text);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          outline: none;
+          text-align: right;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .proof-lineitem-input:focus {
+          border-color: var(--clay);
+          box-shadow: 0 0 0 2px var(--clay-faint);
+        }
+
+        .proof-lineitem-max-btn {
+          font-size: 11px;
+          font-weight: 700;
+          padding: 4px 8px;
+          border-radius: 6px;
+          background: var(--surface2);
+          border: 1px solid var(--border);
+          color: var(--clay);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .proof-lineitem-max-btn:hover:not(:disabled) {
+          background: var(--clay-faint);
+          border-color: var(--clay);
+        }
+
+        .proof-lineitem-summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 8px;
+          border-top: 1px solid var(--border);
+          font-size: 12px;
+          color: var(--text-muted);
+          font-weight: 500;
         }
 
         .proof-doc-card {
