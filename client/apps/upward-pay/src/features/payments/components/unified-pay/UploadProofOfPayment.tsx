@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState } from 'react'
-import { UploadCloud, FileText, X, Image as ImageIcon, CheckCircle2 } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { UploadCloud, FileText, X, Image as ImageIcon, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { uploadProofOfPayment } from '../../services/paymentService'
 import { useToast } from '@/components/common/Toast'
 import { PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface UploadProofOfPaymentProps {
   paymentRequestUuid?: string
@@ -24,7 +25,7 @@ export function UploadProofOfPayment({
   paymentRequestUuid,
   userPropertyUuid,
   amount,
-  currency,
+  currency = 'NGN',
   lineItems,
   onSuccess,
   onCancel,
@@ -35,9 +36,16 @@ export function UploadProofOfPayment({
 }: UploadProofOfPaymentProps) {
   const { success, error } = useToast()
 
+  const [inputAmount, setInputAmount] = useState<string>(() => amount ? String(amount) : '')
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isUploaded, setIsUploaded] = useState(false)
+
+  useEffect(() => {
+    if (amount !== undefined && amount !== null && amount > 0) {
+      setInputAmount(String(amount))
+    }
+  }, [amount])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -59,14 +67,38 @@ export function UploadProofOfPayment({
   const handleUpload = async () => {
     if (!file) return
 
+    const parsedAmount = Number(inputAmount)
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      error('Please enter a valid transfer amount greater than 0')
+      return
+    }
+
     setIsUploading(true)
     try {
+      // Map line items to reflect the current transaction's allocated amounts
+      let sanitizedLineItems = undefined
+      if (lineItems && lineItems.length > 0) {
+        let remainingToDistribute = parsedAmount
+        sanitizedLineItems = lineItems.map((item: any) => {
+          const itemNeed = Number(item.amount || item.totalAmount || item.amountPaid || 0)
+          const allocated = Math.min(remainingToDistribute, itemNeed > 0 ? itemNeed : parsedAmount)
+          remainingToDistribute = Math.max(0, remainingToDistribute - allocated)
+          return {
+            id: item.id,
+            name: item.name || item.label || 'Rent',
+            label: item.label || item.name || 'Rent',
+            amount: allocated,
+            amountPaid: allocated,
+          }
+        })
+      }
+
       await uploadProofOfPayment({
         paymentRequestUuid,
         userPropertyUuid,
-        amount,
+        amount: parsedAmount,
         currency,
-        lineItems,
+        lineItems: sanitizedLineItems,
         file,
       })
 
@@ -88,6 +120,8 @@ export function UploadProofOfPayment({
     setIsUploaded(false)
   }
 
+  const parsedAmt = Number(inputAmount) || 0
+
   return (
     <div className="pay-flow__proof-upload">
       {!hideAccountDetails && bankName && accountNumber ? (
@@ -100,6 +134,31 @@ export function UploadProofOfPayment({
           </p>
         </div>
       ) : null}
+
+      {/* Amount Transferred Input */}
+      <div className="pay-flow__field" style={{ marginBottom: 20 }}>
+        <label className="pay-flow__field-label" htmlFor="proof-amount-input">
+          Amount transferred
+        </label>
+        <div className="pay-flow__input-wrap pay-flow__input-wrap--amount">
+          <span className="pay-flow__amount-currency">₦</span>
+          <input
+            id="proof-amount-input"
+            type="text"
+            inputMode="numeric"
+            placeholder="0"
+            disabled={isUploading || isUploaded}
+            value={inputAmount ? formatCurrencyInput(Number(inputAmount) || 0) : ''}
+            onChange={(e) => {
+              const parsed = parseCurrencyInput(e.target.value)
+              setInputAmount(parsed !== null ? String(parsed) : '')
+            }}
+          />
+        </div>
+        <p className="pay-flow__field-hint">
+          Confirm the exact amount you sent via bank transfer so your manager can verify it.
+        </p>
+      </div>
 
       <p className="pay-flow__field-label">Upload receipt</p>
       <p className="pay-flow__field-hint pay-flow__proof-upload-hint">PDF, JPG, or PNG · max 10MB</p>
@@ -148,8 +207,12 @@ export function UploadProofOfPayment({
 
       {file && !isUploaded ? (
         <div className="pay-flow__cta-wrap">
-          <PayFlowPrimaryButton onClick={handleUpload} disabled={isUploading} loading={isUploading}>
-            Submit proof
+          <PayFlowPrimaryButton 
+            onClick={handleUpload} 
+            disabled={isUploading || parsedAmt <= 0} 
+            loading={isUploading}
+          >
+            Submit proof ({formatCurrency(parsedAmt, currency)})
           </PayFlowPrimaryButton>
           {onCancel ? (
             <button
@@ -173,3 +236,4 @@ export function UploadProofOfPayment({
     </div>
   )
 }
+

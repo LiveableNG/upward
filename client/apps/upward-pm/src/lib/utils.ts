@@ -15,6 +15,23 @@ export function formatCurrency(amount: number, currency: string = 'NGN') {
   }).format(amount);
 }
 
+export function formatCurrencyInput(amount: number | undefined | null): string {
+  if (amount === null || amount === undefined) return '';
+  if (!Number.isFinite(amount)) return '';
+  if (amount <= 0) return '';
+  return new Intl.NumberFormat('en-NG', {
+    maximumFractionDigits: 0,
+  }).format(Math.trunc(amount));
+}
+
+export function parseCurrencyInput(value: string): number | null {
+  const digitsOnly = value.replace(/[^\d]/g, '');
+  if (!digitsOnly) return null;
+  const n = Number(digitsOnly);
+  if (!Number.isFinite(n)) return null;
+  return n;
+}
+
 export function formatTenantName(tenant?: { commercialName?: string; firstName?: string; lastName?: string }): string {
   if (!tenant) return '';
   

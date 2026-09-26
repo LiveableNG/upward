@@ -307,7 +307,7 @@ export default function PayClient({ overrideToken }: { overrideToken?: string })
               <UploadProofOfPayment 
                 paymentRequestUuid={paymentData?.payment?.uuid}
                 userPropertyUuid={paymentData?.payment?.userPropertyUuid}
-                amount={totalOwed}
+                amount={parsedAmount}
                 currency={currency}
                 lineItems={finalLineItemPayments}
                 bankName={paymentData?.property?.manualAccount?.bankName || ''}

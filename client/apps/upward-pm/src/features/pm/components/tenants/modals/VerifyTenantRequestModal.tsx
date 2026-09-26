@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   Building2, 
@@ -244,6 +244,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
   const [receiptDecision, setReceiptDecision] = useState<'APPROVED' | 'REJECTED' | null>(null)
   const [timeliness, setTimeliness] = useState<'ON_TIME' | 'LATE'>('ON_TIME')
   const [rejectionReason, setRejectionReason] = useState<string>('')
+  const lastHandledPropertyIdRef = useRef<string | null>(null)
 
   const {
     register,
@@ -302,6 +303,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen && initialData) {
+      lastHandledPropertyIdRef.current = null
       const liveTenure = initialData.platformActivity?.currentTenure
       const rawStart = liveTenure?.startDate || (liveTenure as any)?.rentStartDate || initialData?.unitDetails?.rentStartDate
       const start = rawStart ? new Date(rawStart).toISOString().split('T')[0] : ''
@@ -384,26 +386,30 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
 
   // When selected property changes, determine unit selection or creation mode
   useEffect(() => {
+    if (!isOpen || !selectedPropertyId) return
+    if (lastHandledPropertyIdRef.current === selectedPropertyId) return
+    lastHandledPropertyIdRef.current = selectedPropertyId
+
     if (selectedPropertyId === 'NEW') {
       setUnitSelectMode('create')
       setValue('unitUuid', '')
-    } else if (selectedPropertyId) {
-      if (selectedPropertyVacantUnits.length > 0) {
+    } else {
+      const propId = parseInt(selectedPropertyId)
+      const propVacantUnits = units.filter(u => u.propertyId === propId && !u.tenant && u.status !== 'MAINTENANCE')
+      if (propVacantUnits.length > 0) {
         setUnitSelectMode('existing')
         const requestedSubarea = (initialData?.unitDetails?.subarea || '').toLowerCase().trim()
         const matchingUnit = requestedSubarea
-          ? selectedPropertyVacantUnits.find(u => (u.unitName || '').toLowerCase().trim().includes(requestedSubarea))
+          ? propVacantUnits.find(u => (u.unitName || '').toLowerCase().trim().includes(requestedSubarea))
           : null
-        setValue('unitUuid', matchingUnit ? matchingUnit.uuid : selectedPropertyVacantUnits[0].uuid)
+        setValue('unitUuid', matchingUnit ? matchingUnit.uuid : propVacantUnits[0].uuid)
       } else {
         setUnitSelectMode('create')
         setValue('unitUuid', '')
-        if (!newUnitName) {
-          setNewUnitName(initialData?.unitDetails?.subarea || 'Unit 1')
-        }
+        setNewUnitName(prev => prev || initialData?.unitDetails?.subarea || 'Unit 1')
       }
     }
-  }, [selectedPropertyId, selectedPropertyVacantUnits, initialData, setValue, newUnitName])
+  }, [isOpen, selectedPropertyId, units, initialData, setValue])
 
   // Auto-calculate End Date
   useEffect(() => {

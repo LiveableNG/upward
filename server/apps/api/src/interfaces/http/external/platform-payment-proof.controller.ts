@@ -43,6 +43,8 @@ export class PlatformPaymentProofController {
       pmUuid: req.platformId ? `PLATFORM-${req.platformId}` : 'PLATFORM',
       status: body.status,
       remarks: body.remarks,
+      amount: body.amount !== undefined ? Number(body.amount) : undefined,
+      lineItems: body.lineItems,
     })
 
     return {

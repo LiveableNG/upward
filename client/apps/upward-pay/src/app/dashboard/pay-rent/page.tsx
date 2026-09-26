@@ -100,14 +100,17 @@ export default function PayRentPage() {
         const name = String(item.name || '')
         return !['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(name)
       })
-      .map((item: any) => ({
-        id: item.id,
-        name: item.name || 'Item',
-        label: item.name || 'Item',
-        amount: Math.max(0, Number(item.totalAmount || item.amount || 0) - Number(item.amountPaid || 0)),
-        totalAmount: Number(item.totalAmount || item.amount || 0),
-        amountPaid: Number(item.amountPaid || 0),
-      }))
+      .map((item: any) => {
+        const remaining = Math.max(0, Number(item.totalAmount || item.amount || 0) - Number(item.amountPaid || 0))
+        return {
+          id: item.id,
+          name: item.name || 'Item',
+          label: item.name || 'Item',
+          amount: remaining,
+          totalAmount: Number(item.totalAmount || item.amount || 0),
+          amountPaid: remaining,
+        }
+      })
       .filter((item: LineItem) => item.amount > 0)
   }
 
