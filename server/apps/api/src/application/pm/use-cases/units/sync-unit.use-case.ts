@@ -318,7 +318,7 @@ export class SyncUnitToUpwardUseCase {
         title: 'New Property Verified',
         message: `Your property at ${unit.property?.name || 'Unit ' + unit.unitName} has been verified by your property manager ${pmFirstName} ${pmLastName}. You can now manage payments for this unit on Upward.`,
         type: 'SYSTEM',
-        url: `/properties/${userProperty.uuid}`
+        url: '/dashboard/my-home'
       });
 
       syncedUserPropertyId = userProperty.id;

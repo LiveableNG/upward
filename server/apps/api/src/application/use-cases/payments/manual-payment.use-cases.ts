@@ -553,7 +553,7 @@ export class ReviewManualPaymentUseCase {
       title: 'Payment Approved ✅',
       message: `Your manual payment for ${address} has been approved. Your Upward Score has been updated!`,
       type: 'SYSTEM',
-      url: transactionId ? `/dashboard/receipts?id=${transactionId}` : '/dashboard/payments',
+      url: transactionId ? `/dashboard/receipts?id=${transactionId}` : '/dashboard/receipts',
     })
   }
   
@@ -567,7 +567,7 @@ export class ReviewManualPaymentUseCase {
       title: 'Payment Proof Rejected ❌',
       message: `Your uploaded proof of payment for ${address} was rejected.${reasonText}`,
       type: 'SYSTEM',
-      url: '/dashboard/payments'
+      url: '/dashboard/pay-rent'
     })
     
     if (user.email) {
@@ -575,7 +575,7 @@ export class ReviewManualPaymentUseCase {
         userId: user.id,
         email: user.email,
         subject: 'Manual Payment Rejected - Upward',
-        html: `<p>Hi ${name},</p><p>Your uploaded proof of payment for <b>${address}</b> was rejected by your property manager.</p><p>${reasonText}</p><p>Please log in to your dashboard to review and try again or pay via our online checkout.</p><p><a href="${baseUrl}/dashboard/payments">Go to Dashboard</a></p>`,
+        html: `<p>Hi ${name},</p><p>Your uploaded proof of payment for <b>${address}</b> was rejected by your property manager.</p><p>${reasonText}</p><p>Please log in to your dashboard to review and try again or pay via our online checkout.</p><p><a href="${baseUrl}/dashboard/pay-rent">Go to Dashboard</a></p>`,
         type: 'SYSTEM'
       }).catch(() => {})
     }

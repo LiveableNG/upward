@@ -319,7 +319,7 @@ export class CreatePmPaymentRequestUseCase {
           message: `Rent request of NGN ${data.amount.toLocaleString()} for Unit ${unit.unitName} has been scheduled for delivery on ${new Date(data.scheduledAt!).toLocaleString()}`,
           type: 'SYSTEM',
           isPopup: false,
-          url: '/dashboard',
+          url: '/payments',
         }
       });
     } else if (unit.tenantId && !data.silent) {

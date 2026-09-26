@@ -215,7 +215,7 @@ export class SubmitUnitRequestUseCase {
             message: `${decryptedFirstName} ${decryptedLastName} wants to connect and sync their unit (${unitDetails.address}) with you.`,
             type: 'TENANT_REQUEST',
             isPopup: false,
-            url: '/dashboard',
+            url: '/requests',
           }
         });
 

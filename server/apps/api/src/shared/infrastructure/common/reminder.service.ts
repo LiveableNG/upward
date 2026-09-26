@@ -141,7 +141,7 @@ export class UnifiedReminderService {
                 title: `Rent Reminder: ${unitName}`,
                 message: `Hi ${tenantName}, this is a reminder to pay ${amount} for ${unitName} at ${propertyName}.`,
                 type: 'RENT_REMINDER',
-                url: `/dashboard/pay/${pr.paymentRequest?.uuid || pr.uuid}`
+                url: `/pay/${pr.paymentRequest?.uuid || pr.uuid}`
             });
         }
     }

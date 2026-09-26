@@ -138,7 +138,7 @@ export class ProcessScheduledPmPaymentRequestsUseCase {
             message: `Your scheduled rent request of NGN ${pr.amount.toLocaleString()} for Unit ${unit.unitName} has been successfully sent to the tenant.`,
             type: 'PAYMENT_DUE',
             isPopup: false,
-            url: '/dashboard',
+            url: `/payments/${pr.uuid}`,
           }
         });
 
