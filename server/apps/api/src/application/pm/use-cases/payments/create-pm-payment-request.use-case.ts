@@ -36,6 +36,7 @@ export interface CreatePmPaymentRequestDto {
   settlementAccountUuid?: string;
   manualAccountId?: number;
   allowSupersede?: boolean;
+  inheritedTimeliness?: string;
 }
 
 @Injectable()
@@ -198,6 +199,7 @@ export class CreatePmPaymentRequestUseCase {
         bankCode: bankCode ?? undefined,
         accountNumber: accountNumber ?? undefined,
         allowSupersede: data.allowSupersede,
+        inheritedTimeliness: data.inheritedTimeliness,
       };
 
       const result = await this.createExternalPaymentRequestUseCase.execute(payload, 0); 

@@ -19,7 +19,10 @@ import {
   PlusCircle,
   Mail,
   MessageSquare,
-  Smartphone
+  Smartphone,
+  FileText,
+  XCircle,
+  ExternalLink
 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -202,6 +205,13 @@ export interface VerifyTenantRequestModalProps {
       destinationBank?: string | null
       riskNote?: string | null
     }
+    onboardingProof?: {
+      url: string
+      downloadUrl: string
+      fileName: string
+      fileType: string
+      fileSize: number
+    } | null
   }
 }
 
@@ -231,6 +241,9 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
     offlineAmount?: number;
     platformPaymentIds?: number[];
   }>({})
+  const [receiptDecision, setReceiptDecision] = useState<'APPROVED' | 'REJECTED' | null>(null)
+  const [timeliness, setTimeliness] = useState<'ON_TIME' | 'LATE'>('ON_TIME')
+  const [rejectionReason, setRejectionReason] = useState<string>('')
 
   const {
     register,
@@ -303,11 +316,17 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       const cyclePaid = initialData.platformActivity?.activeCyclePaid ?? initialData.platformActivity?.currentTenure?.amountPaid ?? (settledCount === 0 ? initialData.platformActivity?.totalPlatformPaid : 0) ?? 0
       const isFull = cyclePaid >= Number(defaultRent) && Number(defaultRent) > 0
 
+      setReceiptDecision(null)
+      setTimeliness('ON_TIME')
+      setRejectionReason('')
+
       if (cyclePaid > 0) {
         setPaymentBreakdown({
           platformAmount: cyclePaid,
           offlineAmount: 0,
         })
+      } else {
+        setPaymentBreakdown({})
       }
 
       reset({
@@ -435,6 +454,11 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       deliveryChannel: tenantData.deliveryChannel
     }
 
+    if (initialData?.onboardingProof && !receiptDecision) {
+      toast.error('Please review the onboarding payment receipt and choose Approve or Reject before assigning.')
+      return
+    }
+
     const effectiveAcknowledged = isFullyPaid ? (parseFloat(rentAmount || '0') || 0) : (parseFloat(rentAmountPaid || '0') || 0)
 
     if (selectedPropertyId === 'NEW' || unitSelectMode === 'create') {
@@ -513,6 +537,9 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
           pmAcknowledgedAmountPaid: effectiveAcknowledged,
           isFullyPaid: !!isFullyPaid,
           breakdown: paymentBreakdown,
+          receiptDecision: receiptDecision || undefined,
+          timeliness: receiptDecision === 'APPROVED' ? timeliness : undefined,
+          rejectionReason: receiptDecision === 'REJECTED' ? rejectionReason : undefined,
         })
 
         reset()
@@ -544,6 +571,9 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
           pmAcknowledgedAmountPaid: effectiveAcknowledged,
           isFullyPaid: !!isFullyPaid,
           breakdown: paymentBreakdown,
+          receiptDecision: receiptDecision || undefined,
+          timeliness: receiptDecision === 'APPROVED' ? timeliness : undefined,
+          rejectionReason: receiptDecision === 'REJECTED' ? rejectionReason : undefined,
         })
 
         reset()
@@ -982,6 +1012,146 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
                 {errors.rentEndDate && <span className="apple-error-text">{errors.rentEndDate.message}</span>}
               </div>
             </div>
+
+            {/* ── Onboarding Payment Proof Review Card ── */}
+            {initialData?.onboardingProof && (
+              <div className="apple-proof-card animate-fade-in">
+                <div className="apple-proof-card__header">
+                  <div className="apple-proof-card__title-row">
+                    <FileText size={16} className="apple-proof-card__icon" />
+                    <div>
+                      <h4 className="apple-proof-card__title">Onboarding Payment Receipt</h4>
+                      <p className="apple-proof-card__desc">
+                        Uploaded by tenant as evidence for current rent payment. Review and verify before assignment.
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={initialData.onboardingProof.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="apple-link-btn apple-link-btn--view"
+                  >
+                    <ExternalLink size={13} />
+                    <span>View Receipt</span>
+                  </a>
+                </div>
+
+                <div className="apple-proof-card__file-preview">
+                  <div className="apple-proof-file-info">
+                    <span className="apple-proof-file-name">{initialData.onboardingProof.fileName || 'Proof of Payment'}</span>
+                    <span className="apple-proof-file-meta">
+                      {initialData.onboardingProof.fileSize ? `${Math.round(initialData.onboardingProof.fileSize / 1024)} KB` : 'Document'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Approve / Reject Decision Switcher */}
+                <div className="apple-proof-decision-section">
+                  <label className="apple-field__label">
+                    Receipt Verification Decision <span style={{ color: 'var(--forest)' }}>*</span>
+                  </label>
+                  <div className="apple-decision-grid">
+                    <button
+                      type="button"
+                      className={cn(
+                        "apple-decision-btn",
+                        receiptDecision === 'APPROVED' && "apple-decision-btn--approved"
+                      )}
+                      onClick={() => {
+                        setReceiptDecision('APPROVED')
+                        const declaredPaid = initialData.originalDeclaration?.initialAmountPaid ?? (parseFloat(initialData.unitDetails?.rentAmount?.toString() || '0') || 0);
+                        const isFull = initialData.originalDeclaration?.isFullyPaid ?? (declaredPaid >= (parseFloat(initialData.unitDetails?.rentAmount?.toString() || '0') || 0));
+                        setValue('isFullyPaid', isFull);
+                        setValue('rentAmountPaid', isFull ? (initialData.unitDetails?.rentAmount?.toString() || '0') : (declaredPaid.toString() || '0'));
+                      }}
+                    >
+                      <CheckCircle2 size={16} />
+                      <div className="apple-decision-btn__content">
+                        <span className="apple-decision-btn__title">Approve Receipt</span>
+                        <span className="apple-decision-btn__sub">Acknowledge offline payment</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={cn(
+                        "apple-decision-btn",
+                        receiptDecision === 'REJECTED' && "apple-decision-btn--rejected"
+                      )}
+                      onClick={() => {
+                        setReceiptDecision('REJECTED')
+                        setValue('isFullyPaid', false)
+                        setValue('rentAmountPaid', '0')
+                      }}
+                    >
+                      <XCircle size={16} />
+                      <div className="apple-decision-btn__content">
+                        <span className="apple-decision-btn__title">Reject Receipt</span>
+                        <span className="apple-decision-btn__sub">Do not credit this proof</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Decision Conditional Panels */}
+                  {receiptDecision === 'APPROVED' && (
+                    <div className="apple-timeliness-panel animate-fade-in">
+                      <label className="apple-field__label" style={{ marginBottom: 6 }}>
+                        Payment Timeliness Evaluation
+                      </label>
+                      <div className="apple-timeliness-grid">
+                        <button
+                          type="button"
+                          className={cn(
+                            "apple-timeliness-btn",
+                            timeliness === 'ON_TIME' && "apple-timeliness-btn--on-time"
+                          )}
+                          onClick={() => setTimeliness('ON_TIME')}
+                        >
+                          <Clock size={14} />
+                          <span>On-Time Payment</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={cn(
+                            "apple-timeliness-btn",
+                            timeliness === 'LATE' && "apple-timeliness-btn--late"
+                          )}
+                          onClick={() => setTimeliness('LATE')}
+                        >
+                          <AlertTriangle size={14} />
+                          <span>Late Payment</span>
+                        </button>
+                      </div>
+                      <p className="apple-timeliness-hint">
+                        {timeliness === 'ON_TIME'
+                          ? 'This payment is marked On-Time. The tenant builds on-time rent credibility.'
+                          : 'This payment was received past due. The cycle status will reflect Late, and any subsequent balance settled online will inherit this late status.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {receiptDecision === 'REJECTED' && (
+                    <div className="apple-rejection-panel animate-fade-in">
+                      <div className="apple-alert-note apple-alert-note--error" style={{ marginBottom: 10 }}>
+                        <AlertTriangle size={14} />
+                        <span>Receipt rejected. Offline amount is set to ₦0 and tenant will be invoiced for the full rent balance.</span>
+                      </div>
+                      <div className="apple-field">
+                        <label className="apple-field__label">Reason for Rejection (Optional)</label>
+                        <input
+                          type="text"
+                          className="apple-input"
+                          placeholder="e.g. Unclear document, amount does not match bank records..."
+                          value={rejectionReason}
+                          onChange={(e) => setRejectionReason(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Apple-style Payment Reconciliation Toggle Box */}
             <div className="apple-toggle-box">
@@ -1691,6 +1861,202 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
         .apple-alert-note--success {
           background: var(--forest-faint);
           color: var(--forest);
+        }
+
+        /* Proof Review Card */
+        .apple-proof-card {
+          margin-top: 6px;
+          padding: 16px;
+          background: #ffffff;
+          border: 1px solid rgba(22, 101, 52, 0.2);
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .apple-proof-card__header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .apple-proof-card__title-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+        .apple-proof-card__icon {
+          color: var(--forest);
+          margin-top: 2px;
+          flex-shrink: 0;
+        }
+        .apple-proof-card__title {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: var(--dark);
+          margin: 0;
+        }
+        .apple-proof-card__desc {
+          font-size: 11.5px;
+          color: var(--text-muted);
+          margin: 2px 0 0;
+        }
+        .apple-link-btn--view {
+          padding: 5px 10px;
+          border-radius: 8px;
+          background: var(--forest-faint);
+          border: 1px solid rgba(22, 101, 52, 0.15);
+          white-space: nowrap;
+          font-size: 11.5px;
+        }
+        .apple-link-btn--view:hover {
+          background: rgba(22, 101, 52, 0.12);
+        }
+        .apple-proof-card__file-preview {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 12px;
+          background: var(--ivory);
+          border-radius: 8px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .apple-proof-file-info {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+        }
+        .apple-proof-file-name {
+          font-weight: 600;
+          color: var(--dark);
+          max-width: 260px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .apple-proof-file-meta {
+          font-size: 10.5px;
+          color: var(--text-muted);
+          background: var(--ivory-dim);
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+        .apple-proof-decision-section {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding-top: 10px;
+          border-top: 1px dashed rgba(0, 0, 0, 0.08);
+        }
+        .apple-decision-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .apple-decision-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 14px;
+          background: #ffffff;
+          border: 1.5px solid rgba(0, 0, 0, 0.1);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          text-align: left;
+        }
+        .apple-decision-btn:hover {
+          background: var(--ivory-dim);
+        }
+        .apple-decision-btn:active {
+          transform: scale(0.98);
+        }
+        .apple-decision-btn__content {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
+        .apple-decision-btn__title {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--dark);
+        }
+        .apple-decision-btn__sub {
+          font-size: 10.5px;
+          color: var(--text-muted);
+        }
+        .apple-decision-btn--approved {
+          border-color: var(--forest) !important;
+          background: var(--forest-faint) !important;
+          box-shadow: 0 0 0 2px rgba(22, 101, 52, 0.12);
+        }
+        .apple-decision-btn--approved .apple-decision-btn__title {
+          color: var(--forest);
+        }
+        .apple-decision-btn--approved svg {
+          color: var(--forest);
+        }
+        .apple-decision-btn--rejected {
+          border-color: var(--error) !important;
+          background: var(--error-bg) !important;
+          box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
+        }
+        .apple-decision-btn--rejected .apple-decision-btn__title {
+          color: var(--error);
+        }
+        .apple-decision-btn--rejected svg {
+          color: var(--error);
+        }
+        .apple-timeliness-panel {
+          margin-top: 8px;
+          padding: 12px;
+          background: var(--ivory);
+          border-radius: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .apple-timeliness-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        .apple-timeliness-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #ffffff;
+          border: 1.5px solid rgba(0, 0, 0, 0.08);
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-muted);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .apple-timeliness-btn:hover {
+          background: var(--ivory-dim);
+        }
+        .apple-timeliness-btn--on-time {
+          border-color: var(--forest) !important;
+          background: var(--forest-faint) !important;
+          color: var(--forest) !important;
+        }
+        .apple-timeliness-btn--late {
+          border-color: #b45309 !important;
+          background: #fffbeb !important;
+          color: #b45309 !important;
+        }
+        .apple-timeliness-hint {
+          font-size: 11px;
+          color: var(--text-secondary);
+          margin: 8px 0 0;
+          line-height: 1.4;
+        }
+        .apple-rejection-panel {
+          margin-top: 8px;
         }
 
         /* Smart Banner */

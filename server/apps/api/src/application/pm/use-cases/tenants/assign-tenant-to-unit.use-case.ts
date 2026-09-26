@@ -60,7 +60,10 @@ export class AssignTenantToUnitUseCase {
       platformAmount?: number;
       offlineAmount?: number;
       platformPaymentIds?: number[];
-    }
+    },
+    receiptDecision?: 'APPROVED' | 'REJECTED',
+    timeliness?: 'ON_TIME' | 'LATE',
+    rejectionReason?: string,
   ): Promise<any> {
     const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepo.findByUuid(unitUuid);
@@ -78,32 +81,32 @@ export class AssignTenantToUnitUseCase {
         throw new NotFoundException('Tenant not found');
       }
 
-      // ── 1. Strict Input Validations ──────────────────────────────────────────
+      // ── 1. Strict Input Validations & Decision Handling ────────────────────
       const effectiveRentAmount = rentAmount !== undefined ? rentAmount : unit.rentAmount;
       if (!effectiveRentAmount || effectiveRentAmount <= 0) {
         throw new BadRequestException('Confirmed rent amount must be greater than 0.');
       }
 
-      const acknowledgedTotal = isFullyPaid 
-        ? effectiveRentAmount 
-        : (pmAcknowledgedAmountPaid !== undefined ? pmAcknowledgedAmountPaid : (rentAmountPaid ?? 0));
+      // If PM explicitly rejected the receipt, zero out offline claimed amount
+      const rawPlatform = Math.max(0, breakdown?.platformAmount ?? 0);
+      let effectiveAcknowledgedOffline = 0;
+
+      if (receiptDecision === 'REJECTED') {
+        effectiveAcknowledgedOffline = 0;
+        isFullyPaid = (rawPlatform >= effectiveRentAmount && effectiveRentAmount > 0);
+      } else {
+        const declaredPaid = pmAcknowledgedAmountPaid !== undefined ? pmAcknowledgedAmountPaid : (rentAmountPaid ?? 0);
+        effectiveAcknowledgedOffline = isFullyPaid ? Math.max(0, effectiveRentAmount - rawPlatform) : Math.max(0, declaredPaid - rawPlatform);
+      }
+
+      const acknowledgedTotal = Math.min(effectiveRentAmount, rawPlatform + effectiveAcknowledgedOffline);
 
       if (acknowledgedTotal < 0) {
         throw new BadRequestException('Acknowledged amount received cannot be negative.');
       }
 
-      if (acknowledgedTotal > effectiveRentAmount) {
-        throw new BadRequestException(
-          `Acknowledged amount (₦${acknowledgedTotal.toLocaleString()}) cannot exceed confirmed rent (₦${effectiveRentAmount.toLocaleString()}).`
-        );
-      }
-
-      // Auto-reconcile breakdown gracefully
-      const rawPlatform = Math.max(0, breakdown?.platformAmount ?? 0);
       const effectivePlatform = Math.min(acknowledgedTotal, rawPlatform);
-      const effectiveOffline = breakdown?.offlineAmount !== undefined && Math.abs((breakdown.offlineAmount + effectivePlatform) - acknowledgedTotal) < 0.01
-        ? breakdown.offlineAmount
-        : Math.max(0, acknowledgedTotal - effectivePlatform);
+      const effectiveOffline = Math.max(0, acknowledgedTotal - effectivePlatform);
 
       const effectiveBreakdown = {
         platformAmount: effectivePlatform,
@@ -194,6 +197,9 @@ export class AssignTenantToUnitUseCase {
               joinRequestUuid,
               pmAcknowledgedTotal: acknowledgedTotal,
               breakdown: effectiveBreakdown,
+              receiptDecision: receiptDecision || null,
+              timeliness: timeliness || 'ON_TIME',
+              rejectionReason: rejectionReason || null,
               decidedByPmId: ownerPmId,
               decidedAt: new Date().toISOString(),
             };
@@ -300,6 +306,7 @@ export class AssignTenantToUnitUseCase {
             activeRentType,
             activeRentStartDate,
             activeRentDueDate,
+            timeliness || 'ON_TIME',
           );
         } else {
           this.logger.log(`Unit ${unitUuid}: deferring initial PR (pendingInitialPrAmount=${remainingAmount})`);
@@ -307,7 +314,7 @@ export class AssignTenantToUnitUseCase {
         }
       }
 
-      // ── 8. Transition Activity Log to ACCEPTED with Provenance Decision ─────
+      // ── 8. Transition Activity Log and Join Request to ACCEPTED with Provenance Decision ─────
       if (joinRequestUuid) {
         const pmDecisionPayload = {
           confirmedRentAmount: effectiveRentAmount,
@@ -316,6 +323,9 @@ export class AssignTenantToUnitUseCase {
           isFullyPaid: !!isFullyPaid,
           pmAcknowledgedTotal: acknowledgedTotal,
           breakdown,
+          receiptDecision: receiptDecision || null,
+          timeliness: timeliness || 'ON_TIME',
+          rejectionReason: rejectionReason || null,
           remainingRentDue: Math.max(0, effectiveRentAmount - acknowledgedTotal),
           assignedUnitUuid: unitUuid,
           assignedTenantUuid: tenant.uuid,
@@ -339,6 +349,23 @@ export class AssignTenantToUnitUseCase {
           )
           WHERE uuid = ${joinRequestUuid} AND "ownerPmId" = ${ownerPmId};
         `;
+
+        try {
+          await (this.prisma as any).upward_tenant_join_request?.updateMany({
+            where: { uuid: joinRequestUuid },
+            data: {
+              status: 'ACCEPTED',
+              receiptDecision: receiptDecision || null,
+              timeliness: timeliness || null,
+              rejectionReason: rejectionReason || null,
+              assignedUnitUuid: unitUuid,
+              assignedTenantUuid: tenant.uuid,
+              decidedAt: new Date(),
+            },
+          });
+        } catch (e) {
+          // ignore if table does not exist yet
+        }
       }
 
       // Only clean up exact duplicate pending join requests for the same property/residence
@@ -494,6 +521,7 @@ export class AssignTenantToUnitUseCase {
     rentType: string | null | undefined,
     rentStartDate: Date | null | undefined,
     rentDueDate: Date | null | undefined,
+    inheritedTimeliness: string = 'ON_TIME',
   ): Promise<void> {
     try {
       const dueDate = rentDueDate?.toISOString() || new Date().toISOString();
@@ -506,6 +534,7 @@ export class AssignTenantToUnitUseCase {
         rentType: rentType || undefined,
         description: 'Outstanding Rent Balance',
         allowPartial: false,
+        inheritedTimeliness,
         lineItems: [
           {
             name: 'Rent',
@@ -516,7 +545,7 @@ export class AssignTenantToUnitUseCase {
         silent: true,
         bypassWelcomeCheck: true,
       });
-      this.logger.log(`Auto-created initial balance PR for unit ${unitUuid}, amount=${remainingAmount}`);
+      this.logger.log(`Auto-created initial balance PR for unit ${unitUuid}, amount=${remainingAmount}, inheritedTimeliness=${inheritedTimeliness}`);
     } catch (err: any) {
       this.logger.error(`Failed to auto-create initial PR for unit ${unitUuid}: ${err.message}`);
     }

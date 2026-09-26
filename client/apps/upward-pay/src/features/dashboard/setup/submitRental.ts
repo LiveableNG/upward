@@ -1,7 +1,6 @@
 import { api } from '@/lib/api'
 import { type SetupDraft } from './setupDraft'
 import { toDateInputValue } from './rentalDates'
-import { uploadProofOfPayment } from '@/features/payments/services/paymentService'
 
 export async function submitRentalRequest(draft: SetupDraft) {
   const {
@@ -53,8 +52,29 @@ export async function submitRentalRequest(draft: SetupDraft) {
     !landlordSkipped &&
     Boolean(paymentDetails?.accountNumber?.trim() && paymentDetails?.bankCode?.trim())
 
+  let onboardingProof: {
+    url: string
+    fileName: string
+    fileType: string
+    fileSize: number
+  } | undefined = undefined
+
+  if (formData.proofFile) {
+    try {
+      const uploadData = new FormData()
+      uploadData.append('file', formData.proofFile)
+      const uploadRes: any = await api.post('/user/pm-connection/onboarding-proof/upload', uploadData)
+      if (uploadRes?.data) {
+        onboardingProof = uploadRes.data
+      }
+    } catch (e) {
+      console.warn('Failed to upload onboarding proof file:', e)
+    }
+  }
+
   const payload: Record<string, unknown> = {
     unitDetails,
+    onboardingProof,
     paymentDetails: hasPaymentDetails
       ? {
           accountNumber: paymentDetails.accountNumber.trim(),
@@ -89,17 +109,7 @@ export async function submitRentalRequest(draft: SetupDraft) {
     }
   }
 
-  const res = await api.post('/user/pm-connection/add-unit-request', payload)
-
-  // Upload proof of payment if attached
-  if (formData.proofFile) {
-    const propUuid = (res as any)?.data?.userProperty?.uuid || formData.uuid
-    await uploadProofOfPayment({
-      userPropertyUuid: propUuid,
-      amount: initialPaidNum || unitDetails.rentAmount,
-      file: formData.proofFile,
-    }).catch((e: any) => console.warn('Failed to upload proof during rental submit:', e))
-  }
+  await api.post('/user/pm-connection/add-unit-request', payload)
 }
 
 export async function submitContactDetails(phone: string, dateOfBirth: string) {

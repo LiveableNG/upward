@@ -228,6 +228,7 @@ export class CreateExternalPaymentRequestUseCase {
         scheduledAt: isScheduled ? new Date(payload.scheduledAt!) : undefined,
         isRecurring: isScheduled ? (payload.isRecurring || false) : false,
         recurrenceInterval: isScheduled && payload.isRecurring ? payload.recurrenceInterval : undefined,
+        inheritedTimeliness: payload.inheritedTimeliness || 'ON_TIME',
       })
 
       // Create line item records

@@ -96,6 +96,9 @@ export class PmTenantController {
         offlineAmount?: number;
         platformPaymentIds?: number[];
       };
+      receiptDecision?: 'APPROVED' | 'REJECTED';
+      timeliness?: 'ON_TIME' | 'LATE';
+      rejectionReason?: string;
     },
   ) {
     return this.assignTenantToUnitUseCase.execute(
@@ -112,6 +115,9 @@ export class PmTenantController {
       body.joinRequestUuid,
       body.pmAcknowledgedAmountPaid,
       body.breakdown,
+      body.receiptDecision,
+      body.timeliness,
+      body.rejectionReason,
     );
   }
 

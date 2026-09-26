@@ -776,6 +776,7 @@ export default function LandlordDashboard() {
               platformActivity: selectedJoinReq.platformActivity,
               activePaymentRequest: selectedJoinReq.activePaymentRequest,
               paymentDestinationAudit: selectedJoinReq.paymentDestinationAudit,
+              onboardingProof: selectedJoinReq.onboardingProof,
             }}
           />
         )}

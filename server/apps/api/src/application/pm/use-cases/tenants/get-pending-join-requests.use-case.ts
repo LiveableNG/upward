@@ -366,6 +366,40 @@ export class GetPendingJoinRequestsUseCase {
           };
         }
 
+        const onboardingProofMeta = metadata.onboardingProof || null;
+        let onboardingProof = null;
+        if (onboardingProofMeta && onboardingProofMeta.url) {
+          onboardingProof = {
+            url: onboardingProofMeta.url,
+            fileName: onboardingProofMeta.fileName || 'Payment Proof',
+            fileType: onboardingProofMeta.fileType || 'application/pdf',
+            fileSize: onboardingProofMeta.fileSize || null,
+            downloadUrl: `/api/v1/user/pm-connection/onboarding-proof/${log.uuid}/file`,
+          };
+        } else {
+          // Look up in upward_tenant_join_request if exists
+          try {
+            const jr = await (this.prisma as any).upward_tenant_join_request?.findFirst({
+              where: {
+                OR: [
+                  { uuid: log.uuid },
+                  { ownerPmId, userId: upwardUser?.id },
+                ],
+                status: 'PENDING',
+              },
+            });
+            if (jr && jr.onboardingProofUrl) {
+              onboardingProof = {
+                url: jr.onboardingProofUrl,
+                fileName: jr.onboardingProofFileName || 'Payment Proof',
+                fileType: jr.onboardingProofFileType || 'application/pdf',
+                fileSize: jr.onboardingProofFileSize || null,
+                downloadUrl: `/api/v1/user/pm-connection/onboarding-proof/${jr.uuid}/file`,
+              };
+            }
+          } catch (e) {}
+        }
+
         return {
           uuid: log.uuid,
           tenantFirstName,
@@ -375,6 +409,7 @@ export class GetPendingJoinRequestsUseCase {
           tenantUuid: metadata.userUuid,
           unitDetails: metadata.unitDetails,
           originalDeclaration: metadata.unitDetails,
+          onboardingProof,
           platformActivity,
           activePaymentRequest,
           paymentDestinationAudit,
