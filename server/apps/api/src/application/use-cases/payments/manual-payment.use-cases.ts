@@ -146,6 +146,13 @@ export class UploadProofOfPaymentUseCase {
       if (!uploadedByUserId && pr.userId) {
         uploadedByUserId = pr.userId
       }
+      if (!data.amount) {
+        const remaining = Math.max(0, (pr.amount || 0) - (pr.amountPaid || 0))
+        data.amount = remaining > 0 ? remaining : (pr.amount || 0)
+      }
+      if (!data.currency) {
+        data.currency = pr.currency || 'NGN'
+      }
     } else if (data.userPropertyUuid) {
       const prop = await this.prisma.upward_user_property.findUnique({
         where: { uuid: data.userPropertyUuid }
@@ -417,6 +424,8 @@ export class ReviewManualPaymentUseCase {
     pmUuid: string
     status: 'APPROVED' | 'REJECTED'
     remarks?: string
+    amount?: number
+    lineItems?: any[]
   }) {
     const proof = await this.prisma.upward_payment_proof.findUnique({
       where: { id: data.proofId },
@@ -439,32 +448,46 @@ export class ReviewManualPaymentUseCase {
     const pr = proof.paymentRequest
     const property = pr ? pr.userProperty : proof.userProperty
     const user = pr ? pr.user : proof.userProperty?.user
-    const amount = pr ? pr.amount : proof.amount
-    const currency = pr ? pr.currency : proof.currency
 
-    if (!user || !amount) {
-      throw new Error('Missing essential payment details on proof')
+    let paymentAmount = 0
+    if (data.amount !== undefined && data.amount !== null && !isNaN(Number(data.amount)) && Number(data.amount) > 0) {
+      paymentAmount = Number(data.amount)
+    } else if (proof.amount && Number(proof.amount) > 0) {
+      paymentAmount = Number(proof.amount)
+    } else if (pr) {
+      const remainingOnPr = Math.max(0, (pr.amount || 0) - (pr.amountPaid || 0))
+      paymentAmount = remainingOnPr > 0 ? remainingOnPr : (pr.amount || 0)
+    }
+
+    const currency = proof.currency || pr?.currency || 'NGN'
+
+    if (!user || paymentAmount <= 0) {
+      throw new Error('Missing essential payment details on proof or invalid payment amount')
     }
 
     if (data.status === 'APPROVED') {
       const reference = `MNL-APR-${Date.now()}`
       
       try {
-        const rawLineItems = (proof as any).lineItems
+        const rawLineItems = (data.lineItems && data.lineItems.length > 0) ? data.lineItems : (proof as any).lineItems
         const normalizedLineItems = Array.isArray(rawLineItems) && rawLineItems.length > 0
-          ? rawLineItems.map((li: any) => ({
-              ...li,
-              id: li.id,
-              name: li.name || li.label || 'Rent',
-              label: li.label || li.name || 'Rent',
-              amount: li.amount || li.amountPaid || 0,
-              amountPaid: li.amountPaid || li.amount || 0,
-            }))
+          ? rawLineItems
+              .map((li: any) => {
+                const itemAmt = Number(li.amountAllocated ?? li.amount ?? li.amountPaid ?? 0)
+                return {
+                  id: li.id,
+                  name: li.name || li.label || 'Rent',
+                  label: li.label || li.name || 'Rent',
+                  amount: itemAmt,
+                  amountPaid: itemAmt,
+                }
+              })
+              .filter((li: any) => li.amount > 0)
           : undefined
 
         const txPayload: any = {
           userId: user.uuid,
-          amount: amount,
+          amount: paymentAmount,
           currency: currency || 'NGN',
           reference: reference,
           type: 'RENT',
@@ -472,8 +495,8 @@ export class ReviewManualPaymentUseCase {
           narration: pr?.description ? `${pr.description} (Manual)` : 'Manual Rent Payment',
           settlementStatus: 'SETTLED',
           isManual: true,
-          sequentialFill: normalizedLineItems ? false : true,
-          lineItemPayments: normalizedLineItems,
+          sequentialFill: normalizedLineItems && normalizedLineItems.length > 0 ? false : true,
+          lineItemPayments: normalizedLineItems && normalizedLineItems.length > 0 ? normalizedLineItems : undefined,
           userPropertyUuid: property?.uuid,
         }
         
@@ -487,6 +510,7 @@ export class ReviewManualPaymentUseCase {
           where: { id: proof.id },
           data: {
             status: 'APPROVED',
+            amount: paymentAmount,
             remarks: data.remarks,
             transactionId: tx.id
           }
@@ -529,7 +553,7 @@ export class ReviewManualPaymentUseCase {
       title: 'Payment Approved ✅',
       message: `Your manual payment for ${address} has been approved. Your Upward Score has been updated!`,
       type: 'SYSTEM',
-      url: transactionId ? `/dashboard/receipts?id=${transactionId}` : '/dashboard/payments',
+      url: transactionId ? `/dashboard/receipts?id=${transactionId}` : '/dashboard/receipts',
     })
   }
   
@@ -543,7 +567,7 @@ export class ReviewManualPaymentUseCase {
       title: 'Payment Proof Rejected ❌',
       message: `Your uploaded proof of payment for ${address} was rejected.${reasonText}`,
       type: 'SYSTEM',
-      url: '/dashboard/payments'
+      url: '/dashboard/pay-rent'
     })
     
     if (user.email) {
@@ -551,7 +575,7 @@ export class ReviewManualPaymentUseCase {
         userId: user.id,
         email: user.email,
         subject: 'Manual Payment Rejected - Upward',
-        html: `<p>Hi ${name},</p><p>Your uploaded proof of payment for <b>${address}</b> was rejected by your property manager.</p><p>${reasonText}</p><p>Please log in to your dashboard to review and try again or pay via our online checkout.</p><p><a href="${baseUrl}/dashboard/payments">Go to Dashboard</a></p>`,
+        html: `<p>Hi ${name},</p><p>Your uploaded proof of payment for <b>${address}</b> was rejected by your property manager.</p><p>${reasonText}</p><p>Please log in to your dashboard to review and try again or pay via our online checkout.</p><p><a href="${baseUrl}/dashboard/pay-rent">Go to Dashboard</a></p>`,
         type: 'SYSTEM'
       }).catch(() => {})
     }

@@ -68,6 +68,7 @@ model upward_property_manager {
   subscriptionLogs        upward_subscription_log[]
   employees               upward_pm_employee[]
   userProperties          upward_user_property[]
+  tenantJoinRequests      upward_tenant_join_request[]
 
   @@index([email])
 }
@@ -422,5 +423,55 @@ model upward_pm_notification {
   @@index([pmId])
   @@index([employeeId])
   @@index([isRead])
+  @@index([createdAt])
+}
+
+model upward_tenant_join_request {
+  id                      Int                      @id @default(autoincrement())
+  uuid                    String                   @unique @default(uuid())
+  ownerPmId               Int?
+  userId                  Int
+  userPropertyId          Int?
+  status                  String                   @default("PENDING") // PENDING, PROCESSING, ACCEPTED, REJECTED, DISMISSED
+
+  // Tenant Claimed Tenancy Profile
+  address                 String
+  area                    String
+  subarea                 String?
+  state                   String
+  country                 String                   @default("Nigeria")
+  rentAmount              Float                    @default(0)
+  rentType                String                   @default("Annually")
+  rentStartDate           DateTime
+  rentEndDate             DateTime
+  tenancyStatus           String                   @default("NEW_CYCLE") // NEW_CYCLE, PAYING_BALANCE, ALREADY_PAID
+  initialAmountPaid       Float                    @default(0)
+
+  // Onboarding Evidence (Isolated from upward_payment_proof)
+  onboardingProofUrl      String?
+  onboardingProofFileName String?
+  onboardingProofFileType String?
+  onboardingProofFileSize Int?
+
+  // PM Review & Assignment Decision
+  receiptDecision         String?                  // 'APPROVED' | 'REJECTED'
+  timeliness              String?                  // 'ON_TIME' | 'LATE'
+  rejectionReason         String?
+  assignedUnitUuid        String?
+  assignedTenantUuid      String?
+  decidedAt               DateTime?
+
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  // Relations
+  ownerPm                 upward_property_manager? @relation(fields: [ownerPmId], references: [id], onDelete: Cascade)
+  user                    upward_user              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty            upward_user_property?    @relation(fields: [userPropertyId], references: [id], onDelete: SetNull)
+
+  @@index([ownerPmId])
+  @@index([userId])
+  @@index([userPropertyId])
+  @@index([status])
   @@index([createdAt])
 }

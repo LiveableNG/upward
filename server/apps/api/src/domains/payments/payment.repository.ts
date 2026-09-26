@@ -171,6 +171,7 @@ export interface PaymentRequest {
   scheduledAt?: Date
   isRecurring?: boolean
   recurrenceInterval?: string
+  inheritedTimeliness?: string
   createdAt: Date
   updatedAt: Date
 }

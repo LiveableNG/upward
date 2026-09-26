@@ -16,26 +16,37 @@ export function NotificationPopup() {
   const router = useRouter()
   const { data: popups = [], refetch } = usePmPopups()
   const { markRead, markAllRead } = usePmNotificationActions()
+  const [dismissedUuids, setDismissedUuids] = useState<Set<string>>(new Set())
+  const [isDismissedAll, setIsDismissedAll] = useState(false)
   const [activePopup, setActivePopup] = useState<any>(null)
 
-  // Sync activePopup when popups change
+  // Visible popups excluding locally dismissed
+  const visiblePopups = isDismissedAll ? [] : popups.filter((p: any) => !dismissedUuids.has(p.uuid))
+
+  // Sync activePopup when visible popups change
   useEffect(() => {
-    if (popups.length === 1) {
-      setActivePopup(popups[0])
+    if (visiblePopups.length === 1) {
+      setActivePopup(visiblePopups[0])
     } else {
       setActivePopup(null)
     }
-  }, [popups])
+  }, [visiblePopups.length, popups])
 
-  if (popups.length === 0) return null
+  if (visiblePopups.length === 0) return null
 
-  const isMultiple = popups.length > 1
+  const isMultiple = visiblePopups.length > 1
 
   const handleDismissSingle = () => {
     if (!activePopup) return
-    markRead.mutate(activePopup.uuid, {
-      onSuccess: () => {
-        setActivePopup(null)
+    const targetUuid = activePopup.uuid
+    setDismissedUuids(prev => {
+      const next = new Set(prev)
+      next.add(targetUuid)
+      return next
+    })
+    setActivePopup(null)
+    markRead.mutate(targetUuid, {
+      onSettled: () => {
         refetch()
       }
     })
@@ -43,29 +54,42 @@ export function NotificationPopup() {
 
   const handleActionSingle = () => {
     if (!activePopup) return
+    const targetUuid = activePopup.uuid
     const url = activePopup.url || '/dashboard'
-    markRead.mutate(activePopup.uuid, {
-      onSuccess: () => {
-        setActivePopup(null)
+    setDismissedUuids(prev => {
+      const next = new Set(prev)
+      next.add(targetUuid)
+      return next
+    })
+    setActivePopup(null)
+    markRead.mutate(targetUuid, {
+      onSettled: () => {
         refetch()
-        router.push(url)
       }
     })
+    router.push(url)
   }
 
   const handleIndividualAction = (popup: any) => {
     const url = popup.url || '/dashboard'
+    setDismissedUuids(prev => {
+      const next = new Set(prev)
+      next.add(popup.uuid)
+      return next
+    })
     markRead.mutate(popup.uuid, {
-      onSuccess: () => {
+      onSettled: () => {
         refetch()
-        router.push(url)
       }
     })
+    router.push(url)
   }
 
   const handleDismissAll = () => {
+    setIsDismissedAll(true)
+    setActivePopup(null)
     markAllRead.mutate(undefined, {
-      onSuccess: () => {
+      onSettled: () => {
         refetch()
       }
     })
@@ -88,11 +112,11 @@ export function NotificationPopup() {
 
             <h2 className="popup-card__title">New Activity & Updates</h2>
             <p className="popup-card__message" style={{ marginBottom: 24 }}>
-              You have {popups.length} unread updates waiting for your review.
+              You have {visiblePopups.length} unread updates waiting for your review.
             </p>
 
             <div className="popup-card__list">
-              {popups.map((popup: any) => {
+              {visiblePopups.map((popup: any) => {
                 const type = popup.type
                 const cleanTitle = cleanEmoji(popup.title)
                 const cleanMsg = cleanEmoji(popup.message)

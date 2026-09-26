@@ -119,7 +119,8 @@ export class CalculateRentScoreUseCase {
 
       const tranches = getTranchesForCycle(cycle, successfulTransactions)
 
-      if (isBeforeDueDate && status !== 'PAID_ON_TIME' && status !== 'PAID') {
+      const isPaidCycle = status === 'PAID_ON_TIME' || status === 'PAID' || status === 'PAID_LATE' || status === 'PARTIAL_ON_TIME' || status === 'PARTIAL_LATE'
+      if (isBeforeDueDate && !isPaidCycle) {
         excluded = true
       }
 
@@ -131,8 +132,14 @@ export class CalculateRentScoreUseCase {
           const w = tranche.amount / cycle.amountOwed
           let trancheScore = 0
           if (tranche.paidAt) {
+            const isLateStatus = status === 'PAID_LATE' || status === 'PARTIAL_LATE'
             const diffTime = tranche.paidAt.getTime() - dueDate.getTime()
-            const daysLate = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+            let daysLate = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+            if (isLateStatus && daysLate <= 0) {
+              daysLate = 15 // Apply late penalty band when explicitly evaluated as late
+            } else if ((status === 'PAID_ON_TIME' || status === 'PARTIAL_ON_TIME') && (cycle as any).source === 'PM_ASSIGNMENT') {
+              daysLate = 0 // Explicitly evaluated on-time by PM
+            }
             trancheScore = getBandScore(daysLate)
           } else {
             trancheScore = 0.0
@@ -171,8 +178,12 @@ export class CalculateRentScoreUseCase {
     let currentStreak = 0
     let longestStreak = 0
     allCycles.forEach(cycle => {
+      const isLateStatus = cycle.status === 'PAID_LATE' || cycle.status === 'PARTIAL_LATE'
       const tranches = getTranchesForCycle(cycle, successfulTransactions)
-      const isOnTime = tranches.length > 0 && tranches.every(t => t.paidAt && t.paidAt <= new Date(cycle.dueDate))
+      const isOnTime = !isLateStatus && (
+        ((cycle as any).source === 'PM_ASSIGNMENT' && cycle.status === 'PAID_ON_TIME') ||
+        (tranches.length > 0 && tranches.every(t => t.paidAt && t.paidAt <= new Date(cycle.dueDate)))
+      )
       if (isOnTime) {
         currentStreak++
         if (currentStreak > longestStreak) longestStreak = currentStreak
@@ -406,7 +417,8 @@ export class CalculateRentScoreUseCase {
       const tranches = getTranchesForCycle(cycle, successfulTransactions)
 
       const isBeforeDueDate = dueDate > now
-      if (isBeforeDueDate && status !== 'PAID_ON_TIME' && status !== 'PAID') {
+      const isPaidCycle = status === 'PAID_ON_TIME' || status === 'PAID' || status === 'PAID_LATE' || status === 'PARTIAL_ON_TIME' || status === 'PARTIAL_LATE'
+      if (isBeforeDueDate && !isPaidCycle) {
         excluded = true
       }
 
@@ -418,8 +430,14 @@ export class CalculateRentScoreUseCase {
           const w = tranche.amount / cycle.amountOwed
           let trancheScore = 0
           if (tranche.paidAt) {
+            const isLateStatus = status === 'PAID_LATE' || status === 'PARTIAL_LATE'
             const diffTime = tranche.paidAt.getTime() - dueDate.getTime()
-            const daysLate = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+            let daysLate = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+            if (isLateStatus && daysLate <= 0) {
+              daysLate = 15 // Apply late penalty band when explicitly evaluated as late
+            } else if ((status === 'PAID_ON_TIME' || status === 'PARTIAL_ON_TIME') && (cycle as any).source === 'PM_ASSIGNMENT') {
+              daysLate = 0 // Explicitly evaluated on-time by PM
+            }
             trancheScore = getBandScore(daysLate)
           } else {
             trancheScore = 0.0
@@ -451,8 +469,12 @@ export class CalculateRentScoreUseCase {
     let currentStreak = 0
     let longestStreak = 0
     cyclesToScore.forEach(cycle => {
+      const isLateStatus = cycle.status === 'PAID_LATE' || cycle.status === 'PARTIAL_LATE'
       const tranches = getTranchesForCycle(cycle, successfulTransactions)
-      const isOnTime = tranches.length > 0 && tranches.every(t => t.paidAt && t.paidAt <= new Date(cycle.dueDate))
+      const isOnTime = !isLateStatus && (
+        ((cycle as any).source === 'PM_ASSIGNMENT' && cycle.status === 'PAID_ON_TIME') ||
+        (tranches.length > 0 && tranches.every(t => t.paidAt && t.paidAt <= new Date(cycle.dueDate)))
+      )
       if (isOnTime) {
         currentStreak++
         if (currentStreak > longestStreak) longestStreak = currentStreak

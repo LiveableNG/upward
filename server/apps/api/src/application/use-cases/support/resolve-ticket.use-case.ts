@@ -22,7 +22,7 @@ export class ResolveTicketUseCase {
         title: 'Support Ticket Resolved',
         message: responseMessage,
         type: 'SUPPORT',
-        url: '/dashboard/support'
+        url: '/dashboard/help'
       })
 
       if (ticket.user && ticket.user.email) {

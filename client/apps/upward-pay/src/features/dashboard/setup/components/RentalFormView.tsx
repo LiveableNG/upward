@@ -271,7 +271,7 @@ export function RentalFormView() {
           ? 'Where should rent be paid? (Optional — you can skip this step and add details later)'
           : 'Where should rent be paid? Enter your landlord or manager details to verify your payment.'
 
-  const handleProofFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProofFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selected = e.target.files[0]
       if (selected.size > 10 * 1024 * 1024) {
@@ -282,6 +282,8 @@ export function RentalFormView() {
         toast.error('Only PDF, JPG, and PNG files are allowed', 'Invalid Format')
         return
       }
+
+      // 1. Instantly store local meta for UI responsiveness
       updateDraft({
         formData: {
           ...draft.formData,
@@ -289,7 +291,33 @@ export function RentalFormView() {
           proofFileMeta: { name: selected.name, size: selected.size, type: selected.type },
         },
       })
-      toast.success(`Attached ${selected.name}`, 'Proof Uploaded')
+
+      // 2. Upload to server to persist across navigation/reloads
+      try {
+        const uploadData = new FormData()
+        uploadData.append('file', selected)
+        const uploadRes: any = await api.post('/user/pm-connection/onboarding-proof/upload', uploadData)
+        const proofData = uploadRes?.data || uploadRes
+        if (proofData?.url) {
+          updateDraft({
+            formData: {
+              ...draft.formData,
+              proofFile: selected,
+              proofFileMeta: { name: selected.name, size: selected.size, type: selected.type },
+              onboardingProof: {
+                url: proofData.url,
+                fileName: proofData.fileName || selected.name,
+                fileType: proofData.fileType || selected.type,
+                fileSize: proofData.fileSize || selected.size,
+              },
+            },
+          })
+        }
+        toast.success(`Attached ${selected.name}`, 'Proof Uploaded')
+      } catch (err) {
+        console.warn('Background upload failed, will retry on submit:', err)
+        toast.success(`Attached ${selected.name}`, 'Proof Attached')
+      }
     }
   }
 
@@ -299,6 +327,7 @@ export function RentalFormView() {
         ...draft.formData,
         proofFile: null,
         proofFileMeta: null,
+        onboardingProof: null,
       },
     })
     toast.success('Attached proof removed.', 'Removed')

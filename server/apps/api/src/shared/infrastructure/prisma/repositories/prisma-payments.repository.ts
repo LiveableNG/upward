@@ -463,7 +463,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
   ): Promise<PaymentRequest> {
     const prisma = tx || this.prisma
     const res = await prisma.upward_payment_request.create({
-      data: {
+      data: ({
         userId: data.userId,
         userPropertyId: data.userPropertyId,
         amount: data.amount,
@@ -484,7 +484,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         scheduledAt: data.scheduledAt,
         isRecurring: data.isRecurring,
         recurrenceInterval: data.recurrenceInterval,
-      },
+        inheritedTimeliness: (data as any).inheritedTimeliness || 'ON_TIME',
+      } as any),
       include: this.paymentRequestInclude,
     })
     return this.mapPaymentRequest(res)

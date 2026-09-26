@@ -85,9 +85,20 @@ export class SettlePropertyBalanceUseCase {
       }
     }
 
+    let isInheritedLate = false
+    if (paymentRequestId) {
+      const pr = await txClient.upward_payment_request.findUnique({
+        where: { id: paymentRequestId },
+        select: { inheritedTimeliness: true }
+      })
+      if (pr?.inheritedTimeliness === 'LATE') {
+        isInheritedLate = true
+      }
+    }
+
     const cycleStatus = currentTotalPaid >= amountOwedForCycle
-      ? (paidAt <= effectiveDueDate ? 'PAID_ON_TIME' : 'PAID_LATE')
-      : (paidAt <= effectiveDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE')
+      ? (isInheritedLate ? 'PAID_LATE' : (paidAt <= effectiveDueDate ? 'PAID_ON_TIME' : 'PAID_LATE'))
+      : (isInheritedLate ? 'PARTIAL_LATE' : (paidAt <= effectiveDueDate ? 'PARTIAL_ON_TIME' : 'PARTIAL_LATE'))
 
     if (paymentRequestId) {
       await this.rentCycleRepo.upsertByPaymentRequestId(paymentRequestId, {
