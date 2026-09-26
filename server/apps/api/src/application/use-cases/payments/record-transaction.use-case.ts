@@ -163,12 +163,37 @@ export class RecordTransactionUseCase {
 
       const isBenefitsOnly = data.type === 'BENEFITS_SUBSCRIPTION'
 
+      let resolvedPropertyAddress = data.propertyAddress
+      if (!resolvedPropertyAddress) {
+        let propToAddress: any = pr?.userProperty
+        if (!propToAddress && data.userPropertyUuid) {
+          propToAddress = await txClient.upward_user_property.findUnique({
+            where: { uuid: data.userPropertyUuid },
+            include: { location: true, pmUnit: { include: { property: { include: { location: true } } } } },
+          })
+        }
+        if (propToAddress) {
+          const loc = propToAddress.location || propToAddress.pmUnit?.property?.location
+          const addressParts = [
+            propToAddress.pmUnit?.unitName,
+            loc?.address || propToAddress.pmUnit?.property?.address || loc?.area,
+            loc?.subarea,
+            loc?.area,
+            loc?.state,
+          ].filter(Boolean)
+          if (addressParts.length > 0) {
+            resolvedPropertyAddress = addressParts.join(', ')
+          }
+        }
+      }
+
       const result = await this.txRepo.create({
         ...data,
         userId: user!.id!,
         amount: effectiveAmount,
         status: isVerified ? 'SUCCESS' : 'FAILED',
         narration: data.narration || pr?.description || (isBenefitsOnly ? 'Upward Benefits' : 'Property Payment'),
+        propertyAddress: resolvedPropertyAddress || data.propertyAddress,
         landlordId: data.landlordId || pr?.subaccount?.uuid || undefined,
         settlementStatus: data.settlementStatus || (isBenefitsOnly ? 'SETTLED' : undefined),
       } as any, txClient)
@@ -375,6 +400,7 @@ export class RecordTransactionUseCase {
             remainingBalance: snapshotRemaining,
             isPartial: snapshotIsPartial,
             tenancyPeriodId: settledPeriod?.tenancyPeriodId,
+            ...(resolvedPropertyAddress && !result.propertyAddress ? { propertyAddress: resolvedPropertyAddress } : {}),
           } as any
         })
       }

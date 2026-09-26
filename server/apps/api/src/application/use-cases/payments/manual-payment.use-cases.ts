@@ -431,10 +431,56 @@ export class ReviewManualPaymentUseCase {
       where: { id: data.proofId },
       include: {
         paymentRequest: {
-          include: { user: true, userProperty: { include: { location: true } } }
+          include: {
+            user: true,
+            userProperty: {
+              include: {
+                location: true,
+                company: true,
+                manager: true,
+                pm: {
+                  include: {
+                    receiptSetting: true,
+                    emailSetting: true,
+                  },
+                },
+                pmUnit: {
+                  include: {
+                    property: {
+                      include: {
+                        location: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-        userProperty: { include: { location: true, user: true } }
-      }
+        userProperty: {
+          include: {
+            location: true,
+            user: true,
+            company: true,
+            manager: true,
+            pm: {
+              include: {
+                receiptSetting: true,
+                emailSetting: true,
+              },
+            },
+            pmUnit: {
+              include: {
+                property: {
+                  include: {
+                    location: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
 
     if (!proof) {
@@ -485,6 +531,16 @@ export class ReviewManualPaymentUseCase {
               .filter((li: any) => li.amount > 0)
           : undefined
 
+        const loc = property?.location || property?.pmUnit?.property?.location
+        const addressParts = [
+          property?.pmUnit?.unitName,
+          loc?.address || property?.pmUnit?.property?.address || loc?.area,
+          loc?.subarea,
+          loc?.area,
+          loc?.state,
+        ].filter(Boolean)
+        const resolvedAddress = addressParts.length > 0 ? addressParts.join(', ') : undefined
+
         const txPayload: any = {
           userId: user.uuid,
           amount: paymentAmount,
@@ -493,6 +549,8 @@ export class ReviewManualPaymentUseCase {
           type: 'RENT',
           status: 'SUCCESS',
           narration: pr?.description ? `${pr.description} (Manual)` : 'Manual Rent Payment',
+          paymentType: 'Bank Transfer (Manual)',
+          propertyAddress: resolvedAddress,
           settlementStatus: 'SETTLED',
           isManual: true,
           sequentialFill: normalizedLineItems && normalizedLineItems.length > 0 ? false : true,
