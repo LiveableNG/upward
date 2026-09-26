@@ -137,6 +137,28 @@ export class InviteTenantUseCase {
             : 0;
           const isFullyPaid = currentPaid >= (unit.rentAmount || 0) && (unit.rentAmount || 0) > 0;
 
+          const pastPayments = payments.filter((p: any) => {
+            const notesLower = (p.notes || '').toLowerCase();
+            const isInitialNote =
+              notesLower.includes('imported initial payment') ||
+              notesLower.includes('initial onboarding payment') ||
+              notesLower.includes('initial payment') ||
+              notesLower.includes('initial part-payment');
+            const pStart = this.rentalPeriodService.parseCalendarDate(p.periodStart);
+            const isCurrentPeriod = canonicalUnitStart && pStart && pStart.getTime() === canonicalUnitStart.getTime();
+            return !isInitialNote && !isCurrentPeriod;
+          });
+
+          const initialPayment = payments.find((p: any) => {
+            const notesLower = (p.notes || '').toLowerCase();
+            return notesLower.includes('initial payment') || notesLower.includes('imported initial payment');
+          });
+          let inferredTimeliness: 'ON_TIME' | 'LATE' | undefined = (unit as any).timeliness;
+          if (!inferredTimeliness && initialPayment?.notes) {
+            if (initialPayment.notes.includes('LATE')) inferredTimeliness = 'LATE';
+            else if (initialPayment.notes.includes('ON_TIME')) inferredTimeliness = 'ON_TIME';
+          }
+
           return {
             location: {
               country: unit.property?.country || 'Nigeria',
@@ -152,8 +174,9 @@ export class InviteTenantUseCase {
               leaseYears: (unit as any).leaseYears,
               initialAmountPaid: currentPaid,
               isFirstRent: !isFullyPaid,
+              timeliness: inferredTimeliness,
             },
-            rentHistory: payments.map(p => ({
+            rentHistory: pastPayments.map(p => ({
               amount: p.amount,
               paymentDate: p.paymentDate.toISOString(),
               periodStart: p.periodStart?.toISOString(),

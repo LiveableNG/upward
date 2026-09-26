@@ -190,6 +190,10 @@ export class UnitImportDto {
   @IsOptional()
   unitType?: string;
 
+  @IsString()
+  @IsOptional()
+  timeliness?: 'ON_TIME' | 'LATE';
+
   @IsBoolean()
   @IsOptional()
   rentReminderEnabled?: boolean;

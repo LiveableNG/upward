@@ -1,6 +1,6 @@
 "use client"
 import React from 'react'
-import { UserPlus, Users, Home, Calendar, CreditCard, ClipboardList, Sparkles } from 'lucide-react'
+import { UserPlus, Users, Home, Calendar, CreditCard, ClipboardList, Sparkles, Clock, AlertTriangle } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { Property } from '../../../services/propertyService'
 import { useTenants } from '../../../hooks/useTenants'
@@ -35,6 +35,7 @@ interface AddUnitModalProps {
     tenantUuid?: string;
     rentAmountPaid: string;
     isFullyPaid: boolean;
+    timeliness?: 'ON_TIME' | 'LATE';
   };
   setFormData: (data: any) => void;
 }
@@ -540,6 +541,43 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                       />
                     </div>
                   )}
+
+                  {(formData.isFullyPaid || (parseFloat(formData.rentAmountPaid || '0') > 0)) && (
+                    <div className="apple-timeliness-panel animate-fade-in" style={{ marginTop: 12 }}>
+                      <label className="form-label" style={{ fontSize: 11, marginBottom: 6, display: 'block', fontWeight: 600 }}>
+                        Payment Timeliness Evaluation
+                      </label>
+                      <div className="apple-timeliness-grid">
+                        <button
+                          type="button"
+                          className={cn(
+                            "apple-timeliness-btn",
+                            (formData.timeliness || 'ON_TIME') === 'ON_TIME' && "apple-timeliness-btn--on-time"
+                          )}
+                          onClick={() => setFormData({ ...formData, timeliness: 'ON_TIME' })}
+                        >
+                          <Clock size={14} />
+                          <span>On-Time Payment</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={cn(
+                            "apple-timeliness-btn",
+                            formData.timeliness === 'LATE' && "apple-timeliness-btn--late"
+                          )}
+                          onClick={() => setFormData({ ...formData, timeliness: 'LATE' })}
+                        >
+                          <AlertTriangle size={14} />
+                          <span>Late Payment</span>
+                        </button>
+                      </div>
+                      <p className="apple-timeliness-hint">
+                        {(formData.timeliness || 'ON_TIME') === 'ON_TIME'
+                          ? 'This initial payment is evaluated On-Time. The tenant builds on-time rent credibility.'
+                          : 'This initial payment was received past due. The initial cycle will reflect Late for scoring.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -565,6 +603,54 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
         .form-input--error {
             border-color: var(--error) !important;
             background: var(--error-bg) !important;
+        }
+        :global(.apple-timeliness-panel) {
+            margin-top: 10px;
+            padding: 12px 14px;
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        :global(.apple-timeliness-grid) {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        :global(.apple-timeliness-btn) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1.5px solid rgba(0,0,0,0.08);
+            background: #fbfbfa;
+            color: var(--text-muted, #666);
+            transition: all 0.2s ease;
+        }
+        :global(.apple-timeliness-btn:hover) {
+            border-color: var(--dark, #111);
+            color: var(--dark, #111);
+            background: #ffffff;
+        }
+        :global(.apple-timeliness-btn--on-time) {
+            background: var(--forest-faint, rgba(34, 197, 94, 0.1)) !important;
+            border-color: var(--forest, #22c55e) !important;
+            color: var(--forest, #15803d) !important;
+        }
+        :global(.apple-timeliness-btn--late) {
+            background: rgba(245, 158, 11, 0.1) !important;
+            border-color: #f59e0b !important;
+            color: #b45309 !important;
+        }
+        :global(.apple-timeliness-hint) {
+            font-size: 11px;
+            color: var(--text-muted, #777);
+            margin: 8px 0 0;
+            line-height: 1.4;
         }
         .animate-fade-in {
             animation: fadeIn 0.3s ease-in-out;

@@ -21,6 +21,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import { CreatePmPaymentRequestUseCase } from '../payments/create-pm-payment-request.use-case';
 import { ActivityLogService, ActivityAction } from '../../../../shared/application/activity-log.service';
+import { RentalPeriodService } from '../../../services/rental-period.service';
 
 @Injectable()
 export class AssignTenantToUnitUseCase {
@@ -41,6 +42,7 @@ export class AssignTenantToUnitUseCase {
     private readonly createPmPaymentRequestUseCase: CreatePmPaymentRequestUseCase,
     private readonly activityLog: ActivityLogService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
   async execute(
@@ -311,6 +313,20 @@ export class AssignTenantToUnitUseCase {
             isPastTenancy: false,
           },
         });
+
+        // Record or update initial rent cycle via canonical service if timeliness was evaluated by PM
+        if (upwardUser?.id) {
+          await this.rentalPeriodService.reconcileInitialRentCycle({
+            userId: upwardUser.id,
+            userPropertyId: userPropertyRecord.id,
+            rentAmount: effectiveRentAmount,
+            initialAmountPaid: acknowledgedTotal,
+            rentStartDate: activeRentStartDate,
+            currency: freshUnit?.currency,
+            timeliness: timeliness,
+            txClient: this.prisma,
+          });
+        }
       }
 
       // ── 7. Authoritative Balance PR Generation ─────────────────────────────
