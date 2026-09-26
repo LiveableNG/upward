@@ -19,11 +19,12 @@ export class GetPendingJoinRequestsUseCase {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Filter for active pending logs (exclude accepted/rejected)
+    // Filter for active pending logs (exclude accepted/rejected/dismissed)
     let pendingLogs = logs.filter((log: any) => {
       const metadata = log.metadata as any;
-      if (!metadata) return true;
-      if (metadata.status === 'ACCEPTED' || metadata.status === 'REJECTED') return false;
+      if (!metadata) return false;
+      const status = (metadata.status || 'PENDING').toUpperCase();
+      if (status !== 'PENDING') return false;
       return true;
     });
 
@@ -366,27 +367,33 @@ export class GetPendingJoinRequestsUseCase {
           };
         }
 
-        const onboardingProofMeta = metadata.onboardingProof || null;
+        const onboardingProofMeta = metadata.onboardingProof || metadata.proof || metadata.paymentProof || null;
         let onboardingProof = null;
-        if (onboardingProofMeta && onboardingProofMeta.url) {
+        if (onboardingProofMeta && (onboardingProofMeta.url || onboardingProofMeta.fileUrl)) {
+          const proofUrl = onboardingProofMeta.url || onboardingProofMeta.fileUrl;
           onboardingProof = {
-            url: onboardingProofMeta.url,
-            fileName: onboardingProofMeta.fileName || 'Payment Proof',
-            fileType: onboardingProofMeta.fileType || 'application/pdf',
-            fileSize: onboardingProofMeta.fileSize || null,
-            downloadUrl: `/api/v1/user/pm-connection/onboarding-proof/${log.uuid}/file`,
+            url: proofUrl,
+            fileName: onboardingProofMeta.fileName || onboardingProofMeta.name || 'Payment Proof',
+            fileType: onboardingProofMeta.fileType || onboardingProofMeta.type || 'application/pdf',
+            fileSize: onboardingProofMeta.fileSize || onboardingProofMeta.size || null,
+            downloadUrl: proofUrl.startsWith('http://') || proofUrl.startsWith('https://')
+              ? proofUrl
+              : `/api/v1/user/pm-connection/onboarding-proof/${log.uuid}/file`,
           };
-        } else {
+        }
+
+        if (!onboardingProof) {
           // Look up in upward_tenant_join_request if exists
           try {
             const jr = await (this.prisma as any).upward_tenant_join_request?.findFirst({
               where: {
                 OR: [
                   { uuid: log.uuid },
-                  { ownerPmId, userId: upwardUser?.id },
+                  ...(upwardUser?.id ? [{ ownerPmId, userId: upwardUser.id }] : []),
+                  ...(userProperty?.id ? [{ userPropertyId: userProperty.id }] : []),
                 ],
-                status: 'PENDING',
               },
+              orderBy: { createdAt: 'desc' },
             });
             if (jr && jr.onboardingProofUrl) {
               onboardingProof = {
@@ -394,7 +401,32 @@ export class GetPendingJoinRequestsUseCase {
                 fileName: jr.onboardingProofFileName || 'Payment Proof',
                 fileType: jr.onboardingProofFileType || 'application/pdf',
                 fileSize: jr.onboardingProofFileSize || null,
-                downloadUrl: `/api/v1/user/pm-connection/onboarding-proof/${jr.uuid}/file`,
+                downloadUrl: jr.onboardingProofUrl.startsWith('http://') || jr.onboardingProofUrl.startsWith('https://')
+                  ? jr.onboardingProofUrl
+                  : `/api/v1/user/pm-connection/onboarding-proof/${jr.uuid}/file`,
+              };
+            }
+          } catch (e) {}
+        }
+
+        if (!onboardingProof && userProperty?.id) {
+          // Fallback to upward_payment_proof if tenant uploaded proof via manual payment proof
+          try {
+            const latestProof = await this.prisma.upward_payment_proof.findFirst({
+              where: { userPropertyId: userProperty.id },
+              orderBy: { createdAt: 'desc' },
+            });
+            if (latestProof && latestProof.fileUrl) {
+              const ext = latestProof.fileName?.split('.').pop()?.toLowerCase();
+              const inferredType = ext === 'png' ? 'image/png' : (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : 'application/pdf';
+              onboardingProof = {
+                url: latestProof.fileUrl,
+                fileName: latestProof.fileName || 'Payment Proof',
+                fileType: inferredType,
+                fileSize: null,
+                downloadUrl: latestProof.fileUrl.startsWith('http://') || latestProof.fileUrl.startsWith('https://')
+                  ? latestProof.fileUrl
+                  : `/api/v1/user/pm-connection/onboarding-proof/${latestProof.uuid}/file`,
               };
             }
           } catch (e) {}

@@ -23,6 +23,12 @@ export type RentalFormData = {
   amountAlreadyPaid: string
   proofFile?: File | null
   proofFileMeta?: { name: string; size: number; type: string } | null
+  onboardingProof?: {
+    url: string
+    fileName: string
+    fileType: string
+    fileSize: number
+  } | null
 }
 
 export type PaymentDraftDetails = {
@@ -73,6 +79,7 @@ export const EMPTY_RENTAL_FORM: RentalFormData = {
   amountAlreadyPaid: '',
   proofFile: null,
   proofFileMeta: null,
+  onboardingProof: null,
 }
 
 export function createEmptyDraft(mode: SetupMode = 'onboarding'): SetupDraft {

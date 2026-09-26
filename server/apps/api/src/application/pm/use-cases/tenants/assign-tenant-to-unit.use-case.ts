@@ -221,38 +221,57 @@ export class AssignTenantToUnitUseCase {
 
         // ── 5. Resolve Upward User and Sync Unit ────────────────────────────────
         const upwardUser = tenant.email ? await this.userRepo.findByEmail(tenant.email) : null;
-        let syncSucceeded = false;
-      if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
-        try {
-          await this.syncUnitToUpwardUseCase.execute(unitUuid, pmId);
-          syncSucceeded = true;
-        } catch (error) {
-          this.logger.error(`Auto-sync failed for unit ${unitUuid} during assignment: ${error}`);
+        let targetUserPropertyId: number | undefined;
+        if (joinRequestUuid) {
+          try {
+            const jr = await (this.prisma as any).upward_tenant_join_request?.findFirst({
+              where: { uuid: joinRequestUuid },
+              select: { userPropertyId: true },
+            });
+            if (jr?.userPropertyId) {
+              targetUserPropertyId = jr.userPropertyId;
+            }
+          } catch (err: any) {
+            this.logger.warn(`Failed to resolve join request userPropertyId: ${err.message}`);
+          }
         }
-      }
 
-      const freshUnit = await this.unitRepo.findByUuid(unitUuid);
+        let syncSucceeded = false;
+        if (upwardUser || tenant.inviteStatus === 'ON_UPWARD' || tenant.inviteStatus === 'ACCEPTED') {
+          try {
+            await this.syncUnitToUpwardUseCase.execute(unitUuid, pmId, targetUserPropertyId);
+            syncSucceeded = true;
+          } catch (error) {
+            this.logger.error(`Auto-sync failed for unit ${unitUuid} during assignment: ${error}`);
+          }
+        }
 
-      // ── 6. Scoped PR Reconciliation & User Property Synchronization ────────
-      let userPropertyRecord: any = null;
-      if (freshUnit?.userPropertyUuid) {
-        userPropertyRecord = await this.prisma.upward_user_property.findUnique({
-          where: { uuid: freshUnit.userPropertyUuid },
-        });
-      } else if (upwardUser) {
-        userPropertyRecord = await this.prisma.upward_user_property.findFirst({
-          where: {
-            userId: upwardUser.id,
-            pmId: ownerPmId,
-            OR: [
-              ...(freshUnit?.id ? [{ pmUnitId: freshUnit.id }] : []),
-              ...(property?.address ? [{ location: { address: { contains: property.address, mode: 'insensitive' as const } } }] : []),
-              { verificationStatus: 'PENDING' },
-            ],
-          },
-          orderBy: { createdAt: 'desc' },
-        });
-      }
+        const freshUnit = await this.unitRepo.findByUuid(unitUuid);
+
+        // ── 6. Scoped PR Reconciliation & User Property Synchronization ────────
+        let userPropertyRecord: any = null;
+        if (freshUnit?.userPropertyUuid) {
+          userPropertyRecord = await this.prisma.upward_user_property.findUnique({
+            where: { uuid: freshUnit.userPropertyUuid },
+          });
+        } else if (targetUserPropertyId) {
+          userPropertyRecord = await this.prisma.upward_user_property.findUnique({
+            where: { id: targetUserPropertyId },
+          });
+        } else if (upwardUser) {
+          userPropertyRecord = await this.prisma.upward_user_property.findFirst({
+            where: {
+              userId: upwardUser.id,
+              pmId: ownerPmId,
+              OR: [
+                ...(freshUnit?.id ? [{ pmUnitId: freshUnit.id }] : []),
+                ...(property?.address ? [{ location: { address: { contains: property.address, mode: 'insensitive' as const } } }] : []),
+                { verificationStatus: 'PENDING' },
+              ],
+            },
+            orderBy: { createdAt: 'desc' },
+          });
+        }
 
       if (userPropertyRecord) {
         // Cancel existing active rent PRs for this property

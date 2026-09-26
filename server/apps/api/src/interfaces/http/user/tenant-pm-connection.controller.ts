@@ -123,11 +123,31 @@ export class TenantPmConnectionController {
       where: { uuid },
     });
 
-    const fileKey = (joinRequest as any)?.onboardingProofUrl || (joinRequest as any)?.metadata?.onboardingProof?.url;
-    const fileName = (joinRequest as any)?.onboardingProofFileName || (joinRequest as any)?.metadata?.onboardingProof?.fileName || 'onboarding_proof';
+    let fileKey = (joinRequest as any)?.onboardingProofUrl || 
+      (joinRequest as any)?.metadata?.onboardingProof?.url || 
+      (joinRequest as any)?.metadata?.proof?.url || 
+      (joinRequest as any)?.metadata?.paymentProof?.url;
+    let fileName = (joinRequest as any)?.onboardingProofFileName || 
+      (joinRequest as any)?.metadata?.onboardingProof?.fileName || 
+      (joinRequest as any)?.metadata?.proof?.fileName || 
+      'onboarding_proof';
+
+    if (!fileKey) {
+      const paymentProof = await this.prisma.upward_payment_proof.findFirst({
+        where: { uuid },
+      });
+      if (paymentProof) {
+        fileKey = paymentProof.fileUrl;
+        fileName = paymentProof.fileName || 'payment_proof';
+      }
+    }
 
     if (!fileKey) {
       throw new NotFoundException('Proof file not found for this join request');
+    }
+
+    if (fileKey.startsWith('http://') || fileKey.startsWith('https://')) {
+      return res.redirect(fileKey);
     }
 
     return this.s3Service.streamObject(fileKey, res, {

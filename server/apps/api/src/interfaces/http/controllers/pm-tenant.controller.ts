@@ -50,7 +50,7 @@ export class PmTenantController {
 
   @Post('join-requests/:uuid/dismiss')
   async dismissJoinRequest(@CurrentPmActor() actor: PmActorContext, @Param('uuid') uuid: string) {
-    return this.dismissJoinRequestUseCase.execute(actor.ownerPmId, uuid);
+    return this.dismissJoinRequestUseCase.execute(actor.ownerPmId, uuid, actor);
   }
 
   @Post('join-requests/:uuid/resolve-duplicate')

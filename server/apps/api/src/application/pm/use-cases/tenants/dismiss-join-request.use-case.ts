@@ -13,11 +13,12 @@ export class DismissJoinRequestUseCase {
     private readonly unifiedCommService: UnifiedCommunicationService,
   ) {}
 
-  async execute(pmId: number, logUuid: string) {
+  async execute(pmId: number, logUuid: string, actor?: any) {
+    const ownerPmId = actor ? actor.ownerPmId : pmId;
     const log = await this.prisma.upward_pm_activity_log.findFirst({
       where: {
         uuid: logUuid,
-        ownerPmId: pmId,
+        ownerPmId: { in: [ownerPmId, pmId] },
         action: 'TENANT_JOIN_REQUEST',
       },
     });
@@ -26,15 +27,19 @@ export class DismissJoinRequestUseCase {
       throw new NotFoundException('Join request not found');
     }
 
-    const metadata = log.metadata as any;
-    if (metadata) {
-      metadata.status = 'DISMISSED';
-    }
+    const metadata = { ...(log.metadata as any || {}), status: 'DISMISSED' };
 
     await this.prisma.upward_pm_activity_log.update({
       where: { id: log.id },
       data: { metadata },
     });
+
+    try {
+      await (this.prisma as any).upward_tenant_join_request?.updateMany({
+        where: { uuid: logUuid },
+        data: { status: 'DISMISSED', decidedAt: new Date() },
+      });
+    } catch (e) {}
     try {
       const tenantEmail = metadata.userEmail;
       const tenantName = metadata.userFirstName;

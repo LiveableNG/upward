@@ -42,7 +42,7 @@ export class SyncUnitToUpwardUseCase {
     private readonly rentalPeriodService: RentalPeriodService,
   ) { }
 
-  async execute(unitUuid: string, pmId: number): Promise<void> {
+  async execute(unitUuid: string, pmId: number, targetUserPropertyId?: number): Promise<void> {
     const unit = await this.unitRepo.findByUuid(unitUuid);
     if (!unit) throw new Error('Unit not found');
 
@@ -166,25 +166,52 @@ export class SyncUnitToUpwardUseCase {
         leaseYears: (unit as any).leaseYears,
       });
 
-      const existingUserProperty = await tx.upward_user_property.findFirst({
-        where: {
-          userId: upwardUser.id!,
-          OR: [
-            { pmUnitId: unit.id },
-            {
-              pmId: pmId,
-              pmUnitId: null
-            }
-          ]
-        },
-        orderBy: { createdAt: 'desc' }
-      });
+      let existingUserProperty: any = null;
+
+      if (targetUserPropertyId) {
+        existingUserProperty = await tx.upward_user_property.findUnique({
+          where: { id: targetUserPropertyId },
+        });
+      }
+
+      if (!existingUserProperty) {
+        existingUserProperty = await tx.upward_user_property.findFirst({
+          where: {
+            userId: upwardUser.id!,
+            OR: [
+              { pmUnitId: unit.id },
+              {
+                pmId: pmId,
+                pmUnitId: null,
+              },
+              {
+                verificationStatus: 'PENDING',
+                pmUnitId: null,
+              },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
 
       let userProperty;
 
       if (existingUserProperty) {
+        if (existingUserProperty.locationId && unit.property) {
+          await tx.upward_location.update({
+            where: { id: existingUserProperty.locationId },
+            data: {
+              country: unit.property.country || 'Nigeria',
+              state: unit.property.state || '',
+              area: unit.property.area || '',
+              address: unit.property.address || '',
+            },
+          });
+        }
+
         const updateData: any = {
           company: { connect: { id: company.id } },
+          pm: { connect: { id: pmId } },
           rentAmount: unit.rentAmount,
           currency: unit.currency,
           rentStartDate: rentalState.rentStartDate,

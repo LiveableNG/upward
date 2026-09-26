@@ -57,15 +57,21 @@ export async function submitRentalRequest(draft: SetupDraft) {
     fileName: string
     fileType: string
     fileSize: number
-  } | undefined = undefined
+  } | undefined = formData.onboardingProof || undefined
 
-  if (formData.proofFile) {
+  if (!onboardingProof && formData.proofFile) {
     try {
       const uploadData = new FormData()
       uploadData.append('file', formData.proofFile)
       const uploadRes: any = await api.post('/user/pm-connection/onboarding-proof/upload', uploadData)
-      if (uploadRes?.data) {
-        onboardingProof = uploadRes.data
+      const proofData = uploadRes?.data || uploadRes
+      if (proofData?.url) {
+        onboardingProof = {
+          url: proofData.url,
+          fileName: proofData.fileName || formData.proofFile.name,
+          fileType: proofData.fileType || formData.proofFile.type,
+          fileSize: proofData.fileSize || formData.proofFile.size,
+        }
       }
     } catch (e) {
       console.warn('Failed to upload onboarding proof file:', e)
