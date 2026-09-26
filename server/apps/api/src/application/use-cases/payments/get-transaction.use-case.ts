@@ -54,6 +54,12 @@ export class GetTransactionUseCase {
             lineItemRecords: {
               orderBy: { sortOrder: 'asc' },
             },
+            manualAccount: true,
+            subaccount: {
+              include: {
+                savedLandlords: true,
+              },
+            },
             userProperty: {
               include: {
                 pm: {
@@ -65,6 +71,13 @@ export class GetTransactionUseCase {
                 company: true,
                 manager: true,
                 location: true,
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
                 pmUnit: {
                   include: {
                     property: true,
@@ -87,6 +100,13 @@ export class GetTransactionUseCase {
                 company: true,
                 manager: true,
                 location: true,
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
                 pmUnit: {
                   include: {
                     property: true,
@@ -109,6 +129,13 @@ export class GetTransactionUseCase {
                 company: true,
                 manager: true,
                 location: true,
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
                 pmUnit: {
                   include: {
                     property: true,
@@ -142,6 +169,13 @@ export class GetTransactionUseCase {
           company: true,
           manager: true,
           location: true,
+          manualAccount: true,
+          subaccount: {
+            include: {
+              savedLandlords: true,
+            },
+          },
+          dedicatedAccounts: true,
           pmUnit: {
             include: {
               property: true,
@@ -157,6 +191,7 @@ export class GetTransactionUseCase {
     const manager = userProp?.manager
     const loc = userProp?.location
     const pmProperty = userProp?.pmUnit?.property
+    const pr = tx.paymentRequest
 
     let resolvedCompanyName = ''
 
@@ -192,6 +227,43 @@ export class GetTransactionUseCase {
       }
     }
 
+    // Resolve from property or payment request bank/manual account name
+    const manualAccName = userProp?.manualAccount?.accountName || pr?.manualAccount?.accountName
+    if (!resolvedCompanyName && manualAccName) {
+      const dec = this.decrypt(manualAccName)
+      if (dec && !this.isGenericDescription(dec)) {
+        resolvedCompanyName = dec
+      }
+    }
+
+    const subaccBusinessName = userProp?.subaccount?.businessName || pr?.subaccount?.businessName
+    if (!resolvedCompanyName && subaccBusinessName) {
+      const dec = this.decrypt(subaccBusinessName)
+      if (dec && !this.isGenericDescription(dec)) {
+        resolvedCompanyName = dec
+      }
+    }
+
+    const savedLandlordName =
+      userProp?.subaccount?.savedLandlords?.[0]?.name ||
+      userProp?.subaccount?.savedLandlords?.[0]?.accountName ||
+      pr?.subaccount?.savedLandlords?.[0]?.name ||
+      pr?.subaccount?.savedLandlords?.[0]?.accountName
+    if (!resolvedCompanyName && savedLandlordName) {
+      const dec = this.decrypt(savedLandlordName)
+      if (dec && !this.isGenericDescription(dec)) {
+        resolvedCompanyName = dec
+      }
+    }
+
+    const dvaAccountName = userProp?.dedicatedAccounts?.[0]?.accountName
+    if (!resolvedCompanyName && dvaAccountName) {
+      const dec = this.decrypt(dvaAccountName)
+      if (dec && !this.isGenericDescription(dec)) {
+        resolvedCompanyName = dec
+      }
+    }
+
     if (!resolvedCompanyName && tx.companyName) {
       const dec = this.decrypt(tx.companyName)
       if (dec && !this.isGenericDescription(dec)) {
@@ -209,7 +281,7 @@ export class GetTransactionUseCase {
         },
       })
       if (landlord) {
-        const name = this.decrypt(landlord.name || landlord.accountName)
+        const name = this.decrypt(landlord.accountName || landlord.name)
         if (name && !this.isGenericDescription(name)) {
           resolvedCompanyName = name
         }
@@ -238,7 +310,6 @@ export class GetTransactionUseCase {
     const isManualPayment = tx.isManual || tx.reference?.startsWith('MNL-')
     const channel = isManualPayment ? 'Bank Transfer (Manual)' : (tx.channel || tx.paymentType || 'Paystack')
 
-    const pr = tx.paymentRequest
     const resolvedRentStart = tx.rentStartDate || pr?.rentStartDate || userProp?.rentStartDate
     const resolvedRentEnd = tx.rentEndDate || pr?.rentEndDate || userProp?.rentEndDate
     const tenancyPeriod = (resolvedRentStart && resolvedRentEnd)

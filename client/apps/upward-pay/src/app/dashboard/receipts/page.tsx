@@ -109,10 +109,21 @@ export default function ReceiptsPage() {
           return trimmed
         }
 
+        const candidateCompanyName =
+          tx.companyName ||
+          ((landlord?.accountName && landlord.accountName !== 'account_name')
+            ? landlord.accountName
+            : (landlord?.name ||
+               tx.paymentRequest?.companyName ||
+               tx.paymentRequest?.managerName ||
+               tx.paymentRequest?.subaccount?.businessName ||
+               tx.paymentRequest?.manualAccount?.accountName ||
+               tx.property?.manualAccount?.accountName ||
+               tx.property?.accountName))
+        const resolvedCompanyName = cleanDisplayName(candidateCompanyName, 'Upward')
+
         const companyLogo = tx.companyLogo || landlord?.logoUrl || ''
         const themeColor = tx.themeColor || landlord?.themeColor || '#B65B37'
-        const candidateCompanyName = tx.companyName || ((landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.paymentRequest?.subaccount?.businessName))
-        const resolvedCompanyName = cleanDisplayName(candidateCompanyName, 'Upward')
 
         const isManual = tx.isManual || tx.reference?.startsWith('MNL-') || tx.paymentType?.toLowerCase().includes('manual') || tx.paymentType?.toLowerCase().includes('bank transfer')
         const channel = isManual ? 'Bank Transfer (Manual)' : (tx.channel || tx.paymentType || 'Paystack')

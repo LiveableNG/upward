@@ -28,12 +28,18 @@ export class GenerateReceiptPdfUseCase {
       enriched.paidAt = new Date(enriched.paidAt)
     }
 
-    const txWithBranding = enriched.reference
+    const txWithBranding: any = enriched.reference
       ? await this.prisma.upward_transaction.findFirst({
           where: { reference: enriched.reference },
           include: {
             paymentRequest: {
               include: {
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
                 pmPaymentRequests: {
                   include: {
                     pm: {
@@ -50,6 +56,13 @@ export class GenerateReceiptPdfUseCase {
                     location: true,
                     company: true,
                     manager: true,
+                    manualAccount: true,
+                    subaccount: {
+                      include: {
+                        savedLandlords: true,
+                      },
+                    },
+                    dedicatedAccounts: true,
                     pm: {
                       include: {
                         emailSetting: true,
@@ -72,6 +85,13 @@ export class GenerateReceiptPdfUseCase {
                     location: true,
                     company: true,
                     manager: true,
+                    manualAccount: true,
+                    subaccount: {
+                      include: {
+                        savedLandlords: true,
+                      },
+                    },
+                    dedicatedAccounts: true,
                     pm: {
                       include: {
                         emailSetting: true,
@@ -94,6 +114,13 @@ export class GenerateReceiptPdfUseCase {
                     location: true,
                     company: true,
                     manager: true,
+                    manualAccount: true,
+                    subaccount: {
+                      include: {
+                        savedLandlords: true,
+                      },
+                    },
+                    dedicatedAccounts: true,
                     pm: {
                       include: {
                         emailSetting: true,
@@ -117,7 +144,7 @@ export class GenerateReceiptPdfUseCase {
       throw new BadRequestException('Receipt cannot be generated for payments pending review or refund')
     }
 
-    const prop = (txWithBranding?.paymentRequest?.userProperty as any)
+    const prop: any = (txWithBranding?.paymentRequest?.userProperty as any)
       || (txWithBranding?.proof?.userProperty as any)
       || (txWithBranding?.tenancyPeriod?.userProperty as any)
       || (enriched.userPropertyId
@@ -127,6 +154,13 @@ export class GenerateReceiptPdfUseCase {
                 location: true,
                 company: true,
                 manager: true,
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
                 pm: {
                   include: {
                     emailSetting: true,
@@ -148,6 +182,13 @@ export class GenerateReceiptPdfUseCase {
                 location: true,
                 company: true,
                 manager: true,
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
                 pm: {
                   include: {
                     emailSetting: true,
@@ -299,6 +340,46 @@ export class GenerateReceiptPdfUseCase {
           companyName = `${first} ${last}`.trim()
         }
       }
+
+      const pr: any = txWithBranding?.paymentRequest
+
+      if (!companyName || companyName === 'Upward') {
+        const manualAcc = prop.manualAccount?.accountName || pr?.manualAccount?.accountName
+        if (manualAcc) {
+          const dec = manualAcc.includes(':') ? this.encryption.decrypt(manualAcc) : manualAcc
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+      if (!companyName || companyName === 'Upward') {
+        const subacc = prop.subaccount?.businessName || pr?.subaccount?.businessName
+        if (subacc) {
+          const dec = subacc.includes(':') ? this.encryption.decrypt(subacc) : subacc
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+      if (!companyName || companyName === 'Upward') {
+        const savedL = prop.subaccount?.savedLandlords?.[0]?.name || prop.subaccount?.savedLandlords?.[0]?.accountName || pr?.subaccount?.savedLandlords?.[0]?.name || pr?.subaccount?.savedLandlords?.[0]?.accountName
+        if (savedL) {
+          const dec = savedL.includes(':') ? this.encryption.decrypt(savedL) : savedL
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+      if (!companyName || companyName === 'Upward') {
+        const dvaAcc = prop.dedicatedAccounts?.[0]?.accountName
+        if (dvaAcc) {
+          const dec = dvaAcc.includes(':') ? this.encryption.decrypt(dvaAcc) : dvaAcc
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+
       enriched.brandName = companyName
 
       if (pm) {
@@ -339,6 +420,24 @@ export class GenerateReceiptPdfUseCase {
           const last = pm.lastName?.includes(':') ? this.encryption.decrypt(pm.lastName) : pm.lastName
           if (first && last && first !== 'account_name' && last !== 'account_name') {
             enriched.landlordName = `${first} ${last}`
+          }
+        } else if (prop.manualAccount?.accountName || pr?.manualAccount?.accountName) {
+          const manualAcc = prop.manualAccount?.accountName || pr?.manualAccount?.accountName
+          const decrypted = manualAcc.includes(':') ? this.encryption.decrypt(manualAcc) : manualAcc
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
+          }
+        } else if (prop.subaccount?.businessName || pr?.subaccount?.businessName) {
+          const subacc = prop.subaccount?.businessName || pr?.subaccount?.businessName
+          const decrypted = subacc.includes(':') ? this.encryption.decrypt(subacc) : subacc
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
+          }
+        } else if (prop.dedicatedAccounts?.[0]?.accountName) {
+          const dvaAcc = prop.dedicatedAccounts[0].accountName
+          const decrypted = dvaAcc.includes(':') ? this.encryption.decrypt(dvaAcc) : dvaAcc
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
           }
         }
       }
