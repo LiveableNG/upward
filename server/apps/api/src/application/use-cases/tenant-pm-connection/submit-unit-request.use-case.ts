@@ -61,6 +61,12 @@ export class SubmitUnitRequestUseCase {
     paymentDetails?: PaymentDetails,
     companyUuid?: string,
     managerUuid?: string,
+    onboardingProof?: {
+      url: string;
+      fileName: string;
+      fileType?: string;
+      fileSize?: number;
+    },
   ) {
 
     const fullUser = await this.prisma.upward_user.findUnique({
@@ -197,6 +203,7 @@ export class SubmitUnitRequestUseCase {
             userEmail: fullUser.email,
             userPhone: fullUser.phone || null,
             unitDetails: unitDetails,
+            onboardingProof: onboardingProof || null,
           }
         });
 
@@ -208,7 +215,7 @@ export class SubmitUnitRequestUseCase {
             message: `${decryptedFirstName} ${decryptedLastName} wants to connect and sync their unit (${unitDetails.address}) with you.`,
             type: 'TENANT_REQUEST',
             isPopup: false,
-            url: '/dashboard',
+            url: '/requests',
           }
         });
 
@@ -402,25 +409,37 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
-    // Record initial offline payment entry if initialAmountPaid > 0 (marked PENDING_APPROVAL until PM verifies)
-    if (savedProperty?.id && rentalState.initialAmountPaid > 0) {
-      const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
-        where: { userPropertyId: savedProperty.id, notes: 'Initial Onboarding Payment' }
-      });
-      if (!existingRecord) {
-        await this.prisma.upward_platform_rent_payment.create({
-          data: {
-            userPropertyId: savedProperty.id,
-            amount: rentalState.initialAmountPaid,
-            rentAmountAtPayment: unitDetails.rentAmount,
-            paymentDate: new Date(),
-            method: 'INITIAL_ONBOARDING',
-            status: 'PENDING_APPROVAL',
-            notes: 'Initial Onboarding Payment',
-            periodStart: new Date(unitDetails.rentStartDate),
-            periodEnd: new Date(unitDetails.rentEndDate),
-          }
-        }).catch((e: any) => this.logger.warn(`Failed to record platform rent payment: ${e.message}`));
+    // ── Create upward_tenant_join_request with onboarding proof evidence (no payment records created) ──
+    let joinRequest: any = null;
+    if (pm?.id) {
+      try {
+        if ((this.prisma as any).upward_tenant_join_request) {
+          joinRequest = await (this.prisma as any).upward_tenant_join_request.create({
+            data: {
+              ownerPmId: pm.id,
+              userId: fullUser.id,
+              userPropertyId: savedProperty.id,
+              status: 'PENDING',
+              address: unitDetails.address,
+              area: unitDetails.area,
+              subarea: unitDetails.subarea || null,
+              state: unitDetails.state,
+              country: unitDetails.country || 'Nigeria',
+              rentAmount: unitDetails.rentAmount,
+              rentType: unitDetails.rentType || 'Annually',
+              rentStartDate: new Date(unitDetails.rentStartDate),
+              rentEndDate: new Date(unitDetails.rentEndDate),
+              tenancyStatus: unitDetails.tenancyStatus || 'NEW_CYCLE',
+              initialAmountPaid: unitDetails.initialAmountPaid || 0,
+              onboardingProofUrl: onboardingProof?.url || null,
+              onboardingProofFileName: onboardingProof?.fileName || null,
+              onboardingProofFileType: onboardingProof?.fileType || null,
+              onboardingProofFileSize: onboardingProof?.fileSize || null,
+            },
+          });
+        }
+      } catch (err: any) {
+        this.logger.warn(`Failed to create upward_tenant_join_request: ${err.message}`);
       }
     }
 

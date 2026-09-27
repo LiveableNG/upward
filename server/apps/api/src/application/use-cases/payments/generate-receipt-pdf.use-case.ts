@@ -28,20 +28,26 @@ export class GenerateReceiptPdfUseCase {
       enriched.paidAt = new Date(enriched.paidAt)
     }
 
-    const txWithBranding = enriched.reference
+    const txWithBranding: any = enriched.reference
       ? await this.prisma.upward_transaction.findFirst({
           where: { reference: enriched.reference },
           include: {
             paymentRequest: {
               include: {
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
                 pmPaymentRequests: {
                   include: {
                     pm: {
                       include: {
                         emailSetting: true,
                         receiptSetting: true,
-                      }
-                    }
+                      },
+                    },
                   },
                   take: 1,
                 },
@@ -50,11 +56,87 @@ export class GenerateReceiptPdfUseCase {
                     location: true,
                     company: true,
                     manager: true,
-                  }
-                }
-              }
-            }
-          }
+                    manualAccount: true,
+                    subaccount: {
+                      include: {
+                        savedLandlords: true,
+                      },
+                    },
+                    dedicatedAccounts: true,
+                    pm: {
+                      include: {
+                        emailSetting: true,
+                        receiptSetting: true,
+                      },
+                    },
+                    pmUnit: {
+                      include: {
+                        property: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            proof: {
+              include: {
+                userProperty: {
+                  include: {
+                    location: true,
+                    company: true,
+                    manager: true,
+                    manualAccount: true,
+                    subaccount: {
+                      include: {
+                        savedLandlords: true,
+                      },
+                    },
+                    dedicatedAccounts: true,
+                    pm: {
+                      include: {
+                        emailSetting: true,
+                        receiptSetting: true,
+                      },
+                    },
+                    pmUnit: {
+                      include: {
+                        property: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            tenancyPeriod: {
+              include: {
+                userProperty: {
+                  include: {
+                    location: true,
+                    company: true,
+                    manager: true,
+                    manualAccount: true,
+                    subaccount: {
+                      include: {
+                        savedLandlords: true,
+                      },
+                    },
+                    dedicatedAccounts: true,
+                    pm: {
+                      include: {
+                        emailSetting: true,
+                        receiptSetting: true,
+                      },
+                    },
+                    pmUnit: {
+                      include: {
+                        property: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         })
       : null
 
@@ -62,7 +144,9 @@ export class GenerateReceiptPdfUseCase {
       throw new BadRequestException('Receipt cannot be generated for payments pending review or refund')
     }
 
-    const prop = (txWithBranding?.paymentRequest?.userProperty as any)
+    const prop: any = (txWithBranding?.paymentRequest?.userProperty as any)
+      || (txWithBranding?.proof?.userProperty as any)
+      || (txWithBranding?.tenancyPeriod?.userProperty as any)
       || (enriched.userPropertyId
           ? await this.prisma.upward_user_property.findUnique({
               where: { id: Number(enriched.userPropertyId) },
@@ -70,7 +154,54 @@ export class GenerateReceiptPdfUseCase {
                 location: true,
                 company: true,
                 manager: true,
-              }
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
+                pm: {
+                  include: {
+                    emailSetting: true,
+                    receiptSetting: true,
+                  },
+                },
+                pmUnit: {
+                  include: {
+                    property: true,
+                  },
+                },
+              },
+            })
+          : null)
+      || (txWithBranding?.userId
+          ? await this.prisma.upward_user_property.findFirst({
+              where: { userId: txWithBranding.userId },
+              include: {
+                location: true,
+                company: true,
+                manager: true,
+                manualAccount: true,
+                subaccount: {
+                  include: {
+                    savedLandlords: true,
+                  },
+                },
+                dedicatedAccounts: true,
+                pm: {
+                  include: {
+                    emailSetting: true,
+                    receiptSetting: true,
+                  },
+                },
+                pmUnit: {
+                  include: {
+                    property: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: 'desc' },
             })
           : null) as any
 
@@ -81,6 +212,11 @@ export class GenerateReceiptPdfUseCase {
       enriched.rentStartDate = snapshotStart
       enriched.rentEndDate = snapshotEnd
       enriched.tenancyPeriod = `${new Date(snapshotStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(snapshotEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    }
+
+    const isManual = txWithBranding?.isManual || txWithBranding?.reference?.startsWith('MNL-') || enriched.channel?.toLowerCase().includes('manual')
+    if (isManual) {
+      enriched.channel = 'Bank Transfer (Manual)'
     }
 
     const hasSnapshotAmounts = (txWithBranding as any)?.totalInvoiceAmount !== null && (txWithBranding as any)?.totalInvoiceAmount !== undefined
@@ -127,12 +263,19 @@ export class GenerateReceiptPdfUseCase {
           enriched.status = 'PAID'
         }
       }
+    } else if (prop) {
+      enriched.rentAmount = prop.rentAmount || txWithBranding?.amount || enriched.amount
+      enriched.totalInvoiceAmount = prop.rentAmount || txWithBranding?.amount || enriched.amount
+      enriched.totalPaidToDate = prop.amountPaid || txWithBranding?.amount || enriched.amount
+      enriched.remainingBalance = prop.amountRemaining ?? 0
+      enriched.isPartial = (prop.amountRemaining ?? 0) > 0
+      enriched.status = enriched.isPartial ? 'PARTIAL' : 'PAID'
     }
 
     if (prop) {
-      let pm: any = (txWithBranding?.paymentRequest as any)?.pmPaymentRequests?.[0]?.pm
+      let pm: any = (txWithBranding?.paymentRequest as any)?.pmPaymentRequests?.[0]?.pm || prop.pm
 
-      if (!pm && prop) {
+      if (!pm) {
         let pmIdToFind = prop.pmId
         if (!pmIdToFind && prop.pmUnitId) {
           const pmUnit = await this.prisma.upward_pm_unit.findUnique({
@@ -159,20 +302,29 @@ export class GenerateReceiptPdfUseCase {
       }
 
       const loc = prop.location
-      const addressParts = [loc?.address || loc?.area, loc?.state, loc?.country].filter(Boolean)
+      const pmProp = prop.pmUnit?.property
+      const addressParts = [
+        prop.pmUnit?.unitName,
+        loc?.address || pmProp?.address || loc?.area,
+        loc?.subarea,
+        loc?.area,
+        loc?.state,
+      ].filter(Boolean)
       if (addressParts.length > 0) {
         enriched.propertyAddress = addressParts.join(', ')
+      } else if (txWithBranding?.propertyAddress) {
+        enriched.propertyAddress = txWithBranding.propertyAddress
       }
 
       let companyName = 'Upward'
       if (pm?.businessName) {
         const decrypted = pm.businessName.includes(':') ? this.encryption.decrypt(pm.businessName) : pm.businessName
-        if (decrypted && decrypted !== 'account_name') {
+        if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
           companyName = decrypted
         }
       } else if (prop.company?.name && prop.company.name !== 'account_name') {
         const decrypted = prop.company.name.includes(':') ? this.encryption.decrypt(prop.company.name) : prop.company.name
-        if (decrypted && decrypted !== 'account_name') {
+        if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
           companyName = decrypted
         }
       } else if (prop.manager) {
@@ -181,7 +333,53 @@ export class GenerateReceiptPdfUseCase {
         if (first !== 'account_name' && last !== 'account_name') {
           companyName = `${first} ${last}`.trim()
         }
+      } else if (pm) {
+        const first = pm.firstName?.includes(':') ? this.encryption.decrypt(pm.firstName) : pm.firstName
+        const last = pm.lastName?.includes(':') ? this.encryption.decrypt(pm.lastName) : pm.lastName
+        if (first && last && first !== 'account_name' && last !== 'account_name') {
+          companyName = `${first} ${last}`.trim()
+        }
       }
+
+      const pr: any = txWithBranding?.paymentRequest
+
+      if (!companyName || companyName === 'Upward') {
+        const manualAcc = prop.manualAccount?.accountName || pr?.manualAccount?.accountName
+        if (manualAcc) {
+          const dec = manualAcc.includes(':') ? this.encryption.decrypt(manualAcc) : manualAcc
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+      if (!companyName || companyName === 'Upward') {
+        const subacc = prop.subaccount?.businessName || pr?.subaccount?.businessName
+        if (subacc) {
+          const dec = subacc.includes(':') ? this.encryption.decrypt(subacc) : subacc
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+      if (!companyName || companyName === 'Upward') {
+        const savedL = prop.subaccount?.savedLandlords?.[0]?.name || prop.subaccount?.savedLandlords?.[0]?.accountName || pr?.subaccount?.savedLandlords?.[0]?.name || pr?.subaccount?.savedLandlords?.[0]?.accountName
+        if (savedL) {
+          const dec = savedL.includes(':') ? this.encryption.decrypt(savedL) : savedL
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+      if (!companyName || companyName === 'Upward') {
+        const dvaAcc = prop.dedicatedAccounts?.[0]?.accountName
+        if (dvaAcc) {
+          const dec = dvaAcc.includes(':') ? this.encryption.decrypt(dvaAcc) : dvaAcc
+          if (dec && dec !== 'account_name' && !dec.toLowerCase().includes('manual rent')) {
+            companyName = dec
+          }
+        }
+      }
+
       enriched.brandName = companyName
 
       if (pm) {
@@ -200,10 +398,15 @@ export class GenerateReceiptPdfUseCase {
         enriched.logoUrl = prop.company.logoUrl
       }
 
-      if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment')) {
-        if (prop.company?.name && prop.company.name !== 'account_name') {
+      if (!enriched.landlordName || enriched.landlordName === 'account_name' || enriched.landlordName.toLowerCase().includes('rent payment') || enriched.landlordName.toLowerCase().includes('manual')) {
+        if (pm?.businessName) {
+          const decrypted = pm.businessName.includes(':') ? this.encryption.decrypt(pm.businessName) : pm.businessName
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
+          }
+        } else if (prop.company?.name && prop.company.name !== 'account_name') {
           const decrypted = prop.company.name.includes(':') ? this.encryption.decrypt(prop.company.name) : prop.company.name
-          if (decrypted && decrypted !== 'account_name') {
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
             enriched.landlordName = decrypted
           }
         } else if (prop.manager) {
@@ -211,6 +414,30 @@ export class GenerateReceiptPdfUseCase {
           const last = prop.manager.lastName?.includes(':') ? this.encryption.decrypt(prop.manager.lastName) : prop.manager.lastName
           if (first !== 'account_name' && last !== 'account_name') {
             enriched.landlordName = `${first} ${last}`
+          }
+        } else if (pm) {
+          const first = pm.firstName?.includes(':') ? this.encryption.decrypt(pm.firstName) : pm.firstName
+          const last = pm.lastName?.includes(':') ? this.encryption.decrypt(pm.lastName) : pm.lastName
+          if (first && last && first !== 'account_name' && last !== 'account_name') {
+            enriched.landlordName = `${first} ${last}`
+          }
+        } else if (prop.manualAccount?.accountName || pr?.manualAccount?.accountName) {
+          const manualAcc = prop.manualAccount?.accountName || pr?.manualAccount?.accountName
+          const decrypted = manualAcc.includes(':') ? this.encryption.decrypt(manualAcc) : manualAcc
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
+          }
+        } else if (prop.subaccount?.businessName || pr?.subaccount?.businessName) {
+          const subacc = prop.subaccount?.businessName || pr?.subaccount?.businessName
+          const decrypted = subacc.includes(':') ? this.encryption.decrypt(subacc) : subacc
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
+          }
+        } else if (prop.dedicatedAccounts?.[0]?.accountName) {
+          const dvaAcc = prop.dedicatedAccounts[0].accountName
+          const decrypted = dvaAcc.includes(':') ? this.encryption.decrypt(dvaAcc) : dvaAcc
+          if (decrypted && decrypted !== 'account_name' && !decrypted.toLowerCase().includes('manual rent')) {
+            enriched.landlordName = decrypted
           }
         }
       }
@@ -223,14 +450,15 @@ export class GenerateReceiptPdfUseCase {
       }
     }
 
-    if (!enriched.landlordName || enriched.landlordName.toLowerCase().includes('rent payment') || enriched.landlordName === 'account_name') {
-      if (enriched.companyName && enriched.companyName !== 'account_name') enriched.landlordName = enriched.companyName
+    if (!enriched.landlordName || enriched.landlordName.toLowerCase().includes('rent payment') || enriched.landlordName.toLowerCase().includes('manual') || enriched.landlordName === 'account_name') {
+      if (enriched.companyName && enriched.companyName !== 'account_name' && !enriched.companyName.toLowerCase().includes('manual')) enriched.landlordName = enriched.companyName
       else if (enriched.managerName && enriched.managerName !== 'account_name') enriched.landlordName = enriched.managerName
       else enriched.landlordName = 'Property Manager'
     }
 
-    if (!enriched.propertyAddress || enriched.propertyAddress.toLowerCase().includes('upward')) {
+    if (!enriched.propertyAddress || enriched.propertyAddress.toLowerCase().includes('upward') || enriched.propertyAddress === 'Address not specified') {
       if (enriched.propertyName) enriched.propertyAddress = enriched.propertyName
+      else if (txWithBranding?.propertyAddress) enriched.propertyAddress = txWithBranding.propertyAddress
     }
 
     return this.receiptService.generateReceiptPdf(enriched)

@@ -37,6 +37,7 @@ export class GetPendingManualPaymentsUseCase {
         },
         paymentRequest: {
           include: {
+            lineItemRecords: true,
             userProperty: {
               include: {
                 user: { select: { firstName: true, lastName: true, email: true } },

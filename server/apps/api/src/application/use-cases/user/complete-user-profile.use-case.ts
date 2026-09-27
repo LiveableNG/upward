@@ -57,6 +57,12 @@ export class CompleteUserProfileUseCase {
     if (dto.phone && !/^\+?\d{7,15}$/.test(dto.phone.replace(/[\s\-\(\)]/g, ''))) {
       throw new Error('Phone number must be a valid international phone number');
     }
+    if (dto.dateOfBirth) {
+      const parsedDob = new Date(dto.dateOfBirth);
+      if (isNaN(parsedDob.getTime()) || parsedDob > new Date()) {
+        throw new Error('Date of birth cannot be in the future');
+      }
+    }
     const waitlistEntry = await this.waitlistRepository.findByEmail(dto.email)
 
     let passwordHash: string | undefined

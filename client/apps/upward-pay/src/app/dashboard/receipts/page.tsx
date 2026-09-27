@@ -88,7 +88,18 @@ export default function ReceiptsPage() {
         const cleanDisplayName = (name?: string | null, fallback = 'Upward') => {
           if (!name) return fallback
           const trimmed = name.trim()
-          if (trimmed === 'account_name' || trimmed === 'accountName') return fallback
+          const lower = trimmed.toLowerCase()
+          if (
+            lower === 'account_name' ||
+            lower === 'accountname' ||
+            lower === 'manual rent payment' ||
+            lower === 'manual payment' ||
+            lower === 'rent payment' ||
+            lower === 'property payment' ||
+            lower === 'rent'
+          ) {
+            return fallback
+          }
           if (trimmed.includes(':') && /^[0-9a-fA-F]{16,}:/.test(trimmed)) {
             return fallback
           }
@@ -98,10 +109,24 @@ export default function ReceiptsPage() {
           return trimmed
         }
 
+        const candidateCompanyName =
+          tx.companyName ||
+          ((landlord?.accountName && landlord.accountName !== 'account_name')
+            ? landlord.accountName
+            : (landlord?.name ||
+               tx.paymentRequest?.companyName ||
+               tx.paymentRequest?.managerName ||
+               tx.paymentRequest?.subaccount?.businessName ||
+               tx.paymentRequest?.manualAccount?.accountName ||
+               tx.property?.manualAccount?.accountName ||
+               tx.property?.accountName))
+        const resolvedCompanyName = cleanDisplayName(candidateCompanyName, 'Upward')
+
         const companyLogo = tx.companyLogo || landlord?.logoUrl || ''
         const themeColor = tx.themeColor || landlord?.themeColor || '#B65B37'
-        const candidateCompanyName = tx.companyName || ((landlord?.accountName && landlord.accountName !== 'account_name') ? landlord.accountName : (landlord?.name || tx.paymentRequest?.companyName || tx.paymentRequest?.managerName || tx.paymentRequest?.subaccount?.businessName || tx.narration))
-        const resolvedCompanyName = cleanDisplayName(candidateCompanyName, 'Upward')
+
+        const isManual = tx.isManual || tx.reference?.startsWith('MNL-') || tx.paymentType?.toLowerCase().includes('manual') || tx.paymentType?.toLowerCase().includes('bank transfer')
+        const channel = isManual ? 'Bank Transfer (Manual)' : (tx.channel || tx.paymentType || 'Paystack')
 
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
@@ -114,11 +139,11 @@ export default function ReceiptsPage() {
           companyName: resolvedCompanyName,
           companyLogo,
           themeColor,
-          paymentType: tx.paymentType || 'Rent Payment',
+          paymentType: tx.paymentType || (isManual ? 'Bank Transfer (Manual)' : 'Rent Payment'),
           propertyAddress: tx.propertyAddress || propertyAddress,
           amount: tx.amount,
           currency: tx.currency || 'NGN',
-          channel: tx.channel || 'Paystack',
+          channel,
           paystackReference: tx.reference,
           type: 'debit',
           status: isPartial ? 'PARTIAL' : (tx.status === 'SUCCESS' ? 'PAID' : (tx.paymentRequest?.status || 'PENDING')),

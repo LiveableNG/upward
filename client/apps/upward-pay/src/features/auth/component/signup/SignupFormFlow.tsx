@@ -29,6 +29,7 @@ import { setCookie } from '@/lib/cookie-utils'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
+import { isValidEmail } from '@/lib/utils'
 
 interface SignupFormFlowProps {
   onBackToWelcome: () => void
@@ -106,7 +107,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     setIsWaitlist(false)
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
 
-    if (identifier && (identifierType === 'phone' ? identifier.length >= 10 : (identifier.includes('@') && identifier.length > 5))) {
+    if (identifier && (identifierType === 'phone' ? identifier.length >= 10 : isValidEmail(identifier))) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
         setIsCheckingEmail(true)
@@ -130,6 +131,13 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLocalError('')
+
+    if (identifierType === 'email') {
+      if (!isValidEmail(email)) {
+        setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+        return
+      }
+    }
 
     if (emailExists && !isInvited && !isWaitlist) {
       setShowExistsModal(true)
@@ -166,6 +174,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   }
 
   const handleInviteProceed = async () => {
+    if (identifierType === 'email' && !isValidEmail(email)) {
+      setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+      return
+    }
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     setIsRequestingOTP(true)
     try {
@@ -181,6 +193,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
 
   const handleWaitlistProceed = async () => {
+    if (identifierType === 'email' && !isValidEmail(email)) {
+      setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+      return
+    }
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     setIsRequestingOTP(true)
     try {
@@ -359,6 +375,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
+                  pattern="^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
+                  title="Please enter a valid email address with a domain (e.g. name@example.com)"
                   required={identifierType === 'email'}
                 />
                 {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}

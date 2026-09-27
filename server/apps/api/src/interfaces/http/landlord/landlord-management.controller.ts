@@ -254,6 +254,9 @@ export class LandlordManagementController {
         offlineAmount?: number;
         platformPaymentIds?: number[];
       };
+      receiptDecision?: 'APPROVED' | 'REJECTED';
+      timeliness?: 'ON_TIME' | 'LATE';
+      rejectionReason?: string;
     }
   ) {
     const pmId = await this.getElevatedPmId(req);
@@ -271,6 +274,9 @@ export class LandlordManagementController {
       body.joinRequestUuid,
       body.pmAcknowledgedAmountPaid,
       body.breakdown,
+      body.receiptDecision,
+      body.timeliness,
+      body.rejectionReason,
     );
   }
 

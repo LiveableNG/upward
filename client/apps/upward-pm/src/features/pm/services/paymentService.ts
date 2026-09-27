@@ -199,10 +199,16 @@ export const getPendingManualPayments = () => {
   return request<any[]>('/payments/manual/proof')
 }
 
-export const reviewManualPayment = (id: string, status: 'APPROVED' | 'REJECTED', remarks?: string) => {
+export const reviewManualPayment = (
+  id: string,
+  status: 'APPROVED' | 'REJECTED',
+  remarks?: string,
+  amount?: number,
+  lineItems?: any[]
+) => {
   return request<{ success: boolean; message: string }>(`/payments/manual/proof/${id}/review`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, remarks })
+    body: JSON.stringify({ status, remarks, amount, lineItems })
   })
 }
 

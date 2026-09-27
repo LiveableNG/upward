@@ -77,6 +77,9 @@ export const useTenantActions = () => {
         offlineAmount?: number;
         platformPaymentIds?: number[];
       };
+      receiptDecision?: 'APPROVED' | 'REJECTED';
+      timeliness?: 'ON_TIME' | 'LATE';
+      rejectionReason?: string;
       customSuccessMessage?: string;
     }) => {
       await tenantService.assignTenant(tenantUuid, unitUuid, rentDetails)

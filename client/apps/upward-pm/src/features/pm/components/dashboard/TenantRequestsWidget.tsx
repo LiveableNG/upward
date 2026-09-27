@@ -158,6 +158,7 @@ export function TenantRequestsWidget() {
             platformActivity: selectedRequest.platformActivity,
             activePaymentRequest: selectedRequest.activePaymentRequest,
             paymentDestinationAudit: selectedRequest.paymentDestinationAudit,
+            onboardingProof: selectedRequest.onboardingProof,
           }}
         />
       )}

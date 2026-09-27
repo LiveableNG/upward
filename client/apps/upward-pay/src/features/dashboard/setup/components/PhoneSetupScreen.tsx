@@ -54,6 +54,10 @@ export function PhoneSetupScreen() {
       if (!dateOfBirth) {
         throw new Error('Please enter your date of birth.')
       }
+      const dobDate = new Date(dateOfBirth)
+      if (isNaN(dobDate.getTime()) || dobDate > new Date()) {
+        throw new Error('Date of birth cannot be in the future.')
+      }
 
       await api.updateProfile({
         ...(firstName.trim() ? { firstName: firstName.trim() } : {}),

@@ -137,6 +137,7 @@ export function InsuranceEnrolmentForm({
           <div className="pay-flow__input-wrap">
             <input
               type="date"
+              max={new Date().toISOString().split('T')[0]}
               value={form.dateOfBirth}
               onChange={(e) => update('dateOfBirth', e.target.value)}
             />

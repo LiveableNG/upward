@@ -59,6 +59,7 @@ export interface Unit {
   unitType?: string
   rentAmountPaid?: number
   isFullyPaid?: boolean
+  timeliness?: 'ON_TIME' | 'LATE'
   rentReminderEnabled: boolean
   rentReminderDaysBefore?: number
 

@@ -97,6 +97,9 @@ export const tenantService = {
       offlineAmount?: number;
       platformPaymentIds?: number[];
     };
+    receiptDecision?: 'APPROVED' | 'REJECTED';
+    timeliness?: 'ON_TIME' | 'LATE';
+    rejectionReason?: string;
   }) => {
     return request<void>(`/pm/tenants/${tenantUuid}/assign`, {
       method: 'POST',

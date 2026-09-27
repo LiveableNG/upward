@@ -176,6 +176,12 @@ export class UserAuthService extends BaseAuthService {
     if (dto.phone && !/^\+?\d{7,15}$/.test(dto.phone.replace(/[\s\-\(\)]/g, ''))) {
       throw new Error('Phone number must be a valid international phone number');
     }
+    if (dto.dateOfBirth) {
+      const parsed = new Date(dto.dateOfBirth);
+      if (isNaN(parsed.getTime()) || parsed > new Date()) {
+        throw new BadRequestException('Invalid date of birth. Date of birth cannot be in the future.');
+      }
+    }
     let existing = await this.userRepository.findByEmail(dto.email)
 
     if (!existing && dto.phone) {
@@ -578,6 +584,12 @@ export class UserAuthService extends BaseAuthService {
 
     if (data.phone && !/^\+?\d{7,15}$/.test(data.phone.replace(/[\s\-\(\)]/g, ''))) {
       throw new Error('Phone number must be a valid international phone number');
+    }
+    if (data.dateOfBirth) {
+      const parsed = new Date(data.dateOfBirth);
+      if (isNaN(parsed.getTime()) || parsed > new Date()) {
+        throw new BadRequestException('Invalid date of birth. Date of birth cannot be in the future.');
+      }
     }
 
     await this.userRepository.update(user.id!, data as any)

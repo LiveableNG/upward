@@ -380,6 +380,10 @@ export class ExternalPaymentRequestPayloadDto {
 
   @IsOptional()
   @IsString()
+  inheritedTimeliness?: string
+
+  @IsOptional()
+  @IsString()
   recurrenceInterval?: string
 
   @IsOptional()
