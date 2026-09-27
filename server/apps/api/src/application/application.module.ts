@@ -182,6 +182,8 @@ import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-c
 import { SingleInviteUseCase } from './use-cases/external/single-invite.use-case'
 import { GenerateKYCReportPdfUseCase } from './use-cases/user/generate-kyc-report-pdf.use-case'
 import { RequestDataDeletionUseCase } from './use-cases/user/request-data-deletion.use-case'
+import { DeleteUserAccountUseCase } from './use-cases/user/delete-user-account.use-case'
+import { RequestDeleteAccountOtpUseCase } from './use-cases/user/request-delete-account-otp.use-case'
 import { CreatePlatformUseCase } from './use-cases/platform/create-platform.use-case'
 import { CreateExternalPaymentRequestUseCase } from './use-cases/external/create-payment-request.use-case'
 import { GetPublicPaymentDetailsUseCase } from './use-cases/external/get-public-payment.use-case'
@@ -777,6 +779,8 @@ const UseCases: any[] = [
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,
+  DeleteUserAccountUseCase,
+  RequestDeleteAccountOtpUseCase,
   SubmitFeedbackUseCase,
   GetFeedbackAdminUseCase,
   GetFeedbackStatsAdminUseCase,

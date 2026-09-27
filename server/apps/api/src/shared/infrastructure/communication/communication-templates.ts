@@ -351,6 +351,10 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
           title: 'Claim Your Waitlist Spot',
           message: 'Use the code below to verify your email and claim your spot on the Upward waitlist.',
         },
+        DELETE_ACCOUNT: {
+          title: 'Confirm Account Deletion',
+          message: 'You requested to permanently delete your Upward account. Use the verification code below to confirm this action. If you did not make this request, please contact support and change your password immediately.',
+        },
       };
 
       const fallback = {

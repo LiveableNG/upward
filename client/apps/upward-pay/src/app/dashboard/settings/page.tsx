@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronRight, Eye, EyeOff, Lock, LogOut, MessageSquare } from 'lucide-react'
+import { ChevronRight, Eye, EyeOff, Lock, LogOut, MessageSquare, Power } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { NotificationSwitch } from '@/features/notifications/components/NotificationSwitch'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
@@ -224,13 +224,31 @@ export default function SettingsPage() {
       </section>
 
       <section className="settings-page__section profile-page__section">
+        <div className="settings-page__menu-card">
+          <button
+            type="button"
+            className="settings-page__row"
+            onClick={() => router.push('/dashboard/settings/close-account')}
+          >
+            <span className="settings-page__row-left">
+              <span className="settings-page__row-icon settings-page__row-icon--power">
+                <Power size={18} />
+              </span>
+              <span className="settings-page__row-text">
+                <span className="settings-page__row-title">close account</span>
+              </span>
+            </span>
+            <ChevronRight size={18} className="settings-page__row-chevron" />
+          </button>
+        </div>
+      </section>
+
+      <section className="settings-page__section profile-page__section">
         <button type="button" className="settings-page__sign-out" onClick={logout}>
           <LogOut size={18} />
           Sign out
         </button>
       </section>
-
-
     </PayPageShell>
   )
 }

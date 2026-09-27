@@ -16,6 +16,8 @@ export const api = {
   signup: authService.signup,
   login: authService.login,
   logout: authService.logout,
+  requestDeleteAccountOtp: authService.requestDeleteAccountOtp,
+  deleteAccount: authService.deleteAccount,
   getProfile: authService.getMe,
   updateProfile: authService.updateProfile,
   getAvatarUploadUrl: authService.getAvatarUploadUrl,
