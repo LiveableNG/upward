@@ -17,6 +17,8 @@ import { UniversityApplicationController } from './public/university-application
 import { UniversityApplicationAdminController } from './admin/university-application-admin.controller'
 import { UniversityTrafficController } from './public/university-traffic.controller'
 import { UniversityTrafficAdminController } from './admin/university-traffic-admin.controller'
+import { UniversityReferralController } from './public/university-referral.controller'
+import { UniversityReferralAdminController } from './admin/university-referral-admin.controller'
 import { LocationsController } from './public/locations.controller'
 import { UserController } from './user/user.controller'
 import { WalletController } from './user/wallet.controller'
@@ -121,6 +123,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     UniversityApplicationAdminController,
     UniversityTrafficController,
     UniversityTrafficAdminController,
+    UniversityReferralController,
+    UniversityReferralAdminController,
     LocationsController,
     UserController,
     WalletController,

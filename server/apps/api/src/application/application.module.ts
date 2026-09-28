@@ -84,6 +84,13 @@ import {
   DeleteEarlyAccessEntryUseCase,
 } from './use-cases/early-access/get-early-access-admin.use-case'
 import { SubmitUniversityApplicationUseCase } from './use-cases/university-application/submit-university-application.use-case'
+import { SubmitUniversityReferralsUseCase } from './use-cases/university-referral/submit-university-referrals.use-case'
+import {
+  GetUniversityReferralStatsUseCase,
+  GetUniversityReferralsAdminUseCase,
+  UpdateUniversityReferralAdminUseCase,
+  DeleteUniversityReferralAdminUseCase,
+} from './use-cases/university-referral/get-university-referrals-admin.use-case'
 import { SendUniversityApplicationDailyDigestUseCase } from './use-cases/university-application/send-university-application-daily-digest.use-case'
 import {
   GetUniversityApplicationStatsUseCase,
@@ -872,6 +879,11 @@ const UseCases: any[] = [
   GetEarlyAccessEntriesUseCase,
   DeleteEarlyAccessEntryUseCase,
   SubmitUniversityApplicationUseCase,
+  SubmitUniversityReferralsUseCase,
+  GetUniversityReferralStatsUseCase,
+  GetUniversityReferralsAdminUseCase,
+  UpdateUniversityReferralAdminUseCase,
+  DeleteUniversityReferralAdminUseCase,
   SendUniversityApplicationDailyDigestUseCase,
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
