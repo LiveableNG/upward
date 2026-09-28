@@ -1,5 +1,5 @@
 import { Inject, Injectable, BadRequestException } from '@nestjs/common';
-import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
+import { IUnitRepository, PM_UNIT_REPOSITORY, IPropertyRepository, PM_PROPERTY_REPOSITORY, ITenantRepository, PM_TENANT_REPOSITORY, UnitEntity } from '../../../domains/pm/IPropertyRepository';
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository';
 import { BulkCreateUnitsDto } from '../dtos/property.dto';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
@@ -8,6 +8,7 @@ import { ActivityLogService, ActivityAction } from '../../../shared/application/
 import { SyncUnitToUpwardUseCase } from './units/sync-unit.use-case';
 import { InviteTenantUseCase } from './tenants/invite-tenant.use-case';
 import { RentalPeriodService } from '../../services/rental-period.service';
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 
 function cleanAndValidatePhone(phoneStr: string, identifier: string): string {
   let cleaned = phoneStr.trim().replace(/\s+/g, '');
@@ -68,6 +69,7 @@ export class BulkCreateUnitsUseCase {
     private readonly syncUnitUseCase: SyncUnitToUpwardUseCase,
     private readonly inviteTenantUseCase: InviteTenantUseCase,
     private readonly rentalPeriodService: RentalPeriodService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(pmId: number, dto: BulkCreateUnitsDto, actor?: any) {
@@ -97,7 +99,7 @@ export class BulkCreateUnitsUseCase {
       }
     }
 
-    const unitsToCreate = [];
+    const unitsToCreate: UnitEntity[] = [];
     const createdTenantUuids: string[] = [];
     const unitsToSync: string[] = [];
 
@@ -258,7 +260,7 @@ export class BulkCreateUnitsUseCase {
           periodEnd: periodEnd,
           status: 'SUCCESS',
           method: 'Other',
-          notes: 'Imported initial payment',
+          notes: u.timeliness ? `Imported initial payment (${u.timeliness})` : 'Imported initial payment',
           tenantId: tenantId,
           reference: null
         });
@@ -305,6 +307,33 @@ export class BulkCreateUnitsUseCase {
     for (const unitUuid of unitsToSync) {
       try {
         await this.syncUnitUseCase.execute(unitUuid, pmId);
+
+        const matchedInputUnit = dto.units.find(u => {
+          const created = unitsToCreate.find(c => c.uuid === unitUuid);
+          return created && created.unitName === u.unitName;
+        });
+
+        if (matchedInputUnit?.timeliness) {
+          const freshUnit = await this.unitRepository.findByUuid(unitUuid);
+          const actualPaid = matchedInputUnit.isFullyPaid ? matchedInputUnit.rentAmount : (matchedInputUnit.rentAmountPaid || 0);
+          if (freshUnit && freshUnit.userPropertyUuid && actualPaid > 0) {
+            const userProp = await this.prisma.upward_user_property.findUnique({
+              where: { uuid: freshUnit.userPropertyUuid }
+            });
+            if (userProp) {
+              await this.rentalPeriodService.reconcileInitialRentCycle({
+                userId: userProp.userId,
+                userPropertyId: userProp.id,
+                rentAmount: freshUnit.rentAmount || actualPaid,
+                initialAmountPaid: actualPaid,
+                rentStartDate: freshUnit.rentStartDate,
+                currency: freshUnit.currency,
+                timeliness: matchedInputUnit.timeliness,
+                txClient: this.prisma,
+              });
+            }
+          }
+        }
       } catch (error) {
         console.error(`Auto-sync failed for unit ${unitUuid} during bulk create:`, error);
       }

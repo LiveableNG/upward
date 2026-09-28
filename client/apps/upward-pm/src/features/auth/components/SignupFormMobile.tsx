@@ -28,6 +28,7 @@ import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useSignup } from '../hooks/useSignup'
 import { useRequestOTP, useVerifyOTP, useOtpLogin } from '../hooks/useOtp'
 import { checkEmail } from '../services/authService'
+import { isValidEmail } from '@/lib/utils'
 import { Capacitor } from '@capacitor/core'
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js'
 import '@/styles/auth.css'
@@ -112,7 +113,7 @@ export const SignupFormMobile = () => {
 
   useEffect(() => {
     setEmailExists(false)
-    if (formData.email && formData.email.includes('@') && formData.email.length > 5) {
+    if (formData.email && isValidEmail(formData.email)) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
         setIsCheckingEmail(true)
@@ -191,8 +192,8 @@ export const SignupFormMobile = () => {
       }
       if (!formData.email.trim()) {
         nextErrors.email = 'This field is required'
-      } else if (!formData.email.includes('@')) {
-        nextErrors.email = 'Please enter a valid company email'
+      } else if (!isValidEmail(formData.email)) {
+        nextErrors.email = 'Please enter a valid company email with a valid domain (e.g. name@company.com)'
       } else if (emailExists) {
         nextErrors.email = 'This email is already registered.'
       }

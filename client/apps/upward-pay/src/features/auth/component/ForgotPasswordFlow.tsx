@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, Mail, ArrowRight, Lock, Eye, EyeOff } from 'lucide-react'
 import { api } from '@/lib/api'
 import { UpwardLogo } from '@/components/PoweredByUpward'
+import { isValidEmail } from '@/lib/utils'
 
 type Step = 'EMAIL' | 'OTP' | 'PASSWORD' | 'SUCCESS'
 
@@ -30,6 +31,10 @@ export default function ForgotPasswordFlow() {
 
   const handleSendOTP = async (e?: React.FormEvent) => {
     e?.preventDefault()
+    if (!email || !isValidEmail(email)) {
+      setError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+      return
+    }
     setLoading(true)
     setError(null)
     try {

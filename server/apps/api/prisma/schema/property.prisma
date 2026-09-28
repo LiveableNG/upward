@@ -43,6 +43,7 @@ model upward_user_property {
   rentDepositTransactions upward_rent_deposit_transaction[]
   tenancyPeriods         upward_tenancy_period[]
   contracts              upward_user_contract[]
+  tenantJoinRequests     upward_tenant_join_request[]
   company                upward_company?                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   location               upward_location?                  @relation(fields: [locationId], references: [id])
   manager                upward_manager?                   @relation(fields: [managerId], references: [id])

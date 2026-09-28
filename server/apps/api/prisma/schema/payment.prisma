@@ -94,6 +94,7 @@ model upward_payment_request {
   isRecurring        Boolean                     @default(false)
   recurrenceInterval String?
   scheduledAt        DateTime?
+  inheritedTimeliness String?                    @default("ON_TIME")
   tenancyPeriodId    Int?
   overpayments       upward_overpayment[]
   lineItemRecords    upward_payment_line_item[]

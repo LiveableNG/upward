@@ -758,4 +758,85 @@ export class RentalPeriodService {
       `Synced platform property ${property.id}: start=${activeStart.toISOString().split('T')[0]}, end=${activeEnd.toISOString().split('T')[0]}, paid=${amountPaid}, remaining=${amountRemaining}, isFirstRent=${isFirstRent}`,
     );
   }
+
+
+  async reconcileInitialRentCycle(params: {
+    userId: number;
+    userPropertyId: number;
+    rentAmount: number;
+    initialAmountPaid: number;
+    rentStartDate: Date | string | null;
+    currency?: string | null;
+    timeliness?: 'ON_TIME' | 'LATE' | null;
+    txClient?: any;
+  }): Promise<any | null> {
+    const {
+      userId,
+      userPropertyId,
+      rentAmount,
+      initialAmountPaid,
+      rentStartDate,
+      currency,
+      timeliness,
+      txClient,
+    } = params;
+
+    const prisma = txClient || this.prisma;
+    if (!prisma) {
+      throw new Error('PrismaService is required for reconcileInitialRentCycle');
+    }
+
+    if (!userId || !userPropertyId || !initialAmountPaid || initialAmountPaid <= 0 || !timeliness) {
+      return null;
+    }
+
+    const canonicalDueDate = this.parseCalendarDate(rentStartDate) || new Date();
+    const isFull = initialAmountPaid >= (rentAmount || 0) && (rentAmount || 0) > 0;
+    const cycleStatus = isFull
+      ? (timeliness === 'LATE' ? 'PAID_LATE' : 'PAID_ON_TIME')
+      : (timeliness === 'LATE' ? 'PARTIAL_LATE' : 'PARTIAL_ON_TIME');
+
+    const cyclePayload = {
+      userId,
+      userPropertyId,
+      amountOwed: (rentAmount && rentAmount > 0) ? rentAmount : initialAmountPaid,
+      amountPaid: initialAmountPaid,
+      currency: currency || 'NGN',
+      dueDate: canonicalDueDate,
+      paidAt: new Date(),
+      status: cycleStatus,
+      source: 'PM_ASSIGNMENT',
+      description: isFull
+        ? 'Initial Rent Payment (PM Verified)'
+        : 'Initial Part-Payment (PM Verified)',
+    };
+
+    const existingCycle = await prisma.upward_rent_cycle.findFirst({
+      where: {
+        userId,
+        userPropertyId,
+        paymentRequestId: null,
+      },
+    });
+
+    let resultCycle;
+    if (existingCycle) {
+      resultCycle = await prisma.upward_rent_cycle.update({
+        where: { id: existingCycle.id },
+        data: cyclePayload,
+      });
+      this.logger.log(
+        `Updated initial rent cycle #${resultCycle.id} for user ${userId}, property ${userPropertyId}, status=${cycleStatus}`,
+      );
+    } else {
+      resultCycle = await prisma.upward_rent_cycle.create({
+        data: cyclePayload,
+      });
+      this.logger.log(
+        `Created initial rent cycle #${resultCycle.id} for user ${userId}, property ${userPropertyId}, status=${cycleStatus}`,
+      );
+    }
+
+    return resultCycle;
+  }
 }

@@ -88,7 +88,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
     unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
     tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
     rentType: 'Annually', leaseYears: 1, managementFee: '', notes: '', tenantUuid: '',
-    unitType: '', rentAmountPaid: '', isFullyPaid: true
+    unitType: '', rentAmountPaid: '', isFullyPaid: true, timeliness: 'ON_TIME' as 'ON_TIME' | 'LATE'
   })
 
   const handleConfirmDelete = () => {
@@ -125,7 +125,7 @@ export function PropertiesView({ initialProperties, initialUnits }: { initialPro
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
           rentType: 'Annually', leaseYears: 1, managementFee: '', notes: '', tenantUuid: '',
-          unitType: '', rentAmountPaid: '', isFullyPaid: true
+          unitType: '', rentAmountPaid: '', isFullyPaid: true, timeliness: 'ON_TIME'
         })
         setTargetPropertyUuid('')
       },

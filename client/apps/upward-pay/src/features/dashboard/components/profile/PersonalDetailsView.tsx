@@ -55,6 +55,15 @@ export function PersonalDetailsView({
       return
     }
 
+    if (formData.dateOfBirth) {
+      const dobDate = new Date(formData.dateOfBirth)
+      const today = new Date()
+      if (isNaN(dobDate.getTime()) || dobDate > today) {
+        toastError('Date of birth cannot be in the future.')
+        return
+      }
+    }
+
     if (user.email?.endsWith('@upward.com')) {
       if (!formData.email || formData.email.trim() === '' || formData.email.endsWith('@upward.com')) {
         toastError('Please enter a valid email address to complete your profile.')
@@ -220,6 +229,7 @@ export function PersonalDetailsView({
               <input
                 id="dateOfBirth"
                 type="date"
+                max={new Date().toISOString().split('T')[0]}
                 value={formData.dateOfBirth || ''}
                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
               />

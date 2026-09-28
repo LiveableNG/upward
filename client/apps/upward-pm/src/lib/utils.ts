@@ -15,6 +15,23 @@ export function formatCurrency(amount: number, currency: string = 'NGN') {
   }).format(amount);
 }
 
+export function formatCurrencyInput(amount: number | undefined | null): string {
+  if (amount === null || amount === undefined) return '';
+  if (!Number.isFinite(amount)) return '';
+  if (amount <= 0) return '';
+  return new Intl.NumberFormat('en-NG', {
+    maximumFractionDigits: 0,
+  }).format(Math.trunc(amount));
+}
+
+export function parseCurrencyInput(value: string): number | null {
+  const digitsOnly = value.replace(/[^\d]/g, '');
+  if (!digitsOnly) return null;
+  const n = Number(digitsOnly);
+  if (!Number.isFinite(n)) return null;
+  return n;
+}
+
 export function formatTenantName(tenant?: { commercialName?: string; firstName?: string; lastName?: string }): string {
   if (!tenant) return '';
   
@@ -37,4 +54,14 @@ export function formatTenantName(tenant?: { commercialName?: string; firstName?:
 export function dedupeBanksByCode<T extends { code: string }>(banks: T[]): T[] {
   return Array.from(new Map(banks.map((b) => [b.code, b])).values());
 }
+
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+export function isValidEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const trimmed = email.trim()
+  if (trimmed.length > 254) return false
+  return EMAIL_REGEX.test(trimmed)
+}
+
 

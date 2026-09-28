@@ -120,3 +120,13 @@ export function getNetAmountFromTotal(total: number): number {
   if (total <= 2000) return 0;
   return total - 2000;
 }
+
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+export function isValidEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  const trimmed = email.trim()
+  if (trimmed.length > 254) return false
+  return EMAIL_REGEX.test(trimmed)
+}
+

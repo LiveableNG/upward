@@ -24,6 +24,8 @@ import { VerifyBvnUseCase } from '../../../application/use-cases/user/verify-bvn
 
 import { CheckSlugAvailabilityUseCase } from '../../../application/use-cases/user/check-slug-availability.use-case'
 import { AcceptTermsUseCase } from '../../../application/use-cases/user/accept-terms.use-case'
+import { DeleteUserAccountUseCase } from '../../../application/use-cases/user/delete-user-account.use-case'
+import { RequestDeleteAccountOtpUseCase } from '../../../application/use-cases/user/request-delete-account-otp.use-case'
 interface FastifyReply {
   setCookie(name: string, value: string, options: Record<string, unknown>): FastifyReply
   clearCookie(name: string, options?: Record<string, unknown>): FastifyReply
@@ -103,6 +105,8 @@ export class UserController {
     private readonly checkSlugAvailability: CheckSlugAvailabilityUseCase,
     private readonly verifyBvnUseCase: VerifyBvnUseCase,
     private readonly acceptTermsUseCase: AcceptTermsUseCase,
+    private readonly deleteUserAccountUseCase: DeleteUserAccountUseCase,
+    private readonly requestDeleteAccountOtpUseCase: RequestDeleteAccountOtpUseCase,
   ) { }
 
   @Post('signup')
@@ -454,6 +458,38 @@ export class UserController {
   async acceptTerms(@Req() req: FastifyRequest, @Body() body: { version?: string }) {
     if (!req.user?.id) throw new UnauthorizedException('No user in request');
     return this.acceptTermsUseCase.execute(req.user.id, body?.version);
+  }
+
+  @Post('delete-account/request-otp')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async requestDeleteAccountOtp(@Req() req: FastifyRequest) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request');
+    }
+    return this.requestDeleteAccountOtpUseCase.execute(req.user.id);
+  }
+
+  @Post('delete-account')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(
+    @Req() req: FastifyRequest,
+    @Body() body: { reason?: string; otp: string },
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request');
+    }
+
+    const result = await this.deleteUserAccountUseCase.execute({
+      userUuid: req.user.id,
+      reason: body?.reason,
+      otp: body?.otp,
+    });
+
+    clearUserAuthCookies(reply);
+    reply.status(HttpStatus.OK).send(result);
   }
 }
 

@@ -52,6 +52,23 @@ export async function logout() {
   return request<{ message: string }>('/user/auth/logout', { method: 'POST', body: JSON.stringify({}) })
 }
 
+export async function requestDeleteAccountOtp() {
+  return request<{ success: boolean; emailMasked: string; cooldownSeconds: number }>(
+    '/user/auth/delete-account/request-otp',
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    },
+  )
+}
+
+export async function deleteAccount(data: { reason?: string; otp: string }) {
+  return request<{ success: boolean; message: string }>('/user/auth/delete-account', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
 export async function refreshToken() {
   return request<AuthResponse>('/user/auth/refresh', { method: 'POST', body: JSON.stringify({}) })
 }

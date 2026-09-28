@@ -13,7 +13,8 @@ import {
   AlertTriangle, 
   Sparkles, 
   Lock, 
-  Info 
+  Info,
+  Clock
 } from 'lucide-react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -54,6 +55,7 @@ const tenantSchema = z.object({
   rentEndDate: z.string().optional(),
   isFullyPaid: z.boolean().optional(),
   rentAmountPaid: z.string().optional(),
+  timeliness: z.enum(['ON_TIME', 'LATE']).optional(),
 }).superRefine((data, ctx) => {
   if (data.tenantType === 'commercial') {
     if (!data.commercialName || data.commercialName.trim().length < 2) {
@@ -178,6 +180,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       rentEndDate: '',
       isFullyPaid: true,
       rentAmountPaid: '0',
+      timeliness: 'ON_TIME',
     }
   })
 
@@ -212,6 +215,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         rentEndDate: '',
         isFullyPaid: true,
         rentAmountPaid: '0',
+        timeliness: 'ON_TIME',
       })
     }
   }, [isOpen, initialData, reset])
@@ -248,7 +252,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   if (!isOpen || !mounted) return null
 
   const onSubmit = async (data: TenantFormData) => {
-    const { tenantType, unitUuid, rentAmount, rentType, leaseYears, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, ...tenantData } = data
+    const { tenantType, unitUuid, rentAmount, rentType, leaseYears, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, timeliness, ...tenantData } = data
 
     let email = tenantData.email || ''
     if (!email || email.trim() === '') {
@@ -347,6 +351,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               rentAmountPaid: effectiveAcknowledged,
               pmAcknowledgedAmountPaid: effectiveAcknowledged,
               isFullyPaid: !!isFullyPaid,
+              timeliness: timeliness || 'ON_TIME',
             }, {
               onSuccess: () => {
                 reset()
@@ -387,6 +392,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               rentAmountPaid: effectiveAcknowledged,
               pmAcknowledgedAmountPaid: effectiveAcknowledged,
               isFullyPaid: !!isFullyPaid,
+              timeliness: timeliness || 'ON_TIME',
             }, {
               onSuccess: () => {
                 reset()
@@ -921,6 +927,43 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
                 })()}
               </div>
             )}
+
+            {(watch('isFullyPaid') || (parseFloat(watch('rentAmountPaid') || '0') > 0)) && (
+              <div className="apple-timeliness-panel animate-fade-in" style={{ marginTop: 12 }}>
+                <label className="form-label" style={{ fontSize: 11, marginBottom: 6, display: 'block', fontWeight: 600 }}>
+                  Payment Timeliness Evaluation
+                </label>
+                <div className="apple-timeliness-grid">
+                  <button
+                    type="button"
+                    className={cn(
+                      "apple-timeliness-btn",
+                      watch('timeliness') === 'ON_TIME' && "apple-timeliness-btn--on-time"
+                    )}
+                    onClick={() => setValue('timeliness', 'ON_TIME')}
+                  >
+                    <Clock size={14} />
+                    <span>On-Time Payment</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "apple-timeliness-btn",
+                      watch('timeliness') === 'LATE' && "apple-timeliness-btn--late"
+                    )}
+                    onClick={() => setValue('timeliness', 'LATE')}
+                  >
+                    <AlertTriangle size={14} />
+                    <span>Late Payment</span>
+                  </button>
+                </div>
+                <p className="apple-timeliness-hint">
+                  {watch('timeliness') === 'ON_TIME'
+                    ? 'This initial payment is evaluated On-Time. The tenant builds on-time rent credibility.'
+                    : 'This initial payment was received past due. The initial cycle will reflect Late for scoring.'}
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -1133,6 +1176,54 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
           opacity: 0.5;
           cursor: not-allowed;
           background: var(--ivory-dim);
+        }
+        :global(.apple-timeliness-panel) {
+          margin-top: 10px;
+          padding: 12px 14px;
+          background: #ffffff;
+          border-radius: 10px;
+          border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+        }
+        :global(.apple-timeliness-grid) {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+        :global(.apple-timeliness-btn) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 9px 12px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          border: 1.5px solid var(--border, rgba(0, 0, 0, 0.08));
+          background: var(--ivory-dim, #fbfbfa);
+          color: var(--text-muted, #666);
+          transition: all 0.2s ease;
+        }
+        :global(.apple-timeliness-btn:hover) {
+          border-color: var(--dark, #111);
+          color: var(--dark, #111);
+          background: #ffffff;
+        }
+        :global(.apple-timeliness-btn--on-time) {
+          background: var(--forest-faint, rgba(34, 197, 94, 0.1)) !important;
+          border-color: var(--forest, #22c55e) !important;
+          color: var(--forest, #15803d) !important;
+        }
+        :global(.apple-timeliness-btn--late) {
+          background: rgba(245, 158, 11, 0.1) !important;
+          border-color: #f59e0b !important;
+          color: #b45309 !important;
+        }
+        :global(.apple-timeliness-hint) {
+          font-size: 11px;
+          color: var(--text-muted, #777);
+          margin: 8px 0 0;
+          line-height: 1.4;
         }
         .sr-only {
           position: absolute;

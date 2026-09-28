@@ -16,6 +16,8 @@ export const api = {
   signup: authService.signup,
   login: authService.login,
   logout: authService.logout,
+  requestDeleteAccountOtp: authService.requestDeleteAccountOtp,
+  deleteAccount: authService.deleteAccount,
   getProfile: authService.getMe,
   updateProfile: authService.updateProfile,
   getAvatarUploadUrl: authService.getAvatarUploadUrl,
@@ -109,12 +111,12 @@ export const api = {
   post: <T = any>(url: string, data: any) =>
     request<T>(url, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
     }),
   patch: <T = any>(url: string, data: any) =>
     request<T>(url, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
     }),
   getCredibilityPdf: () =>
     import('./api-client').then((m) => m.requestBlob('/user/credibility/pdf', { method: 'GET' })),

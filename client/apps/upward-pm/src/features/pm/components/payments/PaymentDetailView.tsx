@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter, useParams } from 'next/navigation'
 import {
   ChevronLeft,
   CreditCard,
@@ -35,7 +35,8 @@ import '@/styles/subscription-checkout.css'
 
 export const PaymentDetailView: React.FC = () => {
   const searchParams = useSearchParams()
-  const uuid = searchParams.get('uuid')
+  const params = useParams()
+  const uuid = (params?.uuid as string) || searchParams.get('uuid')
   const router = useRouter()
   const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
   const { success, error } = useToast()

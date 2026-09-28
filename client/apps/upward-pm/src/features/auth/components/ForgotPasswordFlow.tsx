@@ -17,6 +17,7 @@ import { Capacitor } from '@capacitor/core'
 import { useMutation } from '@tanstack/react-query'
 import { forgotPassword, resetPassword, verifyResetOtp } from '../services/authService'
 import { useToast } from '@/components/common/Toast'
+import { isValidEmail } from '@/lib/utils'
 
 type Step = 'EMAIL' | 'OTP' | 'PASSWORD' | 'SUCCESS'
 
@@ -84,6 +85,10 @@ export default function ForgotPasswordFlow() {
   const handleSendOTP = (e: React.FormEvent) => {
     e.preventDefault()
     if (!email) return
+    if (!isValidEmail(email)) {
+      error('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+      return
+    }
     forgotMutation.mutate(email)
   }
 

@@ -463,6 +463,19 @@ export class SingleInviteUseCase {
             }
           })
         }
+
+        if (user.id && (rentData as any).timeliness) {
+          await this.rentalPeriodService.reconcileInitialRentCycle({
+            userId: user.id,
+            userPropertyId: property.id,
+            rentAmount: rentData.rentAmount,
+            initialAmountPaid: rentalState.initialAmountPaid,
+            rentStartDate: rentalState.rentStartDate,
+            currency: (rentData as any).currency,
+            timeliness: (rentData as any).timeliness,
+            txClient: this.prisma,
+          });
+        }
       }
 
       if (propData.rentHistory && propData.rentHistory.length > 0 && property.id) {

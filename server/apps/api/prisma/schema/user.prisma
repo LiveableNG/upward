@@ -58,6 +58,7 @@ model upward_user {
   announcementStates    upward_user_announcement_state[]
   bankDetails           upward_user_bank_details?
   contracts             upward_user_contract[]
+  tenantJoinRequests    upward_tenant_join_request[]
   properties            upward_user_property[]
   wallet                upward_wallet?
   walletTransactions    upward_wallet_transaction[]

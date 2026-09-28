@@ -132,6 +132,8 @@ export class ManualPaymentsController {
       pmUuid: req.user.id,
       status: body.status, // 'APPROVED' | 'REJECTED'
       remarks: body.remarks,
+      amount: body.amount !== undefined ? Number(body.amount) : undefined,
+      lineItems: body.lineItems,
     })
   }
 }

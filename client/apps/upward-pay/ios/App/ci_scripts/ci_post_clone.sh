@@ -83,7 +83,7 @@ PAY_DIR="$REPO_ROOT/client/apps/upward-pay"
 # Run Capacitor sync for iOS
 echo "Syncing Capacitor iOS..."
 cd "$PAY_DIR"
-pnpm cap:sync || (NEXT_OUTPUT=export next build && npx cap sync ios)
+pnpm cap:sync || (NEXT_OUTPUT=export pnpm exec next build && pnpm exec cap sync ios)
 
 echo "=========================================="
 echo "  Xcode Cloud Setup Completed Successfully"

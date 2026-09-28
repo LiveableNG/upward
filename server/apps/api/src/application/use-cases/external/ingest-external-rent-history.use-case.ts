@@ -64,7 +64,7 @@ export class IngestExternalRentHistoryUseCase {
         );
       }
 
-      const dueDate = this.rentalPeriodService.parseCalendarDate(record.dueDate) || periodEnd || periodStart || paymentDate;
+      const dueDate = this.rentalPeriodService.parseCalendarDate(record.dueDate) || periodStart || periodEnd || paymentDate;
       const isPaidOnTime = paymentDate.getTime() <= dueDate.getTime();
       const status = isPaidOnTime ? 'PAID_ON_TIME' : 'PAID_LATE';
 
