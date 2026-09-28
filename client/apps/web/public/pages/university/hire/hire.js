@@ -346,7 +346,7 @@
           showFormError(errData.message || 'Submission failed. Please verify your details and try again.');
           if (hireSubmitBtn) {
             hireSubmitBtn.disabled = false;
-            hireSubmitBtn.innerHTML = '<span>Submit Talent Request →</span>';
+            hireSubmitBtn.innerHTML = '<span>Reserve Talent Pipeline →</span>';
           }
           return;
         }
@@ -389,7 +389,7 @@
             const waMsg = encodeURIComponent(
               `Hello Upward Academy Placement Team, I just submitted a talent request for ${payload.companyName} (${payload.placementType}, ${payload.openingsCount} openings in ${payload.city}). I would like to connect with your placement desk.`
             );
-            whatsappDirectBtn.href = `https://wa.me/2347069008282?text=${waMsg}`;
+            whatsappDirectBtn.href = `https://wa.me/2348175437146?text=${waMsg}`;
           }
 
           hireSuccessCard.style.display = 'block';
@@ -403,7 +403,7 @@
         showFormError('Network connection error. Please check your connection and try again.');
         if (hireSubmitBtn) {
           hireSubmitBtn.disabled = false;
-          hireSubmitBtn.innerHTML = '<span>Submit Talent Request →</span>';
+          hireSubmitBtn.innerHTML = '<span>Reserve Talent Pipeline →</span>';
         }
       }
     });

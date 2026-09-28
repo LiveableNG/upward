@@ -107,8 +107,8 @@ export function UniversityLandlordClient() {
           </Link>
 
           <div className={`uni-nav-links ${navOpen ? 'open' : ''}`}>
-            <Link href="/" className="uni-nav-home" onClick={() => setNavOpen(false)}>
-              ← Upward Home
+            <Link href="/academy/hire" onClick={() => setNavOpen(false)}>
+              Hire Talent
             </Link>
             <a href="#roi" onClick={() => setNavOpen(false)}>
               Assure Income

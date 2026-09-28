@@ -93,7 +93,7 @@ export function MarketingFooter() {
             <div className="marketing-footer__col">
               <b>Contact</b>
               <a href="mailto:hello@goodtenants.africa">hello@goodtenants.africa</a>
-              <a href="tel:+2348104332040">+234 810 433 2040</a>
+              <a href="tel:+2348175437146">+234 817 543 7146</a>
             </div>
           </div>
         </div>
