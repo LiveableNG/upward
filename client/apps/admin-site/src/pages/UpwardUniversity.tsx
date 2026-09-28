@@ -26,14 +26,11 @@ import {
   Share2,
   Gift,
   DollarSign,
-  Percent,
-  Mail,
   UserCheck,
   Sparkles,
   CheckCircle2,
   XCircle,
   Clock,
-  AlertTriangle,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
