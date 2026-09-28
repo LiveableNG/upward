@@ -509,6 +509,15 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.rewrite(new URL('/pages/university/lecturers.html', request.url))
   }
+  if (
+    pathname === '/academy/hire' ||
+    pathname === '/academy/hire/' ||
+    pathname === '/academy/interns' ||
+    pathname === '/academy/employers' ||
+    pathname.startsWith('/academy/hire/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/hire/index.html', request.url))
+  }
   if (pathname === '/academy/faq' || pathname === '/academy/faqs') {
     return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
   }
@@ -547,6 +556,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/university/session/')
   ) {
     return NextResponse.rewrite(new URL('/pages/university/sessions/index.html', request.url))
+  }
+  if (
+    pathname === '/university/hire' ||
+    pathname === '/university/hire/' ||
+    pathname === '/university/interns' ||
+    pathname === '/university/employers' ||
+    pathname.startsWith('/university/hire/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/hire/index.html', request.url))
   }
   if (
     pathname === '/university/lecturers' ||

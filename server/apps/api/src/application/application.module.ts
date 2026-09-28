@@ -91,6 +91,8 @@ import {
   UpdateUniversityReferralAdminUseCase,
   DeleteUniversityReferralAdminUseCase,
 } from './use-cases/university-referral/get-university-referrals-admin.use-case'
+import { SubmitUniversityHireRequestUseCase } from './use-cases/university-hire-request/submit-university-hire-request.use-case'
+import { GetUniversityHireRequestsAdminUseCase } from './use-cases/university-hire-request/get-university-hire-requests-admin.use-case'
 import { SendUniversityApplicationDailyDigestUseCase } from './use-cases/university-application/send-university-application-daily-digest.use-case'
 import {
   GetUniversityApplicationStatsUseCase,
@@ -884,6 +886,8 @@ const UseCases: any[] = [
   GetUniversityReferralsAdminUseCase,
   UpdateUniversityReferralAdminUseCase,
   DeleteUniversityReferralAdminUseCase,
+  SubmitUniversityHireRequestUseCase,
+  GetUniversityHireRequestsAdminUseCase,
   SendUniversityApplicationDailyDigestUseCase,
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,

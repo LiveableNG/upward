@@ -627,3 +627,35 @@ model upward_university_referral {
   @@index([status])
   @@index([createdAt])
 }
+
+model upward_university_hire_request {
+  id               String    @id @default(uuid())
+  companyName      String
+  contactName      String
+  contactRole      String?
+  email            String
+  phone            String
+  industry         String
+  city             String
+  placementType    String    // INTERNSHIP | FULL_TIME | PART_TIME | CONTRACT
+  rolesNeeded      Json      @default("[]")
+  openingsCount    String    @default("1")
+  compensationType String?   // PAID_STIPEND | SALARY | COMMISSION | NEGOTIABLE
+  startDate        String?   // IMMEDIATE | NEXT_MONTH | NEXT_COHORT | FLEXIBLE
+  jobDescription   String?
+  sourceIdentifier String?
+  abVariant        String?   @default("A")
+  status           String    @default("PENDING") // PENDING | CONTACTED | MATCHED | CLOSED
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([companyName])
+  @@index([email])
+  @@index([phone])
+  @@index([industry])
+  @@index([placementType])
+  @@index([status])
+  @@index([createdAt])
+}
+
