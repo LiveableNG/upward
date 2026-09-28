@@ -1,4 +1,3 @@
-import React from 'react'
 import {
   GraduationCap,
   Building,
@@ -10,6 +9,9 @@ import {
   Gift,
   UserCheck,
   Sparkles,
+  Briefcase,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react'
 import type {
   UniversityTab,
@@ -17,8 +19,10 @@ import type {
   EarlyAccessStats,
   TrafficStats,
   UniversityReferralStats,
+  UniversityHireRequestStats,
   UniversityApplicationRecord,
   UniversityReferralRecord,
+  UniversityHireRequestRecord,
 } from '../types'
 
 interface UniversityStatCardsProps {
@@ -33,6 +37,9 @@ interface UniversityStatCardsProps {
   referralStats: UniversityReferralStats | null
   referrals: UniversityReferralRecord[]
   loadingReferralStats: boolean
+  hireStats: UniversityHireRequestStats | null
+  hireRequests: UniversityHireRequestRecord[]
+  loadingHireStats: boolean
 }
 
 export const UniversityStatCards: React.FC<UniversityStatCardsProps> = ({
@@ -47,6 +54,9 @@ export const UniversityStatCards: React.FC<UniversityStatCardsProps> = ({
   referralStats,
   referrals,
   loadingReferralStats,
+  hireStats,
+  hireRequests,
+  loadingHireStats,
 }) => {
   return (
     <div
@@ -267,6 +277,101 @@ export const UniversityStatCards: React.FC<UniversityStatCardsProps> = ({
               ) : (
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No city data yet</span>
               )}
+            </div>
+          </div>
+        </>
+      ) : activeTab === 'HIRE_REQUESTS' ? (
+        /* ── COMPANY HIRE REQUEST STATS ── */
+        <>
+          <div
+            className="card"
+            style={{
+              padding: '20px',
+              borderRadius: '14px',
+              background: 'var(--card-bg, #fff)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12.5px', color: '#8A4A2A', fontWeight: 700 }}>
+                TOTAL EMPLOYER INQUIRIES
+              </span>
+              <Briefcase size={20} color="#8A4A2A" />
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#8A4A2A' }}>
+              {loadingHireStats ? '...' : (hireStats?.totalRequests ?? hireRequests.length).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Companies seeking academy graduates
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              padding: '20px',
+              borderRadius: '14px',
+              background: '#fffbf5',
+              border: '1px solid #fde68a',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12.5px', color: '#b45309', fontWeight: 700 }}>
+                PENDING CONTACT
+              </span>
+              <Clock size={20} color="#b45309" />
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#92400e' }}>
+              {loadingHireStats ? '...' : (hireStats?.pendingRequests ?? 0).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', fontWeight: 500 }}>
+              Awaiting outreach from admissions team
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              padding: '20px',
+              borderRadius: '14px',
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12.5px', color: '#1d4ed8', fontWeight: 700 }}>
+                CONTACTED EMPLOYERS
+              </span>
+              <Users size={20} color="#1d4ed8" />
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#1e40af' }}>
+              {loadingHireStats ? '...' : (hireStats?.contactedRequests ?? 0).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '12px', color: '#1d4ed8', marginTop: '4px', fontWeight: 500 }}>
+              Requirements verified with hiring team
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              padding: '20px',
+              borderRadius: '14px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12.5px', color: '#15803d', fontWeight: 700 }}>
+                TALENT MATCHED
+              </span>
+              <CheckCircle2 size={20} color="#15803d" />
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#166534' }}>
+              {loadingHireStats ? '...' : (hireStats?.matchedRequests ?? 0).toLocaleString()}
+            </div>
+            <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px', fontWeight: 500 }}>
+              Graduates introduced / hired
             </div>
           </div>
         </>

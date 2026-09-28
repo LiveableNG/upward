@@ -144,12 +144,47 @@ export interface ApplicationStats {
   feePaidCount: number
 }
 
-export type UniversityTab = 'APPLICATIONS' | 'EARLY_ACCESS' | 'TRAFFIC' | 'REFERRALS'
+export interface UniversityHireRequestRecord {
+  id: string
+  companyName: string
+  contactName: string
+  contactRole?: string | null
+  email: string
+  phone: string
+  industry: string
+  city: string
+  placementType: string
+  rolesNeeded: string[]
+  openingsCount: string
+  compensationType?: string | null
+  startDate?: string | null
+  jobDescription?: string | null
+  sourceIdentifier?: string | null
+  abVariant?: string | null
+  status: 'PENDING' | 'CONTACTED' | 'MATCHED' | 'CLOSED' | string
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UniversityHireRequestStats {
+  totalRequests: number
+  pendingRequests: number
+  contactedRequests: number
+  matchedRequests: number
+}
+
+export type UniversityTab =
+  | 'APPLICATIONS'
+  | 'EARLY_ACCESS'
+  | 'TRAFFIC'
+  | 'REFERRALS'
+  | 'HIRE_REQUESTS'
 
 export interface DeleteTarget {
   id: string
   name: string
-  type: 'APPLICATION' | 'EARLY_ACCESS' | 'TRAFFIC_SOURCE' | 'REFERRAL'
+  type: 'APPLICATION' | 'EARLY_ACCESS' | 'TRAFFIC_SOURCE' | 'REFERRAL' | 'HIRE_REQUEST'
 }
 
 export interface CreateSourceFormData {

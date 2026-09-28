@@ -10,6 +10,7 @@ import {
   EarlyAccessTab,
   TrafficSourcesTab,
   ReferralsTab,
+  HireRequestsTab,
   EarlyAccessDetailModal,
   ApplicationDetailModal,
   CreateTrafficSourceModal,
@@ -17,19 +18,23 @@ import {
   ReferralDetailModal,
   ReferralEditModal,
   ConfirmDeleteModal,
+  HireRequestDetailModal,
   getApplicationColumns,
   getEarlyAccessColumns,
   getTrafficColumns,
   getReferralColumns,
+  getHireRequestColumns,
   useUniversityApplications,
   useEarlyAccess,
   useTrafficSources,
   useUniversityReferrals,
+  useUniversityHireRequests,
 } from '../features/university'
 import type {
   UniversityTab,
   DeleteTarget,
   UpwardUniversityProps,
+  UniversityHireRequestRecord,
 } from '../features/university'
 
 // Re-export public interfaces for backwards compatibility
@@ -40,6 +45,8 @@ export type {
   TrafficVisitRecord,
   UniversityReferralRecord,
   UniversityReferralStats,
+  UniversityHireRequestRecord,
+  UniversityHireRequestStats,
 } from '../features/university'
 
 export default function UpwardUniversity({ token, adminRole }: UpwardUniversityProps) {
@@ -51,6 +58,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
   const earlyAccessHook = useEarlyAccess(token)
   const trafficHook = useTrafficSources(token)
   const referralsHook = useUniversityReferrals(token)
+  const hireRequestsHook = useUniversityHireRequests(token)
 
   // Record Deletion state
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -100,6 +108,16 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           referralsHook.fetchReferrals(referralsHook.referralPage)
           referralsHook.fetchReferralStats()
         }
+      } else if (deleteTarget.type === 'HIRE_REQUEST') {
+        const res = await apiService.delete(`/admin/university/hire-requests/${deleteTarget.id}`, token)
+        if (res && res.success) {
+          showToast('Hiring request deleted successfully')
+          if (hireRequestsHook.selectedHireRequest && hireRequestsHook.selectedHireRequest.id === deleteTarget.id) {
+            hireRequestsHook.setSelectedHireRequest(null)
+          }
+          hireRequestsHook.fetchHireRequests(hireRequestsHook.hirePage)
+          hireRequestsHook.fetchHireStats()
+        }
       }
     } catch (err) {
       console.error('Failed to delete record:', err)
@@ -116,6 +134,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     earlyAccessHook.fetchStats()
     trafficHook.fetchTrafficStats()
     referralsHook.fetchReferralStats()
+    hireRequestsHook.fetchHireStats()
   }, [])
 
   // Sync data whenever active tab or its filters/pages change
@@ -124,6 +143,8 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
       applicationsHook.fetchApplications(applicationsHook.appPage)
     } else if (activeTab === 'EARLY_ACCESS') {
       earlyAccessHook.fetchRecords(earlyAccessHook.page)
+    } else if (activeTab === 'HIRE_REQUESTS') {
+      hireRequestsHook.fetchHireRequests(hireRequestsHook.hirePage)
     } else if (activeTab === 'TRAFFIC') {
       trafficHook.fetchTrafficSources(trafficHook.trafficPage)
     } else if (activeTab === 'REFERRALS') {
@@ -133,9 +154,13 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     activeTab,
     applicationsHook.appPage,
     earlyAccessHook.page,
+    hireRequestsHook.hirePage,
     trafficHook.trafficPage,
     referralsHook.referralPage,
     earlyAccessHook.typeFilter,
+    hireRequestsHook.hireStatusFilter,
+    hireRequestsHook.hireIndustryFilter,
+    hireRequestsHook.hirePlacementFilter,
     trafficHook.trafficChannelFilter,
     referralsHook.referralStatusFilter,
     referralsHook.referralRewardStatusFilter,
@@ -146,10 +171,13 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     earlyAccessHook.fetchStats()
     trafficHook.fetchTrafficStats()
     referralsHook.fetchReferralStats()
+    hireRequestsHook.fetchHireStats()
     if (activeTab === 'APPLICATIONS') {
       applicationsHook.fetchApplications(applicationsHook.appPage)
     } else if (activeTab === 'EARLY_ACCESS') {
       earlyAccessHook.fetchRecords(earlyAccessHook.page)
+    } else if (activeTab === 'HIRE_REQUESTS') {
+      hireRequestsHook.fetchHireRequests(hireRequestsHook.hirePage)
     } else if (activeTab === 'TRAFFIC') {
       trafficHook.fetchTrafficSources(trafficHook.trafficPage)
     } else if (activeTab === 'REFERRALS') {
@@ -192,6 +220,17 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     isDeveloper,
   })
 
+  const hireColumns = getHireRequestColumns({
+    onSelect: hireRequestsHook.setSelectedHireRequest,
+    onDelete: (row) =>
+      setDeleteTarget({
+        id: row.id,
+        name: `Hire Request from ${row.companyName} (${row.contactName})`,
+        type: 'HIRE_REQUEST',
+      }),
+    isDeveloper,
+  })
+
   return (
     <div className="page-container fade-in" style={{ paddingTop: '16px' }}>
       {/* Header */}
@@ -208,6 +247,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         totalEarlyAccess={earlyAccessHook.stats?.totalSubmissions || 0}
         totalTrafficSources={trafficHook.trafficStats?.totalSources || 0}
         totalReferrals={referralsHook.referralStats?.totalReferrals || 0}
+        totalHireRequests={hireRequestsHook.hireStats?.totalRequests || 0}
       />
 
       {/* Stats Cards Grid */}
@@ -223,6 +263,9 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         referralStats={referralsHook.referralStats}
         referrals={referralsHook.referrals}
         loadingReferralStats={referralsHook.loadingReferralStats}
+        hireStats={hireRequestsHook.hireStats}
+        hireRequests={hireRequestsHook.hireRequests}
+        loadingHireStats={hireRequestsHook.loadingHireStats}
       />
 
       {/* Active Tab Table Content */}
@@ -263,6 +306,32 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             earlyAccessHook.fetchRecords(1)
           }}
           onPageChange={earlyAccessHook.setPage}
+        />
+      ) : activeTab === 'HIRE_REQUESTS' ? (
+        <HireRequestsTab
+          hireRequests={hireRequestsHook.hireRequests}
+          columns={hireColumns}
+          loading={hireRequestsHook.loadingHireRequests}
+          page={hireRequestsHook.hirePage}
+          totalPages={hireRequestsHook.hireTotalPages}
+          statusFilter={hireRequestsHook.hireStatusFilter}
+          onStatusFilterChange={(status) => {
+            hireRequestsHook.setHireStatusFilter(status)
+            hireRequestsHook.setHirePage(1)
+          }}
+          placementFilter={hireRequestsHook.hirePlacementFilter}
+          onPlacementFilterChange={(placement) => {
+            hireRequestsHook.setHirePlacementFilter(placement)
+            hireRequestsHook.setHirePage(1)
+          }}
+          search={hireRequestsHook.hireSearch}
+          onSearchChange={hireRequestsHook.setHireSearch}
+          onSearchSubmit={(e) => {
+            e.preventDefault()
+            hireRequestsHook.setHirePage(1)
+            hireRequestsHook.fetchHireRequests(1)
+          }}
+          onPageChange={hireRequestsHook.setHirePage}
         />
       ) : activeTab === 'TRAFFIC' ? (
         <TrafficSourcesTab
@@ -332,6 +401,21 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         onUpdateStatus={applicationsHook.handleUpdateAppStatus}
         onDelete={(app) =>
           setDeleteTarget({ id: app.id, name: app.name, type: 'APPLICATION' })
+        }
+        isDeveloper={isDeveloper}
+      />
+
+      <HireRequestDetailModal
+        isOpen={Boolean(hireRequestsHook.selectedHireRequest)}
+        hireRequest={hireRequestsHook.selectedHireRequest}
+        onClose={() => hireRequestsHook.setSelectedHireRequest(null)}
+        onUpdateStatus={hireRequestsHook.handleUpdateHireStatus}
+        onDelete={(req: UniversityHireRequestRecord) =>
+          setDeleteTarget({
+            id: req.id,
+            name: `Hire Request from ${req.companyName}`,
+            type: 'HIRE_REQUEST',
+          })
         }
         isDeveloper={isDeveloper}
       />
