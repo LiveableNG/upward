@@ -10,6 +10,7 @@ import {
 import { EarlyAccessEntry } from '../../../domains/early-access/early-access.entity'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { buildGlobalLayoutHtml } from '../../../shared/infrastructure/email/email.helper'
+import { normalizePhoneNumber, normalizeEmail } from '../../../shared/utils/phone-normalizer'
 
 export interface SubmitStudentEarlyAccessCommand {
   name: string
@@ -37,11 +38,14 @@ export class SubmitStudentEarlyAccessUseCase {
   ) {}
 
   async execute(command: SubmitStudentEarlyAccessCommand): Promise<EarlyAccessEntry> {
+    const normalizedPhone = normalizePhoneNumber(command.whatsapp)
+    const normalizedEmail = normalizeEmail(command.email) || command.email
+
     const entry = EarlyAccessEntry.create({
       type: 'STUDENT',
-      name: command.name,
-      whatsapp: command.whatsapp,
-      email: command.email,
+      name: command.name.trim(),
+      whatsapp: normalizedPhone || command.whatsapp,
+      email: normalizedEmail,
       city: command.city,
       ageBracket: command.ageBracket,
       experienceLevel: command.experienceLevel,

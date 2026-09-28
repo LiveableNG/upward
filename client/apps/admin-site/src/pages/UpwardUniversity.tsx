@@ -24,6 +24,16 @@ import {
   TrendingUp,
   BarChart2,
   Share2,
+  Gift,
+  DollarSign,
+  Percent,
+  Mail,
+  UserCheck,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -130,6 +140,39 @@ export interface TrafficVisitRecord {
   createdAt: string
 }
 
+export interface UniversityReferralRecord {
+  id: string
+  referrerEarlyAccessId?: string | null
+  referrerName: string
+  referrerEmail?: string | null
+  referrerPhone: string
+  referredName?: string | null
+  referredEmail?: string | null
+  referredPhone?: string | null
+  status: 'PENDING' | 'JOINED' | 'PAID' | 'INELIGIBLE'
+  rewardPercentage: number
+  rewardAmount?: number | null
+  rewardStatus: 'PENDING' | 'APPROVED' | 'PAID'
+  programFeePaid?: number | null
+  paymentRef?: string | null
+  joinedAt?: string | null
+  emailSent: boolean
+  emailSentAt?: string | null
+  ineligibleReason?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface UniversityReferralStats {
+  totalReferrals: number
+  eligibleReferrals: number
+  ineligibleReferrals: number
+  joinedReferrals: number
+  totalRewardAmountEarned: number
+  totalRewardAmountPaid: number
+}
+
 interface EarlyAccessStats {
   totalSubmissions: number
   studentCount: number
@@ -151,7 +194,7 @@ interface UpwardUniversityProps {
 
 export default function UpwardUniversity({ token, adminRole }: UpwardUniversityProps) {
   const isDeveloper = adminRole === 'DEVELOPER'
-  const [activeTab, setActiveTab] = useState<'APPLICATIONS' | 'EARLY_ACCESS' | 'TRAFFIC'>('APPLICATIONS')
+  const [activeTab, setActiveTab] = useState<'APPLICATIONS' | 'EARLY_ACCESS' | 'TRAFFIC' | 'REFERRALS'>('APPLICATIONS')
 
   // Applications State
   const [applications, setApplications] = useState<UniversityApplicationRecord[]>([])
@@ -170,7 +213,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  // Traffic / Referral State
+  // Traffic State
   const [trafficSources, setTrafficSources] = useState<TrafficSourceRecord[]>([])
   const [trafficStats, setTrafficStats] = useState<TrafficStats | null>(null)
   const [loadingTraffic, setLoadingTraffic] = useState(true)
@@ -202,6 +245,37 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     description: '',
   })
 
+  // Referral State (10% Rewards)
+  const [referrals, setReferrals] = useState<UniversityReferralRecord[]>([])
+  const [referralStats, setReferralStats] = useState<UniversityReferralStats | null>(null)
+  const [loadingReferrals, setLoadingReferrals] = useState(true)
+  const [loadingReferralStats, setLoadingReferralStats] = useState(true)
+  const [referralPage, setReferralPage] = useState(1)
+  const [referralTotalPages, setReferralTotalPages] = useState(1)
+  const [referralSearch, setReferralSearch] = useState('')
+  const [referralStatusFilter, setReferralStatusFilter] = useState('ALL')
+  const [referralRewardStatusFilter, setReferralRewardStatusFilter] = useState('ALL')
+  const [selectedReferral, setSelectedReferral] = useState<UniversityReferralRecord | null>(null)
+  const [editingReferral, setEditingReferral] = useState<UniversityReferralRecord | null>(null)
+  const [updatingReferral, setUpdatingReferral] = useState(false)
+  const [editReferralForm, setEditReferralForm] = useState<{
+    status: string
+    rewardStatus: string
+    programFeePaid: string | number
+    rewardAmount: string | number
+    rewardPercentage: number
+    paymentRef: string
+    notes: string
+  }>({
+    status: 'PENDING',
+    rewardStatus: 'PENDING',
+    programFeePaid: '',
+    rewardAmount: '',
+    rewardPercentage: 10,
+    paymentRef: '',
+    notes: '',
+  })
+
   // Filters
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'STUDENT' | 'LANDLORD'>('ALL')
   const [search, setSearch] = useState('')
@@ -213,7 +287,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string
     name: string
-    type: 'APPLICATION' | 'EARLY_ACCESS' | 'TRAFFIC_SOURCE'
+    type: 'APPLICATION' | 'EARLY_ACCESS' | 'TRAFFIC_SOURCE' | 'REFERRAL'
   } | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -243,6 +317,15 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           showToast('Tracking source deleted successfully')
           fetchTrafficSources(trafficPage)
           fetchTrafficStats()
+        }
+      } else if (deleteTarget.type === 'REFERRAL') {
+        const res = await apiService.delete(`/admin/university/referrals/${deleteTarget.id}`, token)
+        if (res && res.success) {
+          showToast('Referral record deleted successfully')
+          if (selectedReferral && selectedReferral.id === deleteTarget.id) setSelectedReferral(null)
+          if (editingReferral && editingReferral.id === deleteTarget.id) setEditingReferral(null)
+          fetchReferrals(referralPage)
+          fetchReferralStats()
         }
       }
     } catch (err) {
@@ -476,10 +559,100 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
       .replace(/^-+|-+$/g, '')
   }
 
+  const fetchReferralStats = async () => {
+    setLoadingReferralStats(true)
+    try {
+      const response = await apiService.get('/admin/university/referrals/stats', token)
+      if (response && response.data) {
+        setReferralStats(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch referral stats:', error)
+    } finally {
+      setLoadingReferralStats(false)
+    }
+  }
+
+  const fetchReferrals = async (pageNum = referralPage) => {
+    setLoadingReferrals(true)
+    try {
+      let url = `/admin/university/referrals?page=${pageNum}&limit=50`
+      if (referralStatusFilter !== 'ALL') url += `&status=${referralStatusFilter}`
+      if (referralRewardStatusFilter !== 'ALL') url += `&rewardStatus=${referralRewardStatusFilter}`
+      if (referralSearch.trim()) url += `&search=${encodeURIComponent(referralSearch.trim())}`
+
+      const response = await apiService.get(url, token)
+      if (response && response.data) {
+        setReferrals(response.data)
+        setReferralTotalPages(response.meta?.totalPages || 1)
+      }
+    } catch (error) {
+      console.error('Failed to fetch university referrals:', error)
+      showToast('Failed to load referral records', true)
+    } finally {
+      setLoadingReferrals(false)
+    }
+  }
+
+  const handleUpdateReferralSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingReferral) return
+    setUpdatingReferral(true)
+    try {
+      const feeNum = editReferralForm.programFeePaid !== '' ? Number(editReferralForm.programFeePaid) : undefined
+      const rewardNum = editReferralForm.rewardAmount !== '' ? Number(editReferralForm.rewardAmount) : undefined
+
+      const response = await apiService.patch(
+        `/admin/university/referrals/${editingReferral.id}`,
+        {
+          status: editReferralForm.status,
+          rewardStatus: editReferralForm.rewardStatus,
+          programFeePaid: feeNum,
+          rewardAmount: rewardNum,
+          rewardPercentage: editReferralForm.rewardPercentage,
+          paymentRef: editReferralForm.paymentRef.trim() || undefined,
+          notes: editReferralForm.notes.trim() || undefined,
+        },
+        token
+      )
+
+      if (response && response.success) {
+        showToast('Referral record updated successfully!')
+        setEditingReferral(null)
+        if (selectedReferral && selectedReferral.id === editingReferral.id) {
+          setSelectedReferral(response.data)
+        }
+        fetchReferrals(referralPage)
+        fetchReferralStats()
+      } else {
+        showToast(response?.message || 'Failed to update referral', true)
+      }
+    } catch (err: any) {
+      console.error('Failed to update referral:', err)
+      showToast(err?.message || 'Failed to update referral', true)
+    } finally {
+      setUpdatingReferral(false)
+    }
+  }
+
+  const openEditReferralModal = (record: UniversityReferralRecord) => {
+    setEditingReferral(record)
+    setEditReferralForm({
+      status: record.status || 'PENDING',
+      rewardStatus: record.rewardStatus || 'PENDING',
+      programFeePaid: record.programFeePaid ?? '',
+      rewardAmount: record.rewardAmount ?? '',
+      rewardPercentage: record.rewardPercentage || 10,
+      paymentRef: record.paymentRef || '',
+      notes: record.notes || '',
+    })
+  }
+
   useEffect(() => {
     fetchAppStats()
     fetchStats()
     fetchTrafficStats()
+    fetchReferralStats()
   }, [])
 
   useEffect(() => {
@@ -489,8 +662,20 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
       fetchRecords(page)
     } else if (activeTab === 'TRAFFIC') {
       fetchTrafficSources(trafficPage)
+    } else if (activeTab === 'REFERRALS') {
+      fetchReferrals(referralPage)
     }
-  }, [activeTab, appPage, page, trafficPage, typeFilter, trafficChannelFilter])
+  }, [
+    activeTab,
+    appPage,
+    page,
+    trafficPage,
+    referralPage,
+    typeFilter,
+    trafficChannelFilter,
+    referralStatusFilter,
+    referralRewardStatusFilter,
+  ])
 
   const handleAppSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -504,16 +689,324 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     fetchRecords(1)
   }
 
+  const handleReferralSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setReferralPage(1)
+    fetchReferrals(1)
+  }
+
   const handleRefresh = () => {
     fetchAppStats()
     fetchStats()
+    fetchTrafficStats()
+    fetchReferralStats()
     if (activeTab === 'APPLICATIONS') {
       fetchApplications(appPage)
-    } else {
+    } else if (activeTab === 'EARLY_ACCESS') {
       fetchRecords(page)
+    } else if (activeTab === 'TRAFFIC') {
+      fetchTrafficSources(trafficPage)
+    } else if (activeTab === 'REFERRALS') {
+      fetchReferrals(referralPage)
     }
     showToast('Records refreshed')
   }
+
+  // Column definitions for University Referrals DataTable
+  const referralColumns: ColumnDef<UniversityReferralRecord>[] = [
+    {
+      key: 'referrer',
+      label: 'Referrer (10% Earner)',
+      render: (row) => {
+        const cleanPhone = (row.referrerPhone || '').replace(/[^0-9+]/g, '')
+        return (
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Users size={14} color="#8A4A2A" />
+              {row.referrerName}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {row.referrerPhone && (
+                <a
+                  href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#16a34a', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                >
+                  <Phone size={11} /> {row.referrerPhone}
+                </a>
+              )}
+              {row.referrerEmail && <span>{row.referrerEmail}</span>}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'referred',
+      label: 'Friend Recommended',
+      render: (row) => {
+        const cleanPhone = (row.referredPhone || '').replace(/[^0-9+]/g, '')
+        return (
+          <div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+              {row.referredName || <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Name not provided</span>}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {row.referredPhone && (
+                <a
+                  href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#16a34a', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}
+                >
+                  <Phone size={11} /> {row.referredPhone}
+                </a>
+              )}
+              {row.referredEmail && <span>{row.referredEmail}</span>}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'eligibility',
+      label: 'Eligibility Status',
+      render: (row) => {
+        const isEligible = row.status !== 'INELIGIBLE'
+        return (
+          <div>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '3px 9px',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: isEligible ? '#dcfce7' : '#fee2e2',
+                color: isEligible ? '#15803d' : '#b91c1c',
+                border: `1px solid ${isEligible ? '#bbf7d0' : '#fecaca'}`,
+              }}
+            >
+              {isEligible ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+              {isEligible ? 'Verified New Lead' : 'Ineligible'}
+            </span>
+            {row.ineligibleReason && (
+              <div style={{ fontSize: '10.5px', color: '#b91c1c', marginTop: '3px', fontWeight: 500 }}>
+                {row.ineligibleReason === 'ALREADY_IN_INFO_LIST'
+                  ? 'Already in information/lead list'
+                  : row.ineligibleReason === 'SELF_REFERRAL'
+                  ? 'Self-referral detected'
+                  : row.ineligibleReason}
+              </div>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      key: 'programStatus',
+      label: 'Enrollment Status',
+      render: (row) => {
+        let bg = '#fef3c7'
+        let color = '#b45309'
+        let border = '#fde68a'
+        let label = 'Lead / Pending'
+
+        if (row.status === 'JOINED') {
+          bg = '#dbeafe'
+          color = '#1d4ed8'
+          border = '#bfdbfe'
+          label = 'Joined Program'
+        } else if (row.status === 'PAID') {
+          bg = '#dcfce7'
+          color = '#15803d'
+          border = '#bbf7d0'
+          label = 'Tuition Paid'
+        } else if (row.status === 'INELIGIBLE') {
+          bg = '#f3f4f6'
+          color = '#6b7280'
+          border = '#e5e7eb'
+          label = 'Ineligible'
+        }
+
+        return (
+          <span
+            style={{
+              padding: '3px 10px',
+              borderRadius: '12px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              background: bg,
+              color: color,
+              border: `1px solid ${border}`,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {label}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'rewardRate',
+      label: 'Tuition & 10% Fee',
+      render: (row) => {
+        const fee = row.programFeePaid
+        const reward = row.rewardAmount
+        return (
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {reward ? `₦${reward.toLocaleString()} (10%)` : <span style={{ color: 'var(--text-muted)' }}>10% of Tuition</span>}
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              {fee ? `Tuition: ₦${fee.toLocaleString()}` : 'Tuition payment pending'}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'rewardStatus',
+      label: 'Payout Status',
+      render: (row) => {
+        let bg = '#fef3c7'
+        let color = '#b45309'
+        let border = '#fde68a'
+        let label = 'Pending'
+
+        if (row.rewardStatus === 'APPROVED') {
+          bg = '#e0e7ff'
+          color = '#4338ca'
+          border = '#c7d2fe'
+          label = 'Approved'
+        } else if (row.rewardStatus === 'PAID') {
+          bg = '#dcfce7'
+          color = '#15803d'
+          border = '#bbf7d0'
+          label = 'Paid Out'
+        }
+
+        return (
+          <span
+            style={{
+              padding: '3px 9px',
+              borderRadius: '12px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              background: bg,
+              color: color,
+              border: `1px solid ${border}`,
+            }}
+          >
+            {label}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'emailSent',
+      label: 'Friend Email',
+      render: (row) => (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '11.5px',
+            color: row.emailSent ? '#15803d' : 'var(--text-muted)',
+            fontWeight: 600,
+          }}
+        >
+          {row.emailSent ? <CheckCircle2 size={13} color="#15803d" /> : <Clock size={13} color="#94a3b8" />}
+          {row.emailSent ? 'Delivered' : 'Pending/No Email'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'Date',
+      render: (row) => (
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          {new Date(row.createdAt).toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setSelectedReferral(row)}
+            style={{
+              padding: '4px 10px',
+              fontSize: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="View Details"
+          >
+            <Eye size={13} />
+            View
+          </button>
+          <button
+            type="button"
+            onClick={() => openEditReferralModal(row)}
+            style={{
+              padding: '4px 10px',
+              fontSize: '12px',
+              borderRadius: '6px',
+              border: '1px solid #8A4A2A',
+              background: '#fff',
+              color: '#8A4A2A',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="Update Status / Settle 10% Payout"
+          >
+            <DollarSign size={13} />
+            Payout
+          </button>
+          {isDeveloper && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() =>
+                setDeleteTarget({
+                  id: row.id,
+                  name: `Referral from ${row.referrerName} (${row.referredName || row.referredPhone || row.referredEmail})`,
+                  type: 'REFERRAL',
+                })
+              }
+              style={{
+                padding: '4px 8px',
+                color: '#dc2626',
+                borderColor: '#fecaca',
+              }}
+              title="Delete Referral (Developer Only)"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ]
 
   // Column definitions for University Applications DataTable
   const appColumns: ColumnDef<UniversityApplicationRecord>[] = [
@@ -1482,6 +1975,26 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           <Share2 size={16} />
           Traffic & Referral Sources ({trafficStats?.totalSources || 0})
         </button>
+        <button
+          onClick={() => setActiveTab('REFERRALS')}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            background: activeTab === 'REFERRALS' ? '#8A4A2A' : 'transparent',
+            color: activeTab === 'REFERRALS' ? '#fff' : 'var(--text-secondary)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Gift size={16} />
+          Friend Referrals (10% Rewards) ({referralStats?.totalReferrals || 0})
+        </button>
       </div>
 
       {/* ── Stats Cards Grid ── */}
@@ -1700,7 +2213,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
               </div>
             </div>
           </>
-        ) : (
+        ) : activeTab === 'TRAFFIC' ? (
           <>
             <div
               className="card"
@@ -1791,6 +2304,101 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
               </div>
               <div style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', fontWeight: 500 }}>
                 Conversions / unique visitors
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ── REFERRALS (10% Rewards) Stats Cards ── */
+          <>
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: 'var(--card-bg, #fff)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#8A4A2A', fontWeight: 700 }}>
+                  RECOMMENDATIONS
+                </span>
+                <Gift size={20} color="#8A4A2A" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#8A4A2A' }}>
+                {loadingReferralStats ? '...' : (referralStats?.totalReferrals ?? referrals.length).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Friends recommended by applicants
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#15803d', fontWeight: 700 }}>
+                  ELIGIBLE LEADS
+                </span>
+                <UserCheck size={20} color="#15803d" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#166534' }}>
+                {loadingReferralStats ? '...' : (referralStats?.eligibleReferrals ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px', fontWeight: 500 }}>
+                Verified new prospective students
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#1d4ed8', fontWeight: 700 }}>
+                  JOINED & ENROLLED
+                </span>
+                <GraduationCap size={20} color="#1d4ed8" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#1e40af' }}>
+                {loadingReferralStats ? '...' : (referralStats?.joinedReferrals ?? 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '12px', color: '#1d4ed8', marginTop: '4px', fontWeight: 500 }}>
+                Enrolled students paying tuition
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{
+                padding: '20px',
+                borderRadius: '14px',
+                background: '#faf5ff',
+                border: '1px solid #e9d5ff',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12.5px', color: '#7e22ce', fontWeight: 700 }}>
+                  10% REWARDS EARNED
+                </span>
+                <Sparkles size={20} color="#7e22ce" />
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '8px', color: '#6b21a8' }}>
+                {loadingReferralStats ? '...' : `₦${Number(referralStats?.totalRewardAmountEarned || 0).toLocaleString()}`}
+              </div>
+              <div style={{ fontSize: '12px', color: '#7e22ce', marginTop: '4px', fontWeight: 500 }}>
+                Paid out: ₦{Number(referralStats?.totalRewardAmountPaid || 0).toLocaleString()}
               </div>
             </div>
           </>
@@ -1982,7 +2590,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             onPageChange={setPage}
           />
         </>
-      ) : (
+      ) : activeTab === 'TRAFFIC' ? (
         <>
           {/* ── Traffic & Source Links Controls ── */}
           <div
@@ -2114,6 +2722,119 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             currentPage={trafficPage}
             totalPages={trafficTotalPages}
             onPageChange={setTrafficPage}
+          />
+        </>
+      ) : (
+        /* ── REFERRALS (10% Rewards) Tab Content ── */
+        <>
+          <div
+            className="card"
+            style={{
+              padding: '16px',
+              borderRadius: '14px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '16px',
+            }}
+          >
+            {/* Filter by Statuses */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+              <select
+                value={referralStatusFilter}
+                onChange={(e) => {
+                  setReferralStatusFilter(e.target.value)
+                  setReferralPage(1)
+                }}
+                style={{
+                  height: '38px',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: '#fff',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="ALL">All Enrollment Statuses</option>
+                <option value="PENDING">Pending Lead / Info Session</option>
+                <option value="JOINED">Joined Program</option>
+                <option value="PAID">Tuition Paid</option>
+                <option value="INELIGIBLE">Ineligible Lead</option>
+              </select>
+
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginLeft: '6px' }}>Payout:</span>
+              <select
+                value={referralRewardStatusFilter}
+                onChange={(e) => {
+                  setReferralRewardStatusFilter(e.target.value)
+                  setReferralPage(1)
+                }}
+                style={{
+                  height: '38px',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  background: '#fff',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <option value="ALL">All Payout Statuses</option>
+                <option value="PENDING">Pending Payout Review</option>
+                <option value="APPROVED">Approved for Payout</option>
+                <option value="PAID">✓ Paid Out to Referrer</option>
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <form onSubmit={handleReferralSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ position: 'relative' }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search referrer or friend name, phone, email..."
+                  value={referralSearch}
+                  onChange={(e) => setReferralSearch(e.target.value)}
+                  style={{
+                    paddingLeft: '36px',
+                    paddingRight: '12px',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    width: '320px',
+                  }}
+                />
+              </div>
+              <button type="submit" className="btn btn-secondary" style={{ height: '38px' }}>
+                Search
+              </button>
+            </form>
+          </div>
+
+          <DataTable<UniversityReferralRecord>
+            data={referrals}
+            columns={referralColumns}
+            keyExtractor={(item) => item.id}
+            isLoading={loadingReferrals}
+            currentPage={referralPage}
+            totalPages={referralTotalPages}
+            onPageChange={setReferralPage}
           />
         </>
       )}
@@ -3033,6 +3754,454 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
         </div>
       </Modal>
 
+      {/* ── Referral Detail View Modal ── */}
+      <Modal
+        isOpen={Boolean(selectedReferral)}
+        onClose={() => setSelectedReferral(null)}
+        title="Friend Referral & 10% Reward Details"
+        description={
+          selectedReferral ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '4px',
+                fontSize: '12px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '12px',
+                background: selectedReferral.status === 'INELIGIBLE' ? '#fee2e2' : '#f0fdf4',
+                color: selectedReferral.status === 'INELIGIBLE' ? '#b91c1c' : '#15803d',
+              }}
+            >
+              {selectedReferral.status === 'INELIGIBLE' ? 'Ineligible Lead' : 'Verified Eligible Lead'} •{' '}
+              {new Date(selectedReferral.createdAt).toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          ) : undefined
+        }
+        icon={<Gift size={20} color="#8A4A2A" />}
+        maxWidth="600px"
+        footerActions={
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            {selectedReferral && (
+              <button
+                type="button"
+                onClick={() => {
+                  const ref = selectedReferral
+                  setSelectedReferral(null)
+                  openEditReferralModal(ref)
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  background: '#8A4A2A',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <DollarSign size={15} />
+                Update / Settle 10% Payout
+              </button>
+            )}
+            <button className="btn btn-secondary" onClick={() => setSelectedReferral(null)}>
+              Close
+            </button>
+          </div>
+        }
+      >
+        {selectedReferral && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Referrer Section */}
+            <div style={{ background: '#fdfbf9', border: '1px solid #f2e8e1', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Users size={16} color="#8A4A2A" />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#8A4A2A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Referrer (Earns 10% Fee)
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Name:</span>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>{selectedReferral.referrerName}</div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Phone / WhatsApp:</span>
+                  <div style={{ fontWeight: 600, fontSize: '13.5px' }}>
+                    <a
+                      href={`https://wa.me/${selectedReferral.referrerPhone.replace(/[^0-9+]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#16a34a', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Phone size={12} /> {selectedReferral.referrerPhone}
+                    </a>
+                  </div>
+                </div>
+                {selectedReferral.referrerEmail && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Email:</span>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{selectedReferral.referrerEmail}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Friend Section */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <GraduationCap size={16} color="#0f172a" />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Recommended Friend
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Friend's Name:</span>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
+                    {selectedReferral.referredName || 'Not specified'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Friend's Phone:</span>
+                  <div style={{ fontWeight: 600, fontSize: '13.5px' }}>
+                    {selectedReferral.referredPhone ? (
+                      <a
+                        href={`https://wa.me/${selectedReferral.referredPhone.replace(/[^0-9+]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#16a34a', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <Phone size={12} /> {selectedReferral.referredPhone}
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Friend's Email:</span>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    {selectedReferral.referredEmail || '—'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Automated Invite Email:</span>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: selectedReferral.emailSent ? '#15803d' : '#64748b' }}>
+                    {selectedReferral.emailSent ? '✓ Sent to friend' : 'Pending or no email'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial & Reward Summary Card */}
+            <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: '12px', padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Sparkles size={16} color="#7e22ce" />
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#7e22ce', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  10% Referral Commission Breakdown
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#7e22ce' }}>Tuition Fee Paid:</span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#581c87' }}>
+                    {selectedReferral.programFeePaid ? `₦${selectedReferral.programFeePaid.toLocaleString()}` : '₦0 (Pending)'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#7e22ce' }}>Reward Rate:</span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#581c87' }}>
+                    {selectedReferral.rewardPercentage || 10}%
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: '#7e22ce' }}>10% Reward Due:</span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#15803d' }}>
+                    {selectedReferral.rewardAmount ? `₦${selectedReferral.rewardAmount.toLocaleString()}` : '₦0 (Pending)'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f3e8ff' }}>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Payout Status:</span>
+                  <div style={{ marginTop: '3px' }}>
+                    <span
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        background:
+                          selectedReferral.rewardStatus === 'PAID'
+                            ? '#dcfce7'
+                            : selectedReferral.rewardStatus === 'APPROVED'
+                            ? '#e0e7ff'
+                            : '#fef3c7',
+                        color:
+                          selectedReferral.rewardStatus === 'PAID'
+                            ? '#15803d'
+                            : selectedReferral.rewardStatus === 'APPROVED'
+                            ? '#4338ca'
+                            : '#b45309',
+                      }}
+                    >
+                      {selectedReferral.rewardStatus === 'PAID'
+                        ? '✓ Paid Out'
+                        : selectedReferral.rewardStatus === 'APPROVED'
+                        ? 'Approved'
+                        : 'Pending Review'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Payment Reference:</span>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {selectedReferral.paymentRef || 'None'}
+                  </div>
+                </div>
+              </div>
+
+              {selectedReferral.notes && (
+                <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3e8ff' }}>
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Admin Notes:</span>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-primary)', marginTop: '2px' }}>
+                    {selectedReferral.notes}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Referral Edit / Payout Modal ── */}
+      <Modal
+        isOpen={Boolean(editingReferral)}
+        onClose={() => !updatingReferral && setEditingReferral(null)}
+        title="Update Referral & Settle 10% Payout"
+        description={`Referrer: ${editingReferral?.referrerName} • Friend: ${editingReferral?.referredName || editingReferral?.referredPhone || editingReferral?.referredEmail || 'Lead'}`}
+        icon={<DollarSign size={20} color="#8A4A2A" />}
+        maxWidth="560px"
+      >
+        {editingReferral && (
+          <form onSubmit={handleUpdateReferralSubmit}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Enrollment Status */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Program Enrollment Status *
+                </label>
+                <select
+                  value={editReferralForm.status}
+                  onChange={(e) => setEditReferralForm({ ...editReferralForm, status: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="PENDING">PENDING (Info Session / Lead)</option>
+                  <option value="JOINED">JOINED (Admitted / Enrolled in Cohort)</option>
+                  <option value="PAID">PAID (Tuition Paid in Full)</option>
+                  <option value="INELIGIBLE">INELIGIBLE (Duplicate / Self Referral)</option>
+                </select>
+              </div>
+
+              {/* Fee and 10% Reward Calculation Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                    Tuition Fee Paid (₦)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 200000"
+                    value={editReferralForm.programFeePaid}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      const num = Number(val) || 0
+                      const calcReward = (num * (editReferralForm.rewardPercentage || 10)) / 100
+                      setEditReferralForm({
+                        ...editReferralForm,
+                        programFeePaid: val,
+                        rewardAmount: num > 0 ? calcReward : '',
+                      })
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                    Amount student paid to join
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                    10% Reward Due (₦)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 20000"
+                    value={editReferralForm.rewardAmount}
+                    onChange={(e) => setEditReferralForm({ ...editReferralForm, rewardAmount: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #8A4A2A',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      color: '#8A4A2A',
+                      background: '#fdfbf9',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <span style={{ fontSize: '11px', color: '#8A4A2A', marginTop: '2px', display: 'block', fontWeight: 600 }}>
+                    Auto-calculated 10% referral fee
+                  </span>
+                </div>
+              </div>
+
+              {/* Reward Payout Status */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Commission Payout Status *
+                </label>
+                <select
+                  value={editReferralForm.rewardStatus}
+                  onChange={(e) => setEditReferralForm({ ...editReferralForm, rewardStatus: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background:
+                      editReferralForm.rewardStatus === 'PAID'
+                        ? '#dcfce7'
+                        : editReferralForm.rewardStatus === 'APPROVED'
+                        ? '#e0e7ff'
+                        : '#fff',
+                    color:
+                      editReferralForm.rewardStatus === 'PAID'
+                        ? '#15803d'
+                        : editReferralForm.rewardStatus === 'APPROVED'
+                        ? '#4338ca'
+                        : 'var(--text-primary)',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="PENDING">PENDING (Tuition pending or awaiting review)</option>
+                  <option value="APPROVED">APPROVED (Approved for bank transfer)</option>
+                  <option value="PAID">✓ PAID (10% reward transferred to referrer)</option>
+                </select>
+              </div>
+
+              {/* Payment Reference */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Payout / Transfer Reference
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bank Ref / TXN-982319 / Paystack Ref"
+                  value={editReferralForm.paymentRef}
+                  onChange={(e) => setEditReferralForm({ ...editReferralForm, paymentRef: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Admin Notes */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                  Admin Notes
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Paid out ₦20,000 to referrer GTBank account on Sep 28..."
+                  value={editReferralForm.notes}
+                  onChange={(e) => setEditReferralForm({ ...editReferralForm, notes: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    fontSize: '13px',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Submit buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setEditingReferral(null)}
+                  disabled={updatingReferral}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingReferral}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    background: '#8A4A2A',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: '13.5px',
+                    fontWeight: 700,
+                    cursor: updatingReferral ? 'not-allowed' : 'pointer',
+                    opacity: updatingReferral ? 0.7 : 1,
+                  }}
+                >
+                  <Check size={16} />
+                  {updatingReferral ? 'Saving...' : 'Save & Update Payout'}
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </Modal>
+
       {/* ── Confirmation Modal for Deletion ── */}
       <Modal
         isOpen={Boolean(deleteTarget)}
@@ -3059,7 +4228,9 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
                 ? 'Academy Application'
                 : deleteTarget.type === 'EARLY_ACCESS'
                 ? 'Early Access / Info Request'
-                : 'Traffic Source Tracking Link'}{' '}
+                : deleteTarget.type === 'TRAFFIC_SOURCE'
+                ? 'Traffic Source Tracking Link'
+                : 'Friend Referral & Reward Record'}{' '}
               for <strong>{deleteTarget.name}</strong>.
             </p>
 
