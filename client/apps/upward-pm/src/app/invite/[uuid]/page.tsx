@@ -1,9 +1,6 @@
 import React, { Suspense } from 'react';
 import ClientPage from './page.client';
 
-export const dynamicParams = true;
-export const dynamic = 'force-dynamic';
-
 export function generateStaticParams() {
   return [{ uuid: 'placeholder' }];
 }
