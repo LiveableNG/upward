@@ -91,7 +91,9 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
 
   const visibleNavItems = navItems.filter((item) => {
     if (item.label === 'Alliance') {
-      return allianceProfile?.isEnabled === true
+      const isEnabled =
+        allianceProfile?.isEnabled === true || (allianceProfile as any)?.data?.isEnabled === true
+      return isEnabled
     }
     return true
   })
