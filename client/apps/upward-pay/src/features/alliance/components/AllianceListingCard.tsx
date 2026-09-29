@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import type { PublicAllianceListingCard } from '../types/alliance.types';
+import { getAllianceListingImage } from '../utils/allianceImages';
 
 interface AllianceListingCardProps {
   listing: PublicAllianceListingCard;
@@ -45,18 +46,12 @@ export const AllianceListingCard: React.FC<AllianceListingCardProps> = ({
     >
       {/* Media / Image Container */}
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-        {listing.primaryMedia ? (
-          <img
-            src={listing.primaryMedia.publicUrl}
-            alt={listing.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-400">
-            <ImageIcon className="h-10 w-10 stroke-[1.5]" />
-          </div>
-        )}
+        <img
+          src={getAllianceListingImage(listing)}
+          alt={listing.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          loading="lazy"
+        />
 
         {/* Intent Badge */}
         <div className="absolute left-3 top-3">

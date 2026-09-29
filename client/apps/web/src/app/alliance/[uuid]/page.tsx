@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { LegalHeader } from '@/components/layout/legal-header';
 import { Footer } from '@/components/layout/footer';
-import { fetchPublicListingDetail, fetchReferralContext } from '@/lib/alliance';
+import { fetchPublicListingDetail, fetchReferralContext, getAllianceListingMediaList } from '@/lib/alliance';
 import { WebInquirySection } from '@/components/alliance/WebInquirySection';
 
 interface ListingDetailPageProps {
@@ -127,32 +127,31 @@ export default async function WebAllianceListingDetailPage({
         )}
 
         {/* Image Gallery */}
-        <div style={{ marginBottom: 32 }}>
-          {listing.media && listing.media.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: listing.media.length > 1 ? '2fr 1fr' : '1fr', gap: 12 }}>
-              <div style={{ borderRadius: 16, overflow: 'hidden', height: 420, background: '#f0ede6' }}>
-                <img
-                  src={listing.media[0]?.publicUrl}
-                  alt={listing.title}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-              {listing.media.length > 1 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: 420 }}>
-                  {listing.media.slice(1, 3).map((m, idx) => (
-                    <div key={idx} style={{ flex: 1, borderRadius: 16, overflow: 'hidden', background: '#f0ede6' }}>
-                      <img src={m.publicUrl} alt={`Photo ${idx + 2}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                  ))}
+        {(() => {
+          const effectiveMedia = getAllianceListingMediaList(listing);
+          return (
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: effectiveMedia.length > 1 ? '2fr 1fr' : '1fr', gap: 12 }}>
+                <div style={{ borderRadius: 16, overflow: 'hidden', height: 420, background: '#f0ede6' }}>
+                  <img
+                    src={effectiveMedia[0]?.publicUrl}
+                    alt={listing.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 </div>
-              )}
+                {effectiveMedia.length > 1 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: 420 }}>
+                    {effectiveMedia.slice(1, 3).map((m, idx) => (
+                      <div key={idx} style={{ flex: 1, borderRadius: 16, overflow: 'hidden', background: '#f0ede6' }}>
+                        <img src={m.publicUrl} alt={`Photo ${idx + 2}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div style={{ height: 320, borderRadius: 16, background: '#f0ede6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a8a29e' }}>
-              No photos available
-            </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Content & Action Box */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 36, alignItems: 'start' }}>

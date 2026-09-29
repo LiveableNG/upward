@@ -18,6 +18,8 @@ import { AllianceDiscoveredListingSummary } from '../types/alliance.types'
 import { useTrackAllianceListing, useUntrackAllianceListing } from '../hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
 
+import { getAllianceListingImage } from '../utils/allianceImages'
+
 interface DiscoveryCardProps {
   listing: AllianceDiscoveredListingSummary
 }
@@ -57,11 +59,7 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
     }).format(amount)
   }
 
-  const primaryImage =
-    listing.primaryMedia?.publicUrl ||
-    listing.primaryMedia?.fileUrl ||
-    (listing.media && listing.media.length > 0 ? listing.media[0].publicUrl : null)
-
+  const primaryImage = getAllianceListingImage(listing)
   const mediaCount = listing.mediaCount ?? (listing.media ? listing.media.length : 0)
 
   const locationText = [listing.address, listing.city, listing.state]
@@ -79,26 +77,11 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
     <div className="alliance-discovery-card">
       {/* Media Cover Image */}
       <div className="alliance-discovery-card__media">
-        {primaryImage ? (
-          <img
-            src={primaryImage}
-            alt={listing.title}
-            className="alliance-discovery-card__img"
-          />
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <ImageIcon size={28} />
-            <span style={{ fontSize: '11px' }}>No media uploaded</span>
-          </div>
-        )}
+        <img
+          src={primaryImage}
+          alt={listing.title}
+          className="alliance-discovery-card__img"
+        />
 
         {/* Intent Badge */}
         <div className="alliance-discovery-card__badge-row">

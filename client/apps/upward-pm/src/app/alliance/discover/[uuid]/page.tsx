@@ -27,6 +27,7 @@ import {
 } from '@/features/alliance/hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
 import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
+import { getAllianceListingMediaList } from '@/features/alliance/utils/allianceImages'
 
 export default function DiscoveredListingDetailPage() {
   const params = useParams()
@@ -96,13 +97,9 @@ export default function DiscoveredListingDetailPage() {
     }
   }
 
-  const mediaList = listing?.media || []
+  const mediaList = listing ? getAllianceListingMediaList(listing) : []
   const hasMultipleMedia = mediaList.length > 1
-  const activeMedia =
-    mediaList[activeMediaIndex] ||
-    (listing?.primaryMedia
-      ? { publicUrl: listing.primaryMedia.publicUrl || listing.primaryMedia.fileUrl }
-      : null)
+  const activeMedia = mediaList[activeMediaIndex] || mediaList[0]
 
   const ownerName = listing?.pm?.companyName || listing?.pm?.name || 'Alliance Property Manager'
   const ownerTitle = listing?.pm?.allianceProfile?.pmTitle

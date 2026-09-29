@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { LegalHeader } from '@/components/layout/legal-header';
 import { Footer } from '@/components/layout/footer';
-import { fetchPublicListings, type PublicAllianceListingCard } from '@/lib/alliance';
+import { fetchPublicListings, getAllianceListingImage, type PublicAllianceListingCard } from '@/lib/alliance';
 
 interface AlliancePageProps {
   searchParams: Promise<{
@@ -166,18 +166,12 @@ export default async function WebAllianceMarketplacePage({ searchParams }: Allia
               >
                 {/* Photo */}
                 <div style={{ position: 'relative', aspectRatio: '16/10', background: '#f0ede6', overflow: 'hidden' }}>
-                  {listing.primaryMedia ? (
-                    <img
-                      src={listing.primaryMedia.publicUrl}
-                      alt={listing.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a8a29e' }}>
-                      <ImageIcon size={36} />
-                    </div>
-                  )}
+                  <img
+                    src={getAllianceListingImage(listing)}
+                    alt={listing.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    loading="lazy"
+                  />
 
                   {/* Intent tag */}
                   <span

@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react';
 import type { PublicAllianceListingMedia } from '../types/alliance.types';
+import { getAllianceListingMediaList } from '../utils/allianceImages';
 
 interface AllianceGalleryProps {
-  media: PublicAllianceListingMedia[];
+  media?: PublicAllianceListingMedia[];
   title: string;
 }
 
@@ -13,15 +14,8 @@ export const AllianceGallery: React.FC<AllianceGalleryProps> = ({ media, title }
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  if (!media || media.length === 0) {
-    return (
-      <div className="flex aspect-[16/9] w-full items-center justify-center rounded-2xl bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
-        <ImageIcon className="h-16 w-16 stroke-[1.5]" />
-      </div>
-    );
-  }
-
-  const currentPhoto = media[selectedIndex] || media[0];
+  const effectiveMedia = getAllianceListingMediaList({ media, uuid: title });
+  const currentPhoto = effectiveMedia[selectedIndex] || effectiveMedia[0];
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
