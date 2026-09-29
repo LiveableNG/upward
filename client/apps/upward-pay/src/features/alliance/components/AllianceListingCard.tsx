@@ -140,10 +140,9 @@ export const AllianceListingCard: React.FC<AllianceListingCardProps> = ({
                 {listing.pm.displayName}
               </span>
               {hasQualifications && (
-                <ShieldCheck
-                  className="h-3.5 w-3.5 shrink-0 text-emerald-600"
-                  title="Verified Professional PM"
-                />
+                <span title="Verified Professional PM" className="inline-flex items-center">
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                </span>
               )}
             </div>
 

@@ -8,7 +8,6 @@ import {
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
 import { SubmitAllianceRatingUseCase } from '../../../application/alliance/use-cases/submit-alliance-rating.use-case';
 import { SubmitAllianceRatingDto } from '../../../application/alliance/dtos/alliance-rating.dto';
-import { AllianceRatingAuthorType } from '../../../domains/alliance/alliance.entity';
 
 @UseGuards(JwtAuthGuard)
 @Controller('user/alliance')
@@ -24,7 +23,7 @@ export class UserAllianceController {
   ) {
     const userId = Number(req.user.id);
     const result = await this.submitRatingUc.execute(dto, {
-      type: AllianceRatingAuthorType.CLIENT,
+      type: 'CLIENT',
       userId,
     });
     return {

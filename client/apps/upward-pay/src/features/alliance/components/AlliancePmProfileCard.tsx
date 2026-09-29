@@ -38,10 +38,9 @@ export const AlliancePmProfileCard: React.FC<AlliancePmProfileCardProps> = ({
                 {pm.displayName}
               </h4>
               {hasQualifications && (
-                <ShieldCheck
-                  className="h-4 w-4 text-emerald-600"
-                  title="Verified Alliance Member"
-                />
+                <span title="Verified Alliance Member" className="inline-flex items-center">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                </span>
               )}
             </div>
             {pm.pmTitle && (
