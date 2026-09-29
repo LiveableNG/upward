@@ -124,6 +124,7 @@ model upward_alliance_listing {
   targetProperty   upward_pm_property?              @relation(fields: [targetPropertyId], references: [id], onDelete: SetNull)
   targetUnit       upward_pm_unit?                  @relation(fields: [targetUnitId], references: [id], onDelete: SetNull)
   media            upward_alliance_listing_media[]
+  trackers         upward_alliance_listing_tracker[]
 
   @@index([pmId])
   @@index([status])
@@ -152,3 +153,20 @@ model upward_alliance_listing_media {
   @@index([listingId])
   @@index([listingId, sortOrder])
 }
+
+model upward_alliance_listing_tracker {
+  id          Int                     @id @default(autoincrement())
+  uuid        String                  @unique @default(uuid())
+  listingId   Int
+  trackerPmId Int
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  listing     upward_alliance_listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  trackerPm   upward_property_manager @relation(fields: [trackerPmId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, trackerPmId])
+  @@index([listingId])
+  @@index([trackerPmId])
+}
+

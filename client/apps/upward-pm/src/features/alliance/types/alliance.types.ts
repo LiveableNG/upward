@@ -75,6 +75,7 @@ export interface AllianceListing {
     }
   } | null
   media?: AllianceListingMedia[]
+  trackerCount?: number
 }
 
 export interface AllianceListingMedia {
@@ -253,6 +254,13 @@ export interface AllianceDiscoveredListingSummary {
       }
     }[]
   }
+  trackerCount?: number
+  isTrackedByCurrentPm?: boolean
+}
+
+export interface TrackAllianceListingResponse {
+  success: boolean
+  isTracked: boolean
 }
 
 export interface AllianceDiscoveredListingDetail extends AllianceDiscoveredListingSummary {

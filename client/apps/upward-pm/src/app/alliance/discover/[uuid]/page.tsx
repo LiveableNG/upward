@@ -18,16 +18,46 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react'
-import { useDiscoveredAllianceListing } from '@/features/alliance/hooks/useAlliance'
+import {
+  useDiscoveredAllianceListing,
+  useTrackAllianceListing,
+  useUntrackAllianceListing,
+} from '@/features/alliance/hooks/useAlliance'
+import { useToast } from '@/components/common/Toast'
 
 export default function DiscoveredListingDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const toast = useToast()
   const uuid = params?.uuid as string
 
   const { data: listing, isLoading, isError, error } = useDiscoveredAllianceListing(uuid)
+  const trackMutation = useTrackAllianceListing()
+  const untrackMutation = useUntrackAllianceListing()
+
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
+
+  const isTracked = Boolean(listing?.isTrackedByCurrentPm)
+  const isPending = trackMutation.isPending || untrackMutation.isPending
+
+  const handleToggleTrack = async () => {
+    if (!uuid || isPending) return
+
+    try {
+      if (isTracked) {
+        await untrackMutation.mutateAsync(uuid)
+        toast.success('Listing removed from your tracked opportunities')
+      } else {
+        await trackMutation.mutateAsync(uuid)
+        toast.success('Listing added to your tracked opportunities')
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update tracking state')
+    }
+  }
 
   const formatPrice = (amount?: number, currency: string = 'NGN') => {
     if (amount === undefined || amount === null) return 'N/A'
@@ -396,6 +426,78 @@ export default function DiscoveredListingDetailPage() {
 
         {/* Right Column: Listing Owner PM & Canonical Context */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Tracking Action Card */}
+          <div
+            style={{
+              padding: '20px',
+              background: 'var(--dark)',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Bookmark size={17} color={isTracked ? 'var(--forest)' : 'var(--text-muted)'} />
+                <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                  Opportunity Tracking
+                </h2>
+              </div>
+              {isTracked && (
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: 'rgba(22, 101, 52, 0.1)',
+                    color: 'var(--forest)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                  }}
+                >
+                  TRACKED
+                </span>
+              )}
+            </div>
+
+            <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
+              {isTracked
+                ? 'You are currently tracking this listing. It is saved in your Alliance pipeline for rapid reference and client matching.'
+                : 'Track this listing to save it to your Alliance pipeline. The listing owner receives aggregated interest metrics without exposing your personal or business identity.'}
+            </p>
+
+            <button
+              type="button"
+              onClick={handleToggleTrack}
+              disabled={isPending}
+              className={`btn ${isTracked ? 'btn--secondary' : 'btn--primary'}`}
+              style={{
+                width: '100%',
+                height: '40px',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '4px',
+              }}
+            >
+              {isTracked ? (
+                <>
+                  <BookmarkCheck size={16} color="var(--forest)" />
+                  <span>Remove from Tracked</span>
+                </>
+              ) : (
+                <>
+                  <Bookmark size={16} />
+                  <span>Track This Opportunity</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Listing Owner PM Card */}
           <div
             style={{

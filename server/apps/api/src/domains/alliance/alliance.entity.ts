@@ -107,6 +107,8 @@ export interface AllianceListingEntity {
       };
     }>;
   };
+  trackerCount?: number;
+  isTrackedByCurrentPm?: boolean;
 }
 
 export interface AllianceDiscoveredListingSummary {
@@ -131,6 +133,7 @@ export interface AllianceDiscoveredListingSummary {
   coverImage: string | null;
   mediaCount: number;
   publishedAt: Date | null;
+  isTrackedByCurrentPm?: boolean;
   ownerPm: {
     name: string;
     pmTitle: string | null;
@@ -175,3 +178,13 @@ export interface AllianceListingMediaEntity {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface AllianceListingTrackerEntity {
+  id: number;
+  uuid: string;
+  listingId: number;
+  trackerPmId: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+

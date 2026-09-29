@@ -130,3 +130,15 @@ export async function getDiscoveredListing(uuid: string): Promise<import('../typ
     { method: 'GET' },
   )
 }
+
+export async function trackAllianceListing(uuid: string): Promise<{ success: boolean; isTracked: boolean }> {
+  return request<{ success: boolean; isTracked: boolean }>(`/pm/alliance/listings/${uuid}/track`, {
+    method: 'POST',
+  })
+}
+
+export async function untrackAllianceListing(uuid: string): Promise<{ success: boolean; isTracked: boolean }> {
+  return request<{ success: boolean; isTracked: boolean }>(`/pm/alliance/listings/${uuid}/track`, {
+    method: 'DELETE',
+  })
+}

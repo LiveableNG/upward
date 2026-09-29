@@ -13,6 +13,8 @@ import {
   Send,
   EyeOff,
   Archive,
+  Bookmark,
+  Users,
 } from 'lucide-react'
 import { AllianceListing } from '../types/alliance.types'
 
@@ -177,6 +179,26 @@ export function ListingCard({
               {listing.sourceType === 'LINKED_INVENTORY' ? <LinkIcon size={12} /> : <Globe size={12} />}
               {listing.sourceType === 'LINKED_INVENTORY' ? 'Linked Inventory' : 'Independent'}
             </span>
+
+            {listing.trackerCount !== undefined && listing.trackerCount > 0 && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: 'rgba(22, 101, 52, 0.08)',
+                  color: 'var(--forest)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                }}
+                title={`${listing.trackerCount} Alliance PM${listing.trackerCount === 1 ? ' is' : 's are'} tracking this listing`}
+              >
+                <Bookmark size={12} />
+                {listing.trackerCount} {listing.trackerCount === 1 ? 'PM Interested' : 'PMs Interested'}
+              </span>
+            )}
           </div>
 
           <div>{getStatusBadge()}</div>

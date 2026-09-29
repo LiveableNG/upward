@@ -115,6 +115,8 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               : [],
           }
         : undefined,
+      trackerCount: item._count?.trackers !== undefined ? item._count.trackers : undefined,
+      isTrackedByCurrentPm: item.trackers !== undefined ? item.trackers.length > 0 : undefined,
     };
   }
 
@@ -177,6 +179,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
           },
         },
         media: { orderBy: { sortOrder: 'asc' } },
+        _count: { select: { trackers: true } },
       },
     });
 
@@ -199,6 +202,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
           },
         },
         media: { orderBy: { sortOrder: 'asc' } },
+        _count: { select: { trackers: true } },
       },
     });
 
@@ -263,6 +267,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
           },
         },
         media: { orderBy: { sortOrder: 'asc' } },
+        _count: { select: { trackers: true } },
       },
     });
 
@@ -310,6 +315,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             },
           },
           media: { orderBy: { sortOrder: 'asc' } },
+          _count: { select: { trackers: true } },
         },
       }),
       (this.prisma as any).upward_alliance_listing.count({ where }),
@@ -401,6 +407,11 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             },
           },
           media: { orderBy: { sortOrder: 'asc' } },
+          _count: { select: { trackers: true } },
+          trackers: {
+            where: { trackerPmId: excludePmId },
+            select: { id: true },
+          },
           pm: {
             select: {
               id: true,
@@ -466,6 +477,13 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
           },
         },
         media: { orderBy: { sortOrder: 'asc' } },
+        _count: { select: { trackers: true } },
+        trackers: excludePmId
+          ? {
+              where: { trackerPmId: excludePmId },
+              select: { id: true },
+            }
+          : undefined,
         pm: {
           select: {
             id: true,

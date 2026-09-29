@@ -13,14 +13,43 @@ import {
   UserCheck,
   Layers,
   Award,
+  Bookmark,
+  BookmarkCheck,
 } from 'lucide-react'
 import { AllianceDiscoveredListingSummary } from '../types/alliance.types'
+import { useTrackAllianceListing, useUntrackAllianceListing } from '../hooks/useAlliance'
+import { useToast } from '@/components/common/Toast'
 
 interface DiscoveryCardProps {
   listing: AllianceDiscoveredListingSummary
 }
 
 export function DiscoveryCard({ listing }: DiscoveryCardProps) {
+  const toast = useToast()
+  const trackMutation = useTrackAllianceListing()
+  const untrackMutation = useUntrackAllianceListing()
+
+  const isTracked = Boolean(listing.isTrackedByCurrentPm)
+  const isPending = trackMutation.isPending || untrackMutation.isPending
+
+  const handleToggleTrack = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (isPending) return
+
+    try {
+      if (isTracked) {
+        await untrackMutation.mutateAsync(listing.uuid)
+        toast.success('Listing removed from your tracked opportunities')
+      } else {
+        await trackMutation.mutateAsync(listing.uuid)
+        toast.success('Listing added to your tracked opportunities')
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update tracking state')
+    }
+  }
   const formatPrice = (amount: number, currency: string = 'NGN') => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -142,6 +171,35 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
             {listing.targetType === 'PROPERTY' ? 'Property' : 'Unit'}
           </span>
         </div>
+
+        {/* Track Bookmark Button (Top Right) */}
+        <button
+          type="button"
+          onClick={handleToggleTrack}
+          disabled={isPending}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 3,
+            width: '34px',
+            height: '34px',
+            borderRadius: '50%',
+            background: isTracked ? 'var(--forest)' : 'rgba(0, 0, 0, 0.65)',
+            color: '#ffffff',
+            border: isTracked ? '2px solid rgba(255,255,255,0.8)' : '1px solid rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: isPending ? 'not-allowed' : 'pointer',
+            backdropFilter: 'blur(6px)',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          }}
+          title={isTracked ? 'Tracking (Click to untrack)' : 'Track opportunity'}
+        >
+          {isTracked ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}
+        </button>
 
         {/* Media count badge */}
         {mediaCount > 0 && (
@@ -355,24 +413,43 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
           )}
         </div>
 
-        {/* View Details Link */}
-        <Link
-          href={`/alliance/discover/${listing.uuid}`}
-          className="btn btn--secondary"
-          style={{
-            marginTop: '8px',
-            width: '100%',
-            height: '36px',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textDecoration: 'none',
-          }}
-        >
-          View Listing
-        </Link>
+        {/* Action Button Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', marginTop: '8px' }}>
+          <Link
+            href={`/alliance/discover/${listing.uuid}`}
+            className="btn btn--secondary"
+            style={{
+              height: '36px',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textDecoration: 'none',
+            }}
+          >
+            View Listing
+          </Link>
+          <button
+            type="button"
+            onClick={handleToggleTrack}
+            disabled={isPending}
+            className={`btn ${isTracked ? 'btn--primary' : 'btn--secondary'}`}
+            style={{
+              height: '36px',
+              padding: '0 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title={isTracked ? 'Untrack Opportunity' : 'Track Opportunity'}
+          >
+            {isTracked ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+            <span>{isTracked ? 'Tracking' : 'Track'}</span>
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -72,6 +72,7 @@ model upward_property_manager {
   allianceProfile         upward_alliance_pm_profile?
   allianceQualifications  upward_alliance_pm_qualification[]
   allianceListings        upward_alliance_listing[]
+  trackedAllianceListings upward_alliance_listing_tracker[]
 
   @@index([email])
 }

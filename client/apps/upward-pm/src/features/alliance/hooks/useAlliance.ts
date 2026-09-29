@@ -197,3 +197,26 @@ export function useDiscoveredAllianceListing(uuid?: string) {
   })
 }
 
+export function useTrackAllianceListing() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (uuid: string) => allianceService.trackAllianceListing(uuid),
+    onSuccess: (_, uuid) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-discover-listings'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-discovered-listing', uuid] })
+    },
+  })
+}
+
+export function useUntrackAllianceListing() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (uuid: string) => allianceService.untrackAllianceListing(uuid),
+    onSuccess: (_, uuid) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-discover-listings'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-discovered-listing', uuid] })
+    },
+  })
+}
+
+

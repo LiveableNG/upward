@@ -138,3 +138,16 @@ export interface IAllianceListingMediaRepository {
   deleteByListingId(listingId: number): Promise<number>;
   reindexSortOrders(listingId: number): Promise<void>;
 }
+
+export const ALLIANCE_LISTING_TRACKER_REPOSITORY = Symbol('ALLIANCE_LISTING_TRACKER_REPOSITORY');
+
+export interface IAllianceListingTrackerRepository {
+  track(listingId: number, trackerPmId: number): Promise<import('./alliance.entity').AllianceListingTrackerEntity>;
+  untrack(listingId: number, trackerPmId: number): Promise<boolean>;
+  isTracked(listingId: number, trackerPmId: number): Promise<boolean>;
+  countByListingId(listingId: number): Promise<number>;
+  countByListingIds(listingIds: number[]): Promise<Map<number, number>>;
+  findTrackedListingIdsByPm(pmId: number, listingIds: number[]): Promise<Set<number>>;
+  findByListingAndPm(listingId: number, trackerPmId: number): Promise<import('./alliance.entity').AllianceListingTrackerEntity | null>;
+}
+

@@ -17,6 +17,7 @@ import {
   Award,
   CheckCircle2,
   Calendar,
+  Bookmark,
 } from 'lucide-react'
 import {
   useAllianceListing,
@@ -277,7 +278,7 @@ export default function AllianceListingDetailPage() {
         )}
 
         {/* Grid of Key Properties */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '20px' }}>
           <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: '10px' }}>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Target Scope</div>
             <div style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
@@ -299,6 +300,14 @@ export default function AllianceListingDetailPage() {
             <div style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
               <Calendar size={16} color="var(--text-muted)" />
               {new Date(listing.createdAt).toLocaleDateString()}
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 16px', background: 'var(--bg)', borderRadius: '10px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Alliance Network Interest</div>
+            <div style={{ fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px', color: (listing.trackerCount ?? 0) > 0 ? 'var(--forest)' : 'var(--text)' }}>
+              <Bookmark size={16} color={(listing.trackerCount ?? 0) > 0 ? 'var(--forest)' : 'var(--text-muted)'} />
+              {listing.trackerCount ?? 0} {(listing.trackerCount ?? 0) === 1 ? 'PM Tracking' : 'PMs Tracking'}
             </div>
           </div>
         </div>

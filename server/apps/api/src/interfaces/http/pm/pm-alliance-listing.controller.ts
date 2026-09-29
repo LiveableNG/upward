@@ -34,6 +34,8 @@ import { ConfirmAllianceMediaUploadUseCase } from '../../../application/alliance
 import { ListAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/list-alliance-listing-media.use-case';
 import { ReorderAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/reorder-alliance-listing-media.use-case';
 import { DeleteAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/delete-alliance-listing-media.use-case';
+import { TrackAllianceListingUseCase } from '../../../application/alliance/use-cases/track-alliance-listing.use-case';
+import { UntrackAllianceListingUseCase } from '../../../application/alliance/use-cases/untrack-alliance-listing.use-case';
 
 @Controller('pm/alliance/listings')
 @UseGuards(JwtAuthGuard)
@@ -51,7 +53,25 @@ export class PmAllianceListingController {
     private readonly listMediaUseCase: ListAllianceListingMediaUseCase,
     private readonly reorderMediaUseCase: ReorderAllianceListingMediaUseCase,
     private readonly deleteMediaUseCase: DeleteAllianceListingMediaUseCase,
+    private readonly trackListingUseCase: TrackAllianceListingUseCase,
+    private readonly untrackListingUseCase: UntrackAllianceListingUseCase,
   ) {}
+
+  @Post(':uuid/track')
+  async track(
+    @Param('uuid') uuid: string,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.trackListingUseCase.execute(uuid, actor);
+  }
+
+  @Delete(':uuid/track')
+  async untrack(
+    @Param('uuid') uuid: string,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.untrackListingUseCase.execute(uuid, actor);
+  }
 
   @Post()
   async create(
