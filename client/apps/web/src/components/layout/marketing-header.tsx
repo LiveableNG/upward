@@ -20,7 +20,7 @@ export function MarketingHeader() {
     <>
       <header className="marketing-header">
         <div className="marketing-header__inner">
-          <div className="marketing-header__left">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
             <Link href="/" className="marketing-header__brand">
               <div className="marketing-header__logo">
                 <img src="/favicon.svg" alt="Upward" />
@@ -143,13 +143,11 @@ export function MarketingHeader() {
 
               <Link href="/for-landlord">Landlord</Link>
               <Link href="/for-pm">Property Managers</Link>
-              <Link href="/alliance">Marketplace</Link>
               <Link href="/blog">Blog</Link>
             </nav>
           </div>
 
           <div className="marketing-header__actions">
-            <div className="marketing-header__divider" aria-hidden="true" />
             <Link href="/login" className="marketing-header__sign-in">
               Sign In
             </Link>
@@ -255,9 +253,6 @@ export function MarketingHeader() {
           </Link>
           <Link href="/for-pm" onClick={() => setMobileMenuOpen(false)}>
             Property Managers
-          </Link>
-          <Link href="/alliance" onClick={() => setMobileMenuOpen(false)}>
-            Marketplace
           </Link>
           {showBlog && (
             <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>
