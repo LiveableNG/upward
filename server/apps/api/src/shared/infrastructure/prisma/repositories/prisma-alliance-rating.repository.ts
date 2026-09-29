@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import {
   IAllianceRatingRepository,
   CreateAllianceRatingData,
@@ -13,7 +14,10 @@ import {
 
 @Injectable()
 export class PrismaAllianceRatingRepository implements IAllianceRatingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   private mapToEntity(item: any): AllianceRatingEntity {
     return {
@@ -36,10 +40,10 @@ export class PrismaAllianceRatingRepository implements IAllianceRatingRepository
             id: item.authorPm.id,
             uuid: item.authorPm.uuid,
             name:
-              item.authorPm.companyName ||
-              `${item.authorPm.firstName || ''} ${item.authorPm.lastName || ''}`.trim() ||
+              (item.authorPm.businessName ? this.encryption.decrypt(item.authorPm.businessName) : '') ||
+              `${item.authorPm.firstName ? this.encryption.decrypt(item.authorPm.firstName) : ''} ${item.authorPm.lastName ? this.encryption.decrypt(item.authorPm.lastName) : ''}`.trim() ||
               'Property Manager',
-            companyName: item.authorPm.companyName,
+            companyName: item.authorPm.businessName ? this.encryption.decrypt(item.authorPm.businessName) : null,
           }
         : null,
       authorUser: item.authorUser
@@ -55,10 +59,10 @@ export class PrismaAllianceRatingRepository implements IAllianceRatingRepository
             id: item.subjectPm.id,
             uuid: item.subjectPm.uuid,
             name:
-              item.subjectPm.companyName ||
-              `${item.subjectPm.firstName || ''} ${item.subjectPm.lastName || ''}`.trim() ||
+              (item.subjectPm.businessName ? this.encryption.decrypt(item.subjectPm.businessName) : '') ||
+              `${item.subjectPm.firstName ? this.encryption.decrypt(item.subjectPm.firstName) : ''} ${item.subjectPm.lastName ? this.encryption.decrypt(item.subjectPm.lastName) : ''}`.trim() ||
               'Property Manager',
-            companyName: item.subjectPm.companyName,
+            companyName: item.subjectPm.businessName ? this.encryption.decrypt(item.subjectPm.businessName) : null,
           }
         : null,
       subjectUser: item.subjectUser

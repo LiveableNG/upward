@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import {
   IAllianceListingRepository,
   CreateAllianceListingData,
@@ -16,7 +17,10 @@ import {
 
 @Injectable()
 export class PrismaAllianceListingRepository implements IAllianceListingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   private mapToEntity(item: any): AllianceListingEntity {
     return {
@@ -91,8 +95,11 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
         ? {
             id: item.pm.id,
             uuid: item.pm.uuid,
-            name: item.pm.companyName || `${item.pm.firstName || ''} ${item.pm.lastName || ''}`.trim() || 'Property Manager',
-            companyName: item.pm.companyName,
+            name:
+              (item.pm.businessName ? this.encryption.decrypt(item.pm.businessName) : '') ||
+              `${item.pm.firstName ? this.encryption.decrypt(item.pm.firstName) : ''} ${item.pm.lastName ? this.encryption.decrypt(item.pm.lastName) : ''}`.trim() ||
+              'Property Manager',
+            companyName: item.pm.businessName ? this.encryption.decrypt(item.pm.businessName) : null,
             allianceProfile: item.pm.allianceProfile
               ? {
                   pmTitle: item.pm.allianceProfile.pmTitle,
@@ -418,7 +425,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               uuid: true,
               firstName: true,
               lastName: true,
-              companyName: true,
+              businessName: true,
               allianceProfile: {
                 select: {
                   pmTitle: true,
@@ -490,7 +497,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             uuid: true,
             firstName: true,
             lastName: true,
-            companyName: true,
+            businessName: true,
             allianceProfile: {
               select: {
                 pmTitle: true,
@@ -608,7 +615,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               uuid: true,
               firstName: true,
               lastName: true,
-              companyName: true,
+              businessName: true,
               allianceProfile: {
                 select: {
                   pmTitle: true,
@@ -668,7 +675,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             uuid: true,
             firstName: true,
             lastName: true,
-            companyName: true,
+            businessName: true,
             allianceProfile: {
               select: {
                 pmTitle: true,

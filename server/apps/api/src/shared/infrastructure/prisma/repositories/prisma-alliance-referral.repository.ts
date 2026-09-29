@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import {
   IAllianceReferralRepository,
   CreateAllianceReferralData,
@@ -13,7 +14,10 @@ import {
 
 @Injectable()
 export class PrismaAllianceReferralRepository implements IAllianceReferralRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   private mapToEntity(item: any): AllianceReferralEntity {
     return {
@@ -85,10 +89,10 @@ export class PrismaAllianceReferralRepository implements IAllianceReferralReposi
                   id: item.listing.pm.id,
                   uuid: item.listing.pm.uuid,
                   name:
-                    item.listing.pm.companyName ||
-                    `${item.listing.pm.firstName || ''} ${item.listing.pm.lastName || ''}`.trim() ||
+                    (item.listing.pm.businessName ? this.encryption.decrypt(item.listing.pm.businessName) : '') ||
+                    `${item.listing.pm.firstName ? this.encryption.decrypt(item.listing.pm.firstName) : ''} ${item.listing.pm.lastName ? this.encryption.decrypt(item.listing.pm.lastName) : ''}`.trim() ||
                     'Property Manager',
-                  companyName: item.listing.pm.companyName,
+                  companyName: item.listing.pm.businessName ? this.encryption.decrypt(item.listing.pm.businessName) : null,
                 }
               : undefined,
           }
@@ -98,10 +102,10 @@ export class PrismaAllianceReferralRepository implements IAllianceReferralReposi
             id: item.referringPm.id,
             uuid: item.referringPm.uuid,
             name:
-              item.referringPm.companyName ||
-              `${item.referringPm.firstName || ''} ${item.referringPm.lastName || ''}`.trim() ||
+              (item.referringPm.businessName ? this.encryption.decrypt(item.referringPm.businessName) : '') ||
+              `${item.referringPm.firstName ? this.encryption.decrypt(item.referringPm.firstName) : ''} ${item.referringPm.lastName ? this.encryption.decrypt(item.referringPm.lastName) : ''}`.trim() ||
               'Property Manager',
-            companyName: item.referringPm.companyName,
+            companyName: item.referringPm.businessName ? this.encryption.decrypt(item.referringPm.businessName) : null,
           }
         : undefined,
       matchedUser: item.matchedUser
@@ -128,7 +132,7 @@ export class PrismaAllianceReferralRepository implements IAllianceReferralReposi
               uuid: true,
               firstName: true,
               lastName: true,
-              companyName: true,
+              businessName: true,
             },
           },
         },
@@ -139,7 +143,7 @@ export class PrismaAllianceReferralRepository implements IAllianceReferralReposi
           uuid: true,
           firstName: true,
           lastName: true,
-          companyName: true,
+          businessName: true,
         },
       },
       matchedUser: {
