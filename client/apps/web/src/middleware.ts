@@ -42,6 +42,11 @@ const PM_ROUTE_PREFIXES = [
   '/import',
   '/team',
   '/notifications',
+  '/alliance/listings',
+  '/alliance/discover',
+  '/alliance/referrals',
+  '/alliance/commissions',
+  '/public/requests',
 ]
 
 const PAY_ROUTE_PREFIXES = [
@@ -240,6 +245,11 @@ export async function middleware(request: NextRequest) {
     redirectParam.startsWith('/import') ||
     redirectParam.startsWith('/team') ||
     redirectParam.startsWith('/notifications') ||
+    redirectParam.startsWith('/alliance/listings') ||
+    redirectParam.startsWith('/alliance/discover') ||
+    redirectParam.startsWith('/alliance/referrals') ||
+    redirectParam.startsWith('/alliance/commissions') ||
+    redirectParam.startsWith('/public/requests') ||
     redirectParam.startsWith('/pm')
 
   const isPmPath =
@@ -257,6 +267,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/import') ||
     pathname.startsWith('/team') ||
     pathname.startsWith('/notifications') ||
+    pathname.startsWith('/alliance/listings') ||
+    pathname.startsWith('/alliance/discover') ||
+    pathname.startsWith('/alliance/referrals') ||
+    pathname.startsWith('/alliance/commissions') ||
+    pathname.startsWith('/public/requests') ||
     pathname.startsWith('/_upward_pm') ||
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
@@ -383,6 +398,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/import') ||
     pathname.startsWith('/team') ||
     pathname.startsWith('/notifications') ||
+    pathname.startsWith('/alliance/listings') ||
+    pathname.startsWith('/alliance/discover') ||
+    pathname.startsWith('/alliance/referrals') ||
+    pathname.startsWith('/alliance/commissions') ||
     pathname.startsWith('/api/v1')
 
   const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
@@ -443,6 +462,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/kyc') ||
     pathname.startsWith('/transactions') ||
     pathname.startsWith('/portal') ||
+    pathname.startsWith('/public/requests') ||
     pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
@@ -619,6 +639,15 @@ export const config = {
     '/import/:path*',
     '/team/:path*',
     '/notifications/:path*',
+    '/alliance/listings',
+    '/alliance/listings/:path*',
+    '/alliance/discover',
+    '/alliance/discover/:path*',
+    '/alliance/referrals',
+    '/alliance/referrals/:path*',
+    '/alliance/commissions',
+    '/alliance/commissions/:path*',
+    '/public/requests/:path*',
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',

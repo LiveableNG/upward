@@ -38,8 +38,6 @@ export default async function WebAllianceMarketplacePage({ searchParams }: Allia
     limit: 12,
   });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
-
   const formatPrice = (amount?: number | null, currency = 'NGN') => {
     if (amount === undefined || amount === null) return 'Price on Request';
     const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '₦';
@@ -119,12 +117,12 @@ export default async function WebAllianceMarketplacePage({ searchParams }: Allia
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px 80px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, fontSize: 13, color: '#685c49' }}>
           <span>Showing {items.length} of {meta.total} properties</span>
-          <a
-            href={`${appUrl}/signup`}
+          <Link
+            href="/signup"
             style={{ color: '#141413', fontWeight: 600, textDecoration: 'underline' }}
           >
             Create an Upward Pay account →
-          </a>
+          </Link>
         </div>
 
         {items.length === 0 ? (
