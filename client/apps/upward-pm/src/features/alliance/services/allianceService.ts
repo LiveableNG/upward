@@ -10,14 +10,16 @@ import {
 } from '../types/alliance.types'
 
 export async function getAllianceProfile(): Promise<AlliancePmProfile> {
-  return request<AlliancePmProfile>('/pm/alliance/profile', { method: 'GET' })
+  const res = await request<any>('/pm/alliance/profile', { method: 'GET' })
+  return (res?.data ?? res) as AlliancePmProfile
 }
 
 export async function updateAllianceProfile(data: { pmTitle?: string; bio?: string }): Promise<AlliancePmProfile> {
-  return request<AlliancePmProfile>('/pm/alliance/profile', {
+  const res = await request<any>('/pm/alliance/profile', {
     method: 'PATCH',
     body: JSON.stringify(data),
   })
+  return (res?.data ?? res) as AlliancePmProfile
 }
 
 export async function listAllianceListings(params?: ListAllianceListingsParams): Promise<ListAllianceListingsResponse> {
