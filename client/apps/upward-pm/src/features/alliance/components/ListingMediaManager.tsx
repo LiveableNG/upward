@@ -5,7 +5,6 @@ import {
   UploadCloud,
   X,
   ArrowLeft,
-  ArrowRight,
   Star,
   Loader2,
   AlertCircle,
@@ -24,15 +23,21 @@ interface ListingMediaManagerProps {
   isArchived?: boolean
 }
 
+interface OptimisticUpload {
+  id: string
+  filename: string
+  previewUrl: string
+}
+
 const MAX_IMAGES = 15
-const MAX_FILE_SIZE_MB = 10
+const MAX_FILE_SIZE_MB = 15
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export function ListingMediaManager({ listingUuid, isArchived = false }: ListingMediaManagerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [uploadingFiles, setUploadingFiles] = useState<string[]>([])
+  const [uploadingQueue, setUploadingQueue] = useState<OptimisticUpload[]>([])
 
   const { data: media = [], isLoading } = useListingMedia(listingUuid)
   const uploadMutation = useUploadListingMedia()
@@ -40,20 +45,22 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
   const deleteMutation = useDeleteListingMedia()
 
   const isMutating =
-    uploadMutation.isPending || reorderMutation.isPending || deleteMutation.isPending
+    uploadMutation.isPending || reorderMutation.isPending || deleteMutation.isPending || uploadingQueue.length > 0
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0 || isArchived) return
     setErrorMessage(null)
 
     const fileList = Array.from(files)
-    const currentTotal = media.length + uploadingFiles.length
+    const currentTotal = media.length + uploadingQueue.length
 
     if (currentTotal + fileList.length > MAX_IMAGES) {
-      setErrorMessage(`You can upload a maximum of ${MAX_IMAGES} images per listing.`)
+      setErrorMessage(`You can upload a maximum of ${MAX_IMAGES} images per listing. (Remaining slots: ${Math.max(0, MAX_IMAGES - currentTotal)})`)
       return
     }
 
+    // Pre-validate file formats and sizes
+    const validFiles: File[] = []
     for (const file of fileList) {
       if (!ALLOWED_TYPES.includes(file.type)) {
         setErrorMessage(`"${file.name}" has an unsupported format. Allowed: JPG, PNG, WEBP.`)
@@ -63,22 +70,46 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
         setErrorMessage(`"${file.name}" exceeds the ${MAX_FILE_SIZE_MB}MB size limit.`)
         return
       }
+      validFiles.push(file)
     }
 
-    for (const file of fileList) {
-      setUploadingFiles((prev) => [...prev, file.name])
-      try {
-        await uploadMutation.mutateAsync({ listingUuid, file })
-      } catch (err: any) {
-        setErrorMessage(err.message || `Failed to upload ${file.name}`)
-      } finally {
-        setUploadingFiles((prev) => prev.filter((name) => name !== file.name))
-      }
-    }
+    if (validFiles.length === 0) return
 
+    // Create instant local object URLs for optimistic zero-latency preview
+    const newOptimisticItems: OptimisticUpload[] = validFiles.map((file) => ({
+      id: `${file.name}-${Date.now()}-${Math.random()}`,
+      filename: file.name,
+      previewUrl: URL.createObjectURL(file),
+    }))
+
+    setUploadingQueue((prev) => [...prev, ...newOptimisticItems])
+
+    // Reset input immediately so user can select more if needed
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+
+    // Upload in parallel using Promise.allSettled for maximum speed
+    const uploadTasks = validFiles.map(async (file, idx) => {
+      const optimisticId = newOptimisticItems[idx]?.id
+      try {
+        await uploadMutation.mutateAsync({ listingUuid, file })
+      } catch (err: any) {
+        setErrorMessage((prev) =>
+          prev ? `${prev}; ${file.name}: ${err.message || 'Upload failed'}` : `Failed to upload ${file.name}: ${err.message || 'Network error'}`
+        )
+      } finally {
+        if (optimisticId) {
+          setUploadingQueue((prev) => {
+            const item = prev.find((p) => p.id === optimisticId)
+            if (item) URL.revokeObjectURL(item.previewUrl)
+            return prev.filter((p) => p.id !== optimisticId)
+          })
+        }
+      }
+    })
+
+    await Promise.allSettled(uploadTasks)
   }
 
   const handleMove = async (index: number, direction: 'left' | 'right') => {
@@ -110,7 +141,9 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
     }
   }
 
+  const hasMedia = media.length > 0 || uploadingQueue.length > 0
   const coverImage = media.length > 0 ? media[0] : null
+  const optimisticCover = !coverImage && uploadingQueue.length > 0 ? uploadingQueue[0] : null
   const galleryImages = media.length > 1 ? media.slice(1) : []
 
   return (
@@ -120,7 +153,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
         type="file"
         accept=".jpg,.jpeg,.png,.webp"
         multiple
-        disabled={isMutating || isArchived}
+        disabled={isArchived}
         onChange={(e) => handleFiles(e.target.files)}
         style={{ display: 'none' }}
       />
@@ -140,11 +173,10 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
           }}
         >
           <AlertCircle size={15} />
-          <span>{errorMessage}</span>
+          <span style={{ flex: 1 }}>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
             style={{
-              marginLeft: 'auto',
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
@@ -156,38 +188,13 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
         </div>
       )}
 
-      {/* Upload in-progress indicators */}
-      {uploadingFiles.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {uploadingFiles.map((filename, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 12px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.2)',
-                fontSize: '12px',
-                color: 'var(--text)',
-              }}
-            >
-              <Loader2 size={14} className="animate-spin" style={{ color: '#3b82f6' }} />
-              <span>Uploading {filename}...</span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Media Content Display */}
       {isLoading ? (
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
           <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
           <div style={{ fontSize: '12.5px' }}>Loading photography...</div>
         </div>
-      ) : media.length === 0 ? (
+      ) : !hasMedia ? (
         /* Compact, refined empty state */
         <div
           onClick={() => !isArchived && fileInputRef.current?.click()}
@@ -231,7 +238,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
               Add Listing Photography
             </div>
             <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-              Drag & drop photos or click to browse (Max {MAX_IMAGES} photos)
+              Instant optimized upload &bull; Max {MAX_IMAGES} high-res photos
             </div>
           </div>
           {!isArchived && (
@@ -248,7 +255,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
         /* Gallery with Primary Cover & Thumbnails */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Primary Cover Image Preview */}
-          {coverImage && (
+          {(coverImage || optimisticCover) && (
             <div
               style={{
                 position: 'relative',
@@ -262,13 +269,15 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
               }}
             >
               <img
-                src={coverImage.publicUrl}
+                src={coverImage ? coverImage.publicUrl : optimisticCover!.previewUrl}
                 alt="Primary listing cover"
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
                   display: 'block',
+                  filter: !coverImage && optimisticCover ? 'brightness(0.9) blur(1px)' : 'none',
+                  transition: 'filter 0.3s ease',
                 }}
               />
 
@@ -290,12 +299,21 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                   boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                 }}
               >
-                <Star size={11} fill="#ffffff" />
-                Cover Photo
+                {!coverImage && optimisticCover ? (
+                  <>
+                    <Loader2 size={11} className="animate-spin" />
+                    Optimizing & Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Star size={11} fill="#ffffff" />
+                    Cover Photo
+                  </>
+                )}
               </div>
 
               {/* Delete Cover Button */}
-              {!isArchived && (
+              {!isArchived && coverImage && (
                 <button
                   type="button"
                   onClick={() => handleDelete(coverImage.uuid)}
@@ -324,7 +342,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
             </div>
           )}
 
-          {/* Secondary Photo Strip & Add Button */}
+          {/* Secondary Photo Strip & Optimistic Upload Indicators */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {galleryImages.map((item, idx) => {
               const actualIndex = idx + 1
@@ -410,12 +428,58 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
               )
             })}
 
+            {/* Optimistic Pending Upload Thumbnails */}
+            {uploadingQueue.map((item, idx) => {
+              // If there was no cover image, item 0 is already shown in the big cover box
+              if (!coverImage && idx === 0) return null
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    position: 'relative',
+                    width: '76px',
+                    height: '76px',
+                    borderRadius: 'var(--radius-sm)',
+                    overflow: 'hidden',
+                    border: '1.5px solid #3b82f6',
+                    background: 'var(--ivory-dim)',
+                    flexShrink: 0,
+                    boxShadow: '0 0 8px rgba(59, 130, 246, 0.3)',
+                  }}
+                >
+                  <img
+                    src={item.previewUrl}
+                    alt={item.filename}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      filter: 'brightness(0.75) blur(1px)',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0, 0, 0, 0.25)',
+                    }}
+                  >
+                    <Loader2 size={16} className="animate-spin" style={{ color: '#ffffff' }} />
+                  </div>
+                </div>
+              )
+            })}
+
             {/* Add More Photos Button */}
-            {!isArchived && media.length < MAX_IMAGES && (
+            {!isArchived && media.length + uploadingQueue.length < MAX_IMAGES && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isMutating}
+                disabled={isArchived}
                 style={{
                   width: '76px',
                   height: '76px',

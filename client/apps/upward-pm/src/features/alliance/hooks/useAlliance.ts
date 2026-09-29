@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as allianceService from '../services/allianceService'
+import { compressImageForUpload } from '../utils/imageCompression'
 import {
   CreateAllianceListingPayload,
   UpdateAllianceListingPayload,
@@ -115,22 +116,16 @@ export function useUploadListingMedia() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ listingUuid, file }: { listingUuid: string; file: File }) => {
-      const toBase64 = (f: File) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.readAsDataURL(f)
-          reader.onload = () => {
-            const res = reader.result as string
-            resolve(res.includes(',') ? res.split(',')[1] : res)
-          }
-          reader.onerror = (error) => reject(error)
-        })
+      // High-performance client compression: max 2048px, quality 0.85
+      const compressed = await compressImageForUpload(file, {
+        maxDimension: 2048,
+        quality: 0.85,
+      })
 
-      const base64Data = await toBase64(file)
       const confirmedMedia = await allianceService.uploadListingMedia(listingUuid, {
-        base64Data,
-        contentType: file.type || 'image/jpeg',
-        filename: file.name,
+        base64Data: compressed.base64Data,
+        contentType: compressed.contentType,
+        filename: compressed.filename,
       })
 
       return confirmedMedia
