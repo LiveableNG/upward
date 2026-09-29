@@ -104,3 +104,29 @@ export async function deleteListingMedia(listingUuid: string, mediaUuid: string)
     method: 'DELETE',
   })
 }
+
+export async function discoverListings(params?: import('../types/alliance.types').DiscoverAllianceListingsParams): Promise<import('../types/alliance.types').DiscoverAllianceListingsResponse> {
+  const searchParams = new URLSearchParams()
+  if (params?.intent) searchParams.set('intent', params.intent)
+  if (params?.targetType) searchParams.set('targetType', params.targetType)
+  if (params?.propertyType) searchParams.set('propertyType', params.propertyType)
+  if (params?.city) searchParams.set('city', params.city)
+  if (params?.state) searchParams.set('state', params.state)
+  if (params?.search) searchParams.set('search', params.search)
+  if (params?.sortBy) searchParams.set('sortBy', params.sortBy)
+  if (params?.page) searchParams.set('page', String(params.page))
+  if (params?.limit) searchParams.set('limit', String(params.limit))
+
+  const qs = searchParams.toString()
+  return request<import('../types/alliance.types').DiscoverAllianceListingsResponse>(
+    `/pm/alliance/discover${qs ? `?${qs}` : ''}`,
+    { method: 'GET' },
+  )
+}
+
+export async function getDiscoveredListing(uuid: string): Promise<import('../types/alliance.types').AllianceDiscoveredListingDetail> {
+  return request<import('../types/alliance.types').AllianceDiscoveredListingDetail>(
+    `/pm/alliance/discover/${uuid}`,
+    { method: 'GET' },
+  )
+}

@@ -17,6 +17,7 @@ import {
   AllianceListing,
 } from '@/features/alliance/types/alliance.types'
 import { AllianceStatusBanner } from '@/features/alliance/components/AllianceStatusBanner'
+import { AllianceNavTabs } from '@/features/alliance/components/AllianceNavTabs'
 import { ListingFilters } from '@/features/alliance/components/ListingFilters'
 import { ListingCard } from '@/features/alliance/components/ListingCard'
 import { ListingReviewModal } from '@/features/alliance/components/ListingReviewModal'
@@ -137,6 +138,9 @@ export default function AllianceListingsPage() {
           </Link>
         )}
       </div>
+
+      {/* Alliance Navigation Tabs */}
+      <AllianceNavTabs activeTab="my-listings" />
 
       {/* Alliance Status Banner (Enabled state + Qualifications or Disabled warning) */}
       <AllianceStatusBanner profile={profile} isLoading={loadingProfile} />

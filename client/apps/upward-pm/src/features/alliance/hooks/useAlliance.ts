@@ -178,3 +178,22 @@ export function useDeleteListingMedia() {
     },
   })
 }
+
+export function useDiscoverAllianceListings(params?: import('../types/alliance.types').DiscoverAllianceListingsParams) {
+  return useQuery<import('../types/alliance.types').DiscoverAllianceListingsResponse>({
+    queryKey: ['alliance-discover-listings', params],
+    queryFn: () => allianceService.discoverListings(params),
+  })
+}
+
+export function useDiscoveredAllianceListing(uuid?: string) {
+  return useQuery<import('../types/alliance.types').AllianceDiscoveredListingDetail>({
+    queryKey: ['alliance-discovered-listing', uuid],
+    queryFn: () => {
+      if (!uuid) throw new Error('Listing UUID required')
+      return allianceService.getDiscoveredListing(uuid)
+    },
+    enabled: Boolean(uuid),
+  })
+}
+

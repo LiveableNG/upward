@@ -36,6 +36,7 @@ export type AllianceSourceType = 'LINKED_INVENTORY' | 'INDEPENDENT';
 export type AllianceTargetType = 'PROPERTY' | 'UNIT';
 export type AllianceListingIntent = 'RENT' | 'SALE';
 export type AllianceListingStatus = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'ARCHIVED';
+export type AllianceListingVisibility = 'ALLIANCE' | 'PRIVATE';
 
 export interface AllianceListingEntity {
   id: number;
@@ -45,6 +46,7 @@ export interface AllianceListingEntity {
   targetType: AllianceTargetType;
   intent: AllianceListingIntent;
   status: AllianceListingStatus;
+  visibility: AllianceListingVisibility;
   targetPropertyId: number | null;
   targetUnitId: number | null;
   isSourceDeleted: boolean;
@@ -77,6 +79,7 @@ export interface AllianceListingEntity {
     unitName: string;
     rentAmount: number;
     propertyId: number;
+    status?: string;
     property?: {
       id: number;
       uuid: string;
@@ -84,6 +87,80 @@ export interface AllianceListingEntity {
     };
   } | null;
   media?: AllianceListingMediaEntity[];
+  pm?: {
+    id: number;
+    uuid: string;
+    name: string;
+    companyName?: string | null;
+    allianceProfile?: {
+      pmTitle: string | null;
+      bio: string | null;
+      isEnabled: boolean;
+    } | null;
+    qualifications?: Array<{
+      qualification: {
+        id: number;
+        uuid: string;
+        name: string;
+        slug: string;
+        isActive: boolean;
+      };
+    }>;
+  };
+}
+
+export interface AllianceDiscoveredListingSummary {
+  uuid: string;
+  title: string;
+  intent: AllianceListingIntent;
+  targetType: AllianceTargetType;
+  sourceType: AllianceSourceType;
+  price: number;
+  currency: string;
+  location: {
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    country: string;
+  };
+  specs: {
+    propertyType: string | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+  };
+  coverImage: string | null;
+  mediaCount: number;
+  publishedAt: Date | null;
+  ownerPm: {
+    name: string;
+    pmTitle: string | null;
+    qualifications: Array<{
+      uuid: string;
+      name: string;
+      slug: string;
+    }>;
+  };
+}
+
+export interface AllianceDiscoveredListingDetail extends AllianceDiscoveredListingSummary {
+  description: string | null;
+  media: AllianceListingMediaEntity[];
+  ownerPm: {
+    name: string;
+    pmTitle: string | null;
+    bio: string | null;
+    qualifications: Array<{
+      uuid: string;
+      name: string;
+      slug: string;
+    }>;
+  };
+  canonicalContext: {
+    isLinked: boolean;
+    propertyName?: string;
+    unitName?: string;
+    currentOccupancyStatus?: string;
+  } | null;
 }
 
 export interface AllianceListingMediaEntity {

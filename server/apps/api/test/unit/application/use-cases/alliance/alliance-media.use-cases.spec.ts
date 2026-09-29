@@ -38,6 +38,7 @@ describe('Alliance Listing Media Use Cases (Stage 1D)', () => {
     targetType: 'PROPERTY',
     intent: 'RENT',
     status: 'DRAFT',
+    visibility: 'ALLIANCE',
     targetPropertyId: null,
     targetUnitId: null,
     isSourceDeleted: false,
@@ -83,6 +84,8 @@ describe('Alliance Listing Media Use Cases (Stage 1D)', () => {
       update: jest.fn(),
       findPmListings: jest.fn(),
       deleteDraft: jest.fn(),
+      findDiscoverableListings: jest.fn(),
+      findDiscoverableByUuid: jest.fn(),
     };
     mockProfileRepo = {
       findByPmId: jest.fn(),

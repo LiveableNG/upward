@@ -11,6 +11,7 @@ export interface ListingFormData {
   title: string
   description: string
   intent: AllianceListingIntent
+  visibility?: 'ALLIANCE' | 'PRIVATE'
   price: number
   currency: string
   address?: string
@@ -41,6 +42,8 @@ export function ListingBasicsForm({
   disabled = false,
   canonicalReference,
 }: ListingBasicsFormProps) {
+  const currentVisibility = data.visibility || 'ALLIANCE'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Linked Inventory Context Notice */}
@@ -87,8 +90,39 @@ export function ListingBasicsForm({
         />
       </div>
 
-      {/* Listing Intent & Price */}
+      {/* Listing Visibility & Intent */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
+            Alliance Visibility <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange('visibility', 'ALLIANCE')}
+              className={`btn ${currentVisibility === 'ALLIANCE' ? 'btn--primary' : 'btn--secondary'}`}
+              style={{ flex: 1, height: '40px', fontSize: '13px' }}
+            >
+              Alliance Network
+            </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onChange('visibility', 'PRIVATE')}
+              className={`btn ${currentVisibility === 'PRIVATE' ? 'btn--primary' : 'btn--secondary'}`}
+              style={{ flex: 1, height: '40px', fontSize: '13px' }}
+            >
+              Private (Hidden)
+            </button>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            {currentVisibility === 'ALLIANCE'
+              ? 'Discoverable by other verified Upward Alliance PMs once published.'
+              : 'Private to your organization. Not discoverable across the Alliance network.'}
+          </div>
+        </div>
+
         <div>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
             Listing Intent <span style={{ color: 'var(--danger)' }}>*</span>
@@ -114,23 +148,24 @@ export function ListingBasicsForm({
             </button>
           </div>
         </div>
+      </div>
 
-        <div>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-            {data.intent === 'SALE' ? 'Asking Sale Price (₦)' : 'Annual / Periodic Rent (₦)'} <span style={{ color: 'var(--danger)' }}>*</span>
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="1000"
-            className="input"
-            disabled={disabled}
-            placeholder="e.g. 15000000"
-            value={data.price || ''}
-            onChange={(e) => onChange('price', Number(e.target.value))}
-            required
-          />
-        </div>
+      {/* Pricing */}
+      <div>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
+          {data.intent === 'SALE' ? 'Asking Sale Price (₦)' : 'Annual / Periodic Rent (₦)'} <span style={{ color: 'var(--danger)' }}>*</span>
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="1000"
+          className="input"
+          disabled={disabled}
+          placeholder="e.g. 15000000"
+          value={data.price || ''}
+          onChange={(e) => onChange('price', Number(e.target.value))}
+          required
+        />
       </div>
 
       {/* Description */}

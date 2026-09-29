@@ -5,6 +5,7 @@ import {
   AllianceListingEntity,
   AllianceListingMediaEntity,
   AllianceListingStatus,
+  AllianceListingVisibility,
   AllianceSourceType,
   AllianceTargetType,
   AllianceListingIntent,
@@ -42,6 +43,7 @@ export interface CreateAllianceListingData {
   sourceType: AllianceSourceType;
   targetType: AllianceTargetType;
   intent?: AllianceListingIntent;
+  visibility?: AllianceListingVisibility;
   targetPropertyId?: number | null;
   targetUnitId?: number | null;
   title: string;
@@ -63,6 +65,7 @@ export interface UpdateAllianceListingData {
   currency?: string;
   price?: number;
   intent?: AllianceListingIntent;
+  visibility?: AllianceListingVisibility;
   address?: string | null;
   city?: string | null;
   state?: string | null;
@@ -95,6 +98,21 @@ export interface IAllianceListingRepository {
       take?: number;
     },
   ): Promise<{ items: AllianceListingEntity[]; total: number }>;
+  findDiscoverableListings(
+    excludePmId: number,
+    options?: {
+      intent?: AllianceListingIntent;
+      targetType?: AllianceTargetType;
+      propertyType?: string;
+      city?: string;
+      state?: string;
+      search?: string;
+      sortBy?: 'newest' | 'price_asc' | 'price_desc';
+      skip?: number;
+      take?: number;
+    },
+  ): Promise<{ items: AllianceListingEntity[]; total: number }>;
+  findDiscoverableByUuid(uuid: string, excludePmId?: number): Promise<AllianceListingEntity | null>;
   deleteDraft(id: number): Promise<boolean>;
 }
 

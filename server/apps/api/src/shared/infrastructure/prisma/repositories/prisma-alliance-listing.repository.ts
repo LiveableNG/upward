@@ -8,8 +8,10 @@ import {
 import {
   AllianceListingEntity,
   AllianceListingStatus,
+  AllianceListingVisibility,
   AllianceSourceType,
   AllianceTargetType,
+  AllianceListingIntent,
 } from '../../../../domains/alliance/alliance.entity';
 
 @Injectable()
@@ -25,6 +27,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
       targetType: item.targetType as AllianceTargetType,
       intent: item.intent,
       status: item.status as AllianceListingStatus,
+      visibility: (item.visibility || 'ALLIANCE') as AllianceListingVisibility,
       targetPropertyId: item.targetPropertyId,
       targetUnitId: item.targetUnitId,
       isSourceDeleted: item.isSourceDeleted,
@@ -60,6 +63,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             unitName: item.targetUnit.unitName,
             rentAmount: item.targetUnit.rentAmount,
             propertyId: item.targetUnit.propertyId,
+            status: item.targetUnit.status,
             property: item.targetUnit.property
               ? {
                   id: item.targetUnit.property.id,
@@ -83,6 +87,34 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             updatedAt: m.updatedAt,
           }))
         : [],
+      pm: item.pm
+        ? {
+            id: item.pm.id,
+            uuid: item.pm.uuid,
+            name: item.pm.companyName || `${item.pm.firstName || ''} ${item.pm.lastName || ''}`.trim() || 'Property Manager',
+            companyName: item.pm.companyName,
+            allianceProfile: item.pm.allianceProfile
+              ? {
+                  pmTitle: item.pm.allianceProfile.pmTitle,
+                  bio: item.pm.allianceProfile.bio,
+                  isEnabled: item.pm.allianceProfile.isEnabled,
+                }
+              : null,
+            qualifications: item.pm.qualifications
+              ? item.pm.qualifications
+                  .filter((q: any) => q.qualification?.isActive)
+                  .map((q: any) => ({
+                    qualification: {
+                      id: q.qualification.id,
+                      uuid: q.qualification.uuid,
+                      name: q.qualification.name,
+                      slug: q.qualification.slug,
+                      isActive: q.qualification.isActive,
+                    },
+                  }))
+              : [],
+          }
+        : undefined,
     };
   }
 
@@ -94,6 +126,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
         targetType: data.targetType,
         intent: data.intent || 'RENT',
         status: 'DRAFT',
+        visibility: data.visibility || 'ALLIANCE',
         targetPropertyId: data.targetPropertyId ?? null,
         targetUnitId: data.targetUnitId ?? null,
         title: data.title,
@@ -116,6 +149,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             uuid: true,
             unitName: true,
             rentAmount: true,
+            status: true,
             propertyId: true,
             property: { select: { id: true, uuid: true, name: true } },
           },
@@ -285,6 +319,178 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
       items: items.map((i: any) => this.mapToEntity(i)),
       total,
     };
+  }
+
+  async findDiscoverableListings(
+    excludePmId: number,
+    options?: {
+      intent?: AllianceListingIntent;
+      targetType?: AllianceTargetType;
+      propertyType?: string;
+      city?: string;
+      state?: string;
+      search?: string;
+      sortBy?: 'newest' | 'price_asc' | 'price_desc';
+      skip?: number;
+      take?: number;
+    },
+  ): Promise<{ items: AllianceListingEntity[]; total: number }> {
+    const where: any = {
+      status: 'PUBLISHED',
+      visibility: 'ALLIANCE',
+      isSourceDeleted: false,
+      pmId: { not: excludePmId },
+      pm: {
+        allianceProfile: {
+          isEnabled: true,
+        },
+      },
+    };
+
+    if (options?.intent) {
+      where.intent = options.intent;
+    }
+    if (options?.targetType) {
+      where.targetType = options.targetType;
+    }
+    if (options?.propertyType) {
+      where.propertyType = { contains: options.propertyType, mode: 'insensitive' };
+    }
+    if (options?.city) {
+      where.city = { contains: options.city, mode: 'insensitive' };
+    }
+    if (options?.state) {
+      where.state = { contains: options.state, mode: 'insensitive' };
+    }
+    if (options?.search && options.search.trim().length > 0) {
+      const s = options.search.trim();
+      where.OR = [
+        { title: { contains: s, mode: 'insensitive' } },
+        { description: { contains: s, mode: 'insensitive' } },
+        { city: { contains: s, mode: 'insensitive' } },
+        { state: { contains: s, mode: 'insensitive' } },
+        { address: { contains: s, mode: 'insensitive' } },
+        { propertyType: { contains: s, mode: 'insensitive' } },
+      ];
+    }
+
+    let orderBy: any = [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
+    if (options?.sortBy === 'price_asc') {
+      orderBy = { price: 'asc' };
+    } else if (options?.sortBy === 'price_desc') {
+      orderBy = { price: 'desc' };
+    }
+
+    const [items, total] = await Promise.all([
+      (this.prisma as any).upward_alliance_listing.findMany({
+        where,
+        orderBy,
+        skip: options?.skip,
+        take: options?.take,
+        include: {
+          targetProperty: { select: { id: true, uuid: true, name: true, address: true } },
+          targetUnit: {
+            select: {
+              id: true,
+              uuid: true,
+              unitName: true,
+              rentAmount: true,
+              status: true,
+              propertyId: true,
+              property: { select: { id: true, uuid: true, name: true } },
+            },
+          },
+          media: { orderBy: { sortOrder: 'asc' } },
+          pm: {
+            select: {
+              id: true,
+              uuid: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+              allianceProfile: {
+                select: {
+                  pmTitle: true,
+                  bio: true,
+                  isEnabled: true,
+                },
+              },
+              qualifications: {
+                include: {
+                  qualification: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      (this.prisma as any).upward_alliance_listing.count({ where }),
+    ]);
+
+    return {
+      items: items.map((i: any) => this.mapToEntity(i)),
+      total,
+    };
+  }
+
+  async findDiscoverableByUuid(uuid: string, excludePmId?: number): Promise<AllianceListingEntity | null> {
+    const where: any = {
+      uuid,
+      status: 'PUBLISHED',
+      visibility: 'ALLIANCE',
+      isSourceDeleted: false,
+      pm: {
+        allianceProfile: {
+          isEnabled: true,
+        },
+      },
+    };
+
+    if (excludePmId) {
+      where.pmId = { not: excludePmId };
+    }
+
+    const item = await (this.prisma as any).upward_alliance_listing.findFirst({
+      where,
+      include: {
+        targetProperty: { select: { id: true, uuid: true, name: true, address: true } },
+        targetUnit: {
+          select: {
+            id: true,
+            uuid: true,
+            unitName: true,
+            rentAmount: true,
+            status: true,
+            propertyId: true,
+            property: { select: { id: true, uuid: true, name: true } },
+          },
+        },
+        media: { orderBy: { sortOrder: 'asc' } },
+        pm: {
+          select: {
+            id: true,
+            uuid: true,
+            firstName: true,
+            lastName: true,
+            companyName: true,
+            allianceProfile: {
+              select: {
+                pmTitle: true,
+                bio: true,
+                isEnabled: true,
+              },
+            },
+            qualifications: {
+              include: {
+                qualification: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return item ? this.mapToEntity(item) : null;
   }
 
   async deleteDraft(id: number): Promise<boolean> {

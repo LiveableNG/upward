@@ -530,6 +530,8 @@ import { ConfirmAllianceMediaUploadUseCase } from './alliance/use-cases/confirm-
 import { ListAllianceListingMediaUseCase } from './alliance/use-cases/list-alliance-listing-media.use-case'
 import { ReorderAllianceListingMediaUseCase } from './alliance/use-cases/reorder-alliance-listing-media.use-case'
 import { DeleteAllianceListingMediaUseCase } from './alliance/use-cases/delete-alliance-listing-media.use-case'
+import { DiscoverAllianceListingsUseCase } from './alliance/use-cases/discover-alliance-listings.use-case'
+import { GetDiscoveredAllianceListingDetailUseCase } from './alliance/use-cases/get-discovered-alliance-listing-detail.use-case'
 
 const UseCases: any[] = [
   TogglePmAllianceEnablementUseCase,
@@ -554,6 +556,8 @@ const UseCases: any[] = [
   ListAllianceListingMediaUseCase,
   ReorderAllianceListingMediaUseCase,
   DeleteAllianceListingMediaUseCase,
+  DiscoverAllianceListingsUseCase,
+  GetDiscoveredAllianceListingDetailUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

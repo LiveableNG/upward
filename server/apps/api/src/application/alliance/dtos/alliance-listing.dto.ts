@@ -138,6 +138,12 @@ export class UpdateAllianceListingDto {
   @IsOptional()
   propertyType?: string;
 
+  @IsEnum(['ALLIANCE', 'PRIVATE'] as const, {
+    message: 'visibility must be ALLIANCE or PRIVATE',
+  })
+  @IsOptional()
+  visibility?: 'ALLIANCE' | 'PRIVATE';
+
   @IsInt()
   @Min(0)
   @IsOptional()
@@ -163,6 +169,48 @@ export class ListAllianceListingsQueryDto {
   @IsEnum(['LINKED_INVENTORY', 'INDEPENDENT'] as const)
   @IsOptional()
   sourceType?: AllianceSourceType;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  @Type(() => Number)
+  page?: number = 1;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number = 20;
+}
+
+export class DiscoverAllianceListingsQueryDto {
+  @IsEnum(['RENT', 'SALE'] as const)
+  @IsOptional()
+  intent?: AllianceListingIntent;
+
+  @IsEnum(['PROPERTY', 'UNIT'] as const)
+  @IsOptional()
+  targetType?: AllianceTargetType;
+
+  @IsString()
+  @IsOptional()
+  propertyType?: string;
+
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @IsString()
+  @IsOptional()
+  state?: string;
+
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @IsEnum(['newest', 'price_asc', 'price_desc'] as const)
+  @IsOptional()
+  sortBy?: 'newest' | 'price_asc' | 'price_desc' = 'newest';
 
   @IsInt()
   @Min(1)
