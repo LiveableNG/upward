@@ -77,6 +77,17 @@ export async function archiveAllianceListing(uuid: string): Promise<AllianceList
   return (res?.data ?? res) as AllianceListing
 }
 
+export async function uploadListingMedia(
+  listingUuid: string,
+  payload: { base64Data: string; contentType: string; filename?: string },
+): Promise<AllianceListingMedia> {
+  const res = await request<any>(`/pm/alliance/listings/${listingUuid}/media/upload`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+  return (res?.data ?? res) as AllianceListingMedia
+}
+
 export async function requestMediaUploadUrl(
   listingUuid: string,
   payload: { filename: string; mimeType: string; fileSize: number },

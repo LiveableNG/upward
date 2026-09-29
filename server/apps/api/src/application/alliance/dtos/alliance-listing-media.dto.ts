@@ -67,3 +67,16 @@ export class ReorderMediaDto {
   @IsString({ each: true })
   mediaUuids!: string[];
 }
+
+export class UploadAllianceListingMediaDto {
+  @IsString()
+  @IsNotEmpty()
+  base64Data!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contentType!: string;
+
+  @IsString()
+  filename?: string;
+}

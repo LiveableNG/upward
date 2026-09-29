@@ -11,12 +11,20 @@ import {
 } from '@domains/alliance/alliance.repository.interface';
 import { ActivityLogService } from '@shared/application/activity-log.service';
 import { NotificationService } from '@shared/infrastructure/common/notification.service';
+import { S3Service } from '@shared/infrastructure/common/s3/s3.service';
 
 describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)', () => {
   let getPublicListingsUc: GetPublicAllianceListingsUseCase;
   let getPublicListingDetailUc: GetPublicAllianceListingDetailUseCase;
   let resolveReferralUc: ResolvePublicAllianceReferralUseCase;
   let submitInquiryUc: SubmitAllianceInquiryUseCase;
+
+  const mockS3Service = {
+    getDownloadUrl: jest.fn().mockImplementation((url: string) => Promise.resolve(url)),
+    getUploadUrl: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+    uploadBuffer: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+    deleteObject: jest.fn().mockResolvedValue(undefined),
+  };
 
   const mockListingRepo = {
     findPublicMarketplaceListings: jest.fn(),
@@ -113,6 +121,7 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
         { provide: ALLIANCE_RATING_REPOSITORY, useValue: mockRatingRepo },
         { provide: ActivityLogService, useValue: mockActivityLogService },
         { provide: NotificationService, useValue: mockNotificationService },
+        { provide: S3Service, useValue: mockS3Service },
       ],
     }).compile();
 

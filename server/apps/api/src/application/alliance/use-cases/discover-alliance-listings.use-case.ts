@@ -10,6 +10,7 @@ import {
   IAllianceProfileRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { DiscoverAllianceListingsQueryDto } from '../dtos/alliance-listing.dto';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class DiscoverAllianceListingsUseCase {
     private readonly listingRepo: IAllianceListingRepository,
     @Inject(ALLIANCE_PROFILE_REPOSITORY)
     private readonly profileRepo: IAllianceProfileRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(query: DiscoverAllianceListingsQueryDto, actor: PmActorContext) {
@@ -46,8 +48,23 @@ export class DiscoverAllianceListingsUseCase {
       take: limit,
     });
 
+    const signedItems = await Promise.all(
+      items.map(async (item) => {
+        if (item.media && item.media.length > 0) {
+          const signedMedia = await Promise.all(
+            item.media.map(async (m) => ({
+              ...m,
+              publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+            })),
+          );
+          return { ...item, media: signedMedia };
+        }
+        return item;
+      }),
+    );
+
     return {
-      items,
+      items: signedItems,
       meta: {
         page,
         limit,

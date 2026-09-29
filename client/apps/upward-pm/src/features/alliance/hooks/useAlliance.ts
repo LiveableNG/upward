@@ -115,32 +115,22 @@ export function useUploadListingMedia() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ listingUuid, file }: { listingUuid: string; file: File }) => {
-      // 1. Request presigned upload URL from backend
-      const presigned = await allianceService.requestMediaUploadUrl(listingUuid, {
+      const toBase64 = (f: File) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(f)
+          reader.onload = () => {
+            const res = reader.result as string
+            resolve(res.includes(',') ? res.split(',')[1] : res)
+          }
+          reader.onerror = (error) => reject(error)
+        })
+
+      const base64Data = await toBase64(file)
+      const confirmedMedia = await allianceService.uploadListingMedia(listingUuid, {
+        base64Data,
+        contentType: file.type || 'image/jpeg',
         filename: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
-      })
-
-      // 2. Upload binary file directly to S3 via PUT
-      const uploadRes = await fetch(presigned.uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file,
-      })
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload image file to storage')
-      }
-
-      // 3. Confirm upload to finalize database media record
-      const confirmedMedia = await allianceService.confirmMediaUpload(listingUuid, {
-        storageKey: presigned.storageKey,
-        mimeType: file.type,
-        fileSize: file.size,
-        publicUrl: presigned.publicUrl,
       })
 
       return confirmedMedia

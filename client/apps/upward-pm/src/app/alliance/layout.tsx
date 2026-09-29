@@ -53,9 +53,6 @@ export default function AllianceLayout({ children }: { children: React.ReactNode
               <h1 className="alliance-header__title">
                 Upward Alliance Network
               </h1>
-              <span className="alliance-chip" style={{ fontWeight: 700 }}>
-                Active Partner
-              </span>
               {profile?.pmTitle && (
                 <span className="alliance-chip" style={{ color: 'var(--text-secondary)', background: 'var(--ivory-dim)' }}>
                   {profile.pmTitle}

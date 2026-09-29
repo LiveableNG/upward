@@ -527,6 +527,7 @@ import { ArchiveAllianceListingUseCase } from './alliance/use-cases/archive-alli
 import { ListPmAllianceListingsUseCase } from './alliance/use-cases/list-pm-alliance-listings.use-case'
 import { RequestAllianceMediaUploadUseCase } from './alliance/use-cases/request-alliance-media-upload.use-case'
 import { ConfirmAllianceMediaUploadUseCase } from './alliance/use-cases/confirm-alliance-media-upload.use-case'
+import { UploadAllianceListingMediaUseCase } from './alliance/use-cases/upload-alliance-listing-media.use-case'
 import { ListAllianceListingMediaUseCase } from './alliance/use-cases/list-alliance-listing-media.use-case'
 import { ReorderAllianceListingMediaUseCase } from './alliance/use-cases/reorder-alliance-listing-media.use-case'
 import { DeleteAllianceListingMediaUseCase } from './alliance/use-cases/delete-alliance-listing-media.use-case'
@@ -570,6 +571,7 @@ const UseCases: any[] = [
   ListPmAllianceListingsUseCase,
   RequestAllianceMediaUploadUseCase,
   ConfirmAllianceMediaUploadUseCase,
+  UploadAllianceListingMediaUseCase,
   ListAllianceListingMediaUseCase,
   ReorderAllianceListingMediaUseCase,
   DeleteAllianceListingMediaUseCase,

@@ -17,6 +17,7 @@ import {
 describe('Alliance Discovery Use Cases (Stage 1E)', () => {
   let mockListingRepo: jest.Mocked<IAllianceListingRepository>;
   let mockProfileRepo: jest.Mocked<IAllianceProfileRepository>;
+  let mockS3Service: any;
 
   let discoverUseCase: DiscoverAllianceListingsUseCase;
   let getDetailUseCase: GetDiscoveredAllianceListingDetailUseCase;
@@ -136,8 +137,15 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
       update: jest.fn(),
     };
 
-    discoverUseCase = new DiscoverAllianceListingsUseCase(mockListingRepo, mockProfileRepo);
-    getDetailUseCase = new GetDiscoveredAllianceListingDetailUseCase(mockListingRepo, mockProfileRepo);
+    mockS3Service = {
+      getDownloadUrl: jest.fn().mockImplementation((url: string) => Promise.resolve(url)),
+      getUploadUrl: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+      uploadBuffer: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+      deleteObject: jest.fn().mockResolvedValue(undefined),
+    };
+
+    discoverUseCase = new DiscoverAllianceListingsUseCase(mockListingRepo, mockProfileRepo, mockS3Service);
+    getDetailUseCase = new GetDiscoveredAllianceListingDetailUseCase(mockListingRepo, mockProfileRepo, mockS3Service);
   });
 
   describe('DiscoverAllianceListingsUseCase', () => {

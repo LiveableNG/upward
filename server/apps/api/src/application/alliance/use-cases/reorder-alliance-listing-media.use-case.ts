@@ -15,6 +15,7 @@ import {
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { ActivityLogService } from '../../../shared/application/activity-log.service';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { ReorderMediaDto } from '../dtos/alliance-listing-media.dto';
 
 @Injectable()
@@ -27,6 +28,7 @@ export class ReorderAllianceListingMediaUseCase {
     @Inject(ALLIANCE_LISTING_MEDIA_REPOSITORY)
     private readonly mediaRepo: IAllianceListingMediaRepository,
     private readonly activityLog: ActivityLogService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(listingUuid: string, dto: ReorderMediaDto, actor: PmActorContext) {
@@ -96,6 +98,11 @@ export class ReorderAllianceListingMediaUseCase {
       },
     });
 
-    return updatedMedia;
+    return Promise.all(
+      updatedMedia.map(async (m) => ({
+        ...m,
+        publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+      })),
+    );
   }
 }

@@ -112,7 +112,8 @@ export class S3Service {
       })
 
       await this.s3Client.send(command)
-      return `https://${this.bucket}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`
+      const region = (this.configService?.get ? this.configService.get<string>('AWS_REGION') : null) || process.env.AWS_REGION || 'us-east-1'
+      return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`
     } catch (error) {
       console.error('Error uploading buffer to S3:', error)
       throw new InternalServerErrorException('Could not upload file to storage')
