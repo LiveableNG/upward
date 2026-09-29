@@ -170,6 +170,7 @@ describe('Alliance Referral & Lead Use Cases (Stage 2)', () => {
       findPmReferrals: jest.fn(),
       countActiveByListingId: jest.fn(),
       findActiveReferralsByListingId: jest.fn(),
+      findUserReferrals: jest.fn().mockResolvedValue({ items: [], total: 0 }),
     };
 
     mockUserRepo = {

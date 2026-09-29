@@ -550,8 +550,10 @@ import { GetPublicAllianceListingsUseCase } from './alliance/use-cases/get-publi
 import { GetPublicAllianceListingDetailUseCase } from './alliance/use-cases/get-public-alliance-listing-detail.use-case'
 import { ResolvePublicAllianceReferralUseCase } from './alliance/use-cases/resolve-public-alliance-referral.use-case'
 import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-alliance-inquiry.use-case'
+import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
 
 const UseCases: any[] = [
+
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
   ListAllianceQualificationsUseCase,
@@ -594,6 +596,7 @@ const UseCases: any[] = [
   GetPublicAllianceListingDetailUseCase,
   ResolvePublicAllianceReferralUseCase,
   SubmitAllianceInquiryUseCase,
+  GetUserAllianceJourneysUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

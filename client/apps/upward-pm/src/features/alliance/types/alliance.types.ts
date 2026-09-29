@@ -254,6 +254,10 @@ export interface AllianceDiscoveredListingSummary {
       }
     }[]
   }
+  ratingSummary?: {
+    averageScore: number
+    totalRatings: number
+  }
   trackerCount?: number
   isTrackedByCurrentPm?: boolean
 }

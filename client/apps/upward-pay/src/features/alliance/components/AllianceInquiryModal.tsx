@@ -83,29 +83,43 @@ export const AllianceInquiryModal: React.FC<AllianceInquiryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="pay-alliance-modal-backdrop" onClick={handleClose}>
+      <div className="pay-alliance-modal" onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
         <button
           type="button"
           onClick={handleClose}
-          className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-white"
+          className="pay-alliance-modal__close"
+          aria-label="Close modal"
         >
-          <X className="h-5 w-5" />
+          <X size={18} />
         </button>
 
         {isSuccess ? (
-          <div className="flex flex-col items-center py-6 text-center">
-            <CheckCircle2 className="h-14 w-14 text-emerald-500" />
-            <h3 className="mt-3 text-lg font-bold text-neutral-900 dark:text-white">
-              Inquiry Sent Successfully
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+          <div style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="pay-alliance-modal__title">Inquiry Sent Successfully</h3>
+            <p className="pay-alliance-modal__subtitle" style={{ maxWidth: '380px' }}>
               The property manager has received your message and will reach out to you shortly.
             </p>
             {referringPm && (
-              <div className="mt-4 flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                <ShieldCheck className="h-4 w-4 shrink-0" />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(217, 119, 87, 0.08)',
+                  border: '1px solid rgba(217, 119, 87, 0.2)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  fontSize: '12px',
+                  color: 'var(--text)',
+                  marginTop: '8px',
+                }}
+              >
+                <ShieldCheck size={16} style={{ color: 'var(--clay)', flexShrink: 0 }} />
                 <span>
                   Your referral by <strong>{referringPm.displayName}</strong> has been preserved.
                 </span>
@@ -114,23 +128,34 @@ export const AllianceInquiryModal: React.FC<AllianceInquiryModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="mt-6 w-full rounded-xl bg-neutral-900 py-3 text-xs font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-neutral-900"
+              className="pay-alliance-modal__submit-btn"
+              style={{ width: '100%', marginTop: '16px' }}
             >
               Done
             </button>
           </div>
         ) : (
           <div>
-            <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-              Contact Property Manager
-            </h3>
-            <p className="mt-1 line-clamp-1 text-xs text-neutral-500">
+            <h3 className="pay-alliance-modal__title">Contact Property Manager</h3>
+            <p className="pay-alliance-modal__subtitle" style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               Inquiring about: <strong>{listingTitle}</strong>
             </p>
 
             {referringPm && (
-              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-neutral-50 px-3 py-1.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'var(--surface)',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  marginTop: '12px',
+                }}
+              >
+                <ShieldCheck size={15} style={{ color: 'var(--clay)' }} />
                 <span>
                   Referred by <strong>{referringPm.displayName}</strong>
                 </span>
@@ -138,81 +163,94 @@ export const AllianceInquiryModal: React.FC<AllianceInquiryModalProps> = ({
             )}
 
             {errorMessage && (
-              <div className="mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400">
+              <div
+                style={{
+                  marginTop: '12px',
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                }}
+              >
                 {errorMessage}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-              <div>
-                <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Full Name
-                </label>
+            <form onSubmit={handleSubmit} className="pay-alliance-modal__form" style={{ marginTop: '18px' }}>
+              <div className="pay-alliance-modal__field">
+                <label className="pay-alliance-modal__label">Full Name</label>
                 <input
                   type="text"
                   required
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="e.g. Chukwuma Obi"
-                  className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                  className="pay-alliance-modal__input"
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                    Email Address
-                  </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div className="pay-alliance-modal__field">
+                  <label className="pay-alliance-modal__label">Email Address</label>
                   <input
                     type="email"
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    className="pay-alliance-modal__input"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                    Phone Number
-                  </label>
+                <div className="pay-alliance-modal__field">
+                  <label className="pay-alliance-modal__label">Phone Number</label>
                   <input
                     type="tel"
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
                     placeholder="+234..."
-                    className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                    className="pay-alliance-modal__input"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Message
-                </label>
+              <div className="pay-alliance-modal__field">
+                <label className="pay-alliance-modal__label">Message</label>
                 <textarea
                   rows={3}
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                  className="pay-alliance-modal__textarea"
                 />
               </div>
 
-              <div className="mt-2 flex items-center justify-end gap-2">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-xl border border-neutral-200 px-4 py-2.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  style={{
+                    height: '44px',
+                    padding: '0 18px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-solid, #e2ddd7)',
+                    background: '#ffffff',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-neutral-900 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+                  className="pay-alliance-modal__submit-btn"
+                  style={{ padding: '0 24px' }}
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  <Send size={15} />
                   <span>{isPending ? 'Sending...' : 'Send Inquiry'}</span>
                 </button>
               </div>

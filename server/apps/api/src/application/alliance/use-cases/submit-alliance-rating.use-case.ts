@@ -23,6 +23,10 @@ import {
 } from '../../../domains/alliance/alliance.entity';
 import { ActivityLogService } from '../../../shared/application/activity-log.service';
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service';
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../../domains/users/user.repository';
 
 @Injectable()
 export class SubmitAllianceRatingUseCase {
@@ -36,6 +40,9 @@ export class SubmitAllianceRatingUseCase {
     @Inject(ALLIANCE_RATING_REPOSITORY)
     private readonly ratingRepo: IAllianceRatingRepository,
     @Optional()
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo?: UserRepository,
+    @Optional()
     private readonly activityLogService?: ActivityLogService,
     @Optional()
     private readonly notificationService?: NotificationService,
@@ -46,7 +53,7 @@ export class SubmitAllianceRatingUseCase {
     author: {
       type: AllianceRatingAuthorType;
       pmActor?: PmActorContext;
-      userId?: number;
+      userId?: number | string;
     },
   ) {
     // 1. Validate score
@@ -115,10 +122,27 @@ export class SubmitAllianceRatingUseCase {
       if (!author.userId) {
         throw new ForbiddenException('User context required');
       }
-      if (referral.matchedUserId !== author.userId) {
+
+      let resolvedUserId: number | null = null;
+      if (typeof author.userId === 'number' && !isNaN(author.userId)) {
+        resolvedUserId = author.userId;
+      } else if (typeof author.userId === 'string') {
+        if (/^\d+$/.test(author.userId)) {
+          resolvedUserId = Number(author.userId);
+        } else if (this.userRepo) {
+          const user = await this.userRepo.findByUuid(author.userId);
+          resolvedUserId = user?.id || null;
+        }
+      }
+
+      if (!resolvedUserId) {
+        throw new ForbiddenException('Unable to verify user identity');
+      }
+
+      if (referral.matchedUserId !== resolvedUserId) {
         throw new ForbiddenException('You were not the referred client in this completed relationship');
       }
-      authorUserId = author.userId;
+      authorUserId = resolvedUserId;
       subjectType = 'PM';
       subjectPmId = referral.referringPmId;
     }

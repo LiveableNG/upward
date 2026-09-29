@@ -22,12 +22,24 @@ export default function AllianceReferralRedirectPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4 text-center dark:bg-neutral-950">
-        <Loader2 className="h-10 w-10 animate-spin text-neutral-900 dark:text-white" />
-        <h3 className="mt-4 text-base font-bold text-neutral-900 dark:text-white">
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '80vh',
+          padding: '24px',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ color: 'var(--clay)', marginBottom: '16px' }}>
+          <Loader2 size={36} className="animate-spin" />
+        </div>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text)', margin: '0 0 6px 0' }}>
           Resolving Your Property Referral...
         </h3>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
           Connecting you directly with your verified property opportunity.
         </p>
       </div>
@@ -36,19 +48,21 @@ export default function AllianceReferralRedirectPage() {
 
   if (isError || !referralContext) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4 text-center dark:bg-neutral-950">
-        <AlertCircle className="h-12 w-12 text-red-500" />
-        <h3 className="mt-4 text-base font-bold text-neutral-900 dark:text-white">
+      <div
+        className="pay-alliance-empty"
+        style={{ maxWidth: '460px', margin: '80px auto' }}
+      >
+        <div className="pay-alliance-empty__icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+          <AlertCircle size={28} />
+        </div>
+        <h3 className="pay-alliance-empty__title" style={{ color: '#991b1b' }}>
           Invalid or Expired Referral Link
         </h3>
-        <p className="mt-1 max-w-sm text-xs text-neutral-500">
+        <p className="pay-alliance-empty__desc">
           {(error as any)?.message ||
             'This referral link is no longer active or could not be found.'}
         </p>
-        <Link
-          href="/alliance"
-          className="mt-6 inline-flex rounded-xl bg-neutral-900 px-5 py-2.5 text-xs font-semibold text-white dark:bg-white dark:text-neutral-900"
-        >
+        <Link href="/alliance" className="pay-alliance-empty__btn">
           Explore Alliance Marketplace
         </Link>
       </div>

@@ -57,52 +57,62 @@ export const AllianceRatingModal: React.FC<AllianceRatingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="pay-alliance-modal-backdrop" onClick={handleClose}>
+      <div className="pay-alliance-modal" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={handleClose}
-          className="absolute right-4 top-4 text-neutral-400 hover:text-neutral-600 dark:hover:text-white"
+          className="pay-alliance-modal__close"
+          aria-label="Close modal"
         >
-          <X className="h-5 w-5" />
+          <X size={18} />
         </button>
 
         {isSuccess ? (
-          <div className="flex flex-col items-center py-6 text-center">
-            <CheckCircle2 className="h-14 w-14 text-emerald-500" />
-            <h3 className="mt-3 text-lg font-bold text-neutral-900 dark:text-white">
-              Thank You for Your Feedback!
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-500">
+          <div style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="pay-alliance-modal__title">Thank You for Your Feedback!</h3>
+            <p className="pay-alliance-modal__subtitle" style={{ maxWidth: '380px' }}>
               Your rating helps build trust and recognition across the Upward Alliance network.
             </p>
             <button
               type="button"
               onClick={handleClose}
-              className="mt-6 w-full rounded-xl bg-neutral-900 py-3 text-xs font-semibold text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-neutral-900"
+              className="pay-alliance-modal__submit-btn"
+              style={{ width: '100%', marginTop: '16px' }}
             >
               Done
             </button>
           </div>
         ) : (
           <div>
-            <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-              Rate Your Experience
-            </h3>
-            <p className="mt-1 text-xs text-neutral-500">
+            <h3 className="pay-alliance-modal__title">Rate Your Experience</h3>
+            <p className="pay-alliance-modal__subtitle">
               Rate your completed experience with <strong>{pmName}</strong>
             </p>
 
             {errorMessage && (
-              <div className="mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400">
+              <div
+                style={{
+                  marginTop: '12px',
+                  background: '#fee2e2',
+                  color: '#b91c1c',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12.5px',
+                  fontWeight: 500,
+                }}
+              >
                 {errorMessage}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+            <form onSubmit={handleSubmit} className="pay-alliance-modal__form" style={{ marginTop: '18px' }}>
               {/* Star Rating Selector */}
-              <div className="flex flex-col items-center gap-1.5 py-2">
-                <div className="flex items-center gap-2">
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '8px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {[1, 2, 3, 4, 5].map((star) => {
                     const active = (hoverScore ?? score) >= star;
                     return (
@@ -112,20 +122,29 @@ export const AllianceRatingModal: React.FC<AllianceRatingModalProps> = ({
                         onClick={() => setScore(star)}
                         onMouseEnter={() => setHoverScore(star)}
                         onMouseLeave={() => setHoverScore(null)}
-                        className="p-1 transition-transform hover:scale-125 focus:outline-none"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'transform 0.15s ease',
+                        }}
                       >
                         <Star
-                          className={`h-8 w-8 ${
-                            active
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'text-neutral-300 dark:text-neutral-700'
-                          }`}
+                          size={32}
+                          style={{
+                            fill: active ? '#f59e0b' : 'transparent',
+                            color: active ? '#f59e0b' : '#d1d5db',
+                          }}
                         />
                       </button>
                     );
                   })}
                 </div>
-                <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
                   {score === 5
                     ? 'Excellent (5/5)'
                     : score === 4
@@ -139,31 +158,40 @@ export const AllianceRatingModal: React.FC<AllianceRatingModalProps> = ({
               </div>
 
               {/* Review Text */}
-              <div>
-                <label className="block text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                  Feedback (Optional)
-                </label>
+              <div className="pay-alliance-modal__field">
+                <label className="pay-alliance-modal__label">Feedback (Optional)</label>
                 <textarea
                   rows={3}
                   value={review}
                   onChange={(e) => setReview(e.target.value)}
                   placeholder="Share details about the communication, reliability, or transaction experience..."
-                  className="mt-1 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                  className="pay-alliance-modal__textarea"
                 />
               </div>
 
-              <div className="mt-2 flex items-center justify-end gap-2">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-xl border border-neutral-200 px-4 py-2.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  style={{
+                    height: '44px',
+                    padding: '0 18px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-solid, #e2ddd7)',
+                    background: '#ffffff',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="rounded-xl bg-neutral-900 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+                  className="pay-alliance-modal__submit-btn"
+                  style={{ padding: '0 24px' }}
                 >
                   {isPending ? 'Submitting...' : 'Submit Rating'}
                 </button>

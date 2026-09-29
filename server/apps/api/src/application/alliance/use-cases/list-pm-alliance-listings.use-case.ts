@@ -37,7 +37,10 @@ export class ListPmAllianceListingsUseCase {
           const signedMedia = await Promise.all(
             item.media.map(async (m) => ({
               ...m,
-              publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+              publicUrl:
+                m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
+                  ? m.publicUrl
+                  : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
             })),
           );
           return { ...item, media: signedMedia };

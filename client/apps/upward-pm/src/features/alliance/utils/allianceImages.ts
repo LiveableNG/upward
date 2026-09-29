@@ -39,7 +39,12 @@ export function getAllianceListingImage(listing?: {
       ? listing.media[0].publicUrl || listing.media[0].fileUrl
       : null);
 
-  if (directUrl && typeof directUrl === 'string' && directUrl.trim().length > 0) {
+  if (
+    directUrl &&
+    typeof directUrl === 'string' &&
+    (directUrl.startsWith('http://') || directUrl.startsWith('https://')) &&
+    !directUrl.includes('mock/listings')
+  ) {
     return directUrl;
   }
   return getDeterministicPlaceholderImage(listing.uuid || listing.id);
@@ -51,16 +56,25 @@ export function getAllianceListingMediaList(listing?: {
   media?: Array<{ uuid?: string; publicUrl?: string; fileUrl?: string; mimeType?: string; sortOrder?: number }>;
   primaryMedia?: { uuid?: string; publicUrl?: string; fileUrl?: string; mimeType?: string; sortOrder?: number } | null;
 } | null): Array<{ uuid: string; publicUrl: string; mimeType: string; sortOrder: number }> {
+  const seed = listing?.uuid || String(listing?.id || 'upward');
+
   if (listing?.media && listing.media.length > 0) {
-    return listing.media.map((m, idx) => ({
-      uuid: m.uuid || `media-${idx}`,
-      publicUrl: m.publicUrl || m.fileUrl || '',
-      mimeType: m.mimeType || 'image/jpeg',
-      sortOrder: m.sortOrder ?? idx,
-    }));
+    return listing.media.map((m, idx) => {
+      const url = m.publicUrl || m.fileUrl || '';
+      const isValid =
+        url &&
+        (url.startsWith('http://') || url.startsWith('https://')) &&
+        !url.includes('mock/listings');
+
+      return {
+        uuid: m.uuid || `media-${idx}`,
+        publicUrl: isValid ? url : getDeterministicPlaceholderImage(`${seed}-${idx + 1}`),
+        mimeType: m.mimeType || 'image/jpeg',
+        sortOrder: m.sortOrder ?? idx,
+      };
+    });
   }
 
-  const seed = listing?.uuid || String(listing?.id || 'upward');
   const primary = getDeterministicPlaceholderImage(seed);
   const secondary = getDeterministicPlaceholderImage(`${seed}-2`);
   const tertiary = getDeterministicPlaceholderImage(`${seed}-3`);

@@ -1,0 +1,1487 @@
+/* ==========================================================================
+   Upward Pay — Alliance Marketplace & Property Network Stylesheet
+   Premium Apple-Grade Aesthetic & Responsive Design System
+   ========================================================================== */
+
+/* Main Container */
+.pay-alliance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 24px);
+  padding-bottom: 80px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.pay-alliance__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.pay-alliance__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(217, 119, 87, 0.1);
+  color: var(--clay, #d97757);
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 700;
+  width: fit-content;
+  border: 1px solid rgba(217, 119, 87, 0.2);
+}
+
+.pay-alliance__title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #0a0a0f);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.pay-alliance__subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary, #4a4642);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Filter Bar & Search Component
+   ========================================================================== */
+
+.pay-alliance-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+}
+
+.pay-alliance-filters__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pay-alliance-filters__search-form {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+}
+
+.pay-alliance-filters__search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted, #8a8a8a);
+  pointer-events: none;
+}
+
+.pay-alliance-filters__search-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 40px 0 40px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: var(--surface, #f7f7f7);
+  font-size: 13.5px;
+  color: var(--text, #0a0a0f);
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.pay-alliance-filters__search-input:focus {
+  background: #ffffff;
+  border-color: var(--clay, #d97757);
+  box-shadow: 0 0 0 3px var(--clay-glow, rgba(217, 119, 87, 0.15));
+}
+
+.pay-alliance-filters__search-clear {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted, #8a8a8a);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s ease;
+}
+
+.pay-alliance-filters__search-clear:hover {
+  color: var(--text, #0a0a0f);
+}
+
+/* Intent Segmented Control */
+.pay-alliance-filters__segmented {
+  display: inline-flex;
+  background: var(--surface, #f7f7f7);
+  padding: 3px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  gap: 2px;
+}
+
+.pay-alliance-filters__tab {
+  padding: 6px 14px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #4a4642);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.pay-alliance-filters__tab:hover:not(.pay-alliance-filters__tab--active) {
+  color: var(--text, #0a0a0f);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.pay-alliance-filters__tab:active {
+  transform: scale(0.97);
+}
+
+.pay-alliance-filters__tab--active {
+  background: #ffffff !important;
+  color: var(--text, #0a0a0f) !important;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Select Dropdown */
+.pay-alliance-filters__select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pay-alliance-filters__select {
+  height: 42px;
+  padding: 0 36px 0 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: var(--surface, #f7f7f7);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #0a0a0f);
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.pay-alliance-filters__select:hover {
+  border-color: var(--text-muted, #8a8a8a);
+}
+
+.pay-alliance-filters__select:focus {
+  background: #ffffff;
+  border-color: var(--clay, #d97757);
+  box-shadow: 0 0 0 3px var(--clay-glow, rgba(217, 119, 87, 0.15));
+}
+
+.pay-alliance-filters__select-icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--text-muted, #8a8a8a);
+}
+
+/* Bottom Quick Filters Row */
+.pay-alliance-filters__bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.pay-alliance-filters__chip-select {
+  height: 34px;
+  padding: 0 30px 0 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #4a4642);
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.pay-alliance-filters__chip-select:hover {
+  border-color: var(--text-muted, #8a8a8a);
+}
+
+.pay-alliance-filters__chip-select:focus {
+  border-color: var(--clay, #d97757);
+}
+
+.pay-alliance-filters__reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface, #f7f7f7);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  color: var(--text-secondary, #4a4642);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.pay-alliance-filters__reset-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+/* ==========================================================================
+   Property Grid & Cards
+   ========================================================================== */
+
+.pay-alliance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 22px;
+  width: 100%;
+}
+
+.pay-alliance-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.pay-alliance-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+  border-color: rgba(217, 119, 87, 0.3);
+}
+
+.pay-alliance-card:active {
+  transform: scale(0.99);
+}
+
+/* Card Media */
+.pay-alliance-card__media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--surface, #f7f7f7);
+  overflow: hidden;
+}
+
+.pay-alliance-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pay-alliance-card:hover .pay-alliance-card__img {
+  transform: scale(1.04);
+}
+
+.pay-alliance-card__intent-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.pay-alliance-card__intent-badge--rent {
+  background: rgba(10, 10, 15, 0.85);
+}
+
+.pay-alliance-card__intent-badge--sale {
+  background: rgba(22, 101, 52, 0.9);
+}
+
+.pay-alliance-card__media-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(10, 10, 15, 0.75);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+}
+
+/* Card Body */
+.pay-alliance-card__body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 6px;
+}
+
+.pay-alliance-card__price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.pay-alliance-card__price {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text, #0a0a0f);
+  letter-spacing: -0.02em;
+}
+
+.pay-alliance-card__price-period {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.pay-alliance-card__arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface, #f7f7f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #4a4642);
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-card:hover .pay-alliance-card__arrow {
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  transform: translate(2px, -2px);
+}
+
+.pay-alliance-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pay-alliance-card__location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-secondary, #4a4642);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Specs Row */
+.pay-alliance-card__specs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #4a4642);
+  padding: 10px 0;
+  margin-top: 4px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.05));
+}
+
+.pay-alliance-card__spec-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pay-alliance-card__property-type {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface, #f7f7f7);
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: var(--text-muted, #8a8a8a);
+}
+
+/* PM Footer Row */
+.pay-alliance-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  margin-top: auto;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.05));
+  font-size: 11.5px;
+}
+
+.pay-alliance-card__pm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--text, #0a0a0f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pay-alliance-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+}
+
+/* ==========================================================================
+   State Displays: Skeleton, Error, Empty State
+   ========================================================================== */
+
+.pay-alliance-skeleton {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+  padding: 16px;
+  gap: 12px;
+}
+
+.pay-alliance-skeleton__media {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface2, #efefef);
+  animation: pulse 1.5s infinite;
+}
+
+.pay-alliance-skeleton__line {
+  height: 16px;
+  border-radius: 4px;
+  background: var(--surface2, #efefef);
+  animation: pulse 1.5s infinite;
+}
+
+.pay-alliance-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 70px 24px;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px dashed var(--border-solid, #e2ddd7);
+  gap: 12px;
+}
+
+.pay-alliance-empty__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface, #f7f7f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #8a8a8a);
+  margin-bottom: 4px;
+}
+
+.pay-alliance-empty__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+  margin: 0;
+}
+
+.pay-alliance-empty__desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #4a4642);
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.pay-alliance-empty__btn {
+  margin-top: 8px;
+  padding: 10px 22px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--dark, #0a0a0f);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-empty__btn:hover {
+  background: var(--clay, #d97757);
+}
+
+/* Pagination */
+.pay-alliance-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  font-size: 13px;
+  color: var(--text-secondary, #4a4642);
+}
+
+.pay-alliance-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pay-alliance-pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: #ffffff;
+  color: var(--text, #0a0a0f);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.pay-alliance-pagination__btn:hover:not(:disabled) {
+  border-color: var(--clay, #d97757);
+  color: var(--clay, #d97757);
+}
+
+.pay-alliance-pagination__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Detail View Components (Gallery, Specs, PM Card, Sticky Card)
+   ========================================================================== */
+
+.pay-alliance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 24px);
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+.pay-alliance-detail__top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pay-alliance-detail__back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #4a4642);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.pay-alliance-detail__back-btn:hover {
+  color: var(--clay, #d97757);
+}
+
+.pay-alliance-detail__share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text, #0a0a0f);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.pay-alliance-detail__share-btn:hover {
+  border-color: var(--clay, #d97757);
+}
+
+/* Gallery Component */
+.pay-alliance-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pay-alliance-gallery__main {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-xl, 20px);
+  overflow: hidden;
+  background: var(--surface, #f7f7f7);
+  cursor: pointer;
+}
+
+.pay-alliance-gallery__main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.pay-alliance-gallery__main:hover .pay-alliance-gallery__main-img {
+  transform: scale(1.02);
+}
+
+.pay-alliance-gallery__nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(10, 10, 15, 0.65);
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-gallery__nav-btn:hover {
+  background: rgba(10, 10, 15, 0.9);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.pay-alliance-gallery__nav-btn--prev {
+  left: 14px;
+}
+
+.pay-alliance-gallery__nav-btn--next {
+  right: 14px;
+}
+
+.pay-alliance-gallery__counter {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  background: rgba(10, 10, 15, 0.75);
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+}
+
+.pay-alliance-gallery__thumbs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.pay-alliance-gallery__thumb {
+  position: relative;
+  width: 80px;
+  height: 60px;
+  border-radius: var(--radius-sm, 8px);
+  overflow: hidden;
+  border: 2px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--surface, #f7f7f7);
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.pay-alliance-gallery__thumb--active {
+  border-color: var(--clay, #d97757);
+}
+
+.pay-alliance-gallery__thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Detail 2-Column Grid */
+.pay-alliance-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pay-alliance-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pay-alliance-detail__main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pay-alliance-detail__card {
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  padding: 24px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pay-alliance-detail__badges-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pay-alliance-detail__tag {
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.pay-alliance-detail__tag--intent {
+  background: var(--dark, #0a0a0f);
+  color: #ffffff;
+}
+
+.pay-alliance-detail__tag--type {
+  background: var(--surface, #f7f7f7);
+  color: var(--text-secondary, #4a4642);
+}
+
+.pay-alliance-detail__property-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text, #0a0a0f);
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.pay-alliance-detail__location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary, #4a4642);
+}
+
+/* Features Grid */
+.pay-alliance-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.pay-alliance-features__box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface, #f7f7f7);
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
+}
+
+.pay-alliance-features__box-icon {
+  color: var(--clay, #d97757);
+}
+
+.pay-alliance-features__box-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted, #8a8a8a);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.pay-alliance-features__box-val {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+}
+
+/* Sticky Action Card */
+.pay-alliance-sticky-card {
+  position: sticky;
+  top: 24px;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pay-alliance-sticky-card__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted, #8a8a8a);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pay-alliance-sticky-card__price {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text, #0a0a0f);
+  letter-spacing: -0.02em;
+}
+
+.pay-alliance-sticky-card__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--btn-primary-bg, linear-gradient(135deg, #d97757 0%, #c86848 100%));
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: var(--btn-primary-shadow, 0 4px 14px rgba(217, 119, 87, 0.35));
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-sticky-card__cta:hover {
+  background: var(--btn-primary-hover, linear-gradient(135deg, #c86848 0%, #b85c3e 100%));
+  transform: translateY(-2px);
+  box-shadow: var(--btn-primary-shadow-hover, 0 6px 20px rgba(217, 119, 87, 0.5));
+}
+
+.pay-alliance-sticky-card__cta:active {
+  transform: scale(0.98);
+}
+
+.pay-alliance-sticky-card__footer {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--text-muted, #8a8a8a);
+  padding-top: 8px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.05));
+}
+
+/* ==========================================================================
+   PM Profile Card & Referral Banner
+   ========================================================================== */
+
+.pay-alliance-pm-card {
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pay-alliance-pm-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pay-alliance-pm-card__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pay-alliance-pm-card__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md, 12px);
+  background: rgba(217, 119, 87, 0.1);
+  color: var(--clay, #d97757);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pay-alliance-pm-card__role {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted, #8a8a8a);
+  letter-spacing: 0.4px;
+}
+
+.pay-alliance-pm-card__name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pay-alliance-pm-card__title {
+  font-size: 12px;
+  color: var(--text-secondary, #4a4642);
+}
+
+.pay-alliance-pm-card__rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fffbeb;
+  color: #b45309;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #fde68a;
+}
+
+.pay-alliance-pm-card__bio {
+  font-size: 12.5px;
+  color: var(--text-secondary, #4a4642);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pay-alliance-pm-card__credentials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.05));
+}
+
+.pay-alliance-pm-card__credential-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface, #f7f7f7);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  padding: 3px 9px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #4a4642);
+}
+
+/* Referral Banner */
+.pay-alliance-referral-banner {
+  background: linear-gradient(135deg, rgba(217, 119, 87, 0.08) 0%, rgba(217, 119, 87, 0.02) 100%);
+  border: 1px solid rgba(217, 119, 87, 0.25);
+  border-radius: var(--radius-lg, 16px);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pay-alliance-referral-banner__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pay-alliance-referral-banner__text {
+  font-size: 13px;
+  color: var(--text, #0a0a0f);
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   Modals (Inquiry & Rating)
+   ========================================================================== */
+
+.pay-alliance-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 15, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.pay-alliance-modal {
+  position: relative;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  width: 100%;
+  max-width: 520px;
+  padding: 28px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.pay-alliance-modal__close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: var(--text-muted, #8a8a8a);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.pay-alliance-modal__close:hover {
+  background: var(--surface, #f7f7f7);
+  color: var(--text, #0a0a0f);
+}
+
+.pay-alliance-modal__title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text, #0a0a0f);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.pay-alliance-modal__subtitle {
+  font-size: 13px;
+  color: var(--text-secondary, #4a4642);
+  margin: 4px 0 0 0;
+}
+
+.pay-alliance-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pay-alliance-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pay-alliance-modal__label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+}
+
+.pay-alliance-modal__input,
+.pay-alliance-modal__textarea {
+  width: 100%;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: var(--surface, #f7f7f7);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--text, #0a0a0f);
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-modal__input:focus,
+.pay-alliance-modal__textarea:focus {
+  background: #ffffff;
+  border-color: var(--clay, #d97757);
+  box-shadow: 0 0 0 3px var(--clay-glow, rgba(217, 119, 87, 0.15));
+}
+
+.pay-alliance-modal__submit-btn {
+  height: 44px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--btn-primary-bg, linear-gradient(135deg, #d97757 0%, #c86848 100%));
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: var(--btn-primary-shadow, 0 4px 14px rgba(217, 119, 87, 0.35));
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-modal__submit-btn:hover:not(:disabled) {
+  background: var(--btn-primary-hover, linear-gradient(135deg, #c86848 0%, #b85c3e 100%));
+  transform: translateY(-1px);
+}
+
+.pay-alliance-modal__submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Navigation Tabs (Explore vs My Recommendations & Journeys)
+   ========================================================================== */
+
+.pay-alliance-tabs {
+  display: inline-flex;
+  background: var(--surface, #f7f7f7);
+  padding: 4px;
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  gap: 4px;
+  width: fit-content;
+}
+
+.pay-alliance-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: var(--radius-md, 12px);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #4a4642);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  text-decoration: none;
+}
+
+.pay-alliance-tab:hover:not(.pay-alliance-tab--active) {
+  color: var(--text, #0a0a0f);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.pay-alliance-tab:active {
+  transform: scale(0.98);
+}
+
+.pay-alliance-tab--active {
+  background: #ffffff !important;
+  color: var(--text, #0a0a0f) !important;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.pay-alliance-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Client Property Journey & Recommendations Card
+   ========================================================================== */
+
+.pay-alliance-journey-card {
+  background: #ffffff;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pay-alliance-journey-card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
+  border-color: rgba(217, 119, 87, 0.25);
+}
+
+.pay-alliance-journey-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(217, 119, 87, 0.06) 0%, rgba(217, 119, 87, 0.01) 100%);
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pay-alliance-journey-pm-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pay-alliance-journey-pm-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pay-alliance-journey-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pay-alliance-journey-property-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .pay-alliance-journey-property-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pay-alliance-journey-property-img {
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  border-radius: var(--radius-md, 12px);
+  object-fit: cover;
+  background: var(--surface, #f7f7f7);
+}
+
+/* Live Progression Stepper */
+.pay-alliance-stepper {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  position: relative;
+  margin: 6px 0;
+  padding: 14px 16px;
+  background: var(--surface, #f7f7f7);
+  border-radius: var(--radius-lg, 16px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.04));
+}
+
+@media (max-width: 768px) {
+  .pay-alliance-stepper {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.pay-alliance-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .pay-alliance-step-item {
+    flex-direction: row;
+    text-align: left;
+  }
+}
+
+.pay-alliance-step-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.pay-alliance-step-circle--completed {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.pay-alliance-step-circle--current {
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  box-shadow: 0 0 0 4px var(--clay-glow, rgba(217, 119, 87, 0.2));
+  animation: pulseRing 2s infinite;
+}
+
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(217, 119, 87, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(217, 119, 87, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(217, 119, 87, 0);
+  }
+}
+
+.pay-alliance-step-circle--upcoming {
+  background: var(--border-solid, #e2ddd7);
+  color: var(--text-muted, #8a8a8a);
+}
+
+.pay-alliance-step-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text, #0a0a0f);
+  line-height: 1.25;
+}
+
+.pay-alliance-step-label--upcoming {
+  color: var(--text-muted, #8a8a8a);
+  font-weight: 500;
+}
+
+.pay-alliance-journey-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 12px);
+  background: rgba(217, 119, 87, 0.08);
+  border: 1px solid rgba(217, 119, 87, 0.2);
+  font-size: 12.5px;
+  color: var(--text, #0a0a0f);
+}
+
+.pay-alliance-journey-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+}
+

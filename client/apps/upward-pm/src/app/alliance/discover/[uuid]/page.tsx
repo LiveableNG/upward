@@ -19,6 +19,7 @@ import {
   X,
   Layers,
   Info,
+  Star,
 } from 'lucide-react'
 import {
   useDiscoveredAllianceListing,
@@ -27,7 +28,10 @@ import {
 } from '@/features/alliance/hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
 import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
-import { getAllianceListingMediaList } from '@/features/alliance/utils/allianceImages'
+import {
+  getAllianceListingMediaList,
+  ALLIANCE_REAL_ESTATE_PLACEHOLDERS,
+} from '@/features/alliance/utils/allianceImages'
 
 export default function DiscoveredListingDetailPage() {
   const params = useParams()
@@ -202,7 +206,15 @@ export default function DiscoveredListingDetailPage() {
           onClick={() => setIsLightboxOpen(true)}
         >
           {activeMedia?.publicUrl ? (
-            <img src={activeMedia.publicUrl} alt={listing.title} />
+            <img
+              src={activeMedia.publicUrl}
+              alt={listing.title}
+              onError={(e) => {
+                const target = e.currentTarget
+                target.onerror = null
+                target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0]
+              }}
+            />
           ) : (
             <div
               style={{
@@ -285,7 +297,15 @@ export default function DiscoveredListingDetailPage() {
                     setIsLightboxOpen(true)
                   }}
                 >
-                  <img src={photo.publicUrl} alt={`${listing.title} ${actualIndex + 1}`} />
+                  <img
+                    src={photo.publicUrl}
+                    alt={`${listing.title} ${actualIndex + 1}`}
+                    onError={(e) => {
+                      const target = e.currentTarget
+                      target.onerror = null
+                      target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[(actualIndex) % ALLIANCE_REAL_ESTATE_PLACEHOLDERS.length]
+                    }}
+                  />
                 </div>
               )
             })}
@@ -466,7 +486,42 @@ export default function DiscoveredListingDetailPage() {
                 {ownerName.substring(0, 2).toUpperCase()}
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div className="alliance-owner-card__name">{ownerName}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                  <div className="alliance-owner-card__name">{ownerName}</div>
+                  {((listing.ratingSummary && (listing.ratingSummary.totalRatings > 0 || listing.ratingSummary.averageScore > 0)) ||
+                    ((listing.pm as any)?.ratingSummary && ((listing.pm as any).ratingSummary.totalRatings > 0 || (listing.pm as any).ratingSummary.averageScore > 0))) && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: '#fef3c7',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#b45309',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Star size={12} style={{ fill: '#f59e0b', color: '#f59e0b' }} />
+                      <span>
+                        {(
+                          listing.ratingSummary?.averageScore ||
+                          (listing.pm as any)?.ratingSummary?.averageScore ||
+                          5.0
+                        ).toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#92400e', fontWeight: 500 }}>
+                        (
+                        {listing.ratingSummary?.totalRatings ??
+                          (listing.pm as any)?.ratingSummary?.totalRatings ??
+                          1}
+                        )
+                      </span>
+                    </div>
+                  )}
+                </div>
                 {ownerTitle && (
                   <div className="alliance-owner-card__title">{ownerTitle}</div>
                 )}

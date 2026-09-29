@@ -1,91 +1,104 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { PublicAllianceListingMedia } from '../types/alliance.types';
-import { getAllianceListingMediaList } from '../utils/allianceImages';
+import {
+  getAllianceListingMediaList,
+  ALLIANCE_REAL_ESTATE_PLACEHOLDERS,
+} from '../utils/allianceImages';
 
 interface AllianceGalleryProps {
   media?: PublicAllianceListingMedia[];
   title: string;
+  uuid?: string;
 }
 
-export const AllianceGallery: React.FC<AllianceGalleryProps> = ({ media, title }) => {
+export const AllianceGallery: React.FC<AllianceGalleryProps> = ({ media, title, uuid }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  const effectiveMedia = getAllianceListingMediaList({ media, uuid: title });
+  const effectiveMedia = getAllianceListingMediaList({ media, uuid: uuid || title });
+  const totalPhotos = effectiveMedia.length;
   const currentPhoto = effectiveMedia[selectedIndex] || effectiveMedia[0];
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : media.length - 1));
+    setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalPhotos - 1));
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedIndex((prev) => (prev < media.length - 1 ? prev + 1 : 0));
+    setSelectedIndex((prev) => (prev < totalPhotos - 1 ? prev + 1 : 0));
   };
 
   return (
-    <div className="relative flex flex-col gap-3">
+    <div className="pay-alliance-gallery">
       {/* Main Image Container */}
       <div
         onClick={() => setIsLightboxOpen(true)}
-        className="group relative aspect-[16/10] w-full cursor-pointer overflow-hidden rounded-2xl bg-neutral-100 dark:bg-neutral-800 md:aspect-[16/9]"
+        className="pay-alliance-gallery__main"
       >
         <img
           src={currentPhoto?.publicUrl}
           alt={`${title} - Photo ${selectedIndex + 1}`}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="pay-alliance-gallery__main-img"
+          onError={(e) => {
+            const target = e.currentTarget;
+            target.onerror = null;
+            target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[selectedIndex % ALLIANCE_REAL_ESTATE_PLACEHOLDERS.length];
+          }}
         />
 
         {/* Navigation arrows (if > 1 photo) */}
-        {media.length > 1 && (
+        {totalPhotos > 1 && (
           <>
             <button
               type="button"
               onClick={handlePrev}
-              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-900/60 text-white backdrop-blur-md transition-transform hover:scale-110"
+              className="pay-alliance-gallery__nav-btn pay-alliance-gallery__nav-btn--prev"
               aria-label="Previous image"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft size={20} />
             </button>
             <button
               type="button"
               onClick={handleNext}
-              className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-900/60 text-white backdrop-blur-md transition-transform hover:scale-110"
+              className="pay-alliance-gallery__nav-btn pay-alliance-gallery__nav-btn--next"
               aria-label="Next image"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight size={20} />
             </button>
           </>
         )}
 
         {/* Photo Counter Pill */}
-        <div className="absolute bottom-3 right-3 rounded-full bg-neutral-900/70 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
-          {selectedIndex + 1} / {media.length}
+        <div className="pay-alliance-gallery__counter">
+          {selectedIndex + 1} / {totalPhotos}
         </div>
       </div>
 
       {/* Thumbnails Row */}
-      {media.length > 1 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {media.map((item, idx) => (
+      {totalPhotos > 1 && (
+        <div className="pay-alliance-gallery__thumbs">
+          {effectiveMedia.map((item, idx) => (
             <button
-              key={item.uuid}
+              key={item.uuid || idx}
               type="button"
               onClick={() => setSelectedIndex(idx)}
-              className={`relative aspect-[4/3] h-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
-                selectedIndex === idx
-                  ? 'border-neutral-900 shadow-sm dark:border-white'
-                  : 'border-transparent opacity-70 hover:opacity-100'
+              className={`pay-alliance-gallery__thumb ${
+                selectedIndex === idx ? 'pay-alliance-gallery__thumb--active' : ''
               }`}
             >
               <img
                 src={item.publicUrl}
                 alt={`Thumbnail ${idx + 1}`}
-                className="h-full w-full object-cover"
+                className="pay-alliance-gallery__thumb-img"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.onerror = null;
+                  target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[idx % ALLIANCE_REAL_ESTATE_PLACEHOLDERS.length];
+                }}
               />
             </button>
           ))}
@@ -94,36 +107,57 @@ export const AllianceGallery: React.FC<AllianceGalleryProps> = ({ media, title }
 
       {/* Lightbox Modal */}
       {isLightboxOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md">
+        <div
+          className="pay-alliance-modal-backdrop"
+          onClick={() => setIsLightboxOpen(false)}
+        >
           <button
             type="button"
             onClick={() => setIsLightboxOpen(false)}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-neutral-800 text-white transition-colors hover:bg-neutral-700"
+            className="pay-alliance-gallery__nav-btn"
+            style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 10001 }}
+            aria-label="Close fullscreen view"
           >
-            <X className="h-6 w-6" />
+            <X size={20} />
           </button>
 
-          <div className="relative max-h-[85vh] max-w-[90vw]">
+          <div
+            style={{ position: 'relative', maxWidth: '90vw', maxHeight: '85vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src={currentPhoto?.publicUrl}
               alt={`${title} - Zoomed Photo`}
-              className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.onerror = null;
+                target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[selectedIndex % ALLIANCE_REAL_ESTATE_PLACEHOLDERS.length];
+              }}
+              style={{
+                maxWidth: '90vw',
+                maxHeight: '85vh',
+                borderRadius: '16px',
+                objectFit: 'contain',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+              }}
             />
-            {media.length > 1 && (
+            {totalPhotos > 1 && (
               <>
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-900/80 text-white backdrop-blur-md hover:bg-neutral-900"
+                  className="pay-alliance-gallery__nav-btn pay-alliance-gallery__nav-btn--prev"
+                  style={{ left: '-20px' }}
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft size={22} />
                 </button>
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-neutral-900/80 text-white backdrop-blur-md hover:bg-neutral-900"
+                  className="pay-alliance-gallery__nav-btn pay-alliance-gallery__nav-btn--next"
+                  style={{ right: '-20px' }}
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight size={22} />
                 </button>
               </>
             )}

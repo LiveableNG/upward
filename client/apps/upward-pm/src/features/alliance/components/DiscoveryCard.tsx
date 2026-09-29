@@ -13,12 +13,13 @@ import {
   Bookmark,
   BookmarkCheck,
   Share2,
+  Star,
 } from 'lucide-react'
 import { AllianceDiscoveredListingSummary } from '../types/alliance.types'
 import { useTrackAllianceListing, useUntrackAllianceListing } from '../hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
 
-import { getAllianceListingImage } from '../utils/allianceImages'
+import { getAllianceListingImage, ALLIANCE_REAL_ESTATE_PLACEHOLDERS } from '../utils/allianceImages'
 
 interface DiscoveryCardProps {
   listing: AllianceDiscoveredListingSummary
@@ -81,6 +82,11 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
           src={primaryImage}
           alt={listing.title}
           className="alliance-discovery-card__img"
+          onError={(e) => {
+            const target = e.currentTarget
+            target.onerror = null
+            target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0]
+          }}
         />
 
         {/* Intent Badge */}
@@ -216,15 +222,57 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
             <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '6px',
                 }}
               >
-                {ownerName}
+                <div
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {ownerName}
+                </div>
+                {((listing.ratingSummary && (listing.ratingSummary.totalRatings > 0 || listing.ratingSummary.averageScore > 0)) ||
+                  ((listing.pm as any)?.ratingSummary && ((listing.pm as any).ratingSummary.totalRatings > 0 || (listing.pm as any).ratingSummary.averageScore > 0))) && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#b45309',
+                      background: '#fef3c7',
+                      padding: '1px 6px',
+                      borderRadius: '6px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Star size={11} style={{ fill: '#f59e0b', color: '#f59e0b' }} />
+                    <span>
+                      {(
+                        listing.ratingSummary?.averageScore ||
+                        (listing.pm as any)?.ratingSummary?.averageScore ||
+                        5.0
+                      ).toFixed(1)}
+                    </span>
+                    <span style={{ fontSize: '10px', color: '#92400e', fontWeight: 500 }}>
+                      (
+                      {listing.ratingSummary?.totalRatings ??
+                        (listing.pm as any)?.ratingSummary?.totalRatings ??
+                        1}
+                      )
+                    </span>
+                  </div>
+                )}
               </div>
               {ownerTitle && (
                 <div

@@ -67,6 +67,16 @@ export class S3Service {
   async getDownloadUrl(keyOrUrl: string) {
     if (!keyOrUrl) return keyOrUrl
 
+    // If it's already an external URL (e.g. Unsplash, CDN, or absolute HTTP/HTTPS) and not from our S3 bucket, return as-is
+    if ((keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) && !keyOrUrl.includes('amazonaws.com')) {
+      return keyOrUrl
+    }
+
+    // If it's a local/mock storage key, return as-is
+    if (keyOrUrl.startsWith('mock/')) {
+      return keyOrUrl
+    }
+
     const key = keyOrUrl.includes('amazonaws.com/') ? keyOrUrl.split('amazonaws.com/')[1] : keyOrUrl
 
     try {

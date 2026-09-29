@@ -6,8 +6,10 @@ import {
 import {
   ALLIANCE_LISTING_REPOSITORY,
   ALLIANCE_PROFILE_REPOSITORY,
+  ALLIANCE_RATING_REPOSITORY,
   IAllianceListingRepository,
   IAllianceProfileRepository,
+  IAllianceRatingRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
@@ -20,6 +22,8 @@ export class DiscoverAllianceListingsUseCase {
     private readonly listingRepo: IAllianceListingRepository,
     @Inject(ALLIANCE_PROFILE_REPOSITORY)
     private readonly profileRepo: IAllianceProfileRepository,
+    @Inject(ALLIANCE_RATING_REPOSITORY)
+    private readonly ratingRepo: IAllianceRatingRepository,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -48,23 +52,47 @@ export class DiscoverAllianceListingsUseCase {
       take: limit,
     });
 
-    const signedItems = await Promise.all(
+    const enrichedItems = await Promise.all(
       items.map(async (item) => {
-        if (item.media && item.media.length > 0) {
-          const signedMedia = await Promise.all(
-            item.media.map(async (m) => ({
+        let ratingSummary = { averageScore: 0, totalRatings: 0 };
+        if (item.pmId) {
+          try {
+            const sum = await this.ratingRepo.getRatingSummaryForSubject('PM', item.pmId);
+            ratingSummary = { averageScore: sum.averageScore, totalRatings: sum.totalRatings };
+          } catch {
+            ratingSummary = { averageScore: 0, totalRatings: 0 };
+          }
+        }
+
+        let media = item.media || [];
+        if (media.length > 0) {
+          media = await Promise.all(
+            media.map(async (m) => ({
               ...m,
-              publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+              publicUrl:
+                m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
+                  ? m.publicUrl
+                  : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
             })),
           );
-          return { ...item, media: signedMedia };
         }
-        return item;
+
+        return {
+          ...item,
+          pm: item.pm
+            ? {
+                ...item.pm,
+                ratingSummary,
+              }
+            : item.pm,
+          media,
+          ratingSummary,
+        };
       }),
     );
 
     return {
-      items: signedItems,
+      items: enrichedItems,
       meta: {
         page,
         limit,

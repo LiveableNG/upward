@@ -13,7 +13,7 @@ import {
   Share2,
   Calendar,
   AlertCircle,
-  Star,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   useAllianceListingDetail,
@@ -56,33 +56,26 @@ export default function AllianceListingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12">
-        <div className="animate-pulse space-y-6">
-          <div className="h-6 w-32 rounded bg-neutral-200 dark:bg-neutral-800" />
-          <div className="aspect-[16/9] w-full rounded-2xl bg-neutral-200 dark:bg-neutral-800" />
-          <div className="h-8 w-2/3 rounded bg-neutral-200 dark:bg-neutral-800" />
-          <div className="h-4 w-1/3 rounded bg-neutral-200 dark:bg-neutral-800" />
-        </div>
+      <div className="pay-alliance-detail" style={{ paddingTop: '20px' }}>
+        <div className="pay-alliance-skeleton__line" style={{ width: '140px', height: '24px' }} />
+        <div className="pay-alliance-skeleton__media" style={{ height: '360px' }} />
+        <div className="pay-alliance-skeleton__line" style={{ width: '60%', height: '32px' }} />
       </div>
     );
   }
 
   if (isError || !listing) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <AlertCircle className="mx-auto h-12 w-12 text-red-500" />
-        <h2 className="mt-4 text-lg font-bold text-neutral-900 dark:text-white">
-          Listing Unavailable
-        </h2>
-        <p className="mt-1 text-xs text-neutral-500">
-          {(error as any)?.message ||
-            'This Alliance listing is not available or has been removed.'}
+      <div className="pay-alliance-empty" style={{ margin: '40px auto', maxWidth: '500px' }}>
+        <div className="pay-alliance-empty__icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+          <AlertCircle size={32} />
+        </div>
+        <h3 className="pay-alliance-empty__title">Listing Unavailable</h3>
+        <p className="pay-alliance-empty__desc">
+          {(error as any)?.message || 'This property listing is no longer active or could not be found.'}
         </p>
-        <Link
-          href="/alliance"
-          className="mt-6 inline-flex rounded-xl bg-neutral-900 px-5 py-2.5 text-xs font-semibold text-white dark:bg-white dark:text-neutral-900"
-        >
-          Back to Marketplace
+        <Link href="/alliance" className="pay-alliance-empty__btn">
+          Back to Listings
         </Link>
       </div>
     );
@@ -91,197 +84,187 @@ export default function AllianceListingDetailPage() {
   const referringPm = referralContext?.referringPm;
 
   return (
-    <div className="min-h-screen bg-neutral-50/50 pb-20 dark:bg-neutral-950">
-      {/* Top Breadcrumb & Action Bar */}
-      <div className="border-b border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back</span>
-          </button>
+    <div className="pay-alliance-detail" style={{ padding: '24px 20px 80px 20px' }}>
+      {/* Top Bar Navigation */}
+      <div className="pay-alliance-detail__top-bar">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="pay-alliance-detail__back-btn"
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Marketplace</span>
+        </button>
 
-          <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleShare}
+          className="pay-alliance-detail__share-btn"
+        >
+          <Share2 size={15} />
+          <span>{copiedLink ? 'Copied Link!' : 'Share'}</span>
+        </button>
+      </div>
+
+      {/* Referral Banner (if referred) */}
+      {referringPm && (
+        <AllianceReferralBanner
+          referringPm={referringPm}
+          clientName={referralContext?.clientName}
+        />
+      )}
+
+      {/* Gallery */}
+      <AllianceGallery media={listing.media} title={listing.title} uuid={listing.uuid} />
+
+      {/* 2-Column Detail Grid */}
+      <div className="pay-alliance-detail__grid">
+        {/* Main Column */}
+        <div className="pay-alliance-detail__main-col">
+          {/* Header Card */}
+          <div className="pay-alliance-detail__card">
+            <div className="pay-alliance-detail__badges-row">
+              <span className="pay-alliance-detail__tag pay-alliance-detail__tag--intent">
+                {listing.intent === 'SALE' ? 'For Sale' : 'For Rent'}
+              </span>
+              {listing.propertyType && (
+                <span className="pay-alliance-detail__tag pay-alliance-detail__tag--type">
+                  {listing.propertyType}
+                </span>
+              )}
+            </div>
+
+            <h1 className="pay-alliance-detail__property-title">{listing.title}</h1>
+
+            <div className="pay-alliance-detail__location">
+              <MapPin size={16} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+              <span>
+                {[listing.address, listing.city, listing.state, listing.country]
+                  .filter(Boolean)
+                  .join(', ') || 'Location details available upon inquiry'}
+              </span>
+            </div>
+          </div>
+
+          {/* Features Grid */}
+          <div className="pay-alliance-features">
+            {listing.bedrooms !== null && listing.bedrooms !== undefined && (
+              <div className="pay-alliance-features__box">
+                <Bed size={22} className="pay-alliance-features__box-icon" />
+                <div>
+                  <span className="pay-alliance-features__box-label">Bedrooms</span>
+                  <span className="pay-alliance-features__box-val">{listing.bedrooms} Beds</span>
+                </div>
+              </div>
+            )}
+
+            {listing.bathrooms !== null && listing.bathrooms !== undefined && (
+              <div className="pay-alliance-features__box">
+                <Bath size={22} className="pay-alliance-features__box-icon" />
+                <div>
+                  <span className="pay-alliance-features__box-label">Bathrooms</span>
+                  <span className="pay-alliance-features__box-val">{listing.bathrooms} Baths</span>
+                </div>
+              </div>
+            )}
+
+            {listing.targetType && (
+              <div className="pay-alliance-features__box">
+                <Building size={22} className="pay-alliance-features__box-icon" />
+                <div>
+                  <span className="pay-alliance-features__box-label">Type</span>
+                  <span className="pay-alliance-features__box-val">{listing.targetType}</span>
+                </div>
+              </div>
+            )}
+
+            {listing.publishedAt && (
+              <div className="pay-alliance-features__box">
+                <Calendar size={22} className="pay-alliance-features__box-icon" />
+                <div>
+                  <span className="pay-alliance-features__box-label">Listed</span>
+                  <span className="pay-alliance-features__box-val">
+                    {new Date(listing.publishedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          {listing.description && (
+            <div className="pay-alliance-detail__card">
+              <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>
+                Property Overview
+              </h3>
+              <p
+                style={{
+                  fontSize: '13.5px',
+                  lineHeight: '1.65',
+                  color: 'var(--text-secondary)',
+                  whiteSpace: 'pre-line',
+                  margin: 0,
+                }}
+              >
+                {listing.description}
+              </p>
+            </div>
+          )}
+
+          {/* Referring PM Card */}
+          {referringPm && (
+            <AlliancePmProfileCard
+              pm={referringPm}
+              ratingSummary={referralContext?.listing?.ratingSummary}
+              roleLabel="Your Referring Partner"
+            />
+          )}
+
+          {/* Listing PM Card */}
+          <AlliancePmProfileCard
+            pm={listing.pm}
+            ratingSummary={listing.ratingSummary}
+            roleLabel="Listing Property Manager"
+          />
+        </div>
+
+        {/* Right Sticky Card */}
+        <div>
+          <div className="pay-alliance-sticky-card">
+            <span className="pay-alliance-sticky-card__label">
+              {listing.intent === 'SALE' ? 'Purchase Price' : 'Annual Rental'}
+            </span>
+
+            <div>
+              <span className="pay-alliance-sticky-card__price">
+                {formatPrice(listing.price, listing.currency)}
+              </span>
+              {listing.intent === 'RENT' && (
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {' '}
+                  / yr
+                </span>
+              )}
+            </div>
+
             <button
               type="button"
-              onClick={handleShare}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+              onClick={() => setIsInquiryModalOpen(true)}
+              className="pay-alliance-sticky-card__cta"
             >
-              <Share2 className="h-3.5 w-3.5" />
-              <span>{copiedLink ? 'Copied Link!' : 'Share'}</span>
+              <MessageSquare size={17} />
+              <span>Contact Property Manager</span>
             </button>
+
+            <div className="pay-alliance-sticky-card__footer">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <ShieldCheck size={14} style={{ color: 'var(--clay)' }} />
+                <span>Upward Alliance Protection Active</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Main Detail Container */}
-      <main className="mx-auto max-w-6xl px-4 pt-6 sm:px-6">
-        {/* Referral Banner (if referred) */}
-        {referringPm && (
-          <div className="mb-6">
-            <AllianceReferralBanner
-              referringPm={referringPm}
-              clientName={referralContext?.clientName}
-            />
-          </div>
-        )}
-
-        {/* Gallery */}
-        <AllianceGallery media={listing.media} title={listing.title} />
-
-        {/* Content Layout */}
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Left 2 Cols: Details & Description */}
-          <div className="space-y-6 lg:col-span-2">
-            {/* Header info */}
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    listing.intent === 'SALE'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                      : 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-                  }`}
-                >
-                  {listing.intent === 'SALE' ? 'For Sale' : 'For Rent'}
-                </span>
-                {listing.propertyType && (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-                    {listing.propertyType}
-                  </span>
-                )}
-              </div>
-
-              <h1 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl dark:text-white">
-                {listing.title}
-              </h1>
-
-              <div className="mt-2 flex items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
-                <MapPin className="h-4 w-4 shrink-0 text-neutral-400" />
-                <span>
-                  {[listing.address, listing.city, listing.state, listing.country]
-                    .filter(Boolean)
-                    .join(', ')}
-                </span>
-              </div>
-            </div>
-
-            {/* Key Features Chips */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {listing.bedrooms !== null && listing.bedrooms !== undefined && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-                  <Bed className="h-5 w-5 text-neutral-500" />
-                  <div>
-                    <span className="block text-[11px] text-neutral-400">Bedrooms</span>
-                    <span className="text-xs font-bold text-neutral-900 dark:text-white">
-                      {listing.bedrooms} Beds
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {listing.bathrooms !== null && listing.bathrooms !== undefined && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-                  <Bath className="h-5 w-5 text-neutral-500" />
-                  <div>
-                    <span className="block text-[11px] text-neutral-400">Bathrooms</span>
-                    <span className="text-xs font-bold text-neutral-900 dark:text-white">
-                      {listing.bathrooms} Baths
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {listing.targetType && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-                  <Building className="h-5 w-5 text-neutral-500" />
-                  <div>
-                    <span className="block text-[11px] text-neutral-400">Inventory Type</span>
-                    <span className="text-xs font-bold text-neutral-900 dark:text-white">
-                      {listing.targetType}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {listing.publishedAt && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-neutral-200/80 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900">
-                  <Calendar className="h-5 w-5 text-neutral-500" />
-                  <div>
-                    <span className="block text-[11px] text-neutral-400">Published</span>
-                    <span className="text-xs font-bold text-neutral-900 dark:text-white">
-                      {new Date(listing.publishedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            {listing.description && (
-              <div className="rounded-2xl border border-neutral-200/80 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
-                <h3 className="text-sm font-bold text-neutral-900 dark:text-white">
-                  About This Property
-                </h3>
-                <p className="mt-3 whitespace-pre-line text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
-                  {listing.description}
-                </p>
-              </div>
-            )}
-
-            {/* Referring PM Card (if applicable) */}
-            {referringPm && (
-              <AlliancePmProfileCard
-                pm={referringPm}
-                ratingSummary={referralContext?.listing?.ratingSummary}
-                roleLabel="Your Referring Property Manager"
-              />
-            )}
-
-            {/* Listing Owner PM Card */}
-            <AlliancePmProfileCard
-              pm={listing.pm}
-              ratingSummary={listing.ratingSummary}
-              roleLabel="Listing Property Manager"
-            />
-          </div>
-
-          {/* Right Col: Price & Action Box */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-6 rounded-2xl border border-neutral-200/80 bg-white p-6 shadow-md dark:border-neutral-800 dark:bg-neutral-900">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                {listing.intent === 'SALE' ? 'Total Price' : 'Annual Rent'}
-              </span>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold text-neutral-900 dark:text-white">
-                  {formatPrice(listing.price, listing.currency)}
-                </span>
-                {listing.intent === 'RENT' && (
-                  <span className="text-xs text-neutral-500">/ yr</span>
-                )}
-              </div>
-
-              {/* Inquiry CTA */}
-              <button
-                type="button"
-                onClick={() => setIsInquiryModalOpen(true)}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3.5 text-xs font-bold text-white shadow-sm transition-transform hover:scale-[1.02] dark:bg-white dark:text-neutral-900"
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>Contact Property Manager</span>
-              </button>
-
-              {/* Verified Badge */}
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-neutral-400">
-                <span>Verified Upward Alliance Listing</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
 
       {/* Inquiry Modal */}
       <AllianceInquiryModal

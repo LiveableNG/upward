@@ -303,4 +303,52 @@ export class PrismaAllianceReferralRepository implements IAllianceReferralReposi
 
     return items.map((item: any) => this.mapToEntity(item));
   }
+
+  async findUserReferrals(
+    userId: number,
+    options?: {
+      email?: string;
+      phone?: string;
+      skip?: number;
+      take?: number;
+    },
+  ): Promise<{ items: AllianceReferralEntity[]; total: number }> {
+    const orConditions: any[] = [{ matchedUserId: userId }];
+
+    if (options?.email && options.email.trim().length > 0) {
+      const normEmail = options.email.trim().toLowerCase();
+      orConditions.push({ clientNormalizedEmail: normEmail });
+      orConditions.push({ clientEmail: { equals: options.email.trim(), mode: 'insensitive' } });
+    }
+
+    if (options?.phone && options.phone.trim().length > 0) {
+      let cleaned = options.phone.trim().replace(/\s+/g, '');
+      orConditions.push({ clientNormalizedPhone: cleaned });
+      const digitsOnly = cleaned.replace(/^\+234|^0/, '');
+      if (digitsOnly.length >= 8) {
+        orConditions.push({ clientPhone: { contains: digitsOnly } });
+      }
+    }
+
+    const where: any = {
+      OR: orConditions,
+    };
+
+    const [items, total] = await Promise.all([
+      (this.prisma as any).upward_alliance_referral.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: options?.skip,
+        take: options?.take,
+        include: this.standardInclude,
+      }),
+      (this.prisma as any).upward_alliance_referral.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item: any) => this.mapToEntity(item)),
+      total,
+    };
+  }
 }
+
