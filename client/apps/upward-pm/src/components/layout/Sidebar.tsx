@@ -30,6 +30,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { useAllianceProfile } from '@/features/alliance/hooks/useAlliance'
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
@@ -81,10 +82,19 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
     queryFn: listHomeRequests,
   })
 
+  const { data: allianceProfile } = useAllianceProfile()
+
   const totalRequests = (credibilityRequests?.length || 0) + (joinRequests?.length || 0)
   const newHomeRequests = homeRequests.filter((request) => request.status === 'submitted').length
 
   const isEmployee = user?.accountType === 'PM_EMPLOYEE'
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.label === 'Alliance') {
+      return allianceProfile?.isEnabled === true
+    }
+    return true
+  })
 
   return (
     <>
@@ -195,7 +205,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
         <nav className="sidebar__nav" style={{ padding: 0 }}>
           <div className="sidebar__section" style={{ marginTop: 8 }}>
             <ul className="sidebar__list">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
                 const hasBadge =
