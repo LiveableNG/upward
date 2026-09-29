@@ -36,6 +36,8 @@ import { ReorderAllianceListingMediaUseCase } from '../../../application/allianc
 import { DeleteAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/delete-alliance-listing-media.use-case';
 import { TrackAllianceListingUseCase } from '../../../application/alliance/use-cases/track-alliance-listing.use-case';
 import { UntrackAllianceListingUseCase } from '../../../application/alliance/use-cases/untrack-alliance-listing.use-case';
+import { CreateAllianceReferralDto } from '../../../application/alliance/dtos/alliance-referral.dto';
+import { CreateAllianceReferralUseCase } from '../../../application/alliance/use-cases/create-alliance-referral.use-case';
 
 @Controller('pm/alliance/listings')
 @UseGuards(JwtAuthGuard)
@@ -55,7 +57,17 @@ export class PmAllianceListingController {
     private readonly deleteMediaUseCase: DeleteAllianceListingMediaUseCase,
     private readonly trackListingUseCase: TrackAllianceListingUseCase,
     private readonly untrackListingUseCase: UntrackAllianceListingUseCase,
+    private readonly createReferralUseCase: CreateAllianceReferralUseCase,
   ) {}
+
+  @Post(':uuid/referrals')
+  async createReferral(
+    @Param('uuid') uuid: string,
+    @Body() dto: CreateAllianceReferralDto,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.createReferralUseCase.execute(uuid, dto, actor);
+  }
 
   @Post(':uuid/track')
   async track(

@@ -98,6 +98,7 @@ import { AdminAllianceController } from './admin/admin-alliance.controller'
 import { PmAllianceProfileController } from './pm/pm-alliance-profile.controller'
 import { PmAllianceListingController } from './pm/pm-alliance-listing.controller'
 import { PmAllianceDiscoverController } from './pm/pm-alliance-discover.controller'
+import { PmAllianceReferralController } from './pm/pm-alliance-referral.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -205,6 +206,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PmAllianceProfileController,
     PmAllianceListingController,
     PmAllianceDiscoverController,
+    PmAllianceReferralController,
   ],
 })
 export class HttpModule {}

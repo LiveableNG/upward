@@ -293,3 +293,103 @@ export interface DiscoverAllianceListingsResponse {
     totalPages: number
   }
 }
+
+// Stage 2: Referral & Lead Types
+export type AllianceReferralStatus = 'ACTIVE' | 'CONVERTED' | 'CLOSED'
+export type AllianceLeadStage =
+  | 'NEW'
+  | 'CONTACTED'
+  | 'INTERESTED'
+  | 'VIEWING'
+  | 'APPLICATION'
+  | 'CONVERTED'
+  | 'LOST'
+
+export interface AllianceReferral {
+  id: number
+  uuid: string
+  referralToken: string
+  listingId: number
+  referringPmId: number
+  matchedUserId: number | null
+  clientName: string | null
+  clientEmail: string | null
+  clientPhone: string | null
+  clientNotes: string | null
+  status: AllianceReferralStatus
+  leadStage: AllianceLeadStage
+  stageUpdatedAt: string
+  convertedAt: string | null
+  closedAt: string | null
+  createdAt: string
+  updatedAt: string
+  shareUrl?: string
+  listing?: {
+    id: number
+    uuid: string
+    title: string
+    intent: AllianceListingIntent
+    targetType: AllianceTargetType
+    propertyType: string | null
+    price: number
+    currency: string
+    status: AllianceListingStatus
+    address: string | null
+    city: string | null
+    state: string | null
+    country: string | null
+    primaryMedia?: {
+      uuid: string
+      fileUrl?: string
+      publicUrl?: string
+    } | null
+    pm?: {
+      id: number
+      uuid: string
+      name: string
+      companyName?: string | null
+    }
+  }
+  matchedUser?: {
+    id: number
+    uuid: string
+    firstName: string | null
+    lastName: string | null
+    email: string
+    phone: string | null
+  } | null
+}
+
+export interface CreateAllianceReferralPayload {
+  clientName?: string
+  clientEmail?: string
+  clientPhone?: string
+  clientNotes?: string
+}
+
+export interface UpdateAllianceLeadStagePayload {
+  leadStage: AllianceLeadStage
+  notes?: string
+}
+
+export interface CloseAllianceReferralPayload {
+  reason?: string
+}
+
+export interface ListAllianceReferralsParams {
+  status?: AllianceReferralStatus
+  leadStage?: AllianceLeadStage
+  search?: string
+  page?: number
+  limit?: number
+}
+
+export interface ListAllianceReferralsResponse {
+  items: AllianceReferral[]
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}

@@ -188,3 +188,51 @@ export interface AllianceListingTrackerEntity {
   updatedAt: Date;
 }
 
+export type AllianceReferralStatus = 'ACTIVE' | 'CONVERTED' | 'LOST' | 'CLOSED';
+export type AllianceLeadStage =
+  | 'NEW'
+  | 'CONTACTED'
+  | 'INTERESTED'
+  | 'VIEWING'
+  | 'APPLICATION'
+  | 'CONVERTED'
+  | 'LOST';
+
+export interface AllianceReferralEntity {
+  id: number;
+  uuid: string;
+  listingId: number;
+  referringPmId: number;
+  matchedUserId: number | null;
+  clientIdentityKey: string;
+  clientName: string;
+  clientEmail: string | null;
+  clientPhone: string | null;
+  clientNormalizedEmail: string | null;
+  clientNormalizedPhone: string | null;
+  shareToken: string;
+  status: AllianceReferralStatus;
+  stage: AllianceLeadStage;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  convertedAt: Date | null;
+  closedAt: Date | null;
+  listing?: AllianceListingEntity;
+  referringPm?: {
+    id: number;
+    uuid: string;
+    name: string;
+    companyName?: string | null;
+  };
+  matchedUser?: {
+    id: number;
+    uuid: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string | null;
+  } | null;
+}
+
+

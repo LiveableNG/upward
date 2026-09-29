@@ -77,6 +77,23 @@ enum UpwardAllianceListingVisibility {
   PRIVATE
 }
 
+enum UpwardAllianceReferralStatus {
+  ACTIVE
+  CONVERTED
+  LOST
+  CLOSED
+}
+
+enum UpwardAllianceLeadStage {
+  NEW
+  CONTACTED
+  INTERESTED
+  VIEWING
+  APPLICATION
+  CONVERTED
+  LOST
+}
+
 model upward_alliance_listing {
   id               Int                              @id @default(autoincrement())
   uuid             String                           @unique @default(uuid())
@@ -125,6 +142,7 @@ model upward_alliance_listing {
   targetUnit       upward_pm_unit?                  @relation(fields: [targetUnitId], references: [id], onDelete: SetNull)
   media            upward_alliance_listing_media[]
   trackers         upward_alliance_listing_tracker[]
+  referrals        upward_alliance_referral[]
 
   @@index([pmId])
   @@index([status])
@@ -169,4 +187,52 @@ model upward_alliance_listing_tracker {
   @@index([listingId])
   @@index([trackerPmId])
 }
+
+model upward_alliance_referral {
+  id                    Int                          @id @default(autoincrement())
+  uuid                  String                       @unique @default(uuid())
+  listingId             Int
+  referringPmId         Int
+  matchedUserId         Int?
+
+  // Normalized client identity key for uniqueness/exclusivity: e.g. "usr:123", "email:foo@bar.com", "phone:+2348012345678"
+  clientIdentityKey     String                       @db.VarChar(255)
+
+  // Client snapshot
+  clientName            String                       @db.VarChar(255)
+  clientEmail           String?                      @db.VarChar(255)
+  clientPhone           String?                      @db.VarChar(50)
+  clientNormalizedEmail String?                      @db.VarChar(255)
+  clientNormalizedPhone String?                      @db.VarChar(50)
+
+  // Secure token for share links (opaque uuid / secure string)
+  shareToken            String                       @unique @default(uuid())
+
+  // Status and stage
+  status                UpwardAllianceReferralStatus @default(ACTIVE)
+  stage                 UpwardAllianceLeadStage      @default(NEW)
+  notes                 String?                      @db.Text
+
+  // Timestamps
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  convertedAt           DateTime?
+  closedAt              DateTime?
+
+  // Relations
+  listing               upward_alliance_listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  referringPm           upward_property_manager      @relation(fields: [referringPmId], references: [id], onDelete: Cascade)
+  matchedUser           upward_user?                 @relation(fields: [matchedUserId], references: [id], onDelete: SetNull)
+
+  @@index([listingId])
+  @@index([referringPmId])
+  @@index([matchedUserId])
+  @@index([clientIdentityKey])
+  @@index([shareToken])
+  @@index([status])
+  @@index([stage])
+  @@index([createdAt])
+  @@index([listingId, clientIdentityKey])
+}
+
 

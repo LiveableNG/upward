@@ -534,6 +534,11 @@ import { DiscoverAllianceListingsUseCase } from './alliance/use-cases/discover-a
 import { GetDiscoveredAllianceListingDetailUseCase } from './alliance/use-cases/get-discovered-alliance-listing-detail.use-case'
 import { TrackAllianceListingUseCase } from './alliance/use-cases/track-alliance-listing.use-case'
 import { UntrackAllianceListingUseCase } from './alliance/use-cases/untrack-alliance-listing.use-case'
+import { CreateAllianceReferralUseCase } from './alliance/use-cases/create-alliance-referral.use-case'
+import { ListPmAllianceReferralsUseCase } from './alliance/use-cases/list-pm-alliance-referrals.use-case'
+import { GetAllianceReferralDetailUseCase } from './alliance/use-cases/get-alliance-referral-detail.use-case'
+import { UpdateAllianceLeadStageUseCase } from './alliance/use-cases/update-alliance-lead-stage.use-case'
+import { CloseAllianceReferralUseCase } from './alliance/use-cases/close-alliance-referral.use-case'
 
 const UseCases: any[] = [
   TogglePmAllianceEnablementUseCase,
@@ -562,6 +567,11 @@ const UseCases: any[] = [
   GetDiscoveredAllianceListingDetailUseCase,
   TrackAllianceListingUseCase,
   UntrackAllianceListingUseCase,
+  CreateAllianceReferralUseCase,
+  ListPmAllianceReferralsUseCase,
+  GetAllianceReferralDetailUseCase,
+  UpdateAllianceLeadStageUseCase,
+  CloseAllianceReferralUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

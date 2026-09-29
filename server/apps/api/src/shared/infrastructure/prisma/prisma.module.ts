@@ -48,7 +48,8 @@ import { PrismaAlliancePmQualificationRepository } from './repositories/prisma-a
 import { PrismaAllianceListingRepository } from './repositories/prisma-alliance-listing.repository'
 import { PrismaAllianceListingMediaRepository } from './repositories/prisma-alliance-listing-media.repository'
 import { PrismaAllianceListingTrackerRepository } from './repositories/prisma-alliance-listing-tracker.repository'
-import { ALLIANCE_PROFILE_REPOSITORY, ALLIANCE_QUALIFICATION_REPOSITORY, ALLIANCE_PM_QUALIFICATION_REPOSITORY, ALLIANCE_LISTING_REPOSITORY, ALLIANCE_LISTING_MEDIA_REPOSITORY, ALLIANCE_LISTING_TRACKER_REPOSITORY } from '../../../domains/alliance/alliance.repository.interface'
+import { PrismaAllianceReferralRepository } from './repositories/prisma-alliance-referral.repository'
+import { ALLIANCE_PROFILE_REPOSITORY, ALLIANCE_QUALIFICATION_REPOSITORY, ALLIANCE_PM_QUALIFICATION_REPOSITORY, ALLIANCE_LISTING_REPOSITORY, ALLIANCE_LISTING_MEDIA_REPOSITORY, ALLIANCE_LISTING_TRACKER_REPOSITORY, ALLIANCE_REFERRAL_REPOSITORY } from '../../../domains/alliance/alliance.repository.interface'
 import { SETTLEMENT_ACCOUNT_REPOSITORY } from '../../../domains/pm/ISettlementAccountRepository'
 import { TENANCY_PERIOD_REPOSITORY } from '../../../domains/companies/tenancy-period.repository'
 
@@ -327,6 +328,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: ALLIANCE_LISTING_TRACKER_REPOSITORY,
       useClass: PrismaAllianceListingTrackerRepository,
     },
+    {
+      provide: ALLIANCE_REFERRAL_REPOSITORY,
+      useClass: PrismaAllianceReferralRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -383,6 +388,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     ALLIANCE_LISTING_REPOSITORY,
     ALLIANCE_LISTING_MEDIA_REPOSITORY,
     ALLIANCE_LISTING_TRACKER_REPOSITORY,
+    ALLIANCE_REFERRAL_REPOSITORY,
   ],
 })
 export class PrismaModule {}

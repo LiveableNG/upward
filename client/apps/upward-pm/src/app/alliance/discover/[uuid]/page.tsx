@@ -20,6 +20,7 @@ import {
   Info,
   Bookmark,
   BookmarkCheck,
+  Share2,
 } from 'lucide-react'
 import {
   useDiscoveredAllianceListing,
@@ -27,6 +28,7 @@ import {
   useUntrackAllianceListing,
 } from '@/features/alliance/hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
+import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
 
 export default function DiscoveredListingDetailPage() {
   const params = useParams()
@@ -39,6 +41,7 @@ export default function DiscoveredListingDetailPage() {
   const untrackMutation = useUntrackAllianceListing()
 
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const isTracked = Boolean(listing?.isTrackedByCurrentPm)
   const isPending = trackMutation.isPending || untrackMutation.isPending
@@ -426,6 +429,50 @@ export default function DiscoveredListingDetailPage() {
 
         {/* Right Column: Listing Owner PM & Canonical Context */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Refer Client & Share Card */}
+          <div
+            style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, rgba(22, 101, 52, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)',
+              border: '1px solid rgba(22, 101, 52, 0.25)',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Share2 size={18} color="var(--forest)" />
+              <h2 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                Refer Client / Share Listing
+              </h2>
+            </div>
+
+            <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
+              Explicitly introduce a client to this Alliance listing. You own the referral relationship, client pipeline stages, and future commission attribution.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setIsShareModalOpen(true)}
+              className="btn btn--primary"
+              style={{
+                width: '100%',
+                height: '42px',
+                fontSize: '13px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                marginTop: '4px',
+              }}
+            >
+              <Share2 size={16} />
+              <span>Create Referral & Share Link</span>
+            </button>
+          </div>
+
           {/* Tracking Action Card */}
           <div
             style={{
@@ -658,6 +705,16 @@ export default function DiscoveredListingDetailPage() {
           )}
         </div>
       </div>
+
+      <ShareReferralModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        listingUuid={listing.uuid}
+        listingTitle={listing.title}
+        listingPrice={listing.price}
+        listingCurrency={listing.currency}
+        listingLocation={locationText}
+      />
     </div>
   )
 }

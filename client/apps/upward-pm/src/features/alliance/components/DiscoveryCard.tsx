@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import {
   Building2,
@@ -15,10 +15,12 @@ import {
   Award,
   Bookmark,
   BookmarkCheck,
+  Share2,
 } from 'lucide-react'
 import { AllianceDiscoveredListingSummary } from '../types/alliance.types'
 import { useTrackAllianceListing, useUntrackAllianceListing } from '../hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
+import { ShareReferralModal } from './ShareReferralModal'
 
 interface DiscoveryCardProps {
   listing: AllianceDiscoveredListingSummary
@@ -28,6 +30,8 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
   const toast = useToast()
   const trackMutation = useTrackAllianceListing()
   const untrackMutation = useUntrackAllianceListing()
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const isTracked = Boolean(listing.isTrackedByCurrentPm)
   const isPending = trackMutation.isPending || untrackMutation.isPending
@@ -414,7 +418,7 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
         </div>
 
         {/* Action Button Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', marginTop: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '8px', marginTop: '8px' }}>
           <Link
             href={`/alliance/discover/${listing.uuid}`}
             className="btn btn--secondary"
@@ -428,8 +432,31 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
               textDecoration: 'none',
             }}
           >
-            View Listing
+            View
           </Link>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsShareModalOpen(true)
+            }}
+            className="btn btn--secondary"
+            style={{
+              height: '36px',
+              padding: '0 10px',
+              fontSize: '12px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: 'var(--forest)',
+            }}
+            title="Refer Client / Share Listing"
+          >
+            <Share2 size={14} />
+            <span>Refer</span>
+          </button>
           <button
             type="button"
             onClick={handleToggleTrack}
@@ -437,20 +464,30 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
             className={`btn ${isTracked ? 'btn--primary' : 'btn--secondary'}`}
             style={{
               height: '36px',
-              padding: '0 12px',
+              padding: '0 10px',
               fontSize: '12px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
             }}
             title={isTracked ? 'Untrack Opportunity' : 'Track Opportunity'}
           >
-            {isTracked ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+            {isTracked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
             <span>{isTracked ? 'Tracking' : 'Track'}</span>
           </button>
         </div>
       </div>
+
+      <ShareReferralModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        listingUuid={listing.uuid}
+        listingTitle={listing.title}
+        listingPrice={listing.price}
+        listingCurrency={listing.currency}
+        listingLocation={locationText}
+      />
     </div>
   )
 }

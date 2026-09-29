@@ -219,4 +219,60 @@ export function useUntrackAllianceListing() {
   })
 }
 
+// Stage 2: Referral & Lead Hooks
+export function useAllianceReferrals(params?: import('../types/alliance.types').ListAllianceReferralsParams) {
+  return useQuery<import('../types/alliance.types').ListAllianceReferralsResponse>({
+    queryKey: ['alliance-referrals', params],
+    queryFn: () => allianceService.listAllianceReferrals(params),
+    staleTime: 10000,
+  })
+}
+
+export function useAllianceReferral(uuid?: string) {
+  return useQuery<import('../types/alliance.types').AllianceReferral>({
+    queryKey: ['alliance-referral', uuid],
+    queryFn: () => {
+      if (!uuid) throw new Error('Referral UUID required')
+      return allianceService.getAllianceReferral(uuid)
+    },
+    enabled: Boolean(uuid),
+  })
+}
+
+export function useCreateAllianceReferral() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ listingUuid, payload }: { listingUuid: string; payload: import('../types/alliance.types').CreateAllianceReferralPayload }) =>
+      allianceService.createAllianceReferral(listingUuid, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-referrals'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-discover-listings'] })
+    },
+  })
+}
+
+export function useUpdateAllianceLeadStage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ uuid, payload }: { uuid: string; payload: import('../types/alliance.types').UpdateAllianceLeadStagePayload }) =>
+      allianceService.updateAllianceLeadStage(uuid, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-referrals'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-referral', variables.uuid] })
+    },
+  })
+}
+
+export function useCloseAllianceReferral() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ uuid, payload }: { uuid: string; payload?: import('../types/alliance.types').CloseAllianceReferralPayload }) =>
+      allianceService.closeAllianceReferral(uuid, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-referrals'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-referral', variables.uuid] })
+    },
+  })
+}
+
 

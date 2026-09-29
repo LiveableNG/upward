@@ -142,3 +142,69 @@ export async function untrackAllianceListing(uuid: string): Promise<{ success: b
     method: 'DELETE',
   })
 }
+
+// Stage 2: Referral & Lead API
+export async function createAllianceReferral(
+  listingUuid: string,
+  payload: import('../types/alliance.types').CreateAllianceReferralPayload,
+): Promise<import('../types/alliance.types').AllianceReferral> {
+  return request<import('../types/alliance.types').AllianceReferral>(
+    `/pm/alliance/listings/${listingUuid}/referrals`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export async function listAllianceReferrals(
+  params?: import('../types/alliance.types').ListAllianceReferralsParams,
+): Promise<import('../types/alliance.types').ListAllianceReferralsResponse> {
+  const searchParams = new URLSearchParams()
+  if (params?.status) searchParams.set('status', params.status)
+  if (params?.leadStage) searchParams.set('leadStage', params.leadStage)
+  if (params?.search) searchParams.set('search', params.search)
+  if (params?.page) searchParams.set('page', String(params.page))
+  if (params?.limit) searchParams.set('limit', String(params.limit))
+
+  const qs = searchParams.toString()
+  return request<import('../types/alliance.types').ListAllianceReferralsResponse>(
+    `/pm/alliance/referrals${qs ? `?${qs}` : ''}`,
+    { method: 'GET' },
+  )
+}
+
+export async function getAllianceReferral(
+  uuid: string,
+): Promise<import('../types/alliance.types').AllianceReferral> {
+  return request<import('../types/alliance.types').AllianceReferral>(
+    `/pm/alliance/referrals/${uuid}`,
+    { method: 'GET' },
+  )
+}
+
+export async function updateAllianceLeadStage(
+  uuid: string,
+  payload: import('../types/alliance.types').UpdateAllianceLeadStagePayload,
+): Promise<import('../types/alliance.types').AllianceReferral> {
+  return request<import('../types/alliance.types').AllianceReferral>(
+    `/pm/alliance/referrals/${uuid}/stage`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export async function closeAllianceReferral(
+  uuid: string,
+  payload?: import('../types/alliance.types').CloseAllianceReferralPayload,
+): Promise<import('../types/alliance.types').AllianceReferral> {
+  return request<import('../types/alliance.types').AllianceReferral>(
+    `/pm/alliance/referrals/${uuid}/close`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    },
+  )
+}

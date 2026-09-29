@@ -151,3 +151,52 @@ export interface IAllianceListingTrackerRepository {
   findByListingAndPm(listingId: number, trackerPmId: number): Promise<import('./alliance.entity').AllianceListingTrackerEntity | null>;
 }
 
+export const ALLIANCE_REFERRAL_REPOSITORY = Symbol('ALLIANCE_REFERRAL_REPOSITORY');
+
+export interface CreateAllianceReferralData {
+  listingId: number;
+  referringPmId: number;
+  matchedUserId?: number | null;
+  clientIdentityKey: string;
+  clientName: string;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
+  clientNormalizedEmail?: string | null;
+  clientNormalizedPhone?: string | null;
+  shareToken?: string;
+  status?: import('./alliance.entity').AllianceReferralStatus;
+  stage?: import('./alliance.entity').AllianceLeadStage;
+  notes?: string | null;
+}
+
+export interface UpdateAllianceReferralData {
+  stage?: import('./alliance.entity').AllianceLeadStage;
+  status?: import('./alliance.entity').AllianceReferralStatus;
+  notes?: string | null;
+  convertedAt?: Date | null;
+  closedAt?: Date | null;
+}
+
+export interface IAllianceReferralRepository {
+  create(data: CreateAllianceReferralData): Promise<import('./alliance.entity').AllianceReferralEntity>;
+  findById(id: number): Promise<import('./alliance.entity').AllianceReferralEntity | null>;
+  findByUuid(uuid: string): Promise<import('./alliance.entity').AllianceReferralEntity | null>;
+  findByShareToken(shareToken: string): Promise<import('./alliance.entity').AllianceReferralEntity | null>;
+  findActiveReferral(listingId: number, clientIdentityKey: string): Promise<import('./alliance.entity').AllianceReferralEntity | null>;
+  update(id: number, data: UpdateAllianceReferralData): Promise<import('./alliance.entity').AllianceReferralEntity>;
+  findPmReferrals(
+    pmId: number,
+    options?: {
+      stage?: import('./alliance.entity').AllianceLeadStage;
+      status?: import('./alliance.entity').AllianceReferralStatus;
+      listingUuid?: string;
+      search?: string;
+      skip?: number;
+      take?: number;
+    },
+  ): Promise<{ items: import('./alliance.entity').AllianceReferralEntity[]; total: number }>;
+  countActiveByListingId(listingId: number): Promise<number>;
+  findActiveReferralsByListingId(listingId: number): Promise<import('./alliance.entity').AllianceReferralEntity[]>;
+}
+
+
