@@ -86,12 +86,12 @@ export function RatingModal({
     >
       <div
         style={{
-          background: 'var(--dark)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '480px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',

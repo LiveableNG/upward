@@ -10,9 +10,6 @@ import {
   Bath,
   ImageIcon,
   ShieldCheck,
-  UserCheck,
-  Layers,
-  Award,
   Bookmark,
   BookmarkCheck,
   Share2,
@@ -54,6 +51,7 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
       toast.error(err.message || 'Failed to update tracking state')
     }
   }
+
   const formatPrice = (amount: number, currency: string = 'NGN') => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -81,40 +79,14 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
       ?.filter((q) => q.isActive) || []
 
   return (
-    <div
-      style={{
-        background: 'var(--dark)',
-        border: '1px solid var(--border)',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-      }}
-    >
+    <div className="alliance-discovery-card">
       {/* Media Cover Image */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '200px',
-          background: 'linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(15,23,42,0.9) 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="alliance-discovery-card__media">
         {primaryImage ? (
           <img
             src={primaryImage}
             alt={listing.title}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
+            className="alliance-discovery-card__img"
           />
         ) : (
           <div
@@ -122,87 +94,44 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               color: 'var(--text-muted)',
             }}
           >
-            <ImageIcon size={32} />
-            <span style={{ fontSize: '12px' }}>No media uploaded</span>
+            <ImageIcon size={28} />
+            <span style={{ fontSize: '11px' }}>No media uploaded</span>
           </div>
         )}
 
         {/* Intent Badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '12px',
-            left: '12px',
-            display: 'flex',
-            gap: '6px',
-            zIndex: 2,
-          }}
-        >
+        <div className="alliance-discovery-card__badge-row">
           <span
-            style={{
-              padding: '4px 10px',
-              borderRadius: '20px',
-              background: listing.intent === 'SALE' ? 'rgba(217, 119, 6, 0.9)' : 'rgba(22, 101, 52, 0.9)',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              backdropFilter: 'blur(4px)',
-            }}
+            className={`alliance-discovery-card__pill ${
+              listing.intent === 'SALE'
+                ? 'alliance-discovery-card__pill--sale'
+                : 'alliance-discovery-card__pill--rent'
+            }`}
           >
             {listing.intent === 'SALE' ? 'FOR SALE' : 'FOR RENT'}
           </span>
 
-          <span
-            style={{
-              padding: '4px 8px',
-              borderRadius: '20px',
-              background: 'rgba(0, 0, 0, 0.65)',
-              color: '#ffffff',
-              fontSize: '11px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            {listing.targetType === 'PROPERTY' ? <Building2 size={12} /> : <Home size={12} />}
+          <span className="alliance-discovery-card__pill alliance-discovery-card__pill--target">
+            {listing.targetType === 'PROPERTY' ? <Building2 size={11} /> : <Home size={11} />}
             {listing.targetType === 'PROPERTY' ? 'Property' : 'Unit'}
           </span>
         </div>
 
-        {/* Track Bookmark Button (Top Right) */}
+        {/* Track Bookmark Button */}
         <button
           type="button"
           onClick={handleToggleTrack}
           disabled={isPending}
-          style={{
-            position: 'absolute',
-            top: '12px',
-            right: '12px',
-            zIndex: 3,
-            width: '34px',
-            height: '34px',
-            borderRadius: '50%',
-            background: isTracked ? 'var(--forest)' : 'rgba(0, 0, 0, 0.65)',
-            color: '#ffffff',
-            border: isTracked ? '2px solid rgba(255,255,255,0.8)' : '1px solid rgba(255,255,255,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: isPending ? 'not-allowed' : 'pointer',
-            backdropFilter: 'blur(6px)',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-          }}
+          className={`alliance-discovery-card__bookmark-btn ${
+            isTracked ? 'alliance-discovery-card__bookmark-btn--active' : ''
+          }`}
           title={isTracked ? 'Tracking (Click to untrack)' : 'Track opportunity'}
         >
-          {isTracked ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}
+          {isTracked ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
         </button>
 
         {/* Media count badge */}
@@ -210,13 +139,13 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
           <div
             style={{
               position: 'absolute',
-              bottom: '12px',
-              right: '12px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              background: 'rgba(0, 0, 0, 0.7)',
+              bottom: '8px',
+              right: '8px',
+              padding: '2px 7px',
+              borderRadius: '9999px',
+              background: 'rgba(0, 0, 0, 0.65)',
               color: '#ffffff',
-              fontSize: '11px',
+              fontSize: '10.5px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
@@ -224,95 +153,52 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
               backdropFilter: 'blur(4px)',
             }}
           >
-            <ImageIcon size={12} />
+            <ImageIcon size={11} />
             {mediaCount} {mediaCount === 1 ? 'photo' : 'photos'}
           </div>
         )}
       </div>
 
       {/* Card Body */}
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1, gap: '12px' }}>
+      <div className="alliance-discovery-card__body">
         {/* Price & Property Type */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>
-              {formatPrice(listing.price, listing.currency)}
-              {listing.intent === 'RENT' && (
-                <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '4px' }}>
-                  / year
-                </span>
-              )}
-            </div>
-            {listing.propertyType && (
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {listing.propertyType}
-              </div>
+        <div className="alliance-discovery-card__price-row">
+          <div className="alliance-discovery-card__price">
+            {formatPrice(listing.price, listing.currency)}
+            {listing.intent === 'RENT' && (
+              <span className="alliance-discovery-card__period">/ year</span>
             )}
           </div>
+          {listing.propertyType && (
+            <span className="alliance-discovery-card__property-type">
+              {listing.propertyType}
+            </span>
+          )}
         </div>
 
         {/* Title */}
-        <h3
-          style={{
-            fontSize: '14px',
-            fontWeight: 700,
-            color: 'var(--text)',
-            margin: 0,
-            lineHeight: 1.4,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-          title={listing.title}
-        >
+        <h3 className="alliance-discovery-card__title" title={listing.title}>
           {listing.title}
         </h3>
 
         {/* Location */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '12px',
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <MapPin size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-          <span
-            style={{
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {locationText}
-          </span>
+        <div className="alliance-discovery-card__location" title={locationText}>
+          <MapPin size={13} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+          <span>{locationText}</span>
         </div>
 
         {/* Bedrooms / Bathrooms Specs */}
         {(listing.bedrooms !== null || listing.bathrooms !== null) && (
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              padding: '8px 0',
-              borderTop: '1px solid var(--border)',
-              borderBottom: '1px solid var(--border)',
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-            }}
-          >
+          <div className="alliance-discovery-card__specs">
             {listing.bedrooms !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Bed size={14} color="var(--text-muted)" />
+              <div className="alliance-discovery-card__spec-item">
+                <Bed size={13} color="var(--text-muted)" />
                 <span>{listing.bedrooms} Beds</span>
               </div>
             )}
             {listing.bathrooms !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Bath size={14} color="var(--text-muted)" />
+              <div className="alliance-discovery-card__spec-item">
+                <Bath size={13} color="var(--text-muted)" />
                 <span>{listing.bathrooms} Baths</span>
               </div>
             )}
@@ -323,24 +209,24 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
         <div
           style={{
             marginTop: 'auto',
-            paddingTop: '8px',
+            paddingTop: '6px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
+            gap: '4px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
               style={{
-                width: '32px',
-                height: '32px',
+                width: '28px',
+                height: '28px',
                 borderRadius: '50%',
-                background: 'rgba(59, 130, 246, 0.12)',
-                color: 'var(--primary)',
+                background: 'rgba(22, 101, 52, 0.08)',
+                color: 'var(--forest)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 700,
                 flexShrink: 0,
               }}
@@ -382,57 +268,35 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
               {activeQualifications.slice(0, 2).map((qual) => (
                 <span
                   key={qual.id}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
-                    background: 'rgba(22, 101, 52, 0.08)',
-                    color: 'var(--forest)',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                  }}
+                  className="alliance-chip"
+                  style={{ fontSize: '10px', padding: '1px 6px' }}
                   title={qual.name}
                 >
-                  <ShieldCheck size={11} />
+                  <ShieldCheck size={10} />
                   {qual.name}
                 </span>
               ))}
-              {activeQualifications.length > 2 && (
-                <span
-                  style={{
-                    padding: '2px 4px',
-                    borderRadius: '6px',
-                    background: 'var(--bg)',
-                    color: 'var(--text-muted)',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                  }}
-                >
-                  +{activeQualifications.length - 2}
-                </span>
-              )}
             </div>
           )}
         </div>
 
         {/* Action Button Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '8px', marginTop: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '6px', marginTop: '8px' }}>
           <Link
             href={`/alliance/discover/${listing.uuid}`}
             className="btn btn--secondary"
             style={{
-              height: '36px',
-              fontSize: '13px',
+              height: '34px',
+              fontSize: '12.5px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               textDecoration: 'none',
+              padding: '0 12px',
             }}
           >
-            View
+            View Details
           </Link>
           <button
             type="button"
@@ -443,18 +307,18 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
             }}
             className="btn btn--secondary"
             style={{
-              height: '36px',
+              height: '34px',
               padding: '0 10px',
               fontSize: '12px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '4px',
               color: 'var(--forest)',
             }}
             title="Refer Client / Share Listing"
           >
-            <Share2 size={14} />
+            <Share2 size={13} />
             <span>Refer</span>
           </button>
           <button
@@ -463,18 +327,18 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
             disabled={isPending}
             className={`btn ${isTracked ? 'btn--primary' : 'btn--secondary'}`}
             style={{
-              height: '36px',
+              height: '34px',
               padding: '0 10px',
               fontSize: '12px',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '4px',
             }}
             title={isTracked ? 'Untrack Opportunity' : 'Track Opportunity'}
           >
-            {isTracked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
-            <span>{isTracked ? 'Tracking' : 'Track'}</span>
+            {isTracked ? <BookmarkCheck size={13} /> : <Bookmark size={13} />}
+            <span>{isTracked ? 'Tracked' : 'Track'}</span>
           </button>
         </div>
       </div>

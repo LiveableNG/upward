@@ -6,7 +6,11 @@ import {
   AllianceTargetType,
   DiscoverAllianceListingsParams,
 } from '../types/alliance.types'
-import { Search, SlidersHorizontal, ArrowUpDown } from 'lucide-react'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
+import { ArrowUpDown, Tag, Layers } from 'lucide-react'
 
 interface DiscoveryFiltersProps {
   filters: DiscoverAllianceListingsParams
@@ -14,15 +18,18 @@ interface DiscoveryFiltersProps {
 }
 
 export function DiscoveryFilters({ filters, onFiltersChange }: DiscoveryFiltersProps) {
-  const handleIntentChange = (intent?: AllianceListingIntent) => {
+  const handleIntentChange = (intentValue: string) => {
+    const intent = intentValue === 'ALL' ? undefined : (intentValue as AllianceListingIntent)
     onFiltersChange({ ...filters, intent, page: 1 })
   }
 
-  const handleTargetTypeChange = (targetType?: AllianceTargetType) => {
+  const handleTargetTypeChange = (targetValue: string) => {
+    const targetType = targetValue === 'ALL' ? undefined : (targetValue as AllianceTargetType)
     onFiltersChange({ ...filters, targetType, page: 1 })
   }
 
-  const handleSortChange = (sortBy?: 'newest' | 'price_asc' | 'price_desc') => {
+  const handleSortChange = (sortValue: string) => {
+    const sortBy = sortValue as 'newest' | 'price_asc' | 'price_desc'
     onFiltersChange({ ...filters, sortBy, page: 1 })
   }
 
@@ -31,119 +38,52 @@ export function DiscoveryFilters({ filters, onFiltersChange }: DiscoveryFiltersP
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        marginBottom: '24px',
-        background: 'var(--dark)',
-        border: '1px solid var(--border)',
-        borderRadius: '16px',
-        padding: '16px 20px',
-      }}
-    >
-      {/* Search and Sort Top Row */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-        {/* Search input */}
-        <div style={{ position: 'relative', flex: '1 1 280px' }}>
-          <Search
-            size={16}
-            color="var(--text-muted)"
-            style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              pointerEvents: 'none',
-            }}
-          />
-          <input
-            type="text"
-            className="input"
-            placeholder="Search by title, location, description, or property type..."
-            defaultValue={filters.search || ''}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            style={{
-              paddingLeft: '36px',
-              height: '40px',
-              fontSize: '13px',
-              width: '100%',
-            }}
-          />
-        </div>
+    <div style={{ marginBottom: '20px' }}>
+      <ControlBar>
+        <SearchInput
+          value={filters.search || ''}
+          onChange={handleSearchChange}
+          placeholder="Search by title, location, or property type..."
+        />
 
-        {/* Sort By Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowUpDown size={14} color="var(--text-muted)" />
-          <select
-            className="input"
-            style={{ height: '40px', fontSize: '13px', padding: '0 12px', width: 'auto' }}
+        <FilterGroup>
+          <FilterDropdown
+            label="Intent"
+            value={filters.intent || 'ALL'}
+            icon={Tag}
+            options={[
+              { label: 'All Intent', value: 'ALL' },
+              { label: 'For Rent', value: 'RENT' },
+              { label: 'For Sale', value: 'SALE' },
+            ]}
+            onChange={handleIntentChange}
+          />
+
+          <FilterDropdown
+            label="Target Level"
+            value={filters.targetType || 'ALL'}
+            icon={Layers}
+            options={[
+              { label: 'All Targets', value: 'ALL' },
+              { label: 'Property Level', value: 'PROPERTY' },
+              { label: 'Unit Level', value: 'UNIT' },
+            ]}
+            onChange={handleTargetTypeChange}
+          />
+
+          <FilterDropdown
+            label="Sort By"
             value={filters.sortBy || 'newest'}
-            onChange={(e) => handleSortChange(e.target.value as any)}
-          >
-            <option value="newest">Newest Published</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Filter Chips & Secondary Selects */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '12px',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderTop: '1px solid var(--border)',
-          paddingTop: '14px',
-        }}
-      >
-        {/* Intent Filter Tabs */}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button
-            type="button"
-            onClick={() => handleIntentChange(undefined)}
-            className={`btn ${!filters.intent ? 'btn--primary' : 'btn--secondary'}`}
-            style={{ height: '32px', fontSize: '12px', padding: '0 12px', borderRadius: '20px' }}
-          >
-            All Intent
-          </button>
-          <button
-            type="button"
-            onClick={() => handleIntentChange('RENT')}
-            className={`btn ${filters.intent === 'RENT' ? 'btn--primary' : 'btn--secondary'}`}
-            style={{ height: '32px', fontSize: '12px', padding: '0 12px', borderRadius: '20px' }}
-          >
-            For Rent
-          </button>
-          <button
-            type="button"
-            onClick={() => handleIntentChange('SALE')}
-            className={`btn ${filters.intent === 'SALE' ? 'btn--primary' : 'btn--secondary'}`}
-            style={{ height: '32px', fontSize: '12px', padding: '0 12px', borderRadius: '20px' }}
-          >
-            For Sale
-          </button>
-        </div>
-
-        {/* Target Type Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Target:</label>
-          <select
-            className="input"
-            style={{ height: '32px', fontSize: '12px', padding: '0 10px', width: 'auto' }}
-            value={filters.targetType || ''}
-            onChange={(e) => handleTargetTypeChange((e.target.value as AllianceTargetType) || undefined)}
-          >
-            <option value="">All Targets</option>
-            <option value="PROPERTY">Property Level</option>
-            <option value="UNIT">Unit Level</option>
-          </select>
-        </div>
-      </div>
+            icon={ArrowUpDown}
+            options={[
+              { label: 'Newest Published', value: 'newest' },
+              { label: 'Price: Low to High', value: 'price_asc' },
+              { label: 'Price: High to Low', value: 'price_desc' },
+            ]}
+            onChange={handleSortChange}
+          />
+        </FilterGroup>
+      </ControlBar>
     </div>
   )
 }

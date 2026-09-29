@@ -112,29 +112,14 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
   }
 
   return (
-    <div
-      style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '24px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
-        }}
-      >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
             Listing Media ({media.length} / {MAX_IMAGES})
           </h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', margin: 0 }}>
-            Upload up to {MAX_IMAGES} high-resolution photos. The first photo is your cover image.
+          <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
+            Upload high-resolution photography. The first photo acts as the primary cover across the co-brokerage network.
           </p>
         </div>
       </div>
@@ -145,13 +130,12 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            background: 'rgba(239, 68, 68, 0.1)',
+            background: 'var(--error-bg)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-sm)',
             padding: '10px 14px',
-            marginBottom: '16px',
             fontSize: '13px',
-            color: '#ef4444',
+            color: 'var(--error)',
           }}
         >
           <AlertCircle size={16} />
@@ -163,7 +147,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              color: '#ef4444',
+              color: 'var(--error)',
             }}
           >
             <X size={14} />
@@ -181,14 +165,13 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
             handleFiles(e.dataTransfer.files)
           }}
           style={{
-            border: '2px dashed var(--border)',
-            borderRadius: '10px',
-            padding: '24px',
+            border: '2px dashed var(--border-strong)',
+            borderRadius: 'var(--radius-md)',
+            padding: '28px',
             textAlign: 'center',
             cursor: isMutating ? 'not-allowed' : 'pointer',
-            background: 'var(--bg-muted, rgba(255,255,255,0.02))',
-            transition: 'border-color 0.2s',
-            marginBottom: '20px',
+            background: 'var(--ivory-dim)',
+            transition: 'all 0.2s ease',
           }}
         >
           <input
@@ -201,11 +184,11 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
             style={{ display: 'none' }}
           />
           <UploadCloud
-            size={32}
-            style={{ color: 'var(--clay)', margin: '0 auto 8px', display: 'block' }}
+            size={36}
+            style={{ color: 'var(--forest)', margin: '0 auto 8px', display: 'block' }}
           />
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)' }}>
-            Click to upload or drag & drop images
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+            Click to upload or drag & drop listing images
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Supported formats: JPG, PNG, WEBP (Max {MAX_FILE_SIZE_MB}MB per file)
@@ -215,14 +198,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
 
       {/* Uploading In-Progress Placeholders */}
       {uploadingFiles.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            marginBottom: '16px',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {uploadingFiles.map((filename, idx) => (
             <div
               key={idx}
@@ -231,7 +207,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                 alignItems: 'center',
                 gap: '10px',
                 padding: '10px 14px',
-                borderRadius: '8px',
+                borderRadius: 'var(--radius-sm)',
                 background: 'rgba(59, 130, 246, 0.08)',
                 border: '1px solid rgba(59, 130, 246, 0.2)',
                 fontSize: '13px',
@@ -257,15 +233,15 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
             padding: '32px',
             textAlign: 'center',
             color: 'var(--text-muted)',
-            background: 'var(--bg-muted, rgba(255,255,255,0.01))',
-            borderRadius: '8px',
+            background: 'var(--ivory-dim)',
+            borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border)',
           }}
         >
           <ImageIcon size={36} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
-          <div style={{ fontSize: '14px', fontWeight: 500 }}>No images added yet</div>
-          <p style={{ fontSize: '12px', marginTop: '4px', maxWidth: '300px', margin: '4px auto 0' }}>
-            Images enhance your Alliance listing and make it more attractive to fellow PMs.
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>No images added yet</div>
+          <p style={{ fontSize: '12px', marginTop: '4px', maxWidth: '320px', margin: '4px auto 0' }}>
+            Images enhance your Alliance listing and make it more attractive to fellow co-brokers.
           </p>
         </div>
       ) : (
@@ -273,7 +249,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '16px',
+            gap: '14px',
           }}
         >
           {media.map((item: AllianceListingMedia, index: number) => {
@@ -284,11 +260,11 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                 key={item.uuid}
                 style={{
                   position: 'relative',
-                  borderRadius: '10px',
+                  borderRadius: 'var(--radius-md)',
                   overflow: 'hidden',
-                  border: isCover ? '2px solid var(--clay)' : '1px solid var(--border)',
-                  background: 'var(--dark, #1a1a1a)',
-                  boxShadow: isCover ? '0 0 12px rgba(224, 90, 71, 0.2)' : 'none',
+                  border: isCover ? '2px solid var(--forest)' : '1px solid var(--border)',
+                  background: 'var(--surface)',
+                  boxShadow: isCover ? '0 2px 10px var(--forest-glow)' : 'var(--shadow-sm)',
                   display: 'flex',
                   flexDirection: 'column',
                 }}
@@ -299,7 +275,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                     position: 'relative',
                     width: '100%',
                     height: '130px',
-                    background: '#000',
+                    background: 'var(--ivory-dim)',
                   }}
                 >
                   <img
@@ -320,20 +296,20 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                         position: 'absolute',
                         top: '8px',
                         left: '8px',
-                        background: 'var(--clay)',
+                        background: 'var(--forest)',
                         color: '#fff',
-                        fontSize: '11px',
+                        fontSize: '10.5px',
                         fontWeight: 700,
                         padding: '3px 8px',
-                        borderRadius: '4px',
+                        borderRadius: '9999px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '4px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
                       }}
                     >
                       <Star size={11} fill="#fff" />
-                      Cover Image
+                      Cover
                     </div>
                   )}
 
@@ -357,6 +333,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: isMutating ? 'not-allowed' : 'pointer',
+                        backdropFilter: 'blur(4px)',
                         transition: 'background 0.2s',
                       }}
                     >
@@ -376,7 +353,7 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                     borderTop: '1px solid var(--border)',
                   }}
                 >
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
                     #{index + 1}
                   </span>
 
@@ -387,10 +364,10 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                         disabled={index === 0 || isMutating}
                         title="Move Left (Earlier in Order)"
                         style={{
-                          background: 'transparent',
+                          background: 'var(--ivory-dim)',
                           border: '1px solid var(--border)',
                           borderRadius: '4px',
-                          padding: '4px',
+                          padding: '4px 6px',
                           cursor: index === 0 || isMutating ? 'not-allowed' : 'pointer',
                           color: index === 0 ? 'var(--text-muted)' : 'var(--text)',
                           opacity: index === 0 ? 0.3 : 1,
@@ -406,10 +383,10 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                         disabled={index === media.length - 1 || isMutating}
                         title="Move Right (Later in Order)"
                         style={{
-                          background: 'transparent',
+                          background: 'var(--ivory-dim)',
                           border: '1px solid var(--border)',
                           borderRadius: '4px',
-                          padding: '4px',
+                          padding: '4px 6px',
                           cursor: index === media.length - 1 || isMutating ? 'not-allowed' : 'pointer',
                           color: index === media.length - 1 ? 'var(--text-muted)' : 'var(--text)',
                           opacity: index === media.length - 1 ? 0.3 : 1,
@@ -429,25 +406,12 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
       )}
 
       {/* Canonical Isolation Footer Notice */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginTop: '20px',
-          padding: '10px 14px',
-          borderRadius: '8px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          border: '1px solid var(--border)',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-        }}
-      >
-        <Info size={14} style={{ color: 'var(--clay)', flexShrink: 0 }} />
-        <span>
+      <div className="alliance-callout">
+        <Info size={16} className="alliance-callout__icon" />
+        <div className="alliance-callout__content">
           <strong>Canonical Isolation:</strong> Media uploaded here belongs exclusively to this
-          marketing listing and will never overwrite or modify photos in your PM property/unit inventory.
-        </span>
+          marketing listing and will never overwrite photos in your internal PM property/unit inventory.
+        </div>
       </div>
     </div>
   )

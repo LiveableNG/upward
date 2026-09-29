@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getProperties, getUnits, Property, Unit } from '@/features/pm/services/propertyService'
 import { AllianceTargetType } from '../types/alliance.types'
 import { OccupancyWarning } from './OccupancyWarning'
-import { Building2, Home, CheckCircle2 } from 'lucide-react'
+import { Building2, Home, CheckCircle2, Search, Filter, AlertCircle, MapPin } from 'lucide-react'
 
 interface LinkedInventorySelectorProps {
   targetType: AllianceTargetType
@@ -24,6 +24,7 @@ export function LinkedInventorySelector({
   onSelectUnit,
   disabled = false,
 }: LinkedInventorySelectorProps) {
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedParentPropertyId, setSelectedParentPropertyId] = useState<number | null>(null)
 
   const { data: properties = [], isLoading: loadingProperties } = useQuery<Property[]>({
@@ -40,59 +41,116 @@ export function LinkedInventorySelector({
   const selectedUnit = units.find((u: Unit) => u.uuid === selectedUnitUuid)
   const selectedProperty = properties.find((p: Property) => p.uuid === selectedPropertyUuid)
 
-  // Filter units for the selected parent property if unit listing
-  const filteredUnits = selectedParentPropertyId
-    ? units.filter((u: Unit) => u.propertyId === selectedParentPropertyId)
-    : units
-
   useEffect(() => {
     if (selectedUnit && !selectedParentPropertyId) {
       setSelectedParentPropertyId(selectedUnit.propertyId)
     }
   }, [selectedUnit, selectedParentPropertyId])
 
+  // Filter properties by search query
+  const filteredProperties = useMemo(() => {
+    if (!searchQuery.trim()) return properties
+    const q = searchQuery.toLowerCase()
+    return properties.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(q) ||
+        p.address?.toLowerCase().includes(q) ||
+        p.area?.toLowerCase().includes(q) ||
+        p.state?.toLowerCase().includes(q)
+    )
+  }, [properties, searchQuery])
+
+  // Filter units by parent property and search query
+  const filteredUnits = useMemo(() => {
+    let list = units
+    if (selectedParentPropertyId) {
+      list = list.filter((u) => u.propertyId === selectedParentPropertyId)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      list = list.filter(
+        (u) =>
+          u.unitName?.toLowerCase().includes(q) ||
+          u.property?.name?.toLowerCase().includes(q) ||
+          u.status?.toLowerCase().includes(q)
+      )
+    }
+    return list
+  }, [units, selectedParentPropertyId, searchQuery])
+
   if (targetType === 'PROPERTY') {
     return (
-      <div style={{ marginTop: '16px' }}>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
-          Select Canonical Property from Your Inventory:
-        </label>
+      <div className="alliance-picker">
+        {/* Search Bar */}
+        <div className="alliance-picker__search-bar">
+          <div className="alliance-picker__search">
+            <Search size={16} className="alliance-picker__search-icon" />
+            <input
+              type="text"
+              placeholder="Search properties by name, area, or address..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={disabled}
+              className="alliance-picker__search-input"
+            />
+          </div>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            Showing {filteredProperties.length} of {properties.length} properties
+          </span>
+        </div>
+
+        {/* Loading State */}
         {loadingProperties ? (
-          <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '13px' }}>Loading properties...</div>
-        ) : properties.length === 0 ? (
-          <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-            No properties found in your Upward PM inventory. You can create an Independent Listing instead.
+          <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <div className="loader" style={{ margin: '0 auto 8px auto' }} />
+            <p style={{ fontSize: '13px' }}>Loading properties from your inventory...</p>
+          </div>
+        ) : filteredProperties.length === 0 ? (
+          <div className="alliance-callout">
+            <AlertCircle size={18} className="alliance-callout__icon" />
+            <div className="alliance-callout__content">
+              {searchQuery.trim()
+                ? `No properties match "${searchQuery}". Try a different search term.`
+                : 'No properties found in your Upward PM inventory. You can switch to an Independent Listing.'}
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
-            {properties.map((p) => {
+          <div className="alliance-picker__list">
+            {filteredProperties.map((p) => {
               const isSelected = selectedPropertyUuid === p.uuid
               return (
                 <div
                   key={p.uuid}
                   onClick={() => !disabled && onSelectProperty(p)}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    border: isSelected ? '2px solid var(--forest)' : '1px solid var(--border)',
-                    background: isSelected ? 'rgba(22, 101, 52, 0.04)' : 'var(--white)',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
+                  className={`alliance-picker__item ${isSelected ? 'alliance-picker__item--selected' : ''} ${
+                    disabled ? 'alliance-picker__item--disabled' : ''
+                  }`}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Building2 size={18} color={isSelected ? 'var(--forest)' : 'var(--text-muted)'} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>{p.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {p.address || 'No address specified'} • {p.totalUnits || 0} units
+                  <div className="alliance-picker__item-left">
+                    <div className="alliance-picker__item-icon">
+                      <Building2 size={18} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="alliance-picker__item-name">{p.name}</div>
+                      <div className="alliance-picker__item-meta">
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <MapPin size={12} /> {p.address || p.area || 'No address specified'}
+                        </span>
+                        <span>•</span>
+                        <span>{p.totalUnits || 0} units</span>
                       </div>
                     </div>
                   </div>
-                  {isSelected && <CheckCircle2 size={18} color="var(--forest)" />}
+
+                  {isSelected ? (
+                    <span className="alliance-picker__selection-pill">
+                      <CheckCircle2 size={14} /> Selected
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      Select
+                    </span>
+                  )}
                 </div>
               )
             })}
@@ -103,83 +161,114 @@ export function LinkedInventorySelector({
   }
 
   return (
-    <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* 1. Select Parent Property */}
-      <div>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-          Filter Units by Property (Optional):
-        </label>
-        <select
-          className="input"
-          disabled={disabled}
-          value={selectedParentPropertyId || ''}
-          onChange={(e) => setSelectedParentPropertyId(e.target.value ? Number(e.target.value) : null)}
-          style={{ maxWidth: '400px' }}
-        >
-          <option value="">All Properties ({units.length} units total)</option>
-          {properties.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+    <div className="alliance-picker">
+      {/* Search & Filter Bar */}
+      <div className="alliance-picker__search-bar">
+        <div className="alliance-picker__search">
+          <Search size={16} className="alliance-picker__search-icon" />
+          <input
+            type="text"
+            placeholder="Search unit name, status, or property..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            disabled={disabled}
+            className="alliance-picker__search-input"
+          />
+        </div>
+
+        <div style={{ minWidth: '200px' }}>
+          <select
+            className="alliance-input"
+            style={{ height: '42px', fontSize: '13px' }}
+            disabled={disabled}
+            value={selectedParentPropertyId || ''}
+            onChange={(e) => setSelectedParentPropertyId(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">All Properties ({properties.length})</option>
+            {properties.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* 2. Select Unit */}
-      <div>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
-          Select Canonical Unit:
-        </label>
-        {loadingUnits ? (
-          <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '13px' }}>Loading units...</div>
-        ) : filteredUnits.length === 0 ? (
-          <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
-            No units found.
+      {/* Loading State */}
+      {loadingUnits ? (
+        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="loader" style={{ margin: '0 auto 8px auto' }} />
+          <p style={{ fontSize: '13px' }}>Loading units from your inventory...</p>
+        </div>
+      ) : filteredUnits.length === 0 ? (
+        <div className="alliance-callout">
+          <AlertCircle size={18} className="alliance-callout__icon" />
+          <div className="alliance-callout__content">
+            {searchQuery.trim()
+              ? `No units match "${searchQuery}".`
+              : 'No units found under the selected property.'}
           </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
-            {filteredUnits.map((u) => {
-              const isSelected = selectedUnitUuid === u.uuid
-              return (
-                <div
-                  key={u.uuid}
-                  onClick={() => !disabled && onSelectUnit(u)}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: '10px',
-                    border: isSelected ? '2px solid var(--forest)' : '1px solid var(--border)',
-                    background: isSelected ? 'rgba(22, 101, 52, 0.04)' : 'var(--white)',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Home size={18} color={isSelected ? 'var(--forest)' : 'var(--text-muted)'} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>
-                        {u.unitName}
-                        {u.property?.name && (
-                          <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '12px' }}>
-                            {' '}
-                            ({u.property.name})
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        Status: <strong style={{ color: u.status === 'OCCUPIED' ? '#b45309' : 'var(--forest)' }}>{u.status}</strong> • Canonical Rent: ₦{(u.rentAmount || 0).toLocaleString()}
-                      </div>
+        </div>
+      ) : (
+        <div className="alliance-picker__list">
+          {filteredUnits.map((u) => {
+            const isSelected = selectedUnitUuid === u.uuid
+            const isOccupied = u.status?.toUpperCase() === 'OCCUPIED'
+
+            return (
+              <div
+                key={u.uuid}
+                onClick={() => !disabled && onSelectUnit(u)}
+                className={`alliance-picker__item ${isSelected ? 'alliance-picker__item--selected' : ''} ${
+                  disabled ? 'alliance-picker__item--disabled' : ''
+                }`}
+              >
+                <div className="alliance-picker__item-left">
+                  <div className="alliance-picker__item-icon">
+                    <Home size={18} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="alliance-picker__item-name">
+                      {u.unitName}
+                      {u.property?.name && (
+                        <span style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: '12px', marginLeft: '6px' }}>
+                          in {u.property.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="alliance-picker__item-meta">
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: isOccupied ? 'rgba(234, 179, 8, 0.15)' : 'rgba(34, 197, 94, 0.12)',
+                          color: isOccupied ? '#b45309' : '#15803d',
+                        }}
+                      >
+                        {u.status || 'VACANT'}
+                      </span>
+                      <span>•</span>
+                      <span>Canonical Rent: ₦{(u.rentAmount || 0).toLocaleString()}</span>
                     </div>
                   </div>
-                  {isSelected && <CheckCircle2 size={18} color="var(--forest)" />}
                 </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+
+                {isSelected ? (
+                  <span className="alliance-picker__selection-pill">
+                    <CheckCircle2 size={14} /> Selected
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Select
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Occupancy Warning if Selected Unit is Occupied */}
       {selectedUnit && <OccupancyWarning unitStatus={selectedUnit.status} />}

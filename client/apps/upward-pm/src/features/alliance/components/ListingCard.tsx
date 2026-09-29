@@ -214,7 +214,8 @@ export function ListingCard({
               borderRadius: '8px',
               overflow: 'hidden',
               marginBottom: '12px',
-              background: '#000',
+              background: 'var(--ivory-dim)',
+              border: '1px solid var(--border)',
             }}
           >
             <img

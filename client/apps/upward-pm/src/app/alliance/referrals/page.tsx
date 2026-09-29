@@ -4,29 +4,21 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import {
   Users,
-  Search,
-  Filter,
-  Share2,
   Copy,
   Check,
   Building2,
   Phone,
   Mail,
   Calendar,
-  ChevronRight,
-  ExternalLink,
   ShieldCheck,
-  CheckCircle2,
-  XCircle,
-  Clock,
   UserCheck,
-  FileText,
   AlertCircle,
   ArrowUpRight,
   DollarSign,
   Star,
+  Activity,
+  Layers,
 } from 'lucide-react'
-import { AllianceNavTabs } from '@/features/alliance/components/AllianceNavTabs'
 import {
   useAllianceReferrals,
   useUpdateAllianceLeadStage,
@@ -40,6 +32,10 @@ import {
 import { useToast } from '@/components/common/Toast'
 import { ConvertReferralModal } from '@/features/alliance/components/ConvertReferralModal'
 import { RatingModal } from '@/features/alliance/components/RatingModal'
+import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
+import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
+import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
+import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
 const STAGES: { value: AllianceLeadStage; label: string; color: string }[] = [
   { value: 'NEW', label: 'New Lead', color: '#3b82f6' },
@@ -47,8 +43,8 @@ const STAGES: { value: AllianceLeadStage; label: string; color: string }[] = [
   { value: 'INTERESTED', label: 'Interested', color: '#06b6d4' },
   { value: 'VIEWING', label: 'Viewing Scheduled', color: '#f59e0b' },
   { value: 'APPLICATION', label: 'Application Submitted', color: '#ec4899' },
-  { value: 'CONVERTED', label: 'Converted / Closed Deal', color: '#10b981' },
-  { value: 'LOST', label: 'Lost / Disqualified', color: '#6b7280' },
+  { value: 'CONVERTED', label: 'Converted Deal', color: '#10b981' },
+  { value: 'LOST', label: 'Lost / Closed', color: '#6b7280' },
 ]
 
 export default function AllianceReferralsPage() {
@@ -98,20 +94,18 @@ export default function AllianceReferralsPage() {
 
   const handleCloseReferral = async (referralUuid: string) => {
     if (!confirm('Are you sure you want to close this referral relationship?')) return
-
     try {
       await closeReferralMutation.mutateAsync({
         uuid: referralUuid,
         payload: { reason: 'Closed by referring PM' },
       })
-      toast.success('Referral relationship marked as closed')
+      toast.success('Referral relationship closed')
     } catch (err: any) {
       toast.error(err.message || 'Failed to close referral')
     }
   }
 
-  const formatPrice = (amount?: number, currency: string = 'NGN') => {
-    if (!amount) return 'N/A'
+  const formatPrice = (amount: number, currency: string = 'NGN') => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: currency === 'NGN' ? 'NGN' : currency,
@@ -122,147 +116,42 @@ export default function AllianceReferralsPage() {
   const referrals = data?.items || []
 
   return (
-    <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Alliance Navigation Header */}
-      <AllianceNavTabs activeTab="referrals" />
-
-      {/* Page Title & Intro */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '24px',
-          gap: '16px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-              My Referrals & Leads
-            </h1>
-            <span
-              style={{
-                padding: '3px 10px',
-                borderRadius: '16px',
-                background: 'rgba(22, 101, 52, 0.1)',
-                color: 'var(--forest)',
-                fontSize: '12px',
-                fontWeight: 700,
-              }}
-            >
-              {data?.meta?.total ?? 0} Total
-            </span>
-          </div>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0 0', maxWidth: '650px' }}>
-            Track and progress clients you have introduced to Alliance partner listings. You hold exclusive attribution for each active referral.
-          </p>
-        </div>
-
-        <Link
-          href="/alliance/discover"
-          className="btn btn--primary"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            height: '40px',
-            padding: '0 16px',
-            fontSize: '13px',
-            textDecoration: 'none',
-          }}
-        >
-          <Search size={16} />
-          <span>Discover Network Listings</span>
-        </Link>
-      </div>
-
-      {/* Filters Bar */}
-      <div
-        style={{
-          background: 'var(--dark)',
-          border: '1px solid var(--border)',
-          borderRadius: '14px',
-          padding: '16px',
-          marginBottom: '24px',
-          display: 'flex',
-          gap: '12px',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-        }}
-      >
-        {/* Search */}
-        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '200px' }}>
-          <Search
-            size={16}
-            color="var(--text-muted)"
-            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
-          />
-          <input
-            type="text"
-            placeholder="Search by client, listing or phone..."
+    <div>
+      {/* Filters Bar via ControlBar */}
+      <div style={{ marginBottom: '20px' }}>
+        <ControlBar>
+          <SearchInput
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '9px 12px 9px 36px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg)',
-              color: 'var(--text)',
-              fontSize: '13px',
-            }}
+            onChange={setSearch}
+            placeholder="Search by client name, email, or phone..."
           />
-        </div>
 
-        {/* Status Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Status:</span>
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value as any)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg)',
-              color: 'var(--text)',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="CONVERTED">Converted</option>
-            <option value="CLOSED">Closed / Lost</option>
-          </select>
-        </div>
+          <FilterGroup>
+            <FilterDropdown
+              label="Referral Status"
+              value={selectedStatus}
+              icon={Activity}
+              options={[
+                { label: 'All Statuses', value: 'ALL' },
+                { label: 'Active', value: 'ACTIVE' },
+                { label: 'Converted', value: 'CONVERTED' },
+                { label: 'Closed / Lost', value: 'CLOSED' },
+              ]}
+              onChange={(val) => setSelectedStatus(val as any)}
+            />
 
-        {/* Stage Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Stage:</span>
-          <select
-            value={selectedStage}
-            onChange={(e) => setSelectedStage(e.target.value as any)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg)',
-              color: 'var(--text)',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="ALL">All Stages</option>
-            {STAGES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            <FilterDropdown
+              label="Lead Stage"
+              value={selectedStage}
+              icon={Layers}
+              options={[
+                { label: 'All Stages', value: 'ALL' },
+                ...STAGES.map((s) => ({ label: s.label, value: s.value })),
+              ]}
+              onChange={(val) => setSelectedStage(val as any)}
+            />
+          </FilterGroup>
+        </ControlBar>
       </div>
 
       {/* Loading State */}
@@ -271,13 +160,8 @@ export default function AllianceReferralsPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              style={{
-                height: '140px',
-                background: 'var(--dark)',
-                borderRadius: '14px',
-                border: '1px solid var(--border)',
-                animation: 'pulse 1.5s infinite',
-              }}
+              className="card animate-pulse"
+              style={{ height: '140px', borderRadius: '16px' }}
             />
           ))}
         </div>
@@ -286,18 +170,20 @@ export default function AllianceReferralsPage() {
       {/* Error State */}
       {isError && (
         <div
+          className="card"
           style={{
             padding: '32px',
-            background: 'var(--dark)',
-            borderRadius: '14px',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
             textAlign: 'center',
             color: 'var(--danger)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
           }}
         >
-          <AlertCircle size={32} style={{ margin: '0 auto 8px auto' }} />
+          <AlertCircle size={28} />
           <div style={{ fontSize: '14px', fontWeight: 600 }}>Failed to load referrals</div>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
             {(error as any)?.message || 'An unexpected error occurred.'}
           </p>
         </div>
@@ -306,11 +192,9 @@ export default function AllianceReferralsPage() {
       {/* Empty State */}
       {!isLoading && !isError && referrals.length === 0 && (
         <div
+          className="card"
           style={{
             padding: '56px 24px',
-            background: 'var(--dark)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
@@ -320,30 +204,30 @@ export default function AllianceReferralsPage() {
         >
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '52px',
+              height: '52px',
               borderRadius: '50%',
-              background: 'rgba(22, 101, 52, 0.1)',
+              background: 'rgba(22, 101, 52, 0.08)',
               color: 'var(--forest)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Users size={28} />
+            <Users size={26} />
           </div>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
             No Referrals Found
           </h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '420px', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '440px', margin: 0, lineHeight: 1.5 }}>
             {search || selectedStatus !== 'ALL' || selectedStage !== 'ALL'
-              ? 'No referrals match your current filter criteria. Try clearing search filters.'
+              ? 'No referrals match your current filter criteria. Try adjusting your search query.'
               : 'You have not referred any clients to Alliance listings yet. Browse partner listings on the network and create your first referral link.'}
           </p>
           <Link
             href="/alliance/discover"
             className="btn btn--primary"
-            style={{ marginTop: '12px', height: '38px', textDecoration: 'none' }}
+            style={{ marginTop: '8px', height: '38px', textDecoration: 'none' }}
           >
             Discover Listings to Refer
           </Link>
@@ -361,15 +245,13 @@ export default function AllianceReferralsPage() {
             return (
               <div
                 key={referral.uuid}
+                className="card"
                 style={{
-                  background: 'var(--dark)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '16px',
                   padding: '20px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '16px',
+                  gap: '14px',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 }}
               >
                 {/* Top Row: Client & Status Badges */}
@@ -385,16 +267,16 @@ export default function AllianceReferralsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div
                       style={{
-                        width: '42px',
-                        height: '42px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '50%',
-                        background: 'rgba(22, 101, 52, 0.1)',
+                        background: 'rgba(22, 101, 52, 0.08)',
                         color: 'var(--forest)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '15px',
+                        fontWeight: 800,
+                        fontSize: '14px',
                         flexShrink: 0,
                       }}
                     >
@@ -402,25 +284,16 @@ export default function AllianceReferralsPage() {
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
                           {referral.clientName || 'Unnamed Prospect'}
                         </h3>
                         {referral.matchedUser && (
                           <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '2px 8px',
-                              borderRadius: '10px',
-                              background: 'rgba(59, 130, 246, 0.1)',
-                              color: '#3b82f6',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                            }}
+                            className="alliance-chip"
+                            style={{ fontSize: '10.5px', padding: '1px 7px' }}
                             title="Matched to registered Upward user account"
                           >
-                            <UserCheck size={12} />
+                            <UserCheck size={11} />
                             Upward User
                           </span>
                         )}
@@ -429,10 +302,10 @@ export default function AllianceReferralsPage() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '16px',
+                          gap: '14px',
                           fontSize: '12px',
                           color: 'var(--text-secondary)',
-                          marginTop: '4px',
+                          marginTop: '3px',
                           flexWrap: 'wrap',
                         }}
                       >
@@ -441,7 +314,7 @@ export default function AllianceReferralsPage() {
                             href={`mailto:${referral.clientEmail}`}
                             style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'inherit', textDecoration: 'none' }}
                           >
-                            <Mail size={13} color="var(--text-muted)" />
+                            <Mail size={12} color="var(--text-muted)" />
                             {referral.clientEmail}
                           </a>
                         )}
@@ -450,12 +323,12 @@ export default function AllianceReferralsPage() {
                             href={`tel:${referral.clientPhone}`}
                             style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'inherit', textDecoration: 'none' }}
                           >
-                            <Phone size={13} color="var(--text-muted)" />
+                            <Phone size={12} color="var(--text-muted)" />
                             {referral.clientPhone}
                           </a>
                         )}
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
-                          <Calendar size={13} />
+                          <Calendar size={12} />
                           Referred {new Date(referral.createdAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -463,19 +336,19 @@ export default function AllianceReferralsPage() {
                   </div>
 
                   {/* Stage & Status Badge Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: '12px',
+                        padding: '3px 9px',
+                        borderRadius: '9999px',
                         background: `${currentStageObj.color}15`,
                         color: currentStageObj.color,
                         border: `1px solid ${currentStageObj.color}35`,
-                        fontSize: '12px',
+                        fontSize: '11.5px',
                         fontWeight: 700,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '5px',
                       }}
                     >
                       <span
@@ -492,8 +365,8 @@ export default function AllianceReferralsPage() {
                     {isConverted && (
                       <span
                         style={{
-                          padding: '4px 8px',
-                          borderRadius: '8px',
+                          padding: '3px 8px',
+                          borderRadius: '9999px',
                           background: 'rgba(16, 185, 129, 0.1)',
                           color: '#10b981',
                           fontSize: '11px',
@@ -507,8 +380,8 @@ export default function AllianceReferralsPage() {
                     {isClosed && (
                       <span
                         style={{
-                          padding: '4px 8px',
-                          borderRadius: '8px',
+                          padding: '3px 8px',
+                          borderRadius: '9999px',
                           background: 'rgba(107, 114, 128, 0.1)',
                           color: '#9ca3af',
                           fontSize: '11px',
@@ -525,9 +398,9 @@ export default function AllianceReferralsPage() {
                 {referral.listing && (
                   <div
                     style={{
-                      padding: '12px 16px',
-                      borderRadius: '10px',
-                      background: 'var(--bg)',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: 'var(--ivory-dim)',
                       border: '1px solid var(--border)',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -536,13 +409,13 @@ export default function AllianceReferralsPage() {
                       gap: '8px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Building2 size={16} color="var(--forest)" style={{ flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Building2 size={15} color="var(--forest)" style={{ flexShrink: 0 }} />
                       <div>
                         <Link
                           href={`/alliance/discover/${referral.listing.uuid}`}
                           style={{
-                            fontSize: '13px',
+                            fontSize: '12.5px',
                             fontWeight: 600,
                             color: 'var(--text)',
                             textDecoration: 'none',
@@ -552,7 +425,7 @@ export default function AllianceReferralsPage() {
                           }}
                         >
                           {referral.listing.title}
-                          <ArrowUpRight size={13} color="var(--text-muted)" />
+                          <ArrowUpRight size={12} color="var(--text-muted)" />
                         </Link>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           {[referral.listing.city, referral.listing.state].filter(Boolean).join(', ')} • Owner: {referral.listing.pm?.companyName || referral.listing.pm?.name || 'Partner PM'}
@@ -560,7 +433,7 @@ export default function AllianceReferralsPage() {
                       </div>
                     </div>
 
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--forest)' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--forest)' }}>
                       {formatPrice(referral.listing.price, referral.listing.currency)}
                     </div>
                   </div>
@@ -572,10 +445,10 @@ export default function AllianceReferralsPage() {
                     style={{
                       fontSize: '12px',
                       color: 'var(--text-secondary)',
-                      background: 'rgba(0,0,0,0.15)',
+                      background: 'var(--ivory-dim)',
                       padding: '8px 12px',
                       borderRadius: '8px',
-                      borderLeft: '3px solid var(--border)',
+                      borderLeft: '3px solid var(--forest)',
                     }}
                   >
                     <span style={{ fontWeight: 600, color: 'var(--text-muted)', marginRight: '6px' }}>
@@ -591,10 +464,10 @@ export default function AllianceReferralsPage() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    paddingTop: '12px',
+                    paddingTop: '10px',
                     borderTop: '1px solid var(--border)',
                     flexWrap: 'wrap',
-                    gap: '12px',
+                    gap: '10px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -606,10 +479,10 @@ export default function AllianceReferralsPage() {
                       onChange={(e) => handleStageChange(referral.uuid, e.target.value as AllianceLeadStage)}
                       disabled={updateStageMutation.isPending || isClosed}
                       style={{
-                        padding: '6px 10px',
+                        padding: '5px 10px',
                         borderRadius: '8px',
                         border: '1px solid var(--border)',
-                        background: 'var(--bg)',
+                        background: 'var(--surface)',
                         color: 'var(--text)',
                         fontSize: '12px',
                         fontWeight: 600,
@@ -633,7 +506,6 @@ export default function AllianceReferralsPage() {
                           fontSize: '12px',
                           color: 'var(--text-muted)',
                           padding: '4px 8px',
-                          marginLeft: '4px',
                         }}
                       >
                         Close Lead
@@ -642,7 +514,7 @@ export default function AllianceReferralsPage() {
                   </div>
 
                   {/* Action Buttons: Convert, Rate & Share Link */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     {!isClosed && !isConverted && (
                       <button
                         type="button"
@@ -652,13 +524,13 @@ export default function AllianceReferralsPage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          height: '34px',
+                          height: '32px',
                           padding: '0 12px',
                           fontSize: '12px',
                           fontWeight: 700,
                         }}
                       >
-                        <DollarSign size={14} />
+                        <DollarSign size={13} />
                         <span>Record Deal & Commission</span>
                       </button>
                     )}
@@ -672,15 +544,15 @@ export default function AllianceReferralsPage() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          height: '34px',
+                          height: '32px',
                           padding: '0 12px',
                           fontSize: '12px',
                           fontWeight: 600,
                           color: '#eab308',
                         }}
                       >
-                        <Star size={14} />
-                        <span>Rate Relationship</span>
+                        <Star size={13} />
+                        <span>Rate Experience</span>
                       </button>
                     )}
 
@@ -692,7 +564,7 @@ export default function AllianceReferralsPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        height: '34px',
+                        height: '32px',
                         padding: '0 12px',
                         fontSize: '12px',
                         fontWeight: 600,
@@ -700,12 +572,12 @@ export default function AllianceReferralsPage() {
                     >
                       {copiedToken === referral.referralToken ? (
                         <>
-                          <Check size={14} color="var(--forest)" />
+                          <Check size={13} color="var(--forest)" />
                           <span style={{ color: 'var(--forest)' }}>Link Copied</span>
                         </>
                       ) : (
                         <>
-                          <Copy size={14} />
+                          <Copy size={13} />
                           <span>Copy Link</span>
                         </>
                       )}

@@ -89,8 +89,8 @@ export default function DiscoveredListingDetailPage() {
   if (isLoading) {
     return (
       <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ height: '40px', width: '200px', background: 'var(--dark)', borderRadius: '8px', marginBottom: '20px' }} />
-        <div style={{ height: '400px', background: 'var(--dark)', borderRadius: '16px', marginBottom: '20px' }} />
+        <div style={{ height: '40px', width: '200px', background: 'var(--border)', borderRadius: '8px', marginBottom: '20px' }} />
+        <div style={{ height: '400px', background: 'var(--border)', borderRadius: '16px', marginBottom: '20px' }} />
       </div>
     )
   }
@@ -99,11 +99,9 @@ export default function DiscoveredListingDetailPage() {
     return (
       <div className="page-container" style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
         <div
+          className="card"
           style={{
             padding: '48px 24px',
-            background: 'var(--dark)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -166,9 +164,9 @@ export default function DiscoveredListingDetailPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Media Viewer */}
           <div
+            className="card"
             style={{
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
+              padding: 0,
               borderRadius: '16px',
               overflow: 'hidden',
             }}
@@ -272,7 +270,8 @@ export default function DiscoveredListingDetailPage() {
                   gap: '8px',
                   padding: '12px',
                   overflowX: 'auto',
-                  background: 'var(--dark)',
+                  background: 'var(--ivory-dim)',
+                  borderTop: '1px solid var(--border)',
                 }}
               >
                 {mediaList.map((m, idx) => (
@@ -301,11 +300,9 @@ export default function DiscoveredListingDetailPage() {
 
           {/* Marketing Presentation Details */}
           <div
+            className="card"
             style={{
               padding: '24px',
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
@@ -475,11 +472,9 @@ export default function DiscoveredListingDetailPage() {
 
           {/* Tracking Action Card */}
           <div
+            className="card"
             style={{
               padding: '20px',
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
@@ -547,11 +542,9 @@ export default function DiscoveredListingDetailPage() {
 
           {/* Listing Owner PM Card */}
           <div
+            className="card"
             style={{
               padding: '24px',
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px',
@@ -640,11 +633,9 @@ export default function DiscoveredListingDetailPage() {
           {/* Canonical Inventory Context (Read-only status info) */}
           {listing.sourceType === 'LINKED_INVENTORY' && (
             <div
+              className="card"
               style={{
                 padding: '20px',
-                background: 'var(--dark)',
-                border: '1px solid var(--border)',
-                borderRadius: '16px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',

@@ -5,7 +5,7 @@ import {
   AllianceSourceType,
   AllianceListingIntent,
 } from '../types/alliance.types'
-import { Info } from 'lucide-react'
+import { Info, Globe, EyeOff, Tag, Home, MapPin } from 'lucide-react'
 
 export interface ListingFormData {
   title: string
@@ -45,43 +45,33 @@ export function ListingBasicsForm({
   const currentVisibility = data.visibility || 'ALLIANCE'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="alliance-form-section">
       {/* Linked Inventory Context Notice */}
       {sourceType === 'LINKED_INVENTORY' && canonicalReference && (
-        <div
-          style={{
-            padding: '14px 16px',
-            borderRadius: '10px',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px',
-          }}
-        >
-          <Info size={18} color="var(--text-muted)" style={{ flexShrink: 0, marginTop: '2px' }} />
-          <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
-            <div style={{ fontWeight: 700, color: 'var(--text)' }}>
-              Linked Canonical Source: {canonicalReference.name || 'Selected Inventory'}
+        <div className="alliance-callout">
+          <Info size={18} className="alliance-callout__icon" />
+          <div className="alliance-callout__content">
+            <div>
+              <strong>Linked Canonical Asset:</strong> {canonicalReference.name || 'Selected Inventory'}
+              {canonicalReference.address && ` • ${canonicalReference.address}`}
             </div>
-            {canonicalReference.address && (
-              <div style={{ color: 'var(--text-muted)' }}>Location: {canonicalReference.address}</div>
-            )}
-            <div style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
-              <em>Alliance presentation changes below are isolated and will <strong>not</strong> modify your canonical inventory record.</em>
+            <div style={{ marginTop: '2px', color: 'var(--text-muted)' }}>
+              Presentation marketing details below are isolated from your core PM inventory records.
             </div>
           </div>
         </div>
       )}
 
-      {/* Listing Title */}
-      <div>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-          Listing Marketing Title <span style={{ color: 'var(--danger)' }}>*</span>
+      {/* Listing Marketing Title */}
+      <div className="alliance-form-group">
+        <label className="alliance-label">
+          <span>Marketing Title</span>
+          <span className="alliance-label__required">*</span>
+          <span className="alliance-label__hint">Recommended: 40–80 characters</span>
         </label>
         <input
           type="text"
-          className="input"
+          className="alliance-input"
           disabled={disabled}
           placeholder="e.g. Modern 3-Bedroom Penthouse with Panoramic City View"
           value={data.title}
@@ -90,130 +80,146 @@ export function ListingBasicsForm({
         />
       </div>
 
-      {/* Listing Visibility & Intent */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-            Alliance Visibility <span style={{ color: 'var(--danger)' }}>*</span>
+      {/* Listing Intent & Visibility Controls */}
+      <div className="alliance-form-row">
+        {/* Visibility */}
+        <div className="alliance-form-group">
+          <label className="alliance-label">
+            <span>Alliance Visibility</span>
+            <span className="alliance-label__required">*</span>
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="alliance-segmented-switch">
             <button
               type="button"
               disabled={disabled}
               onClick={() => onChange('visibility', 'ALLIANCE')}
-              className={`btn ${currentVisibility === 'ALLIANCE' ? 'btn--primary' : 'btn--secondary'}`}
-              style={{ flex: 1, height: '40px', fontSize: '13px' }}
+              className={`alliance-segmented-switch__option ${
+                currentVisibility === 'ALLIANCE' ? 'alliance-segmented-switch__option--active' : ''
+              }`}
             >
-              Alliance Network
+              <Globe size={14} /> Alliance Network
             </button>
             <button
               type="button"
               disabled={disabled}
               onClick={() => onChange('visibility', 'PRIVATE')}
-              className={`btn ${currentVisibility === 'PRIVATE' ? 'btn--primary' : 'btn--secondary'}`}
-              style={{ flex: 1, height: '40px', fontSize: '13px' }}
+              className={`alliance-segmented-switch__option ${
+                currentVisibility === 'PRIVATE' ? 'alliance-segmented-switch__option--active' : ''
+              }`}
             >
-              Private (Hidden)
+              <EyeOff size={14} /> Private (Hidden)
             </button>
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
             {currentVisibility === 'ALLIANCE'
-              ? 'Discoverable by other verified Upward Alliance PMs once published.'
-              : 'Private to your organization. Not discoverable across the Alliance network.'}
-          </div>
+              ? 'Discoverable by verified partner PMs once published.'
+              : 'Private to your organization only.'}
+          </span>
         </div>
 
-        <div>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-            Listing Intent <span style={{ color: 'var(--danger)' }}>*</span>
+        {/* Intent */}
+        <div className="alliance-form-group">
+          <label className="alliance-label">
+            <span>Listing Intent</span>
+            <span className="alliance-label__required">*</span>
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="alliance-segmented-switch">
             <button
               type="button"
               disabled={disabled}
               onClick={() => onChange('intent', 'RENT')}
-              className={`btn ${data.intent === 'RENT' ? 'btn--primary' : 'btn--secondary'}`}
-              style={{ flex: 1, height: '40px' }}
+              className={`alliance-segmented-switch__option ${
+                data.intent === 'RENT' ? 'alliance-segmented-switch__option--active' : ''
+              }`}
             >
-              For Rent
+              <Tag size={14} /> For Rent
             </button>
             <button
               type="button"
               disabled={disabled}
               onClick={() => onChange('intent', 'SALE')}
-              className={`btn ${data.intent === 'SALE' ? 'btn--primary' : 'btn--secondary'}`}
-              style={{ flex: 1, height: '40px' }}
+              className={`alliance-segmented-switch__option ${
+                data.intent === 'SALE' ? 'alliance-segmented-switch__option--active' : ''
+              }`}
             >
-              For Sale
+              <Home size={14} /> For Sale
             </button>
           </div>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+            {data.intent === 'RENT' ? 'Marketed for lease / rental attribution.' : 'Marketed for outright sale / disposition.'}
+          </span>
         </div>
       </div>
 
-      {/* Pricing */}
-      <div>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-          {data.intent === 'SALE' ? 'Asking Sale Price (₦)' : 'Annual / Periodic Rent (₦)'} <span style={{ color: 'var(--danger)' }}>*</span>
+      {/* Pricing Input */}
+      <div className="alliance-form-group">
+        <label className="alliance-label">
+          <span>{data.intent === 'SALE' ? 'Asking Sale Price' : 'Annual / Periodic Rent'}</span>
+          <span className="alliance-label__required">*</span>
+          {canonicalReference?.canonicalRent ? (
+            <span className="alliance-label__hint">
+              Canonical inventory rate: ₦{canonicalReference.canonicalRent.toLocaleString()}
+            </span>
+          ) : null}
         </label>
-        <input
-          type="number"
-          min="0"
-          step="1000"
-          className="input"
-          disabled={disabled}
-          placeholder="e.g. 15000000"
-          value={data.price || ''}
-          onChange={(e) => onChange('price', Number(e.target.value))}
-          required
-        />
+        <div className="alliance-input-wrap">
+          <span className="alliance-input-prefix">₦</span>
+          <input
+            type="number"
+            min="0"
+            step="1000"
+            className="alliance-input alliance-input--with-prefix"
+            disabled={disabled}
+            placeholder="e.g. 15,000,000"
+            value={data.price || ''}
+            onChange={(e) => onChange('price', Number(e.target.value))}
+            required
+          />
+        </div>
       </div>
 
       {/* Description */}
-      <div>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>
-          Marketing Description
+      <div className="alliance-form-group">
+        <label className="alliance-label">
+          <span>Marketing Description</span>
+          <span className="alliance-label__hint">Optional</span>
         </label>
         <textarea
-          className="input"
+          className="alliance-textarea"
           disabled={disabled}
           rows={4}
-          placeholder="Highlight key amenities, accessibility, finishings, service charges, or terms..."
+          placeholder="Highlight key selling points, amenities, power supply, security, service charge schedule, or special broker terms..."
           value={data.description}
           onChange={(e) => onChange('description', e.target.value)}
-          style={{ resize: 'vertical' }}
         />
       </div>
 
       {/* Independent Details (If INDEPENDENT) */}
       {sourceType === 'INDEPENDENT' && (
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
-            Independent Property Details
+            Independent Asset Specifications
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                Property / Unit Type
-              </label>
+          <div className="alliance-form-row">
+            <div className="alliance-form-group">
+              <label className="alliance-label">Property / Asset Type</label>
               <input
                 type="text"
-                className="input"
+                className="alliance-input"
                 disabled={disabled}
-                placeholder="e.g. Flat, Terraced Duplex, Office"
+                placeholder="e.g. Terraced Duplex, Penthouse, Office Floor"
                 value={data.propertyType || ''}
                 onChange={(e) => onChange('propertyType', e.target.value)}
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                Bedrooms
-              </label>
+            <div className="alliance-form-group">
+              <label className="alliance-label">Bedrooms</label>
               <input
                 type="number"
                 min="0"
-                className="input"
+                className="alliance-input"
                 disabled={disabled}
                 placeholder="e.g. 3"
                 value={data.bedrooms ?? ''}
@@ -221,14 +227,12 @@ export function ListingBasicsForm({
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                Bathrooms
-              </label>
+            <div className="alliance-form-group">
+              <label className="alliance-label">Bathrooms</label>
               <input
                 type="number"
                 min="0"
-                className="input"
+                className="alliance-input"
                 disabled={disabled}
                 placeholder="e.g. 4"
                 value={data.bathrooms ?? ''}
@@ -237,14 +241,12 @@ export function ListingBasicsForm({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                Street Address
-              </label>
+          <div className="alliance-form-row">
+            <div className="alliance-form-group">
+              <label className="alliance-label">Street Address</label>
               <input
                 type="text"
-                className="input"
+                className="alliance-input"
                 disabled={disabled}
                 placeholder="e.g. 14 Glover Road"
                 value={data.address || ''}
@@ -252,13 +254,11 @@ export function ListingBasicsForm({
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                City / Area
-              </label>
+            <div className="alliance-form-group">
+              <label className="alliance-label">City / District</label>
               <input
                 type="text"
-                className="input"
+                className="alliance-input"
                 disabled={disabled}
                 placeholder="e.g. Ikoyi"
                 value={data.city || ''}
@@ -266,13 +266,11 @@ export function ListingBasicsForm({
               />
             </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
-                State
-              </label>
+            <div className="alliance-form-group">
+              <label className="alliance-label">State</label>
               <input
                 type="text"
-                className="input"
+                className="alliance-input"
                 disabled={disabled}
                 placeholder="e.g. Lagos"
                 value={data.state || ''}

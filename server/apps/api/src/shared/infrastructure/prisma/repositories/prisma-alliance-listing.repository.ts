@@ -107,8 +107,8 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                   isEnabled: item.pm.allianceProfile.isEnabled,
                 }
               : null,
-            qualifications: item.pm.qualifications
-              ? item.pm.qualifications
+            qualifications: (item.pm.allianceQualifications || item.pm.qualifications)
+              ? (item.pm.allianceQualifications || item.pm.qualifications)
                   .filter((q: any) => q.qualification?.isActive)
                   .map((q: any) => ({
                     qualification: {
@@ -433,7 +433,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                   isEnabled: true,
                 },
               },
-              qualifications: {
+              allianceQualifications: {
                 include: {
                   qualification: true,
                 },
@@ -505,7 +505,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                 isEnabled: true,
               },
             },
-            qualifications: {
+            allianceQualifications: {
               include: {
                 qualification: true,
               },
@@ -623,8 +623,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                   isEnabled: true,
                 },
               },
-              qualifications: {
-                where: { isActive: true },
+              allianceQualifications: {
                 include: {
                   qualification: true,
                 },
@@ -683,8 +682,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                 isEnabled: true,
               },
             },
-            qualifications: {
-              where: { isActive: true },
+            allianceQualifications: {
               include: {
                 qualification: true,
               },

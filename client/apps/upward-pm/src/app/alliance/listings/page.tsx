@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Award, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   useAllianceProfile,
   useAllianceListings,
@@ -16,8 +16,6 @@ import {
   AllianceSourceType,
   AllianceListing,
 } from '@/features/alliance/types/alliance.types'
-import { AllianceStatusBanner } from '@/features/alliance/components/AllianceStatusBanner'
-import { AllianceNavTabs } from '@/features/alliance/components/AllianceNavTabs'
 import { ListingFilters } from '@/features/alliance/components/ListingFilters'
 import { ListingCard } from '@/features/alliance/components/ListingCard'
 import { ListingReviewModal } from '@/features/alliance/components/ListingReviewModal'
@@ -39,7 +37,7 @@ export default function AllianceListingsPage() {
   const [archiveUuid, setArchiveUuid] = useState<string | null>(null)
 
   // Data fetching
-  const { data: profile, isLoading: loadingProfile } = useAllianceProfile()
+  const { data: profile } = useAllianceProfile()
   const { data: listingsData, isLoading: loadingListings } = useAllianceListings({
     status,
     targetType,
@@ -97,85 +95,61 @@ export default function AllianceListingsPage() {
   const meta = listingsData?.meta || { page: 1, total: 0, totalPages: 1 }
 
   return (
-    <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Page Header */}
+    <div>
+      {/* Top Action Bar & Filters */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '20px',
+          gap: '12px',
+          marginBottom: '16px',
         }}
       >
-        <div>
-          <h1
-            style={{
-              fontSize: '24px',
-              fontWeight: 800,
-              color: 'var(--text)',
-              margin: '0 0 4px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
+        <div style={{ flex: 1, minWidth: '280px' }}>
+          <ListingFilters
+            status={status}
+            targetType={targetType}
+            sourceType={sourceType}
+            onStatusChange={(s) => {
+              setStatus(s)
+              setPage(1)
             }}
-          >
-            <Award size={26} color="var(--forest)" /> Upward Alliance Listings
-          </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Manage and distribute your property marketing representations across the network.
-          </p>
+            onTargetTypeChange={(t) => {
+              setTargetType(t)
+              setPage(1)
+            }}
+            onSourceTypeChange={(src) => {
+              setSourceType(src)
+              setPage(1)
+            }}
+          />
         </div>
 
         {profile?.isEnabled && (
           <Link
             href="/alliance/listings/new"
             className="btn btn--primary"
-            style={{ height: '42px', padding: '0 18px', gap: '8px', fontWeight: 600 }}
+            style={{ height: '42px', padding: '0 18px', gap: '8px', fontWeight: 600, flexShrink: 0, marginBottom: '20px' }}
           >
-            <Plus size={18} /> Create Listing
+            <Plus size={16} /> Create Listing
           </Link>
         )}
       </div>
 
-      {/* Alliance Navigation Tabs */}
-      <AllianceNavTabs activeTab="my-listings" />
-
-      {/* Alliance Status Banner (Enabled state + Qualifications or Disabled warning) */}
-      <AllianceStatusBanner profile={profile} isLoading={loadingProfile} />
-
-      {/* Filters */}
-      <ListingFilters
-        status={status}
-        targetType={targetType}
-        sourceType={sourceType}
-        onStatusChange={(s) => {
-          setStatus(s)
-          setPage(1)
-        }}
-        onTargetTypeChange={(t) => {
-          setTargetType(t)
-          setPage(1)
-        }}
-        onSourceTypeChange={(src) => {
-          setSourceType(src)
-          setPage(1)
-        }}
-      />
-
       {/* Listings List / Grid */}
       {loadingListings ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card animate-pulse" style={{ height: '220px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="card animate-pulse" style={{ height: '320px', borderRadius: '16px' }} />
           ))}
         </div>
       ) : listings.length === 0 ? (
         <div
           className="card"
           style={{
-            padding: '48px 24px',
+            padding: '56px 24px',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
@@ -185,8 +159,8 @@ export default function AllianceListingsPage() {
         >
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '52px',
+              height: '52px',
               borderRadius: '50%',
               background: 'var(--bg)',
               display: 'flex',
@@ -195,15 +169,15 @@ export default function AllianceListingsPage() {
               color: 'var(--text-muted)',
             }}
           >
-            <AlertCircle size={28} />
+            <AlertCircle size={26} />
           </div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--dark)' }}>
             No Alliance Listings Found
           </h3>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', maxWidth: '400px' }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '420px', lineHeight: 1.5 }}>
             {status
               ? `You do not have any listings with status "${status.toLowerCase()}".`
-              : 'Create your first Alliance marketing listing to publish or distribute properties.'}
+              : 'Create your first Alliance marketing listing to publish or distribute properties across the network.'}
           </p>
           {profile?.isEnabled && (
             <Link href="/alliance/listings/new" className="btn btn--primary" style={{ marginTop: '8px' }}>
@@ -213,7 +187,7 @@ export default function AllianceListingsPage() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
             {listings.map((listing) => (
               <ListingCard
                 key={listing.uuid}
@@ -235,8 +209,8 @@ export default function AllianceListingsPage() {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '16px',
-                marginTop: '32px',
+                gap: '14px',
+                marginTop: '36px',
               }}
             >
               <button
@@ -244,19 +218,19 @@ export default function AllianceListingsPage() {
                 className="btn btn--secondary"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                style={{ padding: '8px 14px', gap: '4px' }}
+                style={{ height: '36px', padding: '0 14px', gap: '4px', fontSize: '13px' }}
               >
                 <ChevronLeft size={16} /> Previous
               </button>
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Page <strong>{meta.page}</strong> of <strong>{meta.totalPages}</strong> ({meta.total} total)
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Page {meta.page} of {meta.totalPages} ({meta.total} listings)
               </span>
               <button
                 type="button"
                 className="btn btn--secondary"
                 disabled={page >= meta.totalPages}
                 onClick={() => setPage((p) => Math.min(p + 1, meta.totalPages))}
-                style={{ padding: '8px 14px', gap: '4px' }}
+                style={{ height: '36px', padding: '0 14px', gap: '4px', fontSize: '13px' }}
               >
                 Next <ChevronRight size={16} />
               </button>
