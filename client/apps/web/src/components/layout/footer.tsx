@@ -72,6 +72,7 @@ export function Footer({
           </h4>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
+              ['/alliance', 'Alliance Marketplace'],
               ['/?view=why', 'Why Upward?'],
               ['/?view=home#how', 'How it Works'],
               ['/login', 'Renter Portal'],
