@@ -69,6 +69,8 @@ model upward_property_manager {
   employees               upward_pm_employee[]
   userProperties          upward_user_property[]
   tenantJoinRequests      upward_tenant_join_request[]
+  allianceProfile         upward_alliance_pm_profile?
+  allianceQualifications  upward_alliance_pm_qualification[]
 
   @@index([email])
 }

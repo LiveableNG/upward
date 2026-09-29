@@ -42,6 +42,10 @@ import { PrismaPmSignatureRepository } from './repositories/prisma-pm-signature.
 import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whatsapp-sequence.repository'
 import { PrismaPmSettlementAccountRepository } from './repositories/prisma-pm-settlement-account.repository'
 import { PrismaTenancyPeriodRepository } from './repositories/prisma-tenancy-period.repository'
+import { PrismaAllianceProfileRepository } from './repositories/prisma-alliance-profile.repository'
+import { PrismaAllianceQualificationRepository } from './repositories/prisma-alliance-qualification.repository'
+import { PrismaAlliancePmQualificationRepository } from './repositories/prisma-alliance-pm-qualification.repository'
+import { ALLIANCE_PROFILE_REPOSITORY, ALLIANCE_QUALIFICATION_REPOSITORY, ALLIANCE_PM_QUALIFICATION_REPOSITORY } from '../../../domains/alliance/alliance.repository.interface'
 import { SETTLEMENT_ACCOUNT_REPOSITORY } from '../../../domains/pm/ISettlementAccountRepository'
 import { TENANCY_PERIOD_REPOSITORY } from '../../../domains/companies/tenancy-period.repository'
 
@@ -296,6 +300,18 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: TENANCY_PERIOD_REPOSITORY,
       useClass: PrismaTenancyPeriodRepository,
     },
+    {
+      provide: ALLIANCE_PROFILE_REPOSITORY,
+      useClass: PrismaAllianceProfileRepository,
+    },
+    {
+      provide: ALLIANCE_QUALIFICATION_REPOSITORY,
+      useClass: PrismaAllianceQualificationRepository,
+    },
+    {
+      provide: ALLIANCE_PM_QUALIFICATION_REPOSITORY,
+      useClass: PrismaAlliancePmQualificationRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -346,6 +362,9 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     SETTLEMENT_ACCOUNT_REPOSITORY,
     RENT_DEPOSIT_BALANCE_REPOSITORY,
     TENANCY_PERIOD_REPOSITORY,
+    ALLIANCE_PROFILE_REPOSITORY,
+    ALLIANCE_QUALIFICATION_REPOSITORY,
+    ALLIANCE_PM_QUALIFICATION_REPOSITORY,
   ],
 })
 export class PrismaModule {}

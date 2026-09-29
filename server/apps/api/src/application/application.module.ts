@@ -508,7 +508,28 @@ import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/rep
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
 import { GoogleAnalyticsService } from '../shared/infrastructure/common/google-analytics.service'
 
+import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
+import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
+import { ListAllianceQualificationsUseCase } from './alliance/use-cases/list-alliance-qualifications.use-case'
+import { UpdateAllianceQualificationUseCase } from './alliance/use-cases/update-alliance-qualification.use-case'
+import { DeactivateAllianceQualificationUseCase } from './alliance/use-cases/deactivate-alliance-qualification.use-case'
+import { AssignPmQualificationUseCase } from './alliance/use-cases/assign-pm-qualification.use-case'
+import { RemovePmQualificationUseCase } from './alliance/use-cases/remove-pm-qualification.use-case'
+import { GetPmAssignedQualificationsUseCase } from './alliance/use-cases/get-pm-assigned-qualifications.use-case'
+import { GetPmAllianceProfileUseCase } from './alliance/use-cases/get-pm-alliance-profile.use-case'
+import { UpdatePmAllianceProfileUseCase } from './alliance/use-cases/update-pm-alliance-profile.use-case'
+
 const UseCases: any[] = [
+  TogglePmAllianceEnablementUseCase,
+  CreateAllianceQualificationUseCase,
+  ListAllianceQualificationsUseCase,
+  UpdateAllianceQualificationUseCase,
+  DeactivateAllianceQualificationUseCase,
+  AssignPmQualificationUseCase,
+  RemovePmQualificationUseCase,
+  GetPmAssignedQualificationsUseCase,
+  GetPmAllianceProfileUseCase,
+  UpdatePmAllianceProfileUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

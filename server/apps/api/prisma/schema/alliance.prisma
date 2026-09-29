@@ -1,0 +1,51 @@
+model upward_alliance_pm_profile {
+  id         Int                     @id @default(autoincrement())
+  uuid       String                  @unique @default(uuid())
+  pmId       Int                     @unique
+  isEnabled  Boolean                 @default(false)
+  enabledAt  DateTime?
+  disabledAt DateTime?
+  pmTitle    String?
+  bio        String?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+
+  pm         upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+  @@index([isEnabled])
+}
+
+model upward_alliance_qualification {
+  id            Int                                 @id @default(autoincrement())
+  uuid          String                              @unique @default(uuid())
+  slug          String                              @unique
+  name          String
+  description   String?
+  isActive      Boolean                             @default(true)
+  createdAt     DateTime                            @default(now())
+  updatedAt     DateTime                            @updatedAt
+
+  pmAssignments upward_alliance_pm_qualification[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model upward_alliance_pm_qualification {
+  id                Int                           @id @default(autoincrement())
+  uuid              String                        @unique @default(uuid())
+  pmId              Int
+  qualificationId   Int
+  assignedByAdminId String?
+  assignedAt        DateTime                      @default(now())
+
+  pm                upward_property_manager       @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  qualification     upward_alliance_qualification @relation(fields: [qualificationId], references: [id], onDelete: Restrict)
+  assignedByAdmin   upward_admin?                 @relation(fields: [assignedByAdminId], references: [id], onDelete: SetNull)
+
+  @@unique([pmId, qualificationId])
+  @@index([pmId])
+  @@index([qualificationId])
+  @@index([assignedByAdminId])
+}
