@@ -518,6 +518,13 @@ import { RemovePmQualificationUseCase } from './alliance/use-cases/remove-pm-qua
 import { GetPmAssignedQualificationsUseCase } from './alliance/use-cases/get-pm-assigned-qualifications.use-case'
 import { GetPmAllianceProfileUseCase } from './alliance/use-cases/get-pm-alliance-profile.use-case'
 import { UpdatePmAllianceProfileUseCase } from './alliance/use-cases/update-pm-alliance-profile.use-case'
+import { CreateAllianceListingUseCase } from './alliance/use-cases/create-alliance-listing.use-case'
+import { GetAllianceListingUseCase } from './alliance/use-cases/get-alliance-listing.use-case'
+import { UpdateAllianceListingUseCase } from './alliance/use-cases/update-alliance-listing.use-case'
+import { PublishAllianceListingUseCase } from './alliance/use-cases/publish-alliance-listing.use-case'
+import { UnpublishAllianceListingUseCase } from './alliance/use-cases/unpublish-alliance-listing.use-case'
+import { ArchiveAllianceListingUseCase } from './alliance/use-cases/archive-alliance-listing.use-case'
+import { ListPmAllianceListingsUseCase } from './alliance/use-cases/list-pm-alliance-listings.use-case'
 
 const UseCases: any[] = [
   TogglePmAllianceEnablementUseCase,
@@ -530,6 +537,13 @@ const UseCases: any[] = [
   GetPmAssignedQualificationsUseCase,
   GetPmAllianceProfileUseCase,
   UpdatePmAllianceProfileUseCase,
+  CreateAllianceListingUseCase,
+  GetAllianceListingUseCase,
+  UpdateAllianceListingUseCase,
+  PublishAllianceListingUseCase,
+  UnpublishAllianceListingUseCase,
+  ArchiveAllianceListingUseCase,
+  ListPmAllianceListingsUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

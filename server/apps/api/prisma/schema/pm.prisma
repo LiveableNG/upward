@@ -71,6 +71,7 @@ model upward_property_manager {
   tenantJoinRequests      upward_tenant_join_request[]
   allianceProfile         upward_alliance_pm_profile?
   allianceQualifications  upward_alliance_pm_qualification[]
+  allianceListings        upward_alliance_listing[]
 
   @@index([email])
 }
@@ -130,6 +131,7 @@ model upward_pm_property {
   collaborators         upward_pm_property_collaboration[]
   employeeCollaborations upward_pm_employee_property[]
   units                 upward_pm_unit[]
+  allianceListings      upward_alliance_listing[]
 
   @@index([pmId])
 }
@@ -162,6 +164,7 @@ model upward_pm_unit {
   property               upward_pm_property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   tenant                 upward_pm_tenant?           @relation(fields: [tenantId], references: [id])
   userProperties         upward_user_property[]
+  allianceListings       upward_alliance_listing[]
 
   @@index([propertyId])
   @@index([status])

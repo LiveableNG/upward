@@ -49,3 +49,80 @@ model upward_alliance_pm_qualification {
   @@index([qualificationId])
   @@index([assignedByAdminId])
 }
+
+enum UpwardAllianceSourceType {
+  LINKED_INVENTORY
+  INDEPENDENT
+}
+
+enum UpwardAllianceTargetType {
+  PROPERTY
+  UNIT
+}
+
+enum UpwardAllianceListingIntent {
+  RENT
+  SALE
+}
+
+enum UpwardAllianceListingStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+model upward_alliance_listing {
+  id               Int                          @id @default(autoincrement())
+  uuid             String                       @unique @default(uuid())
+  pmId             Int
+  sourceType       UpwardAllianceSourceType
+  targetType       UpwardAllianceTargetType
+  intent           UpwardAllianceListingIntent  @default(RENT)
+  status           UpwardAllianceListingStatus  @default(DRAFT)
+
+  // Canonical references (Nullable with SetNull on deletion)
+  targetPropertyId Int?
+  targetUnitId     Int?
+
+  // Flag and timestamp if the canonical source was deleted
+  isSourceDeleted  Boolean                      @default(false)
+  sourceDeletedAt  DateTime?
+
+  // Presentation / Marketing Data
+  title            String                       @db.VarChar(255)
+  description      String?                      @db.Text
+  currency         String                       @default("NGN") @db.VarChar(10)
+  price            Float                        @default(0)
+
+  // Location fields
+  address          String?                      @db.VarChar(255)
+  city             String?                      @db.VarChar(100)
+  state            String?                      @db.VarChar(100)
+  country          String                       @default("Nigeria") @db.VarChar(100)
+
+  // Specifications
+  propertyType     String?                      @db.VarChar(100)
+  bedrooms         Int?
+  bathrooms        Int?
+
+  // Timestamps
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+  publishedAt      DateTime?
+  unpublishedAt    DateTime?
+  archivedAt       DateTime?
+
+  // Relations
+  pm               upward_property_manager      @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  targetProperty   upward_pm_property?          @relation(fields: [targetPropertyId], references: [id], onDelete: SetNull)
+  targetUnit       upward_pm_unit?              @relation(fields: [targetUnitId], references: [id], onDelete: SetNull)
+
+  @@index([pmId])
+  @@index([status])
+  @@index([sourceType])
+  @@index([targetType])
+  @@index([targetPropertyId])
+  @@index([targetUnitId])
+  @@index([createdAt])
+}

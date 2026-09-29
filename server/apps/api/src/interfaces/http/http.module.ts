@@ -96,6 +96,7 @@ import { DemoRequestAdminController } from './admin/demo-request-admin.controlle
 import { HomeRequestAdminController } from './admin/home-request-admin.controller'
 import { AdminAllianceController } from './admin/admin-alliance.controller'
 import { PmAllianceProfileController } from './pm/pm-alliance-profile.controller'
+import { PmAllianceListingController } from './pm/pm-alliance-listing.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -201,6 +202,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     HomeRequestAdminController,
     AdminAllianceController,
     PmAllianceProfileController,
+    PmAllianceListingController,
   ],
 })
 export class HttpModule {}

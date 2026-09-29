@@ -2,11 +2,17 @@ import {
   AlliancePmProfileEntity,
   AllianceQualificationEntity,
   AlliancePmQualificationEntity,
+  AllianceListingEntity,
+  AllianceListingStatus,
+  AllianceSourceType,
+  AllianceTargetType,
+  AllianceListingIntent,
 } from './alliance.entity';
 
 export const ALLIANCE_PROFILE_REPOSITORY = Symbol('ALLIANCE_PROFILE_REPOSITORY');
 export const ALLIANCE_QUALIFICATION_REPOSITORY = Symbol('ALLIANCE_QUALIFICATION_REPOSITORY');
 export const ALLIANCE_PM_QUALIFICATION_REPOSITORY = Symbol('ALLIANCE_PM_QUALIFICATION_REPOSITORY');
+export const ALLIANCE_LISTING_REPOSITORY = Symbol('ALLIANCE_LISTING_REPOSITORY');
 
 export interface IAllianceProfileRepository {
   findByPmId(pmId: number): Promise<AlliancePmProfileEntity | null>;
@@ -28,4 +34,65 @@ export interface IAlliancePmQualificationRepository {
   remove(pmId: number, qualificationId: number): Promise<boolean>;
   findByPmId(pmId: number): Promise<AlliancePmQualificationEntity[]>;
   findByPmAndQualification(pmId: number, qualificationId: number): Promise<AlliancePmQualificationEntity | null>;
+}
+
+export interface CreateAllianceListingData {
+  pmId: number;
+  sourceType: AllianceSourceType;
+  targetType: AllianceTargetType;
+  intent?: AllianceListingIntent;
+  targetPropertyId?: number | null;
+  targetUnitId?: number | null;
+  title: string;
+  description?: string | null;
+  currency?: string;
+  price?: number;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string;
+  propertyType?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+}
+
+export interface UpdateAllianceListingData {
+  title?: string;
+  description?: string | null;
+  currency?: string;
+  price?: number;
+  intent?: AllianceListingIntent;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string;
+  propertyType?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  status?: AllianceListingStatus;
+  publishedAt?: Date | null;
+  unpublishedAt?: Date | null;
+  archivedAt?: Date | null;
+  isSourceDeleted?: boolean;
+  sourceDeletedAt?: Date | null;
+}
+
+export interface IAllianceListingRepository {
+  create(data: CreateAllianceListingData): Promise<AllianceListingEntity>;
+  findById(id: number): Promise<AllianceListingEntity | null>;
+  findByUuid(uuid: string): Promise<AllianceListingEntity | null>;
+  findPublishedByTargetProperty(targetPropertyId: number): Promise<AllianceListingEntity | null>;
+  findPublishedByTargetUnit(targetUnitId: number): Promise<AllianceListingEntity | null>;
+  update(id: number, data: UpdateAllianceListingData): Promise<AllianceListingEntity>;
+  findPmListings(
+    pmId: number,
+    options?: {
+      status?: AllianceListingStatus;
+      targetType?: AllianceTargetType;
+      sourceType?: AllianceSourceType;
+      skip?: number;
+      take?: number;
+    },
+  ): Promise<{ items: AllianceListingEntity[]; total: number }>;
+  deleteDraft(id: number): Promise<boolean>;
 }
