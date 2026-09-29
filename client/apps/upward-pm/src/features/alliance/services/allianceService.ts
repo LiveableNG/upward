@@ -2,6 +2,7 @@ import { request } from '@/lib/api-client'
 import {
   AlliancePmProfile,
   AllianceListing,
+  AllianceListingMedia,
   CreateAllianceListingPayload,
   UpdateAllianceListingPayload,
   ListAllianceListingsParams,
@@ -64,5 +65,42 @@ export async function unpublishAllianceListing(uuid: string): Promise<AllianceLi
 export async function archiveAllianceListing(uuid: string): Promise<AllianceListing> {
   return request<AllianceListing>(`/pm/alliance/listings/${uuid}/archive`, {
     method: 'POST',
+  })
+}
+
+export async function requestMediaUploadUrl(
+  listingUuid: string,
+  payload: { filename: string; mimeType: string; fileSize: number },
+): Promise<{ storageKey: string; uploadUrl: string; publicUrl: string; mediaUuid: string; maxFileSize: number }> {
+  return request(`/pm/alliance/listings/${listingUuid}/media/upload-url`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function confirmMediaUpload(
+  listingUuid: string,
+  payload: { storageKey: string; mimeType: string; fileSize: number; publicUrl: string },
+): Promise<AllianceListingMedia> {
+  return request<AllianceListingMedia>(`/pm/alliance/listings/${listingUuid}/media/confirm`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function listListingMedia(listingUuid: string): Promise<AllianceListingMedia[]> {
+  return request<AllianceListingMedia[]>(`/pm/alliance/listings/${listingUuid}/media`, { method: 'GET' })
+}
+
+export async function reorderListingMedia(listingUuid: string, mediaUuids: string[]): Promise<AllianceListingMedia[]> {
+  return request<AllianceListingMedia[]>(`/pm/alliance/listings/${listingUuid}/media/order`, {
+    method: 'PATCH',
+    body: JSON.stringify({ mediaUuids }),
+  })
+}
+
+export async function deleteListingMedia(listingUuid: string, mediaUuid: string): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>(`/pm/alliance/listings/${listingUuid}/media/${mediaUuid}`, {
+    method: 'DELETE',
   })
 }

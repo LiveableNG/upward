@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Save, Edit, AlertCircle } from 'lucide-react'
 import { useAllianceListing, useUpdateAllianceListing } from '@/features/alliance/hooks/useAlliance'
 import { ListingBasicsForm, ListingFormData } from '@/features/alliance/components/ListingBasicsForm'
+import { ListingMediaManager } from '@/features/alliance/components/ListingMediaManager'
 import { useToast } from '@/components/common/Toast'
 
 export default function EditAllianceListingPage() {
@@ -174,6 +175,13 @@ export default function EditAllianceListingPage() {
                 : null
             }
           />
+
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+            <ListingMediaManager
+              listingUuid={uuid}
+              isArchived={false}
+            />
+          </div>
 
           {/* Submit Actions */}
           <div

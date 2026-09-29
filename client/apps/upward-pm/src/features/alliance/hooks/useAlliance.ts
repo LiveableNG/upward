@@ -4,6 +4,7 @@ import {
   CreateAllianceListingPayload,
   UpdateAllianceListingPayload,
   ListAllianceListingsParams,
+  AllianceListingMedia,
 } from '../types/alliance.types'
 
 export function useAllianceProfile() {
@@ -95,6 +96,85 @@ export function useArchiveAllianceListing() {
     onSuccess: (_, uuid) => {
       queryClient.invalidateQueries({ queryKey: ['alliance-listings'] })
       queryClient.invalidateQueries({ queryKey: ['alliance-listing', uuid] })
+    },
+  })
+}
+
+export function useListingMedia(listingUuid?: string) {
+  return useQuery<AllianceListingMedia[]>({
+    queryKey: ['alliance-listing-media', listingUuid],
+    queryFn: () => {
+      if (!listingUuid) throw new Error('Listing UUID required')
+      return allianceService.listListingMedia(listingUuid)
+    },
+    enabled: Boolean(listingUuid),
+  })
+}
+
+export function useUploadListingMedia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ listingUuid, file }: { listingUuid: string; file: File }) => {
+      // 1. Request presigned upload URL from backend
+      const presigned = await allianceService.requestMediaUploadUrl(listingUuid, {
+        filename: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+      })
+
+      // 2. Upload binary file directly to S3 via PUT
+      const uploadRes = await fetch(presigned.uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image file to storage')
+      }
+
+      // 3. Confirm upload to finalize database media record
+      const confirmedMedia = await allianceService.confirmMediaUpload(listingUuid, {
+        storageKey: presigned.storageKey,
+        mimeType: file.type,
+        fileSize: file.size,
+        publicUrl: presigned.publicUrl,
+      })
+
+      return confirmedMedia
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-listing-media', variables.listingUuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-listing', variables.listingUuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-listings'] })
+    },
+  })
+}
+
+export function useReorderListingMedia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ listingUuid, mediaUuids }: { listingUuid: string; mediaUuids: string[] }) =>
+      allianceService.reorderListingMedia(listingUuid, mediaUuids),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-listing-media', variables.listingUuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-listing', variables.listingUuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-listings'] })
+    },
+  })
+}
+
+export function useDeleteListingMedia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ listingUuid, mediaUuid }: { listingUuid: string; mediaUuid: string }) =>
+      allianceService.deleteListingMedia(listingUuid, mediaUuid),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-listing-media', variables.listingUuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-listing', variables.listingUuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-listings'] })
     },
   })
 }

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -16,6 +17,11 @@ import {
   UpdateAllianceListingDto,
   ListAllianceListingsQueryDto,
 } from '../../../application/alliance/dtos/alliance-listing.dto';
+import {
+  RequestMediaUploadDto,
+  ConfirmMediaUploadDto,
+  ReorderMediaDto,
+} from '../../../application/alliance/dtos/alliance-listing-media.dto';
 import { CreateAllianceListingUseCase } from '../../../application/alliance/use-cases/create-alliance-listing.use-case';
 import { GetAllianceListingUseCase } from '../../../application/alliance/use-cases/get-alliance-listing.use-case';
 import { UpdateAllianceListingUseCase } from '../../../application/alliance/use-cases/update-alliance-listing.use-case';
@@ -23,6 +29,11 @@ import { PublishAllianceListingUseCase } from '../../../application/alliance/use
 import { UnpublishAllianceListingUseCase } from '../../../application/alliance/use-cases/unpublish-alliance-listing.use-case';
 import { ArchiveAllianceListingUseCase } from '../../../application/alliance/use-cases/archive-alliance-listing.use-case';
 import { ListPmAllianceListingsUseCase } from '../../../application/alliance/use-cases/list-pm-alliance-listings.use-case';
+import { RequestAllianceMediaUploadUseCase } from '../../../application/alliance/use-cases/request-alliance-media-upload.use-case';
+import { ConfirmAllianceMediaUploadUseCase } from '../../../application/alliance/use-cases/confirm-alliance-media-upload.use-case';
+import { ListAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/list-alliance-listing-media.use-case';
+import { ReorderAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/reorder-alliance-listing-media.use-case';
+import { DeleteAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/delete-alliance-listing-media.use-case';
 
 @Controller('pm/alliance/listings')
 @UseGuards(JwtAuthGuard)
@@ -35,6 +46,11 @@ export class PmAllianceListingController {
     private readonly unpublishListingUseCase: UnpublishAllianceListingUseCase,
     private readonly archiveListingUseCase: ArchiveAllianceListingUseCase,
     private readonly listListingsUseCase: ListPmAllianceListingsUseCase,
+    private readonly requestMediaUploadUseCase: RequestAllianceMediaUploadUseCase,
+    private readonly confirmMediaUploadUseCase: ConfirmAllianceMediaUploadUseCase,
+    private readonly listMediaUseCase: ListAllianceListingMediaUseCase,
+    private readonly reorderMediaUseCase: ReorderAllianceListingMediaUseCase,
+    private readonly deleteMediaUseCase: DeleteAllianceListingMediaUseCase,
   ) {}
 
   @Post()
@@ -92,5 +108,49 @@ export class PmAllianceListingController {
     @CurrentPmActor() actor: PmActorContext,
   ) {
     return this.archiveListingUseCase.execute(uuid, actor);
+  }
+
+  @Post(':uuid/media/upload-url')
+  async requestMediaUpload(
+    @Param('uuid') uuid: string,
+    @Body() dto: RequestMediaUploadDto,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.requestMediaUploadUseCase.execute(uuid, dto, actor);
+  }
+
+  @Post(':uuid/media/confirm')
+  async confirmMediaUpload(
+    @Param('uuid') uuid: string,
+    @Body() dto: ConfirmMediaUploadDto,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.confirmMediaUploadUseCase.execute(uuid, dto, actor);
+  }
+
+  @Get(':uuid/media')
+  async listMedia(
+    @Param('uuid') uuid: string,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.listMediaUseCase.execute(uuid, actor);
+  }
+
+  @Patch(':uuid/media/order')
+  async reorderMedia(
+    @Param('uuid') uuid: string,
+    @Body() dto: ReorderMediaDto,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.reorderMediaUseCase.execute(uuid, dto, actor);
+  }
+
+  @Delete(':uuid/media/:mediaUuid')
+  async deleteMedia(
+    @Param('uuid') uuid: string,
+    @Param('mediaUuid') mediaUuid: string,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.deleteMediaUseCase.execute(uuid, mediaUuid, actor);
   }
 }

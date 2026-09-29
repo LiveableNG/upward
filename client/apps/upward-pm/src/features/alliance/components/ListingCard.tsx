@@ -182,6 +182,32 @@ export function ListingCard({
           <div>{getStatusBadge()}</div>
         </div>
 
+        {/* Optional Cover Image Preview */}
+        {listing.media && listing.media.length > 0 && listing.media[0]?.publicUrl && (
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '140px',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              marginBottom: '12px',
+              background: '#000',
+            }}
+          >
+            <img
+              src={listing.media[0].publicUrl}
+              alt={listing.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </div>
+        )}
+
         {/* Title & Price */}
         <Link
           href={`/alliance/listings/${listing.uuid}`}

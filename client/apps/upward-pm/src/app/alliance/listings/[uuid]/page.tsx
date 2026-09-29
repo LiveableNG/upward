@@ -28,6 +28,7 @@ import {
 import { ListingReviewModal } from '@/features/alliance/components/ListingReviewModal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { OccupancyWarning } from '@/features/alliance/components/OccupancyWarning'
+import { ListingMediaManager } from '@/features/alliance/components/ListingMediaManager'
 import { useToast } from '@/components/common/Toast'
 
 export default function AllianceListingDetailPage() {
@@ -400,6 +401,12 @@ export default function AllianceListingDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Listing Media Manager */}
+      <ListingMediaManager
+        listingUuid={uuid}
+        isArchived={listing.status === 'ARCHIVED'}
+      />
 
       {/* Review & Publish Modal */}
       <ListingReviewModal

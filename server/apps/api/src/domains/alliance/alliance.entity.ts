@@ -83,4 +83,18 @@ export interface AllianceListingEntity {
       name: string;
     };
   } | null;
+  media?: AllianceListingMediaEntity[];
+}
+
+export interface AllianceListingMediaEntity {
+  id: number;
+  uuid: string;
+  listingId: number;
+  storageKey: string;
+  publicUrl: string;
+  mimeType: string;
+  fileSize: number;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
 }

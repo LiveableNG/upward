@@ -3,6 +3,7 @@ import {
   AllianceQualificationEntity,
   AlliancePmQualificationEntity,
   AllianceListingEntity,
+  AllianceListingMediaEntity,
   AllianceListingStatus,
   AllianceSourceType,
   AllianceTargetType,
@@ -95,4 +96,27 @@ export interface IAllianceListingRepository {
     },
   ): Promise<{ items: AllianceListingEntity[]; total: number }>;
   deleteDraft(id: number): Promise<boolean>;
+}
+
+export const ALLIANCE_LISTING_MEDIA_REPOSITORY = Symbol('ALLIANCE_LISTING_MEDIA_REPOSITORY');
+
+export interface CreateAllianceListingMediaData {
+  listingId: number;
+  storageKey: string;
+  publicUrl: string;
+  mimeType: string;
+  fileSize: number;
+  sortOrder?: number;
+}
+
+export interface IAllianceListingMediaRepository {
+  create(data: CreateAllianceListingMediaData): Promise<AllianceListingMediaEntity>;
+  findById(id: number): Promise<AllianceListingMediaEntity | null>;
+  findByUuid(uuid: string): Promise<AllianceListingMediaEntity | null>;
+  findByListingId(listingId: number): Promise<AllianceListingMediaEntity[]>;
+  countByListingId(listingId: number): Promise<number>;
+  reorder(listingId: number, orderedIds: number[]): Promise<AllianceListingMediaEntity[]>;
+  delete(id: number): Promise<boolean>;
+  deleteByListingId(listingId: number): Promise<number>;
+  reindexSortOrders(listingId: number): Promise<void>;
 }

@@ -71,6 +71,41 @@ export interface AllianceListing {
       name: string
     }
   } | null
+  media?: AllianceListingMedia[]
+}
+
+export interface AllianceListingMedia {
+  id: number
+  uuid: string
+  listingId: number
+  storageKey: string
+  publicUrl: string
+  mimeType: string
+  fileSize: number
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RequestMediaUploadPayload {
+  filename: string
+  mimeType: string
+  fileSize: number
+}
+
+export interface UploadUrlResponse {
+  storageKey: string
+  uploadUrl: string
+  publicUrl: string
+  mediaUuid: string
+  maxFileSize: number
+}
+
+export interface ConfirmMediaUploadPayload {
+  storageKey: string
+  mimeType: string
+  fileSize: number
+  publicUrl: string
 }
 
 export interface CreateAllianceListingPayload {

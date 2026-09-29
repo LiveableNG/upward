@@ -69,6 +69,20 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               : undefined,
           }
         : null,
+      media: item.media
+        ? item.media.map((m: any) => ({
+            id: m.id,
+            uuid: m.uuid,
+            listingId: m.listingId,
+            storageKey: m.storageKey,
+            publicUrl: m.publicUrl,
+            mimeType: m.mimeType,
+            fileSize: m.fileSize,
+            sortOrder: m.sortOrder,
+            createdAt: m.createdAt,
+            updatedAt: m.updatedAt,
+          }))
+        : [],
     };
   }
 
@@ -106,6 +120,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             property: { select: { id: true, uuid: true, name: true } },
           },
         },
+        media: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -127,6 +142,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             property: { select: { id: true, uuid: true, name: true } },
           },
         },
+        media: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -148,6 +164,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             property: { select: { id: true, uuid: true, name: true } },
           },
         },
+        media: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -162,6 +179,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
       },
       include: {
         targetProperty: { select: { id: true, uuid: true, name: true, address: true } },
+        media: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -185,6 +203,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             property: { select: { id: true, uuid: true, name: true } },
           },
         },
+        media: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -209,6 +228,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             property: { select: { id: true, uuid: true, name: true } },
           },
         },
+        media: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -255,6 +275,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               property: { select: { id: true, uuid: true, name: true } },
             },
           },
+          media: { orderBy: { sortOrder: 'asc' } },
         },
       }),
       (this.prisma as any).upward_alliance_listing.count({ where }),

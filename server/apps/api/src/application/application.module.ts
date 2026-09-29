@@ -525,6 +525,11 @@ import { PublishAllianceListingUseCase } from './alliance/use-cases/publish-alli
 import { UnpublishAllianceListingUseCase } from './alliance/use-cases/unpublish-alliance-listing.use-case'
 import { ArchiveAllianceListingUseCase } from './alliance/use-cases/archive-alliance-listing.use-case'
 import { ListPmAllianceListingsUseCase } from './alliance/use-cases/list-pm-alliance-listings.use-case'
+import { RequestAllianceMediaUploadUseCase } from './alliance/use-cases/request-alliance-media-upload.use-case'
+import { ConfirmAllianceMediaUploadUseCase } from './alliance/use-cases/confirm-alliance-media-upload.use-case'
+import { ListAllianceListingMediaUseCase } from './alliance/use-cases/list-alliance-listing-media.use-case'
+import { ReorderAllianceListingMediaUseCase } from './alliance/use-cases/reorder-alliance-listing-media.use-case'
+import { DeleteAllianceListingMediaUseCase } from './alliance/use-cases/delete-alliance-listing-media.use-case'
 
 const UseCases: any[] = [
   TogglePmAllianceEnablementUseCase,
@@ -544,6 +549,11 @@ const UseCases: any[] = [
   UnpublishAllianceListingUseCase,
   ArchiveAllianceListingUseCase,
   ListPmAllianceListingsUseCase,
+  RequestAllianceMediaUploadUseCase,
+  ConfirmAllianceMediaUploadUseCase,
+  ListAllianceListingMediaUseCase,
+  ReorderAllianceListingMediaUseCase,
+  DeleteAllianceListingMediaUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,
