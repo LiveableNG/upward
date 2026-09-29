@@ -48,11 +48,15 @@ import { TENANCY_PERIOD_REPOSITORY } from '../../../domains/companies/tenancy-pe
 import { PrismaEarlyAccessRepository } from '../../../infrastructure/repositories/prisma-early-access.repository'
 import { PrismaUniversityApplicationRepository } from '../../../infrastructure/repositories/prisma-university-application.repository'
 import { PrismaUniversityTrafficRepository } from '../../../infrastructure/repositories/prisma-university-traffic.repository'
+import { PrismaUniversityReferralRepository } from '../../../infrastructure/repositories/prisma-university-referral.repository'
+import { PrismaUniversityHireRequestRepository } from '../../../infrastructure/repositories/prisma-university-hire-request.repository'
 
 import { PaystackGateway } from '../payments/paystack.gateway'
 import { EARLY_ACCESS_REPOSITORY } from '../../../domains/early-access/early-access.repository'
 import { UNIVERSITY_APPLICATION_REPOSITORY } from '../../../domains/university-application/university-application.repository'
 import { UNIVERSITY_TRAFFIC_REPOSITORY } from '../../../domains/university-traffic/university-traffic.repository'
+import { UNIVERSITY_REFERRAL_REPOSITORY } from '../../../domains/university-referral/university-referral.repository'
+import { UNIVERSITY_HIRE_REQUEST_REPOSITORY } from '../../../domains/university-hire-request/university-hire-request.repository'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {
@@ -273,6 +277,14 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaUniversityTrafficRepository,
     },
     {
+      provide: UNIVERSITY_REFERRAL_REPOSITORY,
+      useClass: PrismaUniversityReferralRepository,
+    },
+    {
+      provide: UNIVERSITY_HIRE_REQUEST_REPOSITORY,
+      useClass: PrismaUniversityHireRequestRepository,
+    },
+    {
       provide: SETTLEMENT_ACCOUNT_REPOSITORY,
       useClass: PrismaPmSettlementAccountRepository,
     },
@@ -329,6 +341,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     EARLY_ACCESS_REPOSITORY,
     UNIVERSITY_APPLICATION_REPOSITORY,
     UNIVERSITY_TRAFFIC_REPOSITORY,
+    UNIVERSITY_REFERRAL_REPOSITORY,
+    UNIVERSITY_HIRE_REQUEST_REPOSITORY,
     SETTLEMENT_ACCOUNT_REPOSITORY,
     RENT_DEPOSIT_BALANCE_REPOSITORY,
     TENANCY_PERIOD_REPOSITORY,

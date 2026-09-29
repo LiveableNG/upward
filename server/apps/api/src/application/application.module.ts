@@ -84,6 +84,17 @@ import {
   DeleteEarlyAccessEntryUseCase,
 } from './use-cases/early-access/get-early-access-admin.use-case'
 import { SubmitUniversityApplicationUseCase } from './use-cases/university-application/submit-university-application.use-case'
+import { SubmitUniversityReferralsUseCase } from './use-cases/university-referral/submit-university-referrals.use-case'
+import {
+  GetUniversityReferralStatsUseCase,
+  GetUniversityReferralsAdminUseCase,
+  UpdateUniversityReferralAdminUseCase,
+  DeleteUniversityReferralAdminUseCase,
+} from './use-cases/university-referral/get-university-referrals-admin.use-case'
+import { SubmitUniversityHireRequestUseCase } from './use-cases/university-hire-request/submit-university-hire-request.use-case'
+import { GetUniversityHireRequestsAdminUseCase } from './use-cases/university-hire-request/get-university-hire-requests-admin.use-case'
+import { UpdateUniversityHireRequestAdminUseCase } from './use-cases/university-hire-request/update-university-hire-request-admin.use-case'
+import { DeleteUniversityHireRequestAdminUseCase } from './use-cases/university-hire-request/delete-university-hire-request-admin.use-case'
 import { SendUniversityApplicationDailyDigestUseCase } from './use-cases/university-application/send-university-application-daily-digest.use-case'
 import {
   GetUniversityApplicationStatsUseCase,
@@ -872,6 +883,15 @@ const UseCases: any[] = [
   GetEarlyAccessEntriesUseCase,
   DeleteEarlyAccessEntryUseCase,
   SubmitUniversityApplicationUseCase,
+  SubmitUniversityReferralsUseCase,
+  GetUniversityReferralStatsUseCase,
+  GetUniversityReferralsAdminUseCase,
+  UpdateUniversityReferralAdminUseCase,
+  DeleteUniversityReferralAdminUseCase,
+  SubmitUniversityHireRequestUseCase,
+  GetUniversityHireRequestsAdminUseCase,
+  UpdateUniversityHireRequestAdminUseCase,
+  DeleteUniversityHireRequestAdminUseCase,
   SendUniversityApplicationDailyDigestUseCase,
   GetUniversityApplicationStatsUseCase,
   GetUniversityApplicationsUseCase,
