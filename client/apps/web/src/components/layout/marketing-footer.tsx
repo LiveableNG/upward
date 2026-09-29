@@ -81,6 +81,7 @@ export function MarketingFooter() {
               <Link href="/request-a-home">Request a Home</Link>
               <Link href="/for-landlord">Landlords</Link>
               <Link href="/for-pm">Property Managers</Link>
+              <Link href="/alliance">Marketplace</Link>
               <Link href="/blog">Blog</Link>
             </div>
             <div className="marketing-footer__col">

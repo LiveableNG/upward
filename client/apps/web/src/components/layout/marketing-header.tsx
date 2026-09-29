@@ -20,7 +20,7 @@ export function MarketingHeader() {
     <>
       <header className="marketing-header">
         <div className="marketing-header__inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
+          <div className="marketing-header__left">
             <Link href="/" className="marketing-header__brand">
               <div className="marketing-header__logo">
                 <img src="/favicon.svg" alt="Upward" />
@@ -149,6 +149,7 @@ export function MarketingHeader() {
           </div>
 
           <div className="marketing-header__actions">
+            <div className="marketing-header__divider" aria-hidden="true" />
             <Link href="/login" className="marketing-header__sign-in">
               Sign In
             </Link>
