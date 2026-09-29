@@ -101,6 +101,8 @@ import { PmAllianceDiscoverController } from './pm/pm-alliance-discover.controll
 import { PmAllianceReferralController } from './pm/pm-alliance-referral.controller'
 import { PmAllianceCommissionController } from './pm/pm-alliance-commission.controller'
 import { PmAllianceRatingController } from './pm/pm-alliance-rating.controller'
+import { PublicAllianceMarketplaceController } from './public/public-alliance.controller'
+import { UserAllianceController } from './user/user-alliance.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -211,6 +213,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PmAllianceReferralController,
     PmAllianceCommissionController,
     PmAllianceRatingController,
+    PublicAllianceMarketplaceController,
+    UserAllianceController,
   ],
 })
 export class HttpModule {}

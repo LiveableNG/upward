@@ -511,6 +511,185 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
     return item ? this.mapToEntity(item) : null;
   }
 
+  async findPublicMarketplaceListings(options?: {
+    intent?: AllianceListingIntent;
+    targetType?: AllianceTargetType;
+    propertyType?: string;
+    city?: string;
+    state?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    search?: string;
+    sortBy?: 'newest' | 'price_asc' | 'price_desc';
+    skip?: number;
+    take?: number;
+  }): Promise<{ items: AllianceListingEntity[]; total: number }> {
+    const where: any = {
+      status: 'PUBLISHED',
+      visibility: { in: ['ALLIANCE', 'PUBLIC'] },
+      isSourceDeleted: false,
+      pm: {
+        allianceProfile: {
+          isEnabled: true,
+        },
+      },
+    };
+
+    if (options?.intent) {
+      where.intent = options.intent;
+    }
+    if (options?.targetType) {
+      where.targetType = options.targetType;
+    }
+    if (options?.propertyType) {
+      where.propertyType = { contains: options.propertyType, mode: 'insensitive' };
+    }
+    if (options?.city) {
+      where.city = { contains: options.city, mode: 'insensitive' };
+    }
+    if (options?.state) {
+      where.state = { contains: options.state, mode: 'insensitive' };
+    }
+    if (options?.minPrice !== undefined || options?.maxPrice !== undefined) {
+      where.price = {};
+      if (options.minPrice !== undefined) where.price.gte = options.minPrice;
+      if (options.maxPrice !== undefined) where.price.lte = options.maxPrice;
+    }
+    if (options?.bedrooms !== undefined) {
+      where.bedrooms = { gte: options.bedrooms };
+    }
+    if (options?.bathrooms !== undefined) {
+      where.bathrooms = { gte: options.bathrooms };
+    }
+    if (options?.search && options.search.trim().length > 0) {
+      const s = options.search.trim();
+      where.OR = [
+        { title: { contains: s, mode: 'insensitive' } },
+        { description: { contains: s, mode: 'insensitive' } },
+        { city: { contains: s, mode: 'insensitive' } },
+        { state: { contains: s, mode: 'insensitive' } },
+        { address: { contains: s, mode: 'insensitive' } },
+        { propertyType: { contains: s, mode: 'insensitive' } },
+      ];
+    }
+
+    let orderBy: any = [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
+    if (options?.sortBy === 'price_asc') {
+      orderBy = { price: 'asc' };
+    } else if (options?.sortBy === 'price_desc') {
+      orderBy = { price: 'desc' };
+    }
+
+    const [items, total] = await Promise.all([
+      (this.prisma as any).upward_alliance_listing.findMany({
+        where,
+        orderBy,
+        skip: options?.skip,
+        take: options?.take,
+        include: {
+          targetProperty: { select: { id: true, uuid: true, name: true, address: true } },
+          targetUnit: {
+            select: {
+              id: true,
+              uuid: true,
+              unitName: true,
+              rentAmount: true,
+              status: true,
+              propertyId: true,
+              property: { select: { id: true, uuid: true, name: true } },
+            },
+          },
+          media: { orderBy: { sortOrder: 'asc' } },
+          pm: {
+            select: {
+              id: true,
+              uuid: true,
+              firstName: true,
+              lastName: true,
+              companyName: true,
+              allianceProfile: {
+                select: {
+                  pmTitle: true,
+                  bio: true,
+                  isEnabled: true,
+                },
+              },
+              qualifications: {
+                where: { isActive: true },
+                include: {
+                  qualification: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      (this.prisma as any).upward_alliance_listing.count({ where }),
+    ]);
+
+    return {
+      items: items.map((i: any) => this.mapToEntity(i)),
+      total,
+    };
+  }
+
+  async findPublicByUuid(uuid: string): Promise<AllianceListingEntity | null> {
+    const item = await (this.prisma as any).upward_alliance_listing.findFirst({
+      where: {
+        uuid,
+        status: 'PUBLISHED',
+        visibility: { in: ['ALLIANCE', 'PUBLIC'] },
+        isSourceDeleted: false,
+        pm: {
+          allianceProfile: {
+            isEnabled: true,
+          },
+        },
+      },
+      include: {
+        targetProperty: { select: { id: true, uuid: true, name: true, address: true } },
+        targetUnit: {
+          select: {
+            id: true,
+            uuid: true,
+            unitName: true,
+            rentAmount: true,
+            status: true,
+            propertyId: true,
+            property: { select: { id: true, uuid: true, name: true } },
+          },
+        },
+        media: { orderBy: { sortOrder: 'asc' } },
+        pm: {
+          select: {
+            id: true,
+            uuid: true,
+            firstName: true,
+            lastName: true,
+            companyName: true,
+            allianceProfile: {
+              select: {
+                pmTitle: true,
+                bio: true,
+                isEnabled: true,
+              },
+            },
+            qualifications: {
+              where: { isActive: true },
+              include: {
+                qualification: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return item ? this.mapToEntity(item) : null;
+  }
+
   async deleteDraft(id: number): Promise<boolean> {
     await (this.prisma as any).upward_alliance_listing.delete({
       where: { id },

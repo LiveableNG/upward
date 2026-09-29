@@ -106,6 +106,8 @@ describe('Alliance Tracker Use Cases (Stage 1F)', () => {
       deleteDraft: jest.fn(),
       findDiscoverableListings: jest.fn(),
       findDiscoverableByUuid: jest.fn(),
+      findPublicMarketplaceListings: jest.fn(),
+      findPublicByUuid: jest.fn(),
     };
 
     mockProfileRepo = {

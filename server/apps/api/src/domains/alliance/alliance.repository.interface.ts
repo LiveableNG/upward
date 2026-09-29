@@ -113,6 +113,22 @@ export interface IAllianceListingRepository {
     },
   ): Promise<{ items: AllianceListingEntity[]; total: number }>;
   findDiscoverableByUuid(uuid: string, excludePmId?: number): Promise<AllianceListingEntity | null>;
+  findPublicMarketplaceListings(options?: {
+    intent?: AllianceListingIntent;
+    targetType?: AllianceTargetType;
+    propertyType?: string;
+    city?: string;
+    state?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    search?: string;
+    sortBy?: 'newest' | 'price_asc' | 'price_desc';
+    skip?: number;
+    take?: number;
+  }): Promise<{ items: AllianceListingEntity[]; total: number }>;
+  findPublicByUuid(uuid: string): Promise<AllianceListingEntity | null>;
   deleteDraft(id: number): Promise<boolean>;
 }
 

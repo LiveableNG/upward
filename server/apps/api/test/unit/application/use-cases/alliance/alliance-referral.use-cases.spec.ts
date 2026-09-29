@@ -149,6 +149,8 @@ describe('Alliance Referral & Lead Use Cases (Stage 2)', () => {
       deleteDraft: jest.fn(),
       findDiscoverableListings: jest.fn(),
       findDiscoverableByUuid: jest.fn(),
+      findPublicMarketplaceListings: jest.fn(),
+      findPublicByUuid: jest.fn(),
     };
 
     mockProfileRepo = {

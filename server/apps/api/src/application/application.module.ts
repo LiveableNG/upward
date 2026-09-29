@@ -545,6 +545,10 @@ import { GetAllianceCommissionDetailUseCase } from './alliance/use-cases/get-all
 import { SubmitAllianceRatingUseCase } from './alliance/use-cases/submit-alliance-rating.use-case'
 import { GetSubjectRatingSummaryUseCase } from './alliance/use-cases/get-subject-rating-summary.use-case'
 import { ListSubjectRatingsUseCase } from './alliance/use-cases/list-subject-ratings.use-case'
+import { GetPublicAllianceListingsUseCase } from './alliance/use-cases/get-public-alliance-listings.use-case'
+import { GetPublicAllianceListingDetailUseCase } from './alliance/use-cases/get-public-alliance-listing-detail.use-case'
+import { ResolvePublicAllianceReferralUseCase } from './alliance/use-cases/resolve-public-alliance-referral.use-case'
+import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-alliance-inquiry.use-case'
 
 const UseCases: any[] = [
   TogglePmAllianceEnablementUseCase,
@@ -584,6 +588,10 @@ const UseCases: any[] = [
   SubmitAllianceRatingUseCase,
   GetSubjectRatingSummaryUseCase,
   ListSubjectRatingsUseCase,
+  GetPublicAllianceListingsUseCase,
+  GetPublicAllianceListingDetailUseCase,
+  ResolvePublicAllianceReferralUseCase,
+  SubmitAllianceInquiryUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

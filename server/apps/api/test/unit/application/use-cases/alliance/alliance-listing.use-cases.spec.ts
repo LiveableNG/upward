@@ -49,6 +49,8 @@ describe('Alliance Listing Use Cases (Stage 1B)', () => {
       deleteDraft: jest.fn(),
       findDiscoverableListings: jest.fn(),
       findDiscoverableByUuid: jest.fn(),
+      findPublicMarketplaceListings: jest.fn(),
+      findPublicByUuid: jest.fn(),
     };
     mockProfileRepo = {
       findByPmId: jest.fn(),
