@@ -65,6 +65,8 @@ model upward_user {
   whatsappSequenceLogs  upward_whatsapp_sequence_log[]
   invitedPms            upward_property_manager[]        @relation("UserInvitedPms")
   allianceReferrals     upward_alliance_referral[]
+  allianceAuthoredRatings upward_alliance_rating[]       @relation("AllianceAuthorUser")
+  allianceSubjectRatings  upward_alliance_rating[]       @relation("AllianceSubjectUser")
 
   @@index([email])
   @@index([createdAt])

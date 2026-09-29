@@ -74,6 +74,9 @@ model upward_property_manager {
   allianceListings        upward_alliance_listing[]
   trackedAllianceListings upward_alliance_listing_tracker[]
   allianceReferrals       upward_alliance_referral[]
+  allianceCommissions     upward_alliance_commission[]
+  allianceAuthoredRatings upward_alliance_rating[]             @relation("AllianceAuthorPm")
+  allianceSubjectRatings  upward_alliance_rating[]             @relation("AllianceSubjectPm")
 
   @@index([email])
 }
@@ -238,8 +241,9 @@ model upward_pm_rent_payment {
   updatedAt           DateTime          @updatedAt
   tenantId            Int?
   rentAmountAtPayment Float
-  tenant              upward_pm_tenant? @relation(fields: [tenantId], references: [id])
-  unit                upward_pm_unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tenant              upward_pm_tenant?            @relation(fields: [tenantId], references: [id])
+  unit                upward_pm_unit               @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  allianceCommissions upward_alliance_commission[]
 
   @@index([unitId])
   @@index([tenantId])

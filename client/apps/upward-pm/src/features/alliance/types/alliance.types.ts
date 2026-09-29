@@ -393,3 +393,136 @@ export interface ListAllianceReferralsResponse {
     totalPages: number
   }
 }
+
+// Stage 3: Commission & Rating Types
+export type AllianceCommissionStatus = 'PENDING' | 'EARNED' | 'PAYABLE' | 'PAID' | 'REVERSED'
+export type AllianceCommissionType = 'PERCENTAGE' | 'FIXED'
+
+export interface AllianceCommission {
+  id: number
+  uuid: string
+  referralId: number
+  referringPmId: number
+  listingId: number
+  sourceTransactionId: number | null
+  sourceRentPaymentId: number | null
+  transactionReference: string | null
+  commissionType: AllianceCommissionType
+  sourceAmount: number
+  commissionRate: number
+  commissionAmount: number
+  currency: string
+  status: AllianceCommissionStatus
+  notes: string | null
+  earnedAt: string
+  payableAt: string | null
+  paidAt: string | null
+  reversedAt: string | null
+  reversalReason: string | null
+  createdAt: string
+  updatedAt: string
+  referral?: AllianceReferral
+  listing?: {
+    id: number
+    uuid: string
+    title: string
+    price: number
+    currency: string
+    city: string | null
+    state: string | null
+  }
+  referringPm?: {
+    id: number
+    uuid: string
+    name: string
+    companyName?: string | null
+  }
+}
+
+export interface AllianceCommissionStats {
+  totalEarned: number
+  totalPayable: number
+  totalPaid: number
+  totalPending: number
+  count: number
+}
+
+export interface ListAllianceCommissionsParams {
+  status?: AllianceCommissionStatus
+  listingUuid?: string
+  search?: string
+  page?: number
+  limit?: number
+}
+
+export interface ListAllianceCommissionsResponse {
+  items: AllianceCommission[]
+  stats: AllianceCommissionStats
+  meta: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+export interface ConvertAllianceReferralPayload {
+  sourceAmount: number
+  sourceTransactionId?: number
+  transactionReference?: string
+  commissionRate?: number
+  commissionType?: AllianceCommissionType
+  notes?: string
+}
+
+export interface ConvertAllianceReferralResponse {
+  referral: AllianceReferral
+  commission: AllianceCommission
+  isNew: boolean
+}
+
+export type AllianceRatingAuthorType = 'PM' | 'CLIENT'
+export type AllianceRatingSubjectType = 'CLIENT' | 'PM' | 'LISTING'
+
+export interface AllianceRating {
+  id: number
+  uuid: string
+  referralId: number
+  authorType: AllianceRatingAuthorType
+  authorPmId: number | null
+  authorUserId: number | null
+  subjectType: AllianceRatingSubjectType
+  subjectPmId: number | null
+  subjectUserId: number | null
+  subjectListingId: number | null
+  score: number
+  review: string | null
+  createdAt: string
+  updatedAt: string
+  authorPm?: {
+    name: string
+    companyName?: string | null
+  } | null
+  authorUser?: {
+    firstName: string
+    lastName: string
+  } | null
+}
+
+export interface AllianceRatingSummary {
+  averageScore: number
+  totalRatings: number
+  distribution: {
+    1: number
+    2: number
+    3: number
+    4: number
+    5: number
+  }
+}
+
+export interface SubmitAllianceRatingPayload {
+  referralUuid: string
+  score: number
+  review?: string
+}

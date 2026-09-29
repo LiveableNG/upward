@@ -199,4 +199,82 @@ export interface IAllianceReferralRepository {
   findActiveReferralsByListingId(listingId: number): Promise<import('./alliance.entity').AllianceReferralEntity[]>;
 }
 
+export const ALLIANCE_COMMISSION_REPOSITORY = Symbol('ALLIANCE_COMMISSION_REPOSITORY');
+
+export interface CreateAllianceCommissionData {
+  referralId: number;
+  referringPmId: number;
+  listingId: number;
+  sourceTransactionId?: number | null;
+  sourceRentPaymentId?: number | null;
+  transactionReference?: string | null;
+  commissionType?: import('./alliance.entity').AllianceCommissionType;
+  sourceAmount: number;
+  commissionRate?: number;
+  commissionAmount: number;
+  currency?: string;
+  status?: import('./alliance.entity').AllianceCommissionStatus;
+  notes?: string | null;
+  earnedAt?: Date;
+  payableAt?: Date | null;
+  paidAt?: Date | null;
+}
+
+export interface ListAllianceCommissionsFilter {
+  status?: import('./alliance.entity').AllianceCommissionStatus;
+  listingUuid?: string;
+  search?: string;
+  startDate?: Date;
+  endDate?: Date;
+  skip?: number;
+  take?: number;
+}
+
+export interface IAllianceCommissionRepository {
+  create(data: CreateAllianceCommissionData): Promise<import('./alliance.entity').AllianceCommissionEntity>;
+  findById(id: number): Promise<import('./alliance.entity').AllianceCommissionEntity | null>;
+  findByUuid(uuid: string): Promise<import('./alliance.entity').AllianceCommissionEntity | null>;
+  findByReferralAndTxRef(referralId: number, transactionReference: string): Promise<import('./alliance.entity').AllianceCommissionEntity | null>;
+  listByReferringPm(pmId: number, filter?: ListAllianceCommissionsFilter): Promise<{ items: import('./alliance.entity').AllianceCommissionEntity[]; total: number }>;
+  getPmCommissionStats(pmId: number): Promise<{ totalEarned: number; totalPayable: number; totalPaid: number; totalPending: number; count: number }>;
+  updateStatus(
+    id: number,
+    status: import('./alliance.entity').AllianceCommissionStatus,
+    extra?: { payableAt?: Date; paidAt?: Date; reversedAt?: Date; reversalReason?: string; notes?: string },
+  ): Promise<import('./alliance.entity').AllianceCommissionEntity>;
+}
+
+export const ALLIANCE_RATING_REPOSITORY = Symbol('ALLIANCE_RATING_REPOSITORY');
+
+export interface CreateAllianceRatingData {
+  referralId: number;
+  authorType: import('./alliance.entity').AllianceRatingAuthorType;
+  authorPmId?: number | null;
+  authorUserId?: number | null;
+  subjectType: import('./alliance.entity').AllianceRatingSubjectType;
+  subjectPmId?: number | null;
+  subjectUserId?: number | null;
+  subjectListingId?: number | null;
+  score: number;
+  review?: string | null;
+}
+
+export interface IAllianceRatingRepository {
+  create(data: CreateAllianceRatingData): Promise<import('./alliance.entity').AllianceRatingEntity>;
+  findByReferralAndAuthor(
+    referralId: number,
+    authorType: import('./alliance.entity').AllianceRatingAuthorType,
+    authorId: number,
+  ): Promise<import('./alliance.entity').AllianceRatingEntity | null>;
+  getRatingSummaryForSubject(
+    subjectType: import('./alliance.entity').AllianceRatingSubjectType,
+    subjectId: number,
+  ): Promise<import('./alliance.entity').AllianceRatingSummaryEntity>;
+  listRatingsForSubject(
+    subjectType: import('./alliance.entity').AllianceRatingSubjectType,
+    subjectId: number,
+    options?: { skip?: number; take?: number },
+  ): Promise<{ items: import('./alliance.entity').AllianceRatingEntity[]; total: number }>;
+}
+
 

@@ -49,7 +49,19 @@ import { PrismaAllianceListingRepository } from './repositories/prisma-alliance-
 import { PrismaAllianceListingMediaRepository } from './repositories/prisma-alliance-listing-media.repository'
 import { PrismaAllianceListingTrackerRepository } from './repositories/prisma-alliance-listing-tracker.repository'
 import { PrismaAllianceReferralRepository } from './repositories/prisma-alliance-referral.repository'
-import { ALLIANCE_PROFILE_REPOSITORY, ALLIANCE_QUALIFICATION_REPOSITORY, ALLIANCE_PM_QUALIFICATION_REPOSITORY, ALLIANCE_LISTING_REPOSITORY, ALLIANCE_LISTING_MEDIA_REPOSITORY, ALLIANCE_LISTING_TRACKER_REPOSITORY, ALLIANCE_REFERRAL_REPOSITORY } from '../../../domains/alliance/alliance.repository.interface'
+import { PrismaAllianceCommissionRepository } from './repositories/prisma-alliance-commission.repository'
+import { PrismaAllianceRatingRepository } from './repositories/prisma-alliance-rating.repository'
+import {
+  ALLIANCE_PROFILE_REPOSITORY,
+  ALLIANCE_QUALIFICATION_REPOSITORY,
+  ALLIANCE_PM_QUALIFICATION_REPOSITORY,
+  ALLIANCE_LISTING_REPOSITORY,
+  ALLIANCE_LISTING_MEDIA_REPOSITORY,
+  ALLIANCE_LISTING_TRACKER_REPOSITORY,
+  ALLIANCE_REFERRAL_REPOSITORY,
+  ALLIANCE_COMMISSION_REPOSITORY,
+  ALLIANCE_RATING_REPOSITORY,
+} from '../../../domains/alliance/alliance.repository.interface'
 import { SETTLEMENT_ACCOUNT_REPOSITORY } from '../../../domains/pm/ISettlementAccountRepository'
 import { TENANCY_PERIOD_REPOSITORY } from '../../../domains/companies/tenancy-period.repository'
 
@@ -332,6 +344,14 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: ALLIANCE_REFERRAL_REPOSITORY,
       useClass: PrismaAllianceReferralRepository,
     },
+    {
+      provide: ALLIANCE_COMMISSION_REPOSITORY,
+      useClass: PrismaAllianceCommissionRepository,
+    },
+    {
+      provide: ALLIANCE_RATING_REPOSITORY,
+      useClass: PrismaAllianceRatingRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -389,6 +409,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     ALLIANCE_LISTING_MEDIA_REPOSITORY,
     ALLIANCE_LISTING_TRACKER_REPOSITORY,
     ALLIANCE_REFERRAL_REPOSITORY,
+    ALLIANCE_COMMISSION_REPOSITORY,
+    ALLIANCE_RATING_REPOSITORY,
   ],
 })
 export class PrismaModule {}

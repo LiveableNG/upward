@@ -235,4 +235,102 @@ export interface AllianceReferralEntity {
   } | null;
 }
 
+export type AllianceCommissionStatus = 'PENDING' | 'EARNED' | 'PAYABLE' | 'PAID' | 'REVERSED';
+export type AllianceCommissionType = 'PERCENTAGE' | 'FIXED';
+
+export interface AllianceCommissionEntity {
+  id: number;
+  uuid: string;
+  referralId: number;
+  referringPmId: number;
+  listingId: number;
+  sourceTransactionId: number | null;
+  sourceRentPaymentId: number | null;
+  transactionReference: string | null;
+  commissionType: AllianceCommissionType;
+  sourceAmount: number;
+  commissionRate: number;
+  commissionAmount: number;
+  currency: string;
+  status: AllianceCommissionStatus;
+  notes: string | null;
+  earnedAt: Date;
+  payableAt: Date | null;
+  paidAt: Date | null;
+  reversedAt: Date | null;
+  reversalReason: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  referral?: AllianceReferralEntity;
+  listing?: AllianceListingEntity;
+  referringPm?: {
+    id: number;
+    uuid: string;
+    name: string;
+    companyName?: string | null;
+  };
+}
+
+export type AllianceRatingAuthorType = 'PM' | 'CLIENT';
+export type AllianceRatingSubjectType = 'CLIENT' | 'PM' | 'LISTING';
+
+export interface AllianceRatingEntity {
+  id: number;
+  uuid: string;
+  referralId: number;
+  authorType: AllianceRatingAuthorType;
+  authorPmId: number | null;
+  authorUserId: number | null;
+  subjectType: AllianceRatingSubjectType;
+  subjectPmId: number | null;
+  subjectUserId: number | null;
+  subjectListingId: number | null;
+  score: number;
+  review: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  referral?: AllianceReferralEntity;
+  authorPm?: {
+    id: number;
+    uuid: string;
+    name: string;
+    companyName?: string | null;
+  } | null;
+  authorUser?: {
+    id: number;
+    uuid: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  subjectPm?: {
+    id: number;
+    uuid: string;
+    name: string;
+    companyName?: string | null;
+  } | null;
+  subjectUser?: {
+    id: number;
+    uuid: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  subjectListing?: {
+    id: number;
+    uuid: string;
+    title: string;
+  } | null;
+}
+
+export interface AllianceRatingSummaryEntity {
+  averageScore: number;
+  totalRatings: number;
+  distribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+}
+
 

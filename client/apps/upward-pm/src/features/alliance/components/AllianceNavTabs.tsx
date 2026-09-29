@@ -3,10 +3,10 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Compass, List, Award, Users } from 'lucide-react'
+import { Compass, List, Award, Users, DollarSign } from 'lucide-react'
 
 interface AllianceNavTabsProps {
-  activeTab?: 'discover' | 'my-listings' | 'referrals'
+  activeTab?: 'discover' | 'my-listings' | 'referrals' | 'commissions'
 }
 
 export function AllianceNavTabs({ activeTab }: AllianceNavTabsProps) {
@@ -14,6 +14,7 @@ export function AllianceNavTabs({ activeTab }: AllianceNavTabsProps) {
   const isDiscover = activeTab === 'discover' || pathname.startsWith('/alliance/discover')
   const isMyListings = activeTab === 'my-listings' || pathname.startsWith('/alliance/listings')
   const isReferrals = activeTab === 'referrals' || pathname.startsWith('/alliance/referrals')
+  const isCommissions = activeTab === 'commissions' || pathname.startsWith('/alliance/commissions')
 
   return (
     <div
@@ -22,6 +23,7 @@ export function AllianceNavTabs({ activeTab }: AllianceNavTabsProps) {
         gap: '8px',
         borderBottom: '1px solid var(--border)',
         marginBottom: '20px',
+        flexWrap: 'wrap',
       }}
     >
       <Link
@@ -82,6 +84,26 @@ export function AllianceNavTabs({ activeTab }: AllianceNavTabsProps) {
       >
         <Users size={18} />
         My Referrals & Leads
+      </Link>
+
+      <Link
+        href="/alliance/commissions"
+        className="btn btn--text"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 16px',
+          fontSize: '14px',
+          fontWeight: isCommissions ? 700 : 500,
+          color: isCommissions ? 'var(--forest)' : 'var(--text-secondary)',
+          borderBottom: isCommissions ? '2px solid var(--forest)' : '2px solid transparent',
+          borderRadius: 0,
+          textDecoration: 'none',
+        }}
+      >
+        <DollarSign size={18} />
+        Commissions
       </Link>
     </div>
   )

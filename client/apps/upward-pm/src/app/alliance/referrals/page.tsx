@@ -23,6 +23,8 @@ import {
   FileText,
   AlertCircle,
   ArrowUpRight,
+  DollarSign,
+  Star,
 } from 'lucide-react'
 import { AllianceNavTabs } from '@/features/alliance/components/AllianceNavTabs'
 import {
@@ -36,6 +38,8 @@ import {
   AllianceReferralStatus,
 } from '@/features/alliance/types/alliance.types'
 import { useToast } from '@/components/common/Toast'
+import { ConvertReferralModal } from '@/features/alliance/components/ConvertReferralModal'
+import { RatingModal } from '@/features/alliance/components/RatingModal'
 
 const STAGES: { value: AllianceLeadStage; label: string; color: string }[] = [
   { value: 'NEW', label: 'New Lead', color: '#3b82f6' },
@@ -53,6 +57,8 @@ export default function AllianceReferralsPage() {
   const [selectedStatus, setSelectedStatus] = useState<AllianceReferralStatus | 'ALL'>('ALL')
   const [selectedStage, setSelectedStage] = useState<AllianceLeadStage | 'ALL'>('ALL')
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
+  const [convertReferral, setConvertReferral] = useState<AllianceReferral | null>(null)
+  const [ratingReferral, setRatingReferral] = useState<AllianceReferral | null>(null)
 
   const { data, isLoading, isError, error } = useAllianceReferrals({
     status: selectedStatus === 'ALL' ? undefined : selectedStatus,
@@ -635,38 +641,99 @@ export default function AllianceReferralsPage() {
                     )}
                   </div>
 
-                  {/* Share Link Copy */}
-                  <button
-                    type="button"
-                    onClick={() => handleCopyLink(referral)}
-                    className="btn btn--secondary"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      height: '34px',
-                      padding: '0 12px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {copiedToken === referral.referralToken ? (
-                      <>
-                        <Check size={14} color="var(--forest)" />
-                        <span style={{ color: 'var(--forest)' }}>Link Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} />
-                        <span>Copy Referral Link</span>
-                      </>
+                  {/* Action Buttons: Convert, Rate & Share Link */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {!isClosed && !isConverted && (
+                      <button
+                        type="button"
+                        onClick={() => setConvertReferral(referral)}
+                        className="btn btn--primary"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          height: '34px',
+                          padding: '0 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <DollarSign size={14} />
+                        <span>Record Deal & Commission</span>
+                      </button>
                     )}
-                  </button>
+
+                    {isConverted && (
+                      <button
+                        type="button"
+                        onClick={() => setRatingReferral(referral)}
+                        className="btn btn--secondary"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          height: '34px',
+                          padding: '0 12px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#eab308',
+                        }}
+                      >
+                        <Star size={14} />
+                        <span>Rate Relationship</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyLink(referral)}
+                      className="btn btn--secondary"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        height: '34px',
+                        padding: '0 12px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {copiedToken === referral.referralToken ? (
+                        <>
+                          <Check size={14} color="var(--forest)" />
+                          <span style={{ color: 'var(--forest)' }}>Link Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={14} />
+                          <span>Copy Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )
           })}
         </div>
+      )}
+
+      {/* Convert Referral Modal */}
+      {convertReferral && (
+        <ConvertReferralModal
+          isOpen={Boolean(convertReferral)}
+          onClose={() => setConvertReferral(null)}
+          referral={convertReferral}
+        />
+      )}
+
+      {/* Rating Modal */}
+      {ratingReferral && (
+        <RatingModal
+          isOpen={Boolean(ratingReferral)}
+          onClose={() => setRatingReferral(null)}
+          referral={ratingReferral}
+        />
       )}
     </div>
   )

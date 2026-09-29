@@ -275,4 +275,61 @@ export function useCloseAllianceReferral() {
   })
 }
 
+// Stage 3: Commission & Rating Hooks
+export function useAllianceCommissions(params?: import('../types/alliance.types').ListAllianceCommissionsParams) {
+  return useQuery<import('../types/alliance.types').ListAllianceCommissionsResponse>({
+    queryKey: ['alliance-commissions', params],
+    queryFn: () => allianceService.listAllianceCommissions(params),
+    staleTime: 10000,
+  })
+}
+
+export function useAllianceCommission(uuid?: string) {
+  return useQuery<import('../types/alliance.types').AllianceCommission>({
+    queryKey: ['alliance-commission', uuid],
+    queryFn: () => {
+      if (!uuid) throw new Error('Commission UUID required')
+      return allianceService.getAllianceCommission(uuid)
+    },
+    enabled: Boolean(uuid),
+  })
+}
+
+export function useConvertAllianceReferral() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ uuid, payload }: { uuid: string; payload: import('../types/alliance.types').ConvertAllianceReferralPayload }) =>
+      allianceService.convertAllianceReferral(uuid, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-referrals'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-referral', variables.uuid] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-commissions'] })
+    },
+  })
+}
+
+export function useSubmitAllianceRating() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: import('../types/alliance.types').SubmitAllianceRatingPayload) =>
+      allianceService.submitAllianceRating(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['alliance-referrals'] })
+      queryClient.invalidateQueries({ queryKey: ['alliance-rating-summary'] })
+    },
+  })
+}
+
+export function useSubjectRatingSummary(subjectType: string, subjectId?: number) {
+  return useQuery<import('../types/alliance.types').AllianceRatingSummary>({
+    queryKey: ['alliance-rating-summary', subjectType, subjectId],
+    queryFn: () => {
+      if (!subjectId) throw new Error('Subject ID required')
+      return allianceService.getSubjectRatingSummary(subjectType, subjectId)
+    },
+    enabled: Boolean(subjectId),
+    staleTime: 30000,
+  })
+}
+
 

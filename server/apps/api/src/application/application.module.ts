@@ -539,6 +539,12 @@ import { ListPmAllianceReferralsUseCase } from './alliance/use-cases/list-pm-all
 import { GetAllianceReferralDetailUseCase } from './alliance/use-cases/get-alliance-referral-detail.use-case'
 import { UpdateAllianceLeadStageUseCase } from './alliance/use-cases/update-alliance-lead-stage.use-case'
 import { CloseAllianceReferralUseCase } from './alliance/use-cases/close-alliance-referral.use-case'
+import { ConvertAllianceReferralUseCase } from './alliance/use-cases/convert-alliance-referral.use-case'
+import { ListPmAllianceCommissionsUseCase } from './alliance/use-cases/list-pm-alliance-commissions.use-case'
+import { GetAllianceCommissionDetailUseCase } from './alliance/use-cases/get-alliance-commission-detail.use-case'
+import { SubmitAllianceRatingUseCase } from './alliance/use-cases/submit-alliance-rating.use-case'
+import { GetSubjectRatingSummaryUseCase } from './alliance/use-cases/get-subject-rating-summary.use-case'
+import { ListSubjectRatingsUseCase } from './alliance/use-cases/list-subject-ratings.use-case'
 
 const UseCases: any[] = [
   TogglePmAllianceEnablementUseCase,
@@ -572,6 +578,12 @@ const UseCases: any[] = [
   GetAllianceReferralDetailUseCase,
   UpdateAllianceLeadStageUseCase,
   CloseAllianceReferralUseCase,
+  ConvertAllianceReferralUseCase,
+  ListPmAllianceCommissionsUseCase,
+  GetAllianceCommissionDetailUseCase,
+  SubmitAllianceRatingUseCase,
+  GetSubjectRatingSummaryUseCase,
+  ListSubjectRatingsUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

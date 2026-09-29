@@ -208,3 +208,65 @@ export async function closeAllianceReferral(
     },
   )
 }
+
+// Stage 3: Commission & Rating API
+export async function convertAllianceReferral(
+  uuid: string,
+  payload: import('../types/alliance.types').ConvertAllianceReferralPayload,
+): Promise<import('../types/alliance.types').ConvertAllianceReferralResponse> {
+  return request<import('../types/alliance.types').ConvertAllianceReferralResponse>(
+    `/pm/alliance/referrals/${uuid}/convert`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export async function listAllianceCommissions(
+  params?: import('../types/alliance.types').ListAllianceCommissionsParams,
+): Promise<import('../types/alliance.types').ListAllianceCommissionsResponse> {
+  const searchParams = new URLSearchParams()
+  if (params?.status) searchParams.set('status', params.status)
+  if (params?.listingUuid) searchParams.set('listingUuid', params.listingUuid)
+  if (params?.search) searchParams.set('search', params.search)
+  if (params?.page) searchParams.set('page', String(params.page))
+  if (params?.limit) searchParams.set('limit', String(params.limit))
+
+  const qs = searchParams.toString()
+  return request<import('../types/alliance.types').ListAllianceCommissionsResponse>(
+    `/pm/alliance/commissions${qs ? `?${qs}` : ''}`,
+    { method: 'GET' },
+  )
+}
+
+export async function getAllianceCommission(
+  uuid: string,
+): Promise<import('../types/alliance.types').AllianceCommission> {
+  return request<import('../types/alliance.types').AllianceCommission>(
+    `/pm/alliance/commissions/${uuid}`,
+    { method: 'GET' },
+  )
+}
+
+export async function submitAllianceRating(
+  payload: import('../types/alliance.types').SubmitAllianceRatingPayload,
+): Promise<import('../types/alliance.types').AllianceRating> {
+  return request<import('../types/alliance.types').AllianceRating>(
+    '/pm/alliance/ratings',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+}
+
+export async function getSubjectRatingSummary(
+  subjectType: string,
+  subjectId: number,
+): Promise<import('../types/alliance.types').AllianceRatingSummary> {
+  return request<import('../types/alliance.types').AllianceRatingSummary>(
+    `/pm/alliance/ratings/summary?subjectType=${subjectType}&subjectId=${subjectId}`,
+    { method: 'GET' },
+  )
+}

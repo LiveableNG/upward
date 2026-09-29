@@ -34,6 +34,7 @@ model upward_transaction {
   settlementBatch       upward_settlement_batch?       @relation(fields: [settlementBatchId], references: [id])
   tenancyPeriod         upward_tenancy_period?         @relation(fields: [tenancyPeriodId], references: [id])
   user                  upward_user                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allianceCommissions   upward_alliance_commission[]
 
   @@index([userId])
   @@index([reference])
