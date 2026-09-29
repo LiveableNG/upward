@@ -1623,6 +1623,15 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDisableConfirm}
+        title="Disable Upward Alliance"
+        message="Are you sure you want to disable Upward Alliance for this property manager? Their existing qualifications and profile settings will be preserved, but their network status will become disabled."
+        danger
+        onConfirm={() => executeAllianceToggle(false)}
+        onCancel={() => setShowDisableConfirm(false)}
+      />
     </div>
   )
 }
