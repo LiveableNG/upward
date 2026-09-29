@@ -7,10 +7,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Star,
-  Image as ImageIcon,
   Loader2,
   AlertCircle,
-  Info,
+  Plus,
 } from 'lucide-react'
 import {
   useListingMedia,
@@ -111,18 +110,20 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
     }
   }
 
+  const coverImage = media.length > 0 ? media[0] : null
+  const galleryImages = media.length > 1 ? media.slice(1) : []
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-            Listing Media ({media.length} / {MAX_IMAGES})
-          </h3>
-          <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
-            Upload high-resolution photography. The first photo acts as the primary cover across the co-brokerage network.
-          </p>
-        </div>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp"
+        multiple
+        disabled={isMutating || isArchived}
+        onChange={(e) => handleFiles(e.target.files)}
+        style={{ display: 'none' }}
+      />
 
       {errorMessage && (
         <div
@@ -133,12 +134,12 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
             background: 'var(--error-bg)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: 'var(--radius-sm)',
-            padding: '10px 14px',
-            fontSize: '13px',
+            padding: '8px 12px',
+            fontSize: '12.5px',
             color: 'var(--error)',
           }}
         >
-          <AlertCircle size={16} />
+          <AlertCircle size={15} />
           <span>{errorMessage}</span>
           <button
             onClick={() => setErrorMessage(null)}
@@ -155,132 +156,195 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
         </div>
       )}
 
-      {/* Upload Dropzone */}
-      {!isArchived && media.length < MAX_IMAGES && (
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault()
-            handleFiles(e.dataTransfer.files)
-          }}
-          style={{
-            border: '2px dashed var(--border-strong)',
-            borderRadius: 'var(--radius-md)',
-            padding: '28px',
-            textAlign: 'center',
-            cursor: isMutating ? 'not-allowed' : 'pointer',
-            background: 'var(--ivory-dim)',
-            transition: 'all 0.2s ease',
-          }}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp"
-            multiple
-            disabled={isMutating || isArchived}
-            onChange={(e) => handleFiles(e.target.files)}
-            style={{ display: 'none' }}
-          />
-          <UploadCloud
-            size={36}
-            style={{ color: 'var(--forest)', margin: '0 auto 8px', display: 'block' }}
-          />
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-            Click to upload or drag & drop listing images
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Supported formats: JPG, PNG, WEBP (Max {MAX_FILE_SIZE_MB}MB per file)
-          </div>
-        </div>
-      )}
-
-      {/* Uploading In-Progress Placeholders */}
+      {/* Upload in-progress indicators */}
       {uploadingFiles.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {uploadingFiles.map((filename, idx) => (
             <div
               key={idx}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                padding: '10px 14px',
+                gap: '8px',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-sm)',
                 background: 'rgba(59, 130, 246, 0.08)',
                 border: '1px solid rgba(59, 130, 246, 0.2)',
-                fontSize: '13px',
+                fontSize: '12px',
                 color: 'var(--text)',
               }}
             >
-              <Loader2 size={16} className="animate-spin" style={{ color: '#3b82f6' }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: '#3b82f6' }} />
               <span>Uploading {filename}...</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Media Grid */}
+      {/* Media Content Display */}
       {isLoading ? (
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
-          <div>Loading images...</div>
+          <Loader2 size={20} className="animate-spin" style={{ margin: '0 auto 6px' }} />
+          <div style={{ fontSize: '12.5px' }}>Loading photography...</div>
         </div>
-      ) : media.length === 0 && uploadingFiles.length === 0 ? (
+      ) : media.length === 0 ? (
+        /* Compact, refined empty state */
         <div
+          onClick={() => !isArchived && fileInputRef.current?.click()}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            handleFiles(e.dataTransfer.files)
+          }}
           style={{
-            padding: '32px',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            background: 'var(--ivory-dim)',
+            border: '1.5px dashed var(--border-strong)',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border)',
+            padding: '20px 16px',
+            textAlign: 'center',
+            cursor: isArchived ? 'default' : 'pointer',
+            background: 'var(--ivory-dim)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px',
+            flexWrap: 'wrap',
           }}
         >
-          <ImageIcon size={36} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>No images added yet</div>
-          <p style={{ fontSize: '12px', marginTop: '4px', maxWidth: '320px', margin: '4px auto 0' }}>
-            Images enhance your Alliance listing and make it more attractive to fellow co-brokers.
-          </p>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              background: 'rgba(22, 101, 52, 0.08)',
+              color: 'var(--forest)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <UploadCloud size={20} />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
+              Add Listing Photography
+            </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              Drag & drop photos or click to browse (Max {MAX_IMAGES} photos)
+            </div>
+          </div>
+          {!isArchived && (
+            <button
+              type="button"
+              className="alliance-btn alliance-btn--secondary"
+              style={{ height: '32px', padding: '0 12px', fontSize: '12px', marginLeft: 'auto' }}
+            >
+              <Plus size={13} /> Select Photos
+            </button>
+          )}
         </div>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-            gap: '14px',
-          }}
-        >
-          {media.map((item: AllianceListingMedia, index: number) => {
-            const isCover = index === 0
-
-            return (
-              <div
-                key={item.uuid}
+        /* Gallery with Primary Cover & Thumbnails */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Primary Cover Image Preview */}
+          {coverImage && (
+            <div
+              style={{
+                position: 'relative',
+                width: '100%',
+                height: '240px',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                background: 'var(--ivory-dim)',
+                border: '1.5px solid var(--forest)',
+                boxShadow: '0 2px 10px var(--forest-glow)',
+              }}
+            >
+              <img
+                src={coverImage.publicUrl}
+                alt="Primary listing cover"
                 style={{
-                  position: 'relative',
-                  borderRadius: 'var(--radius-md)',
-                  overflow: 'hidden',
-                  border: isCover ? '2px solid var(--forest)' : '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  boxShadow: isCover ? '0 2px 10px var(--forest-glow)' : 'var(--shadow-sm)',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+
+              {/* Cover Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  background: 'var(--forest)',
+                  color: '#ffffff',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '3px 8px',
+                  borderRadius: '9999px',
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
                 }}
               >
-                {/* Image Preview */}
+                <Star size={11} fill="#ffffff" />
+                Cover Photo
+              </div>
+
+              {/* Delete Cover Button */}
+              {!isArchived && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(coverImage.uuid)}
+                  disabled={isMutating}
+                  title="Remove image"
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    background: 'rgba(0, 0, 0, 0.65)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: isMutating ? 'not-allowed' : 'pointer',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Secondary Photo Strip & Add Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {galleryImages.map((item, idx) => {
+              const actualIndex = idx + 1
+              return (
                 <div
+                  key={item.uuid}
                   style={{
                     position: 'relative',
-                    width: '100%',
-                    height: '130px',
+                    width: '76px',
+                    height: '76px',
+                    borderRadius: 'var(--radius-sm)',
+                    overflow: 'hidden',
+                    border: '1px solid var(--border)',
                     background: 'var(--ivory-dim)',
+                    flexShrink: 0,
                   }}
                 >
                   <img
                     src={item.publicUrl}
-                    alt={`Listing photo ${index + 1}`}
+                    alt={`Photo ${actualIndex + 1}`}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -289,130 +353,93 @@ export function ListingMediaManager({ listingUuid, isArchived = false }: Listing
                     }}
                   />
 
-                  {/* Cover Badge */}
-                  {isCover && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        left: '8px',
-                        background: 'var(--forest)',
-                        color: '#fff',
-                        fontSize: '10.5px',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '9999px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                      }}
-                    >
-                      <Star size={11} fill="#fff" />
-                      Cover
-                    </div>
-                  )}
-
-                  {/* Delete Button */}
+                  {/* Reorder Left */}
                   {!isArchived && (
                     <button
-                      onClick={() => handleDelete(item.uuid)}
+                      type="button"
+                      onClick={() => handleMove(actualIndex, 'left')}
                       disabled={isMutating}
-                      title="Delete Image"
+                      title="Move closer to cover"
                       style={{
                         position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: 'rgba(0,0,0,0.65)',
+                        bottom: '2px',
+                        left: '2px',
+                        background: 'rgba(0, 0, 0, 0.6)',
                         color: '#fff',
                         border: 'none',
-                        borderRadius: '50%',
-                        width: '26px',
-                        height: '26px',
+                        borderRadius: '3px',
+                        width: '18px',
+                        height: '18px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        cursor: isMutating ? 'not-allowed' : 'pointer',
-                        backdropFilter: 'blur(4px)',
-                        transition: 'background 0.2s',
+                        cursor: 'pointer',
                       }}
                     >
-                      <X size={14} />
+                      <ArrowLeft size={10} />
+                    </button>
+                  )}
+
+                  {/* Delete button */}
+                  {!isArchived && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.uuid)}
+                      disabled={isMutating}
+                      title="Remove image"
+                      style={{
+                        position: 'absolute',
+                        top: '2px',
+                        right: '2px',
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <X size={10} />
                     </button>
                   )}
                 </div>
+              )
+            })}
 
-                {/* Card Controls Footer */}
-                <div
-                  style={{
-                    padding: '8px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: 'var(--surface)',
-                    borderTop: '1px solid var(--border)',
-                  }}
-                >
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    #{index + 1}
-                  </span>
-
-                  {!isArchived && (
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        onClick={() => handleMove(index, 'left')}
-                        disabled={index === 0 || isMutating}
-                        title="Move Left (Earlier in Order)"
-                        style={{
-                          background: 'var(--ivory-dim)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '4px',
-                          padding: '4px 6px',
-                          cursor: index === 0 || isMutating ? 'not-allowed' : 'pointer',
-                          color: index === 0 ? 'var(--text-muted)' : 'var(--text)',
-                          opacity: index === 0 ? 0.3 : 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <ArrowLeft size={13} />
-                      </button>
-
-                      <button
-                        onClick={() => handleMove(index, 'right')}
-                        disabled={index === media.length - 1 || isMutating}
-                        title="Move Right (Later in Order)"
-                        style={{
-                          background: 'var(--ivory-dim)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '4px',
-                          padding: '4px 6px',
-                          cursor: index === media.length - 1 || isMutating ? 'not-allowed' : 'pointer',
-                          color: index === media.length - 1 ? 'var(--text-muted)' : 'var(--text)',
-                          opacity: index === media.length - 1 ? 0.3 : 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <ArrowRight size={13} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+            {/* Add More Photos Button */}
+            {!isArchived && media.length < MAX_IMAGES && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isMutating}
+                style={{
+                  width: '76px',
+                  height: '76px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1.5px dashed var(--border-strong)',
+                  background: 'var(--ivory-dim)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '3px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Plus size={16} color="var(--forest)" />
+                <span style={{ fontSize: '10.5px', fontWeight: 700 }}>Add</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Canonical Isolation Footer Notice */}
-      <div className="alliance-callout">
-        <Info size={16} className="alliance-callout__icon" />
-        <div className="alliance-callout__content">
-          <strong>Canonical Isolation:</strong> Media uploaded here belongs exclusively to this
-          marketing listing and will never overwrite photos in your internal PM property/unit inventory.
-        </div>
-      </div>
     </div>
   )
 }

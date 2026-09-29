@@ -130,8 +130,8 @@ export default function AllianceListingsPage() {
         {profile?.isEnabled && (
           <Link
             href="/alliance/listings/new"
-            className="btn btn--primary"
-            style={{ height: '42px', padding: '0 18px', gap: '8px', fontWeight: 600, flexShrink: 0, marginBottom: '20px' }}
+            className="alliance-btn alliance-btn--primary"
+            style={{ height: '44px', padding: '0 20px', flexShrink: 0, marginBottom: '20px' }}
           >
             <Plus size={16} /> Create Listing
           </Link>
@@ -142,45 +142,24 @@ export default function AllianceListingsPage() {
       {loadingListings ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="card animate-pulse" style={{ height: '320px', borderRadius: '16px' }} />
+            <div key={i} className="alliance-listing-card animate-pulse" style={{ height: '360px', opacity: 0.6 }} />
           ))}
         </div>
       ) : listings.length === 0 ? (
-        <div
-          className="card"
-          style={{
-            padding: '56px 24px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '50%',
-              background: 'var(--bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-muted)',
-            }}
-          >
+        <div className="alliance-gate-card">
+          <div className="alliance-gate-card__icon-wrap" style={{ background: 'var(--ivory-dim)', color: 'var(--text-muted)' }}>
             <AlertCircle size={26} />
           </div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--dark)' }}>
+          <h3 className="alliance-gate-card__title">
             No Alliance Listings Found
           </h3>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '420px', lineHeight: 1.5 }}>
+          <p className="alliance-gate-card__desc">
             {status
               ? `You do not have any listings with status "${status.toLowerCase()}".`
-              : 'Create your first Alliance marketing listing to publish or distribute properties across the network.'}
+              : 'Create your first Alliance marketing listing to publish and co-broker properties across the network.'}
           </p>
           {profile?.isEnabled && (
-            <Link href="/alliance/listings/new" className="btn btn--primary" style={{ marginTop: '8px' }}>
+            <Link href="/alliance/listings/new" className="alliance-btn alliance-btn--primary" style={{ marginTop: '8px' }}>
               <Plus size={16} /> Create New Listing
             </Link>
           )}
@@ -215,10 +194,10 @@ export default function AllianceListingsPage() {
             >
               <button
                 type="button"
-                className="btn btn--secondary"
+                className="alliance-btn alliance-btn--secondary"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                style={{ height: '36px', padding: '0 14px', gap: '4px', fontSize: '13px' }}
+                style={{ height: '36px', padding: '0 14px', fontSize: '13px' }}
               >
                 <ChevronLeft size={16} /> Previous
               </button>
@@ -227,10 +206,10 @@ export default function AllianceListingsPage() {
               </span>
               <button
                 type="button"
-                className="btn btn--secondary"
+                className="alliance-btn alliance-btn--secondary"
                 disabled={page >= meta.totalPages}
                 onClick={() => setPage((p) => Math.min(p + 1, meta.totalPages))}
-                style={{ height: '36px', padding: '0 14px', gap: '4px', fontSize: '13px' }}
+                style={{ height: '36px', padding: '0 14px', fontSize: '13px' }}
               >
                 Next <ChevronRight size={16} />
               </button>
