@@ -18,7 +18,8 @@ import {
   Inbox,
   Search,
   Sparkles,
-  MoreVertical
+  MoreVertical,
+  Award,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -33,6 +34,7 @@ import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Building2, label: 'Properties', href: '/properties' },
+  { icon: Award, label: 'Alliance', href: '/alliance/listings' },
   { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
   { icon: Search, label: 'Home Requests', href: '/home-requests' },
