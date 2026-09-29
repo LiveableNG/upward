@@ -535,7 +535,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
   }): Promise<{ items: AllianceListingEntity[]; total: number }> {
     const where: any = {
       status: 'PUBLISHED',
-      visibility: { in: ['ALLIANCE', 'PUBLIC'] },
+      visibility: 'ALLIANCE',
       isSourceDeleted: false,
       pm: {
         allianceProfile: {
@@ -646,7 +646,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
       where: {
         uuid,
         status: 'PUBLISHED',
-        visibility: { in: ['ALLIANCE', 'PUBLIC'] },
+        visibility: 'ALLIANCE',
         isSourceDeleted: false,
         pm: {
           allianceProfile: {

@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Info,
+  Share2,
 } from 'lucide-react'
 import {
   useAllianceListing,
@@ -30,6 +31,7 @@ import {
   useArchiveAllianceListing,
 } from '@/features/alliance/hooks/useAlliance'
 import { ListingReviewModal } from '@/features/alliance/components/ListingReviewModal'
+import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { ListingMediaManager } from '@/features/alliance/components/ListingMediaManager'
 import { useToast } from '@/components/common/Toast'
@@ -47,6 +49,7 @@ export default function AllianceListingDetailPage() {
   const unpublishMutation = useUnpublishAllianceListing()
   const archiveMutation = useArchiveAllianceListing()
 
+  const [showShareModal, setShowShareModal] = useState(false)
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [showUnpublishModal, setShowUnpublishModal] = useState(false)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
@@ -240,6 +243,17 @@ export default function AllianceListingDetailPage() {
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {isPublished && (
+                  <button
+                    type="button"
+                    onClick={() => setShowShareModal(true)}
+                    className="alliance-btn alliance-btn--secondary"
+                    style={{ height: '34px', padding: '0 12px', fontSize: '12px', color: 'var(--forest)', fontWeight: 600 }}
+                  >
+                    <Share2 size={13} /> Refer Client
+                  </button>
+                )}
+
                 {!isArchived && (
                   <Link
                     href={`/alliance/listings/${listing.uuid}/edit`}
@@ -467,6 +481,17 @@ export default function AllianceListingDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Share / Refer Client Modal */}
+        <ShareReferralModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          listingUuid={listing.uuid}
+          listingTitle={listing.title}
+          listingPrice={listing.price}
+          listingCurrency={listing.currency}
+          listingLocation={[listing.address, listing.city, listing.state].filter(Boolean).join(', ')}
+        />
 
         {/* Review & Publish Modal */}
         <ListingReviewModal

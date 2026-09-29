@@ -279,20 +279,21 @@ describe('Alliance Referral & Lead Use Cases (Stage 2)', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException if PM attempts to refer their own listing', async () => {
+    it('should allow PM to create referral for their own published listing', async () => {
       mockProfileRepo.findByPmId.mockResolvedValue(mockReferringProfile);
       mockListingRepo.findByUuid.mockResolvedValue({
         ...mockListingEntity,
         pmId: 1, // Same as referringActor.ownerPmId
       });
+      mockReferralRepo.findActiveReferral.mockResolvedValue(null);
+      mockReferralRepo.create.mockResolvedValue(mockReferralEntity);
 
-      await expect(
-        createReferralUseCase.execute(
-          'listing-uuid-10',
-          { clientName: 'Jane Doe', clientEmail: 'jane@example.com' },
-          referringActor,
-        ),
-      ).rejects.toThrow(BadRequestException);
+      const result = await createReferralUseCase.execute(
+        'listing-uuid-10',
+        { clientName: 'Jane Doe', clientEmail: 'jane@example.com' },
+        referringActor,
+      );
+      expect(result).toBeDefined();
     });
 
     it('should throw BadRequestException if listing is not published', async () => {

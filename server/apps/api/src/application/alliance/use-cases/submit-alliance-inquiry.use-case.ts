@@ -6,6 +6,7 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import {
   ALLIANCE_LISTING_REPOSITORY,
   ALLIANCE_REFERRAL_REPOSITORY,
@@ -31,6 +32,27 @@ export class SubmitAllianceInquiryUseCase {
     private readonly activityLogService?: ActivityLogService,
   ) {}
 
+  private normalizeEmail(email?: string): string | null {
+    if (!email) return null;
+    const trimmed = email.trim().toLowerCase();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private normalizePhone(phone?: string): string | null {
+    if (!phone) return null;
+    let cleaned = phone.trim().replace(/\s+/g, '');
+    if (!cleaned) return null;
+
+    if (!cleaned.startsWith('+')) {
+      if (cleaned.startsWith('0') && cleaned.length === 11) {
+        cleaned = '+234' + cleaned.substring(1);
+      } else if (cleaned.length === 10) {
+        cleaned = '+234' + cleaned;
+      }
+    }
+    return cleaned;
+  }
+
   async execute(
     listingUuid: string,
     dto: SubmitAllianceInquiryDto,
@@ -49,6 +71,18 @@ export class SubmitAllianceInquiryUseCase {
       throw new BadRequestException('Please provide a contact email or phone number');
     }
 
+    const normalizedEmail = this.normalizeEmail(dto.clientEmail);
+    const normalizedPhone = this.normalizePhone(dto.clientPhone);
+
+    let clientIdentityKey: string;
+    if (userId) {
+      clientIdentityKey = `usr:${userId}`;
+    } else if (normalizedEmail) {
+      clientIdentityKey = `email:${normalizedEmail}`;
+    } else {
+      clientIdentityKey = `phone:${normalizedPhone}`;
+    }
+
     let referralUuid: string | undefined;
 
     // Handle referral context if token is provided
@@ -64,6 +98,10 @@ export class SubmitAllianceInquiryUseCase {
         }
         if (userId && !referral.matchedUserId) {
           updateData.matchedUserId = userId;
+        }
+        if (dto.message && dto.message.trim().length > 0) {
+          const prevNotes = referral.notes ? `${referral.notes}\n\n` : '';
+          updateData.notes = `${prevNotes}[Client Inquiry]: ${dto.message.trim()}`;
         }
         if (Object.keys(updateData).length > 0) {
           await this.referralRepo.update(referral.id, updateData);
@@ -91,6 +129,46 @@ export class SubmitAllianceInquiryUseCase {
         if (this.notificationService && referral.referringPmId) {
           this.logger.log(`Notified referring PM ${referral.referringPmId} of inquiry on referral ${referral.uuid}`);
         }
+      }
+    }
+
+    // Direct Marketplace Inquiry (no referral token) -> Create/Update direct lead for listing owner PM
+    if (!referralUuid && listing.pmId) {
+      const existingReferral = await this.referralRepo.findActiveReferral(listing.id, clientIdentityKey);
+      if (existingReferral) {
+        referralUuid = existingReferral.uuid;
+        const updateData: any = {};
+        if (existingReferral.stage === 'NEW') {
+          updateData.stage = 'CONTACTED';
+        }
+        if (userId && !existingReferral.matchedUserId) {
+          updateData.matchedUserId = userId;
+        }
+        if (dto.message && dto.message.trim().length > 0) {
+          const prevNotes = existingReferral.notes ? `${existingReferral.notes}\n\n` : '';
+          updateData.notes = `${prevNotes}[Marketplace Inquiry]: ${dto.message.trim()}`;
+        }
+        if (Object.keys(updateData).length > 0) {
+          await this.referralRepo.update(existingReferral.id, updateData);
+        }
+      } else {
+        const shareToken = randomUUID();
+        const created = await this.referralRepo.create({
+          listingId: listing.id,
+          referringPmId: listing.pmId,
+          matchedUserId: userId ?? null,
+          clientIdentityKey,
+          clientName: dto.clientName.trim(),
+          clientEmail: dto.clientEmail?.trim() ?? null,
+          clientPhone: dto.clientPhone?.trim() ?? null,
+          clientNormalizedEmail: normalizedEmail,
+          clientNormalizedPhone: normalizedPhone,
+          shareToken,
+          status: 'ACTIVE',
+          stage: 'CONTACTED',
+          notes: dto.message?.trim() ? `[Direct Inquiry]: ${dto.message.trim()}` : 'Direct Marketplace Inquiry',
+        });
+        referralUuid = created.uuid;
       }
     }
 

@@ -19,6 +19,7 @@ import {
 import { ListingFilters } from '@/features/alliance/components/ListingFilters'
 import { ListingCard } from '@/features/alliance/components/ListingCard'
 import { ListingReviewModal } from '@/features/alliance/components/ListingReviewModal'
+import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { useToast } from '@/components/common/Toast'
 
@@ -33,6 +34,7 @@ export default function AllianceListingsPage() {
 
   // Active modals state
   const [reviewListing, setReviewListing] = useState<AllianceListing | null>(null)
+  const [shareListing, setShareListing] = useState<AllianceListing | null>(null)
   const [unpublishUuid, setUnpublishUuid] = useState<string | null>(null)
   const [archiveUuid, setArchiveUuid] = useState<string | null>(null)
 
@@ -166,7 +168,7 @@ export default function AllianceListingsPage() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
             {listings.map((listing) => (
               <ListingCard
                 key={listing.uuid}
@@ -174,6 +176,7 @@ export default function AllianceListingsPage() {
                 onPublish={handleOpenPublish}
                 onUnpublish={(uuid) => setUnpublishUuid(uuid)}
                 onArchive={(uuid) => setArchiveUuid(uuid)}
+                onShare={(l) => setShareListing(l)}
                 isPublishing={publishMutation.isPending}
                 isUnpublishing={unpublishMutation.isPending}
                 isArchiving={archiveMutation.isPending}
@@ -217,6 +220,17 @@ export default function AllianceListingsPage() {
           )}
         </>
       )}
+
+      {/* Share / Refer Client Modal */}
+      <ShareReferralModal
+        isOpen={Boolean(shareListing)}
+        onClose={() => setShareListing(null)}
+        listingUuid={shareListing?.uuid || ''}
+        listingTitle={shareListing?.title || ''}
+        listingPrice={shareListing?.price}
+        listingCurrency={shareListing?.currency}
+        listingLocation={[shareListing?.address, shareListing?.city, shareListing?.state].filter(Boolean).join(', ')}
+      />
 
       {/* Review & Publish Modal */}
       <ListingReviewModal

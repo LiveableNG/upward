@@ -16,6 +16,7 @@ import {
   Bookmark,
   MapPin,
   Image as ImageIcon,
+  Share2,
 } from 'lucide-react'
 import { AllianceListing } from '../types/alliance.types'
 
@@ -24,6 +25,7 @@ interface ListingCardProps {
   onPublish?: (uuid: string) => void
   onUnpublish?: (uuid: string) => void
   onArchive?: (uuid: string) => void
+  onShare?: (listing: AllianceListing) => void
   isPublishing?: boolean
   isUnpublishing?: boolean
   isArchiving?: boolean
@@ -34,6 +36,7 @@ export function ListingCard({
   onPublish,
   onUnpublish,
   onArchive,
+  onShare,
   isPublishing,
   isUnpublishing,
   isArchiving,
@@ -286,9 +289,10 @@ export function ListingCard({
 
       {/* Footer & Actions */}
       <div className="alliance-listing-card__footer">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {new Date(listing.createdAt).toLocaleDateString()}
+        {/* Meta Row: Date & PM Tracking Interest */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '11.5px' }}>
+          <span style={{ color: 'var(--text-muted)' }}>
+            {new Date(listing.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
           </span>
 
           {(listing.trackerCount ?? 0) > 0 && (
@@ -296,10 +300,13 @@ export function ListingCard({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '3px',
+                gap: '4px',
                 fontSize: '11px',
                 color: 'var(--forest)',
                 fontWeight: 700,
+                background: 'rgba(22, 101, 52, 0.08)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
               }}
             >
               <Bookmark size={11} /> {listing.trackerCount} tracking
@@ -307,23 +314,18 @@ export function ListingCard({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <Link
-            href={`/alliance/listings/${listing.uuid}`}
-            className="alliance-btn alliance-btn--secondary"
-            style={{ padding: '0 12px', height: '32px', fontSize: '12px' }}
-          >
-            <Eye size={13} /> View
-          </Link>
-
-          {listing.status !== 'ARCHIVED' && (
-            <Link
-              href={`/alliance/listings/${listing.uuid}/edit`}
-              className="alliance-btn alliance-btn--secondary"
-              style={{ padding: '0 12px', height: '32px', fontSize: '12px' }}
+        {/* Action Buttons Row */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+          {listing.status === 'PUBLISHED' && onShare && (
+            <button
+              type="button"
+              onClick={() => onShare(listing)}
+              className="alliance-btn alliance-btn--primary"
+              style={{ flex: 1, height: '34px', fontSize: '12.5px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              title="Refer client or generate share link"
             >
-              <Edit size={13} /> Edit
-            </Link>
+              <Share2 size={13} /> Refer Client
+            </button>
           )}
 
           {(listing.status === 'DRAFT' || listing.status === 'UNPUBLISHED') && onPublish && (
@@ -332,10 +334,30 @@ export function ListingCard({
               onClick={() => onPublish(listing.uuid)}
               disabled={isActionPending}
               className="alliance-btn alliance-btn--primary"
-              style={{ padding: '0 14px', height: '32px', fontSize: '12px' }}
+              style={{ flex: 1, height: '34px', fontSize: '12.5px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               <Send size={13} /> {isPublishing ? 'Publishing...' : 'Publish'}
             </button>
+          )}
+
+          <Link
+            href={`/alliance/listings/${listing.uuid}`}
+            className="alliance-btn alliance-btn--secondary"
+            style={{ height: '34px', padding: '0 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            title="View listing details"
+          >
+            <Eye size={13} /> View
+          </Link>
+
+          {listing.status !== 'ARCHIVED' && (
+            <Link
+              href={`/alliance/listings/${listing.uuid}/edit`}
+              className="alliance-btn alliance-btn--secondary"
+              style={{ height: '34px', padding: '0 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              title="Edit listing"
+            >
+              <Edit size={13} />
+            </Link>
           )}
 
           {listing.status === 'PUBLISHED' && onUnpublish && (
@@ -344,9 +366,10 @@ export function ListingCard({
               onClick={() => onUnpublish(listing.uuid)}
               disabled={isActionPending}
               className="alliance-btn alliance-btn--secondary"
-              style={{ padding: '0 12px', height: '32px', fontSize: '12px', color: '#b45309' }}
+              style={{ height: '34px', padding: '0 10px', fontSize: '12px', color: '#b45309' }}
+              title="Unpublish listing"
             >
-              <EyeOff size={13} /> {isUnpublishing ? 'Unpublishing...' : 'Unpublish'}
+              <EyeOff size={13} />
             </button>
           )}
 
@@ -356,8 +379,8 @@ export function ListingCard({
               onClick={() => onArchive(listing.uuid)}
               disabled={isActionPending}
               className="alliance-btn alliance-btn--secondary"
-              style={{ padding: '0 10px', height: '32px', fontSize: '12px', color: 'var(--text-muted)' }}
-              title="Archive Listing"
+              style={{ height: '34px', padding: '0 10px', fontSize: '12px', color: 'var(--text-muted)' }}
+              title="Archive listing"
             >
               <Archive size={13} />
             </button>

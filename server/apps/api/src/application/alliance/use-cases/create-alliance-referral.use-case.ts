@@ -88,10 +88,6 @@ export class CreateAllianceReferralUseCase {
       throw new NotFoundException('Alliance listing not found');
     }
 
-    if (listing.pmId === pmId) {
-      throw new BadRequestException('You cannot create an Alliance referral for your own listing');
-    }
-
     if (
       listing.status !== 'PUBLISHED' ||
       listing.visibility !== 'ALLIANCE' ||

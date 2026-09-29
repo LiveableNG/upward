@@ -33,6 +33,8 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
 
   const mockReferralRepo = {
     findByShareToken: jest.fn(),
+    findActiveReferral: jest.fn(),
+    create: jest.fn(),
     update: jest.fn(),
   };
 
@@ -278,6 +280,38 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
           message: 'Hello',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should create direct lead for listing owner when inquiry is submitted without referral token', async () => {
+      mockListingRepo.findPublicByUuid.mockResolvedValue(mockSampleListing);
+      mockReferralRepo.findActiveReferral.mockResolvedValue(null);
+      mockReferralRepo.create.mockResolvedValue({
+        id: 99,
+        uuid: 'direct-lead-uuid-99',
+        status: 'ACTIVE',
+        stage: 'CONTACTED',
+      });
+
+      const result = await submitInquiryUc.execute(
+        'listing-uuid-1',
+        {
+          clientName: 'Direct Buyer',
+          clientEmail: 'buyer@example.com',
+          clientPhone: '+2348099999999',
+          message: 'Interested in this property directly from marketplace.',
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.referralUuid).toBe('direct-lead-uuid-99');
+      expect(mockReferralRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          listingId: mockSampleListing.id,
+          referringPmId: mockSampleListing.pmId,
+          clientName: 'Direct Buyer',
+          stage: 'CONTACTED',
+        }),
+      );
     });
   });
 });

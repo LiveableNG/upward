@@ -1168,11 +1168,11 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -1203,7 +1203,7 @@
 .alliance-listing-card__media-preview {
   position: relative;
   width: 100%;
-  height: 160px;
+  height: 170px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--ivory-dim);
@@ -1254,11 +1254,11 @@
 
 .alliance-listing-card__footer {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  padding-top: 4px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  width: 100%;
 }
 
 /* Detail View Layout (Compact Apple-Grade Density) */
