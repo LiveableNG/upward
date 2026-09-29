@@ -38,14 +38,13 @@ export default async function WebAllianceListingDetailPage({
   const referralContext = refToken ? await fetchReferralContext(refToken) : null;
   const referringPm = referralContext?.referringPm;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
   const paySignupUrl = refToken
-    ? `${appUrl}/signup?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}?ref=${refToken}`)}`
-    : `${appUrl}/signup?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}`)}`;
+    ? `/signup?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}?ref=${refToken}`)}`
+    : `/signup?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}`)}`;
 
   const payLoginUrl = refToken
-    ? `${appUrl}/login?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}?ref=${refToken}`)}`
-    : `${appUrl}/login?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}`)}`;
+    ? `/login?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}?ref=${refToken}`)}`
+    : `/login?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}`)}`;
 
   const formatPrice = (amount?: number | null, currency = 'NGN') => {
     if (amount === undefined || amount === null) return 'Price on Request';
@@ -272,7 +271,7 @@ export default async function WebAllianceListingDetailPage({
               </div>
 
               {/* Primary CTA: Sign Up & Apply on Upward Pay */}
-              <a
+              <Link
                 href={paySignupUrl}
                 style={{
                   display: 'flex',
@@ -292,10 +291,10 @@ export default async function WebAllianceListingDetailPage({
                 }}
               >
                 <span>Sign Up to Rent on Upward Pay</span>
-              </a>
+              </Link>
 
               {/* Secondary CTA: Already have an account? */}
-              <a
+              <Link
                 href={payLoginUrl}
                 style={{
                   display: 'flex',
@@ -314,7 +313,7 @@ export default async function WebAllianceListingDetailPage({
                 }}
               >
                 <span>Already have an account? Sign In</span>
-              </a>
+              </Link>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#685c49', justifyContent: 'center' }}>
                 <Lock size={14} />

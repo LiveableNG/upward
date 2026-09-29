@@ -118,6 +118,13 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const [assigningQual, setAssigningQual] = useState(false)
   const [showDisableConfirm, setShowDisableConfirm] = useState(false)
 
+  // Custom Qualification Creation State
+  const [isCreatingCustomQual, setIsCreatingCustomQual] = useState(false)
+  const [customQualName, setCustomQualName] = useState('')
+  const [customQualSlug, setCustomQualSlug] = useState('')
+  const [customQualDesc, setCustomQualDesc] = useState('')
+  const [creatingCustomQual, setCreatingCustomQual] = useState(false)
+
   const fetchAllianceData = async () => {
     if (!uuid) return
     try {
@@ -198,6 +205,10 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
   const handleAssignQualification = async () => {
     if (!uuid || !selectedQualId) return
+    if (selectedQualId === 'NEW_CUSTOM') {
+      setIsCreatingCustomQual(true)
+      return
+    }
     setAssigningQual(true)
     try {
       await apiService.post(
@@ -213,6 +224,64 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       showToast(err.message || 'Failed to assign qualification', true)
     } finally {
       setAssigningQual(false)
+    }
+  }
+
+  const handleCreateAndAssignCustomQualification = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!uuid || !customQualName.trim()) {
+      showToast('Qualification name is required', true)
+      return
+    }
+
+    const slug =
+      customQualSlug.trim() ||
+      customQualName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+
+    if (!slug) {
+      showToast('Valid slug or name is required', true)
+      return
+    }
+
+    setCreatingCustomQual(true)
+    try {
+      // 1. Create the qualification in the global catalog
+      const createRes = await apiService.post(
+        '/admin/alliance/qualifications',
+        {
+          name: customQualName.trim(),
+          slug,
+          description: customQualDesc.trim() || undefined,
+          isActive: true,
+        },
+        token,
+      )
+
+      const createdQual = createRes.data
+
+      // 2. Assign the newly created qualification to this PM
+      await apiService.post(
+        `/admin/alliance/pms/${uuid}/qualifications`,
+        { qualificationId: createdQual.id },
+        token,
+      )
+
+      showToast(`"${createdQual.name}" created and assigned successfully!`)
+      setIsCreatingCustomQual(false)
+      setCustomQualName('')
+      setCustomQualSlug('')
+      setCustomQualDesc('')
+      setSelectedQualId('')
+      await fetchAllianceData()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to create and assign custom qualification', true)
+    } finally {
+      setCreatingCustomQual(false)
     }
   }
 
@@ -1003,36 +1072,156 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 )}
               </div>
 
-              {/* Assign New Qualification Form */}
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select
-                  value={selectedQualId}
-                  onChange={(e) => setSelectedQualId(e.target.value)}
-                  className="input"
-                  style={{ flex: 1, height: '36px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+              {/* Assign or Create Qualification Form */}
+              {isCreatingCustomQual ? (
+                <div
+                  style={{
+                    background: 'rgba(99, 102, 241, 0.04)',
+                    border: '1px solid rgba(99, 102, 241, 0.2)',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}
                 >
-                  <option value="">Select qualification to assign...</option>
-                  {allQualifications
-                    .filter(
-                      (q) =>
-                        !allianceProfile?.qualifications?.some((assigned) => assigned.id === q.id),
-                    )
-                    .map((q) => (
-                      <option key={q.id} value={q.id}>
-                        {q.name} ({q.slug})
-                      </option>
-                    ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAssignQualification}
-                  disabled={assigningQual || !selectedQualId}
-                  className="btn btn-primary"
-                  style={{ height: '36px', padding: '0 12px', fontSize: '12px' }}
-                >
-                  {assigningQual ? 'Assigning...' : 'Assign'}
-                </button>
-              </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#4f46e5' }}>
+                      Create &amp; Assign Custom Qualification
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCreatingCustomQual(false)
+                        setSelectedQualId('')
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      Qualification Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. RICS Accredited Surveyor"
+                      value={customQualName}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setCustomQualName(val)
+                        setCustomQualSlug(
+                          val
+                            .toLowerCase()
+                            .trim()
+                            .replace(/[^a-z0-9]+/g, '-')
+                            .replace(/^-+|-+$/g, '')
+                        )
+                      }}
+                      className="input"
+                      style={{ width: '100%', height: '32px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      Identifier / Slug *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. rics-accredited-surveyor"
+                      value={customQualSlug}
+                      onChange={(e) => setCustomQualSlug(e.target.value)}
+                      className="input"
+                      style={{ width: '100%', height: '32px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                      Description (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Licensed chartered surveyor with international standing"
+                      value={customQualDesc}
+                      onChange={(e) => setCustomQualDesc(e.target.value)}
+                      className="input"
+                      style={{ width: '100%', height: '32px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleCreateAndAssignCustomQualification()}
+                      disabled={creatingCustomQual || !customQualName.trim()}
+                      className="btn btn-primary"
+                      style={{
+                        flex: 1,
+                        height: '34px',
+                        fontSize: '12px',
+                        backgroundColor: '#6366f1',
+                        borderColor: '#6366f1',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {creatingCustomQual ? 'Creating & Assigning...' : 'Create & Assign'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={selectedQualId}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setSelectedQualId(val)
+                      if (val === 'NEW_CUSTOM') {
+                        setIsCreatingCustomQual(true)
+                      }
+                    }}
+                    className="input"
+                    style={{ flex: 1, height: '36px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                  >
+                    <option value="">Select qualification to assign...</option>
+                    <option value="NEW_CUSTOM" style={{ fontWeight: 700, color: '#6366f1' }}>
+                      + Create new custom qualification...
+                    </option>
+                    {allQualifications
+                      .filter(
+                        (q) =>
+                          !allianceProfile?.qualifications?.some((assigned) => assigned.id === q.id),
+                      )
+                      .map((q) => (
+                        <option key={q.id} value={q.id}>
+                          {q.name} ({q.slug})
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAssignQualification}
+                    disabled={assigningQual || !selectedQualId}
+                    className="btn btn-primary"
+                    style={{ height: '36px', padding: '0 12px', fontSize: '12px' }}
+                  >
+                    {selectedQualId === 'NEW_CUSTOM'
+                      ? 'Create...'
+                      : assigningQual
+                        ? 'Assigning...'
+                        : 'Assign'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
