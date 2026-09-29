@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { LegalHeader } from '@/components/layout/legal-header';
 import { Footer } from '@/components/layout/footer';
-import { fetchPublicListings, PublicAllianceListingCard } from '@/lib/alliance';
+import { fetchPublicListings, type PublicAllianceListingCard } from '@/lib/alliance';
 
 interface AlliancePageProps {
   searchParams: Promise<{

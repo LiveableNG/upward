@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search, X, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
-import {
+import type {
   PublicAllianceMarketplaceQuery,
   AllianceListingIntent,
 } from '../types/alliance.types';

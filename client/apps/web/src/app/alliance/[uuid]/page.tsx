@@ -9,11 +9,9 @@ import {
   ShieldCheck,
   Star,
   ArrowLeft,
-  Calendar,
   Award,
   Lock,
   UserCheck,
-  MessageSquare,
 } from 'lucide-react';
 import { LegalHeader } from '@/components/layout/legal-header';
 import { Footer } from '@/components/layout/footer';

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react';
-import { PublicAllianceListingMedia } from '../types/alliance.types';
+import type { PublicAllianceListingMedia } from '../types/alliance.types';
 
 interface AllianceGalleryProps {
   media: PublicAllianceListingMedia[];

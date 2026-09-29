@@ -5,7 +5,7 @@ import { Building2, Sparkles, AlertCircle, ChevronLeft, ChevronRight } from 'luc
 import { useAllianceMarketplace } from '@/features/alliance/hooks/useAllianceMarketplace';
 import { AllianceListingCard } from '@/features/alliance/components/AllianceListingCard';
 import { AllianceFilterBar } from '@/features/alliance/components/AllianceFilterBar';
-import { PublicAllianceMarketplaceQuery } from '@/features/alliance/types/alliance.types';
+import type { PublicAllianceMarketplaceQuery } from '@/features/alliance/types/alliance.types';
 
 export default function DashboardAlliancePage() {
   const [query, setQuery] = useState<PublicAllianceMarketplaceQuery>({

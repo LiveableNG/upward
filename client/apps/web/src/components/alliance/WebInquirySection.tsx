@@ -50,8 +50,9 @@ export const WebInquirySection: React.FC<WebInquirySectionProps> = ({
         referralToken,
       });
       setIsSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send inquiry. Please try again.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send inquiry. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -73,7 +74,14 @@ export const WebInquirySection: React.FC<WebInquirySectionProps> = ({
     <div style={{ background: '#fff', padding: 24, borderRadius: 16, border: '1px solid rgba(20, 20, 19, 0.08)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <MessageSquare size={18} color="#141413" />
-        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Send an Instant Inquiry</h3>
+        <div>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Send an Instant Inquiry</h3>
+          {listingTitle && (
+            <p style={{ fontSize: 12, color: '#685c49', margin: '2px 0 0' }}>
+              Regarding: {listingTitle}
+            </p>
+          )}
+        </div>
       </div>
 
       {error && (

@@ -11,7 +11,7 @@ import {
   Image as ImageIcon,
   ArrowUpRight,
 } from 'lucide-react';
-import { PublicAllianceListingCard } from '../types/alliance.types';
+import type { PublicAllianceListingCard } from '../types/alliance.types';
 
 interface AllianceListingCardProps {
   listing: PublicAllianceListingCard;

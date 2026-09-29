@@ -68,7 +68,9 @@ export interface PublicAllianceReferralContext {
 
 const getApiUrl = () => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-export async function fetchPublicListings(params: Record<string, any> = {}): Promise<{
+export async function fetchPublicListings(
+  params: Record<string, string | number | boolean | undefined | null> = {},
+): Promise<{
   items: PublicAllianceListingCard[];
   meta: { page: number; limit: number; total: number; totalPages: number };
 }> {

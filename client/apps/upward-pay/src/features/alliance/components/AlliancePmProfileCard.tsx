@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ShieldCheck, Star, Award, Building2 } from 'lucide-react';
-import { PublicPmProfile, PublicRatingSummary } from '../types/alliance.types';
+import type { PublicPmProfile, PublicRatingSummary } from '../types/alliance.types';
 
 interface AlliancePmProfileCardProps {
   pm: PublicPmProfile;

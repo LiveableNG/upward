@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ShieldCheck, UserCheck } from 'lucide-react';
-import { PublicPmProfile } from '../types/alliance.types';
+import type { PublicPmProfile } from '../types/alliance.types';
 
 interface AllianceReferralBannerProps {
   referringPm: PublicPmProfile;

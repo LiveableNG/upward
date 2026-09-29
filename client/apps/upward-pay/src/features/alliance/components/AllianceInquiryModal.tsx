@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { X, Send, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useSubmitAllianceInquiry } from '../hooks/useAllianceMarketplace';
-import { PublicPmProfile } from '../types/alliance.types';
+import type { PublicPmProfile } from '../types/alliance.types';
 
 interface AllianceInquiryModalProps {
   isOpen: boolean;

@@ -6,7 +6,7 @@ import {
   submitAllianceInquiry,
   submitClientAllianceRating,
 } from '../services/allianceService';
-import {
+import type {
   PublicAllianceMarketplaceQuery,
   SubmitAllianceInquiryData,
   SubmitClientRatingData,

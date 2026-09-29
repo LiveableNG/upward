@@ -1,5 +1,5 @@
 import { request } from '@/lib/api-client';
-import {
+import type {
   PublicAllianceListingCard,
   PublicAllianceListingDetail,
   PublicAllianceReferralContext,
