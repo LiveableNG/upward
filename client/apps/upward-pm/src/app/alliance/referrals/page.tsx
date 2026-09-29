@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { createPortal } from 'react-dom'
 import {
   Users,
   Copy,
@@ -9,7 +10,6 @@ import {
   Building2,
   Phone,
   Mail,
-  Calendar,
   ShieldCheck,
   UserCheck,
   AlertCircle,
@@ -18,6 +18,12 @@ import {
   Star,
   Activity,
   Layers,
+  ChevronRight,
+  ChevronDown,
+  X,
+  Share2,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react'
 import {
   useAllianceReferrals,
@@ -37,24 +43,393 @@ import { SearchInput } from '@/components/ui/ControlBar/SearchInput'
 import { FilterGroup } from '@/components/ui/ControlBar/FilterGroup'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
 
-const STAGES: { value: AllianceLeadStage; label: string; color: string }[] = [
-  { value: 'NEW', label: 'New Lead', color: '#3b82f6' },
-  { value: 'CONTACTED', label: 'Contacted', color: '#8b5cf6' },
-  { value: 'INTERESTED', label: 'Interested', color: '#06b6d4' },
-  { value: 'VIEWING', label: 'Viewing Scheduled', color: '#f59e0b' },
-  { value: 'APPLICATION', label: 'Application Submitted', color: '#ec4899' },
-  { value: 'CONVERTED', label: 'Converted Deal', color: '#10b981' },
-  { value: 'LOST', label: 'Lost / Closed', color: '#6b7280' },
+type LeadPotential = 'HIGH' | 'MEDIUM' | 'LOW'
+
+const STAGES: { value: AllianceLeadStage; label: string; next?: AllianceLeadStage; nextLabel?: string }[] = [
+  { value: 'NEW', label: 'New', next: 'CONTACTED', nextLabel: 'Mark as Contacted' },
+  { value: 'CONTACTED', label: 'Contacted', next: 'INTERESTED', nextLabel: 'Mark as Interested' },
+  { value: 'INTERESTED', label: 'Interested', next: 'VIEWING', nextLabel: 'Schedule Viewing' },
+  { value: 'VIEWING', label: 'Viewing', next: 'APPLICATION', nextLabel: 'Mark as Application' },
+  { value: 'APPLICATION', label: 'Application', next: 'CONVERTED', nextLabel: 'Record Converted Deal' },
+  { value: 'CONVERTED', label: 'Converted' },
+  { value: 'LOST', label: 'Lost' },
 ]
+
+/**
+ * Portaled Lead Potential Selector
+ */
+function PotentialDropdown({
+  potential,
+  onSelect,
+}: {
+  potential: LeadPotential
+  onSelect: (potential: LeadPotential) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [coords, setCoords] = useState<{ top: number; left: number; openUp: boolean }>({
+    top: 0,
+    left: 0,
+    openUp: false,
+  })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const openUp = spaceBelow < 220
+      setCoords({
+        top: openUp ? rect.top - 6 : rect.bottom + 6,
+        left: rect.left,
+        openUp,
+      })
+    }
+    setIsOpen(!isOpen)
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    const handleScroll = () => setIsOpen(false)
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [isOpen])
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={handleToggle}
+        className={`alliance-potential-pill alliance-potential-pill--${potential.toLowerCase()}`}
+        title="Click to adjust lead potential"
+      >
+        <span>●</span>
+        <span>{potential}</span>
+        <ChevronDown size={11} />
+      </button>
+
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: coords.openUp ? 'auto' : coords.top,
+              bottom: coords.openUp ? window.innerHeight - coords.top : 'auto',
+              left: coords.left,
+              background: '#ffffff',
+              borderRadius: '10px',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
+              padding: '8px',
+              width: '230px',
+              zIndex: 9999,
+            }}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#8a8a8a',
+                padding: '4px 8px',
+                textTransform: 'uppercase',
+              }}
+            >
+              Lead Potential
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onSelect('HIGH')
+                setIsOpen(false)
+              }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                background: potential === 'HIGH' ? 'rgba(22, 101, 52, 0.08)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: 'var(--forest)',
+              }}
+            >
+              <div>● High Potential</div>
+              <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b6b6b' }}>
+                Strong buying intent & conversion likelihood.
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSelect('MEDIUM')
+                setIsOpen(false)
+              }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                background: potential === 'MEDIUM' ? 'rgba(217, 119, 6, 0.08)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: '#b45309',
+                marginTop: '2px',
+              }}
+            >
+              <div>● Medium Potential</div>
+              <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b6b6b' }}>
+                Developing interest and ongoing discovery.
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSelect('LOW')
+                setIsOpen(false)
+              }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                background: potential === 'LOW' ? 'rgba(100, 116, 139, 0.08)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                color: '#475569',
+                marginTop: '2px',
+              }}
+            >
+              <div>● Low Potential</div>
+              <div style={{ fontSize: '11px', fontWeight: 400, color: '#6b6b6b' }}>
+                Early-stage or uncertain engagement.
+              </div>
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
+  )
+}
+
+/**
+ * Portaled Lead Stage Selector
+ */
+function StageDropdown({
+  currentStage,
+  isClosed,
+  onSelect,
+  onAdvance,
+}: {
+  currentStage: AllianceLeadStage
+  isClosed: boolean
+  onSelect: (stage: AllianceLeadStage) => void
+  onAdvance?: () => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [coords, setCoords] = useState<{ top: number; left: number; openUp: boolean }>({
+    top: 0,
+    left: 0,
+    openUp: false,
+  })
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const currentStageObj = STAGES.find((s) => s.value === currentStage) || STAGES[0]
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const spaceBelow = window.innerHeight - rect.bottom
+      const openUp = spaceBelow < 260
+      setCoords({
+        top: openUp ? rect.top - 6 : rect.bottom + 6,
+        left: rect.left,
+        openUp,
+      })
+    }
+    setIsOpen(!isOpen)
+  }
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    const handleScroll = () => setIsOpen(false)
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    window.addEventListener('scroll', handleScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      window.removeEventListener('scroll', handleScroll, true)
+    }
+  }, [isOpen])
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={isClosed}
+        onClick={handleToggle}
+        className="alliance-stage-selector"
+        title="Change pipeline stage"
+      >
+        <span>{currentStageObj.label}</span>
+        <ChevronDown size={12} color="#8a8a8a" />
+      </button>
+
+      {/* Fast Advance Stage Arrow */}
+      {!isClosed && currentStageObj.next && onAdvance && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onAdvance()
+          }}
+          className="alliance-stage-advance-btn"
+          title={`Advance to ${currentStageObj.nextLabel}`}
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
+
+      {isOpen &&
+        createPortal(
+          <div
+            ref={menuRef}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: coords.openUp ? 'auto' : coords.top,
+              bottom: coords.openUp ? window.innerHeight - coords.top : 'auto',
+              left: coords.left,
+              background: '#ffffff',
+              borderRadius: '10px',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 10px 28px rgba(0, 0, 0, 0.14)',
+              padding: '6px',
+              width: '190px',
+              zIndex: 9999,
+            }}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#8a8a8a',
+                padding: '4px 8px',
+                textTransform: 'uppercase',
+              }}
+            >
+              Move Stage
+            </div>
+            {STAGES.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => {
+                  onSelect(s.value)
+                  setIsOpen(false)
+                }}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '7px 10px',
+                  borderRadius: '6px',
+                  background: currentStage === s.value ? 'rgba(22, 101, 52, 0.08)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '12.5px',
+                  fontWeight: currentStage === s.value ? 700 : 500,
+                  color: currentStage === s.value ? 'var(--forest)' : '#171717',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>{s.label}</span>
+                {currentStage === s.value && <Check size={14} />}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </div>
+  )
+}
 
 export default function AllianceReferralsPage() {
   const toast = useToast()
   const [search, setSearch] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<AllianceReferralStatus | 'ALL'>('ALL')
   const [selectedStage, setSelectedStage] = useState<AllianceLeadStage | 'ALL'>('ALL')
+  const [selectedPotentialFilter, setSelectedPotentialFilter] = useState<LeadPotential | 'ALL'>('ALL')
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
   const [convertReferral, setConvertReferral] = useState<AllianceReferral | null>(null)
   const [ratingReferral, setRatingReferral] = useState<AllianceReferral | null>(null)
+  const [activeDrawerReferral, setActiveDrawerReferral] = useState<AllianceReferral | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Local storage map for lead potential temperature
+  const [potentials, setPotentials] = useState<Record<string, LeadPotential>>({})
+
+  useEffect(() => {
+    setMounted(true)
+    try {
+      const stored = localStorage.getItem('upward_alliance_lead_potentials')
+      if (stored) setPotentials(JSON.parse(stored))
+    } catch {}
+  }, [])
+
+  const handleSetPotential = (uuid: string, potential: LeadPotential) => {
+    const updated = { ...potentials, [uuid]: potential }
+    setPotentials(updated)
+    try {
+      localStorage.setItem('upward_alliance_lead_potentials', JSON.stringify(updated))
+    } catch {}
+    toast.success(`Lead potential set to ${potential}`)
+  }
+
+  const getPotential = (referral: AllianceReferral): LeadPotential => {
+    if (potentials[referral.uuid]) return potentials[referral.uuid]
+    if (referral.matchedUser || (referral.clientEmail && referral.clientPhone)) return 'HIGH'
+    if (referral.clientEmail || referral.clientPhone) return 'MEDIUM'
+    return 'LOW'
+  }
 
   const { data, isLoading, isError, error } = useAllianceReferrals({
     status: selectedStatus === 'ALL' ? undefined : selectedStatus,
@@ -80,32 +455,54 @@ export default function AllianceReferralsPage() {
     }
   }
 
-  const handleStageChange = async (referralUuid: string, newStage: AllianceLeadStage) => {
+  const handleStageChange = async (referral: AllianceReferral, newStage: AllianceLeadStage) => {
+    if (newStage === 'CONVERTED') {
+      setConvertReferral(referral)
+      return
+    }
+    if (newStage === 'LOST') {
+      handleCloseReferral(referral.uuid)
+      return
+    }
+
     try {
       await updateStageMutation.mutateAsync({
-        uuid: referralUuid,
+        uuid: referral.uuid,
         payload: { leadStage: newStage },
       })
-      toast.success(`Lead stage updated to ${newStage}`)
+      toast.success(`Lead moved to ${newStage.charAt(0) + newStage.slice(1).toLowerCase()}`)
+      if (activeDrawerReferral?.uuid === referral.uuid) {
+        setActiveDrawerReferral({ ...activeDrawerReferral, leadStage: newStage })
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to update lead stage')
     }
   }
 
+  const handleAdvanceStage = (referral: AllianceReferral) => {
+    const current = STAGES.find((s) => s.value === referral.leadStage)
+    if (!current?.next) return
+    handleStageChange(referral, current.next)
+  }
+
   const handleCloseReferral = async (referralUuid: string) => {
-    if (!confirm('Are you sure you want to close this referral relationship?')) return
+    if (!confirm('Are you sure you want to close this referral / mark as lost?')) return
     try {
       await closeReferralMutation.mutateAsync({
         uuid: referralUuid,
         payload: { reason: 'Closed by referring PM' },
       })
-      toast.success('Referral relationship closed')
+      toast.success('Lead marked as closed/lost')
+      if (activeDrawerReferral?.uuid === referralUuid) {
+        setActiveDrawerReferral({ ...activeDrawerReferral, status: 'CLOSED', leadStage: 'LOST' })
+      }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to close referral')
+      toast.error(err.message || 'Failed to close lead')
     }
   }
 
-  const formatPrice = (amount: number, currency: string = 'NGN') => {
+  const formatPrice = (amount?: number, currency: string = 'NGN') => {
+    if (amount === undefined || amount === null) return 'N/A'
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: currency === 'NGN' ? 'NGN' : currency,
@@ -113,55 +510,154 @@ export default function AllianceReferralsPage() {
     }).format(amount)
   }
 
-  const referrals = data?.items || []
+  const rawReferrals = data?.items || []
+
+  // Filter by potential if selected
+  const referrals = rawReferrals.filter((r) => {
+    if (selectedPotentialFilter === 'ALL') return true
+    return getPotential(r) === selectedPotentialFilter
+  })
+
+  // Stage count statistics for horizontal tabs
+  const stageCounts: Record<string, number> = {
+    ALL: rawReferrals.length,
+    NEW: rawReferrals.filter((r) => r.leadStage === 'NEW').length,
+    CONTACTED: rawReferrals.filter((r) => r.leadStage === 'CONTACTED').length,
+    INTERESTED: rawReferrals.filter((r) => r.leadStage === 'INTERESTED').length,
+    VIEWING: rawReferrals.filter((r) => r.leadStage === 'VIEWING').length,
+    APPLICATION: rawReferrals.filter((r) => r.leadStage === 'APPLICATION').length,
+    CONVERTED: rawReferrals.filter((r) => r.leadStage === 'CONVERTED').length,
+    LOST: rawReferrals.filter((r) => r.leadStage === 'LOST' || r.status === 'CLOSED').length,
+  }
 
   return (
-    <div>
-      {/* Filters Bar via ControlBar */}
-      <div style={{ marginBottom: '20px' }}>
-        <ControlBar>
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search by client name, email, or phone..."
-          />
+    <div className="alliance-pipeline-page">
+      {/* Header */}
+      <div className="alliance-pipeline-header">
+        <div className="alliance-pipeline-title-group">
+          <h1>
+            Referrals & Leads
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--forest)',
+                background: 'rgba(22, 101, 52, 0.08)',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(22, 101, 52, 0.15)',
+              }}
+            >
+              Alliance Co-Brokerage
+            </span>
+          </h1>
+          <p>Manage referred clients and track their property opportunities.</p>
+        </div>
 
-          <FilterGroup>
-            <FilterDropdown
-              label="Referral Status"
-              value={selectedStatus}
-              icon={Activity}
-              options={[
-                { label: 'All Statuses', value: 'ALL' },
-                { label: 'Active', value: 'ACTIVE' },
-                { label: 'Converted', value: 'CONVERTED' },
-                { label: 'Closed / Lost', value: 'CLOSED' },
-              ]}
-              onChange={(val) => setSelectedStatus(val as any)}
-            />
-
-            <FilterDropdown
-              label="Lead Stage"
-              value={selectedStage}
-              icon={Layers}
-              options={[
-                { label: 'All Stages', value: 'ALL' },
-                ...STAGES.map((s) => ({ label: s.label, value: s.value })),
-              ]}
-              onChange={(val) => setSelectedStage(val as any)}
-            />
-          </FilterGroup>
-        </ControlBar>
+        <Link
+          href="/alliance/discover"
+          className="btn btn--primary"
+          style={{
+            height: '40px',
+            padding: '0 16px',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            textDecoration: 'none',
+          }}
+        >
+          <Share2 size={15} />
+          <span>Discover & Refer</span>
+        </Link>
       </div>
 
-      {/* Loading State */}
+      {/* Pipeline Segmented Overview Bar */}
+      <div className="alliance-pipeline-tabs">
+        <button
+          type="button"
+          onClick={() => setSelectedStage('ALL')}
+          className={`alliance-pipeline-tab ${selectedStage === 'ALL' ? 'alliance-pipeline-tab--active' : ''}`}
+        >
+          <span>All Leads</span>
+          <span className="alliance-pipeline-tab__count">{stageCounts.ALL}</span>
+        </button>
+
+        {STAGES.map((st) => (
+          <button
+            key={st.value}
+            type="button"
+            onClick={() => setSelectedStage(st.value)}
+            className={`alliance-pipeline-tab ${selectedStage === st.value ? 'alliance-pipeline-tab--active' : ''}`}
+          >
+            <span>{st.label}</span>
+            <span className="alliance-pipeline-tab__count">{stageCounts[st.value] || 0}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search & Compact Filter Bar */}
+      <ControlBar>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search client, property or contact..."
+        />
+
+        <FilterGroup>
+          <FilterDropdown
+            label="Potential"
+            value={selectedPotentialFilter}
+            icon={Sparkles}
+            options={[
+              { label: 'All Potential', value: 'ALL' },
+              { label: 'High Potential', value: 'HIGH' },
+              { label: 'Medium Potential', value: 'MEDIUM' },
+              { label: 'Low Potential', value: 'LOW' },
+            ]}
+            onChange={(val) => setSelectedPotentialFilter(val as any)}
+          />
+
+          <FilterDropdown
+            label="Stage"
+            value={selectedStage}
+            icon={Layers}
+            options={[
+              { label: 'All Stages', value: 'ALL' },
+              ...STAGES.map((s) => ({ label: s.label, value: s.value })),
+            ]}
+            onChange={(val) => setSelectedStage(val as any)}
+          />
+
+          <FilterDropdown
+            label="Status"
+            value={selectedStatus}
+            icon={Activity}
+            options={[
+              { label: 'All Statuses', value: 'ALL' },
+              { label: 'Active', value: 'ACTIVE' },
+              { label: 'Converted', value: 'CONVERTED' },
+              { label: 'Closed / Lost', value: 'CLOSED' },
+            ]}
+            onChange={(val) => setSelectedStatus(val as any)}
+          />
+        </FilterGroup>
+      </ControlBar>
+
+      {/* Loading Skeleton */}
       {isLoading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {[1, 2, 3].map((i) => (
+        <div className="alliance-lead-card-container" style={{ padding: '24px' }}>
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="card animate-pulse"
-              style={{ height: '140px', borderRadius: '16px' }}
+              className="animate-pulse"
+              style={{
+                height: '56px',
+                background: '#f3f4f6',
+                borderRadius: '8px',
+                marginBottom: '12px',
+              }}
             />
           ))}
         </div>
@@ -170,9 +666,9 @@ export default function AllianceReferralsPage() {
       {/* Error State */}
       {isError && (
         <div
-          className="card"
+          className="alliance-lead-card-container"
           style={{
-            padding: '32px',
+            padding: '36px',
             textAlign: 'center',
             color: 'var(--danger)',
             display: 'flex',
@@ -182,8 +678,8 @@ export default function AllianceReferralsPage() {
           }}
         >
           <AlertCircle size={28} />
-          <div style={{ fontSize: '14px', fontWeight: 600 }}>Failed to load referrals</div>
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+          <div style={{ fontSize: '14px', fontWeight: 600 }}>Failed to load leads</div>
+          <p style={{ fontSize: '12.5px', color: '#6b6b6b', margin: 0 }}>
             {(error as any)?.message || 'An unexpected error occurred.'}
           </p>
         </div>
@@ -192,9 +688,9 @@ export default function AllianceReferralsPage() {
       {/* Empty State */}
       {!isLoading && !isError && referrals.length === 0 && (
         <div
-          className="card"
+          className="alliance-lead-card-container"
           style={{
-            padding: '56px 24px',
+            padding: '64px 24px',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
@@ -216,379 +712,504 @@ export default function AllianceReferralsPage() {
           >
             <Users size={26} />
           </div>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
-            No Referrals Found
+          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#171717' }}>
+            No referrals yet
           </h3>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '440px', margin: 0, lineHeight: 1.5 }}>
-            {search || selectedStatus !== 'ALL' || selectedStage !== 'ALL'
-              ? 'No referrals match your current filter criteria. Try adjusting your search query.'
-              : 'You have not referred any clients to Alliance listings yet. Browse partner listings on the network and create your first referral link.'}
+          <p style={{ fontSize: '13.5px', color: '#6b6b6b', maxWidth: '440px', margin: 0, lineHeight: 1.5 }}>
+            {search || selectedStage !== 'ALL' || selectedPotentialFilter !== 'ALL'
+              ? 'No referred clients match your active filters. Try clearing search filters.'
+              : 'When you refer a client to an Alliance listing, their opportunity will appear here in your sales pipeline.'}
           </p>
           <Link
             href="/alliance/discover"
             className="btn btn--primary"
-            style={{ marginTop: '8px', height: '38px', textDecoration: 'none' }}
+            style={{ marginTop: '8px', height: '40px', padding: '0 20px', textDecoration: 'none' }}
           >
-            Discover Listings to Refer
+            Discover Listings
           </Link>
         </div>
       )}
 
-      {/* Referrals List */}
+      {/* Lead Pipeline Table */}
       {!isLoading && !isError && referrals.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {referrals.map((referral) => {
-            const currentStageObj = STAGES.find((s) => s.value === referral.leadStage) || STAGES[0]
-            const isClosed = referral.status === 'CLOSED'
-            const isConverted = referral.status === 'CONVERTED'
+        <div className="alliance-lead-card-container">
+          <table className="alliance-lead-table">
+            <thead>
+              <tr>
+                <th style={{ width: '32%' }}>Client</th>
+                <th style={{ width: '30%' }}>Property</th>
+                <th style={{ width: '14%' }}>Potential</th>
+                <th style={{ width: '14%' }}>Stage</th>
+                <th style={{ width: '10%', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {referrals.map((referral) => {
+                const potential = getPotential(referral)
+                const isClosed = referral.status === 'CLOSED' || referral.leadStage === 'LOST'
+                const clientDisplayName = referral.clientName || referral.clientEmail || 'Unnamed Prospect'
 
-            return (
-              <div
-                key={referral.uuid}
-                className="card"
-                style={{
-                  padding: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '14px',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                }}
-              >
-                {/* Top Row: Client & Status Badges */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'rgba(22, 101, 52, 0.08)',
-                        color: 'var(--forest)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: '14px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {(referral.clientName || referral.clientEmail || 'C').charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
-                          {referral.clientName || 'Unnamed Prospect'}
-                        </h3>
-                        {referral.matchedUser && (
-                          <span
-                            className="alliance-chip"
-                            style={{ fontSize: '10.5px', padding: '1px 7px' }}
-                            title="Matched to registered Upward user account"
-                          >
-                            <UserCheck size={11} />
-                            Upward User
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '14px',
-                          fontSize: '12px',
-                          color: 'var(--text-secondary)',
-                          marginTop: '3px',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        {referral.clientEmail && (
-                          <a
-                            href={`mailto:${referral.clientEmail}`}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'inherit', textDecoration: 'none' }}
-                          >
-                            <Mail size={12} color="var(--text-muted)" />
-                            {referral.clientEmail}
-                          </a>
-                        )}
-                        {referral.clientPhone && (
-                          <a
-                            href={`tel:${referral.clientPhone}`}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'inherit', textDecoration: 'none' }}
-                          >
-                            <Phone size={12} color="var(--text-muted)" />
-                            {referral.clientPhone}
-                          </a>
-                        )}
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
-                          <Calendar size={12} />
-                          Referred {new Date(referral.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stage & Status Badge Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span
-                      style={{
-                        padding: '3px 9px',
-                        borderRadius: '9999px',
-                        background: `${currentStageObj.color}15`,
-                        color: currentStageObj.color,
-                        border: `1px solid ${currentStageObj.color}35`,
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: currentStageObj.color,
-                        }}
-                      />
-                      {currentStageObj.label}
-                    </span>
-
-                    {isConverted && (
-                      <span
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '9999px',
-                          background: 'rgba(16, 185, 129, 0.1)',
-                          color: '#10b981',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        CONVERTED
-                      </span>
-                    )}
-
-                    {isClosed && (
-                      <span
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: '9999px',
-                          background: 'rgba(107, 114, 128, 0.1)',
-                          color: '#9ca3af',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        CLOSED
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Listing Snippet Card */}
-                {referral.listing && (
-                  <div
-                    style={{
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      background: 'var(--ivory-dim)',
-                      border: '1px solid var(--border)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                    }}
+                return (
+                  <tr
+                    key={referral.uuid}
+                    className="alliance-lead-row"
+                    onClick={() => setActiveDrawerReferral(referral)}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Building2 size={15} color="var(--forest)" style={{ flexShrink: 0 }} />
-                      <div>
-                        <Link
-                          href={`/alliance/discover/${referral.listing.uuid}`}
+                    {/* Client Column */}
+                    <td>
+                      <div className="alliance-client-cell">
+                        <div className="alliance-client-avatar">
+                          {clientDisplayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="alliance-client-name">
+                            <span>{clientDisplayName}</span>
+                            {referral.matchedUser && (
+                              <span
+                                style={{
+                                  fontSize: '10.5px',
+                                  fontWeight: 600,
+                                  color: 'var(--forest)',
+                                  background: 'rgba(22, 101, 52, 0.08)',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                }}
+                                title="Matched to registered Upward user"
+                              >
+                                Upward User
+                              </span>
+                            )}
+                          </div>
+                          <div className="alliance-client-contacts">
+                            {referral.clientEmail && <span>{referral.clientEmail}</span>}
+                            {referral.clientEmail && referral.clientPhone && <span>·</span>}
+                            {referral.clientPhone && <span>{referral.clientPhone}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Property Column */}
+                    <td>
+                      {referral.listing ? (
+                        <div>
+                          <Link
+                            href={`/alliance/discover/${referral.listing.uuid}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="alliance-lead-prop-title"
+                          >
+                            <span>{referral.listing.title}</span>
+                            <ArrowUpRight size={13} color="#8a8a8a" />
+                          </Link>
+                          <div className="alliance-lead-prop-meta">
+                            {[referral.listing.city, referral.listing.state].filter(Boolean).join(', ')}
+                            {referral.listing.pm && (
+                              <span> · {referral.listing.pm.companyName || referral.listing.pm.name}</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--forest)', marginTop: '2px' }}>
+                            {formatPrice(referral.listing.price, referral.listing.currency)}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '12.5px', color: '#8a8a8a' }}>No property attached</span>
+                      )}
+                    </td>
+
+                    {/* Potential Temperature Column (Portaled Dropdown) */}
+                    <td>
+                      <PotentialDropdown
+                        potential={potential}
+                        onSelect={(p) => handleSetPotential(referral.uuid, p)}
+                      />
+                    </td>
+
+                    {/* Pipeline Stage Column (Portaled Dropdown) */}
+                    <td>
+                      <StageDropdown
+                        currentStage={referral.leadStage}
+                        isClosed={isClosed}
+                        onSelect={(s) => handleStageChange(referral, s)}
+                        onAdvance={() => handleAdvanceStage(referral)}
+                      />
+                    </td>
+
+                    {/* Actions Column */}
+                    <td style={{ textAlign: 'right' }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(referral)}
+                          className="btn btn--secondary"
                           style={{
-                            fontSize: '12.5px',
+                            height: '32px',
+                            padding: '0 10px',
+                            fontSize: '12px',
                             fontWeight: 600,
-                            color: 'var(--text)',
-                            textDecoration: 'none',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
                           }}
+                          title="Copy client referral link"
                         >
-                          {referral.listing.title}
-                          <ArrowUpRight size={12} color="var(--text-muted)" />
-                        </Link>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {[referral.listing.city, referral.listing.state].filter(Boolean).join(', ')} • Owner: {referral.listing.pm?.companyName || referral.listing.pm?.name || 'Partner PM'}
-                        </div>
+                          {copiedToken === referral.referralToken ? (
+                            <>
+                              <Check size={13} color="var(--forest)" />
+                              <span style={{ color: 'var(--forest)' }}>Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={13} />
+                              <span>Copy Link</span>
+                            </>
+                          )}
+                        </button>
                       </div>
-                    </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--forest)' }}>
-                      {formatPrice(referral.listing.price, referral.listing.currency)}
-                    </div>
+      {/* Lead Detail Drawer (Slide-Over) */}
+      {activeDrawerReferral &&
+        mounted &&
+        createPortal(
+          <div
+            className="alliance-drawer-overlay"
+            onClick={() => setActiveDrawerReferral(null)}
+          >
+            <div className="alliance-drawer" onClick={(e) => e.stopPropagation()}>
+              {/* Drawer Header */}
+              <div className="alliance-drawer__header">
+                <div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#171717' }}>
+                    {activeDrawerReferral.clientName || activeDrawerReferral.clientEmail || 'Client Opportunity'}
                   </div>
-                )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <span
+                      className={`alliance-potential-pill alliance-potential-pill--${getPotential(
+                        activeDrawerReferral,
+                      ).toLowerCase()}`}
+                    >
+                      <span>●</span>
+                      <span>{getPotential(activeDrawerReferral)} POTENTIAL</span>
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#8a8a8a' }}>
+                      Referred {new Date(activeDrawerReferral.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
 
-                {/* Client Notes (if any) */}
-                {referral.clientNotes && (
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawerReferral(null)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#8a8a8a',
+                    padding: '6px',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Drawer Body */}
+              <div className="alliance-drawer__body">
+                {/* Next Action Shortcut */}
+                {activeDrawerReferral.status !== 'CLOSED' && (
                   <div
                     style={{
-                      fontSize: '12px',
-                      color: 'var(--text-secondary)',
-                      background: 'var(--ivory-dim)',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      borderLeft: '3px solid var(--forest)',
+                      background: 'rgba(22, 101, 52, 0.05)',
+                      border: '1px solid rgba(22, 101, 52, 0.15)',
+                      borderRadius: '12px',
+                      padding: '16px',
                     }}
                   >
-                    <span style={{ fontWeight: 600, color: 'var(--text-muted)', marginRight: '6px' }}>
-                      Private Note:
-                    </span>
-                    {referral.clientNotes}
+                    <div
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        color: 'var(--forest)',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Suggested Next Action
+                    </div>
+                    <div style={{ fontSize: '13.5px', color: '#171717', fontWeight: 600, marginBottom: '12px' }}>
+                      {activeDrawerReferral.leadStage === 'NEW' &&
+                        'Reach out to client to introduce property opportunities.'}
+                      {activeDrawerReferral.leadStage === 'CONTACTED' &&
+                        'Follow up on client interest and questions.'}
+                      {activeDrawerReferral.leadStage === 'INTERESTED' &&
+                        'Coordinate physical or virtual property viewing.'}
+                      {activeDrawerReferral.leadStage === 'VIEWING' &&
+                        'Assist client with leasing/purchase application.'}
+                      {activeDrawerReferral.leadStage === 'APPLICATION' &&
+                        'Record confirmed transaction and earn commission attribution.'}
+                      {activeDrawerReferral.leadStage === 'CONVERTED' &&
+                        'Deal completed! Rate your co-brokerage partner.'}
+                    </div>
+
+                    {activeDrawerReferral.leadStage !== 'CONVERTED' && (
+                      <button
+                        type="button"
+                        onClick={() => handleAdvanceStage(activeDrawerReferral)}
+                        className="btn btn--primary"
+                        style={{
+                          width: '100%',
+                          height: '40px',
+                          fontSize: '13.5px',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span>
+                          {STAGES.find((s) => s.value === activeDrawerReferral.leadStage)?.nextLabel ||
+                            'Advance Stage'}
+                        </span>
+                        <ChevronRight size={15} />
+                      </button>
+                    )}
+
+                    {activeDrawerReferral.leadStage === 'CONVERTED' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRatingReferral(activeDrawerReferral)
+                          setActiveDrawerReferral(null)
+                        }}
+                        className="btn btn--secondary"
+                        style={{ width: '100%', height: '38px', fontSize: '13px', fontWeight: 600, color: '#eab308' }}
+                      >
+                        <Star size={14} />
+                        <span>Rate Co-Broker Experience</span>
+                      </button>
+                    )}
                   </div>
                 )}
 
-                {/* Bottom Actions Row: Stage Dropdown & Share Link Button */}
+                {/* Client Information */}
+                <div>
+                  <div className="alliance-drawer-section-label">Client Details</div>
+                  <div
+                    style={{
+                      background: '#fafaf9',
+                      border: '1px solid rgba(0, 0, 0, 0.06)',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#171717' }}>
+                      {activeDrawerReferral.clientName || 'Unnamed Client'}
+                    </div>
+                    {activeDrawerReferral.clientEmail && (
+                      <a
+                        href={`mailto:${activeDrawerReferral.clientEmail}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '13px',
+                          color: '#171717',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <Mail size={14} color="#8a8a8a" />
+                        <span>{activeDrawerReferral.clientEmail}</span>
+                      </a>
+                    )}
+                    {activeDrawerReferral.clientPhone && (
+                      <a
+                        href={`tel:${activeDrawerReferral.clientPhone}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '13px',
+                          color: '#171717',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <Phone size={14} color="#8a8a8a" />
+                        <span>{activeDrawerReferral.clientPhone}</span>
+                      </a>
+                    )}
+                    {activeDrawerReferral.clientNotes && (
+                      <div
+                        style={{
+                          borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+                          paddingTop: '10px',
+                          fontSize: '12.5px',
+                          color: '#6b6b6b',
+                        }}
+                      >
+                        <strong style={{ color: '#171717' }}>Private Notes:</strong>{' '}
+                        {activeDrawerReferral.clientNotes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Property Details */}
+                {activeDrawerReferral.listing && (
+                  <div>
+                    <div className="alliance-drawer-section-label">Property Opportunity</div>
+                    <div
+                      style={{
+                        background: '#fafaf9',
+                        border: '1px solid rgba(0, 0, 0, 0.06)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <Link
+                        href={`/alliance/discover/${activeDrawerReferral.listing.uuid}`}
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          color: '#171717',
+                          textDecoration: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span>{activeDrawerReferral.listing.title}</span>
+                        <ExternalLink size={13} color="#8a8a8a" />
+                      </Link>
+                      <div style={{ fontSize: '12px', color: '#6b6b6b' }}>
+                        {[
+                          activeDrawerReferral.listing.address,
+                          activeDrawerReferral.listing.city,
+                          activeDrawerReferral.listing.state,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--forest)' }}>
+                        {formatPrice(
+                          activeDrawerReferral.listing.price,
+                          activeDrawerReferral.listing.currency,
+                        )}
+                      </div>
+                      {activeDrawerReferral.listing.pm && (
+                        <div
+                          style={{
+                            fontSize: '11.5px',
+                            color: '#8a8a8a',
+                            borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+                            paddingTop: '6px',
+                          }}
+                        >
+                          Listing Owner:{' '}
+                          <strong>
+                            {activeDrawerReferral.listing.pm.companyName ||
+                              activeDrawerReferral.listing.pm.name}
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Vertical Pipeline Timeline */}
+                <div>
+                  <div className="alliance-drawer-section-label">Pipeline History</div>
+                  <div className="alliance-timeline">
+                    {STAGES.slice(0, 6).map((stage, idx) => {
+                      const currentStageIndex = STAGES.findIndex(
+                        (s) => s.value === activeDrawerReferral.leadStage,
+                      )
+                      const isCompleted = currentStageIndex > idx
+                      const isCurrent = activeDrawerReferral.leadStage === stage.value
+
+                      return (
+                        <div key={stage.value} className="alliance-timeline-node">
+                          <div
+                            className={`alliance-timeline-dot ${
+                              isCurrent
+                                ? 'alliance-timeline-dot--active'
+                                : isCompleted
+                                ? 'alliance-timeline-dot--completed'
+                                : ''
+                            }`}
+                          >
+                            {isCompleted && <Check size={10} />}
+                          </div>
+                          <div
+                            className={`alliance-timeline-label ${
+                              isCurrent ? 'alliance-timeline-label--active' : ''
+                            }`}
+                          >
+                            {stage.label}
+                          </div>
+                          {isCurrent && (
+                            <span style={{ fontSize: '11px', color: '#8a8a8a' }}>
+                              Current active stage
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Drawer Footer Actions */}
                 <div
                   style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingTop: '10px',
-                    borderTop: '1px solid var(--border)',
-                    flexWrap: 'wrap',
+                    flexDirection: 'column',
                     gap: '10px',
+                    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+                    paddingTop: '18px',
+                    marginTop: 'auto',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      Progress Stage:
-                    </span>
-                    <select
-                      value={referral.leadStage}
-                      onChange={(e) => handleStageChange(referral.uuid, e.target.value as AllianceLeadStage)}
-                      disabled={updateStageMutation.isPending || isClosed}
-                      style={{
-                        padding: '5px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                        color: 'var(--text)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: isClosed ? 'not-allowed' : 'pointer',
-                      }}
-                    >
-                      {STAGES.map((s) => (
-                        <option key={s.value} value={s.value}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyLink(activeDrawerReferral)}
+                    className="btn btn--secondary"
+                    style={{ width: '100%', height: '40px', fontSize: '13px', fontWeight: 600 }}
+                  >
+                    <Copy size={14} />
+                    <span>Copy Referral Share Link</span>
+                  </button>
 
-                    {!isClosed && (
-                      <button
-                        type="button"
-                        onClick={() => handleCloseReferral(referral.uuid)}
-                        disabled={closeReferralMutation.isPending}
-                        className="btn btn--text"
-                        style={{
-                          fontSize: '12px',
-                          color: 'var(--text-muted)',
-                          padding: '4px 8px',
-                        }}
-                      >
-                        Close Lead
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Action Buttons: Convert, Rate & Share Link */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    {!isClosed && !isConverted && (
-                      <button
-                        type="button"
-                        onClick={() => setConvertReferral(referral)}
-                        className="btn btn--primary"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          height: '32px',
-                          padding: '0 12px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        <DollarSign size={13} />
-                        <span>Record Deal & Commission</span>
-                      </button>
-                    )}
-
-                    {isConverted && (
-                      <button
-                        type="button"
-                        onClick={() => setRatingReferral(referral)}
-                        className="btn btn--secondary"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          height: '32px',
-                          padding: '0 12px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          color: '#eab308',
-                        }}
-                      >
-                        <Star size={13} />
-                        <span>Rate Experience</span>
-                      </button>
-                    )}
-
+                  {activeDrawerReferral.status !== 'CLOSED' && (
                     <button
                       type="button"
-                      onClick={() => handleCopyLink(referral)}
-                      className="btn btn--secondary"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        height: '32px',
-                        padding: '0 12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                      }}
+                      onClick={() => handleCloseReferral(activeDrawerReferral.uuid)}
+                      className="btn btn--text"
+                      style={{ color: '#dc2626', fontSize: '12.5px', height: '32px' }}
                     >
-                      {copiedToken === referral.referralToken ? (
-                        <>
-                          <Check size={13} color="var(--forest)" />
-                          <span style={{ color: 'var(--forest)' }}>Link Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={13} />
-                          <span>Copy Link</span>
-                        </>
-                      )}
+                      Close Lead / Mark as Lost
                     </button>
-                  </div>
+                  )}
                 </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* Convert Referral Modal */}
       {convertReferral && (
