@@ -177,7 +177,7 @@ export async function middleware(request: NextRequest) {
 
   let isPmInvite = false
   let rewrittenPathname = pathname
-  // Intercept waitlist invites at gateway level to avoid client loading states
+  // Intercept waitlist and PM invites at gateway level
   if (pathname.startsWith('/pm-invite/')) {
     isPmInvite = true
     rewrittenPathname = pathname.replace('/pm-invite/', '/invite/')
@@ -206,6 +206,34 @@ export async function middleware(request: NextRequest) {
         }
       } catch (err) {
         console.error('Error checking invite in gateway middleware:', err)
+      }
+    }
+  }
+
+  // Intercept alliance referral links at gateway level
+  if (pathname.startsWith('/alliance/referral/') || pathname.startsWith('/alliance/ref/')) {
+    const segments = pathname.split('/')
+    const token = segments[segments.length - 1]
+    if (token && token !== 'referral' && token !== 'ref') {
+      try {
+        const res = await fetch(`${API_URL}/public/alliance/referrals/${token}`)
+        if (res.ok) {
+          const payload = await res.json()
+          const refData = payload?.data
+          if (refData?.listing?.uuid) {
+            const redirectParams = new URLSearchParams()
+            redirectParams.set('ref', token)
+            if (refData.clientEmail) redirectParams.set('clientEmail', refData.clientEmail)
+            if (refData.clientName) redirectParams.set('clientName', refData.clientName)
+            if (refData.clientPhone) redirectParams.set('clientPhone', refData.clientPhone)
+
+            return NextResponse.redirect(
+              new URL(`/alliance/${refData.listing.uuid}?${redirectParams.toString()}`, request.url)
+            )
+          }
+        }
+      } catch (err) {
+        console.error('Error checking alliance referral in gateway middleware:', err)
       }
     }
   }

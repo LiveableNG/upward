@@ -160,6 +160,8 @@ export interface PublicAllianceReferralContextDto {
   shareToken: string;
   status: string;
   clientName: string;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
   listing: PublicAllianceListingDetailDto;
   referringPm: PublicPmProfileDto;
 }

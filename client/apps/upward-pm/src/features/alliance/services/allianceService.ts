@@ -191,8 +191,9 @@ export async function listAllianceReferrals(
   params?: import('../types/alliance.types').ListAllianceReferralsParams,
 ): Promise<import('../types/alliance.types').ListAllianceReferralsResponse> {
   const searchParams = new URLSearchParams()
-  if (params?.status) searchParams.set('status', params.status)
-  if (params?.leadStage) searchParams.set('leadStage', params.leadStage)
+  if (params?.status && params.status !== 'ALL') searchParams.set('status', params.status)
+  const stageVal = params?.stage || params?.leadStage
+  if (stageVal && stageVal !== 'ALL') searchParams.set('stage', stageVal)
   if (params?.search) searchParams.set('search', params.search)
   if (params?.page) searchParams.set('page', String(params.page))
   if (params?.limit) searchParams.set('limit', String(params.limit))
@@ -219,11 +220,15 @@ export async function updateAllianceLeadStage(
   uuid: string,
   payload: import('../types/alliance.types').UpdateAllianceLeadStagePayload,
 ): Promise<import('../types/alliance.types').AllianceReferral> {
+  const stageVal = payload?.stage || payload?.leadStage
+  const bodyPayload: any = { stage: stageVal }
+  if (payload.notes) bodyPayload.notes = payload.notes
+
   const res = await request<any>(
     `/pm/alliance/referrals/${uuid}/stage`,
     {
       method: 'PATCH',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(bodyPayload),
     },
   )
   return (res?.data ?? res) as import('../types/alliance.types').AllianceReferral

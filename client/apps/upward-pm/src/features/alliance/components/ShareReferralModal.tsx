@@ -88,6 +88,7 @@ export function ShareReferralModal({
           clientName: clientName.trim() || undefined,
           clientEmail: trimmedEmail || undefined,
           clientPhone: trimmedPhone || undefined,
+          notes: clientNotes.trim() || undefined,
           clientNotes: clientNotes.trim() || undefined,
         },
       })
@@ -101,10 +102,16 @@ export function ShareReferralModal({
   }
 
   const handleCopyLink = async () => {
-    if (!createdReferral?.shareUrl && !createdReferral?.referralToken) return
+    const token =
+      createdReferral?.shareToken ||
+      createdReferral?.referralToken ||
+      (createdReferral as any)?.token ||
+      createdReferral?.uuid
+
+    if (!createdReferral?.shareUrl && !token) return
     const url =
-      createdReferral.shareUrl ||
-      `${window.location.origin}/alliance/referral/${createdReferral.referralToken}`
+      createdReferral?.shareUrl ||
+      `${window.location.origin}/alliance/referral/${token}`
 
     try {
       await navigator.clipboard.writeText(url)
@@ -281,7 +288,13 @@ export function ShareReferralModal({
                     readOnly
                     value={
                       createdReferral.shareUrl ||
-                      `${window.location.origin}/alliance/referral/${createdReferral.referralToken}`
+                      `${window.location.origin}/alliance/referral/${
+                        createdReferral.shareToken ||
+                        createdReferral.referralToken ||
+                        (createdReferral as any).token ||
+                        createdReferral.uuid ||
+                        ''
+                      }`
                     }
                     style={{
                       flex: 1,

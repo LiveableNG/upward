@@ -62,6 +62,8 @@ export interface PublicAllianceReferralContext {
   shareToken: string;
   status: string;
   clientName: string;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
   listing: PublicAllianceListingDetail;
   referringPm: PublicPmProfile;
 }

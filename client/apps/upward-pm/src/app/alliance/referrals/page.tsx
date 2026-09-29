@@ -433,7 +433,7 @@ export default function AllianceReferralsPage() {
 
   const { data, isLoading, isError, error } = useAllianceReferrals({
     status: selectedStatus === 'ALL' ? undefined : selectedStatus,
-    leadStage: selectedStage === 'ALL' ? undefined : selectedStage,
+    stage: selectedStage === 'ALL' ? undefined : selectedStage,
     search: search.trim() || undefined,
   })
 
@@ -441,13 +441,19 @@ export default function AllianceReferralsPage() {
   const closeReferralMutation = useCloseAllianceReferral()
 
   const handleCopyLink = async (referral: AllianceReferral) => {
+    const token = referral.shareToken || referral.referralToken || (referral as any).token || referral.uuid
     const url =
       referral.shareUrl ||
-      `${window.location.origin}/alliance/referral/${referral.referralToken}`
+      (token ? `${window.location.origin}/alliance/referral/${token}` : '')
+
+    if (!url) {
+      toast.error('Referral share link not available')
+      return
+    }
 
     try {
       await navigator.clipboard.writeText(url)
-      setCopiedToken(referral.referralToken)
+      setCopiedToken(token || referral.uuid)
       toast.success('Referral share link copied')
       setTimeout(() => setCopiedToken(null), 2500)
     } catch {
@@ -468,11 +474,15 @@ export default function AllianceReferralsPage() {
     try {
       await updateStageMutation.mutateAsync({
         uuid: referral.uuid,
-        payload: { leadStage: newStage },
+        payload: { stage: newStage },
       })
       toast.success(`Lead moved to ${newStage.charAt(0) + newStage.slice(1).toLowerCase()}`)
       if (activeDrawerReferral?.uuid === referral.uuid) {
-        setActiveDrawerReferral({ ...activeDrawerReferral, leadStage: newStage })
+        setActiveDrawerReferral({
+          ...activeDrawerReferral,
+          stage: newStage,
+          leadStage: newStage,
+        })
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to update lead stage')
@@ -480,7 +490,8 @@ export default function AllianceReferralsPage() {
   }
 
   const handleAdvanceStage = (referral: AllianceReferral) => {
-    const current = STAGES.find((s) => s.value === referral.leadStage)
+    const stage = referral.stage || referral.leadStage || 'NEW'
+    const current = STAGES.find((s) => s.value === stage)
     if (!current?.next) return
     handleStageChange(referral, current.next)
   }
@@ -494,7 +505,12 @@ export default function AllianceReferralsPage() {
       })
       toast.success('Lead marked as closed/lost')
       if (activeDrawerReferral?.uuid === referralUuid) {
-        setActiveDrawerReferral({ ...activeDrawerReferral, status: 'CLOSED', leadStage: 'LOST' })
+        setActiveDrawerReferral({
+          ...activeDrawerReferral,
+          status: 'CLOSED',
+          stage: 'LOST',
+          leadStage: 'LOST',
+        })
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to close lead')
@@ -521,13 +537,13 @@ export default function AllianceReferralsPage() {
   // Stage count statistics for horizontal tabs
   const stageCounts: Record<string, number> = {
     ALL: rawReferrals.length,
-    NEW: rawReferrals.filter((r) => r.leadStage === 'NEW').length,
-    CONTACTED: rawReferrals.filter((r) => r.leadStage === 'CONTACTED').length,
-    INTERESTED: rawReferrals.filter((r) => r.leadStage === 'INTERESTED').length,
-    VIEWING: rawReferrals.filter((r) => r.leadStage === 'VIEWING').length,
-    APPLICATION: rawReferrals.filter((r) => r.leadStage === 'APPLICATION').length,
-    CONVERTED: rawReferrals.filter((r) => r.leadStage === 'CONVERTED').length,
-    LOST: rawReferrals.filter((r) => r.leadStage === 'LOST' || r.status === 'CLOSED').length,
+    NEW: rawReferrals.filter((r) => (r.stage || r.leadStage || 'NEW') === 'NEW').length,
+    CONTACTED: rawReferrals.filter((r) => (r.stage || r.leadStage) === 'CONTACTED').length,
+    INTERESTED: rawReferrals.filter((r) => (r.stage || r.leadStage) === 'INTERESTED').length,
+    VIEWING: rawReferrals.filter((r) => (r.stage || r.leadStage) === 'VIEWING').length,
+    APPLICATION: rawReferrals.filter((r) => (r.stage || r.leadStage) === 'APPLICATION').length,
+    CONVERTED: rawReferrals.filter((r) => (r.stage || r.leadStage) === 'CONVERTED').length,
+    LOST: rawReferrals.filter((r) => (r.stage || r.leadStage) === 'LOST' || r.status === 'CLOSED').length,
   }
 
   return (
@@ -746,7 +762,8 @@ export default function AllianceReferralsPage() {
             <tbody>
               {referrals.map((referral) => {
                 const potential = getPotential(referral)
-                const isClosed = referral.status === 'CLOSED' || referral.leadStage === 'LOST'
+                const isClosed = referral.status === 'CLOSED' || (referral.stage || referral.leadStage) === 'LOST'
+                const referralStage = referral.stage || referral.leadStage || 'NEW'
                 const clientDisplayName = referral.clientName || referral.clientEmail || 'Unnamed Prospect'
 
                 return (
@@ -827,7 +844,7 @@ export default function AllianceReferralsPage() {
                     {/* Pipeline Stage Column (Portaled Dropdown) */}
                     <td>
                       <StageDropdown
-                        currentStage={referral.leadStage}
+                        currentStage={referralStage}
                         isClosed={isClosed}
                         onSelect={(s) => handleStageChange(referral, s)}
                         onAdvance={() => handleAdvanceStage(referral)}
@@ -925,81 +942,84 @@ export default function AllianceReferralsPage() {
               {/* Drawer Body */}
               <div className="alliance-drawer__body">
                 {/* Next Action Shortcut */}
-                {activeDrawerReferral.status !== 'CLOSED' && (
-                  <div
-                    style={{
-                      background: 'rgba(22, 101, 52, 0.05)',
-                      border: '1px solid rgba(22, 101, 52, 0.15)',
-                      borderRadius: '12px',
-                      padding: '16px',
-                    }}
-                  >
+                {activeDrawerReferral.status !== 'CLOSED' && (() => {
+                  const drawerStage = activeDrawerReferral.stage || activeDrawerReferral.leadStage || 'NEW'
+                  return (
                     <div
                       style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        color: 'var(--forest)',
-                        marginBottom: '4px',
+                        background: 'rgba(22, 101, 52, 0.05)',
+                        border: '1px solid rgba(22, 101, 52, 0.15)',
+                        borderRadius: '12px',
+                        padding: '16px',
                       }}
                     >
-                      Suggested Next Action
-                    </div>
-                    <div style={{ fontSize: '13.5px', color: '#171717', fontWeight: 600, marginBottom: '12px' }}>
-                      {activeDrawerReferral.leadStage === 'NEW' &&
-                        'Reach out to client to introduce property opportunities.'}
-                      {activeDrawerReferral.leadStage === 'CONTACTED' &&
-                        'Follow up on client interest and questions.'}
-                      {activeDrawerReferral.leadStage === 'INTERESTED' &&
-                        'Coordinate physical or virtual property viewing.'}
-                      {activeDrawerReferral.leadStage === 'VIEWING' &&
-                        'Assist client with leasing/purchase application.'}
-                      {activeDrawerReferral.leadStage === 'APPLICATION' &&
-                        'Record confirmed transaction and earn commission attribution.'}
-                      {activeDrawerReferral.leadStage === 'CONVERTED' &&
-                        'Deal completed! Rate your co-brokerage partner.'}
-                    </div>
-
-                    {activeDrawerReferral.leadStage !== 'CONVERTED' && (
-                      <button
-                        type="button"
-                        onClick={() => handleAdvanceStage(activeDrawerReferral)}
-                        className="btn btn--primary"
+                      <div
                         style={{
-                          width: '100%',
-                          height: '40px',
-                          fontSize: '13.5px',
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: 'var(--forest)',
+                          marginBottom: '4px',
                         }}
                       >
-                        <span>
-                          {STAGES.find((s) => s.value === activeDrawerReferral.leadStage)?.nextLabel ||
-                            'Advance Stage'}
-                        </span>
-                        <ChevronRight size={15} />
-                      </button>
-                    )}
+                        Suggested Next Action
+                      </div>
+                      <div style={{ fontSize: '13.5px', color: '#171717', fontWeight: 600, marginBottom: '12px' }}>
+                        {drawerStage === 'NEW' &&
+                          'Reach out to client to introduce property opportunities.'}
+                        {drawerStage === 'CONTACTED' &&
+                          'Follow up on client interest and questions.'}
+                        {drawerStage === 'INTERESTED' &&
+                          'Coordinate physical or virtual property viewing.'}
+                        {drawerStage === 'VIEWING' &&
+                          'Assist client with leasing/purchase application.'}
+                        {drawerStage === 'APPLICATION' &&
+                          'Record confirmed transaction and earn commission attribution.'}
+                        {drawerStage === 'CONVERTED' &&
+                          'Deal completed! Rate your co-brokerage partner.'}
+                      </div>
 
-                    {activeDrawerReferral.leadStage === 'CONVERTED' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRatingReferral(activeDrawerReferral)
-                          setActiveDrawerReferral(null)
-                        }}
-                        className="btn btn--secondary"
-                        style={{ width: '100%', height: '38px', fontSize: '13px', fontWeight: 600, color: '#eab308' }}
-                      >
-                        <Star size={14} />
-                        <span>Rate Co-Broker Experience</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+                      {drawerStage !== 'CONVERTED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdvanceStage(activeDrawerReferral)}
+                          className="btn btn--primary"
+                          style={{
+                            width: '100%',
+                            height: '40px',
+                            fontSize: '13.5px',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span>
+                            {STAGES.find((s) => s.value === drawerStage)?.nextLabel ||
+                              'Advance Stage'}
+                          </span>
+                          <ChevronRight size={15} />
+                        </button>
+                      )}
+
+                      {drawerStage === 'CONVERTED' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRatingReferral(activeDrawerReferral)
+                            setActiveDrawerReferral(null)
+                          }}
+                          className="btn btn--secondary"
+                          style={{ width: '100%', height: '38px', fontSize: '13px', fontWeight: 600, color: '#eab308' }}
+                        >
+                          <Star size={14} />
+                          <span>Rate Co-Broker Experience</span>
+                        </button>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 {/* Client Information */}
                 <div>
@@ -1135,41 +1155,43 @@ export default function AllianceReferralsPage() {
                 <div>
                   <div className="alliance-drawer-section-label">Pipeline History</div>
                   <div className="alliance-timeline">
-                    {STAGES.slice(0, 6).map((stage, idx) => {
-                      const currentStageIndex = STAGES.findIndex(
-                        (s) => s.value === activeDrawerReferral.leadStage,
-                      )
-                      const isCompleted = currentStageIndex > idx
-                      const isCurrent = activeDrawerReferral.leadStage === stage.value
+                    {(() => {
+                      const drawerStage = activeDrawerReferral.stage || activeDrawerReferral.leadStage || 'NEW'
+                      const currentStageIndex = STAGES.findIndex((s) => s.value === drawerStage)
 
-                      return (
-                        <div key={stage.value} className="alliance-timeline-node">
-                          <div
-                            className={`alliance-timeline-dot ${
-                              isCurrent
-                                ? 'alliance-timeline-dot--active'
-                                : isCompleted
-                                ? 'alliance-timeline-dot--completed'
-                                : ''
-                            }`}
-                          >
-                            {isCompleted && <Check size={10} />}
+                      return STAGES.slice(0, 6).map((stage, idx) => {
+                        const isCompleted = currentStageIndex > idx
+                        const isCurrent = drawerStage === stage.value
+
+                        return (
+                          <div key={stage.value} className="alliance-timeline-node">
+                            <div
+                              className={`alliance-timeline-dot ${
+                                isCurrent
+                                  ? 'alliance-timeline-dot--active'
+                                  : isCompleted
+                                  ? 'alliance-timeline-dot--completed'
+                                  : ''
+                              }`}
+                            >
+                              {isCompleted && <Check size={10} />}
+                            </div>
+                            <div
+                              className={`alliance-timeline-label ${
+                                isCurrent ? 'alliance-timeline-label--active' : ''
+                              }`}
+                            >
+                              {stage.label}
+                            </div>
+                            {isCurrent && (
+                              <span style={{ fontSize: '11px', color: '#8a8a8a' }}>
+                                Current active stage
+                              </span>
+                            )}
                           </div>
-                          <div
-                            className={`alliance-timeline-label ${
-                              isCurrent ? 'alliance-timeline-label--active' : ''
-                            }`}
-                          >
-                            {stage.label}
-                          </div>
-                          {isCurrent && (
-                            <span style={{ fontSize: '11px', color: '#8a8a8a' }}>
-                              Current active stage
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
+                        )
+                      })
+                    })()}
                   </div>
                 </div>
 

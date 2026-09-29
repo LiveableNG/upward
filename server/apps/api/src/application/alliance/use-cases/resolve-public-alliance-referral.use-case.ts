@@ -90,6 +90,8 @@ export class ResolvePublicAllianceReferralUseCase {
       shareToken: referral.shareToken,
       status: referral.status,
       clientName: referral.clientName,
+      clientEmail: referral.clientEmail,
+      clientPhone: referral.clientPhone,
       listing: {
         uuid: listing.uuid,
         title: listing.title,

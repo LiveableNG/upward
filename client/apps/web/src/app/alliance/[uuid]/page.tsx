@@ -38,9 +38,11 @@ export default async function WebAllianceListingDetailPage({
   const referralContext = refToken ? await fetchReferralContext(refToken) : null;
   const referringPm = referralContext?.referringPm;
 
-  const paySignupUrl = refToken
-    ? `/signup?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}?ref=${refToken}`)}`
-    : `/signup?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}`)}`;
+  const signupParams = new URLSearchParams();
+  signupParams.set('redirect', `/dashboard/alliance/${uuid}${refToken ? `?ref=${refToken}` : ''}`);
+  if (referralContext?.clientEmail) signupParams.set('email', referralContext.clientEmail);
+  if (referralContext?.clientName) signupParams.set('name', referralContext.clientName);
+  const paySignupUrl = `/signup?${signupParams.toString()}`;
 
   const payLoginUrl = refToken
     ? `/login?redirect=${encodeURIComponent(`/dashboard/alliance/${uuid}?ref=${refToken}`)}`
