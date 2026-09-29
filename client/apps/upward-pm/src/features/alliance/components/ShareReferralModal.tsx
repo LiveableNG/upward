@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X,
   Share2,
@@ -42,6 +43,7 @@ export function ShareReferralModal({
   const toast = useToast()
   const createReferralMutation = useCreateAllianceReferral()
 
+  const [mounted, setMounted] = useState(false)
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [clientPhone, setClientPhone] = useState('')
@@ -50,7 +52,11 @@ export function ShareReferralModal({
   const [isCopied, setIsCopied] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !mounted) return null
 
   const handleReset = () => {
     setClientName('')
@@ -119,7 +125,7 @@ export function ShareReferralModal({
     }).format(amount)
   }
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -507,6 +513,7 @@ export function ShareReferralModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

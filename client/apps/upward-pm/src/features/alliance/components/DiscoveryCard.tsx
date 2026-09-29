@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import {
   Building2,
@@ -17,7 +17,6 @@ import {
 import { AllianceDiscoveredListingSummary } from '../types/alliance.types'
 import { useTrackAllianceListing, useUntrackAllianceListing } from '../hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
-import { ShareReferralModal } from './ShareReferralModal'
 
 interface DiscoveryCardProps {
   listing: AllianceDiscoveredListingSummary
@@ -27,8 +26,6 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
   const toast = useToast()
   const trackMutation = useTrackAllianceListing()
   const untrackMutation = useUntrackAllianceListing()
-
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const isTracked = Boolean(listing.isTrackedByCurrentPm)
   const isPending = trackMutation.isPending || untrackMutation.isPending
@@ -298,13 +295,8 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
           >
             View Details
           </Link>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setIsShareModalOpen(true)
-            }}
+          <Link
+            href={`/alliance/discover/${listing.uuid}?action=refer`}
             className="btn btn--secondary"
             style={{
               height: '34px',
@@ -315,12 +307,13 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
               alignItems: 'center',
               gap: '4px',
               color: 'var(--forest)',
+              textDecoration: 'none',
             }}
             title="Refer Client / Share Listing"
           >
             <Share2 size={13} />
             <span>Refer</span>
-          </button>
+          </Link>
           <button
             type="button"
             onClick={handleToggleTrack}
@@ -342,16 +335,6 @@ export function DiscoveryCard({ listing }: DiscoveryCardProps) {
           </button>
         </div>
       </div>
-
-      <ShareReferralModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        listingUuid={listing.uuid}
-        listingTitle={listing.title}
-        listingPrice={listing.price}
-        listingCurrency={listing.currency}
-        listingLocation={locationText}
-      />
     </div>
   )
 }

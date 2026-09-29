@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -33,6 +33,7 @@ import { ShareReferralModal } from '@/features/alliance/components/ShareReferral
 export default function DiscoveredListingDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   const uuid = params?.uuid as string
 
@@ -42,6 +43,12 @@ export default function DiscoveredListingDetailPage() {
 
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (searchParams?.get('action') === 'refer') {
+      setIsShareModalOpen(true)
+    }
+  }, [searchParams])
 
   const isTracked = Boolean(listing?.isTrackedByCurrentPm)
   const isPending = trackMutation.isPending || untrackMutation.isPending
