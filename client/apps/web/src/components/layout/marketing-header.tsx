@@ -143,6 +143,7 @@ export function MarketingHeader() {
 
               <Link href="/for-landlord">Landlord</Link>
               <Link href="/for-pm">Property Managers</Link>
+              <Link href="/alliance">Marketplace</Link>
               <Link href="/blog">Blog</Link>
             </nav>
           </div>
@@ -253,6 +254,9 @@ export function MarketingHeader() {
           </Link>
           <Link href="/for-pm" onClick={() => setMobileMenuOpen(false)}>
             Property Managers
+          </Link>
+          <Link href="/alliance" onClick={() => setMobileMenuOpen(false)}>
+            Marketplace
           </Link>
           {showBlog && (
             <Link href="/blog" onClick={() => setMobileMenuOpen(false)}>

@@ -14,10 +14,12 @@ import {
   CheckCircle2,
   XCircle,
   ShieldAlert,
+  Award,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { useAuth } from '../contexts/AuthContext'
+import { ConfirmModal } from '../components/common/modal/ConfirmModal'
 
 interface PmDetailProps {
   token: string
@@ -92,6 +94,44 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const [subReason, setSubReason] = useState<string>('')
   const [updatingSubscription, setUpdatingSubscription] = useState(false)
 
+  // Alliance Management State
+  const [allianceProfile, setAllianceProfile] = useState<{
+    isEnabled: boolean
+    enabledAt?: string
+    disabledAt?: string
+    pmTitle?: string
+    bio?: string
+    qualifications?: Array<{
+      id: number
+      uuid: string
+      slug: string
+      name: string
+      description?: string
+      assignedAt: string
+    }>
+  } | null>(null)
+  const [allQualifications, setAllQualifications] = useState<
+    Array<{ id: number; uuid: string; slug: string; name: string; description?: string; isActive: boolean }>
+  >([])
+  const [selectedQualId, setSelectedQualId] = useState<string>('')
+  const [updatingAlliance, setUpdatingAlliance] = useState(false)
+  const [assigningQual, setAssigningQual] = useState(false)
+  const [showDisableConfirm, setShowDisableConfirm] = useState(false)
+
+  const fetchAllianceData = async () => {
+    if (!uuid) return
+    try {
+      const [profileRes, qualsRes] = await Promise.all([
+        apiService.get(`/admin/alliance/pms/${uuid}`, token),
+        apiService.get(`/admin/alliance/qualifications?includeInactive=false`, token),
+      ])
+      setAllianceProfile(profileRes.data)
+      setAllQualifications(qualsRes.data || [])
+    } catch (err) {
+      console.error('Failed to load Alliance profile/qualifications', err)
+    }
+  }
+
   const fetchPmDetails = async () => {
     if (!uuid) return
     setLoading(true)
@@ -108,6 +148,7 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
       setEditBusinessName(res.data.businessName || '')
       setSubTier(res.data.subscription?.tier || 'FREE')
       setSubStatus(res.data.subscription?.status || 'ACTIVE')
+      await fetchAllianceData()
     } catch (err) {
       console.error(err)
       showToast('Failed to load property manager details', true)
@@ -119,6 +160,76 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   useEffect(() => {
     fetchPmDetails()
   }, [uuid])
+
+  const handleToggleAlliance = (enable: boolean) => {
+    if (!uuid) return
+    if (!enable) {
+      setShowDisableConfirm(true)
+      return
+    }
+    executeAllianceToggle(true)
+  }
+
+  const executeAllianceToggle = async (enable: boolean) => {
+    if (!uuid) return
+    setUpdatingAlliance(true)
+    try {
+      const res = await apiService.patch(
+        `/admin/alliance/pms/${uuid}/enablement`,
+        { isEnabled: enable },
+        token,
+      )
+      setAllianceProfile((prev) => (prev ? {
+        ...prev,
+        isEnabled: res.data.isEnabled,
+        enabledAt: res.data.enabledAt,
+        disabledAt: res.data.disabledAt,
+      } : null))
+      showToast(enable ? 'Alliance successfully enabled for this PM' : 'Alliance disabled for this PM')
+      await fetchAllianceData()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to update Alliance enablement', true)
+    } finally {
+      setUpdatingAlliance(false)
+      setShowDisableConfirm(false)
+    }
+  }
+
+  const handleAssignQualification = async () => {
+    if (!uuid || !selectedQualId) return
+    setAssigningQual(true)
+    try {
+      await apiService.post(
+        `/admin/alliance/pms/${uuid}/qualifications`,
+        { qualificationId: Number(selectedQualId) },
+        token,
+      )
+      showToast('Qualification assigned successfully')
+      setSelectedQualId('')
+      await fetchAllianceData()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to assign qualification', true)
+    } finally {
+      setAssigningQual(false)
+    }
+  }
+
+  const handleRemoveQualification = async (qualificationId: number) => {
+    if (!uuid) return
+    try {
+      await apiService.delete(
+        `/admin/alliance/pms/${uuid}/qualifications/${qualificationId}`,
+        token,
+      )
+      showToast('Qualification removed')
+      await fetchAllianceData()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to remove qualification', true)
+    }
+  }
 
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -779,6 +890,152 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             </form>
           </div>
 
+          {/* Upward Alliance Management Card */}
+          <div className="card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Award size={16} color="var(--forest)" /> Upward Alliance
+              </h4>
+              <span
+                className="badge"
+                style={{
+                  backgroundColor: allianceProfile?.isEnabled ? 'var(--success-faint)' : 'var(--danger-faint)',
+                  color: allianceProfile?.isEnabled ? 'var(--success)' : 'var(--danger)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {allianceProfile?.isEnabled ? 'Alliance Enabled' : 'Alliance Disabled'}
+              </span>
+            </div>
+
+            {/* Enable/Disable Action */}
+            <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.5 }}>
+                {allianceProfile?.isEnabled
+                  ? `Enabled since ${allianceProfile.enabledAt ? new Date(allianceProfile.enabledAt).toLocaleDateString() : 'Active'}. PM can publish and view Alliance listings.`
+                  : 'Alliance is disabled by default. Enable to grant this PM network access and listing distribution.'}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleToggleAlliance(!allianceProfile?.isEnabled)}
+                disabled={updatingAlliance}
+                className="btn"
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  justifyContent: 'center',
+                  background: allianceProfile?.isEnabled ? 'var(--danger-faint)' : 'var(--success-faint)',
+                  color: allianceProfile?.isEnabled ? 'var(--danger)' : 'var(--success)',
+                  border: '1px solid transparent',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  gap: '8px',
+                }}
+              >
+                {allianceProfile?.isEnabled ? <XCircle size={15} /> : <CheckCircle2 size={15} />}
+                {updatingAlliance
+                  ? 'Updating Alliance...'
+                  : allianceProfile?.isEnabled
+                    ? 'Disable Upward Alliance'
+                    : 'Enable Upward Alliance'}
+              </button>
+            </div>
+
+            {/* PM Alliance Profile Meta */}
+            {allianceProfile?.pmTitle && (
+              <div style={{ marginBottom: '16px', fontSize: '12px' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Professional Title: </span>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{allianceProfile.pmTitle}</span>
+              </div>
+            )}
+
+            {/* Qualifications Section */}
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                Assigned Qualifications & Badges
+              </div>
+
+              {/* Badges List */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px', minHeight: '32px' }}>
+                {allianceProfile?.qualifications && allianceProfile.qualifications.length > 0 ? (
+                  allianceProfile.qualifications.map((q) => (
+                    <span
+                      key={q.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        borderRadius: '16px',
+                        background: 'rgba(22, 101, 52, 0.08)',
+                        color: 'var(--forest)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        border: '1px solid rgba(22, 101, 52, 0.2)',
+                      }}
+                    >
+                      <Award size={12} />
+                      {q.name}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveQualification(q.id)}
+                        title="Remove qualification"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          color: 'var(--text-muted)',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <XCircle size={12} />
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                    No qualifications assigned yet.
+                  </span>
+                )}
+              </div>
+
+              {/* Assign New Qualification Form */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  value={selectedQualId}
+                  onChange={(e) => setSelectedQualId(e.target.value)}
+                  className="input"
+                  style={{ flex: 1, height: '36px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                >
+                  <option value="">Select qualification to assign...</option>
+                  {allQualifications
+                    .filter(
+                      (q) =>
+                        !allianceProfile?.qualifications?.some((assigned) => assigned.id === q.id),
+                    )
+                    .map((q) => (
+                      <option key={q.id} value={q.id}>
+                        {q.name} ({q.slug})
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAssignQualification}
+                  disabled={assigningQual || !selectedQualId}
+                  className="btn btn-primary"
+                  style={{ height: '36px', padding: '0 12px', fontSize: '12px' }}
+                >
+                  {assigningQual ? 'Assigning...' : 'Assign'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Contact & In-App Notification Tool */}
           <div className="card" style={{ padding: '24px' }}>
             <h4 style={{ margin: '0 0 16px 0', fontSize: '15px' }}>Send In-App Notification</h4>
@@ -1366,6 +1623,15 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDisableConfirm}
+        title="Disable Upward Alliance"
+        message="Are you sure you want to disable Upward Alliance for this property manager? Their existing qualifications and profile settings will be preserved, but their network status will become disabled."
+        danger
+        onConfirm={() => executeAllianceToggle(false)}
+        onCancel={() => setShowDisableConfirm(false)}
+      />
     </div>
   )
 }

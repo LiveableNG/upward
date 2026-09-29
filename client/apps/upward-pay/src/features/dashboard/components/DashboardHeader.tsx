@@ -153,6 +153,7 @@ export function DashboardHeader({
                     <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
                   ) : null}
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
+                  <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>
                   <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
                   <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
                 </>

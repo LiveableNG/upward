@@ -1,0 +1,342 @@
+model upward_alliance_pm_profile {
+  id         Int                     @id @default(autoincrement())
+  uuid       String                  @unique @default(uuid())
+  pmId       Int                     @unique
+  isEnabled  Boolean                 @default(false)
+  enabledAt  DateTime?
+  disabledAt DateTime?
+  pmTitle    String?
+  bio        String?
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+
+  pm         upward_property_manager @relation(fields: [pmId], references: [id], onDelete: Cascade)
+
+  @@index([pmId])
+  @@index([isEnabled])
+}
+
+model upward_alliance_qualification {
+  id            Int                                 @id @default(autoincrement())
+  uuid          String                              @unique @default(uuid())
+  slug          String                              @unique
+  name          String
+  description   String?
+  isActive      Boolean                             @default(true)
+  createdAt     DateTime                            @default(now())
+  updatedAt     DateTime                            @updatedAt
+
+  pmAssignments upward_alliance_pm_qualification[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model upward_alliance_pm_qualification {
+  id                Int                           @id @default(autoincrement())
+  uuid              String                        @unique @default(uuid())
+  pmId              Int
+  qualificationId   Int
+  assignedByAdminId String?
+  assignedAt        DateTime                      @default(now())
+
+  pm                upward_property_manager       @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  qualification     upward_alliance_qualification @relation(fields: [qualificationId], references: [id], onDelete: Restrict)
+  assignedByAdmin   upward_admin?                 @relation(fields: [assignedByAdminId], references: [id], onDelete: SetNull)
+
+  @@unique([pmId, qualificationId])
+  @@index([pmId])
+  @@index([qualificationId])
+  @@index([assignedByAdminId])
+}
+
+enum UpwardAllianceSourceType {
+  LINKED_INVENTORY
+  INDEPENDENT
+}
+
+enum UpwardAllianceTargetType {
+  PROPERTY
+  UNIT
+}
+
+enum UpwardAllianceListingIntent {
+  RENT
+  SALE
+}
+
+enum UpwardAllianceListingStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+enum UpwardAllianceListingVisibility {
+  ALLIANCE
+  PRIVATE
+}
+
+enum UpwardAllianceReferralStatus {
+  ACTIVE
+  CONVERTED
+  LOST
+  CLOSED
+}
+
+enum UpwardAllianceLeadStage {
+  NEW
+  CONTACTED
+  INTERESTED
+  VIEWING
+  APPLICATION
+  CONVERTED
+  LOST
+}
+
+model upward_alliance_listing {
+  id               Int                              @id @default(autoincrement())
+  uuid             String                           @unique @default(uuid())
+  pmId             Int
+  sourceType       UpwardAllianceSourceType
+  targetType       UpwardAllianceTargetType
+  intent           UpwardAllianceListingIntent      @default(RENT)
+  status           UpwardAllianceListingStatus      @default(DRAFT)
+  visibility       UpwardAllianceListingVisibility  @default(ALLIANCE)
+
+  // Canonical references (Nullable with SetNull on deletion)
+  targetPropertyId Int?
+  targetUnitId     Int?
+
+  // Flag and timestamp if the canonical source was deleted
+  isSourceDeleted  Boolean                          @default(false)
+  sourceDeletedAt  DateTime?
+
+  // Presentation / Marketing Data
+  title            String                           @db.VarChar(255)
+  description      String?                          @db.Text
+  currency         String                           @default("NGN") @db.VarChar(10)
+  price            Float                            @default(0)
+
+  // Location fields
+  address          String?                          @db.VarChar(255)
+  city             String?                          @db.VarChar(100)
+  state            String?                          @db.VarChar(100)
+  country          String                           @default("Nigeria") @db.VarChar(100)
+
+  // Specifications
+  propertyType     String?                          @db.VarChar(100)
+  bedrooms         Int?
+  bathrooms        Int?
+
+  // Timestamps
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+  publishedAt      DateTime?
+  unpublishedAt    DateTime?
+  archivedAt       DateTime?
+
+  // Relations
+  pm               upward_property_manager          @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  targetProperty   upward_pm_property?              @relation(fields: [targetPropertyId], references: [id], onDelete: SetNull)
+  targetUnit       upward_pm_unit?                  @relation(fields: [targetUnitId], references: [id], onDelete: SetNull)
+  media            upward_alliance_listing_media[]
+  trackers         upward_alliance_listing_tracker[]
+  referrals        upward_alliance_referral[]
+  commissions      upward_alliance_commission[]
+  ratings          upward_alliance_rating[]
+
+  @@index([pmId])
+  @@index([status])
+  @@index([visibility])
+  @@index([sourceType])
+  @@index([targetType])
+  @@index([targetPropertyId])
+  @@index([targetUnitId])
+  @@index([createdAt])
+}
+
+model upward_alliance_listing_media {
+  id         Int                     @id @default(autoincrement())
+  uuid       String                  @unique @default(uuid())
+  listingId  Int
+  storageKey String                  @db.VarChar(500)
+  publicUrl  String                  @db.VarChar(1000)
+  mimeType   String                  @db.VarChar(100)
+  fileSize   Int
+  sortOrder  Int                     @default(0)
+  createdAt  DateTime                @default(now())
+  updatedAt  DateTime                @updatedAt
+
+  listing    upward_alliance_listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([listingId, sortOrder])
+}
+
+model upward_alliance_listing_tracker {
+  id          Int                     @id @default(autoincrement())
+  uuid        String                  @unique @default(uuid())
+  listingId   Int
+  trackerPmId Int
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  listing     upward_alliance_listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  trackerPm   upward_property_manager @relation(fields: [trackerPmId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, trackerPmId])
+  @@index([listingId])
+  @@index([trackerPmId])
+}
+
+model upward_alliance_referral {
+  id                    Int                          @id @default(autoincrement())
+  uuid                  String                       @unique @default(uuid())
+  listingId             Int
+  referringPmId         Int
+  matchedUserId         Int?
+
+  // Normalized client identity key for uniqueness/exclusivity: e.g. "usr:123", "email:foo@bar.com", "phone:+2348012345678"
+  clientIdentityKey     String                       @db.VarChar(255)
+
+  // Client snapshot
+  clientName            String                       @db.VarChar(255)
+  clientEmail           String?                      @db.VarChar(255)
+  clientPhone           String?                      @db.VarChar(50)
+  clientNormalizedEmail String?                      @db.VarChar(255)
+  clientNormalizedPhone String?                      @db.VarChar(50)
+
+  // Secure token for share links (opaque uuid / secure string)
+  shareToken            String                       @unique @default(uuid())
+
+  // Status and stage
+  status                UpwardAllianceReferralStatus @default(ACTIVE)
+  stage                 UpwardAllianceLeadStage      @default(NEW)
+  notes                 String?                      @db.Text
+
+  // Timestamps
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  convertedAt           DateTime?
+  closedAt              DateTime?
+
+  // Relations
+  listing               upward_alliance_listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  referringPm           upward_property_manager      @relation(fields: [referringPmId], references: [id], onDelete: Cascade)
+  matchedUser           upward_user?                 @relation(fields: [matchedUserId], references: [id], onDelete: SetNull)
+  commissions           upward_alliance_commission[]
+  ratings               upward_alliance_rating[]
+
+  @@index([listingId])
+  @@index([referringPmId])
+  @@index([matchedUserId])
+  @@index([clientIdentityKey])
+  @@index([shareToken])
+  @@index([status])
+  @@index([stage])
+  @@index([createdAt])
+  @@index([listingId, clientIdentityKey])
+}
+
+enum UpwardAllianceCommissionStatus {
+  PENDING
+  EARNED
+  PAYABLE
+  PAID
+  REVERSED
+}
+
+enum UpwardAllianceCommissionType {
+  PERCENTAGE
+  FIXED
+}
+
+enum UpwardAllianceRatingAuthorType {
+  PM
+  CLIENT
+}
+
+enum UpwardAllianceRatingSubjectType {
+  CLIENT
+  PM
+  LISTING
+}
+
+model upward_alliance_commission {
+  id                   Int                            @id @default(autoincrement())
+  uuid                 String                         @unique @default(uuid())
+  referralId           Int
+  referringPmId        Int
+  listingId            Int
+  sourceTransactionId  Int?
+  sourceRentPaymentId  Int?
+  transactionReference String?                        @db.VarChar(255)
+  commissionType       UpwardAllianceCommissionType   @default(PERCENTAGE)
+  sourceAmount         Float
+  commissionRate       Float                          @default(5.0)
+  commissionAmount     Float
+  currency             String                         @default("NGN") @db.VarChar(10)
+  status               UpwardAllianceCommissionStatus @default(EARNED)
+  notes                String?                        @db.Text
+  earnedAt             DateTime                       @default(now())
+  payableAt            DateTime?
+  paidAt               DateTime?
+  reversedAt           DateTime?
+  reversalReason       String?
+
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+
+  referral             upward_alliance_referral       @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  referringPm          upward_property_manager        @relation(fields: [referringPmId], references: [id], onDelete: Cascade)
+  listing              upward_alliance_listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  sourceTransaction    upward_transaction?            @relation(fields: [sourceTransactionId], references: [id], onDelete: SetNull)
+  sourceRentPayment    upward_pm_rent_payment?        @relation(fields: [sourceRentPaymentId], references: [id], onDelete: SetNull)
+
+  @@unique([referralId, transactionReference])
+  @@index([referralId])
+  @@index([referringPmId])
+  @@index([listingId])
+  @@index([sourceTransactionId])
+  @@index([sourceRentPaymentId])
+  @@index([status])
+  @@index([earnedAt])
+  @@index([createdAt])
+}
+
+model upward_alliance_rating {
+  id               Int                             @id @default(autoincrement())
+  uuid             String                          @unique @default(uuid())
+  referralId       Int
+  authorType       UpwardAllianceRatingAuthorType
+  authorPmId       Int?
+  authorUserId     Int?
+  subjectType      UpwardAllianceRatingSubjectType
+  subjectPmId      Int?
+  subjectUserId    Int?
+  subjectListingId Int?
+  score            Int
+  review           String?                         @db.Text
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  referral         upward_alliance_referral        @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  authorPm         upward_property_manager?        @relation("AllianceAuthorPm", fields: [authorPmId], references: [id], onDelete: SetNull)
+  authorUser       upward_user?                    @relation("AllianceAuthorUser", fields: [authorUserId], references: [id], onDelete: SetNull)
+  subjectPm        upward_property_manager?        @relation("AllianceSubjectPm", fields: [subjectPmId], references: [id], onDelete: SetNull)
+  subjectUser      upward_user?                    @relation("AllianceSubjectUser", fields: [subjectUserId], references: [id], onDelete: SetNull)
+  subjectListing   upward_alliance_listing?        @relation(fields: [subjectListingId], references: [id], onDelete: SetNull)
+
+  @@unique([referralId, authorType, authorPmId, authorUserId])
+  @@index([referralId])
+  @@index([authorPmId])
+  @@index([authorUserId])
+  @@index([subjectPmId])
+  @@index([subjectUserId])
+  @@index([subjectListingId])
+  @@index([score])
+  @@index([createdAt])
+}
+
+
