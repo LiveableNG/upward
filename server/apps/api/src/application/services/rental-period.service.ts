@@ -146,7 +146,7 @@ export class RentalPeriodService {
       return {
         periodStart,
         periodEnd,
-        dueDate: periodEnd,
+        dueDate: periodStart,
         isAdvance: true,
       };
     }
@@ -155,7 +155,7 @@ export class RentalPeriodService {
     return {
       periodStart: currentStart,
       periodEnd: currentEnd,
-      dueDate: currentEnd,
+      dueDate: currentStart,
       isAdvance: false,
     };
   }
@@ -364,7 +364,7 @@ export class RentalPeriodService {
         data: {
           rentStartDate: periodStart,
           rentEndDate: periodEnd,
-          dueDate: periodEnd,
+          dueDate: periodStart,
           tenancyPeriodId,
         },
       });

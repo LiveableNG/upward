@@ -137,7 +137,7 @@ export class KYCReportPdfService {
         doc.moveTo(40, rowY).lineTo(W - 40, rowY).strokeColor(border).lineWidth(0.5).stroke()
         
         doc.font('Helvetica-Bold').fontSize(9).fillColor(textSecondary).text(c.status, 40, rowY + 12)
-        doc.font('Helvetica').fontSize(8).fillColor(textMuted).text(`Cycle Ended: ${new Date(c.dueDate).toLocaleDateString()}`, 40, rowY + 23)
+        doc.font('Helvetica').fontSize(8).fillColor(textMuted).text(`Due: ${new Date(c.dueDate).toLocaleDateString()}`, 40, rowY + 23)
         
         const ptTag = c.ptValue >= 1 ? 'PERFECT' : c.ptValue >= 0.7 ? 'GRACE' : 'LATE'
         doc.font('Helvetica-Bold').fontSize(8).fillColor(c.ptValue >= 0.8 ? '#16a34a' : clay).text(ptTag, 0, rowY + 15, { width: W - 45, align: 'right' })

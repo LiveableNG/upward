@@ -109,7 +109,7 @@ export class SyncPmPaymentStatusUseCase {
             data: {
               rentStartDate: effectivePeriodStart,
               rentEndDate: effectivePeriodEnd,
-              dueDate: effectivePeriodEnd,
+              dueDate: effectivePeriodStart,
             }
           })
 
@@ -118,7 +118,7 @@ export class SyncPmPaymentStatusUseCase {
             data: {
               rentStartDate: effectivePeriodStart,
               rentEndDate: effectivePeriodEnd,
-              dueDate: effectivePeriodEnd,
+              dueDate: effectivePeriodStart,
             }
           })
         }

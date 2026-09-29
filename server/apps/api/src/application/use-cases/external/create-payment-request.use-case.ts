@@ -115,6 +115,16 @@ export class CreateExternalPaymentRequestUseCase {
     const isScheduled = payload.scheduledAt && new Date(payload.scheduledAt) > new Date();
     let paymentRequest: any = null;
 
+    let effectiveDueDate = new Date(payload.dueDate);
+    if (payload.rentStartDate && payload.rentEndDate) {
+      const parsedDue = new Date(payload.dueDate);
+      const parsedEnd = new Date(payload.rentEndDate);
+      const parsedStart = new Date(payload.rentStartDate);
+      if (parsedDue.getTime() >= parsedEnd.getTime()) {
+        effectiveDueDate = parsedStart;
+      }
+    }
+
     if (payload.paymentRequestId) {
       paymentRequest = await this.paymentRequestRepository.findById(payload.paymentRequestId);
     } else {
@@ -122,7 +132,7 @@ export class CreateExternalPaymentRequestUseCase {
       paymentRequest = userPendingRequests.find(pr =>
         pr.userPropertyId === property.id &&
         pr.amount === amount &&
-        new Date(pr.dueDate).getTime() === new Date(payload.dueDate).getTime()
+        new Date(pr.dueDate).getTime() === effectiveDueDate.getTime()
       )
     }
 
@@ -130,7 +140,7 @@ export class CreateExternalPaymentRequestUseCase {
       // Upsert: update existing pending request with new metadata/settings
       paymentRequest = await this.paymentRequestRepository.update(paymentRequest.id!, {
         description: payload.description,
-        dueDate: new Date(payload.dueDate),
+        dueDate: effectiveDueDate,
         rentStartDate: payload.rentStartDate ? new Date(payload.rentStartDate) : undefined,
         rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
         allowPartial: payload.allowPartial ?? paymentRequest.allowPartial,
@@ -215,7 +225,7 @@ export class CreateExternalPaymentRequestUseCase {
         amount: amount,
         currency: currency,
         description: payload.description,
-        dueDate: new Date(payload.dueDate),
+        dueDate: effectiveDueDate,
         rentStartDate: payload.rentStartDate ? new Date(payload.rentStartDate) : undefined,
         rentEndDate: payload.rentEndDate ? new Date(payload.rentEndDate) : undefined,
         status: isScheduled ? 'SCHEDULED' : 'PENDING',
