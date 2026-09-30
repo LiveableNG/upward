@@ -33,19 +33,33 @@ export class ListPmAllianceListingsUseCase {
 
     const signedItems = await Promise.all(
       items.map(async (item) => {
-        if (item.media && item.media.length > 0) {
-          const signedMedia = await Promise.all(
-            item.media.map(async (m) => ({
+        let media = item.media || [];
+        if (media.length > 0) {
+          media = await Promise.all(
+            media.map(async (m) => ({
               ...m,
-              publicUrl:
-                m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
-                  ? m.publicUrl
-                  : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+              publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
             })),
           );
-          return { ...item, media: signedMedia };
         }
-        return item;
+
+        const sortedMedia = [...media].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        const primary = sortedMedia[0] || null;
+        const primaryMedia = primary
+          ? {
+              uuid: primary.uuid,
+              publicUrl: primary.publicUrl,
+              mimeType: primary.mimeType,
+              sortOrder: primary.sortOrder ?? 0,
+            }
+          : null;
+
+        return {
+          ...item,
+          primaryMedia,
+          mediaCount: sortedMedia.length,
+          media: sortedMedia,
+        };
       }),
     );
 

@@ -69,13 +69,21 @@ export class DiscoverAllianceListingsUseCase {
           media = await Promise.all(
             media.map(async (m) => ({
               ...m,
-              publicUrl:
-                m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
-                  ? m.publicUrl
-                  : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+              publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
             })),
           );
         }
+
+        const sortedMedia = [...media].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        const primary = sortedMedia[0] || null;
+        const primaryMedia = primary
+          ? {
+              uuid: primary.uuid,
+              publicUrl: primary.publicUrl,
+              mimeType: primary.mimeType,
+              sortOrder: primary.sortOrder ?? 0,
+            }
+          : null;
 
         return {
           ...item,
@@ -85,7 +93,9 @@ export class DiscoverAllianceListingsUseCase {
                 ratingSummary,
               }
             : item.pm,
-          media,
+          primaryMedia,
+          mediaCount: sortedMedia.length,
+          media: sortedMedia,
           ratingSummary,
         };
       }),
