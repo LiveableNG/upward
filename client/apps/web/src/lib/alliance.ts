@@ -13,8 +13,12 @@ export const ALLIANCE_REAL_ESTATE_PLACEHOLDERS = [
   'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80',
 ];
 
+export type AllianceListingIntent = 'RENT' | 'SALE';
+export type AllianceTargetType = 'PROPERTY' | 'UNIT';
+
 export function getDeterministicPlaceholderImage(seedStr?: string | number | null): string {
-  if (!seedStr) return ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0];
+  const fallback = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0] ?? '';
+  if (!seedStr) return fallback;
   const str = String(seedStr);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -22,7 +26,7 @@ export function getDeterministicPlaceholderImage(seedStr?: string | number | nul
     hash |= 0;
   }
   const index = Math.abs(hash) % ALLIANCE_REAL_ESTATE_PLACEHOLDERS.length;
-  return ALLIANCE_REAL_ESTATE_PLACEHOLDERS[index];
+  return ALLIANCE_REAL_ESTATE_PLACEHOLDERS[index] ?? fallback;
 }
 
 export function getAllianceListingImage(listing?: {
@@ -31,13 +35,13 @@ export function getAllianceListingImage(listing?: {
   primaryMedia?: { publicUrl?: string; fileUrl?: string } | null;
   media?: Array<{ publicUrl?: string; fileUrl?: string }>;
 } | null): string {
-  if (!listing) return ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0];
+  const fallback = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0] ?? '';
+  if (!listing) return fallback;
+  const firstMedia = listing.media?.[0];
   const directUrl =
     listing.primaryMedia?.publicUrl ||
     listing.primaryMedia?.fileUrl ||
-    (listing.media && listing.media.length > 0
-      ? listing.media[0].publicUrl || listing.media[0].fileUrl
-      : null);
+    (firstMedia ? firstMedia.publicUrl || firstMedia.fileUrl : null);
 
   if (directUrl && typeof directUrl === 'string' && directUrl.trim().length > 0) {
     return directUrl;
