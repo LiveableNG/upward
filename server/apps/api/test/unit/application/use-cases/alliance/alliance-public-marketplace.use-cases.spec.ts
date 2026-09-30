@@ -257,6 +257,7 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
       expect(mockReferralRepo.update).toHaveBeenCalledWith(50, {
         stage: 'CONTACTED',
         matchedUserId: 999,
+        notes: '[Client Inquiry]: I would like to schedule a physical viewing this Saturday.',
       });
       expect(mockActivityLogService.log).toHaveBeenCalled();
     });

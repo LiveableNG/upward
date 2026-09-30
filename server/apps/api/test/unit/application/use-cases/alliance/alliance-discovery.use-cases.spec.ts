@@ -116,6 +116,21 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
     },
   };
 
+  const expectedEnrichedListing = {
+    ...mockListingEntity,
+    pm: {
+      ...mockListingEntity.pm,
+      ratingSummary: {
+        averageScore: 5,
+        totalRatings: 1,
+      },
+    },
+    ratingSummary: {
+      averageScore: 5,
+      totalRatings: 1,
+    },
+  };
+
   beforeEach(() => {
     mockListingRepo = {
       create: jest.fn(),
@@ -195,7 +210,7 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
         enabledActor,
       );
 
-      expect(result.items).toEqual([mockListingEntity]);
+      expect(result.items).toEqual([expectedEnrichedListing]);
       expect(result.meta).toEqual({
         page: 1,
         limit: 20,
@@ -262,7 +277,7 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
 
       const result = await getDetailUseCase.execute('listing-uuid-10', enabledActor);
 
-      expect(result).toEqual(mockListingEntity);
+      expect(result).toEqual(expectedEnrichedListing);
       expect(mockListingRepo.findDiscoverableByUuid).toHaveBeenCalledWith('listing-uuid-10', 1);
     });
   });
