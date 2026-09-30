@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Building2, Home, Link as LinkIcon, Globe } from 'lucide-react'
+import { Building2, Home, Link2, Globe, Check } from 'lucide-react'
 import { AllianceTargetType, AllianceSourceType } from '../types/alliance.types'
 
 interface ListingSourceSelectorProps {
@@ -20,78 +20,48 @@ export function ListingSourceSelector({
   disabled = false,
 }: ListingSourceSelectorProps) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* 1. What are you listing? */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      {/* 1. What type of asset are you listing? */}
       <div>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: 'var(--text)' }}>
-          1. What are you listing?
+        <label className="alliance-label" style={{ fontSize: '14px', marginBottom: '12px' }}>
+          <span>1. What asset scope are you marketing?</span>
+          <span className="alliance-label__required">*</span>
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+
+        <div className="alliance-tile-grid">
           <div
             onClick={() => !disabled && onTargetTypeChange('PROPERTY')}
-            style={{
-              padding: '16px',
-              borderRadius: '12px',
-              border: targetType === 'PROPERTY' ? '2px solid var(--forest)' : '1px solid var(--border)',
-              background: targetType === 'PROPERTY' ? 'rgba(22, 101, 52, 0.04)' : 'var(--white)',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              transition: 'all 0.15s ease',
-            }}
+            className={`alliance-tile ${targetType === 'PROPERTY' ? 'alliance-tile--selected' : ''} ${
+              disabled ? 'alliance-tile--disabled' : ''
+            }`}
           >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: targetType === 'PROPERTY' ? 'rgba(22, 101, 52, 0.12)' : 'var(--bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: targetType === 'PROPERTY' ? 'var(--forest)' : 'var(--text-secondary)',
-              }}
-            >
-              <Building2 size={22} />
+            <div className="alliance-tile__icon-wrap">
+              <Building2 size={24} />
             </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Entire Property / Building</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Commercial block, estate, or compound</div>
+            <div className="alliance-tile__body">
+              <div className="alliance-tile__title">Entire Property / Complex</div>
+              <div className="alliance-tile__desc">Commercial building, residential estate, compound, or multi-family block</div>
+            </div>
+            <div className="alliance-tile__indicator">
+              {targetType === 'PROPERTY' && <Check size={12} strokeWidth={3} />}
             </div>
           </div>
 
           <div
             onClick={() => !disabled && onTargetTypeChange('UNIT')}
-            style={{
-              padding: '16px',
-              borderRadius: '12px',
-              border: targetType === 'UNIT' ? '2px solid var(--forest)' : '1px solid var(--border)',
-              background: targetType === 'UNIT' ? 'rgba(22, 101, 52, 0.04)' : 'var(--white)',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              transition: 'all 0.15s ease',
-            }}
+            className={`alliance-tile ${targetType === 'UNIT' ? 'alliance-tile--selected' : ''} ${
+              disabled ? 'alliance-tile--disabled' : ''
+            }`}
           >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: targetType === 'UNIT' ? 'rgba(22, 101, 52, 0.12)' : 'var(--bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: targetType === 'UNIT' ? 'var(--forest)' : 'var(--text-secondary)',
-              }}
-            >
-              <Home size={22} />
+            <div className="alliance-tile__icon-wrap">
+              <Home size={24} />
             </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Individual Unit / Flat</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Single apartment, suite, or room</div>
+            <div className="alliance-tile__body">
+              <div className="alliance-tile__title">Individual Unit / Flat</div>
+              <div className="alliance-tile__desc">Single apartment, serviced flat, office suite, studio, or room</div>
+            </div>
+            <div className="alliance-tile__indicator">
+              {targetType === 'UNIT' && <Check size={12} strokeWidth={3} />}
             </div>
           </div>
         </div>
@@ -99,75 +69,45 @@ export function ListingSourceSelector({
 
       {/* 2. Where does this listing come from? */}
       <div>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: 'var(--text)' }}>
-          2. Where does this listing come from?
+        <label className="alliance-label" style={{ fontSize: '14px', marginBottom: '12px' }}>
+          <span>2. Where does this listing originate from?</span>
+          <span className="alliance-label__required">*</span>
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+
+        <div className="alliance-tile-grid">
           <div
             onClick={() => !disabled && onSourceTypeChange('LINKED_INVENTORY')}
-            style={{
-              padding: '16px',
-              borderRadius: '12px',
-              border: sourceType === 'LINKED_INVENTORY' ? '2px solid var(--forest)' : '1px solid var(--border)',
-              background: sourceType === 'LINKED_INVENTORY' ? 'rgba(22, 101, 52, 0.04)' : 'var(--white)',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              transition: 'all 0.15s ease',
-            }}
+            className={`alliance-tile ${sourceType === 'LINKED_INVENTORY' ? 'alliance-tile--selected' : ''} ${
+              disabled ? 'alliance-tile--disabled' : ''
+            }`}
           >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: sourceType === 'LINKED_INVENTORY' ? 'rgba(22, 101, 52, 0.12)' : 'var(--bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: sourceType === 'LINKED_INVENTORY' ? 'var(--forest)' : 'var(--text-secondary)',
-              }}
-            >
-              <LinkIcon size={22} />
+            <div className="alliance-tile__icon-wrap">
+              <Link2 size={24} />
             </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Existing Upward Inventory</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Linked to an existing property/unit record</div>
+            <div className="alliance-tile__body">
+              <div className="alliance-tile__title">Linked Upward Inventory</div>
+              <div className="alliance-tile__desc">Connected to your managed properties or unit inventory in Upward PM</div>
+            </div>
+            <div className="alliance-tile__indicator">
+              {sourceType === 'LINKED_INVENTORY' && <Check size={12} strokeWidth={3} />}
             </div>
           </div>
 
           <div
             onClick={() => !disabled && onSourceTypeChange('INDEPENDENT')}
-            style={{
-              padding: '16px',
-              borderRadius: '12px',
-              border: sourceType === 'INDEPENDENT' ? '2px solid var(--forest)' : '1px solid var(--border)',
-              background: sourceType === 'INDEPENDENT' ? 'rgba(22, 101, 52, 0.04)' : 'var(--white)',
-              cursor: disabled ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              transition: 'all 0.15s ease',
-            }}
+            className={`alliance-tile ${sourceType === 'INDEPENDENT' ? 'alliance-tile--selected' : ''} ${
+              disabled ? 'alliance-tile--disabled' : ''
+            }`}
           >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                background: sourceType === 'INDEPENDENT' ? 'rgba(22, 101, 52, 0.12)' : 'var(--bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: sourceType === 'INDEPENDENT' ? 'var(--forest)' : 'var(--text-secondary)',
-              }}
-            >
-              <Globe size={22} />
+            <div className="alliance-tile__icon-wrap">
+              <Globe size={24} />
             </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Independent Listing</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Direct marketing listing without PM inventory link</div>
+            <div className="alliance-tile__body">
+              <div className="alliance-tile__title">Independent Listing</div>
+              <div className="alliance-tile__desc">Direct marketing listing without a linked inventory asset</div>
+            </div>
+            <div className="alliance-tile__indicator">
+              {sourceType === 'INDEPENDENT' && <Check size={12} strokeWidth={3} />}
             </div>
           </div>
         </div>

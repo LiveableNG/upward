@@ -13,6 +13,7 @@ import {
   IAllianceProfileRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
 export class ListAllianceListingMediaUseCase {
@@ -23,6 +24,7 @@ export class ListAllianceListingMediaUseCase {
     private readonly listingRepo: IAllianceListingRepository,
     @Inject(ALLIANCE_LISTING_MEDIA_REPOSITORY)
     private readonly mediaRepo: IAllianceListingMediaRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(listingUuid: string, actor: PmActorContext) {
@@ -37,6 +39,12 @@ export class ListAllianceListingMediaUseCase {
       throw new ForbiddenException('You do not have permission to view media for this listing');
     }
 
-    return this.mediaRepo.findByListingId(listing.id);
+    const media = await this.mediaRepo.findByListingId(listing.id);
+    return Promise.all(
+      media.map(async (m) => ({
+        ...m,
+        publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+      })),
+    );
   }
 }

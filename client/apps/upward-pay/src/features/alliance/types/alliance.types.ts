@@ -95,3 +95,57 @@ export interface SubmitClientRatingData {
   score: number;
   review?: string;
 }
+
+export interface UserAllianceJourneyStageItem {
+  key: string;
+  label: string;
+  description: string;
+  isCompleted: boolean;
+  isCurrent: boolean;
+}
+
+export interface UserAllianceJourney {
+  referralUuid: string;
+  shareToken: string;
+  status: string;
+  stage: string;
+  stageIndex: number;
+  stageLabel: string;
+  stageDescription: string;
+  stages: UserAllianceJourneyStageItem[];
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  convertedAt?: string | null;
+  listing: {
+    uuid: string;
+    title: string;
+    description?: string | null;
+    price: number;
+    currency: string;
+    intent: string;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    propertyType?: string | null;
+    bedrooms?: number | null;
+    bathrooms?: number | null;
+    media: Array<{
+      uuid: string;
+      publicUrl: string;
+      sortOrder: number;
+    }>;
+  };
+  referringPm: {
+    uuid?: string;
+    displayName: string;
+    companyName?: string | null;
+  };
+  listingPm?: {
+    uuid?: string;
+    displayName: string;
+    companyName?: string | null;
+  };
+  hasRated: boolean;
+}
+

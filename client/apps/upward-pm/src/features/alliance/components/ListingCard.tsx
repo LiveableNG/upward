@@ -6,7 +6,7 @@ import {
   Building2,
   Home,
   Globe,
-  Link as LinkIcon,
+  Link2,
   AlertCircle,
   Eye,
   Edit,
@@ -14,7 +14,9 @@ import {
   EyeOff,
   Archive,
   Bookmark,
-  Users,
+  MapPin,
+  Image as ImageIcon,
+  Share2,
 } from 'lucide-react'
 import { AllianceListing } from '../types/alliance.types'
 
@@ -23,6 +25,7 @@ interface ListingCardProps {
   onPublish?: (uuid: string) => void
   onUnpublish?: (uuid: string) => void
   onArchive?: (uuid: string) => void
+  onShare?: (listing: AllianceListing) => void
   isPublishing?: boolean
   isUnpublishing?: boolean
   isArchiving?: boolean
@@ -33,6 +36,7 @@ export function ListingCard({
   onPublish,
   onUnpublish,
   onArchive,
+  onShare,
   isPublishing,
   isUnpublishing,
   isArchiving,
@@ -53,13 +57,14 @@ export function ListingCard({
         return (
           <span
             style={{
-              padding: '4px 8px',
-              borderRadius: '12px',
+              padding: '4px 10px',
+              borderRadius: '9999px',
               background: 'rgba(22, 101, 52, 0.1)',
               color: 'var(--forest)',
               fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
+              letterSpacing: '0.4px',
             }}
           >
             Published
@@ -69,13 +74,14 @@ export function ListingCard({
         return (
           <span
             style={{
-              padding: '4px 8px',
-              borderRadius: '12px',
-              background: 'rgba(234, 179, 8, 0.1)',
+              padding: '4px 10px',
+              borderRadius: '9999px',
+              background: 'rgba(234, 179, 8, 0.12)',
               color: '#854d0e',
               fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
+              letterSpacing: '0.4px',
             }}
           >
             Unpublished
@@ -85,13 +91,14 @@ export function ListingCard({
         return (
           <span
             style={{
-              padding: '4px 8px',
-              borderRadius: '12px',
-              background: 'rgba(100, 116, 139, 0.1)',
+              padding: '4px 10px',
+              borderRadius: '9999px',
+              background: 'rgba(100, 116, 139, 0.12)',
               color: 'var(--text-muted)',
               fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
+              letterSpacing: '0.4px',
             }}
           >
             Archived
@@ -102,13 +109,14 @@ export function ListingCard({
         return (
           <span
             style={{
-              padding: '4px 8px',
-              borderRadius: '12px',
-              background: 'rgba(59, 130, 246, 0.1)',
+              padding: '4px 10px',
+              borderRadius: '9999px',
+              background: 'rgba(59, 130, 246, 0.12)',
               color: '#1d4ed8',
               fontSize: '11px',
               fontWeight: 700,
               textTransform: 'uppercase',
+              letterSpacing: '0.4px',
             }}
           >
             Draft
@@ -117,28 +125,20 @@ export function ListingCard({
     }
   }
 
+  const hasMedia = listing.media && listing.media.length > 0 && listing.media[0]?.publicUrl
+
   return (
-    <div
-      className="card"
-      style={{
-        padding: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        gap: '16px',
-        transition: 'all 0.2s ease',
-      }}
-    >
+    <div className="alliance-listing-card">
       <div>
         {/* Header Badges */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+        <div className="alliance-listing-card__header" style={{ marginBottom: '12px' }}>
+          <div className="alliance-listing-card__badges">
             <span
               style={{
                 padding: '3px 8px',
                 borderRadius: '6px',
-                background: listing.intent === 'SALE' ? '#fee2e2' : '#f0fdf4',
-                color: listing.intent === 'SALE' ? '#dc2626' : 'var(--forest)',
+                background: listing.intent === 'SALE' ? 'rgba(217, 119, 87, 0.15)' : 'rgba(22, 101, 52, 0.1)',
+                color: listing.intent === 'SALE' ? '#c2501f' : 'var(--forest)',
                 fontSize: '11px',
                 fontWeight: 700,
               }}
@@ -153,7 +153,7 @@ export function ListingCard({
                 gap: '4px',
                 padding: '3px 8px',
                 borderRadius: '6px',
-                background: 'var(--bg)',
+                background: 'var(--ivory-dim)',
                 color: 'var(--text-secondary)',
                 fontSize: '11px',
                 fontWeight: 600,
@@ -170,113 +170,111 @@ export function ListingCard({
                 gap: '4px',
                 padding: '3px 8px',
                 borderRadius: '6px',
-                background: 'var(--bg)',
+                background: 'var(--ivory-dim)',
                 color: 'var(--text-secondary)',
                 fontSize: '11px',
                 fontWeight: 600,
               }}
             >
-              {listing.sourceType === 'LINKED_INVENTORY' ? <LinkIcon size={12} /> : <Globe size={12} />}
-              {listing.sourceType === 'LINKED_INVENTORY' ? 'Linked Inventory' : 'Independent'}
+              {listing.sourceType === 'LINKED_INVENTORY' ? <Link2 size={12} /> : <Globe size={12} />}
+              {listing.sourceType === 'LINKED_INVENTORY' ? 'Linked' : 'Independent'}
             </span>
-
-            {listing.trackerCount !== undefined && listing.trackerCount > 0 && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  background: 'rgba(22, 101, 52, 0.08)',
-                  color: 'var(--forest)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                }}
-                title={`${listing.trackerCount} Alliance PM${listing.trackerCount === 1 ? ' is' : 's are'} tracking this listing`}
-              >
-                <Bookmark size={12} />
-                {listing.trackerCount} {listing.trackerCount === 1 ? 'PM Interested' : 'PMs Interested'}
-              </span>
-            )}
           </div>
 
           <div>{getStatusBadge()}</div>
         </div>
 
-        {/* Optional Cover Image Preview */}
-        {listing.media && listing.media.length > 0 && listing.media[0]?.publicUrl && (
-          <div
-            style={{
-              position: 'relative',
-              width: '100%',
-              height: '140px',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              marginBottom: '12px',
-              background: '#000',
-            }}
-          >
-            <img
-              src={listing.media[0].publicUrl}
-              alt={listing.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
+        {/* Cover Image Preview or Clean Minimal Placeholder */}
+        <Link href={`/alliance/listings/${listing.uuid}`}>
+          <div className="alliance-listing-card__media-preview">
+            {hasMedia ? (
+              <img
+                src={listing.media![0].publicUrl}
+                alt={listing.title}
+                className="alliance-listing-card__media-img"
+              />
+            ) : (
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  color: 'var(--text-muted)',
+                  background: 'linear-gradient(135deg, var(--ivory-dim) 0%, rgba(22, 101, 52, 0.04) 100%)',
+                }}
+              >
+                {listing.targetType === 'PROPERTY' ? (
+                  <Building2 size={32} strokeWidth={1.5} style={{ opacity: 0.5 }} />
+                ) : (
+                  <Home size={32} strokeWidth={1.5} style={{ opacity: 0.5 }} />
+                )}
+                <span style={{ fontSize: '11px', fontWeight: 600, opacity: 0.7 }}>No photo uploaded</span>
+              </div>
+            )}
           </div>
-        )}
+        </Link>
 
-        {/* Title & Price */}
+        {/* Price & Title */}
+        <div style={{ marginTop: '12px', marginBottom: '6px' }}>
+          <div className="alliance-listing-card__price">
+            {formatPrice(listing.price, listing.currency)}
+            {listing.intent === 'RENT' && (
+              <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}> /yr</span>
+            )}
+          </div>
+        </div>
+
         <Link
           href={`/alliance/listings/${listing.uuid}`}
           style={{ textDecoration: 'none', color: 'inherit' }}
         >
-          <h3
-            style={{
-              margin: '0 0 6px 0',
-              fontSize: '16px',
-              fontWeight: 700,
-              color: 'var(--text)',
-              lineHeight: 1.4,
-            }}
-          >
+          <h3 className="alliance-listing-card__title" title={listing.title}>
             {listing.title}
           </h3>
         </Link>
 
-        <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--forest)', marginBottom: '8px' }}>
-          {formatPrice(listing.price, listing.currency)}
+        {/* Location & Specs Row */}
+        <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {(listing.address || listing.city || listing.state) && (
+            <div
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <MapPin size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {[listing.address, listing.city, listing.state].filter(Boolean).join(', ')}
+              </span>
+            </div>
+          )}
+
+          {listing.sourceType === 'LINKED_INVENTORY' && (
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              Linked: {listing.targetProperty ? listing.targetProperty.name : listing.targetUnit?.unitName}
+            </div>
+          )}
         </div>
 
-        {/* Source Context Info */}
-        {listing.sourceType === 'LINKED_INVENTORY' && (
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-            <strong>Source: </strong>
-            {listing.targetProperty && listing.targetProperty.name}
-            {listing.targetUnit && `${listing.targetUnit.unitName} (${listing.targetUnit.property?.name || 'Property'})`}
-          </div>
-        )}
-
-        {/* Location Info */}
-        {(listing.city || listing.state) && (
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            {[listing.address, listing.city, listing.state, listing.country].filter(Boolean).join(', ')}
-          </div>
-        )}
-
-        {/* Stale source alert */}
+        {/* Stale Source Warning */}
         {listing.isSourceDeleted && (
           <div
             style={{
-              marginTop: '8px',
+              marginTop: '10px',
               padding: '6px 10px',
               borderRadius: '6px',
-              background: '#fee2e2',
-              color: '#dc2626',
+              background: 'var(--error-bg)',
+              color: 'var(--error)',
               fontSize: '11px',
               display: 'flex',
               alignItems: 'center',
@@ -284,46 +282,50 @@ export function ListingCard({
             }}
           >
             <AlertCircle size={14} />
-            Original canonical inventory was deleted. Requires review.
+            Original canonical inventory was deleted.
           </div>
         )}
       </div>
 
       {/* Footer & Actions */}
-      <div
-        style={{
-          borderTop: '1px solid var(--border)',
-          paddingTop: '12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '8px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-          {listing.publishedAt
-            ? `Published ${new Date(listing.publishedAt).toLocaleDateString()}`
-            : `Created ${new Date(listing.createdAt).toLocaleDateString()}`}
-        </span>
+      <div className="alliance-listing-card__footer">
+        {/* Meta Row: Date & PM Tracking Interest */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', fontSize: '11.5px' }}>
+          <span style={{ color: 'var(--text-muted)' }}>
+            {new Date(listing.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+          </span>
 
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <Link
-            href={`/alliance/listings/${listing.uuid}`}
-            className="btn btn--secondary"
-            style={{ padding: '6px 10px', height: '32px', fontSize: '12px', gap: '4px' }}
-          >
-            <Eye size={13} /> View
-          </Link>
-
-          {listing.status !== 'ARCHIVED' && (
-            <Link
-              href={`/alliance/listings/${listing.uuid}/edit`}
-              className="btn btn--secondary"
-              style={{ padding: '6px 10px', height: '32px', fontSize: '12px', gap: '4px' }}
+          {(listing.trackerCount ?? 0) > 0 && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                color: 'var(--forest)',
+                fontWeight: 700,
+                background: 'rgba(22, 101, 52, 0.08)',
+                padding: '2px 8px',
+                borderRadius: '9999px',
+              }}
             >
-              <Edit size={13} /> Edit
-            </Link>
+              <Bookmark size={11} /> {listing.trackerCount} tracking
+            </span>
+          )}
+        </div>
+
+        {/* Action Buttons Row */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', width: '100%' }}>
+          {listing.status === 'PUBLISHED' && onShare && (
+            <button
+              type="button"
+              onClick={() => onShare(listing)}
+              className="alliance-btn alliance-btn--primary"
+              style={{ flex: 1, height: '34px', fontSize: '12.5px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              title="Refer client or generate share link"
+            >
+              <Share2 size={13} /> Refer Client
+            </button>
           )}
 
           {(listing.status === 'DRAFT' || listing.status === 'UNPUBLISHED') && onPublish && (
@@ -331,11 +333,31 @@ export function ListingCard({
               type="button"
               onClick={() => onPublish(listing.uuid)}
               disabled={isActionPending}
-              className="btn btn--primary"
-              style={{ padding: '6px 10px', height: '32px', fontSize: '12px', gap: '4px' }}
+              className="alliance-btn alliance-btn--primary"
+              style={{ flex: 1, height: '34px', fontSize: '12.5px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               <Send size={13} /> {isPublishing ? 'Publishing...' : 'Publish'}
             </button>
+          )}
+
+          <Link
+            href={`/alliance/listings/${listing.uuid}`}
+            className="alliance-btn alliance-btn--secondary"
+            style={{ height: '34px', padding: '0 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            title="View listing details"
+          >
+            <Eye size={13} /> View
+          </Link>
+
+          {listing.status !== 'ARCHIVED' && (
+            <Link
+              href={`/alliance/listings/${listing.uuid}/edit`}
+              className="alliance-btn alliance-btn--secondary"
+              style={{ height: '34px', padding: '0 10px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              title="Edit listing"
+            >
+              <Edit size={13} />
+            </Link>
           )}
 
           {listing.status === 'PUBLISHED' && onUnpublish && (
@@ -343,10 +365,11 @@ export function ListingCard({
               type="button"
               onClick={() => onUnpublish(listing.uuid)}
               disabled={isActionPending}
-              className="btn btn--secondary"
-              style={{ padding: '6px 10px', height: '32px', fontSize: '12px', gap: '4px', color: '#b45309' }}
+              className="alliance-btn alliance-btn--secondary"
+              style={{ height: '34px', padding: '0 10px', fontSize: '12px', color: '#b45309' }}
+              title="Unpublish listing"
             >
-              <EyeOff size={13} /> {isUnpublishing ? 'Unpublishing...' : 'Unpublish'}
+              <EyeOff size={13} />
             </button>
           )}
 
@@ -355,9 +378,9 @@ export function ListingCard({
               type="button"
               onClick={() => onArchive(listing.uuid)}
               disabled={isActionPending}
-              className="btn btn--secondary"
-              style={{ padding: '6px 10px', height: '32px', fontSize: '12px', gap: '4px', color: 'var(--text-muted)' }}
-              title="Archive Listing"
+              className="alliance-btn alliance-btn--secondary"
+              style={{ height: '34px', padding: '0 10px', fontSize: '12px', color: 'var(--text-muted)' }}
+              title="Archive listing"
             >
               <Archive size={13} />
             </button>

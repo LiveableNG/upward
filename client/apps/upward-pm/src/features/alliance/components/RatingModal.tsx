@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X,
   Star,
@@ -26,12 +27,17 @@ export function RatingModal({
   const toast = useToast()
   const submitRatingMutation = useSubmitAllianceRating()
 
+  const [mounted, setMounted] = useState(false)
   const [score, setScore] = useState<number>(5)
   const [hoverScore, setHoverScore] = useState<number | null>(null)
   const [review, setReview] = useState<string>('')
   const [formError, setFormError] = useState<string | null>(null)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !mounted) return null
 
   const handleReset = () => {
     setFormError(null)
@@ -66,7 +72,7 @@ export function RatingModal({
 
   const activeRating = hoverScore !== null ? hoverScore : score
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -86,12 +92,12 @@ export function RatingModal({
     >
       <div
         style={{
-          background: 'var(--dark)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '480px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -271,6 +277,7 @@ export function RatingModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -21,6 +21,7 @@ import {
   RequestMediaUploadDto,
   ConfirmMediaUploadDto,
   ReorderMediaDto,
+  UploadAllianceListingMediaDto,
 } from '../../../application/alliance/dtos/alliance-listing-media.dto';
 import { CreateAllianceListingUseCase } from '../../../application/alliance/use-cases/create-alliance-listing.use-case';
 import { GetAllianceListingUseCase } from '../../../application/alliance/use-cases/get-alliance-listing.use-case';
@@ -31,6 +32,7 @@ import { ArchiveAllianceListingUseCase } from '../../../application/alliance/use
 import { ListPmAllianceListingsUseCase } from '../../../application/alliance/use-cases/list-pm-alliance-listings.use-case';
 import { RequestAllianceMediaUploadUseCase } from '../../../application/alliance/use-cases/request-alliance-media-upload.use-case';
 import { ConfirmAllianceMediaUploadUseCase } from '../../../application/alliance/use-cases/confirm-alliance-media-upload.use-case';
+import { UploadAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/upload-alliance-listing-media.use-case';
 import { ListAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/list-alliance-listing-media.use-case';
 import { ReorderAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/reorder-alliance-listing-media.use-case';
 import { DeleteAllianceListingMediaUseCase } from '../../../application/alliance/use-cases/delete-alliance-listing-media.use-case';
@@ -52,6 +54,7 @@ export class PmAllianceListingController {
     private readonly listListingsUseCase: ListPmAllianceListingsUseCase,
     private readonly requestMediaUploadUseCase: RequestAllianceMediaUploadUseCase,
     private readonly confirmMediaUploadUseCase: ConfirmAllianceMediaUploadUseCase,
+    private readonly uploadMediaUseCase: UploadAllianceListingMediaUseCase,
     private readonly listMediaUseCase: ListAllianceListingMediaUseCase,
     private readonly reorderMediaUseCase: ReorderAllianceListingMediaUseCase,
     private readonly deleteMediaUseCase: DeleteAllianceListingMediaUseCase,
@@ -140,6 +143,24 @@ export class PmAllianceListingController {
     @CurrentPmActor() actor: PmActorContext,
   ) {
     return this.archiveListingUseCase.execute(uuid, actor);
+  }
+
+  @Post(':uuid/media/upload')
+  async uploadMedia(
+    @Param('uuid') uuid: string,
+    @Body() dto: UploadAllianceListingMediaDto,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.uploadMediaUseCase.execute(uuid, dto, actor);
+  }
+
+  @Post(':uuid/media/image-upload')
+  async uploadImage(
+    @Param('uuid') uuid: string,
+    @Body() dto: UploadAllianceListingMediaDto,
+    @CurrentPmActor() actor: PmActorContext,
+  ) {
+    return this.uploadMediaUseCase.execute(uuid, dto, actor);
   }
 
   @Post(':uuid/media/upload-url')

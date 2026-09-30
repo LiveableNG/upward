@@ -186,6 +186,7 @@ export interface CreateAllianceReferralData {
 }
 
 export interface UpdateAllianceReferralData {
+  matchedUserId?: number | null;
   stage?: import('./alliance.entity').AllianceLeadStage;
   status?: import('./alliance.entity').AllianceReferralStatus;
   notes?: string | null;
@@ -213,6 +214,15 @@ export interface IAllianceReferralRepository {
   ): Promise<{ items: import('./alliance.entity').AllianceReferralEntity[]; total: number }>;
   countActiveByListingId(listingId: number): Promise<number>;
   findActiveReferralsByListingId(listingId: number): Promise<import('./alliance.entity').AllianceReferralEntity[]>;
+  findUserReferrals(
+    userId: number,
+    options?: {
+      email?: string;
+      phone?: string;
+      skip?: number;
+      take?: number;
+    },
+  ): Promise<{ items: import('./alliance.entity').AllianceReferralEntity[]; total: number }>;
 }
 
 export const ALLIANCE_COMMISSION_REPOSITORY = Symbol('ALLIANCE_COMMISSION_REPOSITORY');

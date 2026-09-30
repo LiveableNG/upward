@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { OptionalJwtAuthGuard } from '../../../application/auth/guards/optional-jwt-auth.guard';
@@ -14,6 +15,7 @@ import { GetPublicAllianceListingDetailUseCase } from '../../../application/alli
 import { ResolvePublicAllianceReferralUseCase } from '../../../application/alliance/use-cases/resolve-public-alliance-referral.use-case';
 import { SubmitAllianceInquiryUseCase } from '../../../application/alliance/use-cases/submit-alliance-inquiry.use-case';
 import { GetSubjectRatingSummaryUseCase } from '../../../application/alliance/use-cases/get-subject-rating-summary.use-case';
+import { GetPublicAssetUseCase } from '../../../application/public/use-cases/documents/get-public-asset.use-case';
 import {
   PublicAllianceMarketplaceQueryDto,
   SubmitAllianceInquiryDto,
@@ -28,6 +30,7 @@ export class PublicAllianceMarketplaceController {
     private readonly resolveReferralUc: ResolvePublicAllianceReferralUseCase,
     private readonly submitInquiryUc: SubmitAllianceInquiryUseCase,
     private readonly getRatingSummaryUc: GetSubjectRatingSummaryUseCase,
+    private readonly getPublicAssetUc: GetPublicAssetUseCase,
   ) {}
 
   @Get('listings')
@@ -84,5 +87,14 @@ export class PublicAllianceMarketplaceController {
       success: true,
       data,
     };
+  }
+
+  @Get('media/:listingUuid/:filename')
+  async getListingMedia(
+    @Param('listingUuid') listingUuid: string,
+    @Param('filename') filename: string,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    return this.getPublicAssetUc.execute(`alliance/listings/${listingUuid}/${filename}`, res);
   }
 }

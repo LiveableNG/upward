@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as allianceService from '../services/allianceService'
+import { compressImageForUpload } from '../utils/imageCompression'
 import {
   CreateAllianceListingPayload,
   UpdateAllianceListingPayload,
@@ -115,32 +116,16 @@ export function useUploadListingMedia() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ listingUuid, file }: { listingUuid: string; file: File }) => {
-      // 1. Request presigned upload URL from backend
-      const presigned = await allianceService.requestMediaUploadUrl(listingUuid, {
-        filename: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
+      // High-performance client compression: max 2048px, quality 0.85
+      const compressed = await compressImageForUpload(file, {
+        maxDimension: 2048,
+        quality: 0.85,
       })
 
-      // 2. Upload binary file directly to S3 via PUT
-      const uploadRes = await fetch(presigned.uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file,
-      })
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload image file to storage')
-      }
-
-      // 3. Confirm upload to finalize database media record
-      const confirmedMedia = await allianceService.confirmMediaUpload(listingUuid, {
-        storageKey: presigned.storageKey,
-        mimeType: file.type,
-        fileSize: file.size,
-        publicUrl: presigned.publicUrl,
+      const confirmedMedia = await allianceService.uploadListingMedia(listingUuid, {
+        base64Data: compressed.base64Data,
+        contentType: compressed.contentType,
+        filename: compressed.filename,
       })
 
       return confirmedMedia

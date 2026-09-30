@@ -254,6 +254,10 @@ export interface AllianceDiscoveredListingSummary {
       }
     }[]
   }
+  ratingSummary?: {
+    averageScore: number
+    totalRatings: number
+  }
   trackerCount?: number
   isTrackedByCurrentPm?: boolean
 }
@@ -308,17 +312,20 @@ export type AllianceLeadStage =
 export interface AllianceReferral {
   id: number
   uuid: string
-  referralToken: string
+  shareToken?: string
+  referralToken?: string
   listingId: number
   referringPmId: number
   matchedUserId: number | null
   clientName: string | null
   clientEmail: string | null
   clientPhone: string | null
-  clientNotes: string | null
+  clientNotes?: string | null
+  notes?: string | null
   status: AllianceReferralStatus
-  leadStage: AllianceLeadStage
-  stageUpdatedAt: string
+  stage?: AllianceLeadStage
+  leadStage?: AllianceLeadStage
+  stageUpdatedAt?: string
   convertedAt: string | null
   closedAt: string | null
   createdAt: string
@@ -365,10 +372,12 @@ export interface CreateAllianceReferralPayload {
   clientEmail?: string
   clientPhone?: string
   clientNotes?: string
+  notes?: string
 }
 
 export interface UpdateAllianceLeadStagePayload {
-  leadStage: AllianceLeadStage
+  stage?: AllianceLeadStage
+  leadStage?: AllianceLeadStage
   notes?: string
 }
 
@@ -377,8 +386,9 @@ export interface CloseAllianceReferralPayload {
 }
 
 export interface ListAllianceReferralsParams {
-  status?: AllianceReferralStatus
-  leadStage?: AllianceLeadStage
+  status?: AllianceReferralStatus | 'ALL'
+  stage?: AllianceLeadStage | 'ALL'
+  leadStage?: AllianceLeadStage | 'ALL'
   search?: string
   page?: number
   limit?: number

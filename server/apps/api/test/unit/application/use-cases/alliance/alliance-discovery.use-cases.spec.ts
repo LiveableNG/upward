@@ -7,6 +7,7 @@ import { GetDiscoveredAllianceListingDetailUseCase } from '@application/alliance
 import {
   IAllianceListingRepository,
   IAllianceProfileRepository,
+  IAllianceRatingRepository,
 } from '@domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '@domains/pm/types/pm-actor-context';
 import {
@@ -17,6 +18,8 @@ import {
 describe('Alliance Discovery Use Cases (Stage 1E)', () => {
   let mockListingRepo: jest.Mocked<IAllianceListingRepository>;
   let mockProfileRepo: jest.Mocked<IAllianceProfileRepository>;
+  let mockRatingRepo: jest.Mocked<IAllianceRatingRepository>;
+  let mockS3Service: any;
 
   let discoverUseCase: DiscoverAllianceListingsUseCase;
   let getDetailUseCase: GetDiscoveredAllianceListingDetailUseCase;
@@ -113,6 +116,21 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
     },
   };
 
+  const expectedEnrichedListing = {
+    ...mockListingEntity,
+    pm: {
+      ...mockListingEntity.pm,
+      ratingSummary: {
+        averageScore: 5,
+        totalRatings: 1,
+      },
+    },
+    ratingSummary: {
+      averageScore: 5,
+      totalRatings: 1,
+    },
+  };
+
   beforeEach(() => {
     mockListingRepo = {
       create: jest.fn(),
@@ -136,8 +154,26 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
       update: jest.fn(),
     };
 
-    discoverUseCase = new DiscoverAllianceListingsUseCase(mockListingRepo, mockProfileRepo);
-    getDetailUseCase = new GetDiscoveredAllianceListingDetailUseCase(mockListingRepo, mockProfileRepo);
+    mockRatingRepo = {
+      create: jest.fn(),
+      findByReferralAndAuthor: jest.fn(),
+      getRatingSummaryForSubject: jest.fn().mockResolvedValue({
+        averageScore: 5.0,
+        totalRatings: 1,
+        distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 },
+      }),
+      listRatingsForSubject: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    };
+
+    mockS3Service = {
+      getDownloadUrl: jest.fn().mockImplementation((url: string) => Promise.resolve(url)),
+      getUploadUrl: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+      uploadBuffer: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+      deleteObject: jest.fn().mockResolvedValue(undefined),
+    };
+
+    discoverUseCase = new DiscoverAllianceListingsUseCase(mockListingRepo, mockProfileRepo, mockRatingRepo, mockS3Service);
+    getDetailUseCase = new GetDiscoveredAllianceListingDetailUseCase(mockListingRepo, mockProfileRepo, mockRatingRepo, mockS3Service);
   });
 
   describe('DiscoverAllianceListingsUseCase', () => {
@@ -174,7 +210,7 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
         enabledActor,
       );
 
-      expect(result.items).toEqual([mockListingEntity]);
+      expect(result.items).toEqual([expectedEnrichedListing]);
       expect(result.meta).toEqual({
         page: 1,
         limit: 20,
@@ -241,7 +277,7 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
 
       const result = await getDetailUseCase.execute('listing-uuid-10', enabledActor);
 
-      expect(result).toEqual(mockListingEntity);
+      expect(result).toEqual(expectedEnrichedListing);
       expect(mockListingRepo.findDiscoverableByUuid).toHaveBeenCalledWith('listing-uuid-10', 1);
     });
   });

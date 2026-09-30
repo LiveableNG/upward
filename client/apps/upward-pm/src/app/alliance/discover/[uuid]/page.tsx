@@ -1,26 +1,25 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { createPortal } from 'react-dom'
 import {
   ArrowLeft,
-  Building2,
-  Home,
   MapPin,
-  Bed,
-  Bath,
   ShieldCheck,
   ImageIcon,
   Calendar,
   AlertTriangle,
-  Layers,
   ChevronLeft,
   ChevronRight,
-  Info,
-  Bookmark,
-  BookmarkCheck,
   Share2,
+  Bookmark,
+  Check,
+  X,
+  Layers,
+  Info,
+  Star,
 } from 'lucide-react'
 import {
   useDiscoveredAllianceListing,
@@ -29,10 +28,15 @@ import {
 } from '@/features/alliance/hooks/useAlliance'
 import { useToast } from '@/components/common/Toast'
 import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
+import {
+  getAllianceListingMediaList,
+  ALLIANCE_REAL_ESTATE_PLACEHOLDERS,
+} from '@/features/alliance/utils/allianceImages'
 
 export default function DiscoveredListingDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   const uuid = params?.uuid as string
 
@@ -42,6 +46,18 @@ export default function DiscoveredListingDetailPage() {
 
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (searchParams?.get('action') === 'refer') {
+      setIsShareModalOpen(true)
+    }
+  }, [searchParams])
 
   const isTracked = Boolean(listing?.isTrackedByCurrentPm)
   const isPending = trackMutation.isPending || untrackMutation.isPending
@@ -71,8 +87,23 @@ export default function DiscoveredListingDetailPage() {
     }).format(amount)
   }
 
-  const mediaList = listing?.media || []
-  const activeMedia = mediaList[activeMediaIndex] || (listing?.primaryMedia ? { publicUrl: listing.primaryMedia.publicUrl || listing.primaryMedia.fileUrl } : null)
+  const formatPublishedDate = (dateStr?: string) => {
+    if (!dateStr) return null
+    try {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    } catch {
+      return null
+    }
+  }
+
+  const mediaList = listing ? getAllianceListingMediaList(listing) : []
+  const hasMultipleMedia = mediaList.length > 1
+  const activeMedia = mediaList[activeMediaIndex] || mediaList[0]
 
   const ownerName = listing?.pm?.companyName || listing?.pm?.name || 'Alliance Property Manager'
   const ownerTitle = listing?.pm?.allianceProfile?.pmTitle
@@ -88,25 +119,34 @@ export default function DiscoveredListingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ height: '40px', width: '200px', background: 'var(--dark)', borderRadius: '8px', marginBottom: '20px' }} />
-        <div style={{ height: '400px', background: 'var(--dark)', borderRadius: '16px', marginBottom: '20px' }} />
+      <div className="alliance-marketplace-detail">
+        <div style={{ height: '32px', width: '180px', background: 'var(--border)', borderRadius: '8px', marginBottom: '24px' }} />
+        <div style={{ height: '440px', width: '100%', background: 'var(--border)', borderRadius: '16px', marginBottom: '36px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: '48px' }}>
+          <div>
+            <div style={{ height: '36px', width: '60%', background: 'var(--border)', borderRadius: '8px', marginBottom: '16px' }} />
+            <div style={{ height: '24px', width: '40%', background: 'var(--border)', borderRadius: '6px', marginBottom: '28px' }} />
+            <div style={{ height: '80px', width: '100%', background: 'var(--border)', borderRadius: '12px', marginBottom: '32px' }} />
+          </div>
+          <div style={{ height: '280px', background: 'var(--border)', borderRadius: '14px' }} />
+        </div>
       </div>
     )
   }
 
   if (isError || !listing) {
     return (
-      <div className="page-container" style={{ padding: '40px 20px', maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+      <div className="alliance-marketplace-detail" style={{ textAlign: 'center', paddingTop: '60px' }}>
         <div
           style={{
-            padding: '48px 24px',
-            background: 'var(--dark)',
-            border: '1px solid var(--border)',
+            background: '#ffffff',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
             borderRadius: '16px',
-            display: 'flex',
+            padding: '48px 24px',
+            display: 'inline-flex',
             flexDirection: 'column',
             alignItems: 'center',
+            maxWidth: '520px',
             gap: '16px',
           }}
         >
@@ -124,14 +164,14 @@ export default function DiscoveredListingDetailPage() {
           >
             <AlertTriangle size={28} />
           </div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#171717' }}>
             Listing No Longer Available
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '440px', margin: 0 }}>
+          <p style={{ fontSize: '13.5px', color: '#6b6b6b', margin: 0, lineHeight: 1.5 }}>
             {(error as any)?.message ||
               'This Alliance listing is no longer discoverable. It may have been unpublished, marked private, or the owner’s network access may have changed.'}
           </p>
-          <Link href="/alliance/discover" className="btn btn--primary" style={{ marginTop: '8px', height: '38px' }}>
+          <Link href="/alliance/discover" className="btn btn--primary" style={{ marginTop: '8px', height: '40px', padding: '0 20px' }}>
             Back to Network Discovery
           </Link>
         </div>
@@ -139,573 +179,402 @@ export default function DiscoveredListingDetailPage() {
     )
   }
 
+  const secondaryPhotos = mediaList.slice(1, 5)
+
   return (
-    <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1000px', margin: '0 auto' }}>
-      {/* Back Button */}
-      <div style={{ marginBottom: '16px' }}>
+    <div className="alliance-marketplace-detail">
+      {/* Navigation */}
+      <div className="alliance-marketplace-nav">
         <button
           type="button"
           onClick={() => router.push('/alliance/discover')}
-          className="btn btn--text"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 0',
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-          }}
+          className="alliance-marketplace-back-btn"
         >
           <ArrowLeft size={16} /> Back to Network Discovery
         </button>
       </div>
 
-      {/* Main Grid: Left Column Media & Details, Right Column PM Profile & Context */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1.2fr)', gap: '24px' }}>
-        {/* Left Column: Media & Marketing Information */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Media Viewer */}
-          <div
-            style={{
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              overflow: 'hidden',
-            }}
-          >
-            {/* Featured Image */}
+      {/* Full-Width Immersive Media Gallery */}
+      <div
+        className={`alliance-marketplace-gallery ${
+          secondaryPhotos.length > 0 ? 'alliance-marketplace-gallery--split' : ''
+        }`}
+      >
+        {/* Primary Image */}
+        <div
+          className="alliance-marketplace-gallery__primary"
+          onClick={() => setIsLightboxOpen(true)}
+        >
+          {activeMedia?.publicUrl ? (
+            <img
+              src={activeMedia.publicUrl}
+              alt={listing.title}
+              onError={(e) => {
+                const target = e.currentTarget
+                target.onerror = null
+                target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0]
+              }}
+            />
+          ) : (
             <div
               style={{
-                position: 'relative',
                 width: '100%',
-                height: '380px',
-                background: '#0f172a',
+                height: '100%',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: '8px',
+                color: '#94a3b8',
+                background: '#1e293b',
               }}
             >
-              {activeMedia?.publicUrl ? (
-                <img
-                  src={activeMedia.publicUrl}
-                  alt={listing.title}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <ImageIcon size={48} />
-                  <span style={{ fontSize: '13px' }}>No media uploaded</span>
-                </div>
-              )}
-
-              {/* Navigation arrows if multiple images */}
-              {mediaList.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveMediaIndex((prev) => (prev > 0 ? prev - 1 : mediaList.length - 1))
-                    }
-                    style={{
-                      position: 'absolute',
-                      left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      background: 'rgba(0, 0, 0, 0.65)',
-                      color: '#fff',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveMediaIndex((prev) => (prev < mediaList.length - 1 ? prev + 1 : 0))
-                    }
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      background: 'rgba(0, 0, 0, 0.65)',
-                      color: '#fff',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </>
-              )}
+              <ImageIcon size={48} />
+              <span style={{ fontSize: '13px' }}>No media uploaded</span>
             </div>
+          )}
 
-            {/* Thumbnails Row */}
-            {mediaList.length > 1 && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  padding: '12px',
-                  overflowX: 'auto',
-                  background: 'var(--dark)',
+          {/* Previous / Next Controls on Primary Image */}
+          {hasMultipleMedia && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setActiveMediaIndex((prev) =>
+                    prev > 0 ? prev - 1 : mediaList.length - 1,
+                  )
                 }}
+                className="alliance-gallery-nav-btn alliance-gallery-nav-btn--prev"
+                title="Previous photo"
               >
-                {mediaList.map((m, idx) => (
-                  <button
-                    key={m.uuid}
-                    type="button"
-                    onClick={() => setActiveMediaIndex(idx)}
-                    style={{
-                      position: 'relative',
-                      width: '64px',
-                      height: '50px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: activeMediaIndex === idx ? '2px solid var(--forest)' : '2px solid transparent',
-                      padding: 0,
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <img src={m.publicUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setActiveMediaIndex((prev) =>
+                    prev < mediaList.length - 1 ? prev + 1 : 0,
+                  )
+                }}
+                className="alliance-gallery-nav-btn alliance-gallery-nav-btn--next"
+                title="Next photo"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </>
+          )}
 
-          {/* Marketing Presentation Details */}
-          <div
-            style={{
-              padding: '24px',
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            {/* Header info */}
-            <div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    background: listing.intent === 'SALE' ? 'rgba(217, 119, 6, 0.12)' : 'rgba(22, 101, 52, 0.12)',
-                    color: listing.intent === 'SALE' ? '#b45309' : 'var(--forest)',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                  }}
-                >
-                  {listing.intent === 'SALE' ? 'FOR SALE' : 'FOR RENT'}
-                </span>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '20px',
-                    background: 'var(--bg)',
-                    color: 'var(--text-secondary)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  {listing.targetType === 'PROPERTY' ? <Building2 size={13} /> : <Home size={13} />}
-                  {listing.targetType === 'PROPERTY' ? 'Property Level' : 'Unit Level'}
-                </span>
-              </div>
-
-              <h1 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', margin: '0 0 8px 0' }}>
-                {listing.title}
-              </h1>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <MapPin size={15} color="var(--text-muted)" />
-                <span>{locationText || 'Location not specified'}</span>
-              </div>
-            </div>
-
-            {/* Price section */}
+          {/* Photo Count Badge */}
+          {mediaList.length > 0 && (
             <div
-              style={{
-                padding: '16px',
-                background: 'var(--bg)',
-                borderRadius: '12px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'baseline',
+              className="alliance-gallery-count-badge"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsLightboxOpen(true)
               }}
             >
-              <div>
-                <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  {listing.intent === 'SALE' ? 'Asking Price' : 'Annual Rent'}
-                </span>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)' }}>
-                  {formatPrice(listing.price, listing.currency)}
-                </div>
-              </div>
-
-              {listing.publishedAt && (
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Calendar size={13} />
-                  Published {new Date(listing.publishedAt).toLocaleDateString()}
-                </div>
-              )}
+              <ImageIcon size={14} />
+              <span>
+                {mediaList.length} {mediaList.length === 1 ? 'photo' : 'photos'}
+              </span>
             </div>
-
-            {/* Features / Specs */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-                gap: '12px',
-                padding: '12px 0',
-                borderTop: '1px solid var(--border)',
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-              {listing.propertyType && (
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Type</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{listing.propertyType}</div>
-                </div>
-              )}
-              {listing.bedrooms !== null && (
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Bedrooms</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{listing.bedrooms} Beds</div>
-                </div>
-              )}
-              {listing.bathrooms !== null && (
-                <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Bathrooms</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{listing.bathrooms} Baths</div>
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            {listing.description && (
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: '8px' }}>
-                  About this Listing
-                </h3>
-                <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {listing.description}
-                </p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Right Column: Listing Owner PM & Canonical Context */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Refer Client & Share Card */}
-          <div
-            style={{
-              padding: '20px',
-              background: 'linear-gradient(135deg, rgba(22, 101, 52, 0.08) 0%, rgba(30, 41, 59, 0.4) 100%)',
-              border: '1px solid rgba(22, 101, 52, 0.25)',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Share2 size={18} color="var(--forest)" />
-              <h2 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-                Refer Client / Share Listing
-              </h2>
+        {/* Supporting Secondary Grid (up to 4 images) */}
+        {secondaryPhotos.length > 0 && (
+          <div className="alliance-marketplace-gallery__grid">
+            {secondaryPhotos.map((photo, index) => {
+              const actualIndex = index + 1
+              return (
+                <div
+                  key={photo.uuid || index}
+                  className="alliance-marketplace-gallery__grid-item"
+                  onClick={() => {
+                    setActiveMediaIndex(actualIndex)
+                    setIsLightboxOpen(true)
+                  }}
+                >
+                  <img
+                    src={photo.publicUrl}
+                    alt={`${listing.title} ${actualIndex + 1}`}
+                    onError={(e) => {
+                      const target = e.currentTarget
+                      target.onerror = null
+                      target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[(actualIndex) % ALLIANCE_REAL_ESTATE_PLACEHOLDERS.length]
+                    }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 2-Column Marketplace Content Layout */}
+      <div className="alliance-marketplace-layout">
+        {/* Left Main Column: Property Identity & Information */}
+        <div className="alliance-marketplace-main">
+          {/* Tag row */}
+          <div className="alliance-marketplace-tag-row">
+            <span>{listing.intent === 'SALE' ? 'FOR SALE' : 'FOR RENT'}</span>
+            <span className="tag-divider">·</span>
+            <span className="tag-secondary">
+              {listing.targetType === 'PROPERTY' ? 'PROPERTY LEVEL' : 'UNIT LEVEL'}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h1 className="alliance-marketplace-title">{listing.title}</h1>
+
+          {/* Location */}
+          <div className="alliance-marketplace-location">
+            <MapPin size={15} color="#8a8a8a" style={{ flexShrink: 0 }} />
+            <span>{locationText || 'Location not specified'}</span>
+          </div>
+
+          {/* Price & Published date row */}
+          <div className="alliance-marketplace-price-box">
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <span className="alliance-marketplace-price">
+                {formatPrice(listing.price, listing.currency)}
+              </span>
+              {listing.intent === 'RENT' && (
+                <span className="alliance-marketplace-price-period">per year</span>
+              )}
             </div>
 
-            <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
-              Explicitly introduce a client to this Alliance listing. You own the referral relationship, client pipeline stages, and future commission attribution.
+            {listing.publishedAt && (
+              <div className="alliance-marketplace-published">
+                <Calendar size={13} />
+                <span>Published {formatPublishedDate(listing.publishedAt)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Property Facts / Specs Row */}
+          <div className="alliance-marketplace-facts">
+            {listing.propertyType && (
+              <div className="alliance-marketplace-fact-item">
+                <span className="alliance-marketplace-fact-label">Property type</span>
+                <span className="alliance-marketplace-fact-value">{listing.propertyType}</span>
+              </div>
+            )}
+
+            {listing.bedrooms !== null && (
+              <div className="alliance-marketplace-fact-item">
+                <span className="alliance-marketplace-fact-label">Bedrooms</span>
+                <span className="alliance-marketplace-fact-value">{listing.bedrooms} bedrooms</span>
+              </div>
+            )}
+
+            {listing.bathrooms !== null && (
+              <div className="alliance-marketplace-fact-item">
+                <span className="alliance-marketplace-fact-label">Bathrooms</span>
+                <span className="alliance-marketplace-fact-value">{listing.bathrooms} bathrooms</span>
+              </div>
+            )}
+
+            <div className="alliance-marketplace-fact-item">
+              <span className="alliance-marketplace-fact-label">Inventory level</span>
+              <span className="alliance-marketplace-fact-value">
+                {listing.targetType === 'PROPERTY' ? 'Property' : 'Unit'}
+              </span>
+            </div>
+          </div>
+
+          {/* About this listing */}
+          {listing.description ? (
+            <div>
+              <h2 className="alliance-marketplace-section-heading">About this listing</h2>
+              <p className="alliance-marketplace-description">{listing.description}</p>
+            </div>
+          ) : (
+            <div>
+              <h2 className="alliance-marketplace-section-heading">About this listing</h2>
+              <p className="alliance-marketplace-description" style={{ color: '#8a8a8a', fontStyle: 'italic' }}>
+                No additional description provided for this listing.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Sticky Action & Context Rail */}
+        <div className="alliance-marketplace-rail">
+          {/* 1. Refer a client Action Card */}
+          <div className="alliance-action-card">
+            <div className="alliance-action-card__header">
+              <Share2 size={18} color="var(--forest)" />
+              <h2 className="alliance-action-card__title">Refer a client</h2>
+            </div>
+
+            <p className="alliance-action-card__text">
+              Share this listing with a client and create a referral relationship for this opportunity.
             </p>
 
             <button
               type="button"
               onClick={() => setIsShareModalOpen(true)}
-              className="btn btn--primary"
-              style={{
-                width: '100%',
-                height: '42px',
-                fontSize: '13px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginTop: '4px',
-              }}
+              className="alliance-action-card__cta"
             >
               <Share2 size={16} />
-              <span>Create Referral & Share Link</span>
+              <span>Share listing</span>
             </button>
           </div>
 
-          {/* Tracking Action Card */}
-          <div
-            style={{
-              padding: '20px',
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bookmark size={17} color={isTracked ? 'var(--forest)' : 'var(--text-muted)'} />
-                <h2 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-                  Opportunity Tracking
-                </h2>
+          {/* 2. Opportunity Tracking State Card */}
+          <div className="alliance-tracking-card">
+            {isTracked ? (
+              <div>
+                <div className="alliance-tracking-card__status">
+                  <div className="alliance-tracking-card__badge">
+                    <Check size={15} />
+                    <span>Saved to opportunities</span>
+                  </div>
+                </div>
+                <p className="alliance-tracking-card__desc">
+                  This listing is in your tracked opportunities.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleToggleTrack}
+                  disabled={isPending}
+                  className="alliance-tracking-card__remove-btn"
+                >
+                  {isPending ? 'Updating...' : 'Remove from tracked'}
+                </button>
               </div>
-              {isTracked && (
-                <span
+            ) : (
+              <div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#171717', marginBottom: '2px' }}>
+                  Save opportunity
+                </div>
+                <p className="alliance-tracking-card__desc">
+                  Bookmark for quick access in your Alliance pipeline.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleToggleTrack}
+                  disabled={isPending}
+                  className="btn btn--secondary"
                   style={{
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    background: 'rgba(22, 101, 52, 0.1)',
-                    color: 'var(--forest)',
-                    fontSize: '11px',
-                    fontWeight: 700,
+                    width: '100%',
+                    height: '38px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
                   }}
                 >
-                  TRACKED
-                </span>
-              )}
-            </div>
-
-            <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
-              {isTracked
-                ? 'You are currently tracking this listing. It is saved in your Alliance pipeline for rapid reference and client matching.'
-                : 'Track this listing to save it to your Alliance pipeline. The listing owner receives aggregated interest metrics without exposing your personal or business identity.'}
-            </p>
-
-            <button
-              type="button"
-              onClick={handleToggleTrack}
-              disabled={isPending}
-              className={`btn ${isTracked ? 'btn--secondary' : 'btn--primary'}`}
-              style={{
-                width: '100%',
-                height: '40px',
-                fontSize: '13px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                marginTop: '4px',
-              }}
-            >
-              {isTracked ? (
-                <>
-                  <BookmarkCheck size={16} color="var(--forest)" />
-                  <span>Remove from Tracked</span>
-                </>
-              ) : (
-                <>
-                  <Bookmark size={16} />
-                  <span>Track This Opportunity</span>
-                </>
-              )}
-            </button>
+                  <Bookmark size={14} />
+                  <span>{isPending ? 'Saving...' : 'Track listing'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Listing Owner PM Card */}
-          <div
-            style={{
-              padding: '24px',
-              background: 'var(--dark)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldCheck size={18} color="var(--forest)" />
-              <h2 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-                Alliance Listing Owner
-              </h2>
-            </div>
+          {/* 3. Listing Owner Section */}
+          <div className="alliance-owner-card">
+            <div className="alliance-owner-card__label">Listing Owner</div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '50%',
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  color: 'var(--primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  fontWeight: 800,
-                  flexShrink: 0,
-                }}
-              >
+            <div className="alliance-owner-card__profile">
+              <div className="alliance-owner-card__avatar">
                 {ownerName.substring(0, 2).toUpperCase()}
               </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-                  {ownerName}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                  <div className="alliance-owner-card__name">{ownerName}</div>
+                  {((listing.ratingSummary && (listing.ratingSummary.totalRatings > 0 || listing.ratingSummary.averageScore > 0)) ||
+                    ((listing.pm as any)?.ratingSummary && ((listing.pm as any).ratingSummary.totalRatings > 0 || (listing.pm as any).ratingSummary.averageScore > 0))) && (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: '#fef3c7',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#b45309',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Star size={12} style={{ fill: '#f59e0b', color: '#f59e0b' }} />
+                      <span>
+                        {(
+                          listing.ratingSummary?.averageScore ||
+                          (listing.pm as any)?.ratingSummary?.averageScore ||
+                          5.0
+                        ).toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#92400e', fontWeight: 500 }}>
+                        (
+                        {listing.ratingSummary?.totalRatings ??
+                          (listing.pm as any)?.ratingSummary?.totalRatings ??
+                          1}
+                        )
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {ownerTitle && (
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {ownerTitle}
-                  </div>
+                  <div className="alliance-owner-card__title">{ownerTitle}</div>
                 )}
               </div>
             </div>
 
-            {ownerBio && (
-              <p style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)', margin: 0 }}>
-                "{ownerBio}"
-              </p>
-            )}
+            {ownerBio && <p className="alliance-owner-card__bio">"{ownerBio}"</p>}
 
-            {/* Active Qualifications */}
+            {/* Verified Qualifications */}
             {activeQualifications.length > 0 && (
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  Verified Qualifications
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {activeQualifications.map((qual) => (
-                    <div
-                      key={qual.id}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '10px',
-                        background: 'var(--bg)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                      }}
-                    >
-                      <ShieldCheck size={16} color="var(--forest)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>
-                          {qual.name}
-                        </div>
-                        {qual.description && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {qual.description}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="alliance-owner-card__qual-section">
+                <div className="alliance-owner-card__qual-label">Verified qualifications</div>
+                {activeQualifications.map((qual) => (
+                  <div key={qual.id} className="alliance-owner-card__qual-item">
+                    <ShieldCheck size={14} color="var(--forest)" style={{ flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>{qual.name}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          {/* Canonical Inventory Context (Read-only status info) */}
+          {/* 4. Canonical Inventory Context (Quiet Footnote) */}
           {listing.sourceType === 'LINKED_INVENTORY' && (
             <div
               style={{
-                padding: '20px',
-                background: 'var(--dark)',
-                border: '1px solid var(--border)',
-                borderRadius: '16px',
+                padding: '14px 16px',
+                borderRadius: '12px',
+                background: '#ffffff',
+                border: '1px solid rgba(0, 0, 0, 0.06)',
+                fontSize: '12px',
+                color: '#6b6b6b',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
+                gap: '4px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={16} color="var(--text-muted)" />
-                <h3 style={{ fontSize: '13px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-                  Canonical Inventory Context
-                </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: '#171717' }}>
+                <Layers size={13} color="#8a8a8a" />
+                <span>Canonical Inventory</span>
               </div>
-
-              <div style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
-                {listing.targetProperty && (
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Linked Property: </span>
-                    <strong>{listing.targetProperty.name}</strong>
-                  </div>
-                )}
-                {listing.targetUnit && (
-                  <div style={{ marginTop: '4px' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Linked Unit: </span>
-                    <strong>{listing.targetUnit.unitName}</strong>
-                    {listing.targetUnit.status && (
-                      <span
-                        style={{
-                          marginLeft: '8px',
-                          padding: '2px 6px',
-                          borderRadius: '6px',
-                          background: listing.targetUnit.status === 'OCCUPIED' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(22, 101, 52, 0.1)',
-                          color: listing.targetUnit.status === 'OCCUPIED' ? '#854d0e' : 'var(--forest)',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        Unit Status: {listing.targetUnit.status}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--text-muted)',
-                  borderTop: '1px solid var(--border)',
-                  paddingTop: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Info size={13} />
-                <em>Display only. Canonical inventory is managed independently by the owner.</em>
-              </div>
+              {listing.targetProperty && (
+                <div>Property: <strong>{listing.targetProperty.name}</strong></div>
+              )}
+              {listing.targetUnit && (
+                <div>Unit: <strong>{listing.targetUnit.unitName}</strong></div>
+              )}
             </div>
           )}
         </div>
       </div>
 
+      {/* Share / Refer Client Modal */}
       <ShareReferralModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
@@ -715,6 +584,82 @@ export default function DiscoveredListingDetailPage() {
         listingCurrency={listing.currency}
         listingLocation={locationText}
       />
+
+      {/* Fullscreen Photo Lightbox Modal */}
+      {isLightboxOpen &&
+        mounted &&
+        mediaList.length > 0 &&
+        createPortal(
+          <div
+            className="alliance-lightbox-overlay"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <button
+              type="button"
+              onClick={() => setIsLightboxOpen(false)}
+              className="alliance-lightbox-close"
+              title="Close gallery"
+            >
+              <X size={20} />
+            </button>
+
+            {hasMultipleMedia && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveMediaIndex((prev) =>
+                      prev > 0 ? prev - 1 : mediaList.length - 1,
+                    )
+                  }}
+                  className="alliance-gallery-nav-btn alliance-gallery-nav-btn--prev"
+                  style={{ left: '24px', width: '44px', height: '44px' }}
+                >
+                  <ChevronLeft size={22} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setActiveMediaIndex((prev) =>
+                      prev < mediaList.length - 1 ? prev + 1 : 0,
+                    )
+                  }}
+                  className="alliance-gallery-nav-btn alliance-gallery-nav-btn--next"
+                  style={{ right: '24px', width: '44px', height: '44px' }}
+                >
+                  <ChevronRight size={22} />
+                </button>
+              </>
+            )}
+
+            <img
+              src={mediaList[activeMediaIndex]?.publicUrl}
+              alt={`${listing.title} photo`}
+              className="alliance-lightbox-img"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '24px',
+                color: '#ffffff',
+                fontSize: '13px',
+                fontWeight: 600,
+                background: 'rgba(0, 0, 0, 0.6)',
+                padding: '6px 14px',
+                borderRadius: '20px',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              {activeMediaIndex + 1} / {mediaList.length}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X,
   Share2,
@@ -42,6 +43,7 @@ export function ShareReferralModal({
   const toast = useToast()
   const createReferralMutation = useCreateAllianceReferral()
 
+  const [mounted, setMounted] = useState(false)
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [clientPhone, setClientPhone] = useState('')
@@ -50,7 +52,11 @@ export function ShareReferralModal({
   const [isCopied, setIsCopied] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !mounted) return null
 
   const handleReset = () => {
     setClientName('')
@@ -82,6 +88,7 @@ export function ShareReferralModal({
           clientName: clientName.trim() || undefined,
           clientEmail: trimmedEmail || undefined,
           clientPhone: trimmedPhone || undefined,
+          notes: clientNotes.trim() || undefined,
           clientNotes: clientNotes.trim() || undefined,
         },
       })
@@ -95,10 +102,16 @@ export function ShareReferralModal({
   }
 
   const handleCopyLink = async () => {
-    if (!createdReferral?.shareUrl && !createdReferral?.referralToken) return
+    const token =
+      createdReferral?.shareToken ||
+      createdReferral?.referralToken ||
+      (createdReferral as any)?.token ||
+      createdReferral?.uuid
+
+    if (!createdReferral?.shareUrl && !token) return
     const url =
-      createdReferral.shareUrl ||
-      `${window.location.origin}/alliance/referral/${createdReferral.referralToken}`
+      createdReferral?.shareUrl ||
+      `${window.location.origin}/alliance/referral/${token}`
 
     try {
       await navigator.clipboard.writeText(url)
@@ -119,7 +132,7 @@ export function ShareReferralModal({
     }).format(amount)
   }
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -139,12 +152,12 @@ export function ShareReferralModal({
     >
       <div
         style={{
-          background: 'var(--dark)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '520px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -275,7 +288,13 @@ export function ShareReferralModal({
                     readOnly
                     value={
                       createdReferral.shareUrl ||
-                      `${window.location.origin}/alliance/referral/${createdReferral.referralToken}`
+                      `${window.location.origin}/alliance/referral/${
+                        createdReferral.shareToken ||
+                        createdReferral.referralToken ||
+                        (createdReferral as any).token ||
+                        createdReferral.uuid ||
+                        ''
+                      }`
                     }
                     style={{
                       flex: 1,
@@ -507,6 +526,7 @@ export function ShareReferralModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

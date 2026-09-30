@@ -15,6 +15,7 @@ import {
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { ActivityLogService } from '../../../shared/application/activity-log.service';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import {
   ConfirmMediaUploadDto,
   ALLOWED_ALLIANCE_MEDIA_MIME_TYPES,
@@ -32,6 +33,7 @@ export class ConfirmAllianceMediaUploadUseCase {
     @Inject(ALLIANCE_LISTING_MEDIA_REPOSITORY)
     private readonly mediaRepo: IAllianceListingMediaRepository,
     private readonly activityLog: ActivityLogService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(listingUuid: string, dto: ConfirmMediaUploadDto, actor: PmActorContext) {
@@ -105,6 +107,9 @@ export class ConfirmAllianceMediaUploadUseCase {
       },
     });
 
-    return createdMedia;
+    return {
+      ...createdMedia,
+      publicUrl: await this.s3Service.getDownloadUrl(createdMedia.storageKey || createdMedia.publicUrl),
+    };
   }
 }

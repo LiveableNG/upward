@@ -7,6 +7,7 @@ import {
   IAllianceListingRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { ListAllianceListingsQueryDto } from '../dtos/alliance-listing.dto';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class ListPmAllianceListingsUseCase {
   constructor(
     @Inject(ALLIANCE_LISTING_REPOSITORY)
     private readonly listingRepo: IAllianceListingRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(query: ListAllianceListingsQueryDto, actor: PmActorContext) {
@@ -29,8 +31,26 @@ export class ListPmAllianceListingsUseCase {
       take: limit,
     });
 
+    const signedItems = await Promise.all(
+      items.map(async (item) => {
+        if (item.media && item.media.length > 0) {
+          const signedMedia = await Promise.all(
+            item.media.map(async (m) => ({
+              ...m,
+              publicUrl:
+                m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
+                  ? m.publicUrl
+                  : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+            })),
+          );
+          return { ...item, media: signedMedia };
+        }
+        return item;
+      }),
+    );
+
     return {
-      items,
+      items: signedItems,
       meta: {
         page,
         limit,

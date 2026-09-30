@@ -5,6 +5,7 @@ import {
   IAllianceListingRepository,
   IAllianceRatingRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import {
   PublicAllianceMarketplaceQueryDto,
   PublicAllianceListingCardDto,
@@ -17,6 +18,7 @@ export class GetPublicAllianceListingsUseCase {
     private readonly listingRepo: IAllianceListingRepository,
     @Inject(ALLIANCE_RATING_REPOSITORY)
     private readonly ratingRepo: IAllianceRatingRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(query: PublicAllianceMarketplaceQueryDto) {
@@ -64,6 +66,19 @@ export class GetPublicAllianceListingsUseCase {
           badgeIcon: q.badgeIcon || null,
         }));
 
+        const primaryMedia = primary
+          ? {
+              uuid: primary.uuid,
+              publicUrl:
+                primary.publicUrl &&
+                (primary.publicUrl.startsWith('http://') || primary.publicUrl.startsWith('https://'))
+                  ? primary.publicUrl
+                  : await this.s3Service.getDownloadUrl(primary.storageKey || primary.publicUrl),
+              mimeType: primary.mimeType,
+              sortOrder: primary.sortOrder ?? 0,
+            }
+          : null;
+
         return {
           uuid: item.uuid,
           title: item.title,
@@ -79,14 +94,7 @@ export class GetPublicAllianceListingsUseCase {
           city: item.city,
           state: item.state,
           country: item.country || 'Nigeria',
-          primaryMedia: primary
-            ? {
-                uuid: primary.uuid,
-                publicUrl: primary.publicUrl,
-                mimeType: primary.mimeType,
-                sortOrder: primary.sortOrder ?? 0,
-              }
-            : null,
+          primaryMedia,
           mediaCount: item.media ? item.media.length : 0,
           pm: {
             uuid: item.pm?.uuid || '',

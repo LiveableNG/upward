@@ -10,6 +10,7 @@ import {
   IAllianceReferralRepository,
   IAllianceRatingRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import { PublicAllianceReferralContextDto } from '../dtos/alliance-public-marketplace.dto';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class ResolvePublicAllianceReferralUseCase {
     private readonly referralRepo: IAllianceReferralRepository,
     @Inject(ALLIANCE_RATING_REPOSITORY)
     private readonly ratingRepo: IAllianceRatingRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(shareToken: string): Promise<PublicAllianceReferralContextDto> {
@@ -65,11 +67,31 @@ export class ResolvePublicAllianceReferralUseCase {
       badgeIcon: q.badgeIcon || null,
     }));
 
+    const primaryMedia = primary
+      ? {
+          uuid: primary.uuid,
+          publicUrl: await this.s3Service.getDownloadUrl(primary.storageKey || primary.publicUrl),
+          mimeType: primary.mimeType,
+          sortOrder: primary.sortOrder ?? 0,
+        }
+      : null;
+
+    const signedMedia = await Promise.all(
+      sortedMedia.map(async (m) => ({
+        uuid: m.uuid,
+        publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+        mimeType: m.mimeType,
+        sortOrder: m.sortOrder ?? 0,
+      })),
+    );
+
     return {
       referralUuid: referral.uuid,
       shareToken: referral.shareToken,
       status: referral.status,
       clientName: referral.clientName,
+      clientEmail: referral.clientEmail,
+      clientPhone: referral.clientPhone,
       listing: {
         uuid: listing.uuid,
         title: listing.title,
@@ -85,21 +107,9 @@ export class ResolvePublicAllianceReferralUseCase {
         city: listing.city,
         state: listing.state,
         country: listing.country || 'Nigeria',
-        primaryMedia: primary
-          ? {
-              uuid: primary.uuid,
-              publicUrl: primary.publicUrl,
-              mimeType: primary.mimeType,
-              sortOrder: primary.sortOrder ?? 0,
-            }
-          : null,
+        primaryMedia,
         mediaCount: sortedMedia.length,
-        media: sortedMedia.map((m) => ({
-          uuid: m.uuid,
-          publicUrl: m.publicUrl,
-          mimeType: m.mimeType,
-          sortOrder: m.sortOrder ?? 0,
-        })),
+        media: signedMedia,
         unitName: listing.targetUnit?.unitName || null,
         propertyName: listing.targetProperty?.name || listing.targetUnit?.property?.name || null,
         pm: {

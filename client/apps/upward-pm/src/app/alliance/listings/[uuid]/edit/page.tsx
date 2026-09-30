@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Edit, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, AlertCircle } from 'lucide-react'
 import { useAllianceListing, useUpdateAllianceListing } from '@/features/alliance/hooks/useAlliance'
 import { ListingBasicsForm, ListingFormData } from '@/features/alliance/components/ListingBasicsForm'
 import { ListingMediaManager } from '@/features/alliance/components/ListingMediaManager'
@@ -92,7 +92,7 @@ export default function EditAllianceListingPage() {
 
   if (loadingListing) {
     return (
-      <div className="page-container" style={{ padding: '48px 20px', textAlign: 'center' }}>
+      <div className="alliance-page-shell" style={{ textAlign: 'center', padding: '60px 20px' }}>
         <div className="loader" style={{ margin: '0 auto 16px auto' }} />
         <p style={{ color: 'var(--text-muted)' }}>Loading listing details...</p>
       </div>
@@ -101,38 +101,46 @@ export default function EditAllianceListingPage() {
 
   if (listingError || !listing) {
     return (
-      <div className="page-container" style={{ padding: '48px 20px', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-        <AlertCircle size={40} color="var(--danger)" style={{ margin: '0 auto 16px auto' }} />
-        <h2 style={{ color: 'var(--text)', marginBottom: '8px' }}>Listing Not Found</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-          The requested listing could not be found.
-        </p>
-        <Link href="/alliance/listings" className="btn btn--secondary">
-          <ArrowLeft size={16} /> Return to Listings
-        </Link>
+      <div className="alliance-page-shell">
+        <div className="alliance-gate-card">
+          <div className="alliance-gate-card__icon-wrap" style={{ background: 'var(--error-bg)', color: 'var(--error)' }}>
+            <AlertCircle size={28} />
+          </div>
+          <h2 className="alliance-gate-card__title">Listing Not Found</h2>
+          <p className="alliance-gate-card__desc">
+            The requested listing could not be found or has been removed.
+          </p>
+          <Link href="/alliance/listings" className="alliance-btn alliance-btn--secondary" style={{ marginTop: '12px' }}>
+            <ArrowLeft size={16} /> Return to Listings
+          </Link>
+        </div>
       </div>
     )
   }
 
   if (listing.status === 'ARCHIVED') {
     return (
-      <div className="page-container" style={{ padding: '48px 20px', maxWidth: '600px', margin: '0 auto', textAlign: 'center' }}>
-        <AlertCircle size={40} color="var(--warning)" style={{ margin: '0 auto 16px auto' }} />
-        <h2 style={{ color: 'var(--text)', marginBottom: '8px' }}>Archived Listing</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-          This listing is archived and cannot be edited.
-        </p>
-        <Link href={`/alliance/listings/${uuid}`} className="btn btn--secondary">
-          <ArrowLeft size={16} /> Back to Details
-        </Link>
+      <div className="alliance-page-shell">
+        <div className="alliance-gate-card">
+          <div className="alliance-gate-card__icon-wrap">
+            <AlertCircle size={28} />
+          </div>
+          <h2 className="alliance-gate-card__title">Archived Listing</h2>
+          <p className="alliance-gate-card__desc">
+            This listing is archived and cannot be modified.
+          </p>
+          <Link href={`/alliance/listings/${uuid}`} className="alliance-btn alliance-btn--secondary" style={{ marginTop: '12px' }}>
+            <ArrowLeft size={16} /> Back to Details
+          </Link>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="page-container" style={{ padding: '24px 20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="alliance-page-shell">
       {/* Back Link */}
-      <div style={{ marginBottom: '16px' }}>
+      <div style={{ maxWidth: '860px', margin: '0 auto 16px auto' }}>
         <Link
           href={`/alliance/listings/${uuid}`}
           style={{
@@ -141,8 +149,8 @@ export default function EditAllianceListingPage() {
             gap: '6px',
             fontSize: '13px',
             color: 'var(--text-muted)',
-            textDecoration: 'none',
             fontWeight: 600,
+            textDecoration: 'none',
           }}
         >
           <ArrowLeft size={16} /> Back to Listing Details
@@ -150,17 +158,17 @@ export default function EditAllianceListingPage() {
       </div>
 
       {/* Form Card */}
-      <div className="card" style={{ padding: '28px' }}>
-        <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-          <h1 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Edit size={22} color="var(--forest)" /> Edit Alliance Listing
+      <div className="alliance-form-card" style={{ maxWidth: '860px', margin: '0 auto' }}>
+        <div className="alliance-form-card__header">
+          <h1 className="alliance-form-card__title">
+            Edit Alliance Listing
           </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Update presentation marketing details. Structural source and canonical target identity remain fixed.
+          <p className="alliance-form-card__desc">
+            Update presentation marketing details and media photography. Canonical source identities remain preserved.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           <ListingBasicsForm
             sourceType={listing.sourceType}
             data={formData}
@@ -176,7 +184,7 @@ export default function EditAllianceListingPage() {
             }
           />
 
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '28px' }}>
             <ListingMediaManager
               listingUuid={uuid}
               isArchived={false}
@@ -184,27 +192,17 @@ export default function EditAllianceListingPage() {
           </div>
 
           {/* Submit Actions */}
-          <div
-            style={{
-              borderTop: '1px solid var(--border)',
-              paddingTop: '20px',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-            }}
-          >
+          <div className="alliance-action-bar">
             <Link
               href={`/alliance/listings/${uuid}`}
-              className="btn btn--secondary"
-              style={{ height: '44px', padding: '0 20px' }}
+              className="alliance-btn alliance-btn--secondary"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={updateMutation.isPending}
-              className="btn btn--primary"
-              style={{ height: '44px', padding: '0 24px', gap: '8px', fontWeight: 700 }}
+              className="alliance-btn alliance-btn--primary"
             >
               <Save size={16} />
               {updateMutation.isPending ? 'Saving Changes...' : 'Save Changes'}

@@ -108,6 +108,8 @@ describe('Alliance Listing Media Use Cases (Stage 1D)', () => {
     };
     mockS3Service = {
       getUploadUrl: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+      getDownloadUrl: jest.fn().mockImplementation((url: string) => Promise.resolve(url)),
+      uploadBuffer: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
       deleteObject: jest.fn().mockResolvedValue(undefined),
     } as any;
     mockActivityLogService = {
@@ -304,6 +306,7 @@ describe('Alliance Listing Media Use Cases (Stage 1D)', () => {
         mockListingRepo,
         mockMediaRepo,
         mockActivityLogService,
+        mockS3Service,
       );
     });
 
@@ -389,6 +392,7 @@ describe('Alliance Listing Media Use Cases (Stage 1D)', () => {
         mockListingRepo,
         mockMediaRepo,
         mockActivityLogService,
+        mockS3Service,
       );
     });
 

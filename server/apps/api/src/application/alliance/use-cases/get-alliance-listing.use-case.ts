@@ -10,6 +10,7 @@ import {
 } from '../../../domains/alliance/alliance.repository.interface';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
 export class GetAllianceListingUseCase {
@@ -17,6 +18,7 @@ export class GetAllianceListingUseCase {
     @Inject(ALLIANCE_LISTING_REPOSITORY)
     private readonly listingRepo: IAllianceListingRepository,
     private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(listingUuid: string, actor: PmActorContext) {
@@ -48,6 +50,18 @@ export class GetAllianceListingUseCase {
           }
         }
       }
+    }
+
+    if (listing.media && listing.media.length > 0) {
+      listing.media = await Promise.all(
+        listing.media.map(async (m) => ({
+          ...m,
+          publicUrl:
+            m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
+              ? m.publicUrl
+              : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+        })),
+      );
     }
 
     return listing;

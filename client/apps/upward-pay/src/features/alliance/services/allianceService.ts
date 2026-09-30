@@ -72,3 +72,11 @@ export async function submitClientAllianceRating(
   });
   return res.data || res;
 }
+
+export async function fetchUserAllianceJourneys(): Promise<import('../types/alliance.types').UserAllianceJourney[]> {
+  const res = await request<any>('/user/alliance/journeys', {
+    method: 'GET',
+  });
+  return res.data || [];
+}
+

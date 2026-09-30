@@ -527,6 +527,7 @@ import { ArchiveAllianceListingUseCase } from './alliance/use-cases/archive-alli
 import { ListPmAllianceListingsUseCase } from './alliance/use-cases/list-pm-alliance-listings.use-case'
 import { RequestAllianceMediaUploadUseCase } from './alliance/use-cases/request-alliance-media-upload.use-case'
 import { ConfirmAllianceMediaUploadUseCase } from './alliance/use-cases/confirm-alliance-media-upload.use-case'
+import { UploadAllianceListingMediaUseCase } from './alliance/use-cases/upload-alliance-listing-media.use-case'
 import { ListAllianceListingMediaUseCase } from './alliance/use-cases/list-alliance-listing-media.use-case'
 import { ReorderAllianceListingMediaUseCase } from './alliance/use-cases/reorder-alliance-listing-media.use-case'
 import { DeleteAllianceListingMediaUseCase } from './alliance/use-cases/delete-alliance-listing-media.use-case'
@@ -549,8 +550,10 @@ import { GetPublicAllianceListingsUseCase } from './alliance/use-cases/get-publi
 import { GetPublicAllianceListingDetailUseCase } from './alliance/use-cases/get-public-alliance-listing-detail.use-case'
 import { ResolvePublicAllianceReferralUseCase } from './alliance/use-cases/resolve-public-alliance-referral.use-case'
 import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-alliance-inquiry.use-case'
+import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
 
 const UseCases: any[] = [
+
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
   ListAllianceQualificationsUseCase,
@@ -570,6 +573,7 @@ const UseCases: any[] = [
   ListPmAllianceListingsUseCase,
   RequestAllianceMediaUploadUseCase,
   ConfirmAllianceMediaUploadUseCase,
+  UploadAllianceListingMediaUseCase,
   ListAllianceListingMediaUseCase,
   ReorderAllianceListingMediaUseCase,
   DeleteAllianceListingMediaUseCase,
@@ -592,6 +596,7 @@ const UseCases: any[] = [
   GetPublicAllianceListingDetailUseCase,
   ResolvePublicAllianceReferralUseCase,
   SubmitAllianceInquiryUseCase,
+  GetUserAllianceJourneysUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

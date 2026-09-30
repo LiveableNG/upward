@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X,
   CheckCircle2,
@@ -28,6 +29,7 @@ export function ConvertReferralModal({
   const toast = useToast()
   const convertMutation = useConvertAllianceReferral()
 
+  const [mounted, setMounted] = useState(false)
   const [sourceAmount, setSourceAmount] = useState<string>(
     referral.listing?.price ? String(referral.listing.price) : '0',
   )
@@ -36,7 +38,11 @@ export function ConvertReferralModal({
   const [notes, setNotes] = useState<string>('')
   const [formError, setFormError] = useState<string | null>(null)
 
-  if (!isOpen) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!isOpen || !mounted) return null
 
   const numAmount = parseFloat(sourceAmount) || 0
   const numRate = parseFloat(commissionRate) || 0
@@ -83,7 +89,7 @@ export function ConvertReferralModal({
     }).format(amount)
   }
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -103,12 +109,12 @@ export function ConvertReferralModal({
     >
       <div
         style={{
-          background: 'var(--dark)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '520px',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -384,6 +390,7 @@ export function ConvertReferralModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

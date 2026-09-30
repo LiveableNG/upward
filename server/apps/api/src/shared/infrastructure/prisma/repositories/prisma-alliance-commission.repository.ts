@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import {
   IAllianceCommissionRepository,
   CreateAllianceCommissionData,
@@ -13,7 +14,10 @@ import {
 
 @Injectable()
 export class PrismaAllianceCommissionRepository implements IAllianceCommissionRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   private mapToEntity(item: any): AllianceCommissionEntity {
     return {
@@ -99,10 +103,10 @@ export class PrismaAllianceCommissionRepository implements IAllianceCommissionRe
             id: item.referringPm.id,
             uuid: item.referringPm.uuid,
             name:
-              item.referringPm.companyName ||
-              `${item.referringPm.firstName || ''} ${item.referringPm.lastName || ''}`.trim() ||
+              (item.referringPm.businessName ? this.encryption.decrypt(item.referringPm.businessName) : '') ||
+              `${item.referringPm.firstName ? this.encryption.decrypt(item.referringPm.firstName) : ''} ${item.referringPm.lastName ? this.encryption.decrypt(item.referringPm.lastName) : ''}`.trim() ||
               'Referring PM',
-            companyName: item.referringPm.companyName,
+            companyName: item.referringPm.businessName ? this.encryption.decrypt(item.referringPm.businessName) : null,
           }
         : undefined,
     };

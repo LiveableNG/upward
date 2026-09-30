@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Award, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   useAllianceProfile,
   useAllianceListings,
@@ -16,11 +16,10 @@ import {
   AllianceSourceType,
   AllianceListing,
 } from '@/features/alliance/types/alliance.types'
-import { AllianceStatusBanner } from '@/features/alliance/components/AllianceStatusBanner'
-import { AllianceNavTabs } from '@/features/alliance/components/AllianceNavTabs'
 import { ListingFilters } from '@/features/alliance/components/ListingFilters'
 import { ListingCard } from '@/features/alliance/components/ListingCard'
 import { ListingReviewModal } from '@/features/alliance/components/ListingReviewModal'
+import { ShareReferralModal } from '@/features/alliance/components/ShareReferralModal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { useToast } from '@/components/common/Toast'
 
@@ -35,11 +34,12 @@ export default function AllianceListingsPage() {
 
   // Active modals state
   const [reviewListing, setReviewListing] = useState<AllianceListing | null>(null)
+  const [shareListing, setShareListing] = useState<AllianceListing | null>(null)
   const [unpublishUuid, setUnpublishUuid] = useState<string | null>(null)
   const [archiveUuid, setArchiveUuid] = useState<string | null>(null)
 
   // Data fetching
-  const { data: profile, isLoading: loadingProfile } = useAllianceProfile()
+  const { data: profile } = useAllianceProfile()
   const { data: listingsData, isLoading: loadingListings } = useAllianceListings({
     status,
     targetType,
@@ -97,123 +97,78 @@ export default function AllianceListingsPage() {
   const meta = listingsData?.meta || { page: 1, total: 0, totalPages: 1 }
 
   return (
-    <div className="page-container" style={{ padding: '24px 20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Page Header */}
+    <div>
+      {/* Top Action Bar & Filters */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '16px',
-          marginBottom: '20px',
+          gap: '12px',
+          marginBottom: '16px',
         }}
       >
-        <div>
-          <h1
-            style={{
-              fontSize: '24px',
-              fontWeight: 800,
-              color: 'var(--text)',
-              margin: '0 0 4px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
+        <div style={{ flex: 1, minWidth: '280px' }}>
+          <ListingFilters
+            status={status}
+            targetType={targetType}
+            sourceType={sourceType}
+            onStatusChange={(s) => {
+              setStatus(s)
+              setPage(1)
             }}
-          >
-            <Award size={26} color="var(--forest)" /> Upward Alliance Listings
-          </h1>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Manage and distribute your property marketing representations across the network.
-          </p>
+            onTargetTypeChange={(t) => {
+              setTargetType(t)
+              setPage(1)
+            }}
+            onSourceTypeChange={(src) => {
+              setSourceType(src)
+              setPage(1)
+            }}
+          />
         </div>
 
         {profile?.isEnabled && (
           <Link
             href="/alliance/listings/new"
-            className="btn btn--primary"
-            style={{ height: '42px', padding: '0 18px', gap: '8px', fontWeight: 600 }}
+            className="alliance-btn alliance-btn--primary"
+            style={{ height: '44px', padding: '0 20px', flexShrink: 0, marginBottom: '20px' }}
           >
-            <Plus size={18} /> Create Listing
+            <Plus size={16} /> Create Listing
           </Link>
         )}
       </div>
 
-      {/* Alliance Navigation Tabs */}
-      <AllianceNavTabs activeTab="my-listings" />
-
-      {/* Alliance Status Banner (Enabled state + Qualifications or Disabled warning) */}
-      <AllianceStatusBanner profile={profile} isLoading={loadingProfile} />
-
-      {/* Filters */}
-      <ListingFilters
-        status={status}
-        targetType={targetType}
-        sourceType={sourceType}
-        onStatusChange={(s) => {
-          setStatus(s)
-          setPage(1)
-        }}
-        onTargetTypeChange={(t) => {
-          setTargetType(t)
-          setPage(1)
-        }}
-        onSourceTypeChange={(src) => {
-          setSourceType(src)
-          setPage(1)
-        }}
-      />
-
       {/* Listings List / Grid */}
       {loadingListings ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card animate-pulse" style={{ height: '220px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="alliance-listing-card animate-pulse" style={{ height: '360px', opacity: 0.6 }} />
           ))}
         </div>
       ) : listings.length === 0 ? (
-        <div
-          className="card"
-          style={{
-            padding: '48px 24px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'var(--bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <AlertCircle size={28} />
+        <div className="alliance-gate-card">
+          <div className="alliance-gate-card__icon-wrap" style={{ background: 'var(--ivory-dim)', color: 'var(--text-muted)' }}>
+            <AlertCircle size={26} />
           </div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
+          <h3 className="alliance-gate-card__title">
             No Alliance Listings Found
           </h3>
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', maxWidth: '400px' }}>
+          <p className="alliance-gate-card__desc">
             {status
               ? `You do not have any listings with status "${status.toLowerCase()}".`
-              : 'Create your first Alliance marketing listing to publish or distribute properties.'}
+              : 'Create your first Alliance marketing listing to publish and co-broker properties across the network.'}
           </p>
           {profile?.isEnabled && (
-            <Link href="/alliance/listings/new" className="btn btn--primary" style={{ marginTop: '8px' }}>
+            <Link href="/alliance/listings/new" className="alliance-btn alliance-btn--primary" style={{ marginTop: '8px' }}>
               <Plus size={16} /> Create New Listing
             </Link>
           )}
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
             {listings.map((listing) => (
               <ListingCard
                 key={listing.uuid}
@@ -221,6 +176,7 @@ export default function AllianceListingsPage() {
                 onPublish={handleOpenPublish}
                 onUnpublish={(uuid) => setUnpublishUuid(uuid)}
                 onArchive={(uuid) => setArchiveUuid(uuid)}
+                onShare={(l) => setShareListing(l)}
                 isPublishing={publishMutation.isPending}
                 isUnpublishing={unpublishMutation.isPending}
                 isArchiving={archiveMutation.isPending}
@@ -235,28 +191,28 @@ export default function AllianceListingsPage() {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '16px',
-                marginTop: '32px',
+                gap: '14px',
+                marginTop: '36px',
               }}
             >
               <button
                 type="button"
-                className="btn btn--secondary"
+                className="alliance-btn alliance-btn--secondary"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                style={{ padding: '8px 14px', gap: '4px' }}
+                style={{ height: '36px', padding: '0 14px', fontSize: '13px' }}
               >
                 <ChevronLeft size={16} /> Previous
               </button>
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Page <strong>{meta.page}</strong> of <strong>{meta.totalPages}</strong> ({meta.total} total)
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Page {meta.page} of {meta.totalPages} ({meta.total} listings)
               </span>
               <button
                 type="button"
-                className="btn btn--secondary"
+                className="alliance-btn alliance-btn--secondary"
                 disabled={page >= meta.totalPages}
                 onClick={() => setPage((p) => Math.min(p + 1, meta.totalPages))}
-                style={{ padding: '8px 14px', gap: '4px' }}
+                style={{ height: '36px', padding: '0 14px', fontSize: '13px' }}
               >
                 Next <ChevronRight size={16} />
               </button>
@@ -264,6 +220,17 @@ export default function AllianceListingsPage() {
           )}
         </>
       )}
+
+      {/* Share / Refer Client Modal */}
+      <ShareReferralModal
+        isOpen={Boolean(shareListing)}
+        onClose={() => setShareListing(null)}
+        listingUuid={shareListing?.uuid || ''}
+        listingTitle={shareListing?.title || ''}
+        listingPrice={shareListing?.price}
+        listingCurrency={shareListing?.currency}
+        listingLocation={[shareListing?.address, shareListing?.city, shareListing?.state].filter(Boolean).join(', ')}
+      />
 
       {/* Review & Publish Modal */}
       <ListingReviewModal

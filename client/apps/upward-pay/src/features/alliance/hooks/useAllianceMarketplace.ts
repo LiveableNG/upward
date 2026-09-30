@@ -61,6 +61,16 @@ export function useSubmitClientRating() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alliance-listing-detail'] });
       queryClient.invalidateQueries({ queryKey: ['alliance-marketplace-listings'] });
+      queryClient.invalidateQueries({ queryKey: ['user-alliance-journeys'] });
     },
   });
 }
+
+export function useUserAllianceJourneys() {
+  return useQuery({
+    queryKey: ['user-alliance-journeys'],
+    queryFn: () => import('../services/allianceService').then((s) => s.fetchUserAllianceJourneys()),
+    staleTime: 30 * 1000,
+  });
+}
+

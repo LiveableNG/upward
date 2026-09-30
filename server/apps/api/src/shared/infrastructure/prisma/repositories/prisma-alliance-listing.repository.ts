@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 import {
   IAllianceListingRepository,
   CreateAllianceListingData,
@@ -16,7 +17,10 @@ import {
 
 @Injectable()
 export class PrismaAllianceListingRepository implements IAllianceListingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   private mapToEntity(item: any): AllianceListingEntity {
     return {
@@ -91,8 +95,11 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
         ? {
             id: item.pm.id,
             uuid: item.pm.uuid,
-            name: item.pm.companyName || `${item.pm.firstName || ''} ${item.pm.lastName || ''}`.trim() || 'Property Manager',
-            companyName: item.pm.companyName,
+            name:
+              (item.pm.businessName ? this.encryption.decrypt(item.pm.businessName) : '') ||
+              `${item.pm.firstName ? this.encryption.decrypt(item.pm.firstName) : ''} ${item.pm.lastName ? this.encryption.decrypt(item.pm.lastName) : ''}`.trim() ||
+              'Property Manager',
+            companyName: item.pm.businessName ? this.encryption.decrypt(item.pm.businessName) : null,
             allianceProfile: item.pm.allianceProfile
               ? {
                   pmTitle: item.pm.allianceProfile.pmTitle,
@@ -100,8 +107,8 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                   isEnabled: item.pm.allianceProfile.isEnabled,
                 }
               : null,
-            qualifications: item.pm.qualifications
-              ? item.pm.qualifications
+            qualifications: (item.pm.allianceQualifications || item.pm.qualifications)
+              ? (item.pm.allianceQualifications || item.pm.qualifications)
                   .filter((q: any) => q.qualification?.isActive)
                   .map((q: any) => ({
                     qualification: {
@@ -418,7 +425,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               uuid: true,
               firstName: true,
               lastName: true,
-              companyName: true,
+              businessName: true,
               allianceProfile: {
                 select: {
                   pmTitle: true,
@@ -426,7 +433,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                   isEnabled: true,
                 },
               },
-              qualifications: {
+              allianceQualifications: {
                 include: {
                   qualification: true,
                 },
@@ -490,7 +497,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             uuid: true,
             firstName: true,
             lastName: true,
-            companyName: true,
+            businessName: true,
             allianceProfile: {
               select: {
                 pmTitle: true,
@@ -498,7 +505,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                 isEnabled: true,
               },
             },
-            qualifications: {
+            allianceQualifications: {
               include: {
                 qualification: true,
               },
@@ -528,7 +535,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
   }): Promise<{ items: AllianceListingEntity[]; total: number }> {
     const where: any = {
       status: 'PUBLISHED',
-      visibility: { in: ['ALLIANCE', 'PUBLIC'] },
+      visibility: 'ALLIANCE',
       isSourceDeleted: false,
       pm: {
         allianceProfile: {
@@ -608,7 +615,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
               uuid: true,
               firstName: true,
               lastName: true,
-              companyName: true,
+              businessName: true,
               allianceProfile: {
                 select: {
                   pmTitle: true,
@@ -616,8 +623,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                   isEnabled: true,
                 },
               },
-              qualifications: {
-                where: { isActive: true },
+              allianceQualifications: {
                 include: {
                   qualification: true,
                 },
@@ -640,7 +646,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
       where: {
         uuid,
         status: 'PUBLISHED',
-        visibility: { in: ['ALLIANCE', 'PUBLIC'] },
+        visibility: 'ALLIANCE',
         isSourceDeleted: false,
         pm: {
           allianceProfile: {
@@ -668,7 +674,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
             uuid: true,
             firstName: true,
             lastName: true,
-            companyName: true,
+            businessName: true,
             allianceProfile: {
               select: {
                 pmTitle: true,
@@ -676,8 +682,7 @@ export class PrismaAllianceListingRepository implements IAllianceListingReposito
                 isEnabled: true,
               },
             },
-            qualifications: {
-              where: { isActive: true },
+            allianceQualifications: {
               include: {
                 qualification: true,
               },

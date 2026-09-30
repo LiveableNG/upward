@@ -11,12 +11,20 @@ import {
 } from '@domains/alliance/alliance.repository.interface';
 import { ActivityLogService } from '@shared/application/activity-log.service';
 import { NotificationService } from '@shared/infrastructure/common/notification.service';
+import { S3Service } from '@shared/infrastructure/common/s3/s3.service';
 
 describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)', () => {
   let getPublicListingsUc: GetPublicAllianceListingsUseCase;
   let getPublicListingDetailUc: GetPublicAllianceListingDetailUseCase;
   let resolveReferralUc: ResolvePublicAllianceReferralUseCase;
   let submitInquiryUc: SubmitAllianceInquiryUseCase;
+
+  const mockS3Service = {
+    getDownloadUrl: jest.fn().mockImplementation((url: string) => Promise.resolve(url)),
+    getUploadUrl: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+    uploadBuffer: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
+    deleteObject: jest.fn().mockResolvedValue(undefined),
+  };
 
   const mockListingRepo = {
     findPublicMarketplaceListings: jest.fn(),
@@ -25,6 +33,8 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
 
   const mockReferralRepo = {
     findByShareToken: jest.fn(),
+    findActiveReferral: jest.fn(),
+    create: jest.fn(),
     update: jest.fn(),
   };
 
@@ -113,6 +123,7 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
         { provide: ALLIANCE_RATING_REPOSITORY, useValue: mockRatingRepo },
         { provide: ActivityLogService, useValue: mockActivityLogService },
         { provide: NotificationService, useValue: mockNotificationService },
+        { provide: S3Service, useValue: mockS3Service },
       ],
     }).compile();
 
@@ -246,6 +257,7 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
       expect(mockReferralRepo.update).toHaveBeenCalledWith(50, {
         stage: 'CONTACTED',
         matchedUserId: 999,
+        notes: '[Client Inquiry]: I would like to schedule a physical viewing this Saturday.',
       });
       expect(mockActivityLogService.log).toHaveBeenCalled();
     });
@@ -269,6 +281,38 @@ describe('Alliance Public Marketplace & Client Integration Use Cases (Stage 4)',
           message: 'Hello',
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should create direct lead for listing owner when inquiry is submitted without referral token', async () => {
+      mockListingRepo.findPublicByUuid.mockResolvedValue(mockSampleListing);
+      mockReferralRepo.findActiveReferral.mockResolvedValue(null);
+      mockReferralRepo.create.mockResolvedValue({
+        id: 99,
+        uuid: 'direct-lead-uuid-99',
+        status: 'ACTIVE',
+        stage: 'CONTACTED',
+      });
+
+      const result = await submitInquiryUc.execute(
+        'listing-uuid-1',
+        {
+          clientName: 'Direct Buyer',
+          clientEmail: 'buyer@example.com',
+          clientPhone: '+2348099999999',
+          message: 'Interested in this property directly from marketplace.',
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.referralUuid).toBe('direct-lead-uuid-99');
+      expect(mockReferralRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          listingId: mockSampleListing.id,
+          referringPmId: mockSampleListing.pmId,
+          clientName: 'Direct Buyer',
+          stage: 'CONTACTED',
+        }),
+      );
     });
   });
 });

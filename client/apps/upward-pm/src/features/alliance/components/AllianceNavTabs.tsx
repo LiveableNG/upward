@@ -3,108 +3,77 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Compass, List, Award, Users, DollarSign } from 'lucide-react'
+import { Compass, List, Users, DollarSign } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface AllianceNavTabsProps {
   activeTab?: 'discover' | 'my-listings' | 'referrals' | 'commissions'
+  counts?: {
+    listings?: number
+    referrals?: number
+    commissions?: number
+  }
 }
 
-export function AllianceNavTabs({ activeTab }: AllianceNavTabsProps) {
+export function AllianceNavTabs({ activeTab, counts }: AllianceNavTabsProps) {
   const pathname = usePathname()
-  const isDiscover = activeTab === 'discover' || pathname.startsWith('/alliance/discover')
-  const isMyListings = activeTab === 'my-listings' || pathname.startsWith('/alliance/listings')
-  const isReferrals = activeTab === 'referrals' || pathname.startsWith('/alliance/referrals')
-  const isCommissions = activeTab === 'commissions' || pathname.startsWith('/alliance/commissions')
+
+  const tabs = [
+    {
+      id: 'discover',
+      label: 'Discover Network',
+      href: '/alliance/discover',
+      icon: Compass,
+      isActive: activeTab === 'discover' || pathname === '/alliance/discover' || pathname.startsWith('/alliance/discover/'),
+      count: undefined,
+    },
+    {
+      id: 'my-listings',
+      label: 'My Listings',
+      href: '/alliance/listings',
+      icon: List,
+      isActive: activeTab === 'my-listings' || pathname === '/alliance/listings' || pathname.startsWith('/alliance/listings/'),
+      count: counts?.listings,
+    },
+    {
+      id: 'referrals',
+      label: 'Referrals & Leads',
+      href: '/alliance/referrals',
+      icon: Users,
+      isActive: activeTab === 'referrals' || pathname === '/alliance/referrals' || pathname.startsWith('/alliance/referrals/'),
+      count: counts?.referrals,
+    },
+    {
+      id: 'commissions',
+      label: 'Commissions',
+      href: '/alliance/commissions',
+      icon: DollarSign,
+      isActive: activeTab === 'commissions' || pathname === '/alliance/commissions' || pathname.startsWith('/alliance/commissions/'),
+      count: counts?.commissions,
+    },
+  ]
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '8px',
-        borderBottom: '1px solid var(--border)',
-        marginBottom: '20px',
-        flexWrap: 'wrap',
-      }}
-    >
-      <Link
-        href="/alliance/discover"
-        className="btn btn--text"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          fontSize: '14px',
-          fontWeight: isDiscover ? 700 : 500,
-          color: isDiscover ? 'var(--forest)' : 'var(--text-secondary)',
-          borderBottom: isDiscover ? '2px solid var(--forest)' : '2px solid transparent',
-          borderRadius: 0,
-          textDecoration: 'none',
-        }}
-      >
-        <Compass size={18} />
-        Discover Network
-      </Link>
-
-      <Link
-        href="/alliance/listings"
-        className="btn btn--text"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          fontSize: '14px',
-          fontWeight: isMyListings ? 700 : 500,
-          color: isMyListings ? 'var(--forest)' : 'var(--text-secondary)',
-          borderBottom: isMyListings ? '2px solid var(--forest)' : '2px solid transparent',
-          borderRadius: 0,
-          textDecoration: 'none',
-        }}
-      >
-        <List size={18} />
-        My Listings
-      </Link>
-
-      <Link
-        href="/alliance/referrals"
-        className="btn btn--text"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          fontSize: '14px',
-          fontWeight: isReferrals ? 700 : 500,
-          color: isReferrals ? 'var(--forest)' : 'var(--text-secondary)',
-          borderBottom: isReferrals ? '2px solid var(--forest)' : '2px solid transparent',
-          borderRadius: 0,
-          textDecoration: 'none',
-        }}
-      >
-        <Users size={18} />
-        My Referrals & Leads
-      </Link>
-
-      <Link
-        href="/alliance/commissions"
-        className="btn btn--text"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          fontSize: '14px',
-          fontWeight: isCommissions ? 700 : 500,
-          color: isCommissions ? 'var(--forest)' : 'var(--text-secondary)',
-          borderBottom: isCommissions ? '2px solid var(--forest)' : '2px solid transparent',
-          borderRadius: 0,
-          textDecoration: 'none',
-        }}
-      >
-        <DollarSign size={18} />
-        Commissions
-      </Link>
-    </div>
+    <nav className="alliance-segmented-nav" aria-label="Alliance sections">
+      {tabs.map((tab) => {
+        const Icon = tab.icon
+        return (
+          <Link
+            key={tab.id}
+            href={tab.href}
+            className={cn(
+              'alliance-segmented-tab',
+              tab.isActive && 'alliance-segmented-tab--active'
+            )}
+          >
+            <Icon size={16} />
+            <span>{tab.label}</span>
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className="alliance-segmented-tab__badge">{tab.count}</span>
+            )}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
