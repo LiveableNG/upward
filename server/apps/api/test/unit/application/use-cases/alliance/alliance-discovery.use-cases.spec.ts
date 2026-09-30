@@ -49,6 +49,19 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
     updatedAt: new Date(),
   };
 
+  const mockMediaItem = {
+    id: 1,
+    uuid: 'media-1',
+    listingId: 10,
+    storageKey: 'uploads/photo1.jpg',
+    publicUrl: 'https://cdn.example.com/photo1.jpg',
+    mimeType: 'image/jpeg',
+    fileSize: 102400,
+    sortOrder: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   const mockListingEntity: AllianceListingEntity = {
     id: 10,
     uuid: 'listing-uuid-10',
@@ -78,20 +91,7 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
     archivedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
-    media: [
-      {
-        id: 1,
-        uuid: 'media-1',
-        listingId: 10,
-        storageKey: 'uploads/photo1.jpg',
-        publicUrl: 'https://cdn.example.com/photo1.jpg',
-        mimeType: 'image/jpeg',
-        fileSize: 102400,
-        sortOrder: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ],
+    media: [mockMediaItem],
     pm: {
       id: 2,
       uuid: 'pm-uuid-2',
@@ -118,6 +118,19 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
 
   const expectedEnrichedListing = {
     ...mockListingEntity,
+    media: [
+      {
+        ...mockMediaItem,
+        publicUrl: 'https://cdn.example.com/photo1.jpg',
+      },
+    ],
+    primaryMedia: {
+      uuid: 'media-1',
+      publicUrl: 'https://cdn.example.com/photo1.jpg',
+      mimeType: 'image/jpeg',
+      sortOrder: 0,
+    },
+    mediaCount: 1,
     pm: {
       ...mockListingEntity.pm,
       ratingSummary: {
@@ -166,7 +179,7 @@ describe('Alliance Discovery Use Cases (Stage 1E)', () => {
     };
 
     mockS3Service = {
-      getDownloadUrl: jest.fn().mockImplementation((url: string) => Promise.resolve(url)),
+      getDownloadUrl: jest.fn().mockResolvedValue('https://cdn.example.com/photo1.jpg'),
       getUploadUrl: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
       uploadBuffer: jest.fn().mockResolvedValue('https://s3.signed-upload-url.com'),
       deleteObject: jest.fn().mockResolvedValue(undefined),
