@@ -144,6 +144,10 @@ export function DashboardHeader({
                 pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
               const isProfileRoute =
                 pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
+              const showMarketplace =
+                process.env.NODE_ENV !== 'production' &&
+                process.env.NEXT_PUBLIC_NODE_ENV !== 'production' &&
+                process.env.NEXT_PUBLIC_ENABLE_ALLIANCE_MARKETPLACE !== 'false'
               return (
                 <>
                   {!isDashboardHome ? (
@@ -153,7 +157,9 @@ export function DashboardHeader({
                     <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
                   ) : null}
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
-                  <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>
+                  {showMarketplace && (
+                    <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>
+                  )}
                   <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
                   <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
                 </>
