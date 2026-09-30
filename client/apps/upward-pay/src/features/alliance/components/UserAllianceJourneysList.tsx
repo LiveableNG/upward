@@ -122,21 +122,60 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
         const referringPm = journey.referringPm;
 
         return (
-          <div key={journey.referralUuid} className="pay-alliance-journey-card">
+          <div
+            key={journey.referralUuid}
+            className="pay-alliance-journey-card"
+            style={{
+              background: '#ffffff',
+              borderRadius: '18px',
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             {/* Journey Header: Referring PM Info */}
-            <div className="pay-alliance-journey-header">
-              <div className="pay-alliance-journey-pm-info">
-                <div className="pay-alliance-journey-pm-avatar">
+            <div
+              className="pay-alliance-journey-header"
+              style={{
+                padding: '16px 20px',
+                background: 'linear-gradient(135deg, rgba(217, 119, 87, 0.08) 0%, rgba(217, 119, 87, 0.02) 100%)',
+                borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    minWidth: '38px',
+                    borderRadius: '50%',
+                    background: 'var(--clay, #d97757)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    flexShrink: 0,
+                  }}
+                >
                   {referringPm.displayName ? referringPm.displayName.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 800, color: 'var(--text)' }}>
+                    <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0a0a0f' }}>
                       {referringPm.displayName}
                     </span>
                     <ShieldCheck size={15} style={{ color: '#16a34a' }} />
                   </div>
-                  <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '11.5px', color: '#64748b' }}>
                     {referringPm.companyName ? `${referringPm.companyName} • ` : ''}Partner Agent Referral
                   </span>
                 </div>
@@ -145,7 +184,9 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
               {/* Status Badge */}
               <div
                 style={{
-                  padding: '4px 12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '5px 12px',
                   borderRadius: '9999px',
                   fontSize: '11.5px',
                   fontWeight: 700,
@@ -160,7 +201,7 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                       ? '#16a34a'
                       : journey.stage === 'LOST'
                       ? '#64748b'
-                      : 'var(--clay)',
+                      : 'var(--clay, #d97757)',
                 }}
               >
                 {journey.stageLabel}
@@ -168,13 +209,32 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
             </div>
 
             {/* Journey Body */}
-            <div className="pay-alliance-journey-body">
+            <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Property Summary Row */}
-              <div className="pay-alliance-journey-property-grid">
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '18px',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <img
                   src={getAllianceListingImage({ primaryMedia: listing.media?.[0], media: listing.media, uuid: listing.uuid })}
                   alt={listing.title}
-                  className="pay-alliance-journey-property-img"
+                  style={{
+                    width: '160px',
+                    minWidth: '160px',
+                    maxWidth: '160px',
+                    height: '110px',
+                    minHeight: '110px',
+                    maxHeight: '110px',
+                    borderRadius: '12px',
+                    objectFit: 'cover',
+                    background: '#f5f5f5',
+                    flexShrink: 0,
+                    display: 'block',
+                  }}
                   onError={(e) => {
                     const target = e.currentTarget;
                     target.onerror = null;
@@ -182,7 +242,7 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                   }}
                 />
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '240px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span
                       style={{
@@ -192,13 +252,13 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                         padding: '2px 8px',
                         borderRadius: '4px',
                         background: listing.intent === 'SALE' ? 'rgba(22, 163, 74, 0.1)' : 'rgba(10, 10, 15, 0.06)',
-                        color: listing.intent === 'SALE' ? '#16a34a' : 'var(--text)',
+                        color: listing.intent === 'SALE' ? '#16a34a' : 'var(--text, #0a0a0f)',
                       }}
                     >
                       {listing.intent === 'SALE' ? 'For Sale' : 'For Rent'}
                     </span>
                     {listing.propertyType && (
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
                         {listing.propertyType}
                       </span>
                     )}
@@ -208,7 +268,7 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                     style={{
                       fontSize: '16px',
                       fontWeight: 800,
-                      color: 'var(--text)',
+                      color: 'var(--text, #0a0a0f)',
                       margin: '2px 0 0 0',
                       lineHeight: 1.3,
                     }}
@@ -216,8 +276,8 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                     {listing.title}
                   </h3>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <MapPin size={13} style={{ color: 'var(--clay)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b' }}>
+                    <MapPin size={13} style={{ color: 'var(--clay, #d97757)' }} />
                     <span>
                       {[listing.address, listing.city, listing.state].filter(Boolean).join(', ') ||
                         'Location details available'}
@@ -225,11 +285,11 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text, #0a0a0f)' }}>
                       {formatPrice(listing.price, listing.currency)}
                     </span>
                     {listing.intent === 'RENT' && (
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>/ yr</span>
+                      <span style={{ fontSize: '12px', color: '#8a8a8a' }}>/ yr</span>
                     )}
                   </div>
                 </div>
@@ -238,35 +298,69 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
               {/* Visual Live Stage Progression Stepper */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#8a8a8a' }}>
                     Live Stage Progression
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
                     Updated {new Date(journey.updatedAt).toLocaleDateString()}
                   </span>
                 </div>
 
-                <div className="pay-alliance-stepper">
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                    gap: '8px',
+                    padding: '14px 16px',
+                    background: '#f8f6f3',
+                    borderRadius: '14px',
+                    border: '1px solid rgba(0, 0, 0, 0.04)',
+                  }}
+                >
                   {journey.stages.map((st, idx) => (
-                    <div key={st.key} className="pay-alliance-step-item">
+                    <div
+                      key={st.key}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        gap: '6px',
+                      }}
+                    >
                       <div
-                        className={`pay-alliance-step-circle ${
-                          st.isCompleted && !st.isCurrent
-                            ? 'pay-alliance-step-circle--completed'
-                            : st.isCurrent
-                            ? 'pay-alliance-step-circle--current'
-                            : 'pay-alliance-step-circle--upcoming'
-                        }`}
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          minWidth: '28px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background:
+                            st.isCompleted && !st.isCurrent
+                              ? '#16a34a'
+                              : st.isCurrent
+                              ? 'var(--clay, #d97757)'
+                              : '#e2ddd7',
+                          color:
+                            st.isCompleted || st.isCurrent ? '#ffffff' : '#8a8a8a',
+                          boxShadow: st.isCurrent ? '0 0 0 4px rgba(217, 119, 87, 0.2)' : 'none',
+                        }}
                       >
                         {st.isCompleted && !st.isCurrent ? <CheckCircle2 size={16} /> : idx + 1}
                       </div>
                       <div>
                         <span
-                          className={`pay-alliance-step-label ${
-                            !st.isCompleted && !st.isCurrent
-                              ? 'pay-alliance-step-label--upcoming'
-                              : ''
-                          }`}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: st.isCurrent || st.isCompleted ? 700 : 500,
+                            color: st.isCurrent || st.isCompleted ? '#0a0a0f' : '#8a8a8a',
+                            lineHeight: 1.25,
+                            display: 'block',
+                          }}
                         >
                           {st.label}
                         </span>
@@ -277,8 +371,20 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
               </div>
 
               {/* Status Explanation Banner */}
-              <div className="pay-alliance-journey-status-banner">
-                <Clock size={16} style={{ color: 'var(--clay)', flexShrink: 0 }} />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(217, 119, 87, 0.08)',
+                  border: '1px solid rgba(217, 119, 87, 0.2)',
+                  fontSize: '12.5px',
+                  color: '#0a0a0f',
+                }}
+              >
+                <Clock size={16} style={{ color: 'var(--clay, #d97757)', flexShrink: 0 }} />
                 <span>
                   <strong>Current Stage:</strong> {journey.stageDescription}
                 </span>
@@ -288,16 +394,16 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
               {journey.notes && (
                 <div
                   style={{
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border)',
+                    background: '#faf8f5',
+                    border: '1px solid rgba(0, 0, 0, 0.06)',
                     borderRadius: '12px',
                     padding: '12px 16px',
                     fontSize: '12.5px',
-                    color: 'var(--text-secondary)',
+                    color: '#4a4642',
                     lineHeight: '1.5',
                   }}
                 >
-                  <strong style={{ color: 'var(--text)', display: 'block', marginBottom: '2px' }}>
+                  <strong style={{ color: '#0a0a0f', display: 'block', marginBottom: '2px' }}>
                     Manager Updates & Notes:
                   </strong>
                   {journey.notes}
@@ -305,7 +411,17 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
               )}
 
               {/* Actions Footer */}
-              <div className="pay-alliance-journey-footer">
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid rgba(0, 0, 0, 0.06)',
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Link
                     href={`/dashboard/alliance/${listing.uuid}`}
@@ -313,7 +429,7 @@ export const UserAllianceJourneysList: React.FC<UserAllianceJourneysListProps> =
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
-                      padding: '8px 16px',
+                      padding: '8px 18px',
                       borderRadius: '10px',
                       background: 'var(--dark, #0a0a0f)',
                       color: '#ffffff',
