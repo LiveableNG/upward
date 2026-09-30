@@ -69,11 +69,7 @@ export class GetPublicAllianceListingsUseCase {
         const primaryMedia = primary
           ? {
               uuid: primary.uuid,
-              publicUrl:
-                primary.publicUrl &&
-                (primary.publicUrl.startsWith('http://') || primary.publicUrl.startsWith('https://'))
-                  ? primary.publicUrl
-                  : await this.s3Service.getDownloadUrl(primary.storageKey || primary.publicUrl),
+              publicUrl: await this.s3Service.getDownloadUrl(primary.storageKey || primary.publicUrl),
               mimeType: primary.mimeType,
               sortOrder: primary.sortOrder ?? 0,
             }

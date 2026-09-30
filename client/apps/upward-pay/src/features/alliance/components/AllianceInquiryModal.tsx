@@ -136,7 +136,7 @@ export const AllianceInquiryModal: React.FC<AllianceInquiryModalProps> = ({
           </div>
         ) : (
           <div>
-            <h3 className="pay-alliance-modal__title">Contact Property Manager</h3>
+            <h3 className="pay-alliance-modal__title">I'm Interested</h3>
             <p className="pay-alliance-modal__subtitle" style={{ display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               Inquiring about: <strong>{listingTitle}</strong>
             </p>

@@ -53,15 +53,13 @@ export class GetAllianceListingUseCase {
     }
 
     if (listing.media && listing.media.length > 0) {
-      listing.media = await Promise.all(
+      const signedMedia = await Promise.all(
         listing.media.map(async (m) => ({
           ...m,
-          publicUrl:
-            m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
-              ? m.publicUrl
-              : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+          publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
         })),
       );
+      listing.media = signedMedia.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     }
 
     return listing;

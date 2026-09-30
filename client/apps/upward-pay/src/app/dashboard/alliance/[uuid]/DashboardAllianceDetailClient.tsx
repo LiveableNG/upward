@@ -256,7 +256,7 @@ export function DashboardAllianceDetailClient() {
               className="pay-alliance-sticky-card__cta"
             >
               <MessageSquare size={17} />
-              <span>Contact Property Manager</span>
+              <span>I'm Interested</span>
             </button>
 
             <div className="pay-alliance-sticky-card__footer">

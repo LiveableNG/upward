@@ -46,30 +46,16 @@ export class GetPublicAllianceListingDetailUseCase {
       badgeIcon: q.badgeIcon || null,
     }));
 
-    const primaryMedia = primary
-      ? {
-          uuid: primary.uuid,
-          publicUrl:
-            primary.publicUrl &&
-            (primary.publicUrl.startsWith('http://') || primary.publicUrl.startsWith('https://'))
-              ? primary.publicUrl
-              : await this.s3Service.getDownloadUrl(primary.storageKey || primary.publicUrl),
-          mimeType: primary.mimeType,
-          sortOrder: primary.sortOrder ?? 0,
-        }
-      : null;
-
     const signedMedia = await Promise.all(
       sortedMedia.map(async (m) => ({
         uuid: m.uuid,
-        publicUrl:
-          m.publicUrl && (m.publicUrl.startsWith('http://') || m.publicUrl.startsWith('https://'))
-            ? m.publicUrl
-            : await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+        publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
         mimeType: m.mimeType,
         sortOrder: m.sortOrder ?? 0,
       })),
     );
+
+    const primaryMedia = signedMedia[0] || null;
 
     return {
       uuid: listing.uuid,

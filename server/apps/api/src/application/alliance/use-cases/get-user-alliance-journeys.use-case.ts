@@ -6,6 +6,7 @@ import {
   IAllianceRatingRepository,
 } from '../../../domains/alliance/alliance.repository.interface';
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 import {
   AllianceLeadStage,
   AllianceReferralStatus,
@@ -115,6 +116,7 @@ export class GetUserAllianceJourneysUseCase {
     private readonly ratingRepo: IAllianceRatingRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(userUuidOrId: string | number): Promise<UserAllianceJourneyDto[]> {
@@ -242,11 +244,13 @@ export class GetUserAllianceJourneysUseCase {
           propertyType: item.listing.propertyType,
           bedrooms: item.listing.bedrooms,
           bathrooms: item.listing.bathrooms,
-          media: (item.listing.media || []).map((m: any) => ({
-            uuid: m.uuid,
-            publicUrl: m.publicUrl,
-            sortOrder: m.sortOrder || 0,
-          })),
+          media: await Promise.all(
+            (item.listing.media || []).map(async (m: any) => ({
+              uuid: m.uuid,
+              publicUrl: await this.s3Service.getDownloadUrl(m.storageKey || m.publicUrl),
+              sortOrder: m.sortOrder || 0,
+            })),
+          ),
         },
         referringPm: {
           uuid: item.referringPm?.uuid,
