@@ -145,7 +145,7 @@ export function DashboardHeader({
               const isProfileRoute =
                 pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
               const showMarketplace =
-                process.env.NODE_ENV !== 'production'
+                process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true'
               return (
                 <>
                   {!isDashboardHome ? (

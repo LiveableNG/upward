@@ -176,11 +176,6 @@ export default async function WebAllianceMarketplacePage({ searchParams }: Allia
                     alt={listing.title}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     loading="lazy"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      target.onerror = null;
-                      target.src = ALLIANCE_REAL_ESTATE_PLACEHOLDERS[0] || '';
-                    }}
                   />
 
                   {/* Intent tag */}
