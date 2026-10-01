@@ -58,6 +58,12 @@
   margin-inline: auto;
 }
 
+@media (max-width: 600px) {
+  .hiw-container {
+    width: calc(100% - 24px);
+  }
+}
+
 /* --------------------------------------------------------------------------
    Hero Section
    -------------------------------------------------------------------------- */
@@ -227,8 +233,15 @@
 
 @media (max-width: 900px) {
   .hiw-story-container {
-    padding: 28px 20px;
+    padding: 24px 18px;
     border-radius: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hiw-story-container {
+    padding: 16px 12px;
+    border-radius: 20px;
   }
 }
 
@@ -243,7 +256,13 @@
 @media (max-width: 1024px) {
   .hiw-story-layout {
     grid-template-columns: 1fr;
-    gap: 36px;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .hiw-story-layout {
+    gap: 20px;
   }
 }
 
@@ -284,6 +303,7 @@
   border-radius: var(--hiw-radius-md);
   padding: 24px 22px;
   margin-bottom: 28px;
+  min-height: 195px;
   transition: all 0.3s ease;
 }
 
@@ -374,6 +394,39 @@
   overflow: hidden;
 }
 
+.hiw-indicator-num {
+  position: relative;
+  z-index: 2;
+}
+
+.hiw-indicator-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: #FFFFFF;
+  border-radius: 999px;
+  z-index: 1;
+  animation: hiwFillProgress linear forwards;
+}
+
+.hiw-indicator-progress--running {
+  animation-play-state: running;
+}
+
+.hiw-indicator-progress--paused {
+  animation-play-state: paused;
+}
+
+@keyframes hiwFillProgress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
 .hiw-indicator-btn:hover {
   border-color: var(--hiw-clay);
   color: var(--hiw-clay);
@@ -449,9 +502,144 @@
 
 @media (max-width: 600px) {
   .hiw-visual-stage {
-    min-height: 420px;
-    height: 420px;
-    padding: 20px 16px;
+    min-height: 410px;
+    height: 410px;
+    padding: 16px 12px;
+    border-radius: 18px;
+  }
+
+  .hiw-info-heading {
+    font-size: 1.35rem;
+    margin-bottom: 18px;
+  }
+
+  .hiw-active-step-meta {
+    padding: 16px 14px;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    min-height: 160px;
+  }
+
+  .hiw-active-title {
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+
+  .hiw-active-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .hiw-supporting-statement {
+    font-size: 11.5px;
+    padding: 5px 10px;
+  }
+
+  .hiw-indicators-row {
+    gap: 5px;
+  }
+
+  .hiw-indicator-btn {
+    height: 34px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .hiw-controls-row {
+    gap: 8px;
+  }
+
+  .hiw-ctrl-button {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .hiw-composition {
+    max-width: 100%;
+  }
+
+  .hiw-card {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+  }
+
+  .hiw-dashboard-banner {
+    padding: 14px 14px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+  }
+
+  .hiw-dashboard-banner .amount {
+    font-size: 22px;
+  }
+
+  .hiw-dashboard-banner h4 {
+    font-size: 10px;
+  }
+
+  .hiw-dashboard-pay-cta {
+    padding: 12px;
+    font-size: 13.5px;
+    border-radius: 10px;
+  }
+
+  .hiw-info-grid {
+    gap: 8px;
+  }
+
+  .hiw-info-cell {
+    padding: 8px 10px;
+  }
+
+  .hiw-info-cell strong {
+    font-size: 13px;
+  }
+
+  .hiw-option-item {
+    padding: 11px 12px;
+  }
+
+  .hiw-option-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .hiw-tx-progress-card {
+    padding: 14px 12px;
+  }
+
+  .hiw-tx-amount {
+    font-size: 20px;
+  }
+
+  .hiw-receipt-card {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .hiw-receipt-meta-grid {
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .hiw-outcome-card {
+    padding: 12px 12px;
+  }
+
+  .hiw-outcome-landlord .alert-body {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .hiw-score-metric {
+    font-size: 20px;
+  }
+
+  .hiw-score-badge-gain {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 }
 
@@ -477,13 +665,15 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
-  animation: hiwStageEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: hiwStageEnter 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+  transform: translateZ(0);
 }
 
 @keyframes hiwStageEnter {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(8px);
+    transform: scale(0.97) translateY(6px);
   }
   to {
     opacity: 1;
@@ -1168,16 +1358,15 @@
   flex-wrap: wrap;
 }
 
-/* Reduced Motion Support */
+/* Graceful Reduced Motion Support (Gentle opacity transitions without heavy displacement) */
 @media (prefers-reduced-motion: reduce) {
-  .hiw-composition,
+  .hiw-composition {
+    animation-duration: 0.2s !important;
+  }
   .hiw-stagger-1,
   .hiw-stagger-2,
-  .hiw-stagger-3,
-  .hiw-stagger-check,
-  .hiw-progress-fill,
-  .hiw-dashboard-pay-cta::after {
-    animation: none !important;
-    transition: none !important;
+  .hiw-stagger-3 {
+    animation-delay: 0s !important;
+    animation-duration: 0.2s !important;
   }
 }

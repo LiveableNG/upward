@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   Building,
   CreditCard,
@@ -80,84 +80,76 @@ export const WALKTHROUGH_STEPS: StepItem[] = [
 export function HowItWorksSimulator() {
   const [activeStep, setActiveStep] = useState<number>(1)
   const [isPlaying, setIsPlaying] = useState<boolean>(true)
+  const [isInView, setIsInView] = useState<boolean>(false)
+  const [stepResetKey, setStepResetKey] = useState<number>(0)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
-  const stepDuration = 6000 // 6 seconds for comfortable reading
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const STEP_DURATION = 3600 // 3.6 seconds: lively, real-time pace inspired by Chowdeck
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const isVisibleRef = useRef<boolean>(true)
+  const isIntersectingRef = useRef<boolean>(false)
 
-  // Clear running timer safely
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-  }, [])
-
-  // Auto-advance logic
-  const scheduleNext = useCallback(() => {
-    clearTimer()
-    if (!isPlaying || !isVisibleRef.current) return
-
-    timerRef.current = setTimeout(() => {
-      setActiveStep((prev) => (prev % 6) + 1)
-    }, stepDuration)
-  }, [clearTimer, isPlaying, stepDuration])
-
-  useEffect(() => {
-    scheduleNext()
-    return () => clearTimer()
-  }, [activeStep, isPlaying, scheduleNext, clearTimer])
-
-  // Pause when offscreen using IntersectionObserver
+  // IntersectionObserver: starts loop when in view, resets cleanly to step 1 when scrolled away
   useEffect(() => {
     const el = containerRef.current
-    if (!el || typeof IntersectionObserver === 'undefined') return
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setIsInView(true)
+      isIntersectingRef.current = true
+      return
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries
-        isVisibleRef.current = Boolean(entry?.isIntersecting)
-        if (!isVisibleRef.current) {
-          clearTimer()
-        } else if (isPlaying) {
-          scheduleNext()
+        if (!entry) return
+        const visible = Boolean(entry.isIntersecting)
+
+        if (visible && !isIntersectingRef.current) {
+          isIntersectingRef.current = true
+          setIsInView(true)
+          setStepResetKey((k) => k + 1)
+        } else if (!visible && isIntersectingRef.current) {
+          // Scrolled away: stop timer and silently reset to Step 1 without mid-flight transitions
+          isIntersectingRef.current = false
+          setIsInView(false)
+          setActiveStep(1)
         }
       },
-      { threshold: 0.25 }
+      {
+        threshold: 0.1, // Trigger as soon as 10% is visible
+        rootMargin: '40px 0px 40px 0px',
+      }
     )
 
     observer.observe(el)
     return () => observer.disconnect()
-  }, [isPlaying, scheduleNext, clearTimer])
-
-  // Respect prefers-reduced-motion
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-      if (mediaQuery.matches) {
-        setIsPlaying(false)
-      }
-    }
   }, [])
 
-  // Manual navigation handlers (resets timer and maintains pause/play appropriately)
+  // Real-time loop: ticks every 3.6s continuously while in view and playing
+  useEffect(() => {
+    if (!isPlaying || !isInView) return
+
+    const timer = setInterval(() => {
+      setActiveStep((curr) => (curr % 6) + 1)
+      setStepResetKey((k) => k + 1)
+    }, STEP_DURATION)
+
+    return () => clearInterval(timer)
+  }, [isPlaying, isInView, stepResetKey])
+
+  // Manual navigation handlers
   const handleSelectStep = (stepId: number) => {
     setActiveStep(stepId)
-    if (isPlaying) {
-      scheduleNext()
-    }
+    setStepResetKey((k) => k + 1)
   }
 
   const handleNext = () => {
     setActiveStep((curr) => (curr % 6) + 1)
-    if (isPlaying) scheduleNext()
+    setStepResetKey((k) => k + 1)
   }
 
   const handlePrev = () => {
     setActiveStep((curr) => (curr === 1 ? 6 : curr - 1))
-    if (isPlaying) scheduleNext()
+    setStepResetKey((k) => k + 1)
   }
 
   const handleTogglePlay = () => {
@@ -200,7 +192,7 @@ export function HowItWorksSimulator() {
 
           {/* Navigation Controls */}
           <div className="hiw-nav-suite">
-            {/* Six numbered progress indicators */}
+            {/* Six numbered progress indicators with real-time fill bar */}
             <div className="hiw-indicators-row" role="tablist" aria-label="Walkthrough steps">
               {WALKTHROUGH_STEPS.map((s) => (
                 <button
@@ -212,7 +204,16 @@ export function HowItWorksSimulator() {
                   onClick={() => handleSelectStep(s.id)}
                   title={s.title}
                 >
-                  {s.id}
+                  <span className="hiw-indicator-num">{s.id}</span>
+                  {s.id === activeStep && (
+                    <span
+                      key={`prog-${activeStep}-${stepResetKey}`}
+                      className={`hiw-indicator-progress ${
+                        isPlaying && isInView ? 'hiw-indicator-progress--running' : 'hiw-indicator-progress--paused'
+                      }`}
+                      style={{ animationDuration: `${STEP_DURATION}ms` }}
+                    />
+                  )}
                 </button>
               ))}
             </div>
