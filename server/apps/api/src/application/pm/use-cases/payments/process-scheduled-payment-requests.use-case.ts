@@ -71,7 +71,7 @@ export class ProcessScheduledPmPaymentRequestsUseCase {
         const payload: ExternalPaymentRequestPayloadDto = {
           userPropertyUuid: unit.userPropertyUuid ?? undefined,
           amount: pr.amount,
-          dueDate: pr.rentEndDate ? pr.rentEndDate.toISOString().split('T')[0] : pr.dueDate.toISOString().split('T')[0],
+          dueDate: pr.dueDate ? pr.dueDate.toISOString().split('T')[0] : (pr.rentStartDate ? pr.rentStartDate.toISOString().split('T')[0] : (pr.rentEndDate ? pr.rentEndDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])),
           rentStartDate: pr.rentStartDate ? pr.rentStartDate.toISOString().split('T')[0] : undefined,
           rentEndDate: pr.rentEndDate ? pr.rentEndDate.toISOString().split('T')[0] : undefined,
           description: pr.description || undefined,

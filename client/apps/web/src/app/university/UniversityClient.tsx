@@ -1159,8 +1159,9 @@ export function UniversityClient() {
                   <label htmlFor="sessionTime">Information Session Date & Time</label>
                   <select id="sessionTime" {...register('sessionTime')}>
                     <option value="">Select session time</option>
-                    <option value="Sat 19 Sep at 9am">Sat 19 Sep at 9am</option>
-                    <option value="Sat Oct 3 at 9am">Sat Oct 3 at 9am</option>
+                    <option value="Lagos (Online) - Sat Oct 3 at 9am">Lagos (Online) - Sat Oct 3 at 9am</option>
+                    <option value="Abuja (Online) - Sat Oct 3 at 9am">Abuja (Online) - Sat Oct 3 at 9am</option>
+                    <option value="Port Harcourt (Online) - Sat Oct 3 at 9am">Port Harcourt (Online) - Sat Oct 3 at 9am</option>
                   </select>
                   {errors.sessionTime && (
                     <span style={{ fontSize: '11px', color: 'var(--uni-rust)' }}>

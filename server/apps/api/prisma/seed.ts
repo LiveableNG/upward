@@ -234,6 +234,23 @@ async function main() {
     })
   }
   console.log(`✅ Created ${totalWaitlist} waitlist records`)
+
+  // 10. Seed Initial Alliance Qualifications
+  console.log('🌱 Seeding initial Alliance qualifications...')
+  const initialQualifications = [
+    { slug: 'niesv-registered', name: 'NIESV Registered', description: 'Registered member of Nigerian Institution of Estate Surveyors and Valuers' },
+    { slug: 'certified-property-manager', name: 'Certified Property Manager', description: 'Certified professional property management practitioner' },
+    { slug: 'estate-surveyor-valuer', name: 'Estate Surveyor & Valuer', description: 'Licensed estate surveyor and valuer' },
+  ]
+
+  for (const qual of initialQualifications) {
+    await (prisma as any).upward_alliance_qualification.upsert({
+      where: { slug: qual.slug },
+      create: qual,
+      update: { name: qual.name, description: qual.description },
+    })
+  }
+  console.log(`✅ Seeded ${initialQualifications.length} Alliance qualifications`)
   console.log('✨ Data seeding complete!')
 }
 

@@ -42,6 +42,11 @@ const PM_ROUTE_PREFIXES = [
   '/import',
   '/team',
   '/notifications',
+  '/alliance/listings',
+  '/alliance/discover',
+  '/alliance/referrals',
+  '/alliance/commissions',
+  '/public/requests',
 ]
 
 const PAY_ROUTE_PREFIXES = [
@@ -172,7 +177,7 @@ export async function middleware(request: NextRequest) {
 
   let isPmInvite = false
   let rewrittenPathname = pathname
-  // Intercept waitlist invites at gateway level to avoid client loading states
+  // Intercept waitlist and PM invites at gateway level
   if (pathname.startsWith('/pm-invite/')) {
     isPmInvite = true
     rewrittenPathname = pathname.replace('/pm-invite/', '/invite/')
@@ -201,6 +206,34 @@ export async function middleware(request: NextRequest) {
         }
       } catch (err) {
         console.error('Error checking invite in gateway middleware:', err)
+      }
+    }
+  }
+
+  // Intercept alliance referral links at gateway level
+  if (pathname.startsWith('/alliance/referral/') || pathname.startsWith('/alliance/ref/')) {
+    const segments = pathname.split('/')
+    const token = segments[segments.length - 1]
+    if (token && token !== 'referral' && token !== 'ref') {
+      try {
+        const res = await fetch(`${API_URL}/public/alliance/referrals/${token}`)
+        if (res.ok) {
+          const payload = await res.json()
+          const refData = payload?.data
+          if (refData?.listing?.uuid) {
+            const redirectParams = new URLSearchParams()
+            redirectParams.set('ref', token)
+            if (refData.clientEmail) redirectParams.set('clientEmail', refData.clientEmail)
+            if (refData.clientName) redirectParams.set('clientName', refData.clientName)
+            if (refData.clientPhone) redirectParams.set('clientPhone', refData.clientPhone)
+
+            return NextResponse.redirect(
+              new URL(`/alliance/${refData.listing.uuid}?${redirectParams.toString()}`, request.url)
+            )
+          }
+        }
+      } catch (err) {
+        console.error('Error checking alliance referral in gateway middleware:', err)
       }
     }
   }
@@ -240,6 +273,11 @@ export async function middleware(request: NextRequest) {
     redirectParam.startsWith('/import') ||
     redirectParam.startsWith('/team') ||
     redirectParam.startsWith('/notifications') ||
+    redirectParam.startsWith('/alliance/listings') ||
+    redirectParam.startsWith('/alliance/discover') ||
+    redirectParam.startsWith('/alliance/referrals') ||
+    redirectParam.startsWith('/alliance/commissions') ||
+    redirectParam.startsWith('/public/requests') ||
     redirectParam.startsWith('/pm')
 
   const isPmPath =
@@ -257,6 +295,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/import') ||
     pathname.startsWith('/team') ||
     pathname.startsWith('/notifications') ||
+    pathname.startsWith('/alliance/listings') ||
+    pathname.startsWith('/alliance/discover') ||
+    pathname.startsWith('/alliance/referrals') ||
+    pathname.startsWith('/alliance/commissions') ||
+    pathname.startsWith('/public/requests') ||
     pathname.startsWith('/_upward_pm') ||
     pathname === '/pm-login' ||
     pathname === '/pm-signup' ||
@@ -383,6 +426,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/import') ||
     pathname.startsWith('/team') ||
     pathname.startsWith('/notifications') ||
+    pathname.startsWith('/alliance/listings') ||
+    pathname.startsWith('/alliance/discover') ||
+    pathname.startsWith('/alliance/referrals') ||
+    pathname.startsWith('/alliance/commissions') ||
     pathname.startsWith('/api/v1')
 
   const hasPmRefresh = !!pmRefreshCookie || !!landlordRefreshCookie
@@ -443,6 +490,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/kyc') ||
     pathname.startsWith('/transactions') ||
     pathname.startsWith('/portal') ||
+    pathname.startsWith('/public/requests') ||
     pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
@@ -619,6 +667,15 @@ export const config = {
     '/import/:path*',
     '/team/:path*',
     '/notifications/:path*',
+    '/alliance/listings',
+    '/alliance/listings/:path*',
+    '/alliance/discover',
+    '/alliance/discover/:path*',
+    '/alliance/referrals',
+    '/alliance/referrals/:path*',
+    '/alliance/commissions',
+    '/alliance/commissions/:path*',
+    '/public/requests/:path*',
     '/dashboard/:path*',
     '/profile/:path*',
     '/pay/:path*',

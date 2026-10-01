@@ -94,6 +94,15 @@ import { PmAiDocumentController } from './controllers/pm-ai-document.controller'
 import { DemoRequestController } from './public/demo-request.controller'
 import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
 import { HomeRequestAdminController } from './admin/home-request-admin.controller'
+import { AdminAllianceController } from './admin/admin-alliance.controller'
+import { PmAllianceProfileController } from './pm/pm-alliance-profile.controller'
+import { PmAllianceListingController } from './pm/pm-alliance-listing.controller'
+import { PmAllianceDiscoverController } from './pm/pm-alliance-discover.controller'
+import { PmAllianceReferralController } from './pm/pm-alliance-referral.controller'
+import { PmAllianceCommissionController } from './pm/pm-alliance-commission.controller'
+import { PmAllianceRatingController } from './pm/pm-alliance-rating.controller'
+import { PublicAllianceMarketplaceController } from './public/public-alliance.controller'
+import { UserAllianceController } from './user/user-alliance.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -197,6 +206,15 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     DemoRequestController,
     DemoRequestAdminController,
     HomeRequestAdminController,
+    AdminAllianceController,
+    PmAllianceProfileController,
+    PmAllianceListingController,
+    PmAllianceDiscoverController,
+    PmAllianceReferralController,
+    PmAllianceCommissionController,
+    PmAllianceRatingController,
+    PublicAllianceMarketplaceController,
+    UserAllianceController,
   ],
 })
 export class HttpModule {}

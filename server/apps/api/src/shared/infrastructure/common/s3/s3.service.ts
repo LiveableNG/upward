@@ -67,6 +67,16 @@ export class S3Service {
   async getDownloadUrl(keyOrUrl: string) {
     if (!keyOrUrl) return keyOrUrl
 
+    // If it's already an external URL (e.g. Unsplash, CDN, or absolute HTTP/HTTPS) and not from our S3 bucket, return as-is
+    if ((keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) && !keyOrUrl.includes('amazonaws.com')) {
+      return keyOrUrl
+    }
+
+    // If it's a local/mock storage key, return as-is
+    if (keyOrUrl.startsWith('mock/')) {
+      return keyOrUrl
+    }
+
     const key = keyOrUrl.includes('amazonaws.com/') ? keyOrUrl.split('amazonaws.com/')[1] : keyOrUrl
 
     try {
@@ -112,7 +122,8 @@ export class S3Service {
       })
 
       await this.s3Client.send(command)
-      return `https://${this.bucket}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`
+      const region = (this.configService?.get ? this.configService.get<string>('AWS_REGION') : null) || process.env.AWS_REGION || 'us-east-1'
+      return `https://${this.bucket}.s3.${region}.amazonaws.com/${key}`
     } catch (error) {
       console.error('Error uploading buffer to S3:', error)
       throw new InternalServerErrorException('Could not upload file to storage')

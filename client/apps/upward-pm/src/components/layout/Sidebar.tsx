@@ -18,7 +18,12 @@ import {
   Inbox,
   Search,
   Sparkles,
-  MoreVertical
+  MoreVertical,
+  Award,
+  Compass,
+  List,
+  DollarSign,
+  ShieldCheck,
 } from 'lucide-react'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -29,10 +34,19 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
+import { useAllianceProfile } from '@/features/alliance/hooks/useAlliance'
+
+const allianceSubNav = [
+  { icon: Compass, label: 'Discover Network', href: '/alliance/discover' },
+  { icon: List, label: 'My Listings', href: '/alliance/listings' },
+  { icon: Users, label: 'Referrals & Leads', href: '/alliance/referrals' },
+  { icon: DollarSign, label: 'Commissions', href: '/alliance/commissions' },
+]
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Building2, label: 'Properties', href: '/properties' },
+  { icon: ShieldCheck, label: 'Alliance', href: '/alliance/discover', isExclusive: true },
   { icon: Contact, label: 'Landlords', href: '/landlords' },
   { icon: Users, label: 'Tenants', href: '/tenants' },
   { icon: Search, label: 'Home Requests', href: '/home-requests' },
@@ -79,10 +93,21 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
     queryFn: listHomeRequests,
   })
 
+  const { data: allianceProfile } = useAllianceProfile()
+
   const totalRequests = (credibilityRequests?.length || 0) + (joinRequests?.length || 0)
   const newHomeRequests = homeRequests.filter((request) => request.status === 'submitted').length
 
   const isEmployee = user?.accountType === 'PM_EMPLOYEE'
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.label === 'Alliance') {
+      const isEnabled =
+        allianceProfile?.isEnabled === true || (allianceProfile as any)?.data?.isEnabled === true
+      return isEnabled
+    }
+    return true
+  })
 
   return (
     <>
@@ -193,7 +218,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
         <nav className="sidebar__nav" style={{ padding: 0 }}>
           <div className="sidebar__section" style={{ marginTop: 8 }}>
             <ul className="sidebar__list">
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
                 const hasBadge =
@@ -222,13 +247,43 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: {
                       {(!isCollapsed || isOpen) && (
                         <>
                           <span style={{ flex: 1 }}>{item.label}</span>
+                          {(item as any).isExclusive && (
+                            <span className="sidebar__badge--exclusive">EXCLUSIVE</span>
+                          )}
                           {hasBadge && (
                             <span className="sidebar__badge">{badgeCount}</span>
                           )}
                         </>
                       )}
-                      <div className="sidebar__tooltip">{item.label}</div>
+                      <div className="sidebar__tooltip">
+                        {(item as any).isExclusive ? 'Alliance Network (Exclusive)' : item.label}
+                      </div>
                     </Link>
+
+                    {/* Nested Alliance Sub-Navigation when on Alliance routes */}
+                    {item.label === 'Alliance' && pathname?.startsWith('/alliance') && (!isCollapsed || isOpen) && (
+                      <ul className="sidebar__sub-nav">
+                        {allianceSubNav.map((sub) => {
+                          const SubIcon = sub.icon
+                          const isSubActive = pathname === sub.href || pathname?.startsWith(`${sub.href}/`)
+                          return (
+                            <li key={sub.href}>
+                              <Link
+                                href={sub.href}
+                                className={cn(
+                                  'sidebar__sub-link',
+                                  isSubActive && 'sidebar__sub-link--active'
+                                )}
+                                onClick={onClose}
+                              >
+                                <SubIcon size={13} />
+                                <span>{sub.label}</span>
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
                     {item.label === 'Settings' && (!isCollapsed || isOpen) && (
                       <div ref={menuRef}>
                         <button

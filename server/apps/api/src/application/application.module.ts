@@ -508,7 +508,95 @@ import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/rep
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
 import { GoogleAnalyticsService } from '../shared/infrastructure/common/google-analytics.service'
 
+import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
+import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
+import { ListAllianceQualificationsUseCase } from './alliance/use-cases/list-alliance-qualifications.use-case'
+import { UpdateAllianceQualificationUseCase } from './alliance/use-cases/update-alliance-qualification.use-case'
+import { DeactivateAllianceQualificationUseCase } from './alliance/use-cases/deactivate-alliance-qualification.use-case'
+import { AssignPmQualificationUseCase } from './alliance/use-cases/assign-pm-qualification.use-case'
+import { RemovePmQualificationUseCase } from './alliance/use-cases/remove-pm-qualification.use-case'
+import { GetPmAssignedQualificationsUseCase } from './alliance/use-cases/get-pm-assigned-qualifications.use-case'
+import { GetPmAllianceProfileUseCase } from './alliance/use-cases/get-pm-alliance-profile.use-case'
+import { UpdatePmAllianceProfileUseCase } from './alliance/use-cases/update-pm-alliance-profile.use-case'
+import { CreateAllianceListingUseCase } from './alliance/use-cases/create-alliance-listing.use-case'
+import { GetAllianceListingUseCase } from './alliance/use-cases/get-alliance-listing.use-case'
+import { UpdateAllianceListingUseCase } from './alliance/use-cases/update-alliance-listing.use-case'
+import { PublishAllianceListingUseCase } from './alliance/use-cases/publish-alliance-listing.use-case'
+import { UnpublishAllianceListingUseCase } from './alliance/use-cases/unpublish-alliance-listing.use-case'
+import { ArchiveAllianceListingUseCase } from './alliance/use-cases/archive-alliance-listing.use-case'
+import { ListPmAllianceListingsUseCase } from './alliance/use-cases/list-pm-alliance-listings.use-case'
+import { RequestAllianceMediaUploadUseCase } from './alliance/use-cases/request-alliance-media-upload.use-case'
+import { ConfirmAllianceMediaUploadUseCase } from './alliance/use-cases/confirm-alliance-media-upload.use-case'
+import { UploadAllianceListingMediaUseCase } from './alliance/use-cases/upload-alliance-listing-media.use-case'
+import { ListAllianceListingMediaUseCase } from './alliance/use-cases/list-alliance-listing-media.use-case'
+import { ReorderAllianceListingMediaUseCase } from './alliance/use-cases/reorder-alliance-listing-media.use-case'
+import { DeleteAllianceListingMediaUseCase } from './alliance/use-cases/delete-alliance-listing-media.use-case'
+import { DiscoverAllianceListingsUseCase } from './alliance/use-cases/discover-alliance-listings.use-case'
+import { GetDiscoveredAllianceListingDetailUseCase } from './alliance/use-cases/get-discovered-alliance-listing-detail.use-case'
+import { TrackAllianceListingUseCase } from './alliance/use-cases/track-alliance-listing.use-case'
+import { UntrackAllianceListingUseCase } from './alliance/use-cases/untrack-alliance-listing.use-case'
+import { CreateAllianceReferralUseCase } from './alliance/use-cases/create-alliance-referral.use-case'
+import { ListPmAllianceReferralsUseCase } from './alliance/use-cases/list-pm-alliance-referrals.use-case'
+import { GetAllianceReferralDetailUseCase } from './alliance/use-cases/get-alliance-referral-detail.use-case'
+import { UpdateAllianceLeadStageUseCase } from './alliance/use-cases/update-alliance-lead-stage.use-case'
+import { CloseAllianceReferralUseCase } from './alliance/use-cases/close-alliance-referral.use-case'
+import { ConvertAllianceReferralUseCase } from './alliance/use-cases/convert-alliance-referral.use-case'
+import { ListPmAllianceCommissionsUseCase } from './alliance/use-cases/list-pm-alliance-commissions.use-case'
+import { GetAllianceCommissionDetailUseCase } from './alliance/use-cases/get-alliance-commission-detail.use-case'
+import { SubmitAllianceRatingUseCase } from './alliance/use-cases/submit-alliance-rating.use-case'
+import { GetSubjectRatingSummaryUseCase } from './alliance/use-cases/get-subject-rating-summary.use-case'
+import { ListSubjectRatingsUseCase } from './alliance/use-cases/list-subject-ratings.use-case'
+import { GetPublicAllianceListingsUseCase } from './alliance/use-cases/get-public-alliance-listings.use-case'
+import { GetPublicAllianceListingDetailUseCase } from './alliance/use-cases/get-public-alliance-listing-detail.use-case'
+import { ResolvePublicAllianceReferralUseCase } from './alliance/use-cases/resolve-public-alliance-referral.use-case'
+import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-alliance-inquiry.use-case'
+import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
+
 const UseCases: any[] = [
+
+  TogglePmAllianceEnablementUseCase,
+  CreateAllianceQualificationUseCase,
+  ListAllianceQualificationsUseCase,
+  UpdateAllianceQualificationUseCase,
+  DeactivateAllianceQualificationUseCase,
+  AssignPmQualificationUseCase,
+  RemovePmQualificationUseCase,
+  GetPmAssignedQualificationsUseCase,
+  GetPmAllianceProfileUseCase,
+  UpdatePmAllianceProfileUseCase,
+  CreateAllianceListingUseCase,
+  GetAllianceListingUseCase,
+  UpdateAllianceListingUseCase,
+  PublishAllianceListingUseCase,
+  UnpublishAllianceListingUseCase,
+  ArchiveAllianceListingUseCase,
+  ListPmAllianceListingsUseCase,
+  RequestAllianceMediaUploadUseCase,
+  ConfirmAllianceMediaUploadUseCase,
+  UploadAllianceListingMediaUseCase,
+  ListAllianceListingMediaUseCase,
+  ReorderAllianceListingMediaUseCase,
+  DeleteAllianceListingMediaUseCase,
+  DiscoverAllianceListingsUseCase,
+  GetDiscoveredAllianceListingDetailUseCase,
+  TrackAllianceListingUseCase,
+  UntrackAllianceListingUseCase,
+  CreateAllianceReferralUseCase,
+  ListPmAllianceReferralsUseCase,
+  GetAllianceReferralDetailUseCase,
+  UpdateAllianceLeadStageUseCase,
+  CloseAllianceReferralUseCase,
+  ConvertAllianceReferralUseCase,
+  ListPmAllianceCommissionsUseCase,
+  GetAllianceCommissionDetailUseCase,
+  SubmitAllianceRatingUseCase,
+  GetSubjectRatingSummaryUseCase,
+  ListSubjectRatingsUseCase,
+  GetPublicAllianceListingsUseCase,
+  GetPublicAllianceListingDetailUseCase,
+  ResolvePublicAllianceReferralUseCase,
+  SubmitAllianceInquiryUseCase,
+  GetUserAllianceJourneysUseCase,
   DeleteAdminUseCase,
   GetAdminsUseCase,
   CreateAdminUseCase,

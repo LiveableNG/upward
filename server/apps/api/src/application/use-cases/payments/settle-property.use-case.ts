@@ -64,9 +64,23 @@ export class SettlePropertyBalanceUseCase {
       })
     }
 
-    const effectiveDueDate = dueDate
-      ? (this.rentalPeriodService.parseCalendarDate(dueDate) || new Date(dueDate))
-      : (paymentResult?.periodEnd || (prop.rentEndDate ? (this.rentalPeriodService.parseCalendarDate(prop.rentEndDate) || new Date(prop.rentEndDate)) : new Date()))
+    let resolvedDueDate: Date | null = null
+    if (dueDate) {
+      resolvedDueDate = this.rentalPeriodService.parseCalendarDate(dueDate) || new Date(dueDate)
+    }
+
+    if (params.rentEndDate && resolvedDueDate) {
+      const parsedEnd = this.rentalPeriodService.parseCalendarDate(params.rentEndDate)
+      if (parsedEnd && resolvedDueDate.getTime() === parsedEnd.getTime()) {
+        resolvedDueDate = paymentResult?.periodStart
+          ? paymentResult.periodStart
+          : (prop.rentStartDate ? (this.rentalPeriodService.parseCalendarDate(prop.rentStartDate) || new Date(prop.rentStartDate)) : resolvedDueDate)
+      }
+    }
+
+    const effectiveDueDate = resolvedDueDate
+      ? resolvedDueDate
+      : (paymentResult?.periodStart || (prop.rentStartDate ? (this.rentalPeriodService.parseCalendarDate(prop.rentStartDate) || new Date(prop.rentStartDate)) : new Date()))
     const paidAt = new Date()
 
     let currentTotalPaid = rentPortion
