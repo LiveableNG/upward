@@ -37,6 +37,9 @@
 
   slotItems.forEach((slot) => {
     slot.addEventListener('click', () => {
+      if (slot.classList.contains('concluded') || slot.classList.contains('disabled')) {
+        return;
+      }
       // Ensure registration tab is active
       switchTab('register');
 
