@@ -428,6 +428,15 @@
   color: var(--landing-terracotta-600, #d97757);
 }
 
+.marketing-footer__address {
+  display: block;
+  color: #64748b;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  max-width: 200px;
+  margin-top: 0.25rem;
+}
+
 .marketing-footer__bottom {
   display: flex;
   justify-content: space-between;
