@@ -822,6 +822,102 @@
             }
         }
 
+        /* How It Works Payment Journey Card */
+        .how-explore-card {
+            margin-top: 40px;
+            background: linear-gradient(135deg, rgba(217, 119, 87, 0.05) 0%, rgba(255, 255, 255, 0.98) 100%);
+            border: 1px solid rgba(217, 119, 87, 0.22);
+            border-radius: 20px;
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 28px;
+            box-shadow: 0 12px 32px -16px rgba(21, 22, 43, 0.08);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .how-explore-card:hover {
+            border-color: rgba(217, 119, 87, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 16px 36px -16px rgba(217, 119, 87, 0.15);
+        }
+
+        .how-explore-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--clay);
+        }
+
+        .how-explore-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .how-explore-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--clay);
+        }
+
+        .how-explore-title {
+            font-family: 'Inter Tight', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+        }
+
+        .how-explore-desc {
+            color: var(--ink-soft);
+            font-size: 14.5px;
+            line-height: 1.55;
+            margin: 0;
+            max-width: 680px;
+        }
+
+        .how-explore-btn {
+            flex-shrink: 0;
+            padding: 13px 24px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .how-explore-btn i {
+            transition: transform 0.2s ease;
+        }
+
+        .how-explore-btn:hover i {
+            transform: translateX(3px);
+        }
+
+        @media(max-width: 860px) {
+            .how-explore-card {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 22px 24px;
+                gap: 20px;
+            }
+            .how-explore-btn {
+                width: 100%;
+            }
+        }
+
         .benefit-grid {
             grid-template-columns: repeat(2, 1fr);
         }
@@ -1733,6 +1829,22 @@
                     </p>
                 </div>
             </div>
+
+            <!-- Subtle, clear payment journey callout -->
+            <div class="how-explore-card">
+                <div class="how-explore-content">
+                    <div class="how-explore-badge">
+                        <i class="fa-solid fa-shield-halved"></i> Direct Landlord Settlement &amp; Credibility
+                    </div>
+                    <div class="how-explore-title">How does your rent transfer reach your landlord?</div>
+                    <p class="how-explore-desc">
+                        Transfer or pay online just like any standard banking app. Your landlord gets credited directly in their existing bank account with your verified payment details attached, even if they are not on Upward, while you build an official Credibility Score and verified Rent Passport.
+                    </p>
+                </div>
+                <a href="/how-it-works" class="btn primary how-explore-btn">
+                    See Step-by-Step Flow <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -1946,6 +2058,7 @@
                         <b>Contact</b>
                         <a href="mailto:hello@goodtenants.africa" class="contact-link"><i class="fa-solid fa-envelope"></i> hello@goodtenants.africa</a>
                         <a href="tel:+2348175437146" class="contact-link"><i class="fa-solid fa-phone"></i> +234 817 543 7146</a>
+                        <span class="contact-link" style="display:flex; align-items:flex-start; gap:8px; max-width:210px; line-height:1.45; color:inherit; font-size:inherit;"><i class="fa-solid fa-location-dot" style="margin-top:3px;"></i> 38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria</span>
                     </div>
                 </div>
             </div>
@@ -1999,6 +2112,15 @@
                         <span class="contact-drawer-option-detail">hello@goodtenants.africa</span>
                     </span>
                 </a>
+                <div class="contact-drawer-option" style="cursor: default;">
+                    <span class="contact-drawer-option-icon" aria-hidden="true">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </span>
+                    <span class="contact-drawer-option-text">
+                        <span class="contact-drawer-option-label">Visit Office</span>
+                        <span class="contact-drawer-option-detail">38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria</span>
+                    </span>
+                </div>
             </div>
         </div>
 

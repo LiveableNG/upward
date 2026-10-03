@@ -527,6 +527,9 @@ export function UniversityLandlordClient() {
             <span style={{ textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.1em', color: 'var(--uni-rust, #8A4A2A)' }}>Contact Us</span>
             <a href="mailto:hello@goodtenants.africa" className="contact-link"><span style={{ marginRight: '6px' }}>✉️</span> hello@goodtenants.africa</a>
             <a href="tel:+2348175437146" className="contact-link"><span style={{ marginRight: '6px' }}>📞</span> +234 817 543 7146</a>
+            <span style={{ color: 'var(--uni-ink-soft, #4B4B63)', fontSize: '12px', fontWeight: 500, display: 'flex', alignItems: 'flex-start', gap: '6px', maxWidth: '240px', lineHeight: 1.4, textAlign: 'left' }}>
+              <span>📍</span> 38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria
+            </span>
           </div>
         </div>
       </footer>
@@ -593,6 +596,15 @@ export function UniversityLandlordClient() {
                 <span className="contact-drawer-option-detail">hello@goodtenants.africa</span>
               </span>
             </a>
+            <div className="contact-drawer-option" style={{ cursor: 'default' }}>
+              <span className="contact-drawer-option-icon">
+                📍
+              </span>
+              <span className="contact-drawer-option-text">
+                <span className="contact-drawer-option-label">Visit Office</span>
+                <span className="contact-drawer-option-detail">38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria</span>
+              </span>
+            </div>
           </div>
         </div>
 

@@ -94,6 +94,7 @@ export function MarketingFooter() {
               <b>Contact</b>
               <a href="mailto:hello@goodtenants.africa">hello@goodtenants.africa</a>
               <a href="tel:+2348175437146">+234 817 543 7146</a>
+              <span className="marketing-footer__address">38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria</span>
             </div>
           </div>
         </div>
