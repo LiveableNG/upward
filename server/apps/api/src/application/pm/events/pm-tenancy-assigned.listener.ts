@@ -31,7 +31,6 @@ export class PmTenancyAssignedListener {
           include: {
             user: true,
             dedicatedAccounts: true,
-            subaccount: true,
           },
         });
 
@@ -44,7 +43,6 @@ export class PmTenancyAssignedListener {
                 tenantEmail: userProperty.user.email!,
                 tenantName: `${userProperty.user.firstName} ${userProperty.user.lastName}`,
                 tenantPhone: userProperty.user.phone ?? undefined,
-                subaccountCode: userProperty.subaccount?.subaccountCode,
               });
               this.logger.log(`Successfully ensured DVA for userProperty ${event.userPropertyUuid}`);
             } catch (dvaErr: any) {

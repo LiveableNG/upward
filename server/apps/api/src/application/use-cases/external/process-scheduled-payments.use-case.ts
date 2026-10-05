@@ -82,7 +82,6 @@ export class ProcessScheduledExternalPaymentRequestsUseCase {
             tenantEmail: pr.user.email!,
             tenantName: `${pr.user.firstName} ${pr.user.lastName}`,
             tenantPhone: pr.user.phone ?? undefined,
-            subaccountCode: pr.subaccount?.subaccountCode
           })
           if (dva) {
             dvaDetails = {

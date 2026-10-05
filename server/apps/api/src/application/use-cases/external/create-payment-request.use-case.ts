@@ -289,7 +289,6 @@ export class CreateExternalPaymentRequestUseCase {
           tenantEmail: user.email!,
           tenantName: `${user.firstName} ${user.lastName}`,
           tenantPhone: user.phone ?? undefined,
-          subaccountCode: paymentRequest.subaccount?.subaccountCode
         })
         if (dva) {
           dvaDetails = {

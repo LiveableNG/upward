@@ -103,7 +103,6 @@ export interface IPaymentGateway {
   }): Promise<string>
   createDedicatedAccount(data: {
     customerCode: string
-    subaccountCode?: string
     preferredBank?: string
     disableFallback?: boolean
   }): Promise<any>

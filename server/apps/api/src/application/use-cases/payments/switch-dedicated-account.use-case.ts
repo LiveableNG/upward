@@ -29,7 +29,6 @@ export class SwitchDedicatedAccountUseCase {
 
     let targetUserPropertyId = data.userPropertyId
     let tenantUser: any = null
-    let subaccountCode: string | undefined
 
     if (data.paymentRequestUuid) {
       const pr = await this.prisma.upward_payment_request.findUnique({
@@ -38,10 +37,8 @@ export class SwitchDedicatedAccountUseCase {
           userProperty: {
             include: {
               user: true,
-              subaccount: true,
             },
           },
-          subaccount: true,
         },
       })
       if (!pr || !pr.userProperty) {
@@ -49,26 +46,22 @@ export class SwitchDedicatedAccountUseCase {
       }
       targetUserPropertyId = pr.userProperty.id
       tenantUser = pr.userProperty.user
-      subaccountCode = pr.subaccount?.subaccountCode || pr.userProperty.subaccount?.subaccountCode
     } else if (targetUserPropertyId) {
       const prop = await this.prisma.upward_user_property.findUnique({
         where: { id: targetUserPropertyId },
         include: {
           user: true,
-          subaccount: true,
         },
       })
       if (!prop) {
         throw new NotFoundException('Property not found')
       }
       tenantUser = prop.user
-      subaccountCode = prop.subaccount?.subaccountCode
     } else if (data.userId) {
       const prop = await this.prisma.upward_user_property.findFirst({
         where: { userId: data.userId },
         include: {
           user: true,
-          subaccount: true,
         },
         orderBy: { updatedAt: 'desc' },
       })
@@ -77,7 +70,6 @@ export class SwitchDedicatedAccountUseCase {
       }
       targetUserPropertyId = prop.id
       tenantUser = prop.user
-      subaccountCode = prop.subaccount?.subaccountCode
     } else {
       throw new BadRequestException('Either userPropertyId, paymentRequestUuid, or userId must be provided')
     }
@@ -159,7 +151,6 @@ export class SwitchDedicatedAccountUseCase {
       tenantEmail: decryptedEmail,
       tenantName: `${decryptedFirstName || 'Tenant'} ${decryptedLastName || 'User'}`.trim(),
       tenantPhone: decryptedPhone,
-      subaccountCode,
       preferredBank: targetBank,
       forceReissue: true,
       disableFallback: true,

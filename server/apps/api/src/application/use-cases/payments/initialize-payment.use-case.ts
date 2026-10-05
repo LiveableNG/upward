@@ -147,7 +147,6 @@ export class InitializePaymentUseCase {
           tenantEmail: user.email!,
           tenantName: `${user.firstName || 'Tenant'} ${user.lastName || 'User'}`.trim(),
           tenantPhone: tenantPhone,
-          subaccountCode: pr.subaccount?.subaccountCode
         })
 
         if (data.metadata?.lineItems) {
@@ -225,7 +224,6 @@ export class InitializePaymentUseCase {
       email: user.email!,
       amount: finalAmountToPay,
       reference: `PAY-${randomUUID()}`,
-      subaccount: pr?.subaccount?.subaccountCode,
       metadata,
       channels: ['bank', 'bank_transfer']
     })
