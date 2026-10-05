@@ -247,7 +247,11 @@ export class ProcessPaymentWebhookUseCase {
 
       if (reference.startsWith('BATCH-')) {
         const batchUuid = reference.replace('BATCH-', '')
-        const batch = await this.prisma.upward_settlement_batch.findUnique({ where: { uuid: batchUuid } })
+        const batch =
+          (await this.prisma.upward_settlement_batch.findUnique({ where: { transferReference: reference } })) ||
+          (await this.prisma.upward_settlement_batch.findUnique({ where: { uuid: reference } })) ||
+          (await this.prisma.upward_settlement_batch.findUnique({ where: { uuid: batchUuid } }))
+
         if (batch) {
           await this.prisma.upward_settlement_batch.update({
             where: { id: batch.id },
@@ -259,6 +263,8 @@ export class ProcessPaymentWebhookUseCase {
               data: { settlementStatus: 'VERIFIED', settlementBatchId: null }
             })
           }
+        } else {
+          this.logger.warn(`Could not find settlement batch for reference: ${reference}`)
         }
       }
 
