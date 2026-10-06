@@ -218,8 +218,8 @@ export function UniversityClient() {
           </Link>
 
           <div className={`uni-nav-links ${navOpen ? 'open' : ''}`}>
-            <Link href="/academy/hire" onClick={() => setNavOpen(false)}>
-              Hire Talent
+            <Link href="/academy#tracks" onClick={() => setNavOpen(false)}>
+              Tracks
             </Link>
             <a href="#skills" onClick={() => setNavOpen(false)}>
               The Skills
