@@ -23,6 +23,7 @@ export interface UniversityApplicationRecord {
   city: string
   ageBracket: string
   occupation?: string | null
+  track?: string | null
   experienceLevel?: string | null
   goals?: string | null
   commitment: string

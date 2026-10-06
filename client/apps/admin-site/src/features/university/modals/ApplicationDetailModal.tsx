@@ -6,6 +6,7 @@ import {
   Video,
   ExternalLink,
   Trash2,
+  Compass,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { UniversityApplicationRecord } from '../types'
@@ -30,6 +31,19 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onDelete,
   isDeveloper,
 }) => {
+  const rawTrack =
+    application?.track ||
+    application?.notes?.match(/\[Track:\s*([^\]]+)\]/i)?.[1] ||
+    application?.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)?.[1] ||
+    application?.goals?.match(/Track:\s*([^\n,]+)/i)?.[1] ||
+    'Track 1'
+
+  const isTrack2 =
+    rawTrack.toLowerCase().includes('2') || rawTrack.toLowerCase().includes('started')
+  const trackLabel = isTrack2
+    ? 'Track 2 — Already Started'
+    : 'Track 1 — Starting From Zero'
+
   return (
     <Modal
       isOpen={isOpen}
@@ -70,7 +84,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
               gap: '12px',
               marginBottom: '20px',
             }}
@@ -97,6 +111,35 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
               <div style={{ fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
                 {application.city} ({application.ageBracket})
+              </div>
+            </div>
+            <div
+              style={{
+                background: isTrack2 ? '#f0fdf4' : '#eff6ff',
+                padding: '12px',
+                borderRadius: '8px',
+                border: `1px solid ${isTrack2 ? '#bbf7d0' : '#bfdbfe'}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: isTrack2 ? '#15803d' : '#1d4ed8',
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                }}
+              >
+                Selected Track
+              </div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  marginTop: '2px',
+                  color: isTrack2 ? '#15803d' : '#1d4ed8',
+                  fontSize: '13px',
+                }}
+              >
+                {isTrack2 ? 'Track 2' : 'Track 1'}
               </div>
             </div>
             <div
@@ -133,6 +176,31 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#8A4A2A' }}>
               Application Questionnaire Responses
             </h4>
+
+            {/* Selected Track Questionnaire Row */}
+            <div style={{ marginBottom: '14px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Selected Track:
+              </span>
+              <div
+                style={{
+                  background: isTrack2 ? '#f0fdf4' : '#fff7ed',
+                  color: isTrack2 ? '#166534' : '#9a3412',
+                  border: `1.5px solid ${isTrack2 ? '#bbf7d0' : '#ffedd5'}`,
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  marginTop: '4px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Compass size={16} color={isTrack2 ? '#166534' : '#c2410c'} />
+                <span>{trackLabel}</span>
+              </div>
+            </div>
 
             <div style={{ marginBottom: '14px' }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>

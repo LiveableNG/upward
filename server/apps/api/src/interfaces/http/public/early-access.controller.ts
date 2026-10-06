@@ -30,6 +30,8 @@ export class EarlyAccessController {
       city: dto.city,
       ageBracket: dto.ageBracket,
       experienceLevel: dto.experienceLevel,
+      track: dto.track,
+      occupation: dto.occupation,
       interest: dto.interest,
       sessionTime: dto.sessionTime,
       sourceIdentifier: dto.sourceIdentifier,

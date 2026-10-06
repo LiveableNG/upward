@@ -29,6 +29,14 @@ export class CreateStudentEarlyAccessDto {
 
   @IsOptional()
   @IsString()
+  track?: string
+
+  @IsOptional()
+  @IsString()
+  occupation?: string
+
+  @IsOptional()
+  @IsString()
   interest?: string
 
   @IsOptional()

@@ -18,6 +18,7 @@ export interface SubmitUniversityApplicationCommand {
   city: string
   ageBracket: string
   occupation?: string
+  track?: string
   experienceLevel?: string
   goals?: string
   commitment?: string
@@ -70,6 +71,14 @@ export class SubmitUniversityApplicationUseCase {
       const newFeeStatus = isAlreadyPaid ? 'PAID' : ((command.feeStatus as any) || existingProps.feeStatus || 'PENDING')
       const newPaymentRef = command.paymentRef || existingProps.paymentRef || null
 
+      const trackNote = command.track ? `[Track: ${command.track}]` : ''
+      const existingNotes = existingProps.notes || ''
+      const updatedNotes = trackNote
+        ? existingNotes.includes(trackNote)
+          ? existingNotes
+          : `${trackNote} ${existingNotes}`.trim()
+        : existingNotes || null
+
       application = UniversityApplication.restore({
         ...existingProps,
         name: command.name,
@@ -77,6 +86,7 @@ export class SubmitUniversityApplicationUseCase {
         city: command.city,
         ageBracket: command.ageBracket,
         occupation: command.occupation ?? existingProps.occupation,
+        track: command.track ?? existingProps.track,
         experienceLevel: command.experienceLevel ?? existingProps.experienceLevel,
         goals: command.goals ?? existingProps.goals,
         commitment: command.commitment ?? existingProps.commitment ?? 'Pending (Stage 1 Completed)',
@@ -89,9 +99,12 @@ export class SubmitUniversityApplicationUseCase {
         abVariant: command.abVariant ?? existingProps.abVariant ?? 'A',
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
+        notes: updatedNotes,
         updatedAt: new Date(),
       })
     } else {
+      const trackNote = command.track ? `[Track: ${command.track}]` : null
+
       application = UniversityApplication.create({
         name: command.name,
         whatsapp: command.whatsapp,
@@ -99,8 +112,9 @@ export class SubmitUniversityApplicationUseCase {
         city: command.city,
         ageBracket: command.ageBracket,
         occupation: command.occupation,
-        experienceLevel: command.experienceLevel ?? 'Stage 1 Completed',
-        goals: command.goals,
+        track: command.track,
+        experienceLevel: command.experienceLevel ?? (command.track ? `[${command.track}] Stage 1 Completed` : 'Stage 1 Completed'),
+        goals: command.goals ?? (command.track ? `Track: ${command.track}` : undefined),
         commitment: command.commitment ?? 'Pending (Stage 1 Completed)',
         why: command.why ?? 'Pending (Stage 1 Completed)',
         timing: command.timing,
@@ -111,6 +125,7 @@ export class SubmitUniversityApplicationUseCase {
         abVariant: command.abVariant || 'A',
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
+        notes: trackNote,
       })
       isAlreadyPaid = command.feeStatus === 'PAID'
     }

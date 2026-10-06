@@ -661,6 +661,148 @@
       display: block;
     }
 
+    .field-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      gap: 10px;
+    }
+
+    .track-info-btn {
+      background: none;
+      border: 1px solid var(--sand);
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--rust);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 999px;
+      background: var(--rust-wash);
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .track-info-btn:hover {
+      background: rgba(138, 74, 42, 0.16);
+      transform: translateY(-1px);
+    }
+
+    .track-info-btn:active {
+      transform: scale(0.97);
+    }
+
+    .track-info-popover {
+      background: #ffffff;
+      border: 1.5px solid var(--sand);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 28px -8px rgba(21, 22, 43, 0.12);
+      animation: popoverFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes popoverFadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .track-info-popover-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .track-info-popover-title {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: -0.01em;
+    }
+
+    .track-info-popover-title i {
+      color: var(--rust);
+    }
+
+    .track-info-close-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      line-height: 1;
+      color: var(--ink-soft);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.15s ease;
+    }
+
+    .track-info-close-btn:hover {
+      color: var(--ink);
+    }
+
+    .track-info-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .track-info-comparison-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .track-compare-card {
+      background: var(--paper);
+      border: 1px solid var(--sand);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .track-compare-badge {
+      font: 700 10px var(--mono, monospace);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--rust);
+      background: var(--rust-wash);
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .track-compare-card h5 {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--ink);
+      margin: 0 0 4px 0;
+    }
+
+    .track-compare-loc {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--rust);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .track-compare-card p {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--ink-soft);
+      margin: 0;
+    }
+
     .field textarea {
       min-height: 95px;
       resize: vertical;
@@ -1321,7 +1463,7 @@
         <div>UPWARD<br><small>Academy and Business<br>Accelerator</small></div>
       </a>
       <div class="nav-links" id="navLinks">
-        <a href="/academy/hire">Hire Talent</a>
+        <a href="/academy#tracks">Tracks</a>
         <a href="/academy/programme">Curriculum</a>
         <a href="/academy/lecturers">Lecturers</a>
         <a href="/academy/scholarships">Fees &amp; Scholarships</a>
@@ -1351,8 +1493,8 @@
         <div class="apply-cohort-info">
           <i class="fa-solid fa-calendar-check"></i>
           <div>
-            <strong>Classes Commence: October 31, 2026</strong>
-            <span>10 Weeks · Hybrid (Lagos, Abuja, PH, Oyo)</span>
+            <strong>Classes Commence: November 14, 2026</strong>
+            <span>10 Weeks · Hybrid (Lagos, Abuja, PH, Oyo) · Apps close Nov 7 · Scholarships close Oct 31</span>
           </div>
         </div>
         <span class="apply-cohort-tag">Admissions Open</span>
@@ -1373,9 +1515,9 @@
 
       <div class="apply-notice">
         <i class="fa-solid fa-circle-info"></i>
-        <div><strong>Before you apply:</strong> You should be able to commit 6-8 hours every week starting October 31,
+        <div><strong>Before you apply:</strong> You should be able to commit 6-8 hours every week starting November 14,
           2026 and be prepared to complete practical work and pursue real opportunities. Upward Academy does not
-          guarantee income or employment.</div>
+          guarantee income or employment. Applications close November 7; scholarship offers close October 31.</div>
       </div>
 
       <div class="apply-form-box">
@@ -1451,26 +1593,64 @@
               </div>
             </div>
 
+            <!-- Track Selection Field with Info Icon and Comparison Popover -->
+            <div class="field" id="field-track">
+              <div class="field-label-row">
+                <label for="track" style="margin-bottom:0;">
+                  Choose Your Track <span class="req-asterisk">*</span>
+                </label>
+                <button type="button" class="track-info-btn" id="trackInfoBtn" aria-expanded="false" title="Explain difference between Track 1 and Track 2">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>Track comparison</span>
+                </button>
+              </div>
+
+              <!-- Track Explanation Popover -->
+              <div class="track-info-popover" id="trackInfoBox" style="display:none;">
+                <div class="track-info-popover-header">
+                  <span class="track-info-popover-title"><i class="fa-solid fa-route"></i> Difference Between Track 1 &amp; Track 2</span>
+                  <button type="button" class="track-info-close-btn" id="trackInfoCloseBtn" title="Close comparison">&times;</button>
+                </div>
+                <div class="track-info-comparison-grid">
+                  <div class="track-compare-card">
+                    <div class="track-compare-badge">Track 1</div>
+                    <h5>Starting From Zero</h5>
+                    <p>Designed for beginners, recent graduates, and career changers. Learn real estate foundations, agency operations, facility management, and tech tools from scratch. Includes hands-on practical training &amp; internship.</p>
+                  </div>
+                  <div class="track-compare-card">
+                    <div class="track-compare-badge">Track 2</div>
+                    <h5>Already Started</h5>
+                    <p>Designed for active agents, surveyors, landlords, or property professionals wanting to scale into a serious firm. Learn business operating systems, automations, and property tech.</p>
+                  </div>
+                </div>
+              </div>
+
+              <select id="track" required>
+                <option value="">Select track</option>
+                <option value="Track 1">Track 1 — Starting From Zero</option>
+                <option value="Track 2">Track 2 — Already Started</option>
+              </select>
+              <div class="error-text">Please choose your track</div>
+            </div>
+
             <div class="field" id="field-session-time">
               <label for="session_time">Building a Tech-Driven RE Career/Business Session <span
                   class="req-asterisk">*</span></label>
               <select id="session_time" required>
                 <option value="">Select session &amp; attendance mode</option>
-                <optgroup label="Friday, October 16 Sessions (Abuja - Confirmed)">
-                  <option value="Abuja (Online - Zoom/Meet) - 6:00 pm, Friday, October 16">Abuja (Online / Virtual) - 6:00 PM, Friday, October 16</option>
-                  <option value="Abuja (Physical) - 6:00 pm, Friday, October 16">Abuja (In-Person) - 6:00 PM, Friday, October 16</option>
+                <optgroup label="Online Sessions (Open to Everyone: Lagos, Abuja, PH &amp; Nationwide)">
+                  <option value="Online (Open to All - Lagos, Abuja, PH) - 9:00 am, Saturday, October 10">Online (Zoom/Meet) - 9:00 AM, Saturday, October 10 (All Cities)</option>
+                  <option value="Online (Open to All - Lagos, Abuja, PH) - 6:00 pm, Tuesday, October 13">Online (Zoom/Meet) - 6:00 PM, Tuesday, October 13 (All Cities)</option>
                 </optgroup>
-                <optgroup label="Friday, October 23 Sessions (Port Harcourt - Confirmed)">
-                  <option value="Port Harcourt (Online - Zoom/Meet) - 6:00 pm, Friday, October 23">Port Harcourt (Online / Virtual) - 6:00 PM, Friday, October 23</option>
-                  <option value="Port Harcourt (Physical) - 6:00 pm, Friday, October 23">Port Harcourt (In-Person) - 6:00 PM, Friday, October 23</option>
+                <optgroup label="Offline In-Person Events (Abuja &amp; Port Harcourt)">
+                  <option value="Abuja (Physical) - 6:00 pm, Friday, October 16">Abuja (In-Person Event) - 6:00 PM, Friday, October 16</option>
+                  <option value="Port Harcourt (Physical) - 6:00 pm, Friday, October 23">Port Harcourt (In-Person Event) - 6:00 PM, Friday, October 23</option>
                 </optgroup>
                 <optgroup label="Upcoming City Sessions (Dates Coming Soon)">
                   <option value="Oyo / Ibadan (Physical - Date Coming Soon)">Oyo / Ibadan (In-Person) - Date Coming Soon</option>
-                  <option value="Oyo / Ibadan (Online - Date Coming Soon)">Oyo / Ibadan (Online / Virtual) - Date Coming Soon</option>
                 </optgroup>
                 <optgroup label="Past Sessions (Concluded)">
                   <option disabled value="">Lagos (In-Person / Yaba) - 10:00 AM, 30 Sep (Concluded)</option>
-                  <option disabled value="">Lagos (Online / Virtual) - 9:00 AM, 3 Oct (Concluded)</option>
                 </optgroup>
                 <option value="I don't need an info session">I don't need an info session</option>
               </select>
@@ -1595,6 +1775,7 @@
                 <div><strong>WhatsApp:</strong> <span id="sum-whatsapp">-</span></div>
                 <div><strong>Email:</strong> <span id="sum-email">-</span></div>
                 <div><strong>City:</strong> <span id="sum-city">-</span></div>
+                <div><strong>Track:</strong> <span id="sum-track">-</span></div>
                 <div><strong>Scholarship:</strong> <span id="sum-scholarship">Standard Application</span></div>
                 <div><strong>Commitment:</strong> <span id="sum-commitment">-</span></div>
                 <div style="grid-column: 1 / -1;"><strong>Info Session:</strong> <span id="sum-session">-</span></div>
@@ -1741,6 +1922,7 @@
         { id: 'email', fieldId: 'field-email', validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) },
         { id: 'city', fieldId: 'field-city', validate: val => val.trim().length > 0 },
         { id: 'age', fieldId: 'field-age', validate: val => val !== '' },
+        { id: 'track', fieldId: 'field-track', validate: val => val !== '' },
         { id: 'session_time', fieldId: 'field-session-time', validate: val => val !== '' }
       ];
 
@@ -1805,6 +1987,41 @@
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
+      // Track Info Popover Toggle
+      const trackInfoBtn = document.getElementById('trackInfoBtn');
+      const trackInfoBox = document.getElementById('trackInfoBox');
+      const trackInfoCloseBtn = document.getElementById('trackInfoCloseBtn');
+
+      if (trackInfoBtn && trackInfoBox) {
+        trackInfoBtn.addEventListener('click', () => {
+          const isHidden = trackInfoBox.style.display === 'none';
+          trackInfoBox.style.display = isHidden ? 'block' : 'none';
+          trackInfoBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+        });
+      }
+      if (trackInfoCloseBtn && trackInfoBox && trackInfoBtn) {
+        trackInfoCloseBtn.addEventListener('click', () => {
+          trackInfoBox.style.display = 'none';
+          trackInfoBtn.setAttribute('aria-expanded', 'false');
+        });
+      }
+
+      // Pre-fill Track Selection from URL parameter (e.g. ?track=track1 or ?track=track2)
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackParam = (urlParams.get('track') || '').toLowerCase();
+        const trackEl = document.getElementById('track');
+        if (trackEl && trackParam) {
+          if (trackParam === 'track2' || trackParam === '2' || trackParam.includes('started')) {
+            trackEl.value = 'Track 2';
+          } else if (trackParam === 'track1' || trackParam === '1' || trackParam.includes('zero')) {
+            trackEl.value = 'Track 1';
+          }
+        }
+      } catch (err) {
+        // Fallback
+      }
+
       // STAGE 1 NEXT BUTTON (Instant Partial Lead Capture)
       document.getElementById('btn-stage-1-next')?.addEventListener('click', async function () {
         let hasError = false;
@@ -1842,6 +2059,7 @@
         const cityVal = document.getElementById('city').value;
         const ageVal = document.getElementById('age').value;
         const occVal = document.getElementById('occupation').value;
+        const trackVal = document.getElementById('track').value;
         const sessionVal = document.getElementById('session_time').value;
 
         const srcIdent = (window.UpwardTracker && typeof window.UpwardTracker.getSourceIdentifier === 'function')
@@ -1856,10 +2074,11 @@
           city: cityVal,
           ageBracket: ageVal,
           occupation: occVal,
+          track: trackVal,
           sessionTime: sessionVal,
           sourceIdentifier: srcIdent || undefined,
-          experienceLevel: 'Stage 1 Completed (Basic Info Captured)',
-          interest: sessionVal ? `[Session: ${sessionVal}] Stage 1: Contact Info (Drop-off)` : 'Stage 1: Contact Info (Drop-off)'
+          experienceLevel: `[${trackVal}] Stage 1 Completed`,
+          interest: sessionVal ? `[${trackVal}][Session: ${sessionVal}] Stage 1: Contact Info (Drop-off)` : `[${trackVal}] Stage 1: Contact Info (Drop-off)`
         };
 
         const appStage1Payload = {
@@ -1869,9 +2088,10 @@
           city: cityVal,
           ageBracket: ageVal,
           occupation: occVal,
+          track: trackVal,
           sessionTime: sessionVal,
           sourceIdentifier: srcIdent || undefined,
-          experienceLevel: 'Stage 1 Completed',
+          experienceLevel: `[${trackVal}] Stage 1 Completed`,
           commitment: 'Pending (Stage 1 Completed)',
           why: 'Pending (Stage 1 Completed)'
         };
@@ -1953,6 +2173,7 @@
         document.getElementById('sum-whatsapp').textContent = document.getElementById('whatsapp').value;
         document.getElementById('sum-email').textContent = document.getElementById('email').value;
         document.getElementById('sum-city').textContent = document.getElementById('city').value;
+        document.getElementById('sum-track').textContent = document.getElementById('track').value || '-';
         document.getElementById('sum-scholarship').textContent = isScholarship ? 'Yes (Scholarship Candidate)' : 'No (Standard Application)';
         document.getElementById('sum-commitment').textContent = document.getElementById('commitment').value;
         document.getElementById('sum-session').textContent = document.getElementById('session_time').value || '-';
@@ -1965,9 +2186,10 @@
           city: document.getElementById('city').value,
           ageBracket: document.getElementById('age').value,
           occupation: document.getElementById('occupation').value || undefined,
+          track: document.getElementById('track').value || undefined,
           sessionTime: document.getElementById('session_time').value || undefined,
-          experienceLevel: document.getElementById('exp').value || 'Stage 2 Completed',
-          goals: document.getElementById('goals').value || undefined,
+          experienceLevel: document.getElementById('exp').value || `[${document.getElementById('track').value}] Stage 2 Completed`,
+          goals: document.getElementById('goals')?.value || `Track: ${document.getElementById('track').value}`,
           commitment: document.getElementById('commitment').value,
           why: document.getElementById('why').value,
           timing: document.getElementById('timing').value || undefined,
@@ -2018,8 +2240,9 @@
           city: document.getElementById('city').value,
           ageBracket: document.getElementById('age').value,
           occupation: document.getElementById('occupation').value,
+          track: document.getElementById('track').value,
           experienceLevel: document.getElementById('exp').value,
-          goals: document.getElementById('goals').value,
+          goals: document.getElementById('goals')?.value || `Track: ${document.getElementById('track').value}`,
           commitment: document.getElementById('commitment').value,
           why: document.getElementById('why').value,
           timing: document.getElementById('timing').value,
@@ -2095,6 +2318,7 @@
                 metadata: {
                   custom_fields: [
                     { display_name: "Applicant Name", variable_name: "applicant_name", value: payload.name },
+                    { display_name: "Track", variable_name: "track", value: payload.track },
                     { display_name: "WhatsApp Number", variable_name: "whatsapp_number", value: payload.whatsapp },
                     { display_name: "City", variable_name: "city", value: payload.city },
                     { display_name: "Info Session", variable_name: "info_session", value: payload.sessionTime || '' }

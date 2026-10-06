@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upward Academy - Live On Your Own Terms</title>
   <meta name="description"
-    content="Your journey to a decent, stable income starts on Day 60. Weekend property-tech and real estate business training in Nigeria. Founded by Upward & GoodTenants.">
+    content="Your journey to a decent, stable income starts on Day 70. Weekend property-tech and real estate business training in Nigeria. Founded by Upward & GoodTenants.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com/">
   <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
@@ -944,6 +944,138 @@
       padding-bottom: 2px;
     }
 
+    /* 5. TRACKS */
+    .tracks-section {
+      background: var(--paper);
+    }
+
+    .track-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 36px;
+      text-align: left;
+    }
+
+    @media (max-width: 700px) {
+      .track-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .track-card {
+      background: var(--white);
+      border: 1.5px solid var(--sand);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: 0 4px 20px -8px rgba(21, 22, 43, 0.06);
+      display: block;
+      position: relative;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .track-card:hover {
+      border-color: var(--rust);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 42px -12px rgba(138, 74, 42, 0.18);
+    }
+
+    .track-card:active {
+      transform: translateY(-1px) scale(0.99);
+    }
+
+    .track-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .track-tag {
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--rust);
+      background: var(--rust-wash);
+      border: 1px solid rgba(138, 74, 42, 0.2);
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .track-select-pill {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--rust);
+      background: var(--rust-wash);
+      padding: 5px 12px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .track-card:hover .track-select-pill {
+      background: var(--rust);
+      color: #fff;
+    }
+
+    .track-select-pill i {
+      transition: transform 0.2s ease;
+    }
+
+    .track-card:hover .track-select-pill i {
+      transform: translateX(3px);
+    }
+
+    .track-card h3 {
+      font-size: 22px;
+      margin-top: 14px;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .track-sub {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .track-list {
+      list-style: none;
+      margin-top: 20px;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .track-list li {
+      font-size: 13.5px;
+      position: relative;
+      color: var(--ink-soft);
+      line-height: 1.5;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .track-check-icon {
+      color: var(--rust);
+      font-size: 14px;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .track-list li strong {
+      color: var(--ink);
+    }
+
     /* 6. THE PLAN */
     .plan-section {
       background: var(--paper-dim);
@@ -989,6 +1121,23 @@
     .plan-card h3 {
       font-size: 16px;
       margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .plan-card .track-pill {
+      color: var(--rust);
+      font-size: 10px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--rust-wash);
+      border: 1px solid rgba(138, 74, 42, 0.2);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 600;
     }
 
     .plan-card p {
@@ -1022,9 +1171,12 @@
       background: var(--white);
       border: 1.5px solid var(--sand);
       border-radius: var(--radius-md);
-      padding: 24px 30px;
+      padding: 24px 28px;
       min-width: 220px;
+      flex: 1 1 220px;
+      max-width: 340px;
       box-shadow: var(--shadow-sm);
+      text-align: center;
     }
 
     .milestone .num {
@@ -1038,6 +1190,76 @@
       font-size: 13px;
       color: var(--ink-soft);
       margin-top: 6px;
+      line-height: 1.45;
+    }
+
+    .testimonial {
+      max-width: 580px;
+      margin: 36px auto 0;
+      background: #ffffff;
+      border: 1.5px dashed var(--sand);
+      border-radius: 20px;
+      padding: 26px;
+      text-align: left;
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .testimonial .tphoto-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      width: 70px;
+    }
+
+    .testimonial .tphoto {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(155deg, #2A1A14, var(--rust));
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 800 16px 'Inter Tight', sans-serif;
+    }
+
+    .testimonial .tphoto-note {
+      font-size: 9.5px;
+      color: var(--ink-soft);
+      font-style: italic;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .testimonial .tcontent {
+      flex: 1;
+    }
+
+    .testimonial .tq {
+      font-family: 'Fraunces', serif;
+      font-style: italic;
+      font-size: 16px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+
+    .testimonial .tby {
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--rust);
+    }
+
+    .testimonial .tnote {
+      margin-top: 14px;
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      font-style: italic;
     }
 
     /* 8. UPWARD MEDIA */
@@ -1483,7 +1705,7 @@
       </a>
 
       <div class="nav-links" id="navLinks">
-        <a href="/academy/hire">Hire Talent</a>
+        <a href="#tracks">Tracks</a>
         <a href="/academy/programme">Curriculum</a>
         <a href="/academy/lecturers">Lecturers</a>
         <a href="/academy/scholarships">Fees &amp; Scholarships</a>
@@ -1504,14 +1726,15 @@
   <!-- 1. HERO -->
   <section class="hero">
     <div class="wrap">
-      <h1>Your journey to a <em>decent,</em><br><em>stable income</em> starts on<br>Day 60.</h1>
-      <p class="sub">We train ambitious young people to build real, tech-driven property management and brokerage businesses. No property, no capital, no experience required.</p>
+      <h1>Your journey to a <em>decent,</em><br><em>stable income</em> starts on<br>Day 70.</h1>
+      <p class="sub">We train ambitious young people to build real, tech-driven property management and brokerage
+        businesses. No property, no capital, no experience required.</p>
       <div class="cta-block">
         <a href="/academy/sessions" class="btn btn-primary">Reserve Your Spot · Free Information Session</a>
       </div>
       <div class="hero-badges">
         <div class="hero-badge">
-          <span class="highlight">Day 60 income → ₦10m+</span>
+          <span class="highlight">Day 70 income → ₦10m+</span>
           <span>within 12-24 months</span>
         </div>
         <div class="hero-badge">
@@ -1561,7 +1784,8 @@
             doesn't fit your life anymore, and nobody's shown you what actually does.</p>
         </div>
       </div>
-      <p class="problem-close">You shouldn't have to choose. Live on your own terms without quitting anything to start.</p>
+      <p class="problem-close">You shouldn't have to choose. Live on your own terms without quitting anything to start.
+      </p>
     </div>
   </section>
 
@@ -1585,6 +1809,63 @@
     </div>
   </section>
 
+  <!-- 5. TRACKS -->
+  <section class="tracks-section" id="tracks">
+    <div class="wrap" style="text-align:center">
+      <h2>Two tracks. Pick where you're starting from.</h2>
+      <p style="font-size:15px; color:var(--ink-soft); max-width:620px; margin:10px auto 0 auto; line-height:1.5;">
+        Click either track to join our upcoming free information session with your track pre-selected.
+      </p>
+      <div class="track-grid">
+        <!-- TRACK 1 CARD -->
+        <a href="/academy/sessions?track=track1" class="track-card"
+          aria-label="Join Info Session for Track 1: Starting From Zero">
+          <div class="track-header-row">
+            <span class="track-tag">Track 1</span>
+            <span class="track-select-pill">Join Info Session <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+          <h3>Starting From Zero</h3>
+          <p class="track-sub">For beginners building a career or business in real estate.</p>
+          <ul class="track-list">
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>1-year programme: 10-week training +
+                9-month internship</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Lagos only this cohort — 20
+                opening</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Score 80%+ in training to progress to
+                internship</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Internship: 2–3 days/week, can be
+                part-time</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span><strong>Guaranteed monthly
+                  allowance</strong> during internship</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Finish with clients in your portfolio,
+                or a job with one of our partners</span></li>
+          </ul>
+        </a>
+
+        <!-- TRACK 2 CARD -->
+        <a href="/academy/sessions?track=track2" class="track-card"
+          aria-label="Join Info Session for Track 2: Already Started">
+          <div class="track-header-row">
+            <span class="track-tag">Track 2</span>
+            <span class="track-select-pill">Join Info Session <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+          <h3>Already Started</h3>
+          <p class="track-sub">For those who've started and want to sharpen their skills.</p>
+          <ul class="track-list">
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>10-week training + 9 months of monthly
+                community support</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Lagos, Abuja, Port Harcourt &amp;
+                Oyo</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Build and grow your own property
+                management business</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Ongoing check-ins to keep you on track
+                after class ends</span></li>
+          </ul>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- 6. THE PLAN -->
   <section class="plan-section">
     <div class="wrap" style="text-align:center">
@@ -1598,28 +1879,29 @@
         <div class="plan-card">
           <div class="n">02</div>
           <h3>Classroom Training</h3>
-          <p>Property Management and Brokerage, taught properly with weekend classes to fit around your week.</p>
+          <p>Property Management and Brokerage, taught properly — weekend classes, so it fits around your week.</p>
         </div>
         <div class="plan-card">
           <div class="n">03</div>
-          <h3>Entrepreneurship Workshops</h3>
+          <h3>Entrepreneurship &amp; Intrapreneurship Workshops</h3>
           <p>Whether you're building your own thing or building inside someone else's.</p>
         </div>
         <div class="plan-card">
           <div class="n">04</div>
           <h3>Mentorship</h3>
-          <p>People who've done this already, guiding you through it. You'll meet them at your info session.</p>
+          <p>People who've done this already, guiding you through it — you'll meet them at your info session.</p>
         </div>
         <div class="plan-card">
           <div class="n">05</div>
-          <h3>Internship &amp; Apprenticeship</h3>
-          <p>Real, hands-on placement where top performers get placed as paid sub-managers on real client units, not
+          <h3>Internship &amp; Apprenticeship <span class="track-pill">Track 1</span></h3>
+          <p>Real, hands-on placement — top performers get placed as paid sub-managers on real client units, not
             simulated practice.</p>
         </div>
         <div class="plan-card">
           <div class="n">06</div>
-          <h3>Community &amp; Support</h3>
-          <p>Weekly and monthly check-ins. You're not doing this alone.</p>
+          <h3>Community &amp; Support <span class="track-pill">Track 2</span></h3>
+          <p>Monthly check-ins for 9 months after training, helping you build your own business. You're not doing this
+            alone.</p>
         </div>
       </div>
     </div>
@@ -1628,14 +1910,18 @@
   <!-- 7. WHERE THIS LEADS (SUCCESS) -->
   <section class="success">
     <div class="wrap">
-      <h2>Start earning in 60 days.</h2>
+      <h2>What success looks like.</h2>
       <div class="milestone-row">
         <div class="milestone">
-          <div class="num">Day 60</div>
-          <div class="lbl">Graduates can start earning respectable income</div>
+          <div class="num">Guaranteed</div>
+          <div class="lbl">Track 1: monthly allowance during your 9-month internship</div>
         </div>
         <div class="milestone">
-          <div class="num">12-24 mo.</div>
+          <div class="num">9 Months</div>
+          <div class="lbl">Track 2: ongoing community support as you build your own business</div>
+        </div>
+        <div class="milestone">
+          <div class="num">12–24 mo.</div>
           <div class="lbl">Path toward ₦10m+ a year in income</div>
         </div>
       </div>
@@ -1691,8 +1977,8 @@
           <h3>A plan, a guide, and people behind you.</h3>
           <ul>
             <li>Mentorship from people already doing this</li>
-            <li>Real internship &amp; apprenticeship placement</li>
-            <li>Weekly and monthly community check-ins</li>
+            <li>Track 1: real, paid internship placement</li>
+            <li>Track 2: 9 months of ongoing community support</li>
             <li>Built specifically for the Nigerian real estate market</li>
           </ul>
         </div>
@@ -1704,11 +1990,13 @@
   <section class="final" id="apply">
     <div class="wrap">
       <h2>Building a Tech-Driven RE Career/Business</h2>
-      <p class="lead">Join our free Information Session on Friday, October 16 (6:00 PM) for Abuja and Friday, October 23 (6:00 PM) for Port Harcourt, with Oyo/Ibadan dates coming soon. Attend in-person or virtually via Zoom/Meet to meet mentors, understand the curriculum, and explore scholarship opportunities.</p>
+      <p class="lead">Join our free Information Session online on Saturday, October 10 (9:00 AM) or Tuesday, October 13
+        (6:00 PM), or in-person in Abuja on Friday, October 16 (6:00 PM) and Port Harcourt on Friday, October 23 (6:00
+        PM), with Oyo/Ibadan dates coming soon. Attend in-person or virtually via Zoom/Meet to meet mentors, understand
+        the curriculum, and explore scholarship opportunities.</p>
       <a href="/academy/sessions" class="btn btn-primary" style="padding:15px 32px; font-size:15.5px;">Reserve Your Spot
         →</a>
-      <p class="cta-note">Ready to apply after the session? That comes next, not before. <a
-          href="/academy/scholarships"
+      <p class="cta-note">Ready to apply after the session? That comes next, not before. <a href="/academy/scholarships"
           style="color:var(--rust); font-weight:700; border-bottom:1px solid var(--rust); margin-left:4px;">See fees
           &amp; scholarships →</a></p>
     </div>
@@ -1740,8 +2028,10 @@
             style="font-size:12px; color:var(--rust);"></i> hello@goodtenants.africa</a>
         <a href="tel:+2348175437146" class="contact-link"><i class="fa-solid fa-phone"
             style="font-size:12px; color:var(--rust);"></i> +234 817 543 7146</a>
-        <span style="color:var(--ink-soft); font-size:12px; font-weight:500; display:flex; align-items:flex-start; gap:6px; max-width:240px; line-height:1.4; text-align:left;">
-          <i class="fa-solid fa-location-dot" style="font-size:12px; color:var(--rust); margin-top:2px;"></i> 38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria
+        <span
+          style="color:var(--ink-soft); font-size:12px; font-weight:500; display:flex; align-items:flex-start; gap:6px; max-width:240px; line-height:1.4; text-align:left;">
+          <i class="fa-solid fa-location-dot" style="font-size:12px; color:var(--rust); margin-top:2px;"></i> 38,
+          Commercial Avenue, Sabo, Yaba, Lagos, Nigeria
         </span>
       </div>
     </div>
