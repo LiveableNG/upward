@@ -76,6 +76,67 @@
   }
 
   // ==========================================
+  // TRACK PICKER SELECTION & PRE-FILL
+  // ==========================================
+  const trackCards = document.querySelectorAll('.track-picker-card');
+  const trackInput = document.getElementById('ea_track');
+
+  function setTrack(trackKey) {
+    const isTrack2 = trackKey === 'track2' || trackKey === '2' || trackKey.toLowerCase().includes('started');
+    const targetKey = isTrack2 ? 'track2' : 'track1';
+    const trackLabel = isTrack2 ? 'Track 2' : 'Track 1';
+
+    if (trackInput) {
+      trackInput.value = trackLabel;
+    }
+
+    trackCards.forEach((card) => {
+      const match = card.getAttribute('data-track') === targetKey;
+      card.classList.toggle('selected', match);
+      card.setAttribute('aria-checked', match ? 'true' : 'false');
+    });
+
+    const trackField = document.getElementById('field_track');
+    if (trackField) {
+      trackField.classList.remove('error');
+    }
+  }
+
+  trackCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      const trackVal = card.getAttribute('data-track');
+      setTrack(trackVal);
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const trackVal = card.getAttribute('data-track');
+        setTrack(trackVal);
+      }
+    });
+  });
+
+  // Check URL param for prefilling track in session booking
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTrack = urlParams.get('track');
+    if (initialTrack) {
+      setTrack(initialTrack);
+      if (typeof switchTab === 'function') {
+        switchTab('register');
+      }
+      setTimeout(() => {
+        const formCard = document.getElementById('formCard');
+        if (formCard) {
+          formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 350);
+    }
+  } catch (e) {
+    // Graceful fallback
+  }
+
+  // ==========================================
   // ALL WORLD COUNTRIES DATASET & SEARCHABLE PICKER
   // ==========================================
   const ALL_COUNTRIES = [
@@ -520,6 +581,8 @@
       validateField(citySelect, 'field_city', citySelect && citySelect.value.trim() !== '');
       validateField(ageSelect, 'field_age', ageSelect && ageSelect.value.trim() !== '');
       validateField(expSelect, 'field_exp', expSelect && expSelect.value.trim() !== '');
+      const trackVal = trackInput ? trackInput.value : 'Track 1';
+      validateField(trackInput, 'field_track', Boolean(trackVal));
       validateField(sessionSelect, 'field_session_time', sessionSelect && sessionSelect.value.trim() !== '');
 
       function showFormError(msg) {
@@ -555,6 +618,11 @@
         regSubmitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Reserving Seat...';
       }
 
+      const userInterest = interestInput ? interestInput.value.trim() : '';
+      const formattedInterest = userInterest
+        ? `[${trackVal}] ${userInterest}`
+        : `[${trackVal}] Info Session Attendee`;
+
       const payload = {
         name: nameInput.value.trim(),
         whatsapp: normPhone,
@@ -562,7 +630,8 @@
         city: citySelect.value.trim(),
         ageBracket: ageSelect.value.trim(),
         experienceLevel: expSelect.value.trim(),
-        interest: interestInput ? interestInput.value.trim() || undefined : undefined,
+        track: trackVal,
+        interest: formattedInterest,
         sessionTime: sessionSelect.value.trim(),
         sourceIdentifier:
           typeof window.getAcademySource === 'function'
@@ -630,6 +699,14 @@
         }
         if (successBox) {
           successBox.classList.add('show');
+        }
+
+        // Prefill chosen track on the success screen Apply CTA button
+        const successApplyBtn = document.getElementById('successApplyBtn');
+        if (successApplyBtn) {
+          const trackSlug = trackVal.toLowerCase().includes('2') ? 'track2' : 'track1';
+          successApplyBtn.href = `/academy/apply?track=${trackSlug}`;
+          successApplyBtn.textContent = `Apply to Upward Academy (${trackVal}) →`;
         }
 
         // Initialize Referral System inside success screen

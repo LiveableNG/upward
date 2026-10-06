@@ -944,6 +944,100 @@
       min-height: 80px;
     }
 
+    /* Interactive Track Picker in Sessions Form */
+    .track-picker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    @media(max-width: 560px) {
+      .track-picker-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .track-picker-card {
+      background: var(--paper);
+      border: 1.5px solid var(--sand);
+      border-radius: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+      text-align: left;
+      user-select: none;
+    }
+
+    .track-picker-card:hover {
+      border-color: var(--rust-light);
+      background: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .track-picker-card.selected {
+      border-color: var(--rust);
+      background: #ffffff;
+      box-shadow: 0 4px 16px -4px rgba(138, 74, 42, 0.18);
+    }
+
+    .track-picker-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .track-picker-badge {
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--rust);
+      background: var(--rust-wash);
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .track-picker-loc {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .track-picker-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--ink);
+      margin: 0 0 4px 0;
+    }
+
+    .track-picker-desc {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      line-height: 1.4;
+      margin: 0;
+      padding-right: 20px;
+    }
+
+    .track-picker-check {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      font-size: 16px;
+      color: var(--sand);
+      transition: all 0.2s ease;
+    }
+
+    .track-picker-card.selected .track-picker-check {
+      color: var(--rust);
+    }
+
     @media(max-width: 600px) {
 
       .field input,
