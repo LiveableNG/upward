@@ -701,14 +701,6 @@
           successBox.classList.add('show');
         }
 
-        // Prefill chosen track on the success screen Apply CTA button
-        const successApplyBtn = document.getElementById('successApplyBtn');
-        if (successApplyBtn) {
-          const trackSlug = trackVal.toLowerCase().includes('2') ? 'track2' : 'track1';
-          successApplyBtn.href = `/academy/apply?track=${trackSlug}`;
-          successApplyBtn.textContent = `Apply to Upward Academy (${trackVal}) →`;
-        }
-
         // Initialize Referral System inside success screen
         initReferralWidget({
           containerId: 'postSuccessReferralContainer',
