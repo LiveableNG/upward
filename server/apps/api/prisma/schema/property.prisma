@@ -110,6 +110,7 @@ model upward_manual_account {
   accountName        String
   bankName           String
   bankCode           String?
+  title              String?
   pmId               Int?
   isPrimary          Boolean                      @default(false)
   createdAt          DateTime                     @default(now())
@@ -120,6 +121,8 @@ model upward_manual_account {
   pmProperties       upward_pm_property[]
   pmPaymentRequests  upward_pm_payment_request[]
   paymentRequests    upward_payment_request[]
+  splitRules         upward_settlement_split_rule[]
+  transactionSplits  upward_transaction_settlement_split[]
 
   @@index([pmId])
 }
