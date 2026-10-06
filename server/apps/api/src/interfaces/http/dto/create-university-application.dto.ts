@@ -25,6 +25,10 @@ export class CreateUniversityApplicationDto {
 
   @IsOptional()
   @IsString()
+  track?: string
+
+  @IsOptional()
+  @IsString()
   occupation?: string
 
   @IsOptional()

@@ -71,6 +71,7 @@ export class UniversityApplicationController {
       city: dto.city,
       ageBracket: dto.ageBracket,
       occupation: dto.occupation,
+      track: dto.track,
       experienceLevel: dto.experienceLevel,
       goals: dto.goals,
       commitment: dto.commitment,

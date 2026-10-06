@@ -6,6 +6,7 @@ import {
   Calendar,
   AlertCircle,
   Phone,
+  Compass,
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { UniversityApplicationRecord } from '../types'
@@ -24,32 +25,62 @@ export const getApplicationColumns = ({
   {
     key: 'applicant',
     label: 'Applicant Name & Email',
-    render: (row) => (
-      <div>
-        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</div>
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.email}</div>
-        {(row.isScholarship || row.scholarshipVideoUrl) && (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              marginTop: '4px',
-              fontSize: '10.5px',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '999px',
-              background: '#fef3c7',
-              color: '#b45309',
-              border: '1px solid #fde68a',
-            }}
-          >
-            <Award size={11} />
-            SCHOLARSHIP CANDIDATE
-          </span>
-        )}
-      </div>
-    ),
+    render: (row) => {
+      const rawTrack =
+        row.track ||
+        row.notes?.match(/\[Track:\s*([^\]]+)\]/i)?.[1] ||
+        row.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)?.[1] ||
+        row.goals?.match(/Track:\s*([^\n,]+)/i)?.[1] ||
+        'Track 1'
+      const isTrack2 =
+        rawTrack.toLowerCase().includes('2') || rawTrack.toLowerCase().includes('started')
+      const trackBadge = isTrack2 ? 'Track 2' : 'Track 1'
+
+      return (
+        <div>
+          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{row.name}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{row.email}</div>
+          <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginTop: '4px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '10.5px',
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: isTrack2 ? '#f0fdf4' : '#eff6ff',
+                color: isTrack2 ? '#166534' : '#1d4ed8',
+                border: `1px solid ${isTrack2 ? '#bbf7d0' : '#bfdbfe'}`,
+              }}
+            >
+              <Compass size={11} />
+              {trackBadge}
+            </span>
+            {(row.isScholarship || row.scholarshipVideoUrl) && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: '#fef3c7',
+                  color: '#b45309',
+                  border: '1px solid #fde68a',
+                }}
+              >
+                <Award size={11} />
+                SCHOLARSHIP
+              </span>
+            )}
+          </div>
+        </div>
+      )
+    },
   },
   {
     key: 'contact',

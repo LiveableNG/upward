@@ -11,6 +11,7 @@ export interface UniversityApplicationProps {
   city: string
   ageBracket: string
   occupation?: string | null
+  track?: string | null
   experienceLevel?: string | null
   goals?: string | null
   commitment: string
@@ -135,6 +136,22 @@ export class UniversityApplication {
   get paymentRef(): string | null | undefined {
     return this.props.paymentRef
   }
+  get track(): string | null | undefined {
+    if (this.props.track) return this.props.track
+    if (this.props.notes) {
+      const match = this.props.notes.match(/\[Track:\s*([^\]]+)\]/i)
+      if (match?.[1]) return match[1].trim()
+    }
+    if (this.props.experienceLevel) {
+      const match = this.props.experienceLevel.match(/\[(Track\s*[12][^\]]*)\]/i)
+      if (match?.[1]) return match[1].trim()
+    }
+    if (this.props.goals) {
+      const match = this.props.goals.match(/Track:\s*([^\n,]+)/i)
+      if (match?.[1]) return match[1].trim()
+    }
+    return null
+  }
   get notes(): string | null | undefined {
     return this.props.notes
   }
@@ -145,7 +162,10 @@ export class UniversityApplication {
     return this.props.updatedAt
   }
 
-  toObject(): UniversityApplicationProps {
-    return { ...this.props }
+  toObject(): UniversityApplicationProps & { track?: string | null } {
+    return {
+      ...this.props,
+      track: this.track,
+    }
   }
 }

@@ -5,6 +5,7 @@ import {
   Calendar,
   Layers,
   Trash2,
+  Compass,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { EarlyAccessRecord } from '../types'
@@ -202,6 +203,42 @@ export const EarlyAccessDetailModal: React.FC<EarlyAccessDetailModalProps> = ({
                   </div>
                 </div>
               )}
+              {/* Selected Track if present */}
+              {(() => {
+                const trackMatch =
+                  record.interest?.match(/\[Track:\s*([^\]]+)\]/i) ||
+                  record.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)
+                if (!trackMatch) return null
+                const trackStr = trackMatch[1].trim()
+                const isTrack2 =
+                  trackStr.toLowerCase().includes('2') || trackStr.toLowerCase().includes('started')
+                return (
+                  <div style={{ marginTop: '12px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      Selected Track:
+                    </span>
+                    <div
+                      style={{
+                        background: isTrack2 ? '#f0fdf4' : '#fff7ed',
+                        color: isTrack2 ? '#166534' : '#9a3412',
+                        border: `1px solid ${isTrack2 ? '#bbf7d0' : '#ffedd5'}`,
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        marginTop: '4px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <Compass size={15} color={isTrack2 ? '#166534' : '#c2410c'} />
+                      <span>{isTrack2 ? 'Track 2 — Already Started' : 'Track 1 — Starting From Zero'}</span>
+                    </div>
+                  </div>
+                )
+              })()}
+
               {record.interest && (
                 <div style={{ marginTop: '12px' }}>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -223,7 +260,10 @@ export const EarlyAccessDetailModal: React.FC<EarlyAccessDetailModalProps> = ({
                     }}
                   >
                     <Calendar size={15} />
-                    {record.interest}
+                    {record.interest
+                      .replace(/\[Track:\s*[^\]]+\]\s*/gi, '')
+                      .replace(/\[Session:\s*([^\]]+)\]/i, '$1')
+                      .trim()}
                   </div>
                 </div>
               )}
