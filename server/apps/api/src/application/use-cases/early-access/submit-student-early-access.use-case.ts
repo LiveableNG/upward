@@ -19,6 +19,8 @@ export interface SubmitStudentEarlyAccessCommand {
   city: string
   ageBracket: string
   experienceLevel: string
+  track?: string
+  occupation?: string
   interest?: string
   sessionTime?: string
   sourceIdentifier?: string
@@ -41,6 +43,18 @@ export class SubmitStudentEarlyAccessUseCase {
     const normalizedPhone = normalizePhoneNumber(command.whatsapp)
     const normalizedEmail = normalizeEmail(command.email) || command.email
 
+    const interestParts: string[] = []
+    if (command.track) {
+      interestParts.push(`[Track: ${command.track}]`)
+    }
+    if (command.sessionTime) {
+      interestParts.push(`[Session: ${command.sessionTime}]`)
+    }
+    if (command.interest) {
+      interestParts.push(command.interest)
+    }
+    const combinedInterest = interestParts.length > 0 ? interestParts.join(' ').trim() : undefined
+
     const entry = EarlyAccessEntry.create({
       type: 'STUDENT',
       name: command.name.trim(),
@@ -50,9 +64,7 @@ export class SubmitStudentEarlyAccessUseCase {
       ageBracket: command.ageBracket,
       experienceLevel: command.experienceLevel,
       abVariant: command.abVariant || 'A',
-      interest: command.sessionTime
-        ? `[Session: ${command.sessionTime}] ${command.interest || ''}`.trim()
-        : command.interest,
+      interest: combinedInterest,
     })
 
     const saved = await this.earlyAccessRepo.save(entry)
@@ -113,6 +125,8 @@ export class SubmitStudentEarlyAccessUseCase {
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">City:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.city}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Age Bracket:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.ageBracket}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Experience:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.experienceLevel}</td></tr>
+            ${command.track ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Track:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.track}</td></tr>` : ''}
+            ${command.occupation ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Occupation:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.occupation}</td></tr>` : ''}
             ${command.sessionTime ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Session Time:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.sessionTime}</td></tr>` : ''}
             ${command.interest ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Interest:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.interest}</td></tr>` : ''}
           </table>
