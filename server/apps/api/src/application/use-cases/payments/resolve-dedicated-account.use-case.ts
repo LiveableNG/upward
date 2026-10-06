@@ -27,7 +27,6 @@ export class ResolveDedicatedAccountUseCase {
     tenantEmail?: string
     tenantName?: string
     tenantPhone?: string
-    subaccountCode?: string
     preferredBank?: string
     forceReissue?: boolean
     disableFallback?: boolean
@@ -56,7 +55,6 @@ export class ResolveDedicatedAccountUseCase {
     this.logger.log(`Requesting DVA creation from Paystack for customer ${customerCode} with preferred bank: ${data.preferredBank || 'titan-paystack'}`)
     const res = await this.gateway.createDedicatedAccount({
       customerCode,
-      subaccountCode: data.subaccountCode,
       preferredBank: data.preferredBank,
       disableFallback: data.disableFallback,
     })

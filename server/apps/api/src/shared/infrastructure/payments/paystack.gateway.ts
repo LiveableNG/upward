@@ -356,7 +356,6 @@ export class PaystackGateway implements IPaymentGateway {
 
   async createDedicatedAccount(data: {
     customerCode: string
-    subaccountCode?: string
     preferredBank?: string
     disableFallback?: boolean
   }): Promise<any> {
@@ -371,7 +370,6 @@ export class PaystackGateway implements IPaymentGateway {
         headers: this.headers,
         body: JSON.stringify({
           customer: data.customerCode,
-          subaccount: data.subaccountCode,
           preferred_bank: bank,
         }),
       })
