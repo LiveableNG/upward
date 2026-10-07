@@ -2097,20 +2097,13 @@
         };
 
         try {
-          await Promise.allSettled([
-            fetch('/api/v1/early-access/student', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(leadPayload)
-            }),
-            fetch('/api/v1/university/application', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(appStage1Payload)
-            })
-          ]);
+          await fetch('/api/v1/university/application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(appStage1Payload)
+          });
         } catch (e) {
-          console.warn('Stage 1 lead capture sync error:', e);
+          console.warn('Stage 1 application sync error:', e);
         } finally {
           if (btnStage1) {
             btnStage1.disabled = false;

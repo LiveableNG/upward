@@ -114,10 +114,38 @@ export class SubmitStudentEarlyAccessUseCase {
 
     // 2. Send Admin System Notification
     try {
+      const isInfoSession = Boolean(
+        command.sessionTime &&
+        command.sessionTime !== "I don't need an info session" &&
+        command.sessionTime.trim().length > 0
+      )
+
+      const adminSubject = isInfoSession
+        ? `📅 [Info Session RSVP] ${command.name} (${command.city})${command.sessionTime ? ` — ${command.sessionTime}` : ''}`
+        : `🎓 New Student Early Access: ${command.name} (${command.city})`
+
+      const adminTitle = isInfoSession
+        ? '📅 Upward Academy Info & Q&A Session RSVP'
+        : '🎓 New Student Early Access Waitlist'
+
+      const adminSubtitle = isInfoSession
+        ? `A new applicant has RSVP'd for an <strong>Upward Academy Information &amp; Q&amp;A Session</strong>.`
+        : `A new student applicant has joined the <strong>Upward Academy Founding Cohort 2026</strong> early access list.`
+
+      const sessionCallout = isInfoSession
+        ? `
+          <div style="background: #fdf6ec; border-left: 4px solid #8A4A2A; padding: 10px 14px; margin: 14px 0 16px 0; border-radius: 4px;">
+            <div style="font-size: 11px; font-weight: bold; color: #8A4A2A; text-transform: uppercase; letter-spacing: 0.5px;">Reserved Information Session</div>
+            <div style="font-size: 15px; font-weight: bold; color: #111; margin-top: 2px;">${command.sessionTime}</div>
+          </div>
+        `
+        : ''
+
       const adminMessage = `
-        <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
-          <h3 style="color: #d97757; margin-bottom: 12px;">New Student Early Access Application</h3>
-          <p>A new student applicant has just joined the <strong>Upward Academy Founding Cohort 2026</strong> early access list.</p>
+        <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px;">
+          <h3 style="color: #8A4A2A; margin-bottom: 6px;">${adminTitle}</h3>
+          <p style="margin-top: 0; color: #555;">${adminSubtitle}</p>
+          ${sessionCallout}
           <table style="width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px;">
             <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; border-bottom: 1px solid #eee;">Name:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.name}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.email || 'None'}</td></tr>
@@ -125,15 +153,14 @@ export class SubmitStudentEarlyAccessUseCase {
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">City:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.city}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Age Bracket:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.ageBracket}</td></tr>
             <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Experience:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.experienceLevel}</td></tr>
-            ${command.track ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Track:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.track}</td></tr>` : ''}
+            ${command.track ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Track:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;"><strong>${command.track}</strong></td></tr>` : ''}
             ${command.occupation ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Occupation:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.occupation}</td></tr>` : ''}
-            ${command.sessionTime ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Session Time:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.sessionTime}</td></tr>` : ''}
             ${command.interest ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Interest:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.interest}</td></tr>` : ''}
           </table>
         </div>
       `
       await this.emailService.sendSystemAlertToAdmins(
-        `🎓 New Student Early Access: ${command.name} (${command.city})`,
+        adminSubject,
         adminMessage,
       )
     } catch (err) {
