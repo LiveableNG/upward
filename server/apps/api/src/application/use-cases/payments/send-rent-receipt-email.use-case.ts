@@ -306,17 +306,32 @@ export class SendRentReceiptEmailUseCase {
       }
     }
 
-    let logoUrl = property.pm?.receiptSetting?.useEmailLogo === false 
-      ? property.pm?.receiptSetting?.logoUrl 
-      : property.pm?.emailSetting?.logoUrl
+    // Custom branded receipts (custom logo & theme color) are exclusive to Tier 3 (Enterprise).
+    // Tier 2 and Tier 1 (or downgraded) receipts use standard Upward branding.
+    let hasBrandingAccess = false
+    if (pm?.id) {
+      const brandingCheck = await this.subscriptionService.checkAccess(pm.id, FeatureKey.BRANDING)
+      hasBrandingAccess = brandingCheck.hasAccess
+    }
 
-    if (!logoUrl && property.company?.logoUrl) {
+    let logoUrl: string | undefined = undefined
+    let themeColor = '#B65B37'
+
+    if (hasBrandingAccess) {
+      logoUrl = pm?.receiptSetting?.useEmailLogo === false 
+        ? pm?.receiptSetting?.logoUrl 
+        : pm?.emailSetting?.logoUrl
+
+      if (!logoUrl && property.company?.logoUrl) {
+        logoUrl = property.company.logoUrl
+      }
+
+      themeColor = pm?.receiptSetting?.themeColor || '#B65B37'
+    } else if (!pm && property.company?.logoUrl) {
       logoUrl = property.company.logoUrl
     }
 
     if (!logoUrl) logoUrl = undefined
-
-    const themeColor = property.pm?.receiptSetting?.themeColor || '#B65B37'
 
     const managerName = property.manager
       ? `${property.manager.firstName?.includes(':') ? this.encryption.decrypt(property.manager.firstName) : property.manager.firstName} ${property.manager.lastName?.includes(':') ? this.encryption.decrypt(property.manager.lastName) : property.manager.lastName}`.trim()
