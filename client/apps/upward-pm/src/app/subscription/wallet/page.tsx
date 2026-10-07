@@ -283,7 +283,13 @@ export default function WalletPage() {
         <WalletHeroCard
           currentBalance={currentBalance}
           onTopUpClick={() => setIsTopUpOpen(true)}
-          onManagePlanClick={() => router.push('/subscription/checkout?tier=TIER_2')}
+          onManagePlanClick={() => {
+            const activeTier = (subscription?.tier === 'TIER_3' || subscription?.tier === 'TIER_2')
+              ? subscription.tier
+              : 'TIER_2';
+            const activeMode = subscription?.unitBillingMode || 'active';
+            router.push(`/subscription/checkout?tier=${activeTier}&billingMode=${activeMode}`);
+          }}
         />
 
         {/* Stats Row */}

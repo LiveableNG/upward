@@ -1680,3 +1680,373 @@
     padding: 0 16px;
   }
 }
+
+/* ==========================================================================
+   Checkout Stepper & Plan Selection UX Redesign
+   ========================================================================== */
+
+/* 1. Stepper Progress Indicator */
+.checkout-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding: 14px 20px;
+  background: #ffffff;
+  border: 1px solid #E7E3DB;
+  border-radius: 16px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.checkout-stepper__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.55;
+  transition: all 0.2s ease;
+}
+
+.checkout-stepper__step--active {
+  opacity: 1;
+}
+
+.checkout-stepper__circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #EFECE6;
+  color: #5D5954;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.checkout-stepper__step--active .checkout-stepper__circle {
+  background: var(--forest, #166534);
+  color: #ffffff;
+}
+
+.checkout-stepper__text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A1A17;
+  white-space: nowrap;
+}
+
+.checkout-stepper__divider {
+  width: 24px;
+  height: 1px;
+  background: #D9D4CB;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .checkout-stepper {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+  }
+  .checkout-stepper__divider {
+    width: 12px;
+  }
+  .checkout-stepper__text {
+    font-size: 11px;
+  }
+}
+
+/* 2. Plan Selection Section & Cards */
+.plan-selection-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.plan-selection-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-selection-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1A1A17;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.plan-selection-subtitle {
+  font-size: 14px;
+  color: #5D5954;
+  margin: 0;
+}
+
+.plan-selection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .plan-selection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Individual Plan Card */
+.plan-card {
+  background: #ffffff;
+  border: 2px solid #E7E3DB;
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  outline: none;
+}
+
+.plan-card:hover {
+  border-color: #C2BBB0;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(26, 26, 23, 0.05);
+}
+
+.plan-card--selected {
+  border-color: var(--forest, #166534);
+  background: #FFFFFF;
+  box-shadow: 0 0 0 1px var(--forest, #166534), 0 12px 28px rgba(22, 101, 52, 0.08);
+}
+
+.plan-card--enterprise.plan-card--selected {
+  border-color: #0F5132;
+  box-shadow: 0 0 0 1px #0F5132, 0 12px 28px rgba(15, 81, 50, 0.1);
+}
+
+.plan-card__top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plan-card__identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.plan-card__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-card__name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1A1A17;
+  margin: 0;
+}
+
+.plan-card__tier-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: #F0ECE4;
+  color: #5D5954;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.plan-card__tier-pill--tier3 {
+  background: #E8F4EC;
+  color: #166534;
+}
+
+/* Badges */
+.plan-card__badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+}
+
+.plan-card__badge--current {
+  background: #E8F4EC;
+  color: #166534;
+  border: 1px solid rgba(22, 101, 52, 0.2);
+}
+
+.plan-card__badge--promo {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid rgba(146, 64, 14, 0.2);
+}
+
+.plan-card__badge--downgrade {
+  background: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.plan-card__tagline {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #5D5954;
+  margin: 0;
+  min-height: 38px;
+}
+
+/* Pricing Display in Card */
+.plan-card__pricing {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-card__rate {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.plan-card__rate-strikethrough {
+  font-size: 14px;
+  color: #9CA3AF;
+  text-decoration: line-through;
+  font-weight: 600;
+}
+
+.plan-card__rate-amount {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1A1A17;
+  letter-spacing: -0.02em;
+}
+
+.plan-card--selected .plan-card__rate-amount {
+  color: var(--forest, #166534);
+}
+
+.plan-card__rate-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.plan-card__calc-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8A857F;
+}
+
+.plan-card__divider {
+  height: 1px;
+  background: #EFECE6;
+  margin: 18px 0;
+}
+
+/* Feature List */
+.plan-card__features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.plan-card__features-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.plan-card__feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-card__feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.plan-card__check {
+  color: var(--forest, #166534);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Action button inside card */
+.plan-card__action-wrap {
+  margin-top: 24px;
+}
+
+.plan-card__status-btn {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.plan-card__status-btn--selected {
+  background: #E8F4EC;
+  color: var(--forest, #166534);
+  border: 1px solid rgba(22, 101, 52, 0.25);
+}
+
+.plan-card__status-btn--selectable {
+  background: #F4F1EA;
+  color: #1A1A17;
+  cursor: pointer;
+  border: 1px solid #DED9CF;
+}
+
+.plan-card__status-btn--selectable:hover {
+  background: #EAE5DC;
+  border-color: #C5BFB4;
+}
+
+/* 3. Order summary plan badge */
+.order-summary-plan-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  background: #F0ECE4;
+  color: #1A1A17;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+

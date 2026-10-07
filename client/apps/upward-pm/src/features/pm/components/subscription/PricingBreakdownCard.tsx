@@ -1,9 +1,10 @@
 import React from 'react';
+import { SubscriptionTier } from '@/features/pm/types/subscription';
 
 interface PricingBreakdownCardProps {
   unitCount: number;
   yearlyRate: number;
-  tier: 'TIER_2' | 'TIER_3';
+  tier: SubscriptionTier;
 }
 
 export function PricingBreakdownCard({

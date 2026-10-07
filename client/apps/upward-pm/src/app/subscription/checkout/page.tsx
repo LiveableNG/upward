@@ -14,17 +14,14 @@ import {
   Lock,
   Percent
 } from 'lucide-react';
-import { UpwardLogo } from '@/components/common/UpwardLogo';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
 import { api } from '@/lib/api';
 import { useUnits } from '@/features/pm/hooks/useProperties';
 import { useAuth } from '@/features/auth/AuthContext';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
-import { Modal } from '@/components/ui/Modal/Modal';
 import { useToast } from '@/components/common/Toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { PlanSelectionCard } from '@/features/pm/components/subscription/PlanSelectionCard';
-import { SubscriptionSummaryCard } from '@/features/pm/components/subscription/SubscriptionSummaryCard';
 import { BillingConfigurationCard } from '@/features/pm/components/subscription/BillingConfigurationCard';
 import { PricingBreakdownCard } from '@/features/pm/components/subscription/PricingBreakdownCard';
 import { OrderSummaryCard } from '@/features/pm/components/subscription/OrderSummaryCard';
@@ -35,9 +32,20 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTier = searchParams.get('tier') as SubscriptionTier | null;
-  const tier: SubscriptionTier = rawTier === 'TIER_3' ? 'TIER_3' : 'TIER_2';
-  const initialMode = (searchParams.get('billingMode') as 'active' | 'all') || 'active';
+  const normalizeMode = (mode?: string | null): 'active' | 'all' => {
+    return mode?.toLowerCase() === 'active' ? 'active' : 'all';
+  };
 
+  const rawMode = searchParams.get('billingMode');
+  const initialMode = rawMode ? normalizeMode(rawMode) : 'all';
+
+  const { subscription, wallet, selectTier, isSelectingTier, topUp, dva, isDvaLoading, generateDva, isGeneratingDva } = useSubscription();
+  const { data: units = [] } = useUnits();
+  const { user } = useAuth();
+  const { success, error, info } = useToast();
+  const queryClient = useQueryClient();
+
+  const [tier, setTier] = useState<'TIER_2' | 'TIER_3'>(rawTier === 'TIER_3' ? 'TIER_3' : 'TIER_2');
   const [billingMode, setBillingMode] = useState<'active' | 'all'>(initialMode);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'bank'>('card');
   const [customTopUpAmount, setCustomTopUpAmount] = useState<string>('');
@@ -56,14 +64,20 @@ function CheckoutContent() {
     isSufficient: boolean;
   } | null>(null);
 
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  // Memory: If URL did not specify a tier, initialize to user's current subscription tier if active
+  useEffect(() => {
+    if (!rawTier && subscription?.tier && (subscription.tier === 'TIER_2' || subscription.tier === 'TIER_3')) {
+      setTier(subscription.tier);
+    }
+  }, [subscription?.tier, rawTier]);
 
-  const { success, error, info } = useToast();
-  const queryClient = useQueryClient();
-
-  const { subscription, wallet, selectTier, isSelectingTier, topUp, dva, isDvaLoading, generateDva, isGeneratingDva } = useSubscription();
-  const { data: units = [] } = useUnits();
-  const { user } = useAuth();
+  // Memory: If URL did not specify billing mode, initialize to user's active billing mode (only if they have an active paid subscription)
+  useEffect(() => {
+    const modeInQuery = searchParams.get('billingMode');
+    if (!modeInQuery && subscription?.isInitialDepositPaid && subscription?.status === 'ACTIVE' && subscription?.unitBillingMode) {
+      setBillingMode(normalizeMode(subscription.unitBillingMode));
+    }
+  }, [subscription?.isInitialDepositPaid, subscription?.status, subscription?.unitBillingMode, searchParams]);
 
   // Unit count calculation
   const occupiedUnits = units.filter((u: any) => u.status === 'OCCUPIED').length;
@@ -79,6 +93,9 @@ function CheckoutContent() {
   const currentBalance = wallet?.balance ?? 0;
   const deficit = Math.max(0, minRequiredDeposit - currentBalance);
   const isBalanceSufficient = currentBalance >= minRequiredDeposit;
+
+  const isCurrentPlanActive = subscription?.tier === tier && subscription?.status === 'ACTIVE' && Boolean(subscription?.isInitialDepositPaid);
+  const isBillingModeChanged = isCurrentPlanActive && Boolean(subscription?.unitBillingMode && normalizeMode(subscription.unitBillingMode) !== billingMode);
 
   useEffect(() => {
     if (user?.accountType === 'PM_EMPLOYEE') {
@@ -123,14 +140,38 @@ function CheckoutContent() {
     }
   }, [deficit]);
 
+  const handleSelectTier = (newTier: 'TIER_2' | 'TIER_3') => {
+    setTier(newTier);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tier', newTier);
+      url.searchParams.set('billingMode', billingMode);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const handleBillingModeChange = (newMode: 'active' | 'all') => {
+    setBillingMode(newMode);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tier', tier);
+      url.searchParams.set('billingMode', newMode);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   const handleActivatePlan = async () => {
-    if (!isBalanceSufficient) return;
+    if (!isBalanceSufficient && !(isCurrentPlanActive && isBillingModeChanged)) return;
     try {
       selectTier(
         { tier, billingMode },
         {
           onSuccess: () => {
-            router.push('/dashboard?subscription=activated');
+            if (isCurrentPlanActive && isBillingModeChanged) {
+              success('Billing configuration updated successfully');
+            } else {
+              router.push('/dashboard?subscription=activated');
+            }
           },
         }
       );
@@ -214,7 +255,7 @@ function CheckoutContent() {
 
   return (
     <div className="checkout-page-wrapper animate-fade-in">
-      {/* Improved Header */}
+      {/* Navigation Header */}
       <nav className="checkout-navbar">
         <div className="checkout-navbar__left">
           <button className="checkout-navbar__back" onClick={() => router.back()}>
@@ -223,7 +264,9 @@ function CheckoutContent() {
           <div className="checkout-navbar__divider" />
           <div className="checkout-navbar__title-group">
             <span className="checkout-navbar__title">Checkout</span>
-            <span className="checkout-navbar__subtitle">{tier === 'TIER_3' ? 'Enterprise Plan' : 'Professional Plan'} Selection</span>
+            <span className="checkout-navbar__subtitle">
+              Choose a plan and configure your subscription
+            </span>
           </div>
         </div>
         <div className="checkout-navbar__security">
@@ -233,29 +276,48 @@ function CheckoutContent() {
       </nav>
 
       <div className="checkout-container">
+        {/* Step Progress Indicator */}
+        <div className="checkout-stepper">
+          <div className="checkout-stepper__step checkout-stepper__step--active">
+            <span className="checkout-stepper__circle">1</span>
+            <span className="checkout-stepper__text">Choose Plan</span>
+          </div>
+          <div className="checkout-stepper__divider" />
+          <div className="checkout-stepper__step checkout-stepper__step--active">
+            <span className="checkout-stepper__circle">2</span>
+            <span className="checkout-stepper__text">Configure</span>
+          </div>
+          <div className="checkout-stepper__divider" />
+          <div className="checkout-stepper__step">
+            <span className="checkout-stepper__circle">3</span>
+            <span className="checkout-stepper__text">Review & Activate</span>
+          </div>
+        </div>
+
         <div className="checkout-grid">
           {/* LEFT COLUMN (65%) */}
           <div className="checkout-main">
-            {/* Card 1 — Subscription Summary */}
-            <SubscriptionSummaryCard
-              tier={tier}
+            {/* Step 1 — Choose Your Plan */}
+            <PlanSelectionCard
+              selectedTier={tier}
+              onSelectTier={handleSelectTier}
               unitCount={unitCount}
-              yearlyRate={yearlyRate}
-              billingMode={billingMode}
-              onEditClick={() => setIsConfigOpen(true)}
+              currentSubscriptionTier={subscription?.tier}
+              isInitialDepositPaid={subscription?.isInitialDepositPaid}
             />
 
-            {/* Card 2 — Billing Configuration */}
+            {/* Step 2 — Configure Subscription Plan */}
             <BillingConfigurationCard
+              tierName={tier === 'TIER_3' ? 'Enterprise' : 'Professional'}
               billingMode={billingMode}
               occupiedUnits={occupiedUnits}
               totalUnits={totalUnits}
               yearlyRate={yearlyRate}
               unitCount={unitCount}
-              onBillingModeChange={setBillingMode}
+              onBillingModeChange={handleBillingModeChange}
             />
 
-            {/* Card 3 — Pricing Breakdown */}
+            {/* Step 3 — Pricing Breakdown */}
             <PricingBreakdownCard
               unitCount={unitCount}
               yearlyRate={yearlyRate}
@@ -266,6 +328,10 @@ function CheckoutContent() {
           {/* RIGHT COLUMN (35%) */}
           <div className="checkout-sidebar">
             <OrderSummaryCard
+              tier={tier}
+              currentSubscriptionTier={subscription?.tier}
+              isCurrentPlanActive={isCurrentPlanActive}
+              isBillingModeChanged={isBillingModeChanged}
               unitCount={unitCount}
               yearlyRate={yearlyRate}
               minRequiredDeposit={minRequiredDeposit}
@@ -294,24 +360,6 @@ function CheckoutContent() {
           </div>
         </div>
       </div>
-
-      {/* Configure Options Modal */}
-      <Modal
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-        title="Configure Subscription Plan"
-        maxWidth={520}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
-          <PlanSelectionCard
-            currentTier={tier}
-            onSelectPlan={(newTier) => {
-              setIsConfigOpen(false);
-              router.replace(`/subscription/checkout?tier=${newTier}&billingMode=${billingMode}`);
-            }}
-          />
-        </div>
-      </Modal>
 
       {/* Success Modal */}
       <SubscriptionSuccessModal

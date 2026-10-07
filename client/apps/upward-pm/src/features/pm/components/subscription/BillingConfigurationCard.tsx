@@ -6,6 +6,7 @@ interface BillingConfigurationCardProps {
   totalUnits: number;
   yearlyRate: number;
   unitCount: number;
+  tierName?: string;
   onBillingModeChange: (mode: 'active' | 'all') => void;
 }
 
@@ -15,21 +16,35 @@ export function BillingConfigurationCard({
   totalUnits,
   yearlyRate,
   unitCount,
+  tierName,
   onBillingModeChange,
 }: BillingConfigurationCardProps) {
+  const normalizedMode = (billingMode as string)?.toLowerCase() === 'active' ? 'active' : 'all';
+  const isActive = normalizedMode === 'active';
+  const isAll = normalizedMode === 'all';
+
   return (
     <div className="checkout-card">
       <div className="checkout-card__title">
-        <span>Billing Configuration</span>
+        <span>Configure your {tierName || 'Subscription'} plan</span>
       </div>
 
-      <div className="billing-mode-cards">
+      <div className="billing-mode-cards" role="radiogroup" aria-label="Unit Billing Mode">
         <div
-          className={`billing-mode-card ${billingMode === 'active' ? 'billing-mode-card--active' : ''}`}
+          className={`billing-mode-card ${isActive ? 'billing-mode-card--active' : ''}`}
           onClick={() => onBillingModeChange('active')}
+          role="radio"
+          aria-checked={isActive}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              onBillingModeChange('active');
+            }
+          }}
         >
           <div className="billing-mode-radio-circle">
-            <div className="billing-mode-radio-inner" />
+            {isActive && <div className="billing-mode-radio-inner" style={{ display: 'block' }} />}
           </div>
           <div className="billing-mode-details">
             <span className="billing-mode-name">Active Units ({occupiedUnits})</span>
@@ -38,11 +53,20 @@ export function BillingConfigurationCard({
         </div>
 
         <div
-          className={`billing-mode-card ${billingMode === 'all' ? 'billing-mode-card--active' : ''}`}
+          className={`billing-mode-card ${isAll ? 'billing-mode-card--active' : ''}`}
           onClick={() => onBillingModeChange('all')}
+          role="radio"
+          aria-checked={isAll}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              onBillingModeChange('all');
+            }
+          }}
         >
           <div className="billing-mode-radio-circle">
-            <div className="billing-mode-radio-inner" />
+            {isAll && <div className="billing-mode-radio-inner" style={{ display: 'block' }} />}
           </div>
           <div className="billing-mode-details">
             <span className="billing-mode-name">All Units ({totalUnits})</span>
