@@ -28,6 +28,8 @@ export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: Lock
         return 'Listing & Brokerage Announcements';
       case FeatureKey.BRANDING:
         return 'Branding & White-labelling';
+      case FeatureKey.AUTOMATED_RENT_RECEIPTS:
+        return 'Automated Rent Receipts via Email';
       default:
         return 'Premium Property Feature';
     }

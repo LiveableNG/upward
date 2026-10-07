@@ -114,6 +114,7 @@ export function useSubscription() {
         return { hasAccess: true, requiredTier: 'FREE' };
       case FeatureKey.DOCUMENT_MANAGEMENT:
       case FeatureKey.SERVICE_CHARGE_PAYMENTS:
+      case FeatureKey.AUTOMATED_RENT_RECEIPTS:
         return {
           hasAccess: currentTier === 'TIER_2' || currentTier === 'TIER_3',
           requiredTier: 'TIER_2',

@@ -206,6 +206,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
               <li><Check size={14} /> Rent Collection</li>
+              <li className="locked"><X size={14} /> Automated Rent Receipts via Email</li>
               <li className="locked"><X size={14} /> Document Management</li>
               <li className="locked"><X size={14} /> Service Charge Payments</li>
               <li className="locked"><X size={14} /> Listing & Brokerage</li>
@@ -236,6 +237,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
               <li><Check size={14} /> Rent Collection</li>
+              <li><Check size={14} /> Automated Rent Receipts via Email</li>
               <li><Check size={14} /> Document Management</li>
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 30% Listing Announcements</li>
@@ -269,6 +271,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
               <li><Check size={14} /> Rent Collection</li>
+              <li><Check size={14} /> Automated Rent Receipts via Email</li>
               <li><Check size={14} /> Document Management</li>
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 100% Listing Announcements</li>

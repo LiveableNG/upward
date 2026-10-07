@@ -18,6 +18,7 @@ export class SubscriptionService {
         return UpwardSubscriptionTier.FREE;
       case FeatureKey.DOCUMENT_MANAGEMENT:
       case FeatureKey.SERVICE_CHARGE_PAYMENTS:
+      case FeatureKey.AUTOMATED_RENT_RECEIPTS:
         return UpwardSubscriptionTier.TIER_2;
       case FeatureKey.LISTING_BROKERAGE:
         return UpwardSubscriptionTier.TIER_2;
