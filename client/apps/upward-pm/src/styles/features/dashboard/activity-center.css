@@ -1,4 +1,201 @@
-/* Activity Center */
+/* Compact Action Center / Needs Attention */
+.action-center-compact {
+  margin-bottom: var(--space-6);
+}
+
+.action-center-compact__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  gap: var(--space-2);
+}
+
+.action-center-compact__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-center-compact__title {
+  font-family: var(--font-main);
+  font-size: 13.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin: 0;
+}
+
+.action-center-compact__count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 1px 7px;
+  border-radius: 100px;
+  line-height: 1.4;
+}
+
+.action-center-compact__all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--forest);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.action-center-compact__all-link:hover {
+  color: var(--forest-hover, #14532d);
+  transform: translateX(2px);
+}
+
+.action-center-compact__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 10px;
+}
+
+.action-center-compact__grid--single {
+  grid-template-columns: 1fr;
+}
+
+.action-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  min-height: 46px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.action-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.action-chip:active {
+  transform: scale(0.99);
+}
+
+.action-chip--high {
+  border-left: 3.5px solid #ef4444;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.025) 0%, var(--surface) 100%);
+}
+
+.action-chip--high:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  border-left-color: #ef4444;
+}
+
+.action-chip--normal {
+  border-left: 3.5px solid #f59e0b;
+}
+
+.action-chip--normal:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  border-left-color: #f59e0b;
+}
+
+.action-chip__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.action-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.action-chip__dot--high {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  animation: pulseDot 2s infinite;
+}
+
+.action-chip__dot--normal {
+  background: #f59e0b;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.35);
+  }
+}
+
+.action-chip__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-chip__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.action-chip__badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.action-chip__badge--high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.action-chip__badge--normal {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-secondary);
+}
+
+.action-chip__arrow {
+  color: var(--text-muted);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+}
+
+.action-chip:hover .action-chip__arrow {
+  transform: translateX(3px);
+  color: var(--forest);
+}
+
+@media (max-width: 640px) {
+  .action-center-compact__grid {
+    grid-template-columns: 1fr;
+  }
+  .action-chip {
+    padding: 10px 12px;
+  }
+}
+
+/* Legacy Activity Center Classes */
 .activity-center {
   margin-bottom: var(--space-8);
 }
@@ -351,6 +548,7 @@
     margin-bottom: 10px !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
   }

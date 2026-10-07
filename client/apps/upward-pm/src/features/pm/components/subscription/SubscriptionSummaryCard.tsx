@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 interface SubscriptionSummaryCardProps {
   tier: 'TIER_2' | 'TIER_3';
@@ -23,7 +23,7 @@ export function SubscriptionSummaryCard({
           <h3 style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
             {tier === 'TIER_3' ? 'Enterprise Tier' : 'Professional Tier'}
             <span className={`checkout-tier-badge ${tier === 'TIER_3' ? 'checkout-tier-badge--tier3' : ''}`}>
-              <Sparkles size={12} /> {tier === 'TIER_3' ? 'Tier 3' : 'Tier 2'}
+              <ShieldCheck size={12} /> {tier === 'TIER_3' ? 'Tier 3' : 'Tier 2'}
             </span>
             <span className="checkout-tier-badge" style={{ background: '#EEEFF9', color: '#4E53A2', borderColor: 'rgba(78, 83, 162, 0.1)' }}>
               {billingMode === 'all' ? 'All Units Billing' : 'Active Units Billing'}

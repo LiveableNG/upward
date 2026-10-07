@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Check, X, Sparkles, Lock, Building2, User, Mail, ShieldAlert } from 'lucide-react';
+import { Check, X, Clock, Lock, Building2, User, Mail, ShieldAlert } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
 import { useAuth } from '@/features/auth/AuthContext';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
@@ -190,7 +190,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <Sparkles size={16} />
+            <Clock size={16} />
             <span>
               Your plan is scheduled to downgrade to <strong>{subscription.pendingTier === 'FREE' ? 'Free' : subscription.pendingTier === 'TIER_2' ? 'Professional' : 'Enterprise'}</strong> on your next billing date. You can cancel this by clicking <strong>Keep Current Plan</strong>.
             </span>

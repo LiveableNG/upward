@@ -8,7 +8,6 @@ import {
   ShieldCheck, 
   CreditCard, 
   Building2, 
-  Sparkles, 
   Wallet as WalletIcon,
   AlertCircle,
   Zap,
