@@ -23,6 +23,7 @@ export class SubscriptionService {
       case FeatureKey.LISTING_BROKERAGE:
         return UpwardSubscriptionTier.TIER_2;
       case FeatureKey.BRANDING:
+      case FeatureKey.REPORTS_AND_TEAM_ACTIVITY:
         return UpwardSubscriptionTier.TIER_3;
       default:
         return UpwardSubscriptionTier.FREE;

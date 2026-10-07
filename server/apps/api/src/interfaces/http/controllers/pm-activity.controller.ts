@@ -1,13 +1,17 @@
 
 import { Controller, Get, Param, Query, UseGuards, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard';
+import { SubscriptionGateGuard } from '../../../application/auth/guards/subscription-gate.guard';
+import { RequireFeature } from '../../../application/auth/decorators/require-feature.decorator';
+import { FeatureKey } from '../../../domains/subscription/subscription.service';
 import { CurrentPmActor } from '../../../application/auth/decorators/current-pm-actor.decorator';
 import { PmActorContext } from '../../../domains/pm/types/pm-actor-context';
 import { GetTeamActivityDashboardUseCase } from '../../../application/pm/use-cases/team/get-team-activity-dashboard.use-case';
 import { GetCollaboratorActivitiesUseCase } from '../../../application/pm/use-cases/team/get-collaborator-activities.use-case';
 
 @Controller('pm/team')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SubscriptionGateGuard)
+@RequireFeature(FeatureKey.REPORTS_AND_TEAM_ACTIVITY)
 export class PmActivityController {
   constructor(
     private readonly getTeamActivityDashboardUseCase: GetTeamActivityDashboardUseCase,

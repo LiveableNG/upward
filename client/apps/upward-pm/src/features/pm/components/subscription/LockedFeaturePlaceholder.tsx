@@ -30,6 +30,8 @@ export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: Lock
         return 'Branding & White-labelling';
       case FeatureKey.AUTOMATED_RENT_RECEIPTS:
         return 'Automated Rent Receipts via Email';
+      case FeatureKey.REPORTS_AND_TEAM_ACTIVITY:
+        return 'Rent Collection Reports & Team Activity Dashboard';
       default:
         return 'Premium Property Feature';
     }
@@ -43,6 +45,8 @@ export function LockedFeaturePlaceholder({ feature, requiredTier, reason }: Lock
     }
     return isEmployee
       ? `This feature is locked under your organization's current plan. Kindly contact your administrator to activate a subscription.`
+      : requiredTier === 'TIER_3'
+      ? `This feature is exclusive to Upward Enterprise (Tier 3). Upgrade your subscription to unlock advanced reporting & audit features.`
       : `This feature is part of Upward Professional (Tier 2). Upgrade your subscription to restore access and activate data.`;
   };
 

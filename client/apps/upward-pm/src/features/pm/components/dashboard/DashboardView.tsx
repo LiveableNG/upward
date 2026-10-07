@@ -44,6 +44,8 @@ import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { formatTenantName } from '@/lib/utils'
 import { DocumentEditorView } from '../documents/DocumentEditorView'
 import { useSubscription } from '@/features/pm/hooks/useSubscription'
+import { FeatureGate } from '../subscription/FeatureGate'
+import { FeatureKey } from '../../types/subscription'
 import { usePricingModal } from '@/features/pm/hooks/usePricingModal'
 import { SuccessNotificationModal } from '../subscription/SuccessNotificationModal'
 import { playActivationChime } from '@/lib/sound'
@@ -557,8 +559,10 @@ export function DashboardView({ initialData }: { initialData?: any }) {
       <ActivityCarousel />
 
       {/* Rent Collection Report Controls & Scope Header (Compact Apple Fluid Design) */}
-      <div 
-        style={{
+      <div style={{ marginBottom: '20px' }}>
+        <FeatureGate feature={FeatureKey.REPORTS_AND_TEAM_ACTIVITY}>
+          <div 
+            style={{
           background: 'rgba(255, 255, 255, 0.9)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
@@ -872,6 +876,8 @@ export function DashboardView({ initialData }: { initialData?: any }) {
             </div>
           )
         })()}
+          </div>
+        </FeatureGate>
       </div>
 
 
