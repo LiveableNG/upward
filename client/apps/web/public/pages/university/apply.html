@@ -2316,6 +2316,8 @@
                 currency: 'NGN',
                 ref: 'UPW_APP_' + Math.floor((Math.random() * 1000000000) + 1),
                 metadata: {
+                  paymentKind: 'ACADEMY_APPLICATION',
+                  type: 'ACADEMY_APPLICATION',
                   custom_fields: [
                     { display_name: "Applicant Name", variable_name: "applicant_name", value: payload.name },
                     { display_name: "Track", variable_name: "track", value: payload.track },

@@ -132,6 +132,16 @@ export class ProcessPaymentWebhookUseCase {
         }
       }
 
+      const isAcademyApp =
+        (typeof reference === 'string' && reference.startsWith('UPW_APP_')) ||
+        metadata?.paymentKind === 'ACADEMY_APPLICATION' ||
+        metadata?.type === 'ACADEMY_APPLICATION'
+
+      if (isAcademyApp) {
+        this.logger.log(`Academy application payment detected for reference ${reference}`)
+        return this.handleAcademyApplicationPayment(payload.data, metadata)
+      }
+
       if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account' || payload.data.channel === 'dedicated_nuban') {
         this.logger.log(`DVA Payment detected in charge.success for reference: ${reference}`)
         return this.handleDvaPayment(payload.data)
@@ -576,5 +586,40 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     return result
+  }
+
+  private async handleAcademyApplicationPayment(data: any, metadata?: any) {
+    const { reference } = data
+    const customerEmail = data.customer?.email?.toLowerCase().trim()
+
+    let app = await this.prisma.upward_university_application.findFirst({
+      where: { paymentRef: reference },
+    })
+
+    if (!app && customerEmail) {
+      app = await this.prisma.upward_university_application.findFirst({
+        where: { email: customerEmail },
+        orderBy: { createdAt: 'desc' },
+      })
+    }
+
+    if (!app) {
+      this.logger.warn(`No university application found for ref ${reference} or email ${customerEmail}`)
+      return { success: true, message: 'Academy application not found for payment' }
+    }
+
+    if (app.feeStatus !== 'PAID') {
+      await this.prisma.upward_university_application.update({
+        where: { id: app.id },
+        data: {
+          feeStatus: 'PAID',
+          status: app.status === 'SUBMITTED' ? 'FEE_PAID' : app.status,
+          paymentRef: reference,
+          updatedAt: new Date(),
+        },
+      })
+    }
+
+    return { success: true, academyApplicationPaid: true }
   }
 }
