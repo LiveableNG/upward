@@ -2097,20 +2097,13 @@
         };
 
         try {
-          await Promise.allSettled([
-            fetch('/api/v1/early-access/student', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(leadPayload)
-            }),
-            fetch('/api/v1/university/application', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(appStage1Payload)
-            })
-          ]);
+          await fetch('/api/v1/university/application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(appStage1Payload)
+          });
         } catch (e) {
-          console.warn('Stage 1 lead capture sync error:', e);
+          console.warn('Stage 1 application sync error:', e);
         } finally {
           if (btnStage1) {
             btnStage1.disabled = false;
@@ -2316,6 +2309,8 @@
                 currency: 'NGN',
                 ref: 'UPW_APP_' + Math.floor((Math.random() * 1000000000) + 1),
                 metadata: {
+                  paymentKind: 'ACADEMY_APPLICATION',
+                  type: 'ACADEMY_APPLICATION',
                   custom_fields: [
                     { display_name: "Applicant Name", variable_name: "applicant_name", value: payload.name },
                     { display_name: "Track", variable_name: "track", value: payload.track },

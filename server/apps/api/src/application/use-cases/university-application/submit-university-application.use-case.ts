@@ -206,7 +206,57 @@ export class SubmitUniversityApplicationUseCase {
       }
     }
 
+    // Send distinct admin notification for Academy Application Form submission or fee payment
+    try {
+      const isFeePaidNow = command.feeStatus === 'PAID' && !isAlreadyPaid
+      const existingObj = existing?.toObject()
+      const isFullSubmissionNow =
+        Boolean(command.why && command.why !== 'Pending (Stage 1 Completed)') &&
+        (!existingObj || existingObj.why === 'Pending (Stage 1 Completed)' || !existingObj.why)
 
+      if (isFeePaidNow || isFullSubmissionNow) {
+        const isPaid = saved.feeStatus === 'PAID'
+        const adminSubject = isPaid
+          ? `🎓 [Fee Paid ₦5,000] Upward Academy Application: ${command.name} (${command.city})`
+          : `📝 New Academy Application Submitted: ${command.name} (${command.city})`
+
+        const feeBadge = isPaid
+          ? '<span style="display:inline-block; padding: 3px 8px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; border-radius:12px; font-weight:bold; font-size:12px;">PAID (₦5,000)</span>'
+          : '<span style="display:inline-block; padding: 3px 8px; background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:12px; font-weight:bold; font-size:12px;">PENDING PAYMENT</span>'
+
+        const adminMessage = `
+          <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px;">
+            <h3 style="color: #8A4A2A; margin-bottom: 6px;">${isPaid ? '🎓 Academy Application & Fee Confirmed' : '📝 New Upward Academy Application'}</h3>
+            <p style="margin-top: 0; color: #555;">An applicant has ${isPaid ? 'completed their application and paid the ₦5,000 application fee' : 'submitted their full application profile for admissions review'}.</p>
+            
+            <div style="background: #fdf6ec; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px 16px; margin: 14px 0;">
+              <div><strong>Application Status:</strong> ${saved.status} &nbsp;|&nbsp; <strong>Fee Status:</strong> ${feeBadge}</div>
+              ${saved.paymentRef ? `<div style="font-size:13px; color:#555; margin-top:4px;"><strong>Payment Ref:</strong> <code>${saved.paymentRef}</code></div>` : ''}
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px;">
+              <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; border-bottom: 1px solid #eee;">Applicant Name:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.name}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.email}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">WhatsApp:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.whatsapp}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">City:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.city}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Age Bracket:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.ageBracket}</td></tr>
+              ${command.track ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Track:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;"><strong>${command.track}</strong></td></tr>` : ''}
+              ${command.occupation ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Occupation:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.occupation}</td></tr>` : ''}
+              ${command.experienceLevel ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Experience:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.experienceLevel}</td></tr>` : ''}
+              ${command.goals ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Goals:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.goals}</td></tr>` : ''}
+              ${command.why && command.why !== 'Pending (Stage 1 Completed)' ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Why Upward:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.why}</td></tr>` : ''}
+              ${command.commitment && command.commitment !== 'Pending (Stage 1 Completed)' ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Commitment:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.commitment}</td></tr>` : ''}
+              ${command.sessionTime && command.sessionTime !== "I don't need an info session" ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Info Session:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.sessionTime}</td></tr>` : ''}
+              ${command.isScholarship ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Scholarship:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee; color:#b45309; font-weight:bold;">Yes ${command.scholarshipVideoUrl ? `(<a href="${command.scholarshipVideoUrl}">Video Link</a>)` : ''}</td></tr>` : ''}
+            </table>
+          </div>
+        `
+
+        await this.emailService.sendSystemAlertToAdmins(adminSubject, adminMessage)
+      }
+    } catch (err) {
+      this.logger.error('Failed to send university application admin system alert', err)
+    }
 
     return {
       application: saved,
