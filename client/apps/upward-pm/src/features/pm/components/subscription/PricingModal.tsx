@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Check, X, Sparkles, Lock, Building2, User, Mail, ShieldAlert } from 'lucide-react';
+import { Check, X, Clock, Lock, Building2, User, Mail, ShieldAlert } from 'lucide-react';
 import { useSubscription } from '@/features/pm/hooks/useSubscription';
 import { useAuth } from '@/features/auth/AuthContext';
 import { SubscriptionTier } from '@/features/pm/types/subscription';
@@ -190,7 +190,7 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             alignItems: 'center',
             gap: '8px'
           }}>
-            <Sparkles size={16} />
+            <Clock size={16} />
             <span>
               Your plan is scheduled to downgrade to <strong>{subscription.pendingTier === 'FREE' ? 'Free' : subscription.pendingTier === 'TIER_2' ? 'Professional' : 'Enterprise'}</strong> on your next billing date. You can cancel this by clicking <strong>Keep Current Plan</strong>.
             </span>
@@ -206,9 +206,11 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
               <li><Check size={14} /> Rent Collection</li>
+              <li className="locked"><X size={14} /> Automated Rent Receipts via Email</li>
               <li className="locked"><X size={14} /> Document Management</li>
               <li className="locked"><X size={14} /> Service Charge Payments</li>
               <li className="locked"><X size={14} /> Listing & Brokerage</li>
+              <li className="locked"><X size={14} /> Rent Collection Reports & Team Activity</li>
               <li className="locked"><X size={14} /> Branding & White-labelling</li>
             </ul>
             {(() => {
@@ -236,9 +238,11 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
               <li><Check size={14} /> Rent Collection</li>
+              <li><Check size={14} /> Automated Rent Receipts via Email</li>
               <li><Check size={14} /> Document Management</li>
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 30% Listing Announcements</li>
+              <li className="locked"><X size={14} /> Rent Collection Reports & Team Activity</li>
               <li className="locked"><X size={14} /> Branding & White-labelling</li>
             </ul>
             {(() => {
@@ -269,9 +273,11 @@ export function PricingModal({ isOpen, onClose }: PricingModalProps) {
             <ul>
               <li><Check size={14} /> Tenancy Data Upload</li>
               <li><Check size={14} /> Rent Collection</li>
+              <li><Check size={14} /> Automated Rent Receipts via Email</li>
               <li><Check size={14} /> Document Management</li>
               <li><Check size={14} /> Service Charge Payments</li>
               <li><Check size={14} /> 100% Listing Announcements</li>
+              <li><Check size={14} /> Rent Collection Reports & Team Activity</li>
               <li><Check size={14} /> Branding & White-labelling</li>
             </ul>
             {(() => {

@@ -5,6 +5,7 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsapp.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { GenerateReceiptPdfUseCase } from './payment.use-cases'
+import { SubscriptionService, FeatureKey } from '../../../domains/subscription/subscription.service'
 
 import { ReceiptPdfData } from '../../../shared/infrastructure/common/receipt/receipt.service'
 
@@ -31,6 +32,7 @@ export class SendRentReceiptEmailUseCase {
     private readonly whatsappService: WhatsappService,
     private readonly generateReceiptPdf: GenerateReceiptPdfUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async execute(params: {
@@ -42,6 +44,7 @@ export class SendRentReceiptEmailUseCase {
       where: { id: params.transactionId },
       include: {
         paymentRequest: true,
+        tenancyPeriod: true,
         user: true,
       },
     })
@@ -78,7 +81,44 @@ export class SendRentReceiptEmailUseCase {
     const tenantLastName = this.encryption.decrypt(user.lastName)
     const tenantName = `${tenantFirstName} ${tenantLastName}`.trim() || 'Tenant'
 
-    const propertyId = params.propertyId ?? tx.paymentRequest?.userPropertyId ?? undefined
+    const propertyId = params.propertyId ?? tx.paymentRequest?.userPropertyId ?? tx.tenancyPeriod?.userPropertyId ?? undefined
+
+    // Restrict automated rent receipt delivery:
+    // Exclusive to tenants linked to an external property OR linked to an Upward PM on Professional / Enterprise plans.
+    const userProperty = propertyId
+      ? await this.prisma.upward_user_property.findUnique({
+          where: { id: propertyId },
+          include: {
+            pmUnit: {
+              include: {
+                property: true,
+              },
+            },
+          },
+        })
+      : null
+
+    const isExternalProperty = Boolean(userProperty?.externalPropertyId)
+    const pmId = userProperty?.pmId || userProperty?.pmUnit?.property?.pmId
+
+    let hasPmReceiptAccess = false
+    if (pmId) {
+      const pmAccess = await this.subscriptionService.checkAccess(
+        pmId,
+        FeatureKey.AUTOMATED_RENT_RECEIPTS,
+      )
+      hasPmReceiptAccess = pmAccess.hasAccess
+    }
+
+    const isEligible = isExternalProperty || hasPmReceiptAccess
+
+    if (!isEligible && !params.overrideRecipientEmail) {
+      this.logger.log(
+        `Skipping automated rent receipt for transaction ${tx.id}: property ${propertyId} does not qualify (requires external property link or PM on Tier 2 / Tier 3).`,
+      )
+      return { emailSent: false, whatsappSent: false }
+    }
+
     const branding = await this.resolveBranding(propertyId)
 
     const lineItems = this.extractLineItems(tx.lineItems)
@@ -266,17 +306,32 @@ export class SendRentReceiptEmailUseCase {
       }
     }
 
-    let logoUrl = property.pm?.receiptSetting?.useEmailLogo === false 
-      ? property.pm?.receiptSetting?.logoUrl 
-      : property.pm?.emailSetting?.logoUrl
+    // Custom branded receipts (custom logo & theme color) are exclusive to Tier 3 (Enterprise).
+    // Tier 2 and Tier 1 (or downgraded) receipts use standard Upward branding.
+    let hasBrandingAccess = false
+    if (pm?.id) {
+      const brandingCheck = await this.subscriptionService.checkAccess(pm.id, FeatureKey.BRANDING)
+      hasBrandingAccess = brandingCheck.hasAccess
+    }
 
-    if (!logoUrl && property.company?.logoUrl) {
+    let logoUrl: string | undefined = undefined
+    let themeColor = '#B65B37'
+
+    if (hasBrandingAccess) {
+      logoUrl = pm?.receiptSetting?.useEmailLogo === false 
+        ? pm?.receiptSetting?.logoUrl 
+        : pm?.emailSetting?.logoUrl
+
+      if (!logoUrl && property.company?.logoUrl) {
+        logoUrl = property.company.logoUrl
+      }
+
+      themeColor = pm?.receiptSetting?.themeColor || '#B65B37'
+    } else if (!pm && property.company?.logoUrl) {
       logoUrl = property.company.logoUrl
     }
 
     if (!logoUrl) logoUrl = undefined
-
-    const themeColor = property.pm?.receiptSetting?.themeColor || '#B65B37'
 
     const managerName = property.manager
       ? `${property.manager.firstName?.includes(':') ? this.encryption.decrypt(property.manager.firstName) : property.manager.firstName} ${property.manager.lastName?.includes(':') ? this.encryption.decrypt(property.manager.lastName) : property.manager.lastName}`.trim()

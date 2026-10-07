@@ -9,9 +9,10 @@ interface FeatureGateProps {
   feature: FeatureKey;
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  variant?: 'default' | 'compact';
 }
 
-export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
+export function FeatureGate({ feature, children, fallback, variant }: FeatureGateProps) {
   const { checkAccess, isLoading } = useSubscription();
 
   if (isLoading) {
@@ -25,7 +26,8 @@ export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
       <LockedFeaturePlaceholder 
         feature={feature} 
         requiredTier={requiredTier} 
-        reason={reason} 
+        reason={reason}
+        variant={variant}
       />
     );
   }

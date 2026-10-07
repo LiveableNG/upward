@@ -5,6 +5,7 @@ import {
 } from '../../../shared/infrastructure/common/receipt/receipt.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { SubscriptionService, FeatureKey } from '../../../domains/subscription/subscription.service'
 
 @Injectable()
 export class GenerateReceiptPdfUseCase {
@@ -12,6 +13,7 @@ export class GenerateReceiptPdfUseCase {
     private readonly receiptService: ReceiptService,
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
+    private readonly subscriptionService: SubscriptionService,
   ) { }
 
   async execute(data: ReceiptPdfData & { userPropertyId?: number; companyName?: string; managerName?: string }): Promise<string> {
@@ -382,19 +384,29 @@ export class GenerateReceiptPdfUseCase {
 
       enriched.brandName = companyName
 
+      // Custom branded receipts (custom logo & theme color) are exclusive to Tier 3 (Enterprise).
+      // Tier 2 and Tier 1 (or downgraded) receipts use standard Upward branding.
       if (pm) {
-        const logoUrl = pm.receiptSetting?.useEmailLogo === false
-          ? pm.receiptSetting?.logoUrl
-          : pm.emailSetting?.logoUrl
-        if (logoUrl) {
-          enriched.logoUrl = logoUrl
+        let hasBrandingAccess = false
+        if (pm.id) {
+          const brandingCheck = await this.subscriptionService.checkAccess(pm.id, FeatureKey.BRANDING)
+          hasBrandingAccess = brandingCheck.hasAccess
         }
-        if (pm.receiptSetting?.themeColor) {
-          enriched.themeColor = pm.receiptSetting.themeColor
+
+        if (hasBrandingAccess) {
+          const logoUrl = pm.receiptSetting?.useEmailLogo === false
+            ? pm.receiptSetting?.logoUrl
+            : pm.emailSetting?.logoUrl
+          if (logoUrl) {
+            enriched.logoUrl = logoUrl
+          }
+          if (pm.receiptSetting?.themeColor) {
+            enriched.themeColor = pm.receiptSetting.themeColor
+          }
         }
       }
 
-      if (!enriched.logoUrl && prop.company?.logoUrl) {
+      if (!enriched.logoUrl && prop.company?.logoUrl && !pm) {
         enriched.logoUrl = prop.company.logoUrl
       }
 

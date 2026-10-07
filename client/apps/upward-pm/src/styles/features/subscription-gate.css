@@ -94,3 +94,138 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
 }
+
+/* Compact Variant for Subordinate Feature Upsells */
+.subscription-gate-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subscription-gate-compact:hover {
+  border-color: rgba(22, 101, 52, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.subscription-gate-compact__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.subscription-gate-compact__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subscription-gate-compact__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subscription-gate-compact__icon-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.subscription-gate-compact__lock-icon {
+  flex-shrink: 0;
+}
+
+.subscription-gate-compact__title {
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.subscription-gate-compact__badge {
+  font-family: var(--font-main);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(22, 101, 52, 0.08);
+  color: var(--forest);
+  border: 1px solid rgba(22, 101, 52, 0.15);
+}
+
+.subscription-gate-compact__text {
+  font-family: var(--font-main);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.subscription-gate-compact__action {
+  flex-shrink: 0;
+}
+
+.subscription-gate-compact__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--forest);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subscription-gate-compact__btn:hover {
+  background: var(--forest);
+  color: #ffffff;
+  border-color: var(--forest);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2);
+}
+
+.subscription-gate-compact__btn:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 640px) {
+  .subscription-gate-compact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+  .subscription-gate-compact__action {
+    width: 100%;
+  }
+  .subscription-gate-compact__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

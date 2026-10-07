@@ -21,6 +21,8 @@ export interface CarouselItem {
   color: string
   actionLabel: string
   priority?: string
+  count?: number
+  badgeText?: string
   secondaryActionLabel?: string
   secondaryActionLink?: string
 }
@@ -61,7 +63,8 @@ export function useActivityTasks() {
         link: '/settings?tab=profile',
         color: 'clay',
         actionLabel: 'Update Profile',
-        priority: 'MEDIUM PRIORITY'
+        priority: 'MEDIUM PRIORITY',
+        badgeText: 'Incomplete'
       })
     }
 
@@ -75,7 +78,8 @@ export function useActivityTasks() {
         link: '/properties',
         color: 'warning',
         actionLabel: 'View Properties',
-        priority: 'HIGH PRIORITY'
+        priority: 'HIGH PRIORITY',
+        badgeText: 'Action required'
       })
     }
   } else {
@@ -90,7 +94,8 @@ export function useActivityTasks() {
         link: '/import',
         color: 'warning',
         actionLabel: 'Add Property',
-        priority: 'HIGH PRIORITY'
+        priority: 'HIGH PRIORITY',
+        badgeText: 'Setup required'
       })
     }
 
@@ -104,7 +109,8 @@ export function useActivityTasks() {
         link: '/settings?tab=payment',
         color: 'warning',
         actionLabel: 'Setup Payouts',
-        priority: 'HIGH PRIORITY'
+        priority: 'HIGH PRIORITY',
+        badgeText: 'Action required'
       })
     }
 
@@ -119,7 +125,8 @@ export function useActivityTasks() {
         link: '/settings?tab=profile',
         color: 'clay',
         actionLabel: 'Update Profile',
-        priority: 'MEDIUM PRIORITY'
+        priority: 'MEDIUM PRIORITY',
+        badgeText: 'Incomplete'
       })
     }
   }
@@ -138,6 +145,7 @@ export function useActivityTasks() {
           title: 'Resume Property Import',
           description: 'You have a saved draft waiting to be imported.',
           actionLabel: 'Resume Draft',
+          badgeText: 'Draft saved'
         }
       } else if (isReady) {
         dynamicItems[addPropertyIndex] = {
@@ -145,6 +153,7 @@ export function useActivityTasks() {
           title: 'Review Prepared Properties',
           description: 'Your prepared import is ready for review.',
           actionLabel: 'Review Data',
+          badgeText: 'Review ready'
         }
       } else {
         dynamicItems[addPropertyIndex] = {
@@ -152,6 +161,7 @@ export function useActivityTasks() {
           title: 'Import Processing',
           description: 'Our team is preparing your properties file.',
           actionLabel: 'Check Status',
+          badgeText: 'In progress'
         }
       }
     }
@@ -168,7 +178,9 @@ export function useActivityTasks() {
       link: '/requests',
       color: 'warning',
       actionLabel: 'Handle Requests',
-      priority: 'HIGH PRIORITY'
+      priority: 'HIGH PRIORITY',
+      count: joinRequests.length,
+      badgeText: `${joinRequests.length} pending`
     })
   }
 
@@ -182,7 +194,9 @@ export function useActivityTasks() {
       link: '/requests',
       color: 'warning',
       actionLabel: 'Review Records',
-      priority: 'HIGH PRIORITY'
+      priority: 'HIGH PRIORITY',
+      count: credibilityRequests.length,
+      badgeText: `${credibilityRequests.length} pending`
     })
   }
 

@@ -1,160 +1,72 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useActivityTasks, CarouselItem } from '@/features/pm/hooks/useActivityTasks'
-import {
-  ChevronRight,
-  AlertCircle,
-  ArrowRight
-} from 'lucide-react'
+import { useActivityTasks } from '@/features/pm/hooks/useActivityTasks'
+import { ArrowRight } from 'lucide-react'
 
 export function ActivityCarousel() {
   const { tasks: carouselItems, isLoading } = useActivityTasks()
-  const router = useRouter()
 
   if (carouselItems.length === 0 || isLoading) return null
 
-  const handleCardClick = (e: React.MouseEvent, item: CarouselItem) => {
-    const target = e.target as HTMLElement
-    if (target.closest('a') || target.closest('button')) {
-      return
-    }
-    router.push(item.link)
-  }
-
   return (
-    <div className="activity-center">
-      <div className="activity-center__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <div className="activity-center__title-group">
-            <h2 className="activity-center__title" style={{ fontSize: 16, textTransform: 'none', color: '#111827' }}>Action Center</h2>
-          </div>
-          <p className="activity-center__subtitle">Complete these important actions to keep your operations running smoothly.</p>
+    <section className="action-center-compact" aria-label="Action Center">
+      <div className="action-center-compact__header">
+        <div className="action-center-compact__title-wrap">
+          <h2 className="action-center-compact__title">Action Center</h2>
+          <span className="action-center-compact__count-pill">
+            {carouselItems.length}
+          </span>
         </div>
-        <Link href="/notifications" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: 'var(--forest)', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
-          View all tasks <ArrowRight size={14} />
+        <Link href="/notifications" className="action-center-compact__all-link">
+          <span>View all tasks</span>
+          <ArrowRight size={13} />
         </Link>
       </div>
 
-      <div className="activity-carousel-wrapper">
+      <div className={cn(
+        "action-center-compact__grid",
+        carouselItems.length === 1 && "action-center-compact__grid--single"
+      )}>
         {carouselItems.map(item => {
-          const Icon = item.icon
+          const isHighPriority = item.priority === 'HIGH PRIORITY' || item.color === 'warning'
+          const badgeText = item.badgeText || (item.count ? `${item.count} pending` : item.actionLabel)
+
           return (
-            <div 
+            <Link
               key={item.id}
-              onClick={(e) => handleCardClick(e, item)}
+              href={item.link}
               className={cn(
-                'action-card',
-                `animate-beam-${item.color}`,
-                `action-card--${item.color}`
+                "action-chip",
+                isHighPriority ? "action-chip--high" : "action-chip--normal"
               )}
-              style={{ position: 'relative' }}
             >
-              {/* <div className="action-card__icon">
-                <Icon size={24} strokeWidth={2.5} />
-              </div> */}
-              <div className="action-card__content">
-                {item.priority && (
-                  <div className="priority-badge desktop-only">
-                    <span className="dot" />
-                    {item.priority}
-                  </div>
-                )}
-                <h3 className="action-card__item-title">{item.title}</h3>
-                <p className="action-card__description">
-                  {item.description}
-                  {item.descriptionExtended && <span className="desktop-only">{item.descriptionExtended}</span>}
-                </p>
-                
-                <div className="action-card__mobile-btn mobile-only" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
-                  {item.secondaryActionLabel ? (
-                    <MobileDropdownAction item={item} />
-                  ) : (
-                    <Link href={item.link} className="action-card__btn">
-                      <span>{item.actionLabel}</span>
-                      <ArrowRight size={16} />
-                    </Link>
+              <div className="action-chip__left">
+                <span
+                  className={cn(
+                    "action-chip__dot",
+                    isHighPriority ? "action-chip__dot--high" : "action-chip__dot--normal"
                   )}
-                </div>
+                  aria-hidden="true"
+                />
+                <span className="action-chip__title">{item.title}</span>
               </div>
-              
-              <div className="action-card__actions-wrapper desktop-only" style={{ position: 'relative' }}>
-                {item.secondaryActionLabel ? (
-                  <DropdownAction item={item} />
-                ) : (
-                  <Link href={item.link} className="action-card__circle-btn" title={item.actionLabel}>
-                    <ChevronRight size={18} strokeWidth={2.5} />
-                  </Link>
-                )}
+
+              <div className="action-chip__right">
+                <span className={cn(
+                  "action-chip__badge",
+                  isHighPriority ? "action-chip__badge--high" : "action-chip__badge--normal"
+                )}>
+                  {badgeText}
+                </span>
+                <ArrowRight size={13} className="action-chip__arrow" />
               </div>
-            </div>
+            </Link>
           )
         })}
       </div>
-    </div>
-  )
-}
-
-function DropdownAction({ item }: { item: CarouselItem }) {
-  const [open, setOpen] = useState(false)
-  
-  return (
-    <div style={{ position: 'relative' }}>
-      <button 
-        onClick={() => setOpen(!open)} 
-        className="action-card__circle-btn" 
-        title={item.actionLabel}
-      >
-        <ChevronRight size={18} strokeWidth={2.5} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: '0.2s' }} />
-      </button>
-      
-      {open && (
-        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, background: 'white', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, minWidth: 160, overflow: 'hidden' }}>
-          <Link href={item.link} style={{ display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--text)', textDecoration: 'none', borderBottom: '1px solid var(--border)' }}>
-            {item.actionLabel}
-          </Link>
-          {item.secondaryActionLink && (
-            <Link href={item.secondaryActionLink} style={{ display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--text)', textDecoration: 'none' }}>
-              {item.secondaryActionLabel}
-            </Link>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function MobileDropdownAction({ item }: { item: CarouselItem }) {
-  const [open, setOpen] = useState(false)
-  
-  return (
-    <div style={{ width: '100%' }}>
-      <button 
-        onClick={() => setOpen(!open)} 
-        className="action-card__btn"
-        style={{ width: '100%', justifyContent: 'space-between', border: '1px solid var(--border)', background: 'var(--surface)', padding: '10px 14px' }}
-      >
-        <span>{item.actionLabel} Options</span>
-        <ChevronRight size={16} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: '0.2s' }} />
-      </button>
-      
-      {open && (
-        <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-          <Link href={item.link} className="action-card__btn" style={{ width: '100%', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '10px 14px', border: '1px solid var(--border)' }}>
-            <span>{item.actionLabel}</span>
-            <ArrowRight size={16} />
-          </Link>
-          {item.secondaryActionLink && (
-            <Link href={item.secondaryActionLink} className="action-card__btn" style={{ width: '100%', justifyContent: 'space-between', background: 'rgba(0,0,0,0.03)', padding: '10px 14px', border: '1px solid var(--border)' }}>
-              <span>{item.secondaryActionLabel}</span>
-              <ArrowRight size={16} />
-            </Link>
-          )}
-        </div>
-      )}
-    </div>
+    </section>
   )
 }
