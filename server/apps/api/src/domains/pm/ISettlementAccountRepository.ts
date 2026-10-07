@@ -7,6 +7,7 @@ export interface SettlementAccountEntity {
   accountName: string;
   bankName: string;
   bankCode?: string | null;
+  title?: string | null;
   pmId?: number | null;
   isPrimary: boolean;
   createdAt: Date;
@@ -19,6 +20,7 @@ export interface CreateSettlementAccountData {
   accountName: string;
   bankName: string;
   bankCode?: string;
+  title?: string;
   pmId: number;
   isPrimary?: boolean;
 }
@@ -28,6 +30,7 @@ export interface UpdateSettlementAccountData {
   accountName?: string;
   bankName?: string;
   bankCode?: string;
+  title?: string;
   isPrimary?: boolean;
 }
 
