@@ -66,6 +66,7 @@ export class AssignTenantToUnitUseCase {
     receiptDecision?: 'APPROVED' | 'REJECTED',
     timeliness?: 'ON_TIME' | 'LATE',
     rejectionReason?: string,
+    paymentDate?: Date | string,
   ): Promise<any> {
     const ownerPmId = actor ? actor.ownerPmId : pmId;
     const unit = await this.unitRepo.findByUuid(unitUuid);
@@ -164,6 +165,10 @@ export class AssignTenantToUnitUseCase {
         });
 
         // ── 4. Record PM Rent Payment with Provenance & Deterministic Reference ─
+        const parsedPaymentDate = paymentDate 
+          ? (this.rentalPeriodService.parseCalendarDate(paymentDate) || new Date(paymentDate))
+          : null;
+
         if (acknowledgedTotal > 0) {
           const paymentReference = joinRequestUuid ? `JOIN_ASSIGN_${joinRequestUuid}` : null;
           let existingPayment = null;
@@ -201,6 +206,7 @@ export class AssignTenantToUnitUseCase {
               breakdown: effectiveBreakdown,
               receiptDecision: receiptDecision || null,
               timeliness: timeliness || 'ON_TIME',
+              paymentDate: parsedPaymentDate ? parsedPaymentDate.toISOString() : null,
               rejectionReason: rejectionReason || null,
               decidedByPmId: ownerPmId,
               decidedAt: new Date().toISOString(),
@@ -209,7 +215,7 @@ export class AssignTenantToUnitUseCase {
             await this.unitRepo.addRentPayment(unitUuid, {
               amount: acknowledgedTotal,
               rentAmountAtPayment: effectiveRentAmount,
-              paymentDate: new Date(),
+              paymentDate: parsedPaymentDate || new Date(),
               periodStart: activeRentStartDate,
               periodEnd,
               status: 'SUCCESS',
@@ -324,6 +330,7 @@ export class AssignTenantToUnitUseCase {
             rentStartDate: activeRentStartDate,
             currency: freshUnit?.currency,
             timeliness: timeliness,
+            paymentDate: parsedPaymentDate,
             txClient: this.prisma,
           });
         }

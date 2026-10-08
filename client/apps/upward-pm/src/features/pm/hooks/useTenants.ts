@@ -79,6 +79,7 @@ export const useTenantActions = () => {
       };
       receiptDecision?: 'APPROVED' | 'REJECTED';
       timeliness?: 'ON_TIME' | 'LATE';
+      paymentDate?: string;
       rejectionReason?: string;
       customSuccessMessage?: string;
     }) => {

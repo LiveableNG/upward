@@ -252,10 +252,14 @@ export class BulkCreateUnitsUseCase {
           (u as any).leaseYears,
         );
 
+        const parsedPaymentDate = u.paymentDate
+          ? (this.rentalPeriodService.parseCalendarDate(u.paymentDate) || new Date(u.paymentDate))
+          : new Date();
+
         await this.unitRepository.addRentPayment(newUnit.uuid, {
           amount: actualRentAmountPaid,
           rentAmountAtPayment: newUnit.rentAmount,
-          paymentDate: new Date(),
+          paymentDate: parsedPaymentDate,
           periodStart: canonicalStart,
           periodEnd: periodEnd,
           status: 'SUCCESS',
@@ -321,6 +325,10 @@ export class BulkCreateUnitsUseCase {
               where: { uuid: freshUnit.userPropertyUuid }
             });
             if (userProp) {
+              const parsedMatchedDate = matchedInputUnit.paymentDate
+                ? (this.rentalPeriodService.parseCalendarDate(matchedInputUnit.paymentDate) || new Date(matchedInputUnit.paymentDate))
+                : null;
+
               await this.rentalPeriodService.reconcileInitialRentCycle({
                 userId: userProp.userId,
                 userPropertyId: userProp.id,
@@ -329,6 +337,7 @@ export class BulkCreateUnitsUseCase {
                 rentStartDate: freshUnit.rentStartDate,
                 currency: freshUnit.currency,
                 timeliness: matchedInputUnit.timeliness,
+                paymentDate: parsedMatchedDate,
                 txClient: this.prisma,
               });
             }

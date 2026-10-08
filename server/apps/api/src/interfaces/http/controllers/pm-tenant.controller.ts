@@ -99,6 +99,7 @@ export class PmTenantController {
       receiptDecision?: 'APPROVED' | 'REJECTED';
       timeliness?: 'ON_TIME' | 'LATE';
       rejectionReason?: string;
+      paymentDate?: string;
     },
   ) {
     return this.assignTenantToUnitUseCase.execute(
@@ -118,6 +119,7 @@ export class PmTenantController {
       body.receiptDecision,
       body.timeliness,
       body.rejectionReason,
+      body.paymentDate,
     );
   }
 
