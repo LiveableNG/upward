@@ -49,9 +49,6 @@ import { CreatePmLandlordUseCase } from '../../../application/pm/use-cases/landl
 import { CreatePmLandlordDto } from '../../../application/pm/dtos/landlord.dto';
 import { GetPmPayoutsUseCase, GetPayoutBreakdownUseCase, GetPmUnresolvedTransactionsUseCase } from '../../../application/use-cases/payments/payment.use-cases';
 import { ResolvePendingRefundUseCase, RefundResolutionAction } from '../../../application/pm/use-cases/payments/resolve-refund.use-case';
-import { ConfigurePropertySettlementSplitUseCase } from '../../../application/pm/use-cases/properties/configure-property-settlement-split.use-case';
-import { GetPropertySettlementSplitUseCase } from '../../../application/pm/use-cases/properties/get-property-settlement-split.use-case';
-import { ConfigurePropertySettlementSplitDto } from '../../../application/pm/use-cases/properties/dtos/settlement-split.dto';
 
 @Controller('pm')
 @UseGuards(JwtAuthGuard)
@@ -102,8 +99,6 @@ export class PmPropertyController {
     private readonly getPayoutBreakdownUseCase: GetPayoutBreakdownUseCase,
     private readonly getPmUnresolvedTransactionsUseCase: GetPmUnresolvedTransactionsUseCase,
     private readonly resolvePendingRefundUseCase: ResolvePendingRefundUseCase,
-    private readonly configurePropertySettlementSplitUseCase: ConfigurePropertySettlementSplitUseCase,
-    private readonly getPropertySettlementSplitUseCase: GetPropertySettlementSplitUseCase,
   ) {}
 
   @Post('units/:unitUuid/payments/bulk')
@@ -380,23 +375,6 @@ export class PmPropertyController {
       throw new UnauthorizedException('Only company administrators can resolve approval requests');
     }
     return this.resolveApprovalRequestUseCase.execute(actor.ownerPmId, uuid, body.action, body.rejectionReason);
-  }
-
-  @Get('properties/:uuid/settlement-splits')
-  async getPropertySettlementSplits(
-    @CurrentPmActor() actor: PmActorContext,
-    @Param('uuid') uuid: string,
-  ) {
-    return this.getPropertySettlementSplitUseCase.execute(actor.ownerPmId, uuid);
-  }
-
-  @Patch('properties/:uuid/settlement-splits')
-  async configurePropertySettlementSplits(
-    @CurrentPmActor() actor: PmActorContext,
-    @Param('uuid') uuid: string,
-    @Body() dto: ConfigurePropertySettlementSplitDto,
-  ) {
-    return this.configurePropertySettlementSplitUseCase.execute(actor.ownerPmId, uuid, dto, actor);
   }
 }
 

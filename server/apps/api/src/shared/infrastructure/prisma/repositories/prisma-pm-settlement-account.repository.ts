@@ -19,7 +19,6 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
       accountName: record.accountName,
       bankName: record.bankName,
       bankCode: record.bankCode,
-      title: record.title,
       pmId: record.pmId,
       isPrimary: Boolean(record.isPrimary),
       createdAt: record.createdAt,
@@ -91,7 +90,6 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
         accountName: data.accountName,
         bankName: data.bankName,
         bankCode: data.bankCode,
-        title: data.title,
         pmId: data.pmId,
         isPrimary: data.isPrimary || false,
       },
@@ -112,7 +110,6 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
         accountName: data.accountName,
         bankName: data.bankName,
         bankCode: data.bankCode,
-        title: data.title,
         isPrimary: data.isPrimary,
       },
       include: {

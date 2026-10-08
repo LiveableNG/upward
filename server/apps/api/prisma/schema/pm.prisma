@@ -137,7 +137,6 @@ model upward_pm_property {
   employeeCollaborations upward_pm_employee_property[]
   units                 upward_pm_unit[]
   allianceListings      upward_alliance_listing[]
-  settlementSplitRules  upward_settlement_split_rule[]
 
   @@index([pmId])
 }
@@ -285,7 +284,6 @@ model upward_pm_payment_request {
   tenant             upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
   unit               upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
   employee           upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  settlementSplitRules upward_settlement_split_rule[]
 
   @@index([pmId])
   @@index([unitId])

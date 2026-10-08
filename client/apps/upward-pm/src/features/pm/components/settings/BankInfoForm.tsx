@@ -37,7 +37,6 @@ import {
 import { SettlementAccount } from '../../services/paymentService'
 
 const accountSchema = z.object({
-  title: z.string().optional(),
   bankCode: z.string().min(1, 'Please select a bank'),
   accountNumber: z.string().length(10, 'Account number must be 10 digits'),
   accountName: z.string().min(1, 'Account name is required'),
@@ -100,7 +99,6 @@ export function BankInfoForm() {
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
     defaultValues: {
-      title: '',
       bankCode: '',
       accountNumber: '',
       accountName: '',
@@ -192,7 +190,6 @@ export function BankInfoForm() {
   const handleOpenAddModal = () => {
     setEditingAccount(null)
     reset({
-      title: '',
       bankCode: '',
       accountNumber: '',
       accountName: '',
@@ -207,7 +204,6 @@ export function BankInfoForm() {
   const handleOpenEditModal = (account: SettlementAccount) => {
     setEditingAccount(account)
     reset({
-      title: account.title || '',
       bankCode: account.bankCode || '',
       accountNumber: account.accountNumber,
       accountName: account.accountName,
@@ -472,24 +468,9 @@ export function BankInfoForm() {
                         <Landmark size={20} />
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
-                            {account.bankName}
-                          </h4>
-                          {account.title && (
-                            <span style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))',
-                              color: 'var(--clay, #b45309)',
-                              border: '1px solid rgba(217, 119, 6, 0.2)'
-                            }}>
-                              {account.title}
-                            </span>
-                          )}
-                        </div>
+                        <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
+                          {account.bankName}
+                        </h4>
                         <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'monospace', letterSpacing: '0.5px' }}>
                           {account.accountNumber}
                         </span>
@@ -625,39 +606,6 @@ export function BankInfoForm() {
           }}
           style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
         >
-          <div className="settings__field">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <label className="settings__label" style={{ margin: 0 }}>Account Label / Purpose (Optional)</label>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>e.g. Landlord, Agency, Maintenance</span>
-            </div>
-            <input
-              {...register('title')}
-              className="settings__input"
-              placeholder="e.g. Landlord Payout, Agency Fee, Maintenance Reserve"
-            />
-            <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-              {['Landlord Payout', 'Agency / PM Fee', 'Maintenance Reserve', 'Co-owner Share'].map(preset => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setValue('title', preset, { shouldDirty: true })}
-                  style={{
-                    padding: '2px 8px',
-                    borderRadius: 12,
-                    fontSize: 11,
-                    background: 'var(--bg-soft, #f6f6f4)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  + {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="settings__field">
             <label className="settings__label">Select Bank</label>
             <select {...register('bankCode')} className="settings__input">

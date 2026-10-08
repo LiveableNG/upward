@@ -11,7 +11,7 @@ export interface ResolvedSettlementDestination {
   accountNumber: string;
   bankCode: string;
   accountName?: string;
-  sourceType: 'MANUAL_ACCOUNT' | 'SUBACCOUNT' | 'SPLIT';
+  sourceType: 'MANUAL_ACCOUNT' | 'SUBACCOUNT';
   sourceId: number;
 }
 
@@ -103,7 +103,6 @@ export class ProcessHourlySettlementsUseCase {
             }
           }
         },
-        settlementSplits: true,
         user: true
       }
     });
@@ -111,81 +110,53 @@ export class ProcessHourlySettlementsUseCase {
     if (transactions.length === 0) return;
 
     // 2. Group by Payment-Bound Settlement Destination Key (bankCode:accountNumber)
-    interface SettlementTargetItem {
-      tx: any;
-      split?: any;
-      amount: number;
-    }
-    const groups = new Map<string, { destination: ResolvedSettlementDestination; items: SettlementTargetItem[] }>();
+    const groups = new Map<string, { destination: ResolvedSettlementDestination; txs: typeof transactions }>();
 
     for (const tx of transactions) {
-      const pendingSplits = (tx as any).settlementSplits?.filter((s: any) => s.settlementStatus === 'PENDING') || [];
-      if (pendingSplits.length > 0) {
-        for (const s of pendingSplits) {
-          const rawAcc = s.accountNumber || '';
-          const accNum = rawAcc.includes(':') ? this.encryption.decrypt(rawAcc) : rawAcc;
-          const bankCode = String(s.bankCode || '').trim();
-          if (!accNum || !bankCode) continue;
-
-          const destKey = `${bankCode}:${accNum}`;
-          const destination: ResolvedSettlementDestination = {
-            key: destKey,
-            accountNumber: accNum,
-            bankCode,
-            accountName: s.accountName,
-            sourceType: 'SPLIT',
-            sourceId: s.id
-          };
-
-          if (!groups.has(destKey)) {
-            groups.set(destKey, { destination, items: [] });
-          }
-          groups.get(destKey)!.items.push({ tx, split: s, amount: s.amount });
-        }
-      } else {
-        const destination = this.resolveSettlementDestination(tx);
-        if (!destination) {
-          this.logger.error(
-            `[FLAGGED_FOR_REVIEW] Transaction ${tx.reference} (ID: ${tx.id}, PR: ${tx.paymentRequestId}) has NO valid bound settlement destination. Skipping automated settlement until destination is configured.`
-          );
-          continue;
-        }
-
-        let settleableAmt = 0;
-        if (tx.lineItems && Array.isArray(tx.lineItems)) {
-          const settleableItems = (tx.lineItems as any[]).filter(item => 
-            item.name === 'Rent' || 
-            (!['Fee', 'Overpayment', 'Package'].includes(item.category) && 
-             !item.name.toLowerCase().includes('fee') && 
-             !item.name.toLowerCase().includes('benefit') && 
-             !item.name.toLowerCase().includes('package'))
-          );
-          if (settleableItems.length > 0) {
-            settleableAmt = settleableItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-          } else {
-            const fee = this.paymentConfig.getProcessingFee();
-            settleableAmt = Math.max(0, tx.amount - fee);
-          }
-        } else {
-          const fee = this.paymentConfig.getProcessingFee();
-          settleableAmt = Math.max(0, tx.amount - fee);
-        }
-
-        if (settleableAmt > 0) {
-          if (!groups.has(destination.key)) {
-            groups.set(destination.key, { destination, items: [] });
-          }
-          groups.get(destination.key)!.items.push({ tx, split: undefined, amount: settleableAmt });
-        }
+      const destination = this.resolveSettlementDestination(tx);
+      if (!destination) {
+        this.logger.error(
+          `[FLAGGED_FOR_REVIEW] Transaction ${tx.reference} (ID: ${tx.id}, PR: ${tx.paymentRequestId}) has NO valid bound settlement destination. Skipping automated settlement until destination is configured.`
+        );
+        continue;
       }
+
+      if (!groups.has(destination.key)) {
+        groups.set(destination.key, { destination, txs: [] });
+      }
+      groups.get(destination.key)!.txs.push(tx);
     }
 
     // 3. Process each group (Bundled Settlement)
-    for (const [destKey, { destination, items }] of groups.entries()) {
+    for (const [destKey, { destination, txs }] of groups.entries()) {
       let batch: any = null;
-      const txs = Array.from(new Set(items.map(it => it.tx)));
       try {
-        const totalRentToSettle = items.reduce((sum, it) => sum + it.amount, 0);
+        let totalRentToSettle = 0;
+        let totalUpwardFees = 0;
+        for (const tx of txs) {
+          if (tx.lineItems && Array.isArray(tx.lineItems)) {
+            const settleableItems = (tx.lineItems as any[]).filter(item => 
+              item.name === 'Rent' || 
+              (!['Fee', 'Overpayment', 'Package'].includes(item.category) && 
+               !item.name.toLowerCase().includes('fee') && 
+               !item.name.toLowerCase().includes('benefit') && 
+               !item.name.toLowerCase().includes('package'))
+            );
+            if (settleableItems.length > 0) {
+              const settleableSum = settleableItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+              totalRentToSettle += settleableSum;
+              totalUpwardFees += Math.max(0, tx.amount - settleableSum);
+            } else {
+              const fee = this.paymentConfig.getProcessingFee();
+              totalRentToSettle += Math.max(0, tx.amount - fee);
+              totalUpwardFees += Math.min(tx.amount, fee);
+            }
+          } else {
+            const fee = this.paymentConfig.getProcessingFee();
+            totalRentToSettle += Math.max(0, tx.amount - fee);
+            totalUpwardFees += Math.min(tx.amount, fee);
+          }
+        }
 
         if (totalRentToSettle <= 0) continue;
 
@@ -310,41 +281,22 @@ export class ProcessHourlySettlementsUseCase {
           narration: finalNarration
         });
 
-        // Update Transactions, Splits and Batch status
-        for (const it of items) {
-          if (it.split) {
-            await this.prisma.upward_transaction_settlement_split.update({
-              where: { id: it.split.id },
-              data: {
-                settlementStatus: 'SETTLED',
-                batchId: batch.id,
-                transferReference: finalReference,
-              }
-            });
+        // Update Transactions and Batch status
+        await this.prisma.upward_transaction.updateMany({
+          where: { id: { in: txs.map(t => t.id) } },
+          data: {
+            settlementStatus: 'SETTLED',
+            settlementBatchId: batch.id
           }
-        }
-
-        for (const t of txs) {
-          const remainingPending = await this.prisma.upward_transaction_settlement_split.count({
-            where: { transactionId: t.id, settlementStatus: { not: 'SETTLED' } }
-          });
-          if (remainingPending === 0) {
-            await this.prisma.upward_transaction.update({
-              where: { id: t.id },
-              data: {
-                settlementStatus: 'SETTLED',
-                settlementBatchId: batch.id
-              }
-            });
-          }
-        }
+        });
 
         await this.prisma.upward_settlement_batch.update({
           where: { id: batch.id },
           data: { status: 'COMPLETED' }
         });
 
-        this.logger.log(`Settlement Batch Completed: ₦${totalRentToSettle} settled for batch ${batch.uuid}`);
+        // Move Revenue to Separate Account (Simulated here - normally another transfer)
+        this.logger.log(`Revenue Captured: ₦${totalUpwardFees} from batch ${batch.uuid}`);
         
       } catch (e: any) {
         this.logger.error(`Failed to process settlement for ${destKey}: ${e.message}`);

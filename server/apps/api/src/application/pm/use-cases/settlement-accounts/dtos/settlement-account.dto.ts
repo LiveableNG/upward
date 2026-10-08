@@ -18,10 +18,6 @@ export class CreateSettlementAccountDto {
   @IsNotEmpty()
   bankCode!: string;
 
-  @IsString()
-  @IsOptional()
-  title?: string;
-
   @IsBoolean()
   @IsOptional()
   isPrimary?: boolean;
@@ -44,10 +40,6 @@ export class UpdateSettlementAccountDto {
   @IsString()
   @IsOptional()
   bankCode?: string;
-
-  @IsString()
-  @IsOptional()
-  title?: string;
 
   @IsBoolean()
   @IsOptional()

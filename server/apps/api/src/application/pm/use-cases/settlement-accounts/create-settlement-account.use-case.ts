@@ -60,7 +60,6 @@ export class CreateSettlementAccountUseCase {
         accountName: dto.accountName,
         bankName: dto.bankName,
         bankCode: dto.bankCode,
-        title: dto.title,
         pmId: pm.id!,
         isPrimary: false,
       });
@@ -73,7 +72,6 @@ export class CreateSettlementAccountUseCase {
       accountName: dto.accountName,
       bankName: dto.bankName,
       bankCode: dto.bankCode,
-      title: dto.title,
       pmId: pm.id!,
       isPrimary: shouldBePrimary,
     });

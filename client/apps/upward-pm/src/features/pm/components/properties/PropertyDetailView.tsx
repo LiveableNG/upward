@@ -1,15 +1,13 @@
 'use client'
 
 import React, { useState, useRef, useMemo } from 'react'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet, PieChart } from 'lucide-react'
+import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
-import { PropertySettlementModal } from './modals/PropertySettlementModal'
-import { getPropertySettlementSplits } from '../../services/paymentService'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { useToast } from '@/components/common/Toast'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useBulkCreateUnits } from '@/features/pm/hooks/useProperties'
 import { useSettlementAccounts } from '@/features/pm/hooks/useSettlementAccounts'
 import { useDataImport } from '@/features/pm/components/settings/data-import/useDataImport'
@@ -31,19 +29,12 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
   const [unitSearch, setUnitSearch] = useState('')
   const [unitFilter, setUnitFilter] = useState<'All' | 'Occupied' | 'Vacant'>('All')
   const [isManualModalOpen, setIsManualModalOpen] = useState(false)
-  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   const { success, error: toastError } = useToast()
   const queryClient = useQueryClient()
   const bulkCreateUnitsMutation = useBulkCreateUnits()
   const { primaryAccount } = useSettlementAccounts()
-
-  const { data: settlementSplits = [] } = useQuery({
-    queryKey: ['property-settlement-splits', property.uuid],
-    queryFn: () => getPropertySettlementSplits(property.uuid),
-    enabled: !!property?.uuid
-  })
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const importColumns = useMemo(() => UNIT_COLUMNS, [])
@@ -219,11 +210,11 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
           </button>
 
           <button 
-            onClick={() => setIsSettlementModalOpen(true)}
+            onClick={() => setIsManualModalOpen(true)}
             className="btn btn--secondary btn--sm" 
             style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
           >
-            <PieChart size={16} /> Settlement & Splits
+            <Landmark size={16} /> Settlement Account
           </button>
           
           <button 
@@ -280,78 +271,22 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
               <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{units.length}</div>
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settlement Routing</span>
-                <button
-                  type="button"
-                  onClick={() => setIsSettlementModalOpen(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--forest, #166534)',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                    textDecoration: 'underline'
-                  }}
-                >
-                  Configure
-                </button>
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
-                {settlementSplits.length > 1 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                    {settlementSplits.map((split, i) => (
-                      <span
-                        key={split.uuid || i}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: '#ffffff',
-                          border: '1px solid var(--border)',
-                          color: 'var(--dark)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}
-                      >
-                        <span style={{ color: 'var(--forest, #166534)' }}>{split.percentage}%</span>
-                        <span>{split.manualAccount?.bankName}</span>
-                        {split.manualAccount?.title && (
-                          <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({split.manualAccount.title})</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                ) : settlementSplits.length === 1 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Landmark size={14} color="var(--forest, #166534)" />
-                    <span>{settlementSplits[0].manualAccount?.bankName} (•••• {settlementSplits[0].manualAccount?.accountNumber?.slice(-4)})</span>
-                    {settlementSplits[0].manualAccount?.title && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
-                        {settlementSplits[0].manualAccount.title}
-                      </span>
-                    )}
-                  </div>
-                ) : property.manualAccount ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Settlement Account</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                {property.manualAccount ? (
+                  <>
                     <Landmark size={14} color="var(--forest, #166534)" />
                     <span>{property.manualAccount.bankName} (•••• {property.manualAccount.accountNumber?.slice(-4)})</span>
-                    {property.manualAccount.title && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
-                        {property.manualAccount.title}
-                      </span>
+                    {property.manualAccount.isPrimary && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>Default</span>
                     )}
-                  </div>
+                  </>
                 ) : primaryAccount ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <>
                     <Landmark size={14} color="var(--text-muted)" />
                     <span>{primaryAccount.bankName} (•••• {primaryAccount.accountNumber?.slice(-4)})</span>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>Default</span>
-                  </div>
+                  </>
                 ) : (
                   <span style={{ color: 'var(--text-muted)' }}>Not configured</span>
                 )}
@@ -466,13 +401,6 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
           />
         </div>
       </div>
-
-      <PropertySettlementModal
-        isOpen={isSettlementModalOpen}
-        onClose={() => setIsSettlementModalOpen(false)}
-        propertyUuid={property.uuid}
-        propertyName={property.name}
-      />
 
       <ManualAccountModal 
         isOpen={isManualModalOpen} 

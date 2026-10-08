@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Plus, Trash2, CreditCard, AlertCircle, PieChart, Sliders, CheckCircle2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { X, Plus, Trash2, CreditCard, AlertCircle } from 'lucide-react'
 import { Unit } from '../../../services/propertyService'
 import { useCreatePaymentRequest, useUpdatePaymentRequest } from '../../../hooks/usePayments'
 import { useToast } from '@/components/common/Toast'
-import { PmPaymentRequest, getPropertySettlementSplits, SettlementSplitRule } from '../../../services/paymentService'
+import { PmPaymentRequest } from '../../../services/paymentService'
 import { useDocuments } from '../../../hooks/useDocuments'
 import { useSettlementAccounts } from '../../../hooks/useSettlementAccounts'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -73,18 +72,6 @@ export function CreatePaymentRequestModal({
   const [recurrenceInterval, setRecurrenceInterval] = useState<string>('MONTHLY')
   const { templates } = useDocuments()
   const { accounts, primaryAccount } = useSettlementAccounts()
-
-  // Settlement Split State
-  const propertyUuid = (unit?.property as any)?.uuid
-  const { data: propertySplits = [] } = useQuery<SettlementSplitRule[]>({
-    queryKey: ['property-settlement-splits', propertyUuid],
-    queryFn: () => getPropertySettlementSplits(propertyUuid!),
-    enabled: isOpen && !!propertyUuid,
-  })
-
-  const [isCustomRentSplits, setIsCustomRentSplits] = useState(false)
-  const [customRentSplits, setCustomRentSplits] = useState<Array<{ manualAccountUuid: string; percentage: number }>>([])
-  const [lineItemRoutes, setLineItemRoutes] = useState<Record<number, string>>({})
 
   const { success, error } = useToast()
   const { user } = useAuth()
@@ -245,24 +232,6 @@ export function CreatePaymentRequestModal({
     }
   }, [accounts, primaryAccount, unit, selectedSettlementAccountUuid])
 
-  // Sync inherited property splits when loaded
-  useEffect(() => {
-    if (!isOpen) {
-      setIsCustomRentSplits(false)
-      setLineItemRoutes({})
-      return
-    }
-    if (propertySplits && propertySplits.length > 0) {
-      const rentSplits = propertySplits.filter(s => !s.lineItemName || s.lineItemName.toLowerCase() === 'rent')
-      if (rentSplits.length > 0) {
-        setCustomRentSplits(rentSplits.map(s => ({
-          manualAccountUuid: s.manualAccount?.uuid || s.manualAccountUuid,
-          percentage: Number(s.percentage)
-        })))
-      }
-    }
-  }, [isOpen, propertySplits])
-
   // Update End Date when Rent Type changes
   useEffect(() => {
     if (isEditing || !rentStartDate) return
@@ -401,43 +370,6 @@ export function CreatePaymentRequestModal({
 
     const selectedAccount = accounts.find(a => a.uuid === selectedSettlementAccountUuid) || primaryAccount;
 
-    // Resolve Settlement Split Rules
-    let resolvedSplitRules: Array<{ lineItemName: string; manualAccountUuid: string; percentage: number }> = []
-
-    if (isCustomRentSplits && customRentSplits.length > 0) {
-      const rentTotal = Math.round(customRentSplits.reduce((sum, r) => sum + (Number(r.percentage) || 0), 0) * 10) / 10
-      if (Math.abs(rentTotal - 100) > 0.05) {
-        return error(`Total percentage for custom Rent splits must equal 100%. Current sum: ${rentTotal}%`)
-      }
-      for (const r of customRentSplits) {
-        resolvedSplitRules.push({
-          lineItemName: 'Rent',
-          manualAccountUuid: r.manualAccountUuid,
-          percentage: Number(r.percentage)
-        })
-      }
-    } else if (propertySplits && propertySplits.length > 0) {
-      for (const s of propertySplits) {
-        resolvedSplitRules.push({
-          lineItemName: s.lineItemName || 'Rent',
-          manualAccountUuid: s.manualAccount?.uuid || s.manualAccountUuid,
-          percentage: Number(s.percentage)
-        })
-      }
-    }
-
-    // Add destination routes for additional line items (Management Fee, Service Charge, etc.)
-    lineItems.forEach((li, idx) => {
-      if (li.name && li.name.toLowerCase() !== 'rent' && lineItemRoutes[idx]) {
-        resolvedSplitRules = resolvedSplitRules.filter(r => r.lineItemName.toLowerCase() !== li.name.toLowerCase())
-        resolvedSplitRules.push({
-          lineItemName: li.name,
-          manualAccountUuid: lineItemRoutes[idx],
-          percentage: 100
-        })
-      }
-    })
-
     const paymentContext = {
       unitUuid: unit!.uuid,
       amount: parseFloat(amount),
@@ -453,7 +385,6 @@ export function CreatePaymentRequestModal({
       isRecurring: isScheduled ? isRecurring : false,
       recurrenceInterval: isScheduled && isRecurring ? recurrenceInterval : null,
       settlementAccountUuid: selectedSettlementAccountUuid || selectedAccount?.uuid,
-      settlementSplitRules: resolvedSplitRules.length > 0 ? resolvedSplitRules : undefined,
       settlementAccount: selectedAccount ? {
         uuid: selectedAccount.uuid,
         bankName: selectedAccount.bankName,
@@ -591,57 +522,29 @@ export function CreatePaymentRequestModal({
           </div>
           <div style={{ background: 'var(--surface-hover)', padding: 16, borderRadius: 12, border: '1px solid var(--border)' }}>
             {lineItems.map((item, index) => (
-              <div key={index} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: index < lineItems.length - 1 ? '1px dashed var(--border)' : 'none' }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder="Item name (e.g. Rent)"
-                    value={item.name}
-                    onChange={(e) => handleLineItemChange(index, 'name', e.target.value)}
-                    className="form-input"
-                    style={{ flex: 2, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
-                    readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Amount"
-                    value={item.amount}
-                    onChange={(e) => handleLineItemChange(index, 'amount', e.target.value)}
-                    className="form-input"
-                    style={{ flex: 1, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
-                    readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
-                  />
-                  {lineItems.length > 1 && (
-                    <button onClick={() => handleRemoveLineItem(index)} style={{ color: 'var(--error)' }}>
-                      <Trash2 size={18} />
-                    </button>
-                  )}
-                </div>
-
-                {item.name !== 'Rent' && accounts.length > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 11 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Payout destination:</span>
-                    <select
-                      value={lineItemRoutes[index] || ''}
-                      onChange={(e) => setLineItemRoutes(prev => ({ ...prev, [index]: e.target.value }))}
-                      style={{
-                        fontSize: 11,
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        border: '1px solid var(--border)',
-                        background: '#ffffff',
-                        color: 'var(--dark)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="">Default (Property Routing)</option>
-                      {accounts.map(acc => (
-                        <option key={acc.uuid} value={acc.uuid}>
-                          {acc.bankName} - {acc.accountNumber} {acc.title ? `[${acc.title}]` : `(${acc.accountName})`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              <div key={index} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Item name (e.g. Rent)"
+                  value={item.name}
+                  onChange={(e) => handleLineItemChange(index, 'name', e.target.value)}
+                  className="form-input"
+                  style={{ flex: 2, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
+                  readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
+                />
+                <input
+                  type="number"
+                  placeholder="Amount"
+                  value={item.amount}
+                  onChange={(e) => handleLineItemChange(index, 'amount', e.target.value)}
+                  className="form-input"
+                  style={{ flex: 1, background: (item.name === 'Rent' || item.name === 'Management Fee') ? 'var(--ivory-dim)' : undefined }}
+                  readOnly={item.name === 'Rent' || item.name === 'Management Fee'}
+                />
+                {lineItems.length > 1 && (
+                  <button onClick={() => handleRemoveLineItem(index)} style={{ color: 'var(--error)' }}>
+                    <Trash2 size={18} />
+                  </button>
                 )}
               </div>
             ))}
@@ -844,32 +747,9 @@ export function CreatePaymentRequestModal({
         </div>
 
         <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
-              <PieChart size={15} color="var(--clay)" /> Settlement & Split Routing <span style={{ color: 'var(--error)' }}>*</span>
-            </label>
-            {accounts.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setIsCustomRentSplits(!isCustomRentSplits)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--forest, #166534)',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}
-              >
-                <Sliders size={12} />
-                {isCustomRentSplits ? 'Use Property Default' : 'Customize for this invoice'}
-              </button>
-            )}
-          </div>
-
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <CreditCard size={14} color="var(--clay)" /> Settlement Account <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
           {accounts.length === 0 ? (
             <div style={{ padding: '12px 16px', background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>No settlement account configured yet.</span>
@@ -879,178 +759,19 @@ export function CreatePaymentRequestModal({
                 </a>
               )}
             </div>
-          ) : !isCustomRentSplits ? (
-            /* Property Default / Inherited Mode */
-            <div style={{
-              padding: 14,
-              borderRadius: 12,
-              background: '#ffffff',
-              border: '1.5px solid var(--border)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CheckCircle2 size={13} color="var(--forest, #166534)" />
-                  Inheriting property settlement rules
-                </span>
-                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'var(--bg-soft)', color: 'var(--text-muted)' }}>
-                  PROPERTY DEFAULT
-                </span>
-              </div>
-
-              {propertySplits.length > 1 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                  {propertySplits.map((split, i) => (
-                    <span
-                      key={split.uuid || i}
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        background: 'var(--forest-faint, #f0fdf4)',
-                        color: 'var(--forest, #166534)',
-                        border: '1px solid rgba(22, 101, 52, 0.2)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}
-                    >
-                      <span>{split.percentage}%</span>
-                      <span>{split.manualAccount?.bankName}</span>
-                      {split.manualAccount?.title && (
-                        <span style={{ opacity: 0.8, fontSize: 10 }}>({split.manualAccount.title})</span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ marginTop: 4 }}>
-                  <FormSelect
-                    value={selectedSettlementAccountUuid}
-                    onChange={(val) => setSelectedSettlementAccountUuid(val)}
-                    options={accounts.map((acc) => ({
-                      label: `${acc.bankName} - ${acc.accountNumber} (${acc.accountName})${acc.title ? ` [${acc.title}]` : ''}${acc.isPrimary ? ' • Primary' : ''}`,
-                      value: acc.uuid
-                    }))}
-                    portalOnDesktop
-                  />
-                </div>
-              )}
-            </div>
           ) : (
-            /* Custom Rent Split Editor for this invoice */
-            <div style={{
-              padding: 14,
-              borderRadius: 12,
-              background: '#ffffff',
-              border: '1.5px solid var(--forest, #166534)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--dark)' }}>
-                  Custom Rent Split Allocation
-                </span>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: Math.abs(customRentSplits.reduce((s, r) => s + (Number(r.percentage) || 0), 0) - 100) < 0.05 ? 'var(--forest, #166534)' : 'var(--error, #e11d48)'
-                }}>
-                  Total: {customRentSplits.reduce((s, r) => s + (Number(r.percentage) || 0), 0)}% / 100%
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {customRentSplits.map((row, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <select
-                      value={row.manualAccountUuid}
-                      onChange={(e) => {
-                        const next = [...customRentSplits]
-                        next[idx].manualAccountUuid = e.target.value
-                        setCustomRentSplits(next)
-                      }}
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        padding: '6px 8px',
-                        borderRadius: 6,
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg-soft, #f8fafc)',
-                        color: 'var(--dark)'
-                      }}
-                    >
-                      {accounts.map(acc => (
-                        <option key={acc.uuid} value={acc.uuid}>
-                          {acc.bankName} - {acc.accountNumber} {acc.title ? `[${acc.title}]` : `(${acc.accountName})`}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-soft)', border: '1px solid var(--border)', borderRadius: 6, padding: '0 6px', height: 32 }}>
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        value={row.percentage}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value)
-                          const next = [...customRentSplits]
-                          next[idx].percentage = isNaN(val) ? 0 : val
-                          setCustomRentSplits(next)
-                        }}
-                        style={{ width: 44, border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, textAlign: 'right', outline: 'none' }}
-                      />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginLeft: 2 }}>%</span>
-                    </div>
-
-                    {customRentSplits.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setCustomRentSplits(customRentSplits.filter((_, i) => i !== idx))}
-                        style={{ color: 'var(--error, #e11d48)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-
-                {customRentSplits.length < accounts.length && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const used = new Set(customRentSplits.map(r => r.manualAccountUuid))
-                      const unused = accounts.find(a => !used.has(a.uuid)) || accounts[0]
-                      setCustomRentSplits([...customRentSplits, { manualAccountUuid: unused.uuid, percentage: 0 }])
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--clay, #b45309)',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      alignSelf: 'flex-start',
-                      marginTop: 2
-                    }}
-                  >
-                    <Plus size={13} /> Add Account Split
-                  </button>
-                )}
-              </div>
-            </div>
+            <FormSelect
+              value={selectedSettlementAccountUuid}
+              onChange={(val) => setSelectedSettlementAccountUuid(val)}
+              options={accounts.map((acc) => ({
+                label: `${acc.bankName} - ${acc.accountNumber} (${acc.accountName})${acc.isPrimary ? ' • Primary' : ''}`,
+                value: acc.uuid
+              }))}
+              portalOnDesktop
+            />
           )}
-
           <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            Rent payouts are split and transferred to the configured destination accounts automatically upon settlement.
+            Tenant payment will be deposited directly into this settlement account.
           </p>
         </div>
 

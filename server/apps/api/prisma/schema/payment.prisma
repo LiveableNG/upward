@@ -35,7 +35,6 @@ model upward_transaction {
   tenancyPeriod         upward_tenancy_period?         @relation(fields: [tenancyPeriodId], references: [id])
   user                  upward_user                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   allianceCommissions   upward_alliance_commission[]
-  settlementSplits      upward_transaction_settlement_split[]
 
   @@index([userId])
   @@index([reference])
@@ -111,7 +110,6 @@ model upward_payment_request {
   rentCycles         upward_rent_cycle[]
   rentDepositTransactions upward_rent_deposit_transaction[]
   transactions       upward_transaction[]
-  settlementSplitRules upward_settlement_split_rule[]
 
   @@index([userId])
   @@index([status])
@@ -309,7 +307,6 @@ model upward_settlement_batch {
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   transactions      upward_transaction[]
-  transactionSplits upward_transaction_settlement_split[]
 }
 
 model upward_refund_log {
@@ -440,56 +437,4 @@ model upward_payment_proof {
 
   @@index([paymentRequestId])
   @@index([userPropertyId])
-}
-
-model upward_settlement_split_rule {
-  id                 Int                          @id @default(autoincrement())
-  uuid               String                       @unique @default(uuid())
-  propertyId         Int?
-  pmPaymentRequestId Int?
-  paymentRequestId   Int?
-  lineItemName       String                       @default("Rent")
-  manualAccountId    Int
-  percentage         Float
-  createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @updatedAt
-
-  property           upward_pm_property?          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  pmPaymentRequest   upward_pm_payment_request?   @relation(fields: [pmPaymentRequestId], references: [id], onDelete: Cascade)
-  paymentRequest     upward_payment_request?      @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
-  manualAccount      upward_manual_account        @relation(fields: [manualAccountId], references: [id], onDelete: Cascade)
-
-  @@index([propertyId])
-  @@index([pmPaymentRequestId])
-  @@index([paymentRequestId])
-  @@index([manualAccountId])
-}
-
-model upward_transaction_settlement_split {
-  id                Int                       @id @default(autoincrement())
-  uuid              String                    @unique @default(uuid())
-  transactionId     Int
-  manualAccountId   Int?
-  accountNumber     String
-  accountName       String
-  bankName          String
-  bankCode          String
-  title             String?
-  lineItemName      String
-  percentage        Float
-  amount            Float
-  settlementStatus  String                    @default("PENDING")
-  transferReference String?
-  batchId           Int?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-
-  transaction       upward_transaction        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  manualAccount     upward_manual_account?    @relation(fields: [manualAccountId], references: [id], onDelete: SetNull)
-  batch             upward_settlement_batch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
-
-  @@index([transactionId])
-  @@index([manualAccountId])
-  @@index([batchId])
-  @@index([settlementStatus])
 }
