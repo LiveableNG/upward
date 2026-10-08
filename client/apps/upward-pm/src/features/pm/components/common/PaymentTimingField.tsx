@@ -35,8 +35,6 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
   const [mode, setMode] = useState<'EXACT_DATE' | 'QUICK'>(() => {
     return paymentDate ? 'EXACT_DATE' : 'EXACT_DATE'
   })
-  const [manualOverride, setManualOverride] = useState<boolean>(false)
-
   // Compute difference in calendar days (UTC-safe)
   const diffDays = useMemo(() => {
     if (!paymentDate || !targetDueDate) return null
@@ -51,7 +49,7 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
 
   // Automatically compute and suggest timeliness when paymentDate or targetDueDate changes
   useEffect(() => {
-    if (mode === 'EXACT_DATE' && paymentDate && targetDueDate && !manualOverride) {
+    if (mode === 'EXACT_DATE' && paymentDate && targetDueDate) {
       if (diffDays !== null) {
         if (diffDays <= 0) {
           if (timeliness !== 'ON_TIME') onTimelinessChange('ON_TIME')
@@ -60,11 +58,10 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
         }
       }
     }
-  }, [mode, paymentDate, targetDueDate, diffDays, manualOverride, timeliness, onTimelinessChange])
+  }, [mode, paymentDate, targetDueDate, diffDays, timeliness, onTimelinessChange])
 
   const handleModeSwitch = (newMode: 'EXACT_DATE' | 'QUICK') => {
     setMode(newMode)
-    setManualOverride(false)
     if (newMode === 'QUICK') {
       onPaymentDateChange('')
     } else {
@@ -76,14 +73,7 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
   }
 
   const handleDateChange = (newDate: string) => {
-    setManualOverride(false)
     onPaymentDateChange(newDate)
-  }
-
-  const handleManualOverrideToggle = () => {
-    const nextVal = timeliness === 'ON_TIME' ? 'LATE' : 'ON_TIME'
-    setManualOverride(true)
-    onTimelinessChange(nextVal)
   }
 
   const formatDateDisplay = (dateStr?: string) => {
@@ -171,18 +161,12 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
                 <div className="apple-timing-result-text">
                   <div className="apple-timing-result-heading">
                     {timeliness === 'ON_TIME' ? (
-                      <>
-                        <span>Evaluated as On-Time</span>
-                        {manualOverride && <span className="apple-timing-override-pill">PM Override</span>}
-                      </>
+                      <span>Evaluated as On-Time</span>
                     ) : (
-                      <>
-                        <span>
-                          Evaluated as Late
-                          {diffDays !== null && diffDays > 0 ? ` (${diffDays} day${diffDays === 1 ? '' : 's'} past due)` : ''}
-                        </span>
-                        {manualOverride && <span className="apple-timing-override-pill">PM Override</span>}
-                      </>
+                      <span>
+                        Evaluated as Late
+                        {diffDays !== null && diffDays > 0 ? ` (${diffDays} day${diffDays === 1 ? '' : 's'} past due)` : ''}
+                      </span>
                     )}
                   </div>
                   <p className="apple-timing-result-desc">
@@ -198,16 +182,6 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
                   </p>
                 </div>
               </div>
-
-              {/* Grace Period / Override Action */}
-              <button
-                type="button"
-                className="apple-timing-override-btn"
-                onClick={handleManualOverrideToggle}
-                title="Click to toggle evaluation if there is an agreed PM grace period or exception"
-              >
-                {timeliness === 'ON_TIME' ? 'Mark as Late' : 'Grant Grace Period (Mark On-Time)'}
-              </button>
             </div>
           ) : (
             <div className="apple-timing-hint-box">
@@ -443,43 +417,12 @@ export const PaymentTimingField: React.FC<PaymentTimingFieldProps> = ({
           gap: 6px;
         }
 
-        .apple-timing-override-pill {
-          font-size: 9px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          padding: 1px 5px;
-          background: #ffffff;
-          border-radius: 4px;
-          border: 1px solid currentColor;
-          opacity: 0.85;
-        }
-
         .apple-timing-result-desc {
           margin: 0;
           font-size: 11px;
           opacity: 0.9;
           line-height: 1.35;
           color: var(--text-muted, #52525b);
-        }
-
-        .apple-timing-override-btn {
-          background: transparent;
-          border: 1px solid currentColor;
-          border-radius: 6px;
-          font-size: 10.5px;
-          font-weight: 600;
-          padding: 4px 8px;
-          cursor: pointer;
-          opacity: 0.85;
-          transition: all 0.15s ease;
-          align-self: center;
-          color: inherit;
-        }
-
-        .apple-timing-override-btn:hover {
-          opacity: 1;
-          background: #ffffff;
         }
 
         .apple-timing-hint-box {
