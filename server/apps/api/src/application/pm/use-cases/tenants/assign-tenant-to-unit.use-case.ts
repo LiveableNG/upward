@@ -238,6 +238,28 @@ export class AssignTenantToUnitUseCase {
             });
             if (jr?.userPropertyId) {
               targetUserPropertyId = jr.userPropertyId;
+            } else {
+              const logRecord = await this.prisma.upward_pm_activity_log.findFirst({
+                where: { uuid: joinRequestUuid },
+                select: { metadata: true },
+              });
+              const meta = logRecord?.metadata as any;
+              if (meta?.userUuid) {
+                const targetUser = await this.prisma.upward_user.findUnique({
+                  where: { uuid: meta.userUuid },
+                  select: { id: true },
+                });
+                if (targetUser?.id) {
+                  const joinReq = await (this.prisma as any).upward_tenant_join_request?.findFirst({
+                    where: { userId: targetUser.id, ownerPmId },
+                    orderBy: { createdAt: 'desc' },
+                    select: { userPropertyId: true },
+                  });
+                  if (joinReq?.userPropertyId) {
+                    targetUserPropertyId = joinReq.userPropertyId;
+                  }
+                }
+              }
             }
           } catch (err: any) {
             this.logger.warn(`Failed to resolve join request userPropertyId: ${err.message}`);
@@ -394,7 +416,12 @@ export class AssignTenantToUnitUseCase {
 
         try {
           await (this.prisma as any).upward_tenant_join_request?.updateMany({
-            where: { uuid: joinRequestUuid },
+            where: {
+              OR: [
+                { uuid: joinRequestUuid },
+                ...(targetUserPropertyId ? [{ userPropertyId: targetUserPropertyId }] : []),
+              ],
+            },
             data: {
               status: 'ACCEPTED',
               receiptDecision: receiptDecision || null,

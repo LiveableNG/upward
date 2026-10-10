@@ -465,7 +465,8 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
       email,
       phone: tenantData.phone,
       otherPhone: tenantData.otherPhone || undefined,
-      deliveryChannel: tenantData.deliveryChannel
+      deliveryChannel: tenantData.deliveryChannel,
+      skipExternalInvite: true,
     }
 
     if (initialData?.onboardingProof && !receiptDecision) {
