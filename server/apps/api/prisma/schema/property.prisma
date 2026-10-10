@@ -123,6 +123,7 @@ model upward_manual_account {
   paymentRequests    upward_payment_request[]
   splitRules         upward_settlement_split_rule[]
   transactionSplits  upward_transaction_settlement_split[]
+  splitProfileItems  upward_pm_split_profile_item[]
 
   @@index([pmId])
 }

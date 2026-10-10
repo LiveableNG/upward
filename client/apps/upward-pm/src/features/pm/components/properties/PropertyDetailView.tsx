@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useMemo } from 'react'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet, PieChart } from 'lucide-react'
+import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
@@ -210,22 +210,6 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         </div>
         
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setIsImportModalOpen(true)}
-            className="btn btn--secondary btn--sm" 
-            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
-          >
-            <Upload size={16} /> Bulk Import Units
-          </button>
-
-          <button 
-            onClick={() => setIsSettlementModalOpen(true)}
-            className="btn btn--secondary btn--sm" 
-            style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36, padding: '0 16px', borderRadius: 10, whiteSpace: 'nowrap' }}
-          >
-            <PieChart size={16} /> Settlement & Splits
-          </button>
-          
           <button 
             onClick={onEdit}
             className="btn btn--secondary btn--sm" 

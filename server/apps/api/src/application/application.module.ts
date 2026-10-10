@@ -299,6 +299,11 @@ import { DeleteSettlementAccountUseCase } from './pm/use-cases/settlement-accoun
 import { LinkPropertiesToSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/link-properties-to-settlement-account.use-case'
 import { ConfigurePropertySettlementSplitUseCase } from './pm/use-cases/properties/configure-property-settlement-split.use-case'
 import { GetPropertySettlementSplitUseCase } from './pm/use-cases/properties/get-property-settlement-split.use-case'
+import { GetSplitProfilesUseCase } from './pm/use-cases/split-profiles/get-split-profiles.use-case'
+import { CreateSplitProfileUseCase } from './pm/use-cases/split-profiles/create-split-profile.use-case'
+import { UpdateSplitProfileUseCase } from './pm/use-cases/split-profiles/update-split-profile.use-case'
+import { DeleteSplitProfileUseCase } from './pm/use-cases/split-profiles/delete-split-profile.use-case'
+import { AttachSplitProfileUseCase } from './pm/use-cases/split-profiles/attach-split-profile.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { GetFeedbackAdminUseCase } from './use-cases/feedback/get-feedback-admin.use-case'
 import { GetFeedbackStatsAdminUseCase } from './use-cases/feedback/get-feedback-stats-admin.use-case'
@@ -879,6 +884,11 @@ const UseCases: any[] = [
   LinkPropertiesToSettlementAccountUseCase,
   ConfigurePropertySettlementSplitUseCase,
   GetPropertySettlementSplitUseCase,
+  GetSplitProfilesUseCase,
+  CreateSplitProfileUseCase,
+  UpdateSplitProfileUseCase,
+  DeleteSplitProfileUseCase,
+  AttachSplitProfileUseCase,
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,

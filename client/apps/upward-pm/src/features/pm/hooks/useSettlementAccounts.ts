@@ -13,7 +13,7 @@ const EMPTY_ACCOUNTS: SettlementAccount[] = [];
 export function useSettlementAccounts() {
   const query = useQuery<SettlementAccount[]>({
     queryKey: SETTLEMENT_ACCOUNTS_QUERY_KEY,
-    queryFn: api.getSettlementAccounts,
+    queryFn: () => api.getSettlementAccounts(),
   });
 
   const accounts = query.data || EMPTY_ACCOUNTS;

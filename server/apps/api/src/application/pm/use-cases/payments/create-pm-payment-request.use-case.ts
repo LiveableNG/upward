@@ -34,6 +34,7 @@ export interface CreatePmPaymentRequestDto {
   /** When true, bypasses the hasReceivedWelcomeTemplate check (for system-generated PRs) */
   bypassWelcomeCheck?: boolean;
   settlementAccountUuid?: string;
+  splitProfileUuid?: string;
   manualAccountId?: number;
   settlementSplitRules?: Array<{ lineItemName?: string; manualAccountUuid: string; percentage: number }>;
   allowSupersede?: boolean;
@@ -293,10 +294,24 @@ export class CreatePmPaymentRequestUseCase {
       });
     }
 
-    // Persist Settlement Split Rules (Inherited from Property or Custom-specified)
+    // Persist Settlement Split Rules (Split Profile Override, Custom-specified, or Inherited from Property)
     let resolvedSplitRules: Array<{ lineItemName: string; manualAccountId: number; percentage: number }> = [];
+    let linkedSplitProfileId: number | null = null;
 
-    if (data.settlementSplitRules && data.settlementSplitRules.length > 0) {
+    if (data.splitProfileUuid) {
+      const profile = await prisma.upward_pm_split_profile.findFirst({
+        where: { uuid: data.splitProfileUuid, pmId: ownerPmId },
+        include: { items: true }
+      });
+      if (profile && profile.items.length > 0) {
+        linkedSplitProfileId = profile.id;
+        resolvedSplitRules = profile.items.map((item: any) => ({
+          lineItemName: 'Rent',
+          manualAccountId: item.manualAccountId,
+          percentage: Number(item.percentage)
+        }));
+      }
+    } else if (data.settlementSplitRules && data.settlementSplitRules.length > 0) {
       const accountUuids = Array.from(new Set(data.settlementSplitRules.map((r: any) => r.manualAccountUuid)));
       const accounts = await prisma.upward_manual_account.findMany({
         where: { uuid: { in: accountUuids }, pmId: ownerPmId }
@@ -310,6 +325,19 @@ export class CreatePmPaymentRequestUseCase {
           manualAccountId: accountMap.get(r.manualAccountUuid) as number,
           percentage: Number(r.percentage)
         }));
+    } else if (property?.splitProfileId) {
+      const profile = await prisma.upward_pm_split_profile.findFirst({
+        where: { id: property.splitProfileId },
+        include: { items: true }
+      });
+      if (profile && profile.items.length > 0) {
+        linkedSplitProfileId = profile.id;
+        resolvedSplitRules = profile.items.map((item: any) => ({
+          lineItemName: 'Rent',
+          manualAccountId: item.manualAccountId,
+          percentage: Number(item.percentage)
+        }));
+      }
     } else if (property) {
       const defaultPropertyRules = await prisma.upward_settlement_split_rule.findMany({
         where: { propertyId: property.id }
@@ -321,6 +349,13 @@ export class CreatePmPaymentRequestUseCase {
           percentage: r.percentage
         }));
       }
+    }
+
+    if (linkedSplitProfileId && pmPR) {
+      await prisma.upward_pm_payment_request.update({
+        where: { id: pmPR.id },
+        data: { splitProfileId: linkedSplitProfileId }
+      });
     }
 
     if (resolvedSplitRules.length > 0) {

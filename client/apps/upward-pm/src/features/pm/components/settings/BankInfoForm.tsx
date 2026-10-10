@@ -26,6 +26,8 @@ import { api } from '@/lib/api'
 import { dedupeBanksByCode } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { SettlementSplitSection } from './SettlementSplitSection'
 import {
   useSettlementAccounts,
   useCreateSettlementAccount,
@@ -72,6 +74,9 @@ export function BankInfoForm() {
   const setDefaultMutation = useSetDefaultSettlementAccount()
   const deleteMutation = useDeleteSettlementAccount()
   const linkPropertiesMutation = useLinkPropertiesToAccount()
+
+  const [paymentSection, setPaymentSection] = useState<'accounts' | 'splits'>('accounts')
+  const primaryAccount = accounts.find(a => a.isPrimary) || accounts[0]
 
   // Modal states
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
@@ -362,51 +367,80 @@ export function BankInfoForm() {
   return (
     <section className="settings__section" id="settlement-accounts">
       <div className="settings__section-header">
-        <div className="settings__section-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+        <div className="settings__section-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 14 }}>
           <div>
-            <h2 className="settings__section-title">Settlement Accounts</h2>
+            <h2 className="settings__section-title">
+              {paymentSection === 'accounts' ? 'Settlement Accounts' : 'Settlement Split Settings'}
+            </h2>
             <p className="settings__section-subtitle">
-              Configure multiple bank accounts for rent payouts and payment requests.
+              {paymentSection === 'accounts'
+                ? 'Configure multiple bank accounts for rent payouts and payment requests.'
+                : 'Configure reusable split profiles and assign them to properties.'}
             </p>
           </div>
-          {canManageCompanySettings && (
-            <button
-              type="button"
-              className="btn btn--primary btn--sm"
-              onClick={handleOpenAddModal}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Plus size={16} />
-              <span>Add Settlement Account</span>
-            </button>
-          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* View Selector using FormSelect */}
+            <div style={{ width: 220 }}>
+              <FormSelect
+                value={paymentSection}
+                options={[
+                  { label: 'Settlement Accounts', value: 'accounts' },
+                  { label: 'Split Settings & Rules', value: 'splits' },
+                ]}
+                onChange={(val) => setPaymentSection(val as any)}
+                triggerStyle={{ height: 38, fontSize: 13, fontWeight: 600 }}
+              />
+            </div>
+
+            {paymentSection === 'accounts' && canManageCompanySettings && (
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={handleOpenAddModal}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38 }}
+              >
+                <Plus size={16} />
+                <span>Add Settlement Account</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {!canManageCompanySettings && (
-        <div style={{
-          padding: '12px 16px',
-          background: 'var(--ivory-dim, #fbfaf9)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 20
-        }}>
-          <ShieldCheck size={20} color="var(--forest, #2d5a27)" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-            Settlement accounts are configured and managed by your organization administrator. You can view available payout accounts for payment requests.
-          </p>
-        </div>
-      )}
+      {paymentSection === 'splits' ? (
+        <SettlementSplitSection
+          accounts={accounts}
+          primaryAccount={primaryAccount}
+          properties={properties}
+          canManageCompanySettings={canManageCompanySettings}
+        />
+      ) : (
+        <>
+          {!canManageCompanySettings && (
+            <div style={{
+              padding: '12px 16px',
+              background: 'var(--ivory-dim, #fbfaf9)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 20
+            }}>
+              <ShieldCheck size={20} color="var(--forest, #2d5a27)" style={{ flexShrink: 0 }} />
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                Settlement accounts are configured and managed by your organization administrator. You can view available payout accounts for payment requests.
+              </p>
+            </div>
+          )}
 
-      {isLoadingAccounts ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-          <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 12px' }} />
-          <p style={{ fontSize: 14 }}>Loading settlement accounts...</p>
-        </div>
-      ) : accounts.length === 0 ? (
+          {isLoadingAccounts ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 12px' }} />
+              <p style={{ fontSize: 14 }}>Loading settlement accounts...</p>
+            </div>
+          ) : accounts.length === 0 ? (
         <div style={{
           padding: '48px 24px',
           textAlign: 'center',
@@ -916,6 +950,8 @@ export function BankInfoForm() {
         onConfirm={handleConfirmDelete}
         onClose={() => setAccountToDelete(null)}
       />
+        </>
+      )}
     </section>
   )
 }

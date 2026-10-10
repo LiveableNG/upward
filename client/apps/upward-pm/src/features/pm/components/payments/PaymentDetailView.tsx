@@ -22,7 +22,9 @@ import {
   Phone,
   Mail,
   MessageSquare,
-  Edit
+  Edit,
+  PieChart,
+  ShieldCheck
 } from 'lucide-react'
 import { usePaymentRequest, useResendPaymentRequest, useCancelPaymentRequest } from '../../hooks/usePayments'
 import { DetailSkeleton } from '@/components/skeletons'
@@ -408,37 +410,169 @@ export const PaymentDetailView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Settlement Destination Card */}
-                  <div className="checkout-card" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <CreditCard size={16} color="var(--forest)" /> Settlement Bank Account
-                      </h3>
-                      {request.settlementAccount?.isPrimary && (
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
-                          Primary Account
-                        </span>
-                      )}
-                    </div>
-                    {request.settlementAccount ? (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-                        <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>BANK NAME</span>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>{request.settlementAccount.bankName}</span>
+                  {/* Settlement Destination / Split Breakdown Card */}
+                  {(() => {
+                    const recordedSplits: any[] = ((request as any).transactions || []).flatMap((t: any) => t.settlementSplits || [])
+                    const activeProfile = (request as any).splitProfile
+                    const activeRules: any[] = (request as any).settlementSplitRules || []
+                    const hasSplit = recordedSplits.length > 0 || Boolean(activeProfile) || activeRules.length > 1
+
+                    // Projected split items
+                    const splitItems = recordedSplits.length > 0
+                      ? recordedSplits
+                      : (activeProfile?.items?.length > 0
+                          ? activeProfile.items.map((it: any) => ({
+                              bankName: it.manualAccount?.bankName || 'Settlement Account',
+                              accountNumber: it.manualAccount?.accountNumber || '••••',
+                              accountName: it.manualAccount?.accountName || '',
+                              title: it.manualAccount?.title,
+                              percentage: it.percentage,
+                              amount: (Number(request.amount) || 0) * (Number(it.percentage) / 100),
+                              settlementStatus: 'SCHEDULED'
+                            }))
+                          : activeRules.map((r: any) => ({
+                              bankName: r.manualAccount?.bankName || 'Settlement Account',
+                              accountNumber: r.manualAccount?.accountNumber || '••••',
+                              accountName: r.manualAccount?.accountName || '',
+                              title: r.manualAccount?.title,
+                              percentage: r.percentage,
+                              amount: (Number(request.amount) || 0) * (Number(r.percentage) / 100),
+                              settlementStatus: 'SCHEDULED'
+                            })))
+
+                    if (hasSplit && splitItems.length > 0) {
+                      return (
+                        <div className="checkout-card" style={{ padding: '24px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <PieChart size={16} color="var(--forest)" /> Settlement Split Breakdown
+                            </h3>
+                            <span style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              background: '#f0fdf4',
+                              color: '#166534',
+                              border: '1px solid #bbf7d0',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.4px'
+                            }}>
+                              {recordedSplits.length > 0 ? 'Clearance Routing' : (activeProfile ? `Preset: ${activeProfile.name}` : 'Split Active')}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {splitItems.map((split: any, idx: number) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  padding: '12px 16px',
+                                  borderRadius: 10,
+                                  background: 'var(--bg-soft, #f6f6f4)',
+                                  border: '1px solid var(--border)',
+                                  gap: 12,
+                                  flexWrap: 'wrap'
+                                }}
+                              >
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--dark)' }}>
+                                      {split.bankName}
+                                    </span>
+                                    {split.title && (
+                                      <span style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        padding: '1px 6px',
+                                        borderRadius: 4,
+                                        background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))',
+                                        color: 'var(--clay, #b45309)',
+                                        border: '1px solid rgba(217, 119, 6, 0.2)'
+                                      }}>
+                                        {split.title}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                    {split.accountNumber} {split.accountName ? `• ${split.accountName}` : ''}
+                                  </span>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                  <span style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: 6,
+                                    background: 'var(--forest-faint, #f0fdf4)',
+                                    color: 'var(--forest, #166534)'
+                                  }}>
+                                    {split.percentage}% Rent
+                                  </span>
+                                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--dark)' }}>
+                                    ₦{(Number(split.amount) || 0).toLocaleString()}
+                                  </span>
+                                  <span style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: '2px 6px',
+                                    borderRadius: 4,
+                                    background: split.settlementStatus === 'SETTLED' ? 'var(--forest-faint)' : 'var(--bg-card)',
+                                    color: split.settlementStatus === 'SETTLED' ? 'var(--forest)' : 'var(--text-muted)',
+                                    border: '1px solid var(--border)'
+                                  }}>
+                                    {split.settlementStatus || 'PENDING'}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
+                            <ShieldCheck size={14} color="var(--forest)" style={{ flexShrink: 0 }} />
+                            <span>Only Rent is split across recipients. Extra line items (fees, service charges) route directly to your Primary Settlement Account.</span>
+                          </div>
                         </div>
-                        <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>ACCOUNT NUMBER</span>
-                          <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17', letterSpacing: '0.05em' }}>{request.settlementAccount.accountNumber}</span>
+                      )
+                    }
+
+                    return (
+                      <div className="checkout-card" style={{ padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1A1A17', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <CreditCard size={16} color="var(--forest)" /> Settlement Bank Account
+                          </h3>
+                          {request.settlementAccount?.isPrimary && (
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                              Primary Account
+                            </span>
+                          )}
                         </div>
-                        <div>
-                          <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>ACCOUNT HOLDER</span>
-                          <span style={{ fontWeight: 600, fontSize: 13, color: '#5D5954' }}>{request.settlementAccount.accountName}</span>
-                        </div>
+                        {request.settlementAccount ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+                            <div>
+                              <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>BANK NAME</span>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17' }}>{request.settlementAccount.bankName}</span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>ACCOUNT NUMBER</span>
+                              <span style={{ fontWeight: 700, fontSize: 14, color: '#1A1A17', letterSpacing: '0.05em' }}>{request.settlementAccount.accountNumber}</span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: 10, color: '#8A857F', display: 'block', marginBottom: 2, fontWeight: 600 }}>ACCOUNT HOLDER</span>
+                              <span style={{ fontWeight: 600, fontSize: 13, color: '#5D5954' }}>{request.settlementAccount.accountName}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p style={{ color: '#8A857F', fontSize: 13, margin: 0 }}>Settlement routed to organization default payout account.</p>
+                        )}
                       </div>
-                    ) : (
-                      <p style={{ color: '#8A857F', fontSize: 13, margin: 0 }}>Settlement routed to organization default payout account.</p>
-                    )}
-                  </div>
+                    )
+                  })()}
                 </div>
               )}
 
