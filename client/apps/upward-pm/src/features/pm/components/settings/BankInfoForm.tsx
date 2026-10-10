@@ -370,10 +370,10 @@ export function BankInfoForm() {
                 border: '1px solid rgba(45, 90, 39, 0.15)'
               }}>
                 <CheckCircle2 size={12} />
-                Default Fallback Account
+                Default Bank Account
               </span>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '3px 0 0' }}>
-                Receives non-rent fees & unassigned property rent
+                Receives unassigned property rent & other fees
               </p>
             </div>
           )
@@ -390,26 +390,26 @@ export function BankInfoForm() {
             fontWeight: 600,
             border: '1px solid var(--border)'
           }}>
-            Secondary Payout Account
+            Additional Payout Account
           </span>
         )
       }
     },
     {
-      header: 'Assigned Rent Destination',
+      header: 'Assigned Properties',
       render: (account: SettlementAccount) => {
         const directProps = properties.filter((p: any) => p.manualAccountId === account.id && !p.splitProfileId)
         if (account.isPrimary) {
           const unassignedCount = properties.filter((p: any) => !p.splitProfileId && (!p.manualAccountId || p.manualAccountId === account.id)).length
           return (
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              {unassignedCount} {unassignedCount === 1 ? 'property' : 'properties'} (Default Fallback)
+              {unassignedCount} {unassignedCount === 1 ? 'property' : 'properties'} (Default Account)
             </span>
           )
         }
         return (
           <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            {directProps.length === 0 ? 'None (Configured via Routing)' : `${directProps.length} ${directProps.length === 1 ? 'property' : 'properties'} (100% Rent)`}
+            {directProps.length === 0 ? 'None (Configured via Split Rules)' : `${directProps.length} ${directProps.length === 1 ? 'property' : 'properties'} (100% Rent)`}
           </span>
         )
       }
@@ -462,43 +462,29 @@ export function BankInfoForm() {
   return (
     <section className="settings__section" id="settlement-accounts">
       <div className="settings__section-header">
-        <div className="settings__section-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 14 }}>
-          <div>
+        <div className="settings__section-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <h2 className="settings__section-title">
               {paymentSection === 'accounts' ? 'Settlement Accounts' : 'Rent Routing & Split Profiles'}
             </h2>
             <p className="settings__section-subtitle">
               {paymentSection === 'accounts'
-                ? 'Manage bank accounts for rental payouts, including your organization default fallback account.'
-                : 'Configure reusable split profiles and assign single-source rent routing rules for each property.'}
+                ? 'Manage the bank accounts where rent and payouts are deposited.'
+                : 'Set up rules to automatically divide collected rent between owners, agents, and maintenance accounts for each property.'}
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* View Selector using FormSelect */}
-            <div style={{ width: 220 }}>
-              <FormSelect
-                value={paymentSection}
-                options={[
-                  { label: 'Settlement Accounts', value: 'accounts' },
-                  { label: 'Rent Routing & Splits', value: 'splits' },
-                ]}
-                onChange={(val) => setPaymentSection(val as any)}
-                triggerStyle={{ height: 38, fontSize: 13, fontWeight: 600 }}
-              />
-            </div>
-
-            {paymentSection === 'accounts' && canManageCompanySettings && (
-              <button
-                type="button"
-                className="btn btn--primary btn--sm"
-                onClick={handleOpenAddModal}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38 }}
-              >
-                <Plus size={16} />
-                <span>Add Settlement Account</span>
-              </button>
-            )}
+          {/* View Selector using FormSelect */}
+          <div style={{ width: 220, flexShrink: 0 }}>
+            <FormSelect
+              value={paymentSection}
+              options={[
+                { label: 'Settlement Accounts', value: 'accounts' },
+                { label: 'Rent Routing & Splits', value: 'splits' },
+              ]}
+              onChange={(val) => setPaymentSection(val as any)}
+              triggerStyle={{ height: 38, fontSize: 13, fontWeight: 600 }}
+            />
           </div>
         </div>
       </div>
@@ -563,11 +549,26 @@ export function BankInfoForm() {
           )}
         </div>
       ) : (
-        <DataTable<SettlementAccount>
-          columns={accountColumns}
-          data={accounts}
-          pageSize={10}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {canManageCompanySettings && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={handleOpenAddModal}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 36 }}
+              >
+                <Plus size={15} />
+                <span>Add Settlement Account</span>
+              </button>
+            </div>
+          )}
+          <DataTable<SettlementAccount>
+            columns={accountColumns}
+            data={accounts}
+            pageSize={10}
+          />
+        </div>
       )}
       {/* Add / Edit Settlement Account Modal */}
       <Modal

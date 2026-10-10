@@ -112,7 +112,7 @@ export function SettlementSplitSection({
   const routingSelectOptions: SelectOption[] = useMemo(() => {
     const opts: SelectOption[] = [
       {
-        label: `Default Fallback (${primaryAccount ? `${primaryAccount.bankName} •••• ${primaryAccount.accountNumber.slice(-4)}` : 'Primary Account'})`,
+        label: `Default Account (${primaryAccount ? `${primaryAccount.bankName} •••• ${primaryAccount.accountNumber.slice(-4)}` : 'Primary Account'})`,
         value: 'default',
       },
     ]
@@ -120,7 +120,7 @@ export function SettlementSplitSection({
     // Group 1: Split Profiles
     profiles.forEach((p) => {
       opts.push({
-        label: `[Split Profile] ${p.name} (${p.items.map((it) => `${it.percentage}%`).join('/')})`,
+        label: `[Split Rule] ${p.name} (${p.items.map((it) => `${it.percentage}%`).join('/')})`,
         value: `profile:${p.uuid}`,
       })
     })
@@ -128,7 +128,7 @@ export function SettlementSplitSection({
     // Group 2: Direct Accounts
     accounts.forEach((a) => {
       opts.push({
-        label: `[Direct Account] ${a.bankName} (•••• ${a.accountNumber.slice(-4)})${a.title ? ` - ${a.title}` : ''}${a.isPrimary ? ' [Default]' : ''}`,
+        label: `[Single Account] ${a.bankName} (•••• ${a.accountNumber.slice(-4)})${a.title ? ` - ${a.title}` : ''}${a.isPrimary ? ' [Default]' : ''}`,
         value: `account:${a.uuid}`,
       })
     })
@@ -462,7 +462,7 @@ export function SettlementSplitSection({
       ),
     },
     {
-      header: 'Assigned Destination / Routing',
+      header: 'Assigned Payout Rule',
       render: (prop: any) => {
         const profile = profiles.find((p) => p.id === prop.splitProfileId)
         if (profile) {
@@ -475,7 +475,7 @@ export function SettlementSplitSection({
                 </span>
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                {profile.items.map((it) => `${it.percentage}%`).join(' / ')} split on Rent • Non-rent to Default
+                {profile.items.map((it) => `${it.percentage}%`).join(' / ')} split on Rent • Other fees to Default
               </p>
             </div>
           )
@@ -497,7 +497,7 @@ export function SettlementSplitSection({
                 )}
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                100% of Rent to this account • Non-rent to Default
+                100% of Rent to this account • Other fees to Default
               </p>
             </div>
           )
@@ -508,18 +508,18 @@ export function SettlementSplitSection({
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ShieldCheck size={14} color="var(--forest, #166534)" />
               <span style={{ fontWeight: 600, color: 'var(--dark)', fontSize: 13 }}>
-                Default Account Fallback
+                Default Bank Account
               </span>
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-              100% routes to {primaryAccount ? `${primaryAccount.bankName} (•••• ${primaryAccount.accountNumber.slice(-4)})` : 'Primary Account'}
+              100% of rent goes to {primaryAccount ? `${primaryAccount.bankName} (•••• ${primaryAccount.accountNumber.slice(-4)})` : 'Primary Account'}
             </p>
           </div>
         )
       },
     },
     {
-      header: 'Routing Status',
+      header: 'Payout Type',
       render: (prop: any) => {
         const hasProfile = Boolean(prop.splitProfileId)
         const directAccount = accounts.find((a) => a.id === prop.manualAccountId)
@@ -540,7 +540,7 @@ export function SettlementSplitSection({
                 letterSpacing: '0.4px',
               }}
             >
-              Split Profile
+              Split Rule
             </span>
           )
         }
@@ -560,7 +560,7 @@ export function SettlementSplitSection({
                 letterSpacing: '0.4px',
               }}
             >
-              Direct Account
+              Single Account
             </span>
           )
         }
@@ -579,13 +579,13 @@ export function SettlementSplitSection({
               letterSpacing: '0.4px',
             }}
           >
-            Default Fallback
+            Default Account
           </span>
         )
       },
     },
     {
-      header: 'Quick Assign Routing',
+      header: 'Assign Payout Rule',
       align: 'right',
       render: (prop: any) => {
         if (!canManageCompanySettings) return null
@@ -628,7 +628,7 @@ export function SettlementSplitSection({
                       propertyUuid: prop.uuid,
                       routingType: 'DEFAULT',
                     })
-                    success(`Reset ${prop.name} to Default Fallback`)
+                    success(`Reset ${prop.name} to Default Account`)
                   }
                 } catch (err: any) {
                   toastError(err?.message || 'Failed to update property routing')
@@ -679,25 +679,11 @@ export function SettlementSplitSection({
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
-                  Default Fallback Active
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: '0.4px',
-                    textTransform: 'uppercase',
-                    padding: '2px 6px',
-                    borderRadius: 12,
-                    background: 'var(--forest-faint, #f0f7ef)',
-                    color: 'var(--forest, #166534)',
-                  }}
-                >
-                  Zero-Strand Protection
+                  Default Bank Account
                 </span>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-                Any property without a custom split profile routes 100% of collected rent to{' '}
+                Any property without a custom rent split automatically deposits 100% of rent into{' '}
                 <strong style={{ color: 'var(--dark)' }}>
                   {primaryAccount ? `${primaryAccount.bankName} (${primaryAccount.accountNumber})` : 'Default Account'}
                 </strong>.
@@ -713,7 +699,7 @@ export function SettlementSplitSection({
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, height: 28, padding: '0 10px' }}
             >
               <HelpCircle size={13} color="var(--forest, #166534)" />
-              <span>How Waterfall Routing Works</span>
+              <span>How Rent Payouts Work</span>
             </button>
 
             {isFallbackTooltipOpen && (
@@ -737,13 +723,13 @@ export function SettlementSplitSection({
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Routing Waterfall</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>How Rent Payouts Work</span>
                     <button type="button" onClick={() => setIsFallbackTooltipOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div><strong>1. Invoice Split Preset:</strong> Highest priority. Selected during payment request creation.</div>
-                    <div><strong>2. Property Split Profile:</strong> Assigned to this property below (splits Rent).</div>
-                    <div><strong>3. Default Account Fallback:</strong> If no split profile is assigned, 100% goes to your Default Bank Account.</div>
+                    <div><strong>1. Invoice Split Rule:</strong> Highest priority. Takes effect if you picked a specific split while creating a payment request.</div>
+                    <div><strong>2. Property Split Rule:</strong> Next priority. Rent is divided according to the rule assigned to the property below.</div>
+                    <div><strong>3. Default Account:</strong> If no split rule is assigned to the property, 100% of rent goes straight to your Default Bank Account.</div>
                   </div>
                 </div>
               </>
@@ -785,25 +771,11 @@ export function SettlementSplitSection({
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--dark)' }}>
-                  Manual Transfers & Fee Routing
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: '0.4px',
-                    textTransform: 'uppercase',
-                    padding: '2px 6px',
-                    borderRadius: 12,
-                    background: 'var(--bg-soft, #f4f3ef)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  Industry Standard
+                  Bank Transfers & Extra Fees
                 </span>
               </div>
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '4px 0 0' }}>
-                Tenants uploading bank transfer receipts always see your single Default Account. Additional line items (Service Charge, Caution Deposit) route 100% to your Default Account.
+                Tenants paying by direct bank transfer will always send funds to your default account. Extra fees (like service charge or caution fee) also go directly to your default account.
               </p>
             </div>
           </div>
@@ -816,7 +788,7 @@ export function SettlementSplitSection({
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, height: 28, padding: '0 10px' }}
             >
               <Info size={13} color="var(--dark)" />
-              <span>Why Only Default Account for Transfers?</span>
+              <span>Why transfers use your default account</span>
             </button>
 
             {isManualTransferTooltipOpen && (
@@ -840,12 +812,12 @@ export function SettlementSplitSection({
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Manual Collection Policy</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--dark)' }}>Bank Transfer & Fee Policy</span>
                     <button type="button" onClick={() => setIsManualTransferTooltipOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div><strong>Single Destination:</strong> To avoid tenant confusion or accidental split payments, manual bank transfer instructions only display your verified Default Account.</div>
-                    <div><strong>Rent vs. Extra Fees:</strong> Only the Rent portion of an invoice is distributed according to split rules. Non-rent items (Management fee, Service charge, Caution fee) route directly to your Default Account.</div>
+                    <div><strong>Direct Bank Transfers:</strong> To prevent tenant confusion or accidental split payments, manual bank transfer instructions only display your verified Default Account.</div>
+                    <div><strong>Rent vs. Extra Fees:</strong> Only the Rent portion of an invoice is distributed according to split rules. Extra charges (Service Charge, Caution Deposit, Legal Fees) route directly to your Default Account.</div>
                   </div>
                 </div>
               </>
@@ -914,7 +886,7 @@ export function SettlementSplitSection({
           columns={profileColumns}
           data={profiles}
           isLoading={isLoadingProfiles}
-          emptyMessage="No split profiles created yet. Click 'Create Split Profile' to set up a reusable split configuration."
+          emptyMessage="No split profiles created yet. Click 'Create Split Profile' to set up a reusable rent split rule."
           pageSize={10}
         />
       ) : (
@@ -980,7 +952,7 @@ export function SettlementSplitSection({
                   color: assignmentFilter === 'account' ? 'var(--dark)' : 'var(--text-muted)',
                 }}
               >
-                Direct Accounts
+                Single Account
               </button>
               <button
                 type="button"
@@ -996,7 +968,7 @@ export function SettlementSplitSection({
                   color: assignmentFilter === 'default' ? 'var(--dark)' : 'var(--text-muted)',
                 }}
               >
-                Default Fallback
+                Default Account
               </button>
             </div>
           </div>
@@ -1015,7 +987,7 @@ export function SettlementSplitSection({
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         title={editingProfile ? 'Edit Split Profile' : 'Create Split Profile'}
-        subtitle="Configure how rent amounts are divided across settlement accounts."
+        subtitle="Configure how rent amounts are divided across bank accounts."
         icon={PieChart}
         maxWidth={580}
         footer={
@@ -1089,10 +1061,10 @@ export function SettlementSplitSection({
                 }}
               >
                 <span style={{ fontSize: 13, fontWeight: 700, color: splitMode === 'single' ? 'var(--forest, #166534)' : 'var(--dark)' }}>
-                  100% Single Account
+                  100% to One Account
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Send all rent to one dedicated account
+                  Send all rent for this property to one account
                 </span>
               </button>
 
@@ -1112,10 +1084,10 @@ export function SettlementSplitSection({
                 }}
               >
                 <span style={{ fontSize: 13, fontWeight: 700, color: splitMode === 'custom' ? 'var(--forest, #166534)' : 'var(--dark)' }}>
-                  Custom % Split
+                  Split by Percentage
                 </span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Divide rent by % between accounts
+                  Divide rent between accounts by percentage
                 </span>
               </button>
             </div>
@@ -1224,7 +1196,7 @@ export function SettlementSplitSection({
                   style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}
                 >
                   <Plus size={14} />
-                  <span>Add Recipient Account</span>
+                  <span>Add Bank Account</span>
                 </button>
               </div>
 
@@ -1242,7 +1214,7 @@ export function SettlementSplitSection({
                 }}
               >
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)' }}>
-                  Total Allocation:
+                  Total Split:
                 </span>
                 <span
                   style={{
@@ -1260,12 +1232,12 @@ export function SettlementSplitSection({
           {/* Single Account Selection */}
           {splitMode === 'single' && (
             <div>
-              <label className="settings__label">Recipient Settlement Account</label>
+              <label className="settings__label">Payout Bank Account</label>
               <FormSelect
                 value={singleAccountUuid}
                 options={accountSelectOptions}
                 onChange={(val) => setSingleAccountUuid(val)}
-                placeholder="Select Recipient Account"
+                placeholder="Select Bank Account"
               />
             </div>
           )}
@@ -1277,7 +1249,7 @@ export function SettlementSplitSection({
         isOpen={isAttachModalOpen}
         onClose={() => setIsAttachModalOpen(false)}
         title={`Assign "${profileToAttach?.name || ''}"`}
-        subtitle="Select the properties where rent payments should follow this split profile."
+        subtitle="Select the properties where rent payments should follow this split rule."
         icon={Layers}
         maxWidth={540}
         footer={
@@ -1382,7 +1354,7 @@ export function SettlementSplitSection({
         onClose={() => setProfileToDelete(null)}
         onConfirm={handleConfirmDelete}
         title="Delete Split Profile"
-        message={`Are you sure you want to delete "${profileToDelete?.name}"? Any properties currently assigned to this profile will fall back to your Default Settlement Account.`}
+        message={`Are you sure you want to delete "${profileToDelete?.name}"? Any properties currently assigned to this profile will switch back to your Default Bank Account.`}
         confirmText="Delete Profile"
         type="danger"
         isPending={deleteProfileMutation.isPending}
