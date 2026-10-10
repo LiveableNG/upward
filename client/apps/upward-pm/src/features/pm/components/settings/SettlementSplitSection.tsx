@@ -168,23 +168,30 @@ export function SettlementSplitSection({
     setProfileDescription(profile.description || '')
     setProfileIsDefault(profile.isDefault)
 
+    const resolveItemAccountUuid = (it: any) =>
+      it?.manualAccountUuid ||
+      it?.manualAccount?.uuid ||
+      accounts.find((a) => String(a.id) === String(it?.manualAccountId) || a.uuid === it?.manualAccountUuid)?.uuid ||
+      ''
+
     if (profile.items.length === 1 && Number(profile.items[0].percentage) === 100) {
+      const firstUuid = resolveItemAccountUuid(profile.items[0])
       setSplitMode('single')
-      setSingleAccountUuid(profile.items[0].manualAccountUuid)
+      setSingleAccountUuid(firstUuid)
       setSplitRows([
         {
           id: '1',
-          manualAccountUuid: profile.items[0].manualAccountUuid,
+          manualAccountUuid: firstUuid,
           percentage: 100,
         },
       ])
     } else {
       setSplitMode('custom')
-      setSingleAccountUuid(profile.items[0]?.manualAccountUuid || '')
+      setSingleAccountUuid(resolveItemAccountUuid(profile.items[0]))
       setSplitRows(
-        profile.items.map((it, idx) => ({
+        profile.items.map((it: any, idx: number) => ({
           id: String(idx + 1),
-          manualAccountUuid: it.manualAccountUuid,
+          manualAccountUuid: resolveItemAccountUuid(it),
           percentage: Number(it.percentage),
         }))
       )

@@ -32,6 +32,7 @@ export class PrismaPmSplitProfileRepository implements ISplitProfileRepository {
         id: it.id,
         uuid: it.uuid,
         manualAccountId: it.manualAccountId,
+        manualAccountUuid: it.manualAccount?.uuid || '',
         percentage: Number(it.percentage),
         lineItemName: it.lineItemName || 'Rent',
         manualAccount: it.manualAccount ? {

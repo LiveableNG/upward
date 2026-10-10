@@ -5,6 +5,7 @@ export interface SplitProfileItemEntity {
   uuid?: string;
   profileId?: number;
   manualAccountId: number;
+  manualAccountUuid?: string;
   percentage: number;
   lineItemName: string;
   manualAccount?: {
