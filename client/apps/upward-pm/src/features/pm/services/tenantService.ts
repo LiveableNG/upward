@@ -7,6 +7,8 @@ export interface CreateTenantDto {
   email?: string;
   phone?: string;
   otherPhone?: string;
+  deliveryChannel?: string;
+  skipExternalInvite?: boolean;
 }
 
 export interface Tenant {

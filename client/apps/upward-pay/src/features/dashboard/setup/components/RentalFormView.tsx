@@ -586,7 +586,14 @@ export function RentalFormView() {
                   }`}
                   onClick={() =>
                     updateDraft({
-                      formData: { ...draft.formData, tenancyStatus: 'NEW_CYCLE' },
+                      formData: {
+                        ...draft.formData,
+                        tenancyStatus: 'NEW_CYCLE',
+                        amountAlreadyPaid: '',
+                        proofFile: null,
+                        proofFileMeta: null,
+                        onboardingProof: null,
+                      },
                     })
                   }
                 >
@@ -629,7 +636,11 @@ export function RentalFormView() {
                   }`}
                   onClick={() =>
                     updateDraft({
-                      formData: { ...draft.formData, tenancyStatus: 'ALREADY_PAID' },
+                      formData: {
+                        ...draft.formData,
+                        tenancyStatus: 'ALREADY_PAID',
+                        amountAlreadyPaid: '',
+                      },
                     })
                   }
                 >

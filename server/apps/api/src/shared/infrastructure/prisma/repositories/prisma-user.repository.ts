@@ -48,6 +48,8 @@ export class PrismaUserRepository implements UserRepository {
         rentAmount: p.rentAmount,
         amountPaid: p.amountPaid,
         amountRemaining: p.amountRemaining,
+        initialAmountPaid: p.initialAmountPaid ?? 0,
+        isFirstRent: !!p.isFirstRent,
         currency: p.currency,
         location: p.location,
         unitName: p.pmUnit?.unitName || undefined,

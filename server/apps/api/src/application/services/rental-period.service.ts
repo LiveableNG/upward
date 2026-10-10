@@ -174,7 +174,7 @@ export class RentalPeriodService {
     tenancyStatus?: 'NEW_CYCLE' | 'PAYING_BALANCE' | 'ALREADY_PAID' | string | null;
   }): InitialRentalState {
     const rentAmount = Math.max(0, Number(params.rentAmount) || 0);
-    const initialAmountPaid = Math.max(0, Number(params.initialAmountPaid) || 0);
+    let initialAmountPaid = Math.max(0, Number(params.initialAmountPaid) || 0);
 
     let isFirstRent = params.isFirstRent !== undefined && params.isFirstRent !== null
       ? params.isFirstRent
@@ -184,6 +184,7 @@ export class RentalPeriodService {
       isFirstRent = false;
     } else if (params.tenancyStatus === 'NEW_CYCLE') {
       isFirstRent = true;
+      initialAmountPaid = 0;
     }
 
     if (initialAmountPaid >= rentAmount && rentAmount > 0) {
