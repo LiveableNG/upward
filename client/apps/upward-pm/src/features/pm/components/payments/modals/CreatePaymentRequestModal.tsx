@@ -40,6 +40,7 @@ const getInitialLeaseYears = (unit: any) => {
 }
 
 const EMPTY_PAYMENTS: any[] = []
+const EMPTY_SPLITS: SettlementSplitRule[] = []
 
 export function CreatePaymentRequestModal({
   isOpen,
@@ -76,7 +77,7 @@ export function CreatePaymentRequestModal({
 
   // Settlement Split State
   const propertyUuid = (unit?.property as any)?.uuid
-  const { data: propertySplits = [] } = useQuery<SettlementSplitRule[]>({
+  const { data: propertySplits = EMPTY_SPLITS } = useQuery<SettlementSplitRule[]>({
     queryKey: ['property-settlement-splits', propertyUuid],
     queryFn: () => getPropertySettlementSplits(propertyUuid!),
     enabled: isOpen && !!propertyUuid,
@@ -232,6 +233,7 @@ export function CreatePaymentRequestModal({
 
   // Fallback to select primary or first settlement account if not yet selected
   useEffect(() => {
+    if (!isOpen) return
     if (!selectedSettlementAccountUuid && accounts.length > 0) {
       const propAccountUuid = (unit?.property as any)?.manualAccount?.uuid
       const matchingProp = accounts.find(a => a.uuid === propAccountUuid)
@@ -243,13 +245,14 @@ export function CreatePaymentRequestModal({
         setSelectedSettlementAccountUuid(accounts[0].uuid)
       }
     }
-  }, [accounts, primaryAccount, unit, selectedSettlementAccountUuid])
+  }, [isOpen, accounts, primaryAccount, unit, selectedSettlementAccountUuid])
 
   // Sync inherited property splits when loaded
   useEffect(() => {
     if (!isOpen) {
-      setIsCustomRentSplits(false)
-      setLineItemRoutes({})
+      setIsCustomRentSplits(prev => (prev ? false : prev))
+      setLineItemRoutes(prev => (Object.keys(prev).length === 0 ? prev : {}))
+      setCustomRentSplits(prev => (prev.length === 0 ? prev : []))
       return
     }
     if (propertySplits && propertySplits.length > 0) {
@@ -265,7 +268,7 @@ export function CreatePaymentRequestModal({
 
   // Update End Date when Rent Type changes
   useEffect(() => {
-    if (isEditing || !rentStartDate) return
+    if (!isOpen || isEditing || !rentStartDate) return
 
     const endDate = new Date(rentStartDate)
     const computedLeaseYears = (unit as any).leaseYears || getInitialLeaseYears(unit)
@@ -280,7 +283,7 @@ export function CreatePaymentRequestModal({
     const endDateStr = endDate.toISOString().split('T')[0]
     setRentEndDate(endDateStr)
     setDueDate(rentStartDate)
-  }, [rentType, rentStartDate, isEditing])
+  }, [isOpen, rentType, rentStartDate, isEditing, unit])
 
   if (!isOpen || !unit) return null
 

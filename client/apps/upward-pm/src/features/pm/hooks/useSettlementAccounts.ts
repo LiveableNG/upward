@@ -8,13 +8,15 @@ import {
 
 export const SETTLEMENT_ACCOUNTS_QUERY_KEY = ['settlement-accounts'];
 
+const EMPTY_ACCOUNTS: SettlementAccount[] = [];
+
 export function useSettlementAccounts() {
   const query = useQuery<SettlementAccount[]>({
     queryKey: SETTLEMENT_ACCOUNTS_QUERY_KEY,
     queryFn: api.getSettlementAccounts,
   });
 
-  const accounts = query.data || [];
+  const accounts = query.data || EMPTY_ACCOUNTS;
   const primaryAccount = accounts.find((a) => a.isPrimary) || accounts[0];
 
   return {
