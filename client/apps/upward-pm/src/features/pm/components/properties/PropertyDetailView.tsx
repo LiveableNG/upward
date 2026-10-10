@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet, PieChart } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet, PieChart } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
@@ -241,140 +241,174 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
         </div>
 
         {/* Info Card */}
-        <div className="glass" style={{ height: 280, padding: 24, background: '#fff5ec', borderRadius: 16, border: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="glass" style={{ minHeight: 280, height: 'auto', padding: '20px 24px', background: '#fff5ec', borderRadius: 16, border: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 14 }}>
           <div>
-            <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 6, color: '#1e293b' }}>{property.name}</h3>
-            <p style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}>
-              {property.address}
-            </p>
+            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4, color: '#1e293b' }}>{property.name}</h3>
+            {property.address && (
+              <p style={{ fontSize: 13, color: '#64748b', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                {property.address}
+              </p>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          {/* Quick Stats Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Type</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{property.propertyType}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Type</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{property.propertyType}</div>
             </div>
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Property Value(s)</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>₦ 0.00</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Property Value</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>₦ 0.00</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Total Units</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{units.length}</div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-            <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Total Units</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#334155' }}>{units.length}</div>
+          {/* Dedicated Rent Payout / Settlement Routing Card */}
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 12,
+              padding: '10px 14px',
+              border: '1px solid rgba(226, 232, 240, 0.9)',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Rent Payout Rule
+              </span>
+              <button
+                type="button"
+                onClick={() => router.push('/settings?tab=payment')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--forest, #166534)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                  borderRadius: 6,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                <span>Configure</span>
+                <ArrowRight size={12} />
+              </button>
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settlement Routing</span>
-                <button
-                  type="button"
-                  onClick={() => router.push('/settings?tab=payment')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--forest, #166534)',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                    textDecoration: 'underline'
-                  }}
-                >
-                  Configure
-                </button>
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
-                {property.splitProfile ? (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <PieChart size={14} color="var(--forest, #166534)" />
-                      <span style={{ fontWeight: 700, color: 'var(--dark)' }}>
-                        {property.splitProfile.name}
-                      </span>
-                      <span style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: 4,
-                        background: 'var(--forest-faint, #f0f7ef)',
-                        color: 'var(--forest, #166534)',
-                        border: '1px solid rgba(22, 101, 52, 0.2)'
-                      }}>
-                        Split Profile
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {property.splitProfile.items?.map((it: any, i: number) => (
-                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                          <strong style={{ color: 'var(--forest, #166534)' }}>{it.percentage}%</strong>
-                          <span>{it.manualAccount?.bankName || 'Account'}</span>
-                          {i < (property.splitProfile?.items?.length || 0) - 1 && '•'}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ) : property.manualAccount && !property.manualAccount.isPrimary ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Landmark size={14} color="var(--clay, #b45309)" />
-                    <span>{property.manualAccount.bankName} (•••• {property.manualAccount.accountNumber?.slice(-4)})</span>
-                    {property.manualAccount.title && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
-                        {property.manualAccount.title}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))', color: 'var(--clay, #b45309)', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
-                      100% Rent
+
+            {property.splitProfile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <PieChart size={14} color="var(--forest, #166534)" style={{ flexShrink: 0 }} />
+                  <span style={{ fontWeight: 700, color: 'var(--dark, #0f172a)', fontSize: 13 }}>
+                    {property.splitProfile.name}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      background: 'var(--forest-faint, #f0f7ef)',
+                      color: 'var(--forest, #166534)',
+                      border: '1px solid rgba(22, 101, 52, 0.2)',
+                    }}
+                  >
+                    Split Rule
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary, #64748b)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                  {property.splitProfile.items?.map((it: any, i: number) => (
+                    <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      <strong style={{ color: 'var(--forest, #166534)', fontWeight: 700 }}>{it.percentage}%</strong>
+                      <span>{it.manualAccount?.bankName || 'Account'}{it.manualAccount?.title ? ` (${it.manualAccount.title})` : ''}</span>
+                      {i < (property.splitProfile?.items?.length || 0) - 1 && (
+                        <span style={{ color: '#cbd5e1', margin: '0 2px' }}>•</span>
+                      )}
                     </span>
-                  </div>
-                ) : settlementSplits.length > 1 ? (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                    {settlementSplits.map((split, i) => (
-                      <span
-                        key={split.uuid || i}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: '#ffffff',
-                          border: '1px solid var(--border)',
-                          color: 'var(--dark)',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}
-                      >
-                        <span style={{ color: 'var(--forest, #166534)' }}>{split.percentage}%</span>
-                        <span>{split.manualAccount?.bankName}</span>
-                        {split.manualAccount?.title && (
-                          <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({split.manualAccount.title})</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                ) : settlementSplits.length === 1 ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Landmark size={14} color="var(--forest, #166534)" />
-                    <span>{settlementSplits[0].manualAccount?.bankName} (•••• {settlementSplits[0].manualAccount?.accountNumber?.slice(-4)})</span>
-                    {settlementSplits[0].manualAccount?.title && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
-                        {settlementSplits[0].manualAccount.title}
-                      </span>
+                  ))}
+                </div>
+              </div>
+            ) : property.manualAccount && !property.manualAccount.isPrimary ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12 }}>
+                <Landmark size={14} color="var(--clay, #b45309)" style={{ flexShrink: 0 }} />
+                <span style={{ fontWeight: 600, color: 'var(--dark, #0f172a)' }}>
+                  {property.manualAccount.bankName} (•••• {property.manualAccount.accountNumber?.slice(-4)})
+                </span>
+                {property.manualAccount.title && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
+                    {property.manualAccount.title}
+                  </span>
+                )}
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))', color: 'var(--clay, #b45309)', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
+                  Single Account
+                </span>
+              </div>
+            ) : settlementSplits.length > 1 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                {settlementSplits.map((split, i) => (
+                  <span
+                    key={split.uuid || i}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: '#f8fafc',
+                      border: '1px solid var(--border)',
+                      color: 'var(--dark, #0f172a)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <span style={{ color: 'var(--forest, #166534)', fontWeight: 700 }}>{split.percentage}%</span>
+                    <span>{split.manualAccount?.bankName}</span>
+                    {split.manualAccount?.title && (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>({split.manualAccount.title})</span>
                     )}
-                  </div>
-                ) : primaryAccount ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Landmark size={14} color="var(--text-muted)" />
-                    <span>{primaryAccount.bankName} (•••• {primaryAccount.accountNumber?.slice(-4)})</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' }}>Default</span>
-                  </div>
-                ) : (
-                  <span style={{ color: 'var(--text-muted)' }}>Not configured</span>
+                  </span>
+                ))}
+              </div>
+            ) : settlementSplits.length === 1 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                <Landmark size={14} color="var(--forest, #166534)" style={{ flexShrink: 0 }} />
+                <span style={{ fontWeight: 600, color: 'var(--dark, #0f172a)' }}>
+                  {settlementSplits[0].manualAccount?.bankName} (•••• {settlementSplits[0].manualAccount?.accountNumber?.slice(-4)})
+                </span>
+                {settlementSplits[0].manualAccount?.title && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
+                    {settlementSplits[0].manualAccount.title}
+                  </span>
                 )}
               </div>
-            </div>
+            ) : primaryAccount ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 12 }}>
+                <ShieldCheck size={14} color="var(--forest, #166534)" style={{ flexShrink: 0 }} />
+                <span style={{ fontWeight: 600, color: 'var(--dark, #0f172a)' }}>
+                  {primaryAccount.bankName} (•••• {primaryAccount.accountNumber?.slice(-4)})
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'var(--forest-faint, #f0f7ef)', color: 'var(--forest, #166534)', border: '1px solid rgba(22, 101, 52, 0.2)' }}>
+                  Default Account
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                <Landmark size={14} />
+                <span>Not configured (routes to default account)</span>
+              </div>
+            )}
           </div>
         </div>
 
