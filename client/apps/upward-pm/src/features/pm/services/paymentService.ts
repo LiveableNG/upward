@@ -8,6 +8,7 @@ export interface SettlementAccount {
   accountName: string;
   bankName: string;
   bankCode?: string | null;
+  title?: string | null;
   pmId?: number | null;
   isPrimary: boolean;
   createdAt: string;
@@ -20,6 +21,7 @@ export interface CreateSettlementAccountDto {
   accountName: string;
   bankName: string;
   bankCode: string;
+  title?: string;
   isPrimary?: boolean;
 }
 
@@ -28,7 +30,52 @@ export interface UpdateSettlementAccountDto {
   accountName?: string;
   bankName?: string;
   bankCode?: string;
+  title?: string;
   isPrimary?: boolean;
+}
+
+export interface SettlementSplitRule {
+  uuid?: string;
+  lineItemName: string;
+  manualAccountUuid: string;
+  manualAccount?: SettlementAccount;
+  percentage: number;
+}
+
+export interface SplitProfileItem {
+  id?: number;
+  uuid?: string;
+  manualAccountId?: number;
+  manualAccountUuid: string;
+  manualAccount?: SettlementAccount;
+  percentage: number;
+}
+
+export interface SplitProfile {
+  id: number;
+  uuid: string;
+  name: string;
+  description?: string | null;
+  pmId: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  items: SplitProfileItem[];
+  properties?: { id: number; uuid: string; name: string }[];
+}
+
+export interface CreateSplitProfileDto {
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+  items: Array<{ manualAccountUuid: string; percentage: number }>;
+}
+
+export interface UpdateSplitProfileDto {
+  name?: string;
+  description?: string;
+  isDefault?: boolean;
+  items?: Array<{ manualAccountUuid: string; percentage: number }>;
 }
 
 export interface PmPaymentRequest {
@@ -85,6 +132,7 @@ export interface CreatePaymentRequestDto {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   settlementAccountUuid?: string;
+  settlementSplitRules?: Array<{ lineItemName?: string; manualAccountUuid: string; percentage: number }>;
   silent?: boolean;
 }
 
@@ -175,6 +223,50 @@ export const deleteSettlementAccount = (uuid: string) => {
   })
 }
 
+export const getSplitProfiles = () => {
+  return request<SplitProfile[]>('/pm/split-profiles')
+}
+
+export const createSplitProfile = (data: CreateSplitProfileDto) => {
+  return request<SplitProfile>('/pm/split-profiles', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const updateSplitProfile = (uuid: string, data: UpdateSplitProfileDto) => {
+  return request<SplitProfile>(`/pm/split-profiles/${uuid}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  })
+}
+
+export const deleteSplitProfile = (uuid: string) => {
+  return request<{ success: boolean }>(`/pm/split-profiles/${uuid}`, {
+    method: 'DELETE'
+  })
+}
+
+export const attachSplitProfileToProperties = (uuid: string, propertyUuids: string[]) => {
+  return request<{ success: boolean }>(`/pm/split-profiles/${uuid}/attach-properties`, {
+    method: 'POST',
+    body: JSON.stringify({ propertyUuids })
+  })
+}
+
+export interface AssignPropertyRoutingDto {
+  propertyUuid: string;
+  routingType: 'PROFILE' | 'ACCOUNT' | 'DEFAULT';
+  targetUuid?: string;
+}
+
+export const assignPropertyRouting = (data: AssignPropertyRoutingDto) => {
+  return request<{ success: boolean; message: string }>('/pm/split-profiles/assign-routing', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
 
 export const getPayouts = () => {
   return request<any[]>('/pm/payouts')
@@ -222,5 +314,16 @@ export const addManualAccount = (data: { propertyId: number; bankName: string; b
   return request<{ success: boolean; message: string }>('/payments/manual/account', {
     method: 'POST',
     body: JSON.stringify(data)
+  })
+}
+
+export const getPropertySettlementSplits = (propertyUuid: string) => {
+  return request<SettlementSplitRule[]>(`/pm/properties/${propertyUuid}/settlement-splits`)
+}
+
+export const configurePropertySettlementSplits = (propertyUuid: string, rules: SettlementSplitRule[]) => {
+  return request<SettlementSplitRule[]>(`/pm/properties/${propertyUuid}/settlement-splits`, {
+    method: 'PATCH',
+    body: JSON.stringify({ rules })
   })
 }

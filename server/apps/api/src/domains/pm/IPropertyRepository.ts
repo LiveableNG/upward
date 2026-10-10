@@ -30,6 +30,38 @@ export interface PropertyEntity {
     bankName: string;
     bankCode?: string | null;
     isPrimary?: boolean;
+    title?: string | null;
+  } | null;
+  settlementSplitRules?: Array<{
+    id: number;
+    uuid: string;
+    lineItemName: string;
+    percentage: number;
+    manualAccountId: number;
+    manualAccount?: {
+      id: number;
+      uuid: string;
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string | null;
+      isPrimary?: boolean;
+      title?: string | null;
+    } | null;
+  }>;
+  splitProfileId?: number | null;
+  splitProfile?: {
+    id: number;
+    uuid: string;
+    name: string;
+    description?: string | null;
+    mode: string;
+    items?: Array<{
+      id: number;
+      percentage: number;
+      manualAccountId: number;
+      manualAccount?: any;
+    }>;
   } | null;
 }
 

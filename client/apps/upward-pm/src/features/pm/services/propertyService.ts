@@ -1,5 +1,5 @@
 import { request } from '@/lib/api-client'
-import { SettlementAccount } from './paymentService'
+import { SettlementAccount, SettlementSplitRule, SplitProfile } from './paymentService'
 
 export interface Property {
   id: number
@@ -17,6 +17,9 @@ export interface Property {
   landlordPhone?: string
   manualAccountId?: number | null
   manualAccount?: SettlementAccount | null
+  settlementSplitRules?: SettlementSplitRule[]
+  splitProfileId?: number | null
+  splitProfile?: SplitProfile | null
   units?: Unit[]
 }
 

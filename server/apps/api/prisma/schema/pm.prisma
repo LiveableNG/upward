@@ -53,6 +53,7 @@ model upward_property_manager {
   properties              upward_pm_property[]
   propertyCollaborations  upward_pm_property_collaboration[]
   receiptSetting          upward_pm_receipt_setting?
+  splitProfiles           upward_pm_split_profile[]
   sentDocuments           upward_pm_sent_document[]
   signatures              upward_pm_signature[]
   teamCollaborator        upward_pm_team_collaboration[]       @relation("CollaboratorTeam")
@@ -137,8 +138,12 @@ model upward_pm_property {
   employeeCollaborations upward_pm_employee_property[]
   units                 upward_pm_unit[]
   allianceListings      upward_alliance_listing[]
+  settlementSplitRules  upward_settlement_split_rule[]
+  splitProfileId        Int?
+  splitProfile          upward_pm_split_profile?           @relation(fields: [splitProfileId], references: [id], onDelete: SetNull)
 
   @@index([pmId])
+  @@index([splitProfileId])
 }
 
 model upward_pm_unit {
@@ -284,10 +289,14 @@ model upward_pm_payment_request {
   tenant             upward_pm_tenant?       @relation(fields: [tenantId], references: [id])
   unit               upward_pm_unit          @relation(fields: [unitId], references: [id], onDelete: Cascade)
   employee           upward_pm_employee?     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  settlementSplitRules upward_settlement_split_rule[]
+  splitProfileId       Int?
+  splitProfile         upward_pm_split_profile? @relation(fields: [splitProfileId], references: [id], onDelete: SetNull)
 
   @@index([pmId])
   @@index([unitId])
   @@index([employeeId])
+  @@index([splitProfileId])
   @@index([status])
 }
 
@@ -485,4 +494,39 @@ model upward_tenant_join_request {
   @@index([userPropertyId])
   @@index([status])
   @@index([createdAt])
+}
+
+model upward_pm_split_profile {
+  id                 Int                            @id @default(autoincrement())
+  uuid               String                         @unique @default(uuid())
+  pmId               Int
+  name               String
+  description        String?
+  isDefault          Boolean                        @default(false)
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+
+  pm                 upward_property_manager        @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  items              upward_pm_split_profile_item[]
+  properties         upward_pm_property[]
+  pmPaymentRequests  upward_pm_payment_request[]
+
+  @@index([pmId])
+}
+
+model upward_pm_split_profile_item {
+  id              Int                     @id @default(autoincrement())
+  uuid            String                  @unique @default(uuid())
+  profileId       Int
+  manualAccountId Int
+  percentage      Float
+  lineItemName    String                  @default("Rent")
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  profile         upward_pm_split_profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  manualAccount   upward_manual_account   @relation(fields: [manualAccountId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([manualAccountId])
 }
