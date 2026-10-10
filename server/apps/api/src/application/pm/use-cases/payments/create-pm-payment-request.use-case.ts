@@ -35,6 +35,7 @@ export interface CreatePmPaymentRequestDto {
   bypassWelcomeCheck?: boolean;
   settlementAccountUuid?: string;
   manualAccountId?: number;
+  settlementSplitRules?: Array<{ lineItemName?: string; manualAccountUuid: string; percentage: number }>;
   allowSupersede?: boolean;
   inheritedTimeliness?: string;
 }
@@ -135,6 +136,15 @@ export class CreatePmPaymentRequestUseCase {
       settlementAccount = await prisma.upward_manual_account.findFirst({
         where: { pmId: ownerPmId, isPrimary: true }
       });
+    }
+
+    if (!settlementAccount && data.settlementSplitRules && data.settlementSplitRules.length > 0) {
+      const firstRent = data.settlementSplitRules.find(r => !r.lineItemName || r.lineItemName.toLowerCase() === 'rent') || data.settlementSplitRules[0];
+      if (firstRent) {
+        settlementAccount = await prisma.upward_manual_account.findFirst({
+          where: { uuid: firstRent.manualAccountUuid, pmId: ownerPmId }
+        });
+      }
     }
 
     const bankCode = settlementAccount?.bankCode || pm.bankCode;
@@ -281,6 +291,59 @@ export class CreatePmPaymentRequestUseCase {
         isRecurring: isScheduled ? (data.isRecurring || false) : false,
         recurrenceInterval: isScheduled && data.isRecurring ? (data.recurrenceInterval || null) : null,
       });
+    }
+
+    // Persist Settlement Split Rules (Inherited from Property or Custom-specified)
+    let resolvedSplitRules: Array<{ lineItemName: string; manualAccountId: number; percentage: number }> = [];
+
+    if (data.settlementSplitRules && data.settlementSplitRules.length > 0) {
+      const accountUuids = Array.from(new Set(data.settlementSplitRules.map((r: any) => r.manualAccountUuid)));
+      const accounts = await prisma.upward_manual_account.findMany({
+        where: { uuid: { in: accountUuids }, pmId: ownerPmId }
+      });
+      const accountMap = new Map<string, number>(accounts.map((a: any) => [a.uuid, a.id]));
+
+      resolvedSplitRules = data.settlementSplitRules
+        .filter((r: any) => accountMap.has(r.manualAccountUuid))
+        .map((r: any) => ({
+          lineItemName: (r.lineItemName || 'Rent').trim(),
+          manualAccountId: accountMap.get(r.manualAccountUuid) as number,
+          percentage: Number(r.percentage)
+        }));
+    } else if (property) {
+      const defaultPropertyRules = await prisma.upward_settlement_split_rule.findMany({
+        where: { propertyId: property.id }
+      });
+      if (defaultPropertyRules.length > 0) {
+        resolvedSplitRules = defaultPropertyRules.map((r: any) => ({
+          lineItemName: r.lineItemName,
+          manualAccountId: r.manualAccountId,
+          percentage: r.percentage
+        }));
+      }
+    }
+
+    if (resolvedSplitRules.length > 0) {
+      await prisma.upward_settlement_split_rule.deleteMany({
+        where: {
+          OR: [
+            { pmPaymentRequestId: pmPR.id },
+            ...(corePRId ? [{ paymentRequestId: corePRId }] : [])
+          ]
+        }
+      });
+
+      for (const rule of resolvedSplitRules) {
+        await prisma.upward_settlement_split_rule.create({
+          data: {
+            pmPaymentRequestId: pmPR.id,
+            paymentRequestId: corePRId || undefined,
+            lineItemName: rule.lineItemName,
+            manualAccountId: rule.manualAccountId,
+            percentage: rule.percentage
+          }
+        });
+      }
     }
 
     // Log Activity

@@ -8,6 +8,7 @@ export interface SettlementAccount {
   accountName: string;
   bankName: string;
   bankCode?: string | null;
+  title?: string | null;
   pmId?: number | null;
   isPrimary: boolean;
   createdAt: string;
@@ -20,6 +21,7 @@ export interface CreateSettlementAccountDto {
   accountName: string;
   bankName: string;
   bankCode: string;
+  title?: string;
   isPrimary?: boolean;
 }
 
@@ -28,7 +30,16 @@ export interface UpdateSettlementAccountDto {
   accountName?: string;
   bankName?: string;
   bankCode?: string;
+  title?: string;
   isPrimary?: boolean;
+}
+
+export interface SettlementSplitRule {
+  uuid?: string;
+  lineItemName: string;
+  manualAccountUuid: string;
+  manualAccount?: SettlementAccount;
+  percentage: number;
 }
 
 export interface PmPaymentRequest {
@@ -85,6 +96,7 @@ export interface CreatePaymentRequestDto {
   isRecurring?: boolean;
   recurrenceInterval?: string | null;
   settlementAccountUuid?: string;
+  settlementSplitRules?: Array<{ lineItemName?: string; manualAccountUuid: string; percentage: number }>;
   silent?: boolean;
 }
 
@@ -222,5 +234,16 @@ export const addManualAccount = (data: { propertyId: number; bankName: string; b
   return request<{ success: boolean; message: string }>('/payments/manual/account', {
     method: 'POST',
     body: JSON.stringify(data)
+  })
+}
+
+export const getPropertySettlementSplits = (propertyUuid: string) => {
+  return request<SettlementSplitRule[]>(`/pm/properties/${propertyUuid}/settlement-splits`)
+}
+
+export const configurePropertySettlementSplits = (propertyUuid: string, rules: SettlementSplitRule[]) => {
+  return request<SettlementSplitRule[]>(`/pm/properties/${propertyUuid}/settlement-splits`, {
+    method: 'PATCH',
+    body: JSON.stringify({ rules })
   })
 }
