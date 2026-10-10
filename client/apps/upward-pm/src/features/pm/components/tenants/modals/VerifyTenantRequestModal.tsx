@@ -37,6 +37,7 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { calculateRentEndDate, type LeaseDurationUnit } from '../../../utils/rentalDates'
+import { PaymentTimingField } from '../../common/PaymentTimingField'
 
 const verifyRequestSchema = z.object({
   tenantType: z.enum(['individual', 'commercial']),
@@ -211,6 +212,7 @@ export interface VerifyTenantRequestModalProps {
       fileName: string
       fileType: string
       fileSize: number
+      uploadedAt?: string
     } | null
   }
 }
@@ -243,6 +245,7 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
   }>({})
   const [receiptDecision, setReceiptDecision] = useState<'APPROVED' | 'REJECTED' | null>(null)
   const [timeliness, setTimeliness] = useState<'ON_TIME' | 'LATE'>('ON_TIME')
+  const [paymentDate, setPaymentDate] = useState<string>('')
   const [rejectionReason, setRejectionReason] = useState<string>('')
   const lastHandledPropertyIdRef = useRef<string | null>(null)
 
@@ -320,6 +323,11 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
 
       setReceiptDecision(null)
       setTimeliness('ON_TIME')
+      const rawProofDate = initialData?.onboardingProof?.uploadedAt || (initialData?.onboardingProof as any)?.createdAt
+      const initialProofDate = rawProofDate
+        ? new Date(rawProofDate).toISOString().split('T')[0]
+        : (start || '');
+      setPaymentDate(initialProofDate)
       setRejectionReason('')
 
       if (cyclePaid > 0) {
@@ -544,7 +552,8 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
           isFullyPaid: !!isFullyPaid,
           breakdown: paymentBreakdown,
           receiptDecision: receiptDecision || undefined,
-          timeliness: receiptDecision === 'APPROVED' ? timeliness : undefined,
+          timeliness: (receiptDecision === 'APPROVED' || !initialData.onboardingProof) ? timeliness : undefined,
+          paymentDate: paymentDate || undefined,
           rejectionReason: receiptDecision === 'REJECTED' ? rejectionReason : undefined,
         })
 
@@ -578,7 +587,8 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
           isFullyPaid: !!isFullyPaid,
           breakdown: paymentBreakdown,
           receiptDecision: receiptDecision || undefined,
-          timeliness: receiptDecision === 'APPROVED' ? timeliness : undefined,
+          timeliness: (receiptDecision === 'APPROVED' || !initialData.onboardingProof) ? timeliness : undefined,
+          paymentDate: paymentDate || undefined,
           rejectionReason: receiptDecision === 'REJECTED' ? rejectionReason : undefined,
         })
 
@@ -1101,40 +1111,14 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
 
                   {/* Decision Conditional Panels */}
                   {receiptDecision === 'APPROVED' && (
-                    <div className="apple-timeliness-panel animate-fade-in">
-                      <label className="apple-field__label" style={{ marginBottom: 6 }}>
-                        Payment Timeliness Evaluation
-                      </label>
-                      <div className="apple-timeliness-grid">
-                        <button
-                          type="button"
-                          className={cn(
-                            "apple-timeliness-btn",
-                            timeliness === 'ON_TIME' && "apple-timeliness-btn--on-time"
-                          )}
-                          onClick={() => setTimeliness('ON_TIME')}
-                        >
-                          <Clock size={14} />
-                          <span>On-Time Payment</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={cn(
-                            "apple-timeliness-btn",
-                            timeliness === 'LATE' && "apple-timeliness-btn--late"
-                          )}
-                          onClick={() => setTimeliness('LATE')}
-                        >
-                          <AlertTriangle size={14} />
-                          <span>Late Payment</span>
-                        </button>
-                      </div>
-                      <p className="apple-timeliness-hint">
-                        {timeliness === 'ON_TIME'
-                          ? 'This payment is marked On-Time. The tenant builds on-time rent credibility.'
-                          : 'This payment was received past due. The cycle status will reflect Late, and any subsequent balance settled online will inherit this late status.'}
-                      </p>
-                    </div>
+                    <PaymentTimingField
+                      paymentDate={paymentDate}
+                      onPaymentDateChange={setPaymentDate}
+                      timeliness={timeliness}
+                      onTimelinessChange={setTimeliness}
+                      targetDueDate={rentStartDate}
+                      title="Receipt Payment Date & Timeliness Evaluation"
+                    />
                   )}
 
                   {receiptDecision === 'REJECTED' && (
@@ -1256,6 +1240,17 @@ export const VerifyTenantRequestModal: React.FC<VerifyTenantRequestModalProps> =
                 </div>
               )}
             </div>
+
+            {!initialData?.onboardingProof && (watch('isFullyPaid') || (parseFloat(watch('rentAmountPaid') || '0') > 0)) && (
+              <PaymentTimingField
+                paymentDate={paymentDate}
+                onPaymentDateChange={setPaymentDate}
+                timeliness={timeliness}
+                onTimelinessChange={setTimeliness}
+                targetDueDate={rentStartDate}
+                title="Payment Timing & Timeliness Evaluation"
+              />
+            )}
           </div>
         </section>
 

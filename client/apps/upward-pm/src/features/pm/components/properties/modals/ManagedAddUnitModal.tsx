@@ -45,7 +45,8 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
     unitType: '', 
     rentAmountPaid: '0',
     isFullyPaid: true,
-    timeliness: 'ON_TIME' as 'ON_TIME' | 'LATE'
+    timeliness: 'ON_TIME' as 'ON_TIME' | 'LATE',
+    paymentDate: ''
   })
 
   // Sync target property uuid if it changes from props
@@ -80,7 +81,7 @@ export const ManagedAddUnitModal: React.FC<ManagedAddUnitModalProps> = ({
           unitName: '', tenantFirstName: '', tenantLastName: '', tenantEmail: '',
           tenantPhone: '', rentAmount: '', rentStartDate: '', rentDueDate: '',
           rentType: 'Annually', leaseYears: 1, managementFee: '', notes: '', tenantUuid: '',
-          unitType: '', rentAmountPaid: '0', isFullyPaid: true, timeliness: 'ON_TIME'
+          unitType: '', rentAmountPaid: '0', isFullyPaid: true, timeliness: 'ON_TIME', paymentDate: ''
         })
       },
       onError: (err: any) => error(err?.message || 'Failed to create unit')

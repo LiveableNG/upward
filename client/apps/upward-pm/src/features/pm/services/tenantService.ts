@@ -100,6 +100,7 @@ export const tenantService = {
     receiptDecision?: 'APPROVED' | 'REJECTED';
     timeliness?: 'ON_TIME' | 'LATE';
     rejectionReason?: string;
+    paymentDate?: string;
   }) => {
     return request<void>(`/pm/tenants/${tenantUuid}/assign`, {
       method: 'POST',

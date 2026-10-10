@@ -768,6 +768,7 @@ export class RentalPeriodService {
     rentStartDate: Date | string | null;
     currency?: string | null;
     timeliness?: 'ON_TIME' | 'LATE' | null;
+    paymentDate?: Date | string | null;
     txClient?: any;
   }): Promise<any | null> {
     const {
@@ -778,6 +779,7 @@ export class RentalPeriodService {
       rentStartDate,
       currency,
       timeliness,
+      paymentDate,
       txClient,
     } = params;
 
@@ -791,6 +793,7 @@ export class RentalPeriodService {
     }
 
     const canonicalDueDate = this.parseCalendarDate(rentStartDate) || new Date();
+    const parsedPaidAt = this.parseCalendarDate(paymentDate) || new Date();
     const isFull = initialAmountPaid >= (rentAmount || 0) && (rentAmount || 0) > 0;
     const cycleStatus = isFull
       ? (timeliness === 'LATE' ? 'PAID_LATE' : 'PAID_ON_TIME')
@@ -803,7 +806,7 @@ export class RentalPeriodService {
       amountPaid: initialAmountPaid,
       currency: currency || 'NGN',
       dueDate: canonicalDueDate,
-      paidAt: new Date(),
+      paidAt: parsedPaidAt,
       status: cycleStatus,
       source: 'PM_ASSIGNMENT',
       description: isFull
