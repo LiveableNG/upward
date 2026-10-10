@@ -307,14 +307,15 @@ export class RecordTransactionUseCase {
         // Generate Transaction Settlement Splits
         try {
           let splitRules: any[] = []
+          let propWithPm: any = null
           if (pr?.id) {
             splitRules = await txClient.upward_settlement_split_rule.findMany({
               where: { paymentRequestId: pr.id },
               include: { manualAccount: true }
             })
           }
-          if (splitRules.length === 0 && propertyId) {
-            const propWithPm = await txClient.upward_user_property.findUnique({
+          if (propertyId) {
+            propWithPm = await txClient.upward_user_property.findUnique({
               where: { id: propertyId },
               include: {
                 pmUnit: {
@@ -322,6 +323,11 @@ export class RecordTransactionUseCase {
                     property: {
                       include: {
                         settlementSplitRules: { include: { manualAccount: true } },
+                        splitProfile: {
+                          include: {
+                            items: { include: { manualAccount: true } }
+                          }
+                        },
                         manualAccount: true
                       }
                     }
@@ -329,9 +335,28 @@ export class RecordTransactionUseCase {
                 }
               }
             })
-            const propRules = propWithPm?.pmUnit?.property?.settlementSplitRules
-            if (propRules && propRules.length > 0) {
-              splitRules = propRules
+            if (splitRules.length === 0) {
+              if (propWithPm?.pmUnit?.property?.splitProfile?.items?.length) {
+                splitRules = propWithPm.pmUnit.property.splitProfile.items.map((it: any) => ({
+                  lineItemName: 'Rent',
+                  manualAccountId: it.manualAccountId,
+                  manualAccount: it.manualAccount,
+                  percentage: Number(it.percentage)
+                }))
+              } else if (propWithPm?.pmUnit?.property?.settlementSplitRules?.length) {
+                splitRules = propWithPm.pmUnit.property.settlementSplitRules
+              }
+            }
+          }
+
+          // Resolve default / fallback account (used for non-Rent line items or when no split exists)
+          let fallbackAccount = pr?.manualAccount || propWithPm?.pmUnit?.property?.manualAccount
+          if (!fallbackAccount) {
+            const targetPmId = propWithPm?.pmUnit?.property?.pmId || pr?.pmId
+            if (targetPmId) {
+              fallbackAccount = await txClient.upward_manual_account.findFirst({
+                where: { pmId: targetPmId, isPrimary: true }
+              })
             }
           }
 
@@ -341,55 +366,49 @@ export class RecordTransactionUseCase {
             return !category.includes('Fee') && !name.includes('benefit') && !name.includes('transaction fee')
           })
 
-          if (splitRules.length > 0) {
-            for (const item of settleableAllocated) {
-              const itemAmt = Number(item.amount || item.amountPaid || item.allocated || 0)
-              if (itemAmt <= 0) continue
+          for (const item of settleableAllocated) {
+            const itemAmt = Number(item.amount || item.amountPaid || item.allocated || 0)
+            if (itemAmt <= 0) continue
 
-              const itemName = (item.name || 'Rent').trim()
-              let matchingRules = splitRules.filter((r: any) => r.lineItemName.toLowerCase() === itemName.toLowerCase())
-              if (matchingRules.length === 0) {
-                matchingRules = splitRules.filter((r: any) => !r.lineItemName || r.lineItemName.toLowerCase() === 'rent')
+            const itemName = (item.name || 'Rent').trim()
+            const isRent = itemName.toLowerCase() === 'rent'
+
+            if (isRent && splitRules.length > 0) {
+              let matchingRules = splitRules.filter((r: any) => r.lineItemName.toLowerCase() === 'rent')
+              if (matchingRules.length === 0) matchingRules = splitRules
+
+              for (const rule of matchingRules) {
+                const splitPortion = itemAmt * (Number(rule.percentage) / 100)
+                if (splitPortion <= 0) continue
+
+                await txClient.upward_transaction_settlement_split.create({
+                  data: {
+                    transactionId: result.id,
+                    manualAccountId: rule.manualAccountId,
+                    accountNumber: rule.manualAccount?.accountNumber || '',
+                    accountName: rule.manualAccount?.accountName || '',
+                    bankName: rule.manualAccount?.bankName || '',
+                    bankCode: rule.manualAccount?.bankCode || '',
+                    title: rule.manualAccount?.title || null,
+                    lineItemName: itemName,
+                    percentage: Number(rule.percentage),
+                    amount: splitPortion,
+                    settlementStatus: data.isManual ? 'SETTLED' : 'PENDING',
+                  }
+                })
               }
-
-              if (matchingRules.length > 0) {
-                for (const rule of matchingRules) {
-                  const splitPortion = itemAmt * (Number(rule.percentage) / 100)
-                  if (splitPortion <= 0) continue
-
-                  await txClient.upward_transaction_settlement_split.create({
-                    data: {
-                      transactionId: result.id,
-                      manualAccountId: rule.manualAccountId,
-                      accountNumber: rule.manualAccount?.accountNumber || '',
-                      accountName: rule.manualAccount?.accountName || '',
-                      bankName: rule.manualAccount?.bankName || '',
-                      bankCode: rule.manualAccount?.bankCode || '',
-                      title: rule.manualAccount?.title || null,
-                      lineItemName: itemName,
-                      percentage: Number(rule.percentage),
-                      amount: splitPortion,
-                      settlementStatus: data.isManual ? 'SETTLED' : 'PENDING',
-                    }
-                  })
-                }
-              }
-            }
-          } else if (pr?.manualAccount) {
-            for (const item of settleableAllocated) {
-              const itemAmt = Number(item.amount || item.amountPaid || item.allocated || 0)
-              if (itemAmt <= 0) continue
-
+            } else if (fallbackAccount) {
+              // Non-rent items or unsplit rent route 100% to the Default Settlement Account
               await txClient.upward_transaction_settlement_split.create({
                 data: {
                   transactionId: result.id,
-                  manualAccountId: pr.manualAccount.id,
-                  accountNumber: pr.manualAccount.accountNumber || '',
-                  accountName: pr.manualAccount.accountName || '',
-                  bankName: pr.manualAccount.bankName || '',
-                  bankCode: pr.manualAccount.bankCode || '',
-                  title: pr.manualAccount.title || 'Settlement Account',
-                  lineItemName: (item.name || 'Rent').trim(),
+                  manualAccountId: fallbackAccount.id,
+                  accountNumber: fallbackAccount.accountNumber || '',
+                  accountName: fallbackAccount.accountName || '',
+                  bankName: fallbackAccount.bankName || '',
+                  bankCode: fallbackAccount.bankCode || '',
+                  title: fallbackAccount.title || 'Settlement Account',
+                  lineItemName: itemName,
                   percentage: 100,
                   amount: itemAmt,
                   settlementStatus: data.isManual ? 'SETTLED' : 'PENDING',

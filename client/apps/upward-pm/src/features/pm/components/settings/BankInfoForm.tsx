@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -26,13 +26,15 @@ import { api } from '@/lib/api'
 import { dedupeBanksByCode } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
+import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { DataTable, Column } from '@/components/common/DataTable'
+import { SettlementSplitSection } from './SettlementSplitSection'
 import {
   useSettlementAccounts,
   useCreateSettlementAccount,
   useUpdateSettlementAccount,
   useSetDefaultSettlementAccount,
   useDeleteSettlementAccount,
-  useLinkPropertiesToAccount
 } from '../../hooks/useSettlementAccounts'
 import { SettlementAccount } from '../../services/paymentService'
 
@@ -71,7 +73,9 @@ export function BankInfoForm() {
   const updateMutation = useUpdateSettlementAccount()
   const setDefaultMutation = useSetDefaultSettlementAccount()
   const deleteMutation = useDeleteSettlementAccount()
-  const linkPropertiesMutation = useLinkPropertiesToAccount()
+
+  const [paymentSection, setPaymentSection] = useState<'accounts' | 'splits'>('accounts')
+  const primaryAccount = accounts.find(a => a.isPrimary) || accounts[0]
 
   // Modal states
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
@@ -79,12 +83,6 @@ export function BankInfoForm() {
   const [isVerifying, setIsVerifying] = useState(false)
   const [tempVerifiedName, setTempVerifiedName] = useState('')
   const [isConfirmed, setIsConfirmed] = useState(false)
-
-  // Link property modal state
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
-  const [linkingAccount, setLinkingAccount] = useState<SettlementAccount | null>(null)
-  const [selectedPropertyUuids, setSelectedPropertyUuids] = useState<string[]>([])
-  const [propertySearch, setPropertySearch] = useState('')
 
   // Delete & Set Default Confirmations
   const [accountToDelete, setAccountToDelete] = useState<SettlementAccount | null>(null)
@@ -307,106 +305,223 @@ export function BankInfoForm() {
     })
   }
 
-  const handleOpenLinkModal = (account: SettlementAccount) => {
-    setLinkingAccount(account)
-    const linkedUuids = account.pmProperties?.map(p => p.uuid) || []
-    setSelectedPropertyUuids(linkedUuids)
-    setPropertySearch('')
-    setIsLinkModalOpen(true)
-  }
-
-  const handleTogglePropertyLink = (propertyUuid: string) => {
-    setSelectedPropertyUuids(prev =>
-      prev.includes(propertyUuid)
-        ? prev.filter(id => id !== propertyUuid)
-        : [...prev, propertyUuid]
-    )
-  }
-
-  const handleSavePropertyLinks = () => {
-    if (!linkingAccount) return
-    linkPropertiesMutation.mutate(
-      { uuid: linkingAccount.uuid, propertyUuids: selectedPropertyUuids },
-      {
-        onSuccess: () => {
-          success('Properties linked successfully')
-          setIsLinkModalOpen(false)
-        },
-        onError: (err: any) => {
-          toastError(err?.message || 'Failed to link properties')
+  const accountColumns: Column<SettlementAccount>[] = useMemo(() => [
+    {
+      header: 'Bank & Account',
+      render: (account: SettlementAccount) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: account.isPrimary ? 'var(--forest-faint, #f0f7ef)' : 'var(--bg-soft, #f6f6f4)',
+            color: account.isPrimary ? 'var(--forest, #2d5a27)' : 'var(--dark, #1a1a1a)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Landmark size={18} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 700, color: 'var(--dark)', fontSize: 14 }}>
+                {account.bankName}
+              </span>
+              {account.title && (
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: '2px 7px',
+                  borderRadius: 6,
+                  background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))',
+                  color: 'var(--clay, #b45309)',
+                  border: '1px solid rgba(217, 119, 6, 0.2)'
+                }}>
+                  {account.title}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 8, marginTop: 2 }}>
+              <span style={{ fontFamily: 'monospace' }}>•••• {account.accountNumber.slice(-4)}</span>
+              <span>•</span>
+              <span>{account.accountName}</span>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Status & Role',
+      render: (account: SettlementAccount) => {
+        if (account.isPrimary) {
+          return (
+            <div>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                background: 'var(--forest-faint, #f0f7ef)',
+                color: 'var(--forest, #2d5a27)',
+                padding: '3px 9px',
+                borderRadius: 20,
+                fontSize: 11,
+                fontWeight: 700,
+                border: '1px solid rgba(45, 90, 39, 0.15)'
+              }}>
+                <CheckCircle2 size={12} />
+                Default Bank Account
+              </span>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                Receives unassigned property rent & other fees
+              </p>
+            </div>
+          )
         }
+        return (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'var(--bg-soft, #f6f6f4)',
+            color: 'var(--text-secondary)',
+            padding: '3px 9px',
+            borderRadius: 20,
+            fontSize: 11,
+            fontWeight: 600,
+            border: '1px solid var(--border)'
+          }}>
+            Additional Payout Account
+          </span>
+        )
       }
-    )
-  }
-
-  const filteredProperties = properties.filter((p: any) =>
-    p.name?.toLowerCase().includes(propertySearch.toLowerCase()) ||
-    p.address?.toLowerCase().includes(propertySearch.toLowerCase())
-  )
-
-  const allFilteredSelected =
-    filteredProperties.length > 0 &&
-    filteredProperties.every((p: any) => selectedPropertyUuids.includes(p.uuid))
-
-  const handleToggleSelectAll = () => {
-    if (allFilteredSelected) {
-      const filteredUuids = new Set(filteredProperties.map((p: any) => p.uuid))
-      setSelectedPropertyUuids(prev => prev.filter(id => !filteredUuids.has(id)))
-    } else {
-      const next = new Set(selectedPropertyUuids)
-      filteredProperties.forEach((p: any) => next.add(p.uuid))
-      setSelectedPropertyUuids(Array.from(next))
+    },
+    {
+      header: 'Assigned Properties',
+      render: (account: SettlementAccount) => {
+        const directProps = properties.filter((p: any) => p.manualAccountId === account.id && !p.splitProfileId)
+        if (account.isPrimary) {
+          const unassignedCount = properties.filter((p: any) => !p.splitProfileId && (!p.manualAccountId || p.manualAccountId === account.id)).length
+          return (
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              {unassignedCount} {unassignedCount === 1 ? 'property' : 'properties'} (Default Account)
+            </span>
+          )
+        }
+        return (
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            {directProps.length === 0 ? 'None (Configured via Split Rules)' : `${directProps.length} ${directProps.length === 1 ? 'property' : 'properties'} (100% Rent)`}
+          </span>
+        )
+      }
+    },
+    {
+      header: 'Actions',
+      align: 'right',
+      render: (account: SettlementAccount) => (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+          {canManageCompanySettings && (
+            <>
+              {!account.isPrimary && (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm"
+                  style={{ height: 32, fontSize: 12, padding: '0 10px', color: 'var(--forest, #2d5a27)' }}
+                  onClick={() => setAccountToSetDefault(account)}
+                  title="Make default settlement account"
+                >
+                  Set as Default
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                style={{ height: 32, fontSize: 12, padding: '0 8px' }}
+                onClick={() => handleOpenEditModal(account)}
+                title="Edit details"
+              >
+                <Edit2 size={13} />
+              </button>
+              {!account.isPrimary && (
+                <button
+                  type="button"
+                  className="btn btn--secondary btn--sm"
+                  style={{ height: 32, fontSize: 12, padding: '0 8px', color: 'var(--danger, #dc2626)' }}
+                  onClick={() => setAccountToDelete(account)}
+                  title="Delete account"
+                >
+                  <Trash2 size={13} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )
     }
-  }
+  ], [properties, canManageCompanySettings])
 
   return (
     <section className="settings__section" id="settlement-accounts">
       <div className="settings__section-header">
-        <div className="settings__section-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-          <div>
-            <h2 className="settings__section-title">Settlement Accounts</h2>
+        <div className="settings__section-header-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', gap: 16 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 className="settings__section-title">
+              {paymentSection === 'accounts' ? 'Settlement Accounts' : 'Rent Routing & Split Profiles'}
+            </h2>
             <p className="settings__section-subtitle">
-              Configure multiple bank accounts for rent payouts and payment requests.
+              {paymentSection === 'accounts'
+                ? 'Manage the bank accounts where rent and payouts are deposited.'
+                : 'Set up rules to automatically divide collected rent between owners, agents, and maintenance accounts for each property.'}
             </p>
           </div>
-          {canManageCompanySettings && (
-            <button
-              type="button"
-              className="btn btn--primary btn--sm"
-              onClick={handleOpenAddModal}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Plus size={16} />
-              <span>Add Settlement Account</span>
-            </button>
-          )}
+
+          {/* View Selector using FormSelect */}
+          <div style={{ width: 220, flexShrink: 0 }}>
+            <FormSelect
+              value={paymentSection}
+              options={[
+                { label: 'Settlement Accounts', value: 'accounts' },
+                { label: 'Rent Routing & Splits', value: 'splits' },
+              ]}
+              onChange={(val) => setPaymentSection(val as any)}
+              triggerStyle={{ height: 38, fontSize: 13, fontWeight: 600 }}
+            />
+          </div>
         </div>
       </div>
 
-      {!canManageCompanySettings && (
-        <div style={{
-          padding: '12px 16px',
-          background: 'var(--ivory-dim, #fbfaf9)',
-          border: '1px solid var(--border)',
-          borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 20
-        }}>
-          <ShieldCheck size={20} color="var(--forest, #2d5a27)" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
-            Settlement accounts are configured and managed by your organization administrator. You can view available payout accounts for payment requests.
-          </p>
-        </div>
-      )}
+      {paymentSection === 'splits' ? (
+        <SettlementSplitSection
+          accounts={accounts}
+          primaryAccount={primaryAccount}
+          properties={properties}
+          canManageCompanySettings={canManageCompanySettings}
+        />
+      ) : (
+        <>
+          {!canManageCompanySettings && (
+            <div style={{
+              padding: '12px 16px',
+              background: 'var(--ivory-dim, #fbfaf9)',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 20
+            }}>
+              <ShieldCheck size={20} color="var(--forest, #2d5a27)" style={{ flexShrink: 0 }} />
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                Settlement accounts are configured and managed by your organization administrator. You can view available payout accounts for payment requests.
+              </p>
+            </div>
+          )}
 
-      {isLoadingAccounts ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
-          <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 12px' }} />
-          <p style={{ fontSize: 14 }}>Loading settlement accounts...</p>
-        </div>
-      ) : accounts.length === 0 ? (
+          {isLoadingAccounts ? (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 12px' }} />
+              <p style={{ fontSize: 14 }}>Loading settlement accounts...</p>
+            </div>
+          ) : accounts.length === 0 ? (
         <div style={{
           padding: '48px 24px',
           textAlign: 'center',
@@ -434,160 +549,27 @@ export function BankInfoForm() {
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-          {accounts.map(account => {
-            const linkedPropsCount = account.pmProperties?.length || 0
-
-            return (
-              <div
-                key={account.uuid}
-                style={{
-                  background: 'var(--bg-card, #ffffff)',
-                  border: account.isPrimary ? '1.5px solid var(--forest, #2d5a27)' : '1px solid var(--border)',
-                  borderRadius: 14,
-                  padding: 20,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  boxShadow: account.isPrimary ? '0 4px 16px rgba(45, 90, 39, 0.08)' : '0 2px 8px rgba(0,0,0,0.02)',
-                  position: 'relative',
-                  transition: 'all 0.2s ease'
-                }}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {canManageCompanySettings && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={handleOpenAddModal}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 36 }}
               >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 10,
-                        background: account.isPrimary ? 'var(--forest-faint, #f0f7ef)' : 'var(--bg-soft, #f6f6f4)',
-                        color: account.isPrimary ? 'var(--forest, #2d5a27)' : 'var(--dark, #1a1a1a)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}>
-                        <Landmark size={20} />
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--dark)' }}>
-                            {account.bankName}
-                          </h4>
-                          {account.title && (
-                            <span style={{
-                              fontSize: 11,
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))',
-                              color: 'var(--clay, #b45309)',
-                              border: '1px solid rgba(217, 119, 6, 0.2)'
-                            }}>
-                              {account.title}
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: 13, color: 'var(--text-muted)', fontFamily: 'monospace', letterSpacing: '0.5px' }}>
-                          {account.accountNumber}
-                        </span>
-                      </div>
-                    </div>
-
-                    {account.isPrimary && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        background: 'var(--forest-faint, #f0f7ef)',
-                        color: 'var(--forest, #2d5a27)',
-                        padding: '4px 10px',
-                        borderRadius: 20,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        border: '1px solid rgba(45, 90, 39, 0.15)'
-                      }}>
-                        <CheckCircle2 size={12} />
-                        Default
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--bg-soft, #f6f6f4)', borderRadius: 8 }}>
-                    <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>
-                      Account Name
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)', display: 'block', wordBreak: 'break-word' }}>
-                      {account.accountName}
-                    </span>
-                  </div>
-
-                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Building2 size={14} color="var(--text-muted)" />
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {linkedPropsCount === 0 ? 'No specific properties assigned' : `${linkedPropsCount} assigned ${linkedPropsCount === 1 ? 'property' : 'properties'}`}
-                    </span>
-                  </div>
-                </div>
-
-                {canManageCompanySettings && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid var(--border)', marginTop: 4 }}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        type="button"
-                        className="btn btn--secondary btn--sm"
-                        style={{ padding: '4px 8px', height: 'auto', fontSize: 12 }}
-                        onClick={() => handleOpenLinkModal(account)}
-                        title="Link properties to this account"
-                      >
-                        <LinkIcon size={13} style={{ marginRight: 4 }} />
-                        Properties
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--secondary btn--sm"
-                        style={{ padding: '4px 8px', height: 'auto', fontSize: 12 }}
-                        onClick={() => handleOpenEditModal(account)}
-                        title="Edit details"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {!account.isPrimary && (
-                        <>
-                          <button
-                            type="button"
-                            className="btn btn--secondary btn--sm"
-                            style={{ padding: '4px 8px', height: 'auto', fontSize: 12, color: 'var(--forest, #2d5a27)' }}
-                            onClick={() => setAccountToSetDefault(account)}
-                            title="Make default settlement account"
-                          >
-                            Set as Default
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--secondary btn--sm"
-                            style={{ padding: '4px 8px', height: 'auto', fontSize: 12, color: 'var(--error, #e53935)' }}
-                            onClick={() => setAccountToDelete(account)}
-                            title="Delete account"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                <Plus size={15} />
+                <span>Add Settlement Account</span>
+              </button>
+            </div>
+          )}
+          <DataTable<SettlementAccount>
+            columns={accountColumns}
+            data={accounts}
+            pageSize={10}
+          />
         </div>
       )}
-
       {/* Add / Edit Settlement Account Modal */}
       <Modal
         isOpen={isAccountModalOpen}
@@ -764,135 +746,7 @@ export function BankInfoForm() {
         </form>
       </Modal>
 
-      {/* Link Properties Modal */}
-      <Modal
-        isOpen={isLinkModalOpen}
-        onClose={() => setIsLinkModalOpen(false)}
-        title="Assign Properties to Account"
-        subtitle={`Select properties that should route settlements directly to ${linkingAccount?.bankName} (${linkingAccount?.accountNumber}).`}
-        icon={Building2}
-        maxWidth={560}
-        footer={
-          <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-            <button
-              type="button"
-              className="btn btn--secondary"
-              style={{ flex: 1 }}
-              onClick={() => setIsLinkModalOpen(false)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              style={{ flex: 1 }}
-              onClick={handleSavePropertyLinks}
-              disabled={linkPropertiesMutation.isPending}
-            >
-              {linkPropertiesMutation.isPending ? 'Saving...' : `Save (${selectedPropertyUuids.length} selected)`}
-            </button>
-          </div>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              className="settings__input"
-              style={{ paddingLeft: 36 }}
-              placeholder="Search properties..."
-              value={propertySearch}
-              onChange={e => setPropertySearch(e.target.value)}
-            />
-          </div>
 
-          {filteredProperties.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-              <button
-                type="button"
-                onClick={handleToggleSelectAll}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: 'var(--forest, #2d5a27)',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={allFilteredSelected}
-                  onChange={handleToggleSelectAll}
-                  style={{ width: 16, height: 16, accentColor: 'var(--forest)', cursor: 'pointer' }}
-                />
-                <span>{allFilteredSelected ? 'Deselect All' : `Select All (${filteredProperties.length})`}</span>
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {selectedPropertyUuids.length} of {properties.length} selected
-              </span>
-            </div>
-          )}
-
-          <div style={{
-            maxHeight: 280,
-            overflowY: 'auto',
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            padding: 8,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 6
-          }}>
-            {filteredProperties.length === 0 ? (
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
-                No properties found.
-              </p>
-            ) : (
-              filteredProperties.map((p: any) => {
-                const isChecked = selectedPropertyUuids.includes(p.uuid)
-                return (
-                  <label
-                    key={p.uuid}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '10px 12px',
-                      borderRadius: 8,
-                      background: isChecked ? 'var(--forest-faint, #f0f7ef)' : 'transparent',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleTogglePropertyLink(p.uuid)}
-                      style={{ width: 16, height: 16, accentColor: 'var(--forest)' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dark)', display: 'block' }}>
-                        {p.name}
-                      </span>
-                      {p.address && (
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                          {p.address}
-                        </span>
-                      )}
-                    </div>
-                  </label>
-                )
-              })
-            )}
-          </div>
-        </div>
-      </Modal>
 
       {/* Confirmation Modals */}
       <ConfirmationModal
@@ -916,6 +770,8 @@ export function BankInfoForm() {
         onConfirm={handleConfirmDelete}
         onClose={() => setAccountToDelete(null)}
       />
+        </>
+      )}
     </section>
   )
 }

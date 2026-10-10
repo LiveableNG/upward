@@ -296,9 +296,15 @@ export class GetSettlementBatchesUseCase {
         take: l,
         orderBy: { createdAt: 'desc' },
         include: {
+          transactionSplits: {
+            include: { manualAccount: true },
+          },
           transactions: {
             include: {
               user: true,
+              settlementSplits: {
+                include: { manualAccount: true },
+              },
               paymentRequest: {
                 include: {
                   manualAccount: true,
@@ -312,11 +318,36 @@ export class GetSettlementBatchesUseCase {
     ]);
 
     const formatted = batches.map((batch) => {
+      const splits = (batch.transactionSplits || []).map((s: any) => ({
+        id: s.id,
+        uuid: s.uuid,
+        bankName: s.bankName || s.manualAccount?.bankName || 'Settlement Account',
+        bankCode: s.bankCode || s.manualAccount?.bankCode || '',
+        accountNumber: this.decryptSafe(s.accountNumber || s.manualAccount?.accountNumber),
+        accountName: this.decryptSafe(s.accountName || s.manualAccount?.accountName),
+        title: s.title || s.manualAccount?.title || null,
+        lineItemName: s.lineItemName || 'Rent',
+        percentage: Number(s.percentage),
+        amount: Number(s.amount),
+        settlementStatus: s.settlementStatus,
+        transferReference: s.transferReference || null,
+      }));
+
+      const firstSplit = splits[0];
       const firstTx = batch.transactions[0];
       const pr = firstTx?.paymentRequest;
       let destination: any = null;
 
-      if (pr?.manualAccount) {
+      if (firstSplit) {
+        destination = {
+          bankName: firstSplit.bankName,
+          bankCode: firstSplit.bankCode,
+          accountNumber: firstSplit.accountNumber,
+          accountName: firstSplit.accountName,
+          title: firstSplit.title,
+          type: 'SPLIT_SETTLEMENT',
+        };
+      } else if (pr?.manualAccount) {
         destination = {
           bankName: pr.manualAccount.bankName,
           bankCode: pr.manualAccount.bankCode,
@@ -344,6 +375,7 @@ export class GetSettlementBatchesUseCase {
         updatedAt: batch.updatedAt,
         transactionCount: batch.transactions.length,
         destination,
+        splits,
         transactions: batch.transactions.map((t) => ({
           id: t.id,
           reference: t.reference,
@@ -421,6 +453,9 @@ export class GetSettlementTransactionsUseCase {
         include: {
           user: true,
           settlementBatch: true,
+          settlementSplits: {
+            include: { manualAccount: true },
+          },
           paymentRequest: {
             include: {
               manualAccount: true,
@@ -461,13 +496,46 @@ export class GetSettlementTransactionsUseCase {
       const pr = tx.paymentRequest;
       let destination: any = null;
 
-      if (tx.isManual) {
+      const settlementSplits = (tx.settlementSplits || []).map((s: any) => ({
+        id: s.id,
+        uuid: s.uuid,
+        bankName: s.bankName || s.manualAccount?.bankName || 'Settlement Account',
+        bankCode: s.bankCode || s.manualAccount?.bankCode || '',
+        accountNumber: this.decryptSafe(s.accountNumber || s.manualAccount?.accountNumber),
+        accountName: this.decryptSafe(s.accountName || s.manualAccount?.accountName),
+        title: s.title || s.manualAccount?.title || null,
+        lineItemName: s.lineItemName || 'Rent',
+        percentage: Number(s.percentage),
+        amount: Number(s.amount),
+        settlementStatus: s.settlementStatus,
+        transferReference: s.transferReference || null,
+      }));
+
+      if (settlementSplits.length > 1) {
+        destination = {
+          bankName: `Split (${settlementSplits.length} Accounts)`,
+          bankCode: 'SPLIT',
+          accountNumber: settlementSplits.map((s: any) => `${s.percentage}%`).join(' / '),
+          accountName: `${settlementSplits.length} Settlement Recipient Accounts`,
+          type: 'SPLIT_PROFILE',
+        };
+      } else if (tx.isManual) {
         destination = {
           bankName: 'Manual Payment',
           bankCode: 'N/A',
           accountNumber: 'N/A',
           accountName: 'Settled Off-Platform (Direct)',
           type: 'MANUAL_PAYMENT',
+        };
+      } else if (settlementSplits.length === 1 && settlementSplits[0]) {
+        const singleSplit = settlementSplits[0];
+        destination = {
+          bankName: singleSplit.bankName,
+          bankCode: singleSplit.bankCode,
+          accountNumber: singleSplit.accountNumber,
+          accountName: singleSplit.accountName,
+          title: singleSplit.title,
+          type: 'MANUAL_ACCOUNT',
         };
       } else if (pr?.manualAccount) {
         destination = {
@@ -560,6 +628,7 @@ export class GetSettlementTransactionsUseCase {
             }
           : null,
         destination,
+        settlementSplits,
         dvaAccount,
         tenant: {
           id: tx.user?.id,

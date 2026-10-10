@@ -42,6 +42,42 @@ export interface SettlementSplitRule {
   percentage: number;
 }
 
+export interface SplitProfileItem {
+  id?: number;
+  uuid?: string;
+  manualAccountId?: number;
+  manualAccountUuid: string;
+  manualAccount?: SettlementAccount;
+  percentage: number;
+}
+
+export interface SplitProfile {
+  id: number;
+  uuid: string;
+  name: string;
+  description?: string | null;
+  pmId: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  items: SplitProfileItem[];
+  properties?: { id: number; uuid: string; name: string }[];
+}
+
+export interface CreateSplitProfileDto {
+  name: string;
+  description?: string;
+  isDefault?: boolean;
+  items: Array<{ manualAccountUuid: string; percentage: number }>;
+}
+
+export interface UpdateSplitProfileDto {
+  name?: string;
+  description?: string;
+  isDefault?: boolean;
+  items?: Array<{ manualAccountUuid: string; percentage: number }>;
+}
+
 export interface PmPaymentRequest {
   id: number;
   uuid: string;
@@ -184,6 +220,50 @@ export const linkPropertiesToSettlementAccount = (uuid: string, propertyUuids: s
 export const deleteSettlementAccount = (uuid: string) => {
   return request<{ success: boolean }>(`/pm/settlement-accounts/${uuid}`, {
     method: 'DELETE'
+  })
+}
+
+export const getSplitProfiles = () => {
+  return request<SplitProfile[]>('/pm/split-profiles')
+}
+
+export const createSplitProfile = (data: CreateSplitProfileDto) => {
+  return request<SplitProfile>('/pm/split-profiles', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
+export const updateSplitProfile = (uuid: string, data: UpdateSplitProfileDto) => {
+  return request<SplitProfile>(`/pm/split-profiles/${uuid}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+  })
+}
+
+export const deleteSplitProfile = (uuid: string) => {
+  return request<{ success: boolean }>(`/pm/split-profiles/${uuid}`, {
+    method: 'DELETE'
+  })
+}
+
+export const attachSplitProfileToProperties = (uuid: string, propertyUuids: string[]) => {
+  return request<{ success: boolean }>(`/pm/split-profiles/${uuid}/attach-properties`, {
+    method: 'POST',
+    body: JSON.stringify({ propertyUuids })
+  })
+}
+
+export interface AssignPropertyRoutingDto {
+  propertyUuid: string;
+  routingType: 'PROFILE' | 'ACCOUNT' | 'DEFAULT';
+  targetUuid?: string;
+}
+
+export const assignPropertyRouting = (data: AssignPropertyRoutingDto) => {
+  return request<{ success: boolean; message: string }>('/pm/split-profiles/assign-routing', {
+    method: 'POST',
+    body: JSON.stringify(data)
   })
 }
 
