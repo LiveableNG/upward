@@ -8,6 +8,8 @@ import {
   updateSplitProfile,
   deleteSplitProfile,
   attachSplitProfileToProperties,
+  assignPropertyRouting,
+  AssignPropertyRoutingDto,
 } from '../services/paymentService';
 
 export const SPLIT_PROFILES_QUERY_KEY = ['split-profiles'];
@@ -72,6 +74,20 @@ export function useAttachSplitProfile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SPLIT_PROFILES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: ['pm-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['settlement-accounts'] });
     },
   });
 }
+
+export function useAssignPropertyRouting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: AssignPropertyRoutingDto) => assignPropertyRouting(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SPLIT_PROFILES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['pm-properties'] });
+      queryClient.invalidateQueries({ queryKey: ['settlement-accounts'] });
+    },
+  });
+}
+

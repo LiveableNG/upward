@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useRef, useMemo } from 'react'
-import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Search, Eye, LayoutGrid, Wallet, Landmark, FileText, ClipboardList, Package, ShieldCheck, Edit3, Upload, Download, FileSpreadsheet, PieChart } from 'lucide-react'
 import { Property, Unit } from '../../services/propertyService'
 import { cn, formatTenantName } from '@/lib/utils'
 import { ManualAccountModal } from './modals/ManualAccountModal'
@@ -27,6 +28,7 @@ interface PropertyDetailViewProps {
 }
 
 export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit }: PropertyDetailViewProps) {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('Unit')
   const [unitSearch, setUnitSearch] = useState('')
   const [unitFilter, setUnitFilter] = useState<'All' | 'Occupied' | 'Vacant'>('All')
@@ -268,7 +270,7 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
                 <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Settlement Routing</span>
                 <button
                   type="button"
-                  onClick={() => setIsSettlementModalOpen(true)}
+                  onClick={() => router.push('/settings?tab=payment')}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -284,7 +286,49 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
                 </button>
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
-                {settlementSplits.length > 1 ? (
+                {property.splitProfile ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <PieChart size={14} color="var(--forest, #166534)" />
+                      <span style={{ fontWeight: 700, color: 'var(--dark)' }}>
+                        {property.splitProfile.name}
+                      </span>
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                        background: 'var(--forest-faint, #f0f7ef)',
+                        color: 'var(--forest, #166534)',
+                        border: '1px solid rgba(22, 101, 52, 0.2)'
+                      }}>
+                        Split Profile
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {property.splitProfile.items?.map((it: any, i: number) => (
+                        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <strong style={{ color: 'var(--forest, #166534)' }}>{it.percentage}%</strong>
+                          <span>{it.manualAccount?.bankName || 'Account'}</span>
+                          {i < (property.splitProfile?.items?.length || 0) - 1 && '•'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : property.manualAccount && !property.manualAccount.isPrimary ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Landmark size={14} color="var(--clay, #b45309)" />
+                    <span>{property.manualAccount.bankName} (•••• {property.manualAccount.accountNumber?.slice(-4)})</span>
+                    {property.manualAccount.title && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
+                        {property.manualAccount.title}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))', color: 'var(--clay, #b45309)', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
+                      100% Rent
+                    </span>
+                  </div>
+                ) : settlementSplits.length > 1 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                     {settlementSplits.map((split, i) => (
                       <span
@@ -317,16 +361,6 @@ export function PropertyDetailView({ property, units, onBack, onViewUnit, onEdit
                     {settlementSplits[0].manualAccount?.title && (
                       <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
                         {settlementSplits[0].manualAccount.title}
-                      </span>
-                    )}
-                  </div>
-                ) : property.manualAccount ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Landmark size={14} color="var(--forest, #166534)" />
-                    <span>{property.manualAccount.bankName} (•••• {property.manualAccount.accountNumber?.slice(-4)})</span>
-                    {property.manualAccount.title && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
-                        {property.manualAccount.title}
                       </span>
                     )}
                   </div>

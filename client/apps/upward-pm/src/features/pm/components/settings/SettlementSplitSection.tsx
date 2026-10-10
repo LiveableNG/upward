@@ -37,6 +37,7 @@ import {
   useUpdateSplitProfile,
   useDeleteSplitProfile,
   useAttachSplitProfile,
+  useAssignPropertyRouting,
 } from '../../hooks/useSplitProfiles'
 
 interface SettlementSplitSectionProps {
@@ -66,6 +67,7 @@ export function SettlementSplitSection({
   const updateProfileMutation = useUpdateSplitProfile()
   const deleteProfileMutation = useDeleteSplitProfile()
   const attachProfileMutation = useAttachSplitProfile()
+  const assignRoutingMutation = useAssignPropertyRouting()
 
   // Tab: 'profiles' | 'assignments'
   const [activeSubTab, setActiveSubTab] = useState<'profiles' | 'assignments'>('profiles')
@@ -95,7 +97,7 @@ export function SettlementSplitSection({
 
   // Assignments filter & search
   const [assignmentSearch, setAssignmentSearch] = useState('')
-  const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'custom' | 'default'>('all')
+  const [assignmentFilter, setAssignmentFilter] = useState<'all' | 'profile' | 'account' | 'default'>('all')
 
   // Account options for FormSelect
   const accountSelectOptions: SelectOption[] = useMemo(() => {
@@ -106,16 +108,34 @@ export function SettlementSplitSection({
     }))
   }, [accounts])
 
-  // Profile options for FormSelect
-  const profileSelectOptions: SelectOption[] = useMemo(() => {
-    return [
-      { label: 'Default Fallback (100% to Primary)', value: 'none' },
-      ...profiles.map((p) => ({
-        label: `${p.name} (${p.items.map((it) => `${it.percentage}%`).join('/')})`,
-        value: p.uuid,
-      })),
+  // Routing options for FormSelect (Single Source of Truth)
+  const routingSelectOptions: SelectOption[] = useMemo(() => {
+    const opts: SelectOption[] = [
+      {
+        label: `Default Fallback (${primaryAccount ? `${primaryAccount.bankName} •••• ${primaryAccount.accountNumber.slice(-4)}` : 'Primary Account'})`,
+        value: 'default',
+      },
     ]
-  }, [profiles])
+
+    // Group 1: Split Profiles
+    profiles.forEach((p) => {
+      opts.push({
+        label: `[Split Profile] ${p.name} (${p.items.map((it) => `${it.percentage}%`).join('/')})`,
+        value: `profile:${p.uuid}`,
+      })
+    })
+
+    // Group 2: Direct Accounts
+    accounts.forEach((a) => {
+      opts.push({
+        label: `[Direct Account] ${a.bankName} (•••• ${a.accountNumber.slice(-4)})${a.title ? ` - ${a.title}` : ''}${a.isPrimary ? ' [Default]' : ''}`,
+        value: `account:${a.uuid}`,
+      })
+    })
+
+    return opts
+  }, [profiles, accounts, primaryAccount])
+
 
   // Split calculation helper
   const totalPercentage = useMemo(() => {
@@ -291,12 +311,16 @@ export function SettlementSplitSection({
         p.name.toLowerCase().includes(assignmentSearch.toLowerCase()) ||
         (p.address && p.address.toLowerCase().includes(assignmentSearch.toLowerCase()))
 
-      const hasCustom = Boolean(p.splitProfileId || (p.settlementSplitRules && p.settlementSplitRules.length > 0))
-      if (assignmentFilter === 'custom') return matchesSearch && hasCustom
-      if (assignmentFilter === 'default') return matchesSearch && !hasCustom
+      const hasProfile = Boolean(p.splitProfileId)
+      const directAccount = accounts.find((a) => a.id === p.manualAccountId)
+      const hasDirectAccount = Boolean(directAccount && !directAccount.isPrimary)
+
+      if (assignmentFilter === 'profile') return matchesSearch && hasProfile
+      if (assignmentFilter === 'account') return matchesSearch && !hasProfile && hasDirectAccount
+      if (assignmentFilter === 'default') return matchesSearch && !hasProfile && !hasDirectAccount
       return matchesSearch
     })
-  }, [properties, assignmentSearch, assignmentFilter])
+  }, [properties, accounts, assignmentSearch, assignmentFilter])
 
   // Columns for Profiles DataTable
   const profileColumns: Column<SplitProfile>[] = useMemo(() => [
@@ -415,7 +439,7 @@ export function SettlementSplitSection({
     },
   ], [accounts, properties, canManageCompanySettings])
 
-  // Columns for Assignments DataTable
+  // Columns for Assignments DataTable (Single Source of Truth)
   const assignmentColumns: Column<Property>[] = useMemo(() => [
     {
       header: 'Property',
@@ -431,7 +455,7 @@ export function SettlementSplitSection({
       ),
     },
     {
-      header: 'Assigned Profile / Routing',
+      header: 'Assigned Destination / Routing',
       render: (prop: any) => {
         const profile = profiles.find((p) => p.id === prop.splitProfileId)
         if (profile) {
@@ -444,7 +468,29 @@ export function SettlementSplitSection({
                 </span>
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                {profile.items.map((it) => `${it.percentage}%`).join(' / ')} split on Rent
+                {profile.items.map((it) => `${it.percentage}%`).join(' / ')} split on Rent • Non-rent to Default
+              </p>
+            </div>
+          )
+        }
+
+        const directAccount = accounts.find((a) => a.id === prop.manualAccountId)
+        if (directAccount && !directAccount.isPrimary) {
+          return (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Landmark size={14} color="var(--clay, #b45309)" />
+                <span style={{ fontWeight: 600, color: 'var(--dark)', fontSize: 13 }}>
+                  {directAccount.bankName} (•••• {directAccount.accountNumber.slice(-4)})
+                </span>
+                {directAccount.title && (
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(217, 119, 6, 0.1)', color: '#b45309' }}>
+                    {directAccount.title}
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                100% of Rent to this account • Non-rent to Default
               </p>
             </div>
           )
@@ -459,7 +505,7 @@ export function SettlementSplitSection({
               </span>
             </div>
             <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>
-              100% routes to {primaryAccount?.bankName || 'Primary Account'}
+              100% routes to {primaryAccount ? `${primaryAccount.bankName} (•••• ${primaryAccount.accountNumber.slice(-4)})` : 'Primary Account'}
             </p>
           </div>
         )
@@ -469,6 +515,49 @@ export function SettlementSplitSection({
       header: 'Routing Status',
       render: (prop: any) => {
         const hasProfile = Boolean(prop.splitProfileId)
+        const directAccount = accounts.find((a) => a.id === prop.manualAccountId)
+        const hasDirect = Boolean(directAccount && !directAccount.isPrimary)
+
+        if (hasProfile) {
+          return (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 6,
+                background: 'var(--forest-faint, #f0f7ef)',
+                color: 'var(--forest, #166534)',
+                border: '1px solid rgba(22, 101, 52, 0.2)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.4px',
+              }}
+            >
+              Split Profile
+            </span>
+          )
+        }
+
+        if (hasDirect) {
+          return (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 6,
+                background: 'var(--clay-faint, rgba(217, 119, 6, 0.1))',
+                color: 'var(--clay, #b45309)',
+                border: '1px solid rgba(217, 119, 6, 0.2)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.4px',
+              }}
+            >
+              Direct Account
+            </span>
+          )
+        }
+
         return (
           <span
             style={{
@@ -476,53 +565,66 @@ export function SettlementSplitSection({
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: 6,
-              background: hasProfile ? 'var(--forest-faint, #f0f7ef)' : 'var(--bg-soft, #f4f3ef)',
-              color: hasProfile ? 'var(--forest, #166534)' : 'var(--text-muted)',
-              border: hasProfile ? '1px solid rgba(22, 101, 52, 0.2)' : '1px solid var(--border)',
+              background: 'var(--bg-soft, #f4f3ef)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
               textTransform: 'uppercase',
               letterSpacing: '0.4px',
             }}
           >
-            {hasProfile ? 'Custom Profile' : 'Default Fallback'}
+            Default Fallback
           </span>
         )
       },
     },
     {
-      header: 'Quick Switch Profile',
+      header: 'Quick Assign Routing',
       align: 'right',
       render: (prop: any) => {
         if (!canManageCompanySettings) return null
-        const currentProfileUuid = profiles.find((p) => p.id === prop.splitProfileId)?.uuid || 'none'
+
+        let currentValue = 'default'
+        if (prop.splitProfileId) {
+          const prof = profiles.find((p) => p.id === prop.splitProfileId)
+          if (prof) currentValue = `profile:${prof.uuid}`
+        } else if (prop.manualAccountId) {
+          const acc = accounts.find((a) => a.id === prop.manualAccountId)
+          if (acc) currentValue = `account:${acc.uuid}`
+        }
 
         return (
-          <div style={{ width: 220, display: 'inline-block' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: 260, display: 'inline-block' }} onClick={(e) => e.stopPropagation()}>
             <FormSelect
-              value={currentProfileUuid}
-              options={profileSelectOptions}
+              value={currentValue}
+              options={routingSelectOptions}
               onChange={async (newVal) => {
-                if (newVal === 'none') {
-                  // Detach from current profile
-                  if (prop.splitProfileId) {
-                    const prof = profiles.find((p) => p.id === prop.splitProfileId)
-                    if (prof) {
-                      const remaining = properties
-                        .filter((p: any) => p.splitProfileId === prof.id && p.uuid !== prop.uuid)
-                        .map((p) => p.uuid)
-                      await attachProfileMutation.mutateAsync({ uuid: prof.uuid, propertyUuids: remaining })
-                      success(`Reset ${prop.name} to Default Fallback`)
-                    }
+                const val = String(newVal)
+                try {
+                  if (val.startsWith('profile:')) {
+                    const profUuid = val.replace('profile:', '')
+                    await assignRoutingMutation.mutateAsync({
+                      propertyUuid: prop.uuid,
+                      routingType: 'PROFILE',
+                      targetUuid: profUuid,
+                    })
+                    success(`Assigned split profile to ${prop.name}`)
+                  } else if (val.startsWith('account:')) {
+                    const accUuid = val.replace('account:', '')
+                    await assignRoutingMutation.mutateAsync({
+                      propertyUuid: prop.uuid,
+                      routingType: 'ACCOUNT',
+                      targetUuid: accUuid,
+                    })
+                    success(`Assigned direct account to ${prop.name}`)
+                  } else {
+                    await assignRoutingMutation.mutateAsync({
+                      propertyUuid: prop.uuid,
+                      routingType: 'DEFAULT',
+                    })
+                    success(`Reset ${prop.name} to Default Fallback`)
                   }
-                } else {
-                  const targetProf = profiles.find((p) => p.uuid === newVal)
-                  if (targetProf) {
-                    const currentProps = properties
-                      .filter((p: any) => p.splitProfileId === targetProf.id)
-                      .map((p) => p.uuid)
-                    const updated = Array.from(new Set([...currentProps, prop.uuid]))
-                    await attachProfileMutation.mutateAsync({ uuid: targetProf.uuid, propertyUuids: updated })
-                    success(`Assigned ${targetProf.name} to ${prop.name}`)
-                  }
+                } catch (err: any) {
+                  toastError(err?.message || 'Failed to update property routing')
                 }
               }}
               triggerStyle={{ height: 32, fontSize: 12 }}
@@ -531,7 +633,7 @@ export function SettlementSplitSection({
         )
       },
     },
-  ], [profiles, properties, primaryAccount, profileSelectOptions, canManageCompanySettings])
+  ], [profiles, properties, accounts, primaryAccount, routingSelectOptions, canManageCompanySettings, assignRoutingMutation, success, toastError])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -843,7 +945,7 @@ export function SettlementSplitSection({
               </button>
               <button
                 type="button"
-                onClick={() => setAssignmentFilter('custom')}
+                onClick={() => setAssignmentFilter('profile')}
                 style={{
                   border: 'none',
                   padding: '4px 10px',
@@ -851,11 +953,27 @@ export function SettlementSplitSection({
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
-                  background: assignmentFilter === 'custom' ? '#ffffff' : 'transparent',
-                  color: assignmentFilter === 'custom' ? 'var(--dark)' : 'var(--text-muted)',
+                  background: assignmentFilter === 'profile' ? '#ffffff' : 'transparent',
+                  color: assignmentFilter === 'profile' ? 'var(--dark)' : 'var(--text-muted)',
                 }}
               >
-                Custom Profile
+                Split Profiles
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssignmentFilter('account')}
+                style={{
+                  border: 'none',
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: assignmentFilter === 'account' ? '#ffffff' : 'transparent',
+                  color: assignmentFilter === 'account' ? 'var(--dark)' : 'var(--text-muted)',
+                }}
+              >
+                Direct Accounts
               </button>
               <button
                 type="button"

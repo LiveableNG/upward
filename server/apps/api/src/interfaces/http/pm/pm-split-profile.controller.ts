@@ -18,10 +18,12 @@ import { CreateSplitProfileUseCase } from '../../../application/pm/use-cases/spl
 import { UpdateSplitProfileUseCase } from '../../../application/pm/use-cases/split-profiles/update-split-profile.use-case';
 import { DeleteSplitProfileUseCase } from '../../../application/pm/use-cases/split-profiles/delete-split-profile.use-case';
 import { AttachSplitProfileUseCase } from '../../../application/pm/use-cases/split-profiles/attach-split-profile.use-case';
+import { AssignPropertyRoutingUseCase } from '../../../application/pm/use-cases/split-profiles/assign-property-routing.use-case';
 import {
   CreateSplitProfileDto,
   UpdateSplitProfileDto,
   AttachSplitProfileDto,
+  AssignPropertyRoutingDto,
 } from '../../../application/pm/use-cases/split-profiles/dtos/split-profile.dto';
 
 @Controller('pm/split-profiles')
@@ -33,6 +35,7 @@ export class PmSplitProfileController {
     private readonly updateSplitProfileUseCase: UpdateSplitProfileUseCase,
     private readonly deleteSplitProfileUseCase: DeleteSplitProfileUseCase,
     private readonly attachSplitProfileUseCase: AttachSplitProfileUseCase,
+    private readonly assignPropertyRoutingUseCase: AssignPropertyRoutingUseCase,
   ) {}
 
   @Get()
@@ -73,6 +76,15 @@ export class PmSplitProfileController {
     @Body() dto: AttachSplitProfileDto,
   ) {
     return this.attachSplitProfileUseCase.execute(uuid, actor.ownerPmId, dto, actor);
+  }
+
+  @Post('assign-routing')
+  @HttpCode(HttpStatus.OK)
+  async assignRouting(
+    @CurrentPmActor() actor: PmActorContext,
+    @Body() dto: AssignPropertyRoutingDto,
+  ) {
+    return this.assignPropertyRoutingUseCase.execute(actor.ownerPmId, dto, actor);
   }
 
   @Delete('properties/:propertyUuid/detach')

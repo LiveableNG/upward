@@ -254,6 +254,19 @@ export const attachSplitProfileToProperties = (uuid: string, propertyUuids: stri
   })
 }
 
+export interface AssignPropertyRoutingDto {
+  propertyUuid: string;
+  routingType: 'PROFILE' | 'ACCOUNT' | 'DEFAULT';
+  targetUuid?: string;
+}
+
+export const assignPropertyRouting = (data: AssignPropertyRoutingDto) => {
+  return request<{ success: boolean; message: string }>('/pm/split-profiles/assign-routing', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
+}
+
 
 export const getPayouts = () => {
   return request<any[]>('/pm/payouts')

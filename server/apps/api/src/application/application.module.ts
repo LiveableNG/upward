@@ -304,6 +304,7 @@ import { CreateSplitProfileUseCase } from './pm/use-cases/split-profiles/create-
 import { UpdateSplitProfileUseCase } from './pm/use-cases/split-profiles/update-split-profile.use-case'
 import { DeleteSplitProfileUseCase } from './pm/use-cases/split-profiles/delete-split-profile.use-case'
 import { AttachSplitProfileUseCase } from './pm/use-cases/split-profiles/attach-split-profile.use-case'
+import { AssignPropertyRoutingUseCase } from './pm/use-cases/split-profiles/assign-property-routing.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { GetFeedbackAdminUseCase } from './use-cases/feedback/get-feedback-admin.use-case'
 import { GetFeedbackStatsAdminUseCase } from './use-cases/feedback/get-feedback-stats-admin.use-case'
@@ -889,6 +890,7 @@ const UseCases: any[] = [
   UpdateSplitProfileUseCase,
   DeleteSplitProfileUseCase,
   AttachSplitProfileUseCase,
+  AssignPropertyRoutingUseCase,
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,

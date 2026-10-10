@@ -75,3 +75,17 @@ export class AttachSplitProfileDto {
   @IsString({ each: true })
   propertyUuids!: string[];
 }
+
+export class AssignPropertyRoutingDto {
+  @IsString()
+  @IsNotEmpty()
+  propertyUuid!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  routingType!: 'PROFILE' | 'ACCOUNT' | 'DEFAULT';
+
+  @IsString()
+  @IsOptional()
+  targetUuid?: string;
+}
