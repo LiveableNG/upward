@@ -40,7 +40,15 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         accountNumber: pr.paymentRequest.manualAccount.accountNumber,
         accountName: pr.paymentRequest.manualAccount.accountName,
         isPrimary: Boolean(pr.paymentRequest.manualAccount.isPrimary),
-      } : null)),
+      } : (pr.unit?.property?.pm?.manualAccounts?.find((a: any) => a.isPrimary) || pr.unit?.property?.pm?.manualAccounts?.[0] ? {
+        id: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).id,
+        uuid: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).uuid,
+        bankName: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).bankName,
+        bankCode: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).bankCode,
+        accountNumber: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).accountNumber,
+        accountName: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).accountName,
+        isPrimary: Boolean((pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).isPrimary),
+      } : null))),
       employee: pr.employee ? {
         id: pr.employee.id,
         uuid: pr.employee.uuid,
@@ -200,7 +208,15 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         accountNumber: pmUnit.property.manualAccount.accountNumber,
         accountName: pmUnit.property.manualAccount.accountName,
         isPrimary: Boolean(pmUnit.property.manualAccount.isPrimary),
-      } : null),
+      } : (pmUnit?.property?.pm?.manualAccounts?.find((a: any) => a.isPrimary) || pmUnit?.property?.pm?.manualAccounts?.[0] ? {
+        id: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).id,
+        uuid: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).uuid,
+        bankName: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).bankName,
+        bankCode: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).bankCode,
+        accountNumber: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).accountNumber,
+        accountName: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).accountName,
+        isPrimary: Boolean((pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).isPrimary),
+      } : null)),
 
       unit: pmUnit ? {
         ...pmUnit,
@@ -233,7 +249,49 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         status: tx.status,
         method: tx.method || 'Bank Transfer',
         createdAt: tx.createdAt,
-        reference: tx.reference
+        reference: tx.reference,
+        settlementSplits: tx.settlementSplits?.map((s: any) => ({
+          accountNumber: s.accountNumber,
+          accountName: s.accountName,
+          bankName: s.bankName,
+          bankCode: s.bankCode,
+          title: s.title || s.manualAccount?.title,
+          lineItemName: s.lineItemName,
+          percentage: Number(s.percentage),
+          amount: Number(s.amount),
+          settlementStatus: s.settlementStatus
+        })) || []
+      })) || [],
+
+      splitProfile: pmUnit?.property?.splitProfile ? {
+        id: pmUnit.property.splitProfile.id,
+        uuid: pmUnit.property.splitProfile.uuid,
+        name: pmUnit.property.splitProfile.name,
+        items: pmUnit.property.splitProfile.items?.map((it: any) => ({
+          manualAccountUuid: it.manualAccount?.uuid,
+          percentage: Number(it.percentage),
+          manualAccount: it.manualAccount ? {
+            bankName: it.manualAccount.bankName,
+            accountNumber: it.manualAccount.accountNumber,
+            accountName: it.manualAccount.accountName,
+            title: it.manualAccount.title,
+            isPrimary: Boolean(it.manualAccount.isPrimary)
+          } : null
+        })) || []
+      } : null,
+
+      settlementSplitRules: pmUnit?.property?.settlementSplitRules?.map((r: any) => ({
+        uuid: r.uuid,
+        lineItemName: r.lineItemName,
+        percentage: Number(r.percentage),
+        manualAccountUuid: r.manualAccount?.uuid,
+        manualAccount: r.manualAccount ? {
+          bankName: r.manualAccount.bankName,
+          accountNumber: r.manualAccount.accountNumber,
+          accountName: r.manualAccount.accountName,
+          title: r.manualAccount.title,
+          isPrimary: Boolean(r.manualAccount.isPrimary)
+        } : null
       })) || []
     } as any;
   }
@@ -290,16 +348,30 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         ]
       },
       include: {
-        unit: { include: { property: { include: { manualAccount: true } } } },
+        unit: {
+          include: {
+            property: {
+              include: {
+                manualAccount: true,
+                pm: { include: { manualAccounts: true } },
+                splitProfile: { include: { items: { include: { manualAccount: true } } } },
+                settlementSplitRules: { include: { manualAccount: true } },
+              },
+            },
+          },
+        },
         tenant: true,
         employee: true,
         manualAccount: true,
+        splitProfile: { include: { items: { include: { manualAccount: true } } } },
+        settlementSplitRules: { include: { manualAccount: true } },
         paymentRequest: {
           include: {
             manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
+              include: { settlementSplits: { include: { manualAccount: true } } },
               orderBy: { createdAt: 'desc' }
             }
           }
@@ -326,13 +398,26 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         userProperty: {
           include: {
-            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
-          }
+            pmUnit: {
+              include: {
+                property: {
+                  include: {
+                    manualAccount: true,
+                    pm: { include: { manualAccounts: true } },
+                    splitProfile: { include: { items: { include: { manualAccount: true } } } },
+                    settlementSplitRules: { include: { manualAccount: true } },
+                  },
+                },
+                tenant: true,
+              },
+            },
+          },
         },
         manualAccount: true,
         lineItemRecords: true,
         transactions: {
           where: { status: 'SUCCESS' },
+          include: { settlementSplits: { include: { manualAccount: true } } },
           orderBy: { createdAt: 'desc' }
         }
       },
@@ -380,16 +465,30 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         unit: { propertyId: { in: propertyIds } },
       },
       include: {
-        unit: { include: { property: { include: { manualAccount: true } } } },
+        unit: {
+          include: {
+            property: {
+              include: {
+                manualAccount: true,
+                pm: { include: { manualAccounts: true } },
+                splitProfile: { include: { items: { include: { manualAccount: true } } } },
+                settlementSplitRules: { include: { manualAccount: true } },
+              },
+            },
+          },
+        },
         tenant: true,
         employee: true,
         manualAccount: true,
+        splitProfile: { include: { items: { include: { manualAccount: true } } } },
+        settlementSplitRules: { include: { manualAccount: true } },
         paymentRequest: {
           include: {
             manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
+              include: { settlementSplits: { include: { manualAccount: true } } },
               orderBy: { createdAt: 'desc' }
             }
           }
@@ -412,13 +511,26 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         userProperty: {
           include: {
-            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
-          }
+            pmUnit: {
+              include: {
+                property: {
+                  include: {
+                    manualAccount: true,
+                    pm: { include: { manualAccounts: true } },
+                    splitProfile: { include: { items: { include: { manualAccount: true } } } },
+                    settlementSplitRules: { include: { manualAccount: true } },
+                  },
+                },
+                tenant: true,
+              },
+            },
+          },
         },
         manualAccount: true,
         lineItemRecords: true,
         transactions: {
           where: { status: 'SUCCESS' },
+          include: { settlementSplits: { include: { manualAccount: true } } },
           orderBy: { createdAt: 'desc' }
         }
       },
@@ -464,19 +576,32 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       include: {
         userProperty: {
           include: {
-            pmUnit: { include: { property: { include: { manualAccount: true } }, tenant: true } }
-          }
+            pmUnit: {
+              include: {
+                property: {
+                  include: {
+                    manualAccount: true,
+                    pm: { include: { manualAccounts: true } },
+                    splitProfile: { include: { items: { include: { manualAccount: true } } } },
+                    settlementSplitRules: { include: { manualAccount: true } },
+                  },
+                },
+                tenant: true,
+              },
+            },
+          },
         },
         manualAccount: true,
         lineItemRecords: true,
         transactions: {
           where: { status: 'SUCCESS' },
+          include: { settlementSplits: { include: { manualAccount: true } } },
           orderBy: { createdAt: 'desc' }
         }
       }
     });
 
-    if (manualPr && manualPr.isManual && manualPr.userProperty?.pmUnit) {
+    if (manualPr && manualPr.userProperty?.pmUnit) {
       return this.mapManualPaymentRequest(manualPr);
     }
 
@@ -488,16 +613,30 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const pr = await (prisma as any).upward_pm_payment_request.findFirst({
       where: { paymentRequestId },
       include: {
-        unit: { include: { property: { include: { manualAccount: true } } } },
+        unit: {
+          include: {
+            property: {
+              include: {
+                manualAccount: true,
+                pm: { include: { manualAccounts: true } },
+                splitProfile: { include: { items: { include: { manualAccount: true } } } },
+                settlementSplitRules: { include: { manualAccount: true } },
+              },
+            },
+          },
+        },
         tenant: true,
         employee: true,
         manualAccount: true,
+        splitProfile: { include: { items: { include: { manualAccount: true } } } },
+        settlementSplitRules: { include: { manualAccount: true } },
         paymentRequest: { 
           include: { 
             manualAccount: true,
             lineItemRecords: true,
             transactions: {
               where: { status: 'SUCCESS' },
+              include: { settlementSplits: { include: { manualAccount: true } } },
               orderBy: { createdAt: 'desc' }
             }
           } 

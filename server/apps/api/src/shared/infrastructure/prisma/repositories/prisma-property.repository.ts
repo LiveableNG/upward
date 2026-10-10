@@ -33,9 +33,16 @@ export class PrismaPropertyRepository implements PropertyRepository {
         company: true,
         manager: true,
         location: true,
-        pm: true,
+        pm: { include: { manualAccounts: true } },
         pmUnit: {
-          include: { property: { include: { manualAccount: true } } }
+          include: {
+            property: {
+              include: {
+                manualAccount: true,
+                pm: { include: { manualAccounts: true } },
+              },
+            },
+          },
         },
         manualAccount: true,
       },
@@ -43,9 +50,11 @@ export class PrismaPropertyRepository implements PropertyRepository {
     if (!record) return null
 
     const result = { ...record } as any
-    if (result.pmUnit?.property?.manualAccount) {
-      result.pmManualAccount = result.pmUnit.property.manualAccount
-    }
+    const directPmManual = result.pmUnit?.property?.manualAccount
+    const pmAccounts = result.pmUnit?.property?.pm?.manualAccounts || result.pm?.manualAccounts || []
+    const primaryPmAccount = pmAccounts.find((a: any) => a.isPrimary) || pmAccounts[0]
+    result.pmManualAccount = directPmManual || primaryPmAccount || undefined
+
     if (result.company) {
       result.company.name = this.encryption.decrypt(result.company.name)
     }
@@ -76,18 +85,27 @@ export class PrismaPropertyRepository implements PropertyRepository {
       where: { userId },
       include: { 
         location: true,
-        pm: true,
+        pm: { include: { manualAccounts: true } },
         pmUnit: {
-          include: { property: { include: { manualAccount: true } } }
+          include: {
+            property: {
+              include: {
+                manualAccount: true,
+                pm: { include: { manualAccounts: true } },
+              },
+            },
+          },
         },
         manualAccount: true,
       }
     })
     return records.map(record => {
       const result = { ...record } as any
-      if (result.pmUnit?.property?.manualAccount) {
-        result.pmManualAccount = result.pmUnit.property.manualAccount
-      }
+      const directPmManual = result.pmUnit?.property?.manualAccount
+      const pmAccounts = result.pmUnit?.property?.pm?.manualAccounts || result.pm?.manualAccounts || []
+      const primaryPmAccount = pmAccounts.find((a: any) => a.isPrimary) || pmAccounts[0]
+      result.pmManualAccount = directPmManual || primaryPmAccount || undefined
+
       if (result.pm && !result.manager) {
         result.manager = {
           firstName: this.encryption.decrypt(result.pm.firstName),
