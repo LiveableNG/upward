@@ -41,12 +41,13 @@ export class ProcessHourlySettlementsUseCase {
     const pr = tx.paymentRequest;
     if (!pr) return null;
 
-    // 1. Primary Domain Settlement Account (manualAccount) bound to the Payment Request
-    if (pr.manualAccount) {
-      const rawAccNum = pr.manualAccount.accountNumber;
+    // 1. Primary Settlement Account (settlementAccount or manualAccount) bound to the Payment Request
+    const directManualAcc = pr.settlementAccount?.manualAccount || pr.manualAccount;
+    if (directManualAcc) {
+      const rawAccNum = directManualAcc.accountNumber;
       const accNum = rawAccNum ? (rawAccNum.includes(':') ? this.encryption.decrypt(rawAccNum) : rawAccNum).trim() : '';
-      const bankCode = pr.manualAccount.bankCode ? String(pr.manualAccount.bankCode).trim() : '';
-      const rawAccName = pr.manualAccount.accountName;
+      const bankCode = directManualAcc.bankCode ? String(directManualAcc.bankCode).trim() : '';
+      const rawAccName = directManualAcc.accountName;
       const accName = rawAccName ? (rawAccName.includes(':') ? this.encryption.decrypt(rawAccName) : rawAccName).trim() : undefined;
 
       if (accNum && bankCode) {
@@ -56,7 +57,7 @@ export class ProcessHourlySettlementsUseCase {
           bankCode,
           accountName: accName,
           sourceType: 'MANUAL_ACCOUNT',
-          sourceId: pr.manualAccount.id,
+          sourceId: directManualAcc.id,
         };
       }
     }
@@ -96,6 +97,7 @@ export class ProcessHourlySettlementsUseCase {
       include: {
         paymentRequest: {
           include: {
+            settlementAccount: { include: { manualAccount: true } },
             manualAccount: true,
             subaccount: true,
             userProperty: {

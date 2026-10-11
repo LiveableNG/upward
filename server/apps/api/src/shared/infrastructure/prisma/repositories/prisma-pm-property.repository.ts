@@ -6,6 +6,7 @@ import { EncryptionService } from '../../../../shared/infrastructure/common/encr
 const PROPERTY_DEFAULT_INCLUDE = {
   landlord: true,
   manualAccount: true,
+  settlementAccount: true,
   settlementSplitRules: {
     include: {
       manualAccount: true,
@@ -96,18 +97,35 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
           } : null,
         })) : [],
       } : null,
+      settlementAccountId: p.settlementAccountId || null,
+      settlementAccount: p.settlementAccount ? {
+        id: p.settlementAccount.id,
+        uuid: p.settlementAccount.uuid,
+        isPrimary: Boolean(p.settlementAccount.isPrimary),
+        title: p.settlementAccount.title || null,
+      } : null,
     };
   }
 
   async create(data: Omit<PropertyEntity, 'id' | 'uuid'>): Promise<PropertyEntity> {
     let manualAccountId = data.manualAccountId;
-    if (!manualAccountId) {
-      const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
+    let settlementAccountId = data.settlementAccountId;
+    if (!manualAccountId && !settlementAccountId) {
+      const primarySettlementAccount = await (this.prisma as any).upward_settlement_account.findFirst({
         where: { pmId: data.pmId, isPrimary: true },
-        select: { id: true },
+        select: { id: true, manualAccountId: true },
       });
-      if (primaryAccount) {
-        manualAccountId = primaryAccount.id;
+      if (primarySettlementAccount) {
+        settlementAccountId = primarySettlementAccount.id;
+        manualAccountId = primarySettlementAccount.manualAccountId;
+      } else {
+        const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
+          where: { pmId: data.pmId, isPrimary: true },
+          select: { id: true },
+        });
+        if (primaryAccount) {
+          manualAccountId = primaryAccount.id;
+        }
       }
     }
 
@@ -124,8 +142,10 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         area: data.area,
         landlordId: data.landlordId || undefined,
         manualAccountId: manualAccountId || undefined,
+        settlementAccountId: settlementAccountId || undefined,
+        splitProfileId: data.splitProfileId || undefined,
       },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
 
     return this.mapProperty(property);
@@ -238,7 +258,10 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async update(uuid: string, data: Partial<Omit<PropertyEntity, 'id' | 'uuid' | 'pmId'>>): Promise<PropertyEntity> {
     const updateData: any = {};
     for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined && !['landlordName', 'landlordEmail', 'landlordPhone', 'manualAccount'].includes(key)) {
+      if (
+        value !== undefined &&
+        !['landlordName', 'landlordEmail', 'landlordPhone', 'manualAccount', 'settlementAccount', 'splitProfile', 'settlementSplitRules'].includes(key)
+      ) {
         updateData[key] = value;
       }
     }
@@ -246,7 +269,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const property = await this.prisma.upward_pm_property.update({
       where: { uuid },
       data: updateData,
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
 
     return this.mapProperty(property);

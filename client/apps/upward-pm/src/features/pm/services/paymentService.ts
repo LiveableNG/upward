@@ -4,6 +4,7 @@ import { Unit, Tenant } from './propertyService'
 export interface SettlementAccount {
   id: number;
   uuid: string;
+  manualAccountId?: number | null;
   accountNumber: string;
   accountName: string;
   bankName: string;
@@ -105,7 +106,11 @@ export interface PmPaymentRequest {
   recurrenceInterval?: string | null;
   transactions?: any[];
   manualAccountId?: number | null;
+  settlementAccountId?: number | null;
   settlementAccount?: SettlementAccount | null;
+  splitProfileId?: number | null;
+  splitProfile?: SplitProfile | null;
+  settlementSplitRules?: SettlementSplitRule[] | null;
   isSelfPayment?: boolean;
   createdBy?: {
     isEmployee?: boolean;

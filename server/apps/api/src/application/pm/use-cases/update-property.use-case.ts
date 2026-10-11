@@ -107,15 +107,28 @@ export class UpdatePropertyUseCase {
     }
 
     let manualAccountId: number | null | undefined = dto.manualAccountId;
+    let settlementAccountId: number | null | undefined = undefined;
+
     if (dto.settlementAccountUuid !== undefined) {
       if (dto.settlementAccountUuid) {
-        const account = await (this.prisma as any).upward_manual_account.findUnique({
+        const settlementAcc = await (this.prisma as any).upward_settlement_account.findUnique({
           where: { uuid: dto.settlementAccountUuid },
-          select: { id: true },
+          select: { id: true, manualAccountId: true },
         });
-        manualAccountId = account ? account.id : null;
+        if (settlementAcc) {
+          settlementAccountId = settlementAcc.id;
+          manualAccountId = settlementAcc.manualAccountId;
+        } else {
+          const account = await (this.prisma as any).upward_manual_account.findUnique({
+            where: { uuid: dto.settlementAccountUuid },
+            select: { id: true },
+          });
+          manualAccountId = account ? account.id : null;
+          settlementAccountId = null;
+        }
       } else {
         manualAccountId = null;
+        settlementAccountId = null;
       }
     }
 
@@ -133,6 +146,7 @@ export class UpdatePropertyUseCase {
       landlordEmail: dto.landlordEmail,
       landlordPhone: dto.landlordPhone,
       manualAccountId: manualAccountId !== undefined ? manualAccountId : undefined,
+      settlementAccountId: settlementAccountId !== undefined ? settlementAccountId : undefined,
     });
 
     if (manualAccountId !== undefined && property.id) {

@@ -511,7 +511,7 @@ export const PaymentDetailView: React.FC = () => {
                                     background: 'var(--forest-faint, #f0fdf4)',
                                     color: 'var(--forest, #166534)'
                                   }}>
-                                    {split.percentage}% Rent
+                                    {split.percentage}% {split.lineItemName || 'Rent'}
                                   </span>
                                   <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--dark)' }}>
                                     ₦{(Number(split.amount) || 0).toLocaleString()}
@@ -721,14 +721,21 @@ export const PaymentDetailView: React.FC = () => {
                   <span className="checkout-breakdown__value" style={{ fontSize: 12 }}>{request.currency || 'NGN'}</span>
                 </div>
 
-                {request.settlementAccount && (
+                {request.splitProfile ? (
+                  <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
+                    <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Settlement Rule</span>
+                    <span className="checkout-breakdown__value" style={{ fontSize: 12, fontWeight: 600, color: '#1A1A17' }}>
+                      {request.splitProfile.name} (Split)
+                    </span>
+                  </div>
+                ) : request.settlementAccount ? (
                   <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
                     <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Settlement Bank</span>
                     <span className="checkout-breakdown__value" style={{ fontSize: 12, fontWeight: 600, color: '#1A1A17' }}>
                       {request.settlementAccount.bankName} (•••• {request.settlementAccount.accountNumber?.slice(-4)})
                     </span>
                   </div>
-                )}
+                ) : null}
                 
                 <div className="checkout-breakdown__row" style={{ padding: '6px 0', borderBottom: 'none' }}>
                   <span className="checkout-breakdown__label" style={{ fontSize: 12 }}>Partial Payments</span>

@@ -103,6 +103,8 @@ model upward_payment_request {
   paymentProofs      upward_payment_proof[]
   manualAccountId    Int?
   manualAccount      upward_manual_account?      @relation(fields: [manualAccountId], references: [id])
+  settlementAccountId Int?
+  settlementAccount  upward_settlement_account?  @relation(fields: [settlementAccountId], references: [id], onDelete: SetNull)
   subaccount         upward_paystack_subaccount? @relation(fields: [subaccountId], references: [id])
   tenancyPeriod      upward_tenancy_period?      @relation(fields: [tenancyPeriodId], references: [id])
   user               upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -116,6 +118,7 @@ model upward_payment_request {
   @@index([userId])
   @@index([status])
   @@index([tenancyPeriodId])
+  @@index([settlementAccountId])
 }
 
 model upward_rent_deposit_balance {

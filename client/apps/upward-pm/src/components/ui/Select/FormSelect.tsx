@@ -26,6 +26,7 @@ interface FormSelectProps {
   icon?: React.ReactNode
   chevronSize?: number
   searchable?: boolean
+  searchPlaceholder?: string
   inline?: boolean
   portalOnDesktop?: boolean
 }
@@ -46,6 +47,7 @@ export function FormSelect({
   icon,
   chevronSize = 16,
   searchable = false,
+  searchPlaceholder = 'Search...',
   inline = false,
   portalOnDesktop = false
 }: FormSelectProps) {
@@ -151,7 +153,8 @@ export function FormSelect({
           <div style={{ padding: '8px 12px', position: 'sticky', top: 0, background: 'white', zIndex: 2, borderBottom: '1px solid var(--border)' }}>
             <input
               type="text"
-              placeholder="Search..."
+              autoFocus={!isMobile}
+              placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', outline: 'none' }}

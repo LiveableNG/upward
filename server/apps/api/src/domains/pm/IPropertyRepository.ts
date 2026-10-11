@@ -63,6 +63,13 @@ export interface PropertyEntity {
       manualAccount?: any;
     }>;
   } | null;
+  settlementAccountId?: number | null;
+  settlementAccount?: {
+    id: number;
+    uuid: string;
+    isPrimary?: boolean;
+    title?: string | null;
+  } | null;
 }
 
 export interface UnitEntity {
@@ -220,6 +227,8 @@ export interface PmPaymentRequestEntity {
   recurrenceInterval?: string | null;
   employeeId?: number | null;
   manualAccountId?: number | null;
+  settlementAccountId?: number | null;
+  splitProfileId?: number | null;
   createdAt: Date;
   updatedAt: Date;
   isSelfPayment?: boolean;
@@ -235,6 +244,7 @@ export interface PmPaymentRequestEntity {
   tenant?: TenantEntity;
   employee?: any;
   settlementAccount?: any;
+  splitProfile?: any;
   transactions?: any[];
 }
 
