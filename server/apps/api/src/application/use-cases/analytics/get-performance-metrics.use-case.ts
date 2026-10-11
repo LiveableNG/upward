@@ -369,6 +369,19 @@ export class GetPerformanceMetricsUseCase {
         select: { userId: true },
         distinct: ['userId'],
       }),
+      (this.prisma as any).upward_admin_tenant_note.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          uuid: true,
+          userId: true,
+          category: true,
+          note: true,
+          createdAt: true,
+          adminEmail: true,
+          adminName: true,
+        },
+      }),
     ])
 
     const allUsers = _results[0] as any[]
@@ -383,6 +396,13 @@ export class GetPerformanceMetricsUseCase {
     const activityLogsCountInTimeframe = _results[9] as number
     const cycleUserRecords = (_results[10] || []) as Array<{ userId: number }>
     const cycleUserIds = new Set<number>(cycleUserRecords.map((c) => c.userId))
+    const allTenantNotes = (_results[11] || []) as any[]
+    const notesByUserId = new Map<number, any[]>()
+    allTenantNotes.forEach((n: any) => {
+      const list = notesByUserId.get(n.userId) || []
+      list.push(n)
+      notesByUserId.set(n.userId, list)
+    })
 
     const isDummyEmail = (email: string) => {
       if (!email) return true
@@ -504,8 +524,8 @@ export class GetPerformanceMetricsUseCase {
 
     const revenueMetrics = this.getRevenueMetrics.execute(successTransactions)
     const waitlistMetrics = this.getWaitlistMetrics.execute(mergedUsers, allWaitlistEntries, userMap, allUserEmailHashes)
-    const signedUpMetrics = this.getSignedUpMetrics.execute(mergedUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap, scoreMap)
-    const invitedMetrics = this.getInvitedMetrics.execute(mergedUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap, scoreMap)
+    const signedUpMetrics = this.getSignedUpMetrics.execute(mergedUsers, userMap, pmTenants, waitlistEmails, inviteChannelMap, scoreMap, notesByUserId)
+    const invitedMetrics = this.getInvitedMetrics.execute(mergedUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap, scoreMap, notesByUserId)
     const pmMetrics = this.getPmMetrics.execute(allPms, allCompanies, successTransactions, mergedUsers)
 
     const filterList = (list: any[]) => {

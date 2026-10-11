@@ -1,7 +1,24 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Mail, Phone, Calendar, ExternalLink, CreditCard, Building2, UserCheck, Clock, Compass, Wallet } from 'lucide-react'
+import {
+  X,
+  Mail,
+  Phone,
+  Calendar,
+  ExternalLink,
+  CreditCard,
+  Building2,
+  UserCheck,
+  Clock,
+  Compass,
+  Wallet,
+  Plus,
+  Trash2,
+  AlertCircle,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { apiService } from '../../../services/api.service'
+import { showToast } from '@upward/client-core'
 
 import type { PropertySummary } from '../types'
 
@@ -31,6 +48,9 @@ export type DrawerEntity = {
   rentEndDate?: string | null
   transactions?: any[]
   paymentRequests?: any[]
+  notesCount?: number
+  hasPaidOutsideNote?: boolean
+  adminNotes?: any[]
 }
 
 interface PreviewDrawerProps {
@@ -81,6 +101,65 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
     if (!entity?.properties || entity.properties.length === 0) return 0
     return entity.properties.reduce((sum, p) => sum + (Number(p.rentAmount) || 0), 0)
   }, [entity?.properties])
+
+  const [drawerNotes, setDrawerNotes] = useState<any[]>([])
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const [newNoteText, setNewNoteText] = useState('')
+  const [newNoteCategory, setNewNoteCategory] = useState<'PAID_OUTSIDE' | 'GENERAL'>('PAID_OUTSIDE')
+  const [addingNote, setAddingNote] = useState(false)
+
+  useEffect(() => {
+    if (entity?.kind === 'user' && entity.uuid) {
+      if (entity.adminNotes && entity.adminNotes.length > 0) {
+        setDrawerNotes(entity.adminNotes)
+      } else {
+        setLoadingNotes(true)
+        apiService
+          .get(`/admin/users/${entity.uuid}/notes`)
+          .then((res: any) => {
+            setDrawerNotes(res.data || [])
+          })
+          .catch((err: any) => console.error(err))
+          .finally(() => setLoadingNotes(false))
+      }
+    } else {
+      setDrawerNotes([])
+    }
+    setNewNoteText('')
+    setNewNoteCategory('PAID_OUTSIDE')
+  }, [entity?.uuid, entity?.kind])
+
+  const handleAddDrawerNote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!entity?.uuid || !newNoteText.trim()) return
+    setAddingNote(true)
+    try {
+      const res: any = await apiService.post(`/admin/users/${entity.uuid}/notes`, {
+        note: newNoteText.trim(),
+        category: newNoteCategory,
+      })
+      showToast('Note added successfully')
+      setDrawerNotes((prev) => [res.data, ...prev])
+      setNewNoteText('')
+    } catch (err: any) {
+      showToast(err.message || 'Failed to add note', true)
+    } finally {
+      setAddingNote(false)
+    }
+  }
+
+  const handleDeleteDrawerNote = async (noteUuid: string) => {
+    try {
+      await apiService.delete(`/admin/users/notes/${noteUuid}`)
+      showToast('Note deleted')
+      setDrawerNotes((prev) => prev.filter((n) => n.uuid !== noteUuid))
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete note', true)
+    }
+  }
+
+  const hasPaidOutside =
+    entity?.hasPaidOutsideNote || drawerNotes.some((n) => n.category === 'PAID_OUTSIDE')
 
 
   return createPortal(
@@ -434,6 +513,183 @@ const PreviewDrawer: React.FC<PreviewDrawerProps> = ({ entity, onClose }) => {
                     )
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Admin Notes Section */}
+            {entity.kind === 'user' && (
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <span className="section-label" style={{ fontWeight: 600, fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Admin Notes ({drawerNotes.length})
+                  </span>
+                </div>
+
+                {hasPaidOutside && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      color: '#d97706',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      marginBottom: '12px',
+                    }}
+                  >
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>Paid Outside App — Do not disturb with rent reminders.</span>
+                  </div>
+                )}
+
+                {/* Quick Add Form */}
+                <form
+                  onSubmit={handleAddDrawerNote}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    marginBottom: '14px',
+                    background: 'var(--surface-hover)',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setNewNoteCategory('PAID_OUTSIDE')}
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '100px',
+                        cursor: 'pointer',
+                        backgroundColor: newNoteCategory === 'PAID_OUTSIDE' ? '#f59e0b' : 'transparent',
+                        color: newNoteCategory === 'PAID_OUTSIDE' ? '#ffffff' : 'var(--text-muted)',
+                        border: newNoteCategory === 'PAID_OUTSIDE' ? '1px solid #f59e0b' : '1px solid var(--border)',
+                      }}
+                    >
+                      Paid Outside App
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewNoteCategory('GENERAL')}
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '100px',
+                        cursor: 'pointer',
+                        backgroundColor: newNoteCategory === 'GENERAL' ? 'var(--text)' : 'transparent',
+                        color: newNoteCategory === 'GENERAL' ? 'var(--surface)' : 'var(--text-muted)',
+                        border: newNoteCategory === 'GENERAL' ? '1px solid var(--text)' : '1px solid var(--border)',
+                      }}
+                    >
+                      General Note
+                    </button>
+                  </div>
+                  <textarea
+                    value={newNoteText}
+                    onChange={(e) => setNewNoteText(e.target.value)}
+                    placeholder="Add an admin note..."
+                    rows={2}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      backgroundColor: 'var(--surface)',
+                      color: 'var(--text)',
+                      fontSize: '12px',
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="submit"
+                      disabled={addingNote || !newNoteText.trim()}
+                      className="btn btn-primary"
+                      style={{ height: '30px', padding: '0 12px', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Plus size={13} /> {addingNote ? 'Saving...' : 'Add Note'}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Notes History List */}
+                {loadingNotes ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '12px' }}>
+                    Loading notes...
+                  </div>
+                ) : drawerNotes.length === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '12px', border: '1px dashed var(--border)', borderRadius: '8px' }}>
+                    No notes recorded yet.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {drawerNotes.map((n: any) => {
+                      const isPo = n.category === 'PAID_OUTSIDE'
+                      return (
+                        <div
+                          key={n.uuid}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            background: 'var(--surface)',
+                            border: isPo ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--border)',
+                            fontSize: '12px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span
+                                style={{
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: '100px',
+                                  backgroundColor: isPo ? 'rgba(245, 158, 11, 0.12)' : 'var(--surface-hover)',
+                                  color: isPo ? '#d97706' : 'var(--text-secondary)',
+                                  border: isPo ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid var(--border)',
+                                }}
+                              >
+                                {isPo ? 'Paid Outside' : 'General'}
+                              </span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                {n.adminEmail ? n.adminEmail.split('@')[0] : 'Admin'}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDrawerNote(n.uuid)}
+                                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px' }}
+                                title="Delete note"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </div>
+                          <p style={{ margin: 0, color: 'var(--text)', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                            {n.note}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 

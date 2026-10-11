@@ -65,6 +65,12 @@ import { ResolveErrorUseCase } from '../../../application/use-cases/system/resol
 import { ClearErrorLogsUseCase } from '../../../application/use-cases/system/clear-error-logs.use-case'
 
 import { GetAdminUserDetailUseCase } from '../../../application/use-cases/admin/get-admin-user-detail.use-case'
+import { GetTenantAdminNotesUseCase } from '../../../application/use-cases/admin/get-tenant-admin-notes.use-case'
+import {
+  CreateTenantAdminNoteUseCase,
+  CreateTenantAdminNoteDto,
+} from '../../../application/use-cases/admin/create-tenant-admin-note.use-case'
+import { DeleteTenantAdminNoteUseCase } from '../../../application/use-cases/admin/delete-tenant-admin-note.use-case'
 import { GetAdminRentHistoryRequestsUseCase } from '../../../application/use-cases/admin/get-admin-rent-history-requests.use-case'
 import { GetAdminPmDetailUseCase } from '../../../application/use-cases/admin/get-admin-pm-detail.use-case'
 import { UpdateAdminUserUseCase } from '../../../application/use-cases/admin/update-admin-user.use-case'
@@ -123,6 +129,9 @@ export class AdminController {
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
     private readonly searchUsersUseCase: SearchUsersUseCase,
     private readonly getAdminUserDetailUseCase: GetAdminUserDetailUseCase,
+    private readonly getTenantAdminNotesUseCase: GetTenantAdminNotesUseCase,
+    private readonly createTenantAdminNoteUseCase: CreateTenantAdminNoteUseCase,
+    private readonly deleteTenantAdminNoteUseCase: DeleteTenantAdminNoteUseCase,
     private readonly getAdminRentHistoryRequestsUseCase: GetAdminRentHistoryRequestsUseCase,
     private readonly getAdminPmDetailUseCase: GetAdminPmDetailUseCase,
     private readonly updateAdminUserUseCase: UpdateAdminUserUseCase,
@@ -178,6 +187,30 @@ export class AdminController {
   @Get('users/:uuid')
   async getUserDetail(@Param('uuid') uuid: string) {
     return { data: await this.getAdminUserDetailUseCase.execute(uuid) }
+  }
+
+  @Get('users/:userUuid/notes')
+  async getTenantNotes(@Param('userUuid') userUuid: string) {
+    return { data: await this.getTenantAdminNotesUseCase.execute(userUuid) }
+  }
+
+  @Post('users/:userUuid/notes')
+  async createTenantNote(
+    @Param('userUuid') userUuid: string,
+    @Body() body: CreateTenantAdminNoteDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return {
+      data: await this.createTenantAdminNoteUseCase.execute(userUuid, body, {
+        id: req.user.id,
+        email: req.user.email,
+      }),
+    }
+  }
+
+  @Delete('users/notes/:noteUuid')
+  async deleteTenantNote(@Param('noteUuid') noteUuid: string) {
+    return { data: await this.deleteTenantAdminNoteUseCase.execute(noteUuid) }
   }
 
   @Post('users/sync-tenant/:uuid')
