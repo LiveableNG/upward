@@ -1959,7 +1959,7 @@
       }
 
       // Clear error style on input
-      [...stage1Fields, ...stage2Fields, { id: 'termsCheck', fieldId: 'field-terms' }].forEach(cfg => {
+      [...stage1Fields, ...stage2Fields, { id: 'scholarshipVideo', fieldId: 'field-scholarshipVideo' }, { id: 'termsCheck', fieldId: 'field-terms' }].forEach(cfg => {
         const el = document.getElementById(cfg.id);
         const container = document.getElementById(cfg.fieldId);
         if (el && container) {
@@ -2140,7 +2140,18 @@
         const isScholarship = scholarshipYes && scholarshipYes.checked;
         if (isScholarship) {
           const videoVal = scholarshipVideoInput ? scholarshipVideoInput.value.trim() : '';
-          const isValidUrl = videoVal.length > 0 && /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i.test(videoVal);
+          let isValidUrl = false;
+          if (videoVal.length > 0 && !/\s/.test(videoVal)) {
+            try {
+              const urlToTest = /^https?:\/\//i.test(videoVal) ? videoVal : `https://${videoVal}`;
+              const parsed = new URL(urlToTest);
+              isValidUrl = (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+                parsed.hostname.includes('.') &&
+                parsed.hostname.split('.').pop().length >= 2;
+            } catch (err) {
+              isValidUrl = false;
+            }
+          }
           if (!isValidUrl) {
             hasError = true;
             scholarshipVideoContainer.classList.add('has-error');
