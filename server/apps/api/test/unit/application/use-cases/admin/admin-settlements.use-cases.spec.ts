@@ -28,6 +28,9 @@ describe('Admin Settlements Use Cases', () => {
         findMany: jest.fn(),
         findUnique: jest.fn(),
       },
+      upward_settlement_account: {
+        findFirst: jest.fn(),
+      },
       upward_payment_request: {
         update: jest.fn(),
       },
@@ -164,6 +167,10 @@ describe('Admin Settlements Use Cases', () => {
         accountNumber: '8124618329',
         bankCode: '999991',
       });
+      mockPrisma.upward_settlement_account.findFirst.mockResolvedValueOnce({
+        id: 88,
+        manualAccountId: 7,
+      });
       mockPrisma.upward_transaction.findUnique.mockResolvedValueOnce({
         id: 101,
         paymentRequestId: 55,
@@ -171,6 +178,7 @@ describe('Admin Settlements Use Cases', () => {
       mockPrisma.upward_payment_request.update.mockResolvedValueOnce({
         id: 55,
         manualAccountId: 7,
+        settlementAccountId: 88,
       });
 
       const useCase = new ResolveFlaggedSettlementUseCase(mockPrisma);
@@ -183,7 +191,10 @@ describe('Admin Settlements Use Cases', () => {
       expect(result.success).toBe(true);
       expect(mockPrisma.upward_payment_request.update).toHaveBeenCalledWith({
         where: { id: 55 },
-        data: { manualAccountId: 7 },
+        data: {
+          manualAccountId: 7,
+          settlementAccountId: 88,
+        },
       });
     });
 

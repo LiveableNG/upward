@@ -747,7 +747,7 @@ export class ResolveFlaggedSettlementUseCase {
         throw new BadRequestException('No payment request associated to bind this account to');
       }
 
-      const settlementAccount = await this.prisma.upward_settlement_account.findFirst({
+      const settlementAccount = await (this.prisma as any).upward_settlement_account?.findFirst({
         where: { manualAccountId: dto.manualAccountId },
       });
 
