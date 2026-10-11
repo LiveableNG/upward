@@ -105,7 +105,11 @@ export interface PmPaymentRequest {
   recurrenceInterval?: string | null;
   transactions?: any[];
   manualAccountId?: number | null;
+  settlementAccountId?: number | null;
   settlementAccount?: SettlementAccount | null;
+  splitProfileId?: number | null;
+  splitProfile?: SplitProfile | null;
+  settlementSplitRules?: SettlementSplitRule[] | null;
   isSelfPayment?: boolean;
   createdBy?: {
     isEmployee?: boolean;

@@ -48,28 +48,48 @@ export class CreatePropertyUseCase {
     }
 
     let manualAccountId = dto.manualAccountId;
-    if (dto.settlementAccountUuid) {
-      const account = await (this.prisma as any).upward_manual_account.findUnique({
-        where: { uuid: dto.settlementAccountUuid },
-        select: { id: true },
-      });
-      if (account) manualAccountId = account.id;
-    }
+    let settlementAccountId: number | undefined;
 
-    if (!manualAccountId) {
-      const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
-        where: { pmId, isPrimary: true },
-        select: { id: true },
+    if (dto.settlementAccountUuid) {
+      const settlementAcc = await (this.prisma as any).upward_settlement_account.findUnique({
+        where: { uuid: dto.settlementAccountUuid },
+        select: { id: true, manualAccountId: true },
       });
-      if (primaryAccount) {
-        manualAccountId = primaryAccount.id;
+      if (settlementAcc) {
+        settlementAccountId = settlementAcc.id;
+        manualAccountId = settlementAcc.manualAccountId;
       } else {
-        const anyAccount = await (this.prisma as any).upward_manual_account.findFirst({
-          where: { pmId },
-          orderBy: { createdAt: 'asc' },
+        const account = await (this.prisma as any).upward_manual_account.findUnique({
+          where: { uuid: dto.settlementAccountUuid },
           select: { id: true },
         });
-        if (anyAccount) manualAccountId = anyAccount.id;
+        if (account) manualAccountId = account.id;
+      }
+    }
+
+    if (!settlementAccountId && !manualAccountId) {
+      const primarySettlementAcc = await (this.prisma as any).upward_settlement_account.findFirst({
+        where: { pmId, isPrimary: true },
+        select: { id: true, manualAccountId: true },
+      });
+      if (primarySettlementAcc) {
+        settlementAccountId = primarySettlementAcc.id;
+        manualAccountId = primarySettlementAcc.manualAccountId;
+      } else {
+        const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
+          where: { pmId, isPrimary: true },
+          select: { id: true },
+        });
+        if (primaryAccount) {
+          manualAccountId = primaryAccount.id;
+        } else {
+          const anyAccount = await (this.prisma as any).upward_manual_account.findFirst({
+            where: { pmId },
+            orderBy: { createdAt: 'asc' },
+            select: { id: true },
+          });
+          if (anyAccount) manualAccountId = anyAccount.id;
+        }
       }
     }
 
@@ -88,6 +108,7 @@ export class CreatePropertyUseCase {
       landlordEmail: dto.landlordEmail || null,
       landlordPhone: dto.landlordPhone || null,
       manualAccountId: manualAccountId || undefined,
+      settlementAccountId: settlementAccountId || undefined,
     });
 
     // If an employee created the property, auto-assign them

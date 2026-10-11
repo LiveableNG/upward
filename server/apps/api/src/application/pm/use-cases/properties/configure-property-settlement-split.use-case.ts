@@ -44,22 +44,37 @@ export class ConfigurePropertySettlementSplitUseCase {
         }
       }
 
-      // 2. Validate all manual account UUIDs
+      // 2. Validate all settlement/manual account UUIDs
       const accountUuids = Array.from(new Set(rules.map((r) => r.manualAccountUuid)));
-      const accounts = await this.prisma.upward_manual_account.findMany({
+
+      const settlementAccounts = await (this.prisma as any).upward_settlement_account.findMany({
         where: {
           uuid: { in: accountUuids },
           pmId: property.pmId,
         },
+        select: { uuid: true, manualAccountId: true },
       });
 
-      if (accounts.length !== accountUuids.length) {
-        throw new BadRequestException('One or more selected settlement accounts are invalid or do not exist');
-      }
+      const manualAccounts = await (this.prisma as any).upward_manual_account.findMany({
+        where: {
+          uuid: { in: accountUuids },
+          pmId: property.pmId,
+        },
+        select: { uuid: true, id: true },
+      });
 
       const accountMap = new Map<string, number>();
-      for (const acc of accounts) {
-        accountMap.set(acc.uuid, acc.id);
+      for (const sa of settlementAccounts) {
+        accountMap.set(sa.uuid, sa.manualAccountId);
+      }
+      for (const ma of manualAccounts) {
+        if (!accountMap.has(ma.uuid)) {
+          accountMap.set(ma.uuid, ma.id);
+        }
+      }
+
+      if (accountMap.size !== accountUuids.length) {
+        throw new BadRequestException('One or more selected settlement accounts are invalid or do not exist');
       }
 
       // 3. Atomically replace rules in transaction

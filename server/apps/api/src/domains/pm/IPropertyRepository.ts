@@ -227,6 +227,7 @@ export interface PmPaymentRequestEntity {
   recurrenceInterval?: string | null;
   employeeId?: number | null;
   manualAccountId?: number | null;
+  settlementAccountId?: number | null;
   splitProfileId?: number | null;
   createdAt: Date;
   updatedAt: Date;

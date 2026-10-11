@@ -355,6 +355,7 @@ export class RecordTransactionUseCase {
 
           // Resolve default / fallback account (used for non-Rent line items or when no split exists)
           let fallbackAccount =
+            pr?.settlementAccount?.manualAccount ||
             pr?.manualAccount ||
             propWithPm?.pmUnit?.property?.settlementAccount?.manualAccount ||
             propWithPm?.pmUnit?.property?.manualAccount;

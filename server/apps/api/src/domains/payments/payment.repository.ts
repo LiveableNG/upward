@@ -161,6 +161,8 @@ export interface PaymentRequest {
   subaccount?: PaystackSubaccount
   manualAccountId?: number
   manualAccount?: any
+  settlementAccountId?: number
+  settlementAccount?: any
   webhookUrl?: string
   platformName?: string
   platformId?: number

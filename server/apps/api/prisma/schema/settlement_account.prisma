@@ -13,6 +13,8 @@ model upward_settlement_account {
   pm                 upward_property_manager? @relation(fields: [pmId], references: [id], onDelete: Cascade)
   externalCompany    upward_company?          @relation(fields: [externalCompanyId], references: [id], onDelete: Cascade)
   pmProperties       upward_pm_property[]
+  pmPaymentRequests  upward_pm_payment_request[]
+  paymentRequests    upward_payment_request[]
 
   @@index([pmId])
   @@index([externalCompanyId])
