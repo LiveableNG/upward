@@ -196,6 +196,31 @@ export class SyncUnitToUpwardUseCase {
 
       let userProperty;
 
+      const pmPrimarySettlementAcc = await tx.upward_settlement_account.findFirst({
+        where: { pmId, isPrimary: true },
+        select: { manualAccountId: true }
+      });
+      const propertySettlementAcc = unit.property?.settlementAccountId
+        ? await tx.upward_settlement_account.findUnique({
+            where: { id: unit.property.settlementAccountId },
+            select: { manualAccountId: true }
+          })
+        : null;
+
+      const effectiveManualAccountId =
+        unit.property?.manualAccountId ||
+        propertySettlementAcc?.manualAccountId ||
+        pmPrimarySettlementAcc?.manualAccountId ||
+        (await tx.upward_manual_account.findFirst({
+          where: { pmId, isPrimary: true },
+          select: { id: true },
+        }))?.id ||
+        (await tx.upward_manual_account.findFirst({
+          where: { pmId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        }))?.id;
+
       if (existingUserProperty) {
         if (existingUserProperty.locationId && unit.property) {
           await tx.upward_location.update({
@@ -229,6 +254,10 @@ export class SyncUnitToUpwardUseCase {
 
         if (manager?.id) {
           updateData.manager = { connect: { id: manager.id } };
+        }
+
+        if (effectiveManualAccountId) {
+          updateData.manualAccount = { connect: { id: effectiveManualAccountId } };
         }
 
         const resolvedSubaccountId = subaccountId || existingUserProperty.subaccountId;
@@ -280,24 +309,19 @@ export class SyncUnitToUpwardUseCase {
           createData.subaccount = { connect: { id: subaccountId } };
         }
 
-        const effectiveManualAccountId =
-          unit.property?.manualAccountId ||
-          (await tx.upward_manual_account.findFirst({
-            where: { pmId, isPrimary: true },
-            select: { id: true },
-          }))?.id ||
-          (await tx.upward_manual_account.findFirst({
-            where: { pmId },
-            orderBy: { createdAt: 'asc' },
-            select: { id: true },
-          }))?.id;
-
         if (effectiveManualAccountId) {
           createData.manualAccount = { connect: { id: effectiveManualAccountId } };
         }
 
         userProperty = await tx.upward_user_property.create({
           data: createData
+        });
+      }
+
+      if (effectiveManualAccountId) {
+        await tx.upward_payment_request.updateMany({
+          where: { userPropertyId: userProperty.id, status: { in: ['PENDING', 'PARTIAL'] } },
+          data: { manualAccountId: effectiveManualAccountId }
         });
       }
 

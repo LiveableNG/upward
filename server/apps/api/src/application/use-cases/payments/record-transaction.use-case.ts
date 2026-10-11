@@ -353,42 +353,64 @@ export class RecordTransactionUseCase {
             }
           }
 
-          // Resolve default / fallback account (used for non-Rent line items or when no split exists)
-          let fallbackAccount =
-            pr?.settlementAccount?.manualAccount ||
-            pr?.manualAccount ||
-            propWithPm?.pmUnit?.property?.settlementAccount?.manualAccount ||
-            propWithPm?.pmUnit?.property?.manualAccount;
+          // Resolve PM default primary account if property is managed by a PM
+          const targetPmId =
+            propWithPm?.pmUnit?.property?.pmId ||
+            propWithPm?.pmId ||
+            (pr as any)?.pmId ||
+            (pr as any)?.userProperty?.pmId ||
+            (pr as any)?.userProperty?.pm?.id;
 
-          if (!fallbackAccount) {
-            const targetPmId = propWithPm?.pmUnit?.property?.pmId || pr?.pmId || propWithPm?.pmId;
-            if (targetPmId) {
-              const pmSettlementAcc = await txClient.upward_settlement_account.findFirst({
-                where: { pmId: targetPmId, isPrimary: true },
-                include: { manualAccount: true }
+          let pmDefaultAccount: any = null;
+          if (targetPmId) {
+            const pmSettlementAcc = await txClient.upward_settlement_account.findFirst({
+              where: { pmId: targetPmId, isPrimary: true },
+              include: { manualAccount: true }
+            }) || await txClient.upward_settlement_account.findFirst({
+              where: { pmId: targetPmId },
+              include: { manualAccount: true }
+            });
+
+            if (pmSettlementAcc?.manualAccount) {
+              pmDefaultAccount = pmSettlementAcc.manualAccount;
+            } else {
+              const pmManual = await txClient.upward_manual_account.findFirst({
+                where: { pmId: targetPmId, isPrimary: true }
+              }) || await txClient.upward_manual_account.findFirst({
+                where: { pmId: targetPmId }
               });
-              if (pmSettlementAcc?.manualAccount) {
-                fallbackAccount = pmSettlementAcc.manualAccount;
+              if (pmManual) {
+                pmDefaultAccount = pmManual;
               }
             }
           }
 
-          if (!fallbackAccount) {
-            const targetCompanyId = propWithPm?.companyId || pr?.companyId;
+          let companyDefaultAccount: any = null;
+          if (!targetPmId) {
+            const targetCompanyId = propWithPm?.companyId || (pr as any)?.companyId || (pr as any)?.userProperty?.companyId;
             if (targetCompanyId) {
               const compSettlementAcc = await txClient.upward_settlement_account.findFirst({
                 where: { externalCompanyId: targetCompanyId, isPrimary: true },
                 include: { manualAccount: true }
               });
               if (compSettlementAcc?.manualAccount) {
-                fallbackAccount = compSettlementAcc.manualAccount;
+                companyDefaultAccount = compSettlementAcc.manualAccount;
               }
             }
           }
+  
+          // Fallback account for self-managed non-PM properties only
+          const selfManagedFallback = !targetPmId && !companyDefaultAccount
+            ? (pr?.settlementAccount?.manualAccount || pr?.manualAccount || propWithPm?.manualAccount)
+            : null;
 
-          if (!fallbackAccount && propWithPm?.manualAccount) {
-            fallbackAccount = propWithPm.manualAccount;
-          }
+          // Default account for line items (PM primary default account if managed by PM)
+          const defaultLineItemAccount = pmDefaultAccount || companyDefaultAccount || selfManagedFallback;
+
+          // Property-assigned account (if property has a dedicated assigned account)
+          const propertyAssignedAccount =
+            propWithPm?.pmUnit?.property?.settlementAccount?.manualAccount ||
+            propWithPm?.pmUnit?.property?.manualAccount;
 
           const settleableAllocated = (distribution.allocatedItems || []).filter((item: any) => {
             const name = (item.name || '').toLowerCase()
@@ -403,41 +425,64 @@ export class RecordTransactionUseCase {
             const itemName = (item.name || 'Rent').trim()
             const isRent = itemName.toLowerCase() === 'rent'
 
-            if (isRent && splitRules.length > 0) {
-              let matchingRules = splitRules.filter((r: any) => r.lineItemName.toLowerCase() === 'rent')
-              if (matchingRules.length === 0) matchingRules = splitRules
+            if (isRent) {
+              if (splitRules.length > 0) {
+                let matchingRules = splitRules.filter((r: any) => r.lineItemName.toLowerCase() === 'rent')
+                if (matchingRules.length === 0) matchingRules = splitRules
 
-              for (const rule of matchingRules) {
-                const splitPortion = itemAmt * (Number(rule.percentage) / 100)
-                if (splitPortion <= 0) continue
+                for (const rule of matchingRules) {
+                  const splitPortion = itemAmt * (Number(rule.percentage) / 100)
+                  if (splitPortion <= 0) continue
 
-                await txClient.upward_transaction_settlement_split.create({
-                  data: {
-                    transactionId: result.id,
-                    manualAccountId: rule.manualAccountId,
-                    accountNumber: rule.manualAccount?.accountNumber || '',
-                    accountName: rule.manualAccount?.accountName || '',
-                    bankName: rule.manualAccount?.bankName || '',
-                    bankCode: rule.manualAccount?.bankCode || '',
-                    title: rule.manualAccount?.title || null,
-                    lineItemName: itemName,
-                    percentage: Number(rule.percentage),
-                    amount: splitPortion,
-                    settlementStatus: data.isManual ? 'SETTLED' : 'PENDING',
-                  }
-                })
+                  await txClient.upward_transaction_settlement_split.create({
+                    data: {
+                      transactionId: result.id,
+                      manualAccountId: rule.manualAccountId,
+                      accountNumber: rule.manualAccount?.accountNumber || '',
+                      accountName: rule.manualAccount?.accountName || '',
+                      bankName: rule.manualAccount?.bankName || '',
+                      bankCode: rule.manualAccount?.bankCode || '',
+                      title: rule.manualAccount?.title || null,
+                      lineItemName: itemName,
+                      percentage: Number(rule.percentage),
+                      amount: splitPortion,
+                      settlementStatus: data.isManual ? 'SETTLED' : 'PENDING',
+                    }
+                  })
+                }
+              } else {
+                // If no split profile, route to assigned account for that property;
+                // if no assigned account for property, route to PM default account
+                const rentTargetAccount = propertyAssignedAccount || defaultLineItemAccount;
+                if (rentTargetAccount) {
+                  await txClient.upward_transaction_settlement_split.create({
+                    data: {
+                      transactionId: result.id,
+                      manualAccountId: rentTargetAccount.id,
+                      accountNumber: rentTargetAccount.accountNumber || '',
+                      accountName: rentTargetAccount.accountName || '',
+                      bankName: rentTargetAccount.bankName || '',
+                      bankCode: rentTargetAccount.bankCode || '',
+                      title: rentTargetAccount.title || 'Settlement Account',
+                      lineItemName: itemName,
+                      percentage: 100,
+                      amount: itemAmt,
+                      settlementStatus: data.isManual ? 'SETTLED' : 'PENDING',
+                    }
+                  })
+                }
               }
-            } else if (fallbackAccount) {
-              // Non-rent items or unsplit rent route 100% to the Default Settlement Account
+            } else if (defaultLineItemAccount) {
+              // ALL other non-Rent amounts in line items route to the PM Default Settlement Account
               await txClient.upward_transaction_settlement_split.create({
                 data: {
                   transactionId: result.id,
-                  manualAccountId: fallbackAccount.id,
-                  accountNumber: fallbackAccount.accountNumber || '',
-                  accountName: fallbackAccount.accountName || '',
-                  bankName: fallbackAccount.bankName || '',
-                  bankCode: fallbackAccount.bankCode || '',
-                  title: fallbackAccount.title || 'Settlement Account',
+                  manualAccountId: defaultLineItemAccount.id,
+                  accountNumber: defaultLineItemAccount.accountNumber || '',
+                  accountName: defaultLineItemAccount.accountName || '',
+                  bankName: defaultLineItemAccount.bankName || '',
+                  bankCode: defaultLineItemAccount.bankCode || '',
+                  title: defaultLineItemAccount.title || 'Default Settlement Account',
                   lineItemName: itemName,
                   percentage: 100,
                   amount: itemAmt,

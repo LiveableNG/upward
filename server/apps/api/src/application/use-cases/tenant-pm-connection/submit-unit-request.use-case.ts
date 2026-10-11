@@ -416,6 +416,33 @@ export class SubmitUnitRequestUseCase {
       }
     }
 
+    // When property is connected with a PM, the default settlement account of the PM overrides any tenant-provided manual account
+    if (pm?.id && savedProperty?.id) {
+      try {
+        const pmPrimarySettlement = await (this.prisma as any).upward_settlement_account.findFirst({
+          where: { pmId: pm.id, isPrimary: true },
+          select: { manualAccountId: true }
+        });
+        const pmManualAccId = pmPrimarySettlement?.manualAccountId || (await (this.prisma as any).upward_manual_account.findFirst({
+          where: { pmId: pm.id, isPrimary: true },
+          select: { id: true }
+        }))?.id;
+
+        if (pmManualAccId) {
+          await this.prisma.upward_user_property.update({
+            where: { id: savedProperty.id },
+            data: { manualAccountId: pmManualAccId }
+          });
+          await (this.prisma as any).upward_payment_request.updateMany({
+            where: { userPropertyId: savedProperty.id, status: { in: ['PENDING', 'PARTIAL'] } },
+            data: { manualAccountId: pmManualAccId }
+          });
+        }
+      } catch (e: any) {
+        this.logger.warn(`Failed to override PM default account on verified property: ${e.message}`);
+      }
+    }
+
     // ── Create upward_tenant_join_request with onboarding proof evidence (no payment records created) ──
     let joinRequest: any = null;
     if (pm?.id) {

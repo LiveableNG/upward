@@ -511,7 +511,7 @@ export const PaymentDetailView: React.FC = () => {
                                     background: 'var(--forest-faint, #f0fdf4)',
                                     color: 'var(--forest, #166534)'
                                   }}>
-                                    {split.percentage}% Rent
+                                    {split.percentage}% {split.lineItemName || 'Rent'}
                                   </span>
                                   <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--dark)' }}>
                                     ₦{(Number(split.amount) || 0).toLocaleString()}
