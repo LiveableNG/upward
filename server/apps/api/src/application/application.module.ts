@@ -25,6 +25,9 @@ import { ChangeAdminRoleUseCase } from './use-cases/admin/change-admin-role.use-
 import { ChangeAdminPasswordUseCase } from './use-cases/admin/change-admin-password.use-case'
 import { SearchUsersUseCase } from './use-cases/admin/search-users.use-case'
 import { GetAdminUserDetailUseCase } from './use-cases/admin/get-admin-user-detail.use-case'
+import { GetTenantAdminNotesUseCase } from './use-cases/admin/get-tenant-admin-notes.use-case'
+import { CreateTenantAdminNoteUseCase } from './use-cases/admin/create-tenant-admin-note.use-case'
+import { DeleteTenantAdminNoteUseCase } from './use-cases/admin/delete-tenant-admin-note.use-case'
 import { GetAdminRentHistoryRequestsUseCase } from './use-cases/admin/get-admin-rent-history-requests.use-case'
 import { GetAdminPmDetailUseCase } from './use-cases/admin/get-admin-pm-detail.use-case'
 import { UpdateAdminUserUseCase } from './use-cases/admin/update-admin-user.use-case'
@@ -614,6 +617,9 @@ const UseCases: any[] = [
   ChangeAdminPasswordUseCase,
   SearchUsersUseCase,
   GetAdminUserDetailUseCase,
+  GetTenantAdminNotesUseCase,
+  CreateTenantAdminNoteUseCase,
+  DeleteTenantAdminNoteUseCase,
   GetAdminRentHistoryRequestsUseCase,
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
