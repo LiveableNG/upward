@@ -11,44 +11,79 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
   ) { }
 
   private mapPmPaymentRequest(pr: any): PmPaymentRequestEntity {
+    const rawSplit = pr.splitProfile || (!pr.manualAccount && pr.unit?.property?.splitProfile ? pr.unit.property.splitProfile : null);
+    const splitProfile = rawSplit ? {
+      id: rawSplit.id,
+      uuid: rawSplit.uuid,
+      name: rawSplit.name,
+      items: rawSplit.items?.map((it: any) => ({
+        manualAccountUuid: it.manualAccount?.uuid,
+        percentage: Number(it.percentage),
+        manualAccount: it.manualAccount ? {
+          bankName: it.manualAccount.bankName,
+          accountNumber: it.manualAccount.accountNumber,
+          accountName: it.manualAccount.accountName,
+          title: it.manualAccount.title,
+          isPrimary: Boolean(it.manualAccount.isPrimary)
+        } : null
+      })) || []
+    } : null;
+
+    let settlementAccount: any = null;
+    if (!splitProfile) {
+      if (pr.manualAccount) {
+        settlementAccount = {
+          id: pr.manualAccount.id,
+          uuid: pr.manualAccount.uuid,
+          bankName: pr.manualAccount.bankName,
+          bankCode: pr.manualAccount.bankCode,
+          accountNumber: pr.manualAccount.accountNumber,
+          accountName: pr.manualAccount.accountName,
+          isPrimary: Boolean(pr.manualAccount.isPrimary),
+        };
+      } else if (pr.paymentRequest?.manualAccount) {
+        settlementAccount = {
+          id: pr.paymentRequest.manualAccount.id,
+          uuid: pr.paymentRequest.manualAccount.uuid,
+          bankName: pr.paymentRequest.manualAccount.bankName,
+          bankCode: pr.paymentRequest.manualAccount.bankCode,
+          accountNumber: pr.paymentRequest.manualAccount.accountNumber,
+          accountName: pr.paymentRequest.manualAccount.accountName,
+          isPrimary: Boolean(pr.paymentRequest.manualAccount.isPrimary),
+        };
+      } else if (pr.unit?.property?.manualAccount) {
+        settlementAccount = {
+          id: pr.unit.property.manualAccount.id,
+          uuid: pr.unit.property.manualAccount.uuid,
+          bankName: pr.unit.property.manualAccount.bankName,
+          bankCode: pr.unit.property.manualAccount.bankCode,
+          accountNumber: pr.unit.property.manualAccount.accountNumber,
+          accountName: pr.unit.property.manualAccount.accountName,
+          isPrimary: Boolean(pr.unit.property.manualAccount.isPrimary),
+        };
+      } else if (pr.unit?.property?.pm?.manualAccounts?.length) {
+        const primaryAcc = pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0];
+        if (primaryAcc) {
+          settlementAccount = {
+            id: primaryAcc.id,
+            uuid: primaryAcc.uuid,
+            bankName: primaryAcc.bankName,
+            bankCode: primaryAcc.bankCode,
+            accountNumber: primaryAcc.accountNumber,
+            accountName: primaryAcc.accountName,
+            isPrimary: Boolean(primaryAcc.isPrimary),
+          };
+        }
+      }
+    }
+
     return {
       ...pr,
       coreRequestUuid: pr.paymentRequest?.uuid || null,
       employeeId: pr.employeeId || null,
       manualAccountId: pr.manualAccountId || null,
-      settlementAccount: pr.manualAccount ? {
-        id: pr.manualAccount.id,
-        uuid: pr.manualAccount.uuid,
-        bankName: pr.manualAccount.bankName,
-        bankCode: pr.manualAccount.bankCode,
-        accountNumber: pr.manualAccount.accountNumber,
-        accountName: pr.manualAccount.accountName,
-        isPrimary: Boolean(pr.manualAccount.isPrimary),
-      } : (pr.unit?.property?.manualAccount ? {
-        id: pr.unit.property.manualAccount.id,
-        uuid: pr.unit.property.manualAccount.uuid,
-        bankName: pr.unit.property.manualAccount.bankName,
-        bankCode: pr.unit.property.manualAccount.bankCode,
-        accountNumber: pr.unit.property.manualAccount.accountNumber,
-        accountName: pr.unit.property.manualAccount.accountName,
-        isPrimary: Boolean(pr.unit.property.manualAccount.isPrimary),
-      } : (pr.paymentRequest?.manualAccount ? {
-        id: pr.paymentRequest.manualAccount.id,
-        uuid: pr.paymentRequest.manualAccount.uuid,
-        bankName: pr.paymentRequest.manualAccount.bankName,
-        bankCode: pr.paymentRequest.manualAccount.bankCode,
-        accountNumber: pr.paymentRequest.manualAccount.accountNumber,
-        accountName: pr.paymentRequest.manualAccount.accountName,
-        isPrimary: Boolean(pr.paymentRequest.manualAccount.isPrimary),
-      } : (pr.unit?.property?.pm?.manualAccounts?.find((a: any) => a.isPrimary) || pr.unit?.property?.pm?.manualAccounts?.[0] ? {
-        id: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).id,
-        uuid: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).uuid,
-        bankName: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).bankName,
-        bankCode: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).bankCode,
-        accountNumber: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).accountNumber,
-        accountName: (pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).accountName,
-        isPrimary: Boolean((pr.unit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pr.unit.property.pm.manualAccounts[0]).isPrimary),
-      } : null))),
+      splitProfileId: pr.splitProfileId || null,
+      settlementAccount,
       employee: pr.employee ? {
         id: pr.employee.id,
         uuid: pr.employee.uuid,
@@ -103,37 +138,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
           settlementStatus: s.settlementStatus
         })) || []
       })) || [],
-      splitProfile: pr.splitProfile ? {
-        id: pr.splitProfile.id,
-        uuid: pr.splitProfile.uuid,
-        name: pr.splitProfile.name,
-        items: pr.splitProfile.items?.map((it: any) => ({
-          manualAccountUuid: it.manualAccount?.uuid,
-          percentage: Number(it.percentage),
-          manualAccount: it.manualAccount ? {
-            bankName: it.manualAccount.bankName,
-            accountNumber: it.manualAccount.accountNumber,
-            accountName: it.manualAccount.accountName,
-            title: it.manualAccount.title,
-            isPrimary: Boolean(it.manualAccount.isPrimary)
-          } : null
-        })) || []
-      } : (pr.unit?.property?.splitProfile ? {
-        id: pr.unit.property.splitProfile.id,
-        uuid: pr.unit.property.splitProfile.uuid,
-        name: pr.unit.property.splitProfile.name,
-        items: pr.unit.property.splitProfile.items?.map((it: any) => ({
-          manualAccountUuid: it.manualAccount?.uuid,
-          percentage: Number(it.percentage),
-          manualAccount: it.manualAccount ? {
-            bankName: it.manualAccount.bankName,
-            accountNumber: it.manualAccount.accountNumber,
-            accountName: it.manualAccount.accountName,
-            title: it.manualAccount.title,
-            isPrimary: Boolean(it.manualAccount.isPrimary)
-          } : null
-        })) || []
-      } : null),
+      splitProfile,
       settlementSplitRules: pr.settlementSplitRules?.map((r: any) => ({
         uuid: r.uuid,
         lineItemName: r.lineItemName,
@@ -170,6 +175,62 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const tenantCommercialName = pmTenant?.commercialNameEncrypted ? this.encryption.decrypt(pmTenant.commercialNameEncrypted) : '';
     const tenantName = (tenantCommercialName || `${tenantFirstName} ${tenantLastName}`.trim()) || 'Tenant';
 
+    const hasManualSplitProfile = Boolean(pmUnit?.property?.splitProfile && !pr.manualAccount);
+    const splitProfile = hasManualSplitProfile ? {
+      id: pmUnit.property.splitProfile.id,
+      uuid: pmUnit.property.splitProfile.uuid,
+      name: pmUnit.property.splitProfile.name,
+      items: pmUnit.property.splitProfile.items?.map((it: any) => ({
+        manualAccountUuid: it.manualAccount?.uuid,
+        percentage: Number(it.percentage),
+        manualAccount: it.manualAccount ? {
+          bankName: it.manualAccount.bankName,
+          accountNumber: it.manualAccount.accountNumber,
+          accountName: it.manualAccount.accountName,
+          title: it.manualAccount.title,
+          isPrimary: Boolean(it.manualAccount.isPrimary)
+        } : null
+      })) || []
+    } : null;
+
+    let settlementAccount: any = null;
+    if (!splitProfile) {
+      if (pr.manualAccount) {
+        settlementAccount = {
+          id: pr.manualAccount.id,
+          uuid: pr.manualAccount.uuid,
+          bankName: pr.manualAccount.bankName,
+          bankCode: pr.manualAccount.bankCode,
+          accountNumber: pr.manualAccount.accountNumber,
+          accountName: pr.manualAccount.accountName,
+          isPrimary: Boolean(pr.manualAccount.isPrimary),
+        };
+      } else if (pmUnit?.property?.manualAccount) {
+        settlementAccount = {
+          id: pmUnit.property.manualAccount.id,
+          uuid: pmUnit.property.manualAccount.uuid,
+          bankName: pmUnit.property.manualAccount.bankName,
+          bankCode: pmUnit.property.manualAccount.bankCode,
+          accountNumber: pmUnit.property.manualAccount.accountNumber,
+          accountName: pmUnit.property.manualAccount.accountName,
+          isPrimary: Boolean(pmUnit.property.manualAccount.isPrimary),
+        };
+      } else if (pmUnit?.property?.pm?.manualAccounts?.length) {
+        const primaryAcc = pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0];
+        if (primaryAcc) {
+          settlementAccount = {
+            id: primaryAcc.id,
+            uuid: primaryAcc.uuid,
+            bankName: primaryAcc.bankName,
+            bankCode: primaryAcc.bankCode,
+            accountNumber: primaryAcc.accountNumber,
+            accountName: primaryAcc.accountName,
+            isPrimary: Boolean(primaryAcc.isPrimary),
+          };
+        }
+      }
+    }
+
     return {
       uuid: pr.uuid, // Use core UUID
       amount: pr.amount,
@@ -192,31 +253,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         isTenant: true,
       },
       manualAccountId: pr.manualAccountId || null,
-      settlementAccount: pr.manualAccount ? {
-        id: pr.manualAccount.id,
-        uuid: pr.manualAccount.uuid,
-        bankName: pr.manualAccount.bankName,
-        bankCode: pr.manualAccount.bankCode,
-        accountNumber: pr.manualAccount.accountNumber,
-        accountName: pr.manualAccount.accountName,
-        isPrimary: Boolean(pr.manualAccount.isPrimary),
-      } : (pmUnit?.property?.manualAccount ? {
-        id: pmUnit.property.manualAccount.id,
-        uuid: pmUnit.property.manualAccount.uuid,
-        bankName: pmUnit.property.manualAccount.bankName,
-        bankCode: pmUnit.property.manualAccount.bankCode,
-        accountNumber: pmUnit.property.manualAccount.accountNumber,
-        accountName: pmUnit.property.manualAccount.accountName,
-        isPrimary: Boolean(pmUnit.property.manualAccount.isPrimary),
-      } : (pmUnit?.property?.pm?.manualAccounts?.find((a: any) => a.isPrimary) || pmUnit?.property?.pm?.manualAccounts?.[0] ? {
-        id: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).id,
-        uuid: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).uuid,
-        bankName: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).bankName,
-        bankCode: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).bankCode,
-        accountNumber: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).accountNumber,
-        accountName: (pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).accountName,
-        isPrimary: Boolean((pmUnit.property.pm.manualAccounts.find((a: any) => a.isPrimary) || pmUnit.property.pm.manualAccounts[0]).isPrimary),
-      } : null)),
+      settlementAccount,
 
       unit: pmUnit ? {
         ...pmUnit,
@@ -263,22 +300,7 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
         })) || []
       })) || [],
 
-      splitProfile: pmUnit?.property?.splitProfile ? {
-        id: pmUnit.property.splitProfile.id,
-        uuid: pmUnit.property.splitProfile.uuid,
-        name: pmUnit.property.splitProfile.name,
-        items: pmUnit.property.splitProfile.items?.map((it: any) => ({
-          manualAccountUuid: it.manualAccount?.uuid,
-          percentage: Number(it.percentage),
-          manualAccount: it.manualAccount ? {
-            bankName: it.manualAccount.bankName,
-            accountNumber: it.manualAccount.accountNumber,
-            accountName: it.manualAccount.accountName,
-            title: it.manualAccount.title,
-            isPrimary: Boolean(it.manualAccount.isPrimary)
-          } : null
-        })) || []
-      } : null,
+      splitProfile,
 
       settlementSplitRules: pmUnit?.property?.settlementSplitRules?.map((r: any) => ({
         uuid: r.uuid,
@@ -301,10 +323,11 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
     const pr = await prisma.upward_pm_payment_request.create({
       data,
       include: {
-        unit: { include: { property: { include: { manualAccount: true } } } },
+        unit: { include: { property: { include: { manualAccount: true, splitProfile: { include: { items: { include: { manualAccount: true } } } } } } } },
         tenant: true,
         employee: true,
         manualAccount: true,
+        splitProfile: { include: { items: { include: { manualAccount: true } } } },
         paymentRequest: {
           include: {
             manualAccount: true,
@@ -652,10 +675,11 @@ export class PrismaPmPaymentRequestRepository implements IPmPaymentRequestReposi
       where: { uuid },
       data,
       include: {
-        unit: { include: { property: { include: { manualAccount: true } } } },
+        unit: { include: { property: { include: { manualAccount: true, splitProfile: { include: { items: { include: { manualAccount: true } } } } } } } },
         tenant: true,
         employee: true,
         manualAccount: true,
+        splitProfile: { include: { items: { include: { manualAccount: true } } } },
         paymentRequest: {
           include: {
             manualAccount: true,
