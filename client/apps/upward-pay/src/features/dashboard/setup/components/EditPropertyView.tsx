@@ -79,7 +79,20 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const [companyName, setCompanyName] = useState('')
   const [pmInviteEmail, setPmInviteEmail] = useState('')
   const [pmFound, setPmFound] = useState(false)
-  const [pmDetails, setPmDetails] = useState<{ id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null>(null)
+  const [pmDetails, setPmDetails] = useState<{
+    id?: number
+    name?: string
+    businessName?: string
+    isExternal?: boolean
+    companyUuid?: string
+    managerUuid?: string
+    defaultSettlementAccount?: {
+      bankName: string
+      accountNumber: string
+      accountName: string
+      bankCode?: string | null
+    } | null
+  } | null>(null)
 
   const [activeProof, setActiveProof] = useState<any | null>(null)
   const [isDeletingProof, setIsDeletingProof] = useState(false)
@@ -688,6 +701,58 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             Landlord Payment Account
           </h3>
 
+          {pmFound && pmDetails?.defaultSettlementAccount && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <strong style={{ display: 'block', fontSize: 13, color: '#166534', fontWeight: 700 }}>
+                  Verified Account for {pmDetails.name}
+                </strong>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#15803d' }}>
+                  {pmDetails.defaultSettlementAccount.bankName} · {pmDetails.defaultSettlementAccount.accountNumber} ({pmDetails.defaultSettlementAccount.accountName})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pmDetails?.defaultSettlementAccount) {
+                    setPaymentAccount({
+                      bankName: pmDetails.defaultSettlementAccount.bankName,
+                      accountNumber: pmDetails.defaultSettlementAccount.accountNumber,
+                      accountName: pmDetails.defaultSettlementAccount.accountName,
+                      bankCode: pmDetails.defaultSettlementAccount.bankCode || '',
+                    })
+                    toast.success('Applied verified property manager account!')
+                  }
+                }}
+                style={{
+                  flexShrink: 0,
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  background: '#16a34a',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Use This Account
+              </button>
+            </div>
+          )}
+
           <PaymentAccountForm
             value={paymentAccount}
             onChange={setPaymentAccount}
@@ -724,6 +789,14 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               setPmInviteEmail(patch.pmInviteEmail)
               setPmFound(patch.pmFound)
               setPmDetails(patch.pmDetails)
+              if (!paymentAccount.accountNumber && patch.pmDetails?.defaultSettlementAccount) {
+                setPaymentAccount({
+                  bankName: patch.pmDetails.defaultSettlementAccount.bankName,
+                  accountNumber: patch.pmDetails.defaultSettlementAccount.accountNumber,
+                  accountName: patch.pmDetails.defaultSettlementAccount.accountName,
+                  bankCode: patch.pmDetails.defaultSettlementAccount.bankCode || '',
+                })
+              }
             }}
             disabled={isManaged}
             isManaged={isManaged}

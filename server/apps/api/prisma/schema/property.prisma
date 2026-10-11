@@ -124,6 +124,7 @@ model upward_manual_account {
   splitRules         upward_settlement_split_rule[]
   transactionSplits  upward_transaction_settlement_split[]
   splitProfileItems  upward_pm_split_profile_item[]
+  settlementAccounts upward_settlement_account[]
 
   @@index([pmId])
 }
@@ -142,24 +143,25 @@ model upward_location {
 }
 
 model upward_company {
-  id           Int                    @id @default(autoincrement())
-  uuid         String                 @unique @default(uuid())
-  name         String
-  address      String?
-  logoUrl      String?
-  email        String?
-  phone        String?
-  emailHash    String?                @unique
-  phoneHash    String?
-  nameHash     String?
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  platformId   Int?
-  isInternal   Boolean                @default(false)
-  platform     upward_platform?       @relation(fields: [platformId], references: [id], onDelete: Cascade)
-  companyUsers upward_company_user[]
-  managers     upward_manager[]
-  properties   upward_user_property[]
+  id                 Int                          @id @default(autoincrement())
+  uuid               String                       @unique @default(uuid())
+  name               String
+  address            String?
+  logoUrl            String?
+  email              String?
+  phone              String?
+  emailHash          String?                      @unique
+  phoneHash          String?
+  nameHash           String?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  platformId         Int?
+  isInternal         Boolean                      @default(false)
+  platform           upward_platform?             @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  companyUsers       upward_company_user[]
+  managers           upward_manager[]
+  properties         upward_user_property[]
+  settlementAccounts upward_settlement_account[]
 }
 
 model upward_company_user {

@@ -33,13 +33,24 @@ export class PrismaPropertyRepository implements PropertyRepository {
         company: true,
         manager: true,
         location: true,
-        pm: { include: { manualAccounts: true } },
+        pm: {
+          include: {
+            manualAccounts: true,
+            settlementAccounts: { include: { manualAccount: true } },
+          },
+        },
         pmUnit: {
           include: {
             property: {
               include: {
                 manualAccount: true,
-                pm: { include: { manualAccounts: true } },
+                settlementAccount: { include: { manualAccount: true } },
+                pm: {
+                  include: {
+                    manualAccounts: true,
+                    settlementAccounts: { include: { manualAccount: true } },
+                  },
+                },
               },
             },
           },
@@ -50,10 +61,25 @@ export class PrismaPropertyRepository implements PropertyRepository {
     if (!record) return null
 
     const result = { ...record } as any
-    const directPmManual = result.pmUnit?.property?.manualAccount
-    const pmAccounts = result.pmUnit?.property?.pm?.manualAccounts || result.pm?.manualAccounts || []
-    const primaryPmAccount = pmAccounts.find((a: any) => a.isPrimary) || pmAccounts[0]
-    result.pmManualAccount = directPmManual || primaryPmAccount || undefined
+    const directPmManual =
+      result.pmUnit?.property?.settlementAccount?.manualAccount ||
+      result.pmUnit?.property?.manualAccount
+    const pmSettlementAccounts =
+      result.pmUnit?.property?.pm?.settlementAccounts ||
+      result.pm?.settlementAccounts ||
+      []
+    const primaryPmSettlement =
+      pmSettlementAccounts.find((a: any) => a.isPrimary) || pmSettlementAccounts[0]
+    const legacyPmAccounts =
+      result.pmUnit?.property?.pm?.manualAccounts || result.pm?.manualAccounts || []
+    const primaryLegacy =
+      legacyPmAccounts.find((a: any) => a.isPrimary) || legacyPmAccounts[0]
+
+    result.pmManualAccount =
+      directPmManual ||
+      primaryPmSettlement?.manualAccount ||
+      primaryLegacy ||
+      undefined
 
     if (result.company) {
       result.company.name = this.encryption.decrypt(result.company.name)

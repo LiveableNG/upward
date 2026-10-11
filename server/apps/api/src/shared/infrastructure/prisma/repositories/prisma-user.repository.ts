@@ -14,7 +14,12 @@ export class PrismaUserRepository implements UserRepository {
     location: true,
     company: true,
     manager: true,
-    pm: { include: { manualAccounts: true } },
+    pm: {
+      include: {
+        manualAccounts: true,
+        settlementAccounts: { include: { manualAccount: true } },
+      },
+    },
     subaccount: true,
     dedicatedAccounts: true,
     manualAccount: true,
@@ -23,7 +28,13 @@ export class PrismaUserRepository implements UserRepository {
         property: {
           include: {
             manualAccount: true,
-            pm: { include: { manualAccounts: true } },
+            settlementAccount: { include: { manualAccount: true } },
+            pm: {
+              include: {
+                manualAccounts: true,
+                settlementAccounts: { include: { manualAccount: true } },
+              },
+            },
           },
         },
         rentPayments: {
@@ -144,13 +155,29 @@ export class PrismaUserRepository implements UserRepository {
           bankCode: p.manualAccount.bankCode
         } : undefined,
         pmManualAccount: (() => {
-          const directManual = p.pmUnit?.property?.manualAccount || p.manualAccount;
+          const directManual =
+            p.pmUnit?.property?.settlementAccount?.manualAccount ||
+            p.pmUnit?.property?.manualAccount;
           if (directManual && directManual.accountNumber) {
             return {
               accountNumber: directManual.accountNumber,
               accountName: directManual.accountName,
               bankName: directManual.bankName,
               bankCode: directManual.bankCode
+            };
+          }
+          const pmSettlementAccounts =
+            p.pmUnit?.property?.pm?.settlementAccounts ||
+            p.pm?.settlementAccounts ||
+            [];
+          const primarySettlement =
+            pmSettlementAccounts.find((a: any) => a.isPrimary) || pmSettlementAccounts[0];
+          if (primarySettlement?.manualAccount && primarySettlement.manualAccount.accountNumber) {
+            return {
+              accountNumber: primarySettlement.manualAccount.accountNumber,
+              accountName: primarySettlement.manualAccount.accountName,
+              bankName: primarySettlement.manualAccount.bankName,
+              bankCode: primarySettlement.manualAccount.bankCode
             };
           }
           const pmAccounts = p.pmUnit?.property?.pm?.manualAccounts || p.pm?.manualAccounts || [];
@@ -161,6 +188,14 @@ export class PrismaUserRepository implements UserRepository {
               accountName: primaryAccount.accountName,
               bankName: primaryAccount.bankName,
               bankCode: primaryAccount.bankCode
+            };
+          }
+          if (p.manualAccount && p.manualAccount.accountNumber) {
+            return {
+              accountNumber: p.manualAccount.accountNumber,
+              accountName: p.manualAccount.accountName,
+              bankName: p.manualAccount.bankName,
+              bankCode: p.manualAccount.bankCode
             };
           }
           return undefined;

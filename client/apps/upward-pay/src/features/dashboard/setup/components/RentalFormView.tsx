@@ -987,6 +987,68 @@ export function RentalFormView() {
               </div>
             )}
 
+            {draft.pmFound && draft.pmDetails?.defaultSettlementAccount && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '14px 16px',
+                  borderRadius: 14,
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  marginBottom: 18,
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <ShieldCheck size={16} color="#16a34a" />
+                    <strong style={{ fontSize: 13.5, color: '#166534' }}>
+                      Verified Property Manager Account Available
+                    </strong>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#15803d' }}>
+                    {draft.pmDetails.name} receives rent at{' '}
+                    <strong>
+                      {draft.pmDetails.defaultSettlementAccount.bankName} ·{' '}
+                      {draft.pmDetails.defaultSettlementAccount.accountNumber}
+                    </strong>{' '}
+                    ({draft.pmDetails.defaultSettlementAccount.accountName})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (draft.pmDetails?.defaultSettlementAccount) {
+                      updateDraft({
+                        paymentDetails: {
+                          bankName: draft.pmDetails.defaultSettlementAccount.bankName,
+                          accountNumber: draft.pmDetails.defaultSettlementAccount.accountNumber,
+                          accountName: draft.pmDetails.defaultSettlementAccount.accountName,
+                          bankCode: draft.pmDetails.defaultSettlementAccount.bankCode || '',
+                        },
+                      })
+                      toast.success('Applied verified property manager account!')
+                    }
+                  }}
+                  style={{
+                    flexShrink: 0,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    background: '#16a34a',
+                    color: '#fff',
+                    border: 'none',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Use This Account
+                </button>
+              </div>
+            )}
+
             <PaymentAccountForm
               value={draft.paymentDetails}
               onChange={(paymentDetails) => updateDraft({ paymentDetails })}
@@ -1013,6 +1075,18 @@ export function RentalFormView() {
                   pmDetails: draft.pmDetails,
                 }}
                 onChange={(patch) => {
+                  const autoPayment =
+                    !draft.paymentDetails.accountNumber &&
+                    patch.pmDetails?.defaultSettlementAccount
+                      ? {
+                          paymentDetails: {
+                            bankName: patch.pmDetails.defaultSettlementAccount.bankName,
+                            accountNumber: patch.pmDetails.defaultSettlementAccount.accountNumber,
+                            accountName: patch.pmDetails.defaultSettlementAccount.accountName,
+                            bankCode: patch.pmDetails.defaultSettlementAccount.bankCode || '',
+                          },
+                        }
+                      : {}
                   updateDraft({
                     pmEmail: patch.pmEmail,
                     pmType: patch.pmType,
@@ -1021,6 +1095,7 @@ export function RentalFormView() {
                     pmFound: patch.pmFound,
                     pmDetails: patch.pmDetails,
                     landlordSkipped: patch.landlordSkipped ?? draft.landlordSkipped,
+                    ...autoPayment,
                     formData: {
                       ...draft.formData,
                       pmName: patch.pmName,

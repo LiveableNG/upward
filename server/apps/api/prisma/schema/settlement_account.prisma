@@ -1,0 +1,20 @@
+model upward_settlement_account {
+  id                 Int                      @id @default(autoincrement())
+  uuid               String                   @unique @default(uuid())
+  manualAccountId    Int
+  pmId               Int?
+  externalCompanyId  Int?
+  isPrimary          Boolean                  @default(false)
+  title              String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  manualAccount      upward_manual_account    @relation(fields: [manualAccountId], references: [id], onDelete: Cascade)
+  pm                 upward_property_manager? @relation(fields: [pmId], references: [id], onDelete: Cascade)
+  externalCompany    upward_company?          @relation(fields: [externalCompanyId], references: [id], onDelete: Cascade)
+  pmProperties       upward_pm_property[]
+
+  @@index([pmId])
+  @@index([externalCompanyId])
+  @@index([manualAccountId])
+}

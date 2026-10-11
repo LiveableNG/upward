@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight, Globe, Hash, Lock } from 'lucide-react'
+import { X, Search, CheckCircle2, UserPlus, Building2, MapPin, Calendar, CreditCard, ChevronRight, Globe, Hash, Lock, ShieldCheck, Landmark } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { COUNTRIES, STATES } from '@/lib/location-data'
@@ -22,7 +22,17 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
   const [pmType, setPmType] = useState('Property Manager')
   const [companyName, setCompanyName] = useState('')
   const [pmFound, setPmFound] = useState(false)
-  const [pmDetails, setPmDetails] = useState<{ id?: number, name?: string, businessName?: string } | null>(null)
+  const [pmDetails, setPmDetails] = useState<{
+    id?: number
+    name?: string
+    businessName?: string
+    defaultSettlementAccount?: {
+      bankName: string
+      accountNumber: string
+      accountName: string
+      bankCode?: string | null
+    } | null
+  } | null>(null)
   
   const [formData, setFormData] = useState({
     uuid: undefined as string | undefined,
@@ -105,6 +115,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
           id: data.pm.id,
           name: `${data.pm.firstName} ${data.pm.lastName}`,
           businessName: data.pm.businessName || `${data.pm.firstName} ${data.pm.lastName}`,
+          defaultSettlementAccount: data.pm.defaultSettlementAccount,
         })
         setPmFound(true)
       } else {
@@ -264,14 +275,38 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess, initialData }: Ad
               submitMutation.mutate()
             }} className="add-property-modal__form">
               {pmFound && pmDetails ? (
-                <div className="add-property-modal__pm-status add-property-modal__pm-status--found">
-                  <div className="add-property-modal__pm-icon">
-                    <CheckCircle2 className="text-green-500" size={24} />
+                <div className="add-property-modal__pm-status add-property-modal__pm-status--found" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="add-property-modal__pm-icon">
+                      <CheckCircle2 className="text-green-500" size={24} />
+                    </div>
+                    <div className="add-property-modal__pm-info" style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p className="add-property-modal__pm-label">Property Manager Found</p>
+                        <ShieldCheck size={14} color="#0284c7" />
+                      </div>
+                      <p className="add-property-modal__pm-name">{pmDetails.businessName}</p>
+                    </div>
                   </div>
-                  <div className="add-property-modal__pm-info">
-                    <p className="add-property-modal__pm-label">Property Manager Found</p>
-                    <p className="add-property-modal__pm-name">{pmDetails.businessName}</p>
-                  </div>
+
+                  {pmDetails.defaultSettlementAccount && (
+                    <div style={{ marginTop: 10, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, textAlign: 'left' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Landmark size={13} color="#0284c7" />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Verified Payout Account
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                        <strong style={{ fontSize: 13, color: '#0f172a' }}>
+                          {pmDetails.defaultSettlementAccount.bankName} • •••• {pmDetails.defaultSettlementAccount.accountNumber.slice(-4)}
+                        </strong>
+                        <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                          {pmDetails.defaultSettlementAccount.accountName}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="add-property-modal__pm-status">

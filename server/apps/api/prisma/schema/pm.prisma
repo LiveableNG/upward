@@ -48,6 +48,7 @@ model upward_property_manager {
   landlordReports         upward_pm_landlord_report[]
   letterheads             upward_pm_letterhead[]
   manualAccounts          upward_manual_account[]
+  settlementAccounts      upward_settlement_account[]
   notifications           upward_pm_notification[]
   paymentRequests         upward_pm_payment_request[]
   properties              upward_pm_property[]
@@ -141,9 +142,12 @@ model upward_pm_property {
   settlementSplitRules  upward_settlement_split_rule[]
   splitProfileId        Int?
   splitProfile          upward_pm_split_profile?           @relation(fields: [splitProfileId], references: [id], onDelete: SetNull)
+  settlementAccountId   Int?
+  settlementAccount     upward_settlement_account?         @relation(fields: [settlementAccountId], references: [id], onDelete: SetNull)
 
   @@index([pmId])
   @@index([splitProfileId])
+  @@index([settlementAccountId])
 }
 
 model upward_pm_unit {
