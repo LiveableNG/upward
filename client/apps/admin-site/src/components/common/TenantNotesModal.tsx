@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FileText, Plus, Trash2, ShieldCheck, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react'
+import { FileText, Plus, Trash2, MessageSquare, AlertCircle } from 'lucide-react'
 import { Modal } from './modal/Modal'
 import { apiService } from '../../services/api.service'
 import { showToast } from '@upward/client-core'
