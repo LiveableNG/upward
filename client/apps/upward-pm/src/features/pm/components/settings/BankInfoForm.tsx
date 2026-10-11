@@ -26,7 +26,7 @@ import { api } from '@/lib/api'
 import { dedupeBanksByCode } from '@/lib/utils'
 import { Modal } from '@/components/ui/Modal/Modal'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
-import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { FormSelect, SelectOption } from '@/components/ui/Select/FormSelect'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { SettlementSplitSection } from './SettlementSplitSection'
 import {
@@ -109,6 +109,14 @@ export function BankInfoForm() {
 
   const selectedBankCode = useWatch({ control, name: 'bankCode' })
   const accountNumber = useWatch({ control, name: 'accountNumber' })
+
+  // Bank options for searchable FormSelect
+  const bankOptions: SelectOption[] = useMemo(() => {
+    return dedupeBanksByCode(banks).map(bank => ({
+      label: bank.name,
+      value: bank.code,
+    }))
+  }, [banks])
 
   // Auto-populate bank name when code changes
   useEffect(() => {
@@ -642,14 +650,19 @@ export function BankInfoForm() {
 
           <div className="settings__field">
             <label className="settings__label">Select Bank</label>
-            <select {...register('bankCode')} className="settings__input">
-              <option value="">Choose a bank...</option>
-              {dedupeBanksByCode(banks).map(bank => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.name}
-                </option>
-              ))}
-            </select>
+            <FormSelect
+              value={selectedBankCode || ''}
+              options={bankOptions}
+              onChange={(val) => {
+                setValue('bankCode', val, { shouldValidate: true, shouldDirty: true })
+              }}
+              searchable
+              searchPlaceholder="Search bank name..."
+              placeholder="Choose a bank..."
+              portalOnDesktop
+              triggerClassName="settings__input"
+              triggerStyle={{ height: 42, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            />
             {errors.bankCode && <span className="text-error text-xs" style={{ color: 'var(--error)' }}>{errors.bankCode.message}</span>}
           </div>
 

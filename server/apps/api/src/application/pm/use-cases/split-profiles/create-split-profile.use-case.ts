@@ -64,7 +64,7 @@ export class CreateSplitProfileUseCase {
     const pmAccountMap = new Map<string, number>();
 
     for (const acc of pmAccounts) {
-      pmAccountMap.set(acc.uuid, acc.id);
+      pmAccountMap.set(acc.uuid, acc.manualAccountId || acc.id);
     }
 
     for (const uuid of accountUuids) {

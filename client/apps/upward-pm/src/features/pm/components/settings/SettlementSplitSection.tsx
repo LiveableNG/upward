@@ -50,7 +50,7 @@ interface SettlementSplitSectionProps {
 interface SplitItemFormRow {
   id: string
   manualAccountUuid: string
-  percentage: number
+  percentage: number | string
 }
 
 export function SettlementSplitSection({
@@ -82,8 +82,6 @@ export function SettlementSplitSection({
   const [profileName, setProfileName] = useState('')
   const [profileDescription, setProfileDescription] = useState('')
   const [profileIsDefault, setProfileIsDefault] = useState(false)
-  const [splitMode, setSplitMode] = useState<'single' | 'custom'>('custom')
-  const [singleAccountUuid, setSingleAccountUuid] = useState('')
   const [splitRows, setSplitRows] = useState<SplitItemFormRow[]>([])
 
   // Profile Delete Confirmation State
@@ -139,9 +137,8 @@ export function SettlementSplitSection({
 
   // Split calculation helper
   const totalPercentage = useMemo(() => {
-    if (splitMode === 'single') return 100
     return splitRows.reduce((acc, row) => acc + (Number(row.percentage) || 0), 0)
-  }, [splitMode, splitRows])
+  }, [splitRows])
 
   // Open Create Profile Modal
   const handleOpenCreateModal = () => {
@@ -149,11 +146,9 @@ export function SettlementSplitSection({
     setProfileName('')
     setProfileDescription('')
     setProfileIsDefault(false)
-    setSplitMode('custom')
 
     const firstUuid = primaryAccount?.uuid || accounts[0]?.uuid || ''
     const secondUuid = accounts.find((a) => a.uuid !== firstUuid)?.uuid || firstUuid
-    setSingleAccountUuid(firstUuid)
     setSplitRows([
       { id: '1', manualAccountUuid: firstUuid, percentage: 70 },
       { id: '2', manualAccountUuid: secondUuid, percentage: 30 },
@@ -174,28 +169,13 @@ export function SettlementSplitSection({
       accounts.find((a) => String(a.id) === String(it?.manualAccountId) || a.uuid === it?.manualAccountUuid)?.uuid ||
       ''
 
-    if (profile.items.length === 1 && Number(profile.items[0].percentage) === 100) {
-      const firstUuid = resolveItemAccountUuid(profile.items[0])
-      setSplitMode('single')
-      setSingleAccountUuid(firstUuid)
-      setSplitRows([
-        {
-          id: '1',
-          manualAccountUuid: firstUuid,
-          percentage: 100,
-        },
-      ])
-    } else {
-      setSplitMode('custom')
-      setSingleAccountUuid(resolveItemAccountUuid(profile.items[0]))
-      setSplitRows(
-        profile.items.map((it: any, idx: number) => ({
-          id: String(idx + 1),
-          manualAccountUuid: resolveItemAccountUuid(it),
-          percentage: Number(it.percentage),
-        }))
-      )
-    }
+    setSplitRows(
+      profile.items.map((it: any, idx: number) => ({
+        id: String(idx + 1),
+        manualAccountUuid: resolveItemAccountUuid(it),
+        percentage: Number(it.percentage),
+      }))
+    )
     setIsProfileModalOpen(true)
   }
 
@@ -206,38 +186,29 @@ export function SettlementSplitSection({
       return
     }
 
-    let itemsPayload: Array<{ manualAccountUuid: string; percentage: number }> = []
-
-    if (splitMode === 'single') {
-      if (!singleAccountUuid) {
-        toastError('Please select a recipient account')
-        return
-      }
-      itemsPayload = [{ manualAccountUuid: singleAccountUuid, percentage: 100 }]
-    } else {
-      if (splitRows.length === 0) {
-        toastError('Please add at least one recipient account')
-        return
-      }
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        toastError(`Total percentage must equal exactly 100%. Currently: ${totalPercentage}%`)
-        return
-      }
-      for (const row of splitRows) {
-        if (!row.manualAccountUuid) {
-          toastError('All split recipients must have a valid account selected')
-          return
-        }
-        if (row.percentage <= 0 || row.percentage > 100) {
-          toastError('Each split row must have a percentage between 1% and 100%')
-          return
-        }
-      }
-      itemsPayload = splitRows.map((r) => ({
-        manualAccountUuid: r.manualAccountUuid,
-        percentage: Number(r.percentage),
-      }))
+    if (splitRows.length === 0) {
+      toastError('Please add at least one recipient account')
+      return
     }
+    if (Math.abs(totalPercentage - 100) > 0.01) {
+      toastError(`Total percentage must equal exactly 100%. Currently: ${totalPercentage}%`)
+      return
+    }
+    for (const row of splitRows) {
+      if (!row.manualAccountUuid) {
+        toastError('All split recipients must have a valid account selected')
+        return
+      }
+      const pct = Number(row.percentage) || 0
+      if (pct <= 0 || pct > 100) {
+        toastError('Each split row must have a percentage between 1% and 100%')
+        return
+      }
+    }
+    const itemsPayload = splitRows.map((r) => ({
+      manualAccountUuid: r.manualAccountUuid,
+      percentage: Number(r.percentage) || 0,
+    }))
 
     try {
       if (editingProfile) {
@@ -1038,67 +1009,11 @@ export function SettlementSplitSection({
             />
           </div>
 
-          {/* Mode Switcher: 100% Single Account vs Custom Split */}
+          {/* Preset Buttons for Split Rules */}
           <div>
-            <label className="settings__label">Settlement Mode</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setSplitMode('single')
-                  if (!singleAccountUuid) setSingleAccountUuid(primaryAccount?.uuid || accounts[0]?.uuid || '')
-                }}
-                style={{
-                  padding: '12px',
-                  borderRadius: 10,
-                  border: splitMode === 'single' ? '1.5px solid var(--forest, #166534)' : '1px solid var(--border)',
-                  background: splitMode === 'single' ? 'var(--forest-faint, #f0f7ef)' : '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 700, color: splitMode === 'single' ? 'var(--forest, #166534)' : 'var(--dark)' }}>
-                  100% to One Account
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Send all rent for this property to one account
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSplitMode('custom')}
-                style={{
-                  padding: '12px',
-                  borderRadius: 10,
-                  border: splitMode === 'custom' ? '1.5px solid var(--forest, #166534)' : '1px solid var(--border)',
-                  background: splitMode === 'custom' ? 'var(--forest-faint, #f0f7ef)' : '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 700, color: splitMode === 'custom' ? 'var(--forest, #166534)' : 'var(--dark)' }}>
-                  Split by Percentage
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Divide rent between accounts by percentage
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Preset Buttons for Custom Split */}
-          {splitMode === 'custom' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>Quick Presets:</span>
-                <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>Quick Presets:</span>
+              <div style={{ display: 'flex', gap: 6 }}>
                   {[
                     { label: '70 / 30', values: [70, 30] },
                     { label: '80 / 20', values: [80, 20] },
@@ -1156,12 +1071,24 @@ export function SettlementSplitSection({
                         type="number"
                         min="1"
                         max="100"
-                        value={row.percentage}
+                        placeholder="0"
+                        value={row.percentage === 0 || row.percentage === '' ? '' : row.percentage}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => {
-                          const val = Number(e.target.value)
-                          setSplitRows((prev) =>
-                            prev.map((r) => (r.id === row.id ? { ...r, percentage: val } : r))
-                          )
+                          const valStr = e.target.value
+                          if (valStr === '') {
+                            setSplitRows((prev) =>
+                              prev.map((r) => (r.id === row.id ? { ...r, percentage: '' } : r))
+                            )
+                            return
+                          }
+                          const val = Number(valStr)
+                          if (!isNaN(val)) {
+                            const clamped = Math.min(100, Math.max(0, val))
+                            setSplitRows((prev) =>
+                              prev.map((r) => (r.id === row.id ? { ...r, percentage: clamped } : r))
+                            )
+                          }
                         }}
                         className="settings__input"
                         style={{ height: 36, fontSize: 13, textAlign: 'center' }}
@@ -1187,9 +1114,11 @@ export function SettlementSplitSection({
                   onClick={() => {
                     const available = accounts.find((a) => !splitRows.some((r) => r.manualAccountUuid === a.uuid))
                     const nextUuid = available?.uuid || accounts[0]?.uuid || ''
+                    const currentSum = splitRows.reduce((acc, row) => acc + (Number(row.percentage) || 0), 0)
+                    const remaining = Math.max(0, 100 - currentSum)
                     setSplitRows((prev) => [
                       ...prev,
-                      { id: String(Date.now()), manualAccountUuid: nextUuid, percentage: 0 },
+                      { id: String(Date.now()), manualAccountUuid: nextUuid, percentage: remaining > 0 ? remaining : '' },
                     ])
                   }}
                   className="btn btn--secondary btn--sm"
@@ -1227,22 +1156,8 @@ export function SettlementSplitSection({
                 </span>
               </div>
             </div>
-          )}
-
-          {/* Single Account Selection */}
-          {splitMode === 'single' && (
-            <div>
-              <label className="settings__label">Payout Bank Account</label>
-              <FormSelect
-                value={singleAccountUuid}
-                options={accountSelectOptions}
-                onChange={(val) => setSingleAccountUuid(val)}
-                placeholder="Select Bank Account"
-              />
-            </div>
-          )}
-        </div>
-      </Modal>
+          </div>
+        </Modal>
 
       {/* 5. Attach Profile to Properties Modal */}
       <Modal

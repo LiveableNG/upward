@@ -38,7 +38,7 @@ interface PropertySettlementModalProps {
 interface SplitRowState {
   id: string
   manualAccountUuid: string
-  percentage: number
+  percentage: number | string
   lineItemName: string
 }
 
@@ -124,7 +124,7 @@ export function PropertySettlementModal({
     const usedUuids = new Set(rows.map(r => r.manualAccountUuid))
     const unusedAccount = accounts.find(a => !usedUuids.has(a.uuid)) || accounts[0]
 
-    const newPercentage = remaining > 0 ? remaining : 0
+    const newPercentage = remaining > 0 ? remaining : ''
 
     setRows(prev => [
       ...prev,
@@ -233,7 +233,8 @@ export function PropertySettlementModal({
         toastError('Please select a valid bank account for each split row.')
         return
       }
-      if (r.percentage <= 0) {
+      const pct = Number(r.percentage) || 0
+      if (pct <= 0) {
         toastError('Each split row must have a percentage greater than 0%.')
         return
       }
@@ -582,10 +583,19 @@ export function PropertySettlementModal({
                           min={1}
                           max={100}
                           step={1}
-                          value={row.percentage === 0 ? '' : row.percentage}
+                          placeholder="0"
+                          value={row.percentage === 0 || row.percentage === '' ? '' : row.percentage}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
-                            const val = parseFloat(e.target.value)
-                            handleUpdateRow(index, { percentage: isNaN(val) ? 0 : val })
+                            const valStr = e.target.value
+                            if (valStr === '') {
+                              handleUpdateRow(index, { percentage: '' })
+                              return
+                            }
+                            const val = parseFloat(valStr)
+                            if (!isNaN(val)) {
+                              handleUpdateRow(index, { percentage: Math.min(100, Math.max(0, val)) })
+                            }
                           }}
                           style={{
                             width: 52,

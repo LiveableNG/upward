@@ -3,6 +3,7 @@ export const SETTLEMENT_ACCOUNT_REPOSITORY = Symbol('SETTLEMENT_ACCOUNT_REPOSITO
 export interface SettlementAccountEntity {
   id: number;
   uuid: string;
+  manualAccountId?: number;
   accountNumber: string;
   accountName: string;
   bankName: string;

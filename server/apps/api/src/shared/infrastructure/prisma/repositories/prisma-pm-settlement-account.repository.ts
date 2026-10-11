@@ -16,6 +16,7 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
     return {
       id: record.id,
       uuid: record.uuid,
+      manualAccountId: record.manualAccountId || record.manualAccount?.id || record.id,
       accountNumber: bankDetails.accountNumber || '',
       accountName: bankDetails.accountName || '',
       bankName: bankDetails.bankName || '',

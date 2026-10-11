@@ -8,7 +8,7 @@ async function main() {
   console.log('1. Applying DDL from migration.sql...');
   const migrationSqlPath = path.resolve(
     __dirname,
-    '../../../../../projects/upward/server/apps/api/prisma/schema/migrations/20261011050000_decouple_settlement_accounts/migration.sql'
+    '../prisma/schema/migrations/20261011050000_decouple_settlement_accounts/migration.sql'
   );
   const sql = fs.readFileSync(migrationSqlPath, 'utf8');
 
