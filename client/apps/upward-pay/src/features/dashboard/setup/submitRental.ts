@@ -15,9 +15,10 @@ export async function submitRentalRequest(draft: SetupDraft) {
     paymentDetails,
   } = draft
 
-  const initialPaidNum = formData.amountAlreadyPaid
-    ? parseFloat(formData.amountAlreadyPaid.replace(/,/g, '')) || 0
-    : 0
+  const initialPaidNum =
+    formData.tenancyStatus === 'PAYING_BALANCE' && formData.amountAlreadyPaid
+      ? parseFloat(formData.amountAlreadyPaid.replace(/,/g, '')) || 0
+      : 0
 
   const unitDetails: {
     uuid?: string

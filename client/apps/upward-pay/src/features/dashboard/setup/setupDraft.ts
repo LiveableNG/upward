@@ -46,7 +46,20 @@ export type SetupDraft = {
   companyName: string
   pmFound: boolean
   isManagedProperty: boolean
-  pmDetails: { id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null
+  pmDetails: {
+    id?: number
+    name?: string
+    businessName?: string
+    isExternal?: boolean
+    companyUuid?: string
+    managerUuid?: string
+    defaultSettlementAccount?: {
+      bankName: string
+      accountNumber: string
+      accountName: string
+      bankCode?: string | null
+    } | null
+  } | null
   landlordSkipped: boolean
   paymentDetails: PaymentDraftDetails
   formData: RentalFormData

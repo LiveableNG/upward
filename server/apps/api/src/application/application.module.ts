@@ -297,6 +297,14 @@ import { UpdateSettlementAccountUseCase } from './pm/use-cases/settlement-accoun
 import { SetDefaultSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/set-default-settlement-account.use-case'
 import { DeleteSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/delete-settlement-account.use-case'
 import { LinkPropertiesToSettlementAccountUseCase } from './pm/use-cases/settlement-accounts/link-properties-to-settlement-account.use-case'
+import { ConfigurePropertySettlementSplitUseCase } from './pm/use-cases/properties/configure-property-settlement-split.use-case'
+import { GetPropertySettlementSplitUseCase } from './pm/use-cases/properties/get-property-settlement-split.use-case'
+import { GetSplitProfilesUseCase } from './pm/use-cases/split-profiles/get-split-profiles.use-case'
+import { CreateSplitProfileUseCase } from './pm/use-cases/split-profiles/create-split-profile.use-case'
+import { UpdateSplitProfileUseCase } from './pm/use-cases/split-profiles/update-split-profile.use-case'
+import { DeleteSplitProfileUseCase } from './pm/use-cases/split-profiles/delete-split-profile.use-case'
+import { AttachSplitProfileUseCase } from './pm/use-cases/split-profiles/attach-split-profile.use-case'
+import { AssignPropertyRoutingUseCase } from './pm/use-cases/split-profiles/assign-property-routing.use-case'
 import { SubmitFeedbackUseCase } from './use-cases/feedback/submit-feedback.use-case'
 import { GetFeedbackAdminUseCase } from './use-cases/feedback/get-feedback-admin.use-case'
 import { GetFeedbackStatsAdminUseCase } from './use-cases/feedback/get-feedback-stats-admin.use-case'
@@ -875,6 +883,14 @@ const UseCases: any[] = [
   SetDefaultSettlementAccountUseCase,
   DeleteSettlementAccountUseCase,
   LinkPropertiesToSettlementAccountUseCase,
+  ConfigurePropertySettlementSplitUseCase,
+  GetPropertySettlementSplitUseCase,
+  GetSplitProfilesUseCase,
+  CreateSplitProfileUseCase,
+  UpdateSplitProfileUseCase,
+  DeleteSplitProfileUseCase,
+  AttachSplitProfileUseCase,
+  AssignPropertyRoutingUseCase,
   CreateManualPaymentRequestUseCase,
   CancelManualPaymentRequestUseCase,
   RequestDataDeletionUseCase,

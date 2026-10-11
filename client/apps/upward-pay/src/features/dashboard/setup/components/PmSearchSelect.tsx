@@ -12,6 +12,7 @@ import {
   Mail,
   Phone,
   ShieldCheck,
+  Landmark,
 } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -37,7 +38,20 @@ interface PmSearchSelectProps {
     companyName: string
     pmInviteEmail: string
     pmFound: boolean
-    pmDetails: { id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null
+    pmDetails: {
+      id?: number
+      name?: string
+      businessName?: string
+      isExternal?: boolean
+      companyUuid?: string
+      managerUuid?: string
+      defaultSettlementAccount?: {
+        bankName: string
+        accountNumber: string
+        accountName: string
+        bankCode?: string | null
+      } | null
+    } | null
   }
   onChange: (patch: {
     pmEmail: string
@@ -46,7 +60,20 @@ interface PmSearchSelectProps {
     companyName: string
     pmInviteEmail: string
     pmFound: boolean
-    pmDetails: { id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null
+    pmDetails: {
+      id?: number
+      name?: string
+      businessName?: string
+      isExternal?: boolean
+      companyUuid?: string
+      managerUuid?: string
+      defaultSettlementAccount?: {
+        bankName: string
+        accountNumber: string
+        accountName: string
+        bankCode?: string | null
+      } | null
+    } | null
     landlordSkipped?: boolean
   }) => void
   disabled?: boolean
@@ -118,6 +145,7 @@ export function PmSearchSelect({
         isExternal: !!pm.isExternal,
         companyUuid: pm.companyUuid,
         managerUuid: pm.managerUuid,
+        defaultSettlementAccount: pm.defaultSettlementAccount || null,
       },
       landlordSkipped: false,
     })
@@ -176,44 +204,69 @@ export function PmSearchSelect({
   }
 
   if (isSelected) {
+    const defaultAcc = value.pmDetails?.defaultSettlementAccount
     return (
-      <div className="setup-page__pm-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>
-            <Building2 size={22} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <strong style={{ fontSize: 14.5, color: '#0f172a' }}>{value.pmDetails?.name}</strong>
-              <ShieldCheck size={16} color="#0284c7" />
-              {value.pmDetails?.isExternal ? (
-                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
-                  External Platform
-                </span>
-              ) : (
-                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
-                  Upward PM
-                </span>
-              )}
+      <div className="setup-page__pm-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>
+              <Building2 size={22} />
             </div>
-            {value.pmDetails?.businessName && value.pmDetails.businessName !== value.pmDetails.name ? (
-              <span style={{ fontSize: 12.5, color: '#64748b', display: 'block' }}>{value.pmDetails.businessName}</span>
-            ) : null}
-            {value.pmEmail ? (
-              <span style={{ fontSize: 11.5, color: '#94a3b8' }}>{value.pmEmail}</span>
-            ) : null}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: 14.5, color: '#0f172a' }}>{value.pmDetails?.name}</strong>
+                <ShieldCheck size={16} color="#0284c7" />
+                {value.pmDetails?.isExternal ? (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                    External Platform
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                    Upward PM
+                  </span>
+                )}
+              </div>
+              {value.pmDetails?.businessName && value.pmDetails.businessName !== value.pmDetails.name ? (
+                <span style={{ fontSize: 12.5, color: '#64748b', display: 'block' }}>{value.pmDetails.businessName}</span>
+              ) : null}
+              {value.pmEmail ? (
+                <span style={{ fontSize: 11.5, color: '#94a3b8' }}>{value.pmEmail}</span>
+              ) : null}
+            </div>
           </div>
+
+          {!disabled && (
+            <button
+              type="button"
+              className="setup-page__change-contact"
+              onClick={handleReset}
+              style={{ padding: '6px 12px', fontSize: 12.5, fontWeight: 600, color: '#c2501f', background: 'none', border: '1px solid #fed7aa', borderRadius: 8, cursor: 'pointer' }}
+            >
+              Change
+            </button>
+          )}
         </div>
 
-        {!disabled && (
-          <button
-            type="button"
-            className="setup-page__change-contact"
-            onClick={handleReset}
-            style={{ padding: '6px 12px', fontSize: 12.5, fontWeight: 600, color: '#c2501f', background: 'none', border: '1px solid #fed7aa', borderRadius: 8, cursor: 'pointer' }}
-          >
-            Change
-          </button>
+        {defaultAcc && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, background: '#fff', border: '1px solid #e2e8f0', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Landmark size={15} color="#0284c7" />
+              <div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  Payout Account:
+                </span>{' '}
+                <strong style={{ fontSize: 12.5, color: '#0f172a' }}>
+                  {defaultAcc.bankName} • •••• {defaultAcc.accountNumber.slice(-4)}
+                </strong>
+                <span style={{ fontSize: 11.5, color: '#64748b', marginLeft: 6 }}>
+                  ({defaultAcc.accountName})
+                </span>
+              </div>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', background: '#f0fdf4', padding: '2px 6px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <ShieldCheck size={11} /> Verified
+            </span>
+          </div>
         )}
       </div>
     )
@@ -396,6 +449,12 @@ export function PmSearchSelect({
                         {pm.email && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Mail size={11} /> {pm.email}</span>}
                         {pm.phone && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Phone size={11} /> {pm.phone}</span>}
                       </div>
+                      {pm.defaultSettlementAccount && (
+                        <div style={{ fontSize: 11, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                          <Landmark size={11} />
+                          <span>Payout: {pm.defaultSettlementAccount.bankName} (•••• {pm.defaultSettlementAccount.accountNumber.slice(-4)})</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

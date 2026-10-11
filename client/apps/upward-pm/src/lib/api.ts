@@ -92,6 +92,11 @@ export const api = {
   setDefaultSettlementAccount: paymentService.setDefaultSettlementAccount,
   linkPropertiesToSettlementAccount: paymentService.linkPropertiesToSettlementAccount,
   deleteSettlementAccount: paymentService.deleteSettlementAccount,
+  getSplitProfiles: paymentService.getSplitProfiles,
+  createSplitProfile: paymentService.createSplitProfile,
+  updateSplitProfile: paymentService.updateSplitProfile,
+  deleteSplitProfile: paymentService.deleteSplitProfile,
+  attachSplitProfileToProperties: paymentService.attachSplitProfileToProperties,
 
   // Team Collaboration & Approvals
   inviteTeamMember: pmService.inviteTeamMember,

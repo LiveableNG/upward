@@ -34,7 +34,9 @@ export interface CreatePmPaymentRequestDto {
   /** When true, bypasses the hasReceivedWelcomeTemplate check (for system-generated PRs) */
   bypassWelcomeCheck?: boolean;
   settlementAccountUuid?: string;
+  splitProfileUuid?: string;
   manualAccountId?: number;
+  settlementSplitRules?: Array<{ lineItemName?: string; manualAccountUuid: string; percentage: number }>;
   allowSupersede?: boolean;
   inheritedTimeliness?: string;
 }
@@ -117,28 +119,151 @@ export class CreatePmPaymentRequestUseCase {
     const pm = await this.pmRepo.findById(ownerPmId);
     if (!pm) throw new NotFoundException('Property Manager not found');
 
-    // Resolve Settlement Account
-    let settlementAccount: any = null;
-    if (data.settlementAccountUuid) {
-      settlementAccount = await prisma.upward_manual_account.findFirst({
-        where: { uuid: data.settlementAccountUuid, pmId: ownerPmId }
+    // 1. Resolve Split Profile / Split Rules
+    let resolvedSplitRules: Array<{ lineItemName: string; manualAccountId: number; percentage: number }> = [];
+    let linkedSplitProfileId: number | null = null;
+
+    if (data.splitProfileUuid) {
+      const profile = await prisma.upward_pm_split_profile.findFirst({
+        where: { uuid: data.splitProfileUuid, pmId: ownerPmId },
+        include: { items: true }
       });
-    } else if (data.manualAccountId) {
-      settlementAccount = await prisma.upward_manual_account.findFirst({
-        where: { id: data.manualAccountId, pmId: ownerPmId }
+      if (profile && profile.items.length > 0) {
+        linkedSplitProfileId = profile.id;
+        resolvedSplitRules = profile.items.map((item: any) => ({
+          lineItemName: 'Rent',
+          manualAccountId: item.manualAccountId,
+          percentage: Number(item.percentage)
+        }));
+      }
+    } else if (data.settlementSplitRules && data.settlementSplitRules.length > 0) {
+      const accountUuids = Array.from(new Set(data.settlementSplitRules.map((r: any) => r.manualAccountUuid)));
+      const saAccounts = await prisma.upward_settlement_account.findMany({
+        where: { uuid: { in: accountUuids }, pmId: ownerPmId },
+        include: { manualAccount: true }
       });
-    } else if (property.manualAccountId) {
-      settlementAccount = await prisma.upward_manual_account.findUnique({
-        where: { id: property.manualAccountId }
+      const manualAccounts = await prisma.upward_manual_account.findMany({
+        where: { uuid: { in: accountUuids }, pmId: ownerPmId }
       });
-    } else {
-      settlementAccount = await prisma.upward_manual_account.findFirst({
-        where: { pmId: ownerPmId, isPrimary: true }
+      const accountMap = new Map<string, number>();
+      for (const sa of saAccounts) {
+        accountMap.set(sa.uuid, sa.manualAccountId);
+      }
+      for (const ma of manualAccounts) {
+        accountMap.set(ma.uuid, ma.id);
+      }
+
+      resolvedSplitRules = data.settlementSplitRules
+        .filter((r: any) => accountMap.has(r.manualAccountUuid))
+        .map((r: any) => ({
+          lineItemName: (r.lineItemName || 'Rent').trim(),
+          manualAccountId: accountMap.get(r.manualAccountUuid) as number,
+          percentage: Number(r.percentage)
+        }));
+    } else if (!data.settlementAccountUuid && !data.manualAccountId && property?.splitProfileId) {
+      const profile = await prisma.upward_pm_split_profile.findFirst({
+        where: { id: property.splitProfileId },
+        include: { items: true }
       });
+      if (profile && profile.items.length > 0) {
+        linkedSplitProfileId = profile.id;
+        resolvedSplitRules = profile.items.map((item: any) => ({
+          lineItemName: 'Rent',
+          manualAccountId: item.manualAccountId,
+          percentage: Number(item.percentage)
+        }));
+      }
+    } else if (!data.settlementAccountUuid && !data.manualAccountId && !property.manualAccountId && !property.settlementAccountId && property) {
+      const defaultPropertyRules = await prisma.upward_settlement_split_rule.findMany({
+        where: { propertyId: property.id }
+      });
+      if (defaultPropertyRules.length > 0) {
+        resolvedSplitRules = defaultPropertyRules.map((r: any) => ({
+          lineItemName: r.lineItemName,
+          manualAccountId: r.manualAccountId,
+          percentage: r.percentage
+        }));
+      }
     }
 
-    const bankCode = settlementAccount?.bankCode || pm.bankCode;
-    const accountNumber = settlementAccount?.accountNumber || pm.accountNumber;
+    const isSplitRule = linkedSplitProfileId !== null || resolvedSplitRules.length > 0;
+
+    // 2. Resolve Single Settlement Account (only if NOT using a split rule)
+    let settlementAccount: any = null; // upward_manual_account record
+    let linkedSettlementAccountId: number | null = null; // upward_settlement_account.id
+
+    if (!isSplitRule) {
+      if (data.settlementAccountUuid) {
+        // Try upward_settlement_account first (standard from frontend useSettlementAccounts)
+        const sa = await prisma.upward_settlement_account.findFirst({
+          where: { uuid: data.settlementAccountUuid, pmId: ownerPmId },
+          include: { manualAccount: true }
+        });
+        if (sa) {
+          linkedSettlementAccountId = sa.id;
+          settlementAccount = sa.manualAccount;
+        } else {
+          settlementAccount = await prisma.upward_manual_account.findFirst({
+            where: { uuid: data.settlementAccountUuid, pmId: ownerPmId }
+          });
+          if (settlementAccount) {
+            const matchedSa = await prisma.upward_settlement_account.findFirst({
+              where: { manualAccountId: settlementAccount.id, pmId: ownerPmId }
+            });
+            if (matchedSa) linkedSettlementAccountId = matchedSa.id;
+          }
+        }
+      } else if (data.manualAccountId) {
+        settlementAccount = await prisma.upward_manual_account.findFirst({
+          where: { id: data.manualAccountId, pmId: ownerPmId }
+        });
+        if (settlementAccount) {
+          const matchedSa = await prisma.upward_settlement_account.findFirst({
+            where: { manualAccountId: settlementAccount.id, pmId: ownerPmId }
+          });
+          if (matchedSa) linkedSettlementAccountId = matchedSa.id;
+        }
+      } else if (property.settlementAccountId) {
+        const sa = await prisma.upward_settlement_account.findUnique({
+          where: { id: property.settlementAccountId },
+          include: { manualAccount: true }
+        });
+        if (sa) {
+          linkedSettlementAccountId = sa.id;
+          settlementAccount = sa.manualAccount;
+        }
+      } else if (property.manualAccountId) {
+        settlementAccount = await prisma.upward_manual_account.findUnique({
+          where: { id: property.manualAccountId }
+        });
+        if (settlementAccount) {
+          const matchedSa = await prisma.upward_settlement_account.findFirst({
+            where: { manualAccountId: settlementAccount.id, pmId: ownerPmId }
+          });
+          if (matchedSa) linkedSettlementAccountId = matchedSa.id;
+        }
+      } else {
+        const primarySa = await prisma.upward_settlement_account.findFirst({
+          where: { pmId: ownerPmId, isPrimary: true },
+          include: { manualAccount: true }
+        });
+        if (primarySa) {
+          linkedSettlementAccountId = primarySa.id;
+          settlementAccount = primarySa.manualAccount;
+        } else {
+          settlementAccount = await prisma.upward_manual_account.findFirst({
+            where: { pmId: ownerPmId, isPrimary: true }
+          });
+        }
+      }
+    }
+
+    // 3. Resolve gateway payout account info
+    const primaryAccount = await prisma.upward_manual_account.findFirst({
+      where: { pmId: ownerPmId, isPrimary: true }
+    });
+    const bankCode = settlementAccount?.bankCode || pm.bankCode || primaryAccount?.bankCode;
+    const accountNumber = settlementAccount?.accountNumber || pm.accountNumber || primaryAccount?.accountNumber;
 
     if (!bankCode || !accountNumber) {
       if (actor?.isEmployee) {
@@ -212,11 +337,14 @@ export class CreatePmPaymentRequestUseCase {
       paymentLink = result.paymentLink;
       corePRUuid = corePR.uuid;
 
-      // Link manualAccountId on upward_payment_request if settlement account resolved
-      if (settlementAccount?.id && corePRId) {
+      // Link manualAccountId & settlementAccountId on upward_payment_request
+      if (corePRId) {
         await prisma.upward_payment_request.update({
           where: { id: corePRId },
-          data: { manualAccountId: settlementAccount.id }
+          data: {
+            manualAccountId: isSplitRule ? null : (settlementAccount?.id || null),
+            settlementAccountId: isSplitRule ? null : (linkedSettlementAccountId || null),
+          }
         });
       }
     } else {
@@ -250,7 +378,9 @@ export class CreatePmPaymentRequestUseCase {
           nextReminderAt,
           allowPartial: data.allowPartial || false,
           minAmount: (data.allowPartial === false) ? 0 : (data.minAmount || null),
-          manualAccountId: settlementAccount?.id || property.manualAccountId || null,
+          manualAccountId: isSplitRule ? null : (settlementAccount?.id || null),
+          settlementAccountId: isSplitRule ? null : (linkedSettlementAccountId || null),
+          splitProfileId: linkedSplitProfileId || null,
         });
       }
     }
@@ -262,7 +392,9 @@ export class CreatePmPaymentRequestUseCase {
         tenantId: unit.tenantId,
         paymentRequestId: corePRId,
         employeeId: actor?.isEmployee ? actor.employeeId : null,
-        manualAccountId: settlementAccount?.id || property.manualAccountId || null,
+        manualAccountId: isSplitRule ? null : (settlementAccount?.id || null),
+        settlementAccountId: isSplitRule ? null : (linkedSettlementAccountId || null),
+        splitProfileId: linkedSplitProfileId || null,
         amount: data.amount,
         currency: unit.currency || 'NGN',
         description: data.description || null,
@@ -281,6 +413,29 @@ export class CreatePmPaymentRequestUseCase {
         isRecurring: isScheduled ? (data.isRecurring || false) : false,
         recurrenceInterval: isScheduled && data.isRecurring ? (data.recurrenceInterval || null) : null,
       });
+    }
+
+    if (resolvedSplitRules.length > 0) {
+      await prisma.upward_settlement_split_rule.deleteMany({
+        where: {
+          OR: [
+            { pmPaymentRequestId: pmPR.id },
+            ...(corePRId ? [{ paymentRequestId: corePRId }] : [])
+          ]
+        }
+      });
+
+      for (const rule of resolvedSplitRules) {
+        await prisma.upward_settlement_split_rule.create({
+          data: {
+            pmPaymentRequestId: pmPR.id,
+            paymentRequestId: corePRId || undefined,
+            lineItemName: rule.lineItemName,
+            manualAccountId: rule.manualAccountId,
+            percentage: rule.percentage
+          }
+        });
+      }
     }
 
     // Log Activity

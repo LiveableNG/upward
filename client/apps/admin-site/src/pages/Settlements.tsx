@@ -14,9 +14,25 @@ import {
   Building2,
   CreditCard,
   ArrowDownLeft,
+  PieChart,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { Modal } from '../components/common/modal/Modal'
+
+export interface SettlementSplitItem {
+  id: number
+  uuid?: string
+  bankName: string
+  bankCode: string
+  accountNumber: string
+  accountName: string
+  title?: string | null
+  lineItemName: string
+  percentage: number
+  amount: number
+  settlementStatus: string
+  transferReference?: string | null
+}
 
 interface SettlementStats {
   totalSettledVolume: number
@@ -80,8 +96,10 @@ interface SettlementBatch {
     bankCode: string
     accountNumber: string
     accountName: string
+    title?: string | null
     type: string
   } | null
+  splits?: SettlementSplitItem[]
   transactions: Array<{
     id: number
     reference: string
@@ -123,8 +141,10 @@ interface SettlementTransaction {
     bankCode: string
     accountNumber: string
     accountName: string
+    title?: string | null
     type: string
   } | null
+  settlementSplits?: SettlementSplitItem[]
   tenant: {
     id?: number
     name: string
@@ -142,6 +162,7 @@ export const Settlements: React.FC<SettlementsProps> = ({ token, adminRole }) =>
   const isDeveloper = adminRole === 'DEVELOPER'
   const [activeTab, setActiveTab] = useState<'flagged' | 'batches' | 'transactions'>('flagged')
   const [stats, setStats] = useState<SettlementStats | null>(null)
+  const [selectedSplitTx, setSelectedSplitTx] = useState<SettlementTransaction | null>(null)
   const [flaggedData, setFlaggedData] = useState<{
     count: number
     flagged: FlaggedTransaction[]
@@ -889,7 +910,60 @@ export const Settlements: React.FC<SettlementsProps> = ({ token, adminRole }) =>
                         </span>
                       </td>
                       <td style={{ padding: '14px 16px', fontSize: '13px' }}>
-                        {tx.destination?.type === 'MANUAL_PAYMENT' || tx.isManual ? (
+                        {tx.settlementSplits && tx.settlementSplits.length > 1 ? (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                              <span
+                                style={{
+                                  fontSize: '11px',
+                                  background: 'rgba(22, 101, 52, 0.1)',
+                                  color: 'var(--forest, #166534)',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: '700',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <PieChart size={12} />
+                                Split ({tx.settlementSplits.length} Accounts)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedSplitTx(tx)}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--accent, #0f766e)',
+                                  cursor: 'pointer',
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  textDecoration: 'underline',
+                                  padding: 0,
+                                }}
+                              >
+                                View Split
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '280px' }}>
+                              {tx.settlementSplits.map((s, sIdx) => (
+                                <span
+                                  key={s.id || sIdx}
+                                  style={{
+                                    fontSize: '11px',
+                                    color: 'var(--text-secondary)',
+                                    background: 'var(--surface-subtle, #f4f3ef)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                  }}
+                                >
+                                  {s.percentage}% {s.bankName.split(' ')[0]} ({formatNaira(s.amount)})
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : tx.destination?.type === 'MANUAL_PAYMENT' || tx.isManual ? (
                           <div>
                             <div style={{ fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{ fontSize: '11px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563EB', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>
@@ -1124,6 +1198,165 @@ export const Settlements: React.FC<SettlementsProps> = ({ token, adminRole }) =>
               </div>
             )}
           </form>
+        </Modal>
+      )}
+
+      {/* Split Details Modal */}
+      {selectedSplitTx && (
+        <Modal
+          isOpen={!!selectedSplitTx}
+          onClose={() => setSelectedSplitTx(null)}
+          title="Settlement Split Distribution"
+          description={`Allocation breakdown across destination accounts for Ref: ${selectedSplitTx.reference}`}
+          icon={<PieChart size={22} />}
+          maxWidth="640px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Payment Summary Header */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '12px',
+                padding: '16px',
+                background: 'var(--surface-subtle, #f8f7f5)',
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+                  Total Payment
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {formatNaira(selectedSplitTx.amount)}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+                  Tenant
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {selectedSplitTx.tenant.name}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+                  Property
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {selectedSplitTx.propertyAddress || 'N/A'}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>
+                  Status
+                </div>
+                <div style={{ marginTop: '2px' }}>
+                  <span className={`badge ${getStatusBadgeClass(selectedSplitTx.settlementStatus)}`}>
+                    {selectedSplitTx.settlementStatus}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Split Recipients List */}
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <PieChart size={15} color="var(--forest, #166534)" />
+                Recipient Accounts ({selectedSplitTx.settlementSplits?.length || 0})
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(selectedSplitTx.settlementSplits || []).map((split, index) => (
+                  <div
+                    key={split.id || index}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '14px 16px',
+                      borderRadius: '10px',
+                      background: 'var(--surface, #ffffff)',
+                      border: '1px solid var(--border)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '8px',
+                          background: 'rgba(22, 101, 52, 0.08)',
+                          color: 'var(--forest, #166534)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '800',
+                          fontSize: '12px',
+                        }}
+                      >
+                        {split.percentage}%
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>
+                            {split.bankName}
+                          </span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '13px', color: 'var(--text-muted)' }}>
+                            •••• {split.accountNumber ? split.accountNumber.slice(-4) : 'N/A'}
+                          </span>
+                          {split.title && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                background: 'rgba(99, 102, 241, 0.1)',
+                                color: '#4338ca',
+                              }}
+                            >
+                              {split.title}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {split.accountName} • Item: {split.lineItemName}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                        {formatNaira(split.amount)}
+                      </div>
+                      <div style={{ marginTop: '2px' }}>
+                        <span className={`badge ${getStatusBadgeClass(split.settlementStatus)}`} style={{ fontSize: '10px', padding: '2px 6px' }}>
+                          {split.settlementStatus}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px' }}>
+              <button
+                type="button"
+                className="btn btn--secondary"
+                onClick={() => setSelectedSplitTx(null)}
+                style={{ padding: '8px 18px', borderRadius: '6px' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

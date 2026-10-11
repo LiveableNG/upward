@@ -29,6 +29,7 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { calculateRentEndDate, type LeaseDurationUnit } from '../../../utils/rentalDates'
+import { PaymentTimingField } from '../../common/PaymentTimingField'
 
 const tenantSchema = z.object({
   tenantType: z.enum(['individual', 'commercial']),
@@ -56,6 +57,7 @@ const tenantSchema = z.object({
   isFullyPaid: z.boolean().optional(),
   rentAmountPaid: z.string().optional(),
   timeliness: z.enum(['ON_TIME', 'LATE']).optional(),
+  paymentDate: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.tenantType === 'commercial') {
     if (!data.commercialName || data.commercialName.trim().length < 2) {
@@ -181,6 +183,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
       isFullyPaid: true,
       rentAmountPaid: '0',
       timeliness: 'ON_TIME',
+      paymentDate: '',
     }
   })
 
@@ -216,6 +219,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
         isFullyPaid: true,
         rentAmountPaid: '0',
         timeliness: 'ON_TIME',
+        paymentDate: '',
       })
     }
   }, [isOpen, initialData, reset])
@@ -252,7 +256,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
   if (!isOpen || !mounted) return null
 
   const onSubmit = async (data: TenantFormData) => {
-    const { tenantType, unitUuid, rentAmount, rentType, leaseYears, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, timeliness, ...tenantData } = data
+    const { tenantType, unitUuid, rentAmount, rentType, leaseYears, rentStartDate, rentEndDate, isFullyPaid, rentAmountPaid, timeliness, paymentDate, ...tenantData } = data
 
     let email = tenantData.email || ''
     if (!email || email.trim() === '') {
@@ -352,6 +356,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               pmAcknowledgedAmountPaid: effectiveAcknowledged,
               isFullyPaid: !!isFullyPaid,
               timeliness: timeliness || 'ON_TIME',
+              paymentDate: paymentDate || undefined,
             }, {
               onSuccess: () => {
                 reset()
@@ -393,6 +398,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
               pmAcknowledgedAmountPaid: effectiveAcknowledged,
               isFullyPaid: !!isFullyPaid,
               timeliness: timeliness || 'ON_TIME',
+              paymentDate: paymentDate || undefined,
             }, {
               onSuccess: () => {
                 reset()
@@ -929,40 +935,14 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ isOpen, onClose,
             )}
 
             {(watch('isFullyPaid') || (parseFloat(watch('rentAmountPaid') || '0') > 0)) && (
-              <div className="apple-timeliness-panel animate-fade-in" style={{ marginTop: 12 }}>
-                <label className="form-label" style={{ fontSize: 11, marginBottom: 6, display: 'block', fontWeight: 600 }}>
-                  Payment Timeliness Evaluation
-                </label>
-                <div className="apple-timeliness-grid">
-                  <button
-                    type="button"
-                    className={cn(
-                      "apple-timeliness-btn",
-                      watch('timeliness') === 'ON_TIME' && "apple-timeliness-btn--on-time"
-                    )}
-                    onClick={() => setValue('timeliness', 'ON_TIME')}
-                  >
-                    <Clock size={14} />
-                    <span>On-Time Payment</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      "apple-timeliness-btn",
-                      watch('timeliness') === 'LATE' && "apple-timeliness-btn--late"
-                    )}
-                    onClick={() => setValue('timeliness', 'LATE')}
-                  >
-                    <AlertTriangle size={14} />
-                    <span>Late Payment</span>
-                  </button>
-                </div>
-                <p className="apple-timeliness-hint">
-                  {watch('timeliness') === 'ON_TIME'
-                    ? 'This initial payment is evaluated On-Time. The tenant builds on-time rent credibility.'
-                    : 'This initial payment was received past due. The initial cycle will reflect Late for scoring.'}
-                </p>
-              </div>
+              <PaymentTimingField
+                paymentDate={watch('paymentDate')}
+                onPaymentDateChange={(val) => setValue('paymentDate', val)}
+                timeliness={watch('timeliness') || 'ON_TIME'}
+                onTimelinessChange={(val) => setValue('timeliness', val)}
+                targetDueDate={watch('rentStartDate')}
+                title="Payment Timing & Evaluation"
+              />
             )}
           </div>
         </>

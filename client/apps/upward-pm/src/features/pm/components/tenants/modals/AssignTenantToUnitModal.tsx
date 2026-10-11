@@ -5,6 +5,7 @@ import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { useTenants, useTenantActions } from '@/features/pm/hooks/useTenants'
 import { cn } from '@/lib/utils'
 import { TenantNameDisplay } from '@/components/common/TenantNameDisplay'
+import { PaymentTimingField } from '../../common/PaymentTimingField'
 
 interface AssignTenantToUnitModalProps {
   isOpen: boolean
@@ -62,7 +63,9 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
     leaseYears: '1',
     rentStartDate: initialRentStartDate ? new Date(initialRentStartDate).toISOString().split('T')[0] : '',
     rentDueDate: initialRentDueDate ? new Date(initialRentDueDate).toISOString().split('T')[0] : '',
-    rentAmountPaid: '0'
+    rentAmountPaid: '0',
+    timeliness: 'ON_TIME' as 'ON_TIME' | 'LATE',
+    paymentDate: '',
   })
 
   // Auto-calculate End Date when start/cycle/years change (still editable afterward)
@@ -112,14 +115,18 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
   const handleConfirmAssign = () => {
     if (!selectedTenantUuid) return
 
+    const parsedPaid = parseAmountValue(rentDetails.rentAmountPaid)
     assignTenant.mutate({ 
       tenantUuid: selectedTenantUuid, 
       unitUuid,
-      rentAmountPaid: parseAmountValue(rentDetails.rentAmountPaid),
+      rentAmountPaid: parsedPaid,
+      pmAcknowledgedAmountPaid: parsedPaid,
       rentAmount: parseAmountValue(rentDetails.rentAmount),
       rentType: rentDetails.rentType,
       rentStartDate: rentDetails.rentStartDate,
-      rentDueDate: rentDetails.rentDueDate
+      rentDueDate: rentDetails.rentDueDate,
+      timeliness: parsedPaid > 0 ? rentDetails.timeliness : undefined,
+      paymentDate: (parsedPaid > 0 && rentDetails.paymentDate) ? rentDetails.paymentDate : undefined,
     }, {
       onSuccess: () => onClose()
     })
@@ -277,6 +284,17 @@ export const AssignTenantToUnitModal: React.FC<AssignTenantToUnitModalProps> = (
                 </p>
               </div>
             </div>
+
+            {parseAmountValue(rentDetails.rentAmountPaid) > 0 && (
+              <PaymentTimingField
+                paymentDate={rentDetails.paymentDate}
+                onPaymentDateChange={(date) => setRentDetails(prev => ({ ...prev, paymentDate: date }))}
+                timeliness={rentDetails.timeliness}
+                onTimelinessChange={(timeliness) => setRentDetails(prev => ({ ...prev, timeliness }))}
+                targetDueDate={rentDetails.rentStartDate}
+                title="Payment Timing & Evaluation"
+              />
+            )}
           </div>
         )}
 

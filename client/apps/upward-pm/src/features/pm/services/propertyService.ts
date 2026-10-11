@@ -1,5 +1,5 @@
 import { request } from '@/lib/api-client'
-import { SettlementAccount } from './paymentService'
+import { SettlementAccount, SettlementSplitRule, SplitProfile } from './paymentService'
 
 export interface Property {
   id: number
@@ -17,6 +17,9 @@ export interface Property {
   landlordPhone?: string
   manualAccountId?: number | null
   manualAccount?: SettlementAccount | null
+  settlementSplitRules?: SettlementSplitRule[]
+  splitProfileId?: number | null
+  splitProfile?: SplitProfile | null
   units?: Unit[]
 }
 
@@ -60,6 +63,7 @@ export interface Unit {
   rentAmountPaid?: number
   isFullyPaid?: boolean
   timeliness?: 'ON_TIME' | 'LATE'
+  paymentDate?: string
   rentReminderEnabled: boolean
   rentReminderDaysBefore?: number
 

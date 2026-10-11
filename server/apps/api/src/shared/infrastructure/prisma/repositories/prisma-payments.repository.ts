@@ -383,6 +383,11 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
     return {
       subaccount: true,
       manualAccount: true,
+      settlementAccount: {
+        include: {
+          manualAccount: true,
+        },
+      },
       userProperty: {
         include: {
           company: {
@@ -436,6 +441,8 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
       subaccount: res.subaccount as unknown as PaystackSubaccount,
       manualAccountId: res.manualAccountId ?? undefined,
       manualAccount: res.manualAccount ?? undefined,
+      settlementAccountId: res.settlementAccountId ?? undefined,
+      settlementAccount: res.settlementAccount ?? undefined,
       platformId: res.userProperty?.company?.platform?.id || res.userProperty?.company?.platformId,
       platformName,
       userPropertyUuid: res.userProperty?.uuid,
@@ -477,6 +484,7 @@ export class PrismaPaymentRequestRepository implements IPaymentRequestRepository
         reference: data.reference,
         subaccountId: data.subaccountId,
         manualAccountId: data.manualAccountId,
+        settlementAccountId: data.settlementAccountId,
         isManual: data.isManual,
         rentStartDate: data.rentStartDate,
         rentEndDate: data.rentEndDate,

@@ -3,6 +3,21 @@ import { PrismaService } from '../prisma.service';
 import { IUnitRepository, UnitEntity, RentPaymentEntity } from '../../../../domains/pm/IPropertyRepository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 
+const PROPERTY_UNIT_INCLUDE = {
+  include: {
+    manualAccount: true,
+    splitProfile: {
+      include: {
+        items: {
+          include: {
+            manualAccount: true,
+          },
+        },
+      },
+    },
+  },
+};
+
 @Injectable()
 export class PrismaPmUnitRepository implements IUnitRepository {
   constructor(
@@ -28,8 +43,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
         rentReminderEnabled: data.rentReminderEnabled,
         rentReminderDaysBefore: data.rentReminderDaysBefore,
       },
-            include: {
-        property: true,
+      include: {
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },
@@ -92,8 +107,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   async findByUuid(uuid: string): Promise<UnitEntity | null> {
     const unit = await this.prisma.upward_pm_unit.findUnique({
       where: { uuid },
-            include: {
-        property: true,
+      include: {
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },
@@ -108,8 +123,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
   async findByPropertyId(propertyId: number): Promise<UnitEntity[]> {
     const units = await this.prisma.upward_pm_unit.findMany({
       where: { propertyId },
-            include: {
-        property: true,
+      include: {
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },
@@ -127,8 +142,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
       where: {
         property: { pmId },
       },
-            include: {
-        property: true,
+      include: {
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },
@@ -162,8 +177,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
           { propertyId: { in: collabPropertyIds } }
         ]
       },
-            include: {
-        property: true,
+      include: {
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },
@@ -205,7 +220,7 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     const units = await this.prisma.upward_pm_unit.findMany({
       where: whereClause,
       include: {
-        property: true,
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },
@@ -263,8 +278,8 @@ export class PrismaPmUnitRepository implements IUnitRepository {
     const unit = await this.prisma.upward_pm_unit.update({
       where: { uuid },
       data: updateData,
-            include: {
-        property: true,
+      include: {
+        property: PROPERTY_UNIT_INCLUDE,
         tenant: true,
         rentPayments: {
           where: { status: 'SUCCESS' },

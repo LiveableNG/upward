@@ -3,10 +3,12 @@ export const SETTLEMENT_ACCOUNT_REPOSITORY = Symbol('SETTLEMENT_ACCOUNT_REPOSITO
 export interface SettlementAccountEntity {
   id: number;
   uuid: string;
+  manualAccountId?: number;
   accountNumber: string;
   accountName: string;
   bankName: string;
   bankCode?: string | null;
+  title?: string | null;
   pmId?: number | null;
   isPrimary: boolean;
   createdAt: Date;
@@ -19,6 +21,7 @@ export interface CreateSettlementAccountData {
   accountName: string;
   bankName: string;
   bankCode?: string;
+  title?: string;
   pmId: number;
   isPrimary?: boolean;
 }
@@ -28,6 +31,7 @@ export interface UpdateSettlementAccountData {
   accountName?: string;
   bankName?: string;
   bankCode?: string;
+  title?: string;
   isPrimary?: boolean;
 }
 

@@ -187,7 +187,6 @@ export function ProfileSetupBlocker({
               <div className="profile-setup-blocker__setup-copy">
                 <h2>Complete your setup</h2>
                 <p>Unlock your true score potential in 60 seconds.</p>
-                <span className="profile-setup-blocker__pts-hint">✦ +50 pts on verification</span>
               </div>
             </div>
 

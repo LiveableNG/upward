@@ -40,7 +40,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
   const property = (user?.properties || []).find((p) => p.uuid === propertyUuid)
 
-  const isPmVerified = !!(property?.isVerified && (property as any)?.isManaged)
+  const isPmVerified = !!(property?.isVerified && ((property as any)?.isManaged || (property as any)?.pmId || (property as any)?.pmUnitId))
   const isExternalUnit = !!(((property as any)?.externalUnitId || property?.isPlatformLinked || (property as any)?.pmUnitId) && property?.isVerified)
   
   const onlinePayments = ((property as any)?.platformRentPayments || []).filter(
@@ -48,7 +48,8 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   )
   const hasPaidOnUpward = ((property as any)?.amountPaid || 0) > ((property as any)?.initialAmountPaid || 0) || onlinePayments.length > 0
 
-  const isManaged = isPmVerified || isExternalUnit || hasPaidOnUpward
+  const isManaged = isPmVerified || isExternalUnit
+  const isRentTermsDisabled = isManaged || hasPaidOnUpward
 
   const initialManual = (property as any)?.manualAccount || (property as any)?.pmManualAccount
 
@@ -78,7 +79,20 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const [companyName, setCompanyName] = useState('')
   const [pmInviteEmail, setPmInviteEmail] = useState('')
   const [pmFound, setPmFound] = useState(false)
-  const [pmDetails, setPmDetails] = useState<{ id?: number; name?: string; businessName?: string; isExternal?: boolean; companyUuid?: string; managerUuid?: string } | null>(null)
+  const [pmDetails, setPmDetails] = useState<{
+    id?: number
+    name?: string
+    businessName?: string
+    isExternal?: boolean
+    companyUuid?: string
+    managerUuid?: string
+    defaultSettlementAccount?: {
+      bankName: string
+      accountNumber: string
+      accountName: string
+      bankCode?: string | null
+    } | null
+  } | null>(null)
 
   const [activeProof, setActiveProof] = useState<any | null>(null)
   const [isDeletingProof, setIsDeletingProof] = useState(false)
@@ -546,7 +560,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             <div className="setup-page__field">
               <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Rent cycle</label>
               <select
-                disabled={isManaged}
+                disabled={isRentTermsDisabled}
                 className="setup-page__input"
                 value={rentType}
                 onChange={(e) => {
@@ -567,7 +581,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Lease duration</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
                   <input
-                    disabled={isManaged}
+                    disabled={isRentTermsDisabled}
                     type="number"
                     min="1"
                     className="setup-page__input"
@@ -581,7 +595,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                     }}
                   />
                   <select
-                    disabled={isManaged}
+                    disabled={isRentTermsDisabled}
                     className="setup-page__input"
                     value={leaseUnit}
                     onChange={(e) => {
@@ -607,7 +621,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               <div className="setup-page__input-row">
                 <span>₦</span>
                 <input
-                  disabled={isManaged}
+                  disabled={isRentTermsDisabled}
                   type="text"
                   placeholder="1,200,000"
                   value={rentAmount}
@@ -624,7 +638,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             <div className="setup-page__field">
               <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Tenancy period start</label>
               <input
-                disabled={isManaged}
+                disabled={isRentTermsDisabled}
                 className="setup-page__input"
                 type="date"
                 value={rentStartDate}
@@ -687,6 +701,58 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             Landlord Payment Account
           </h3>
 
+          {pmFound && pmDetails?.defaultSettlementAccount && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <strong style={{ display: 'block', fontSize: 13, color: '#166534', fontWeight: 700 }}>
+                  Verified Account for {pmDetails.name}
+                </strong>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#15803d' }}>
+                  {pmDetails.defaultSettlementAccount.bankName} · {pmDetails.defaultSettlementAccount.accountNumber} ({pmDetails.defaultSettlementAccount.accountName})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pmDetails?.defaultSettlementAccount) {
+                    setPaymentAccount({
+                      bankName: pmDetails.defaultSettlementAccount.bankName,
+                      accountNumber: pmDetails.defaultSettlementAccount.accountNumber,
+                      accountName: pmDetails.defaultSettlementAccount.accountName,
+                      bankCode: pmDetails.defaultSettlementAccount.bankCode || '',
+                    })
+                    toast.success('Applied verified property manager account!')
+                  }
+                }}
+                style={{
+                  flexShrink: 0,
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  background: '#16a34a',
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Use This Account
+              </button>
+            </div>
+          )}
+
           <PaymentAccountForm
             value={paymentAccount}
             onChange={setPaymentAccount}
@@ -723,6 +789,14 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               setPmInviteEmail(patch.pmInviteEmail)
               setPmFound(patch.pmFound)
               setPmDetails(patch.pmDetails)
+              if (!paymentAccount.accountNumber && patch.pmDetails?.defaultSettlementAccount) {
+                setPaymentAccount({
+                  bankName: patch.pmDetails.defaultSettlementAccount.bankName,
+                  accountNumber: patch.pmDetails.defaultSettlementAccount.accountNumber,
+                  accountName: patch.pmDetails.defaultSettlementAccount.accountName,
+                  bankCode: patch.pmDetails.defaultSettlementAccount.bankCode || '',
+                })
+              }
             }}
             disabled={isManaged}
             isManaged={isManaged}

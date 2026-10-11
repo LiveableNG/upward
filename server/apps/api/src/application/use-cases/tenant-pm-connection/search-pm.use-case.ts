@@ -19,6 +19,12 @@ export interface PmSearchResult {
   companyName?: string | null;
   companyEmail?: string | null;
   managerUuid?: string | null;
+  defaultSettlementAccount?: {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    bankCode?: string | null;
+  } | null;
 }
 
 @Injectable()
@@ -42,6 +48,16 @@ export class SearchPmUseCase {
     const results: PmSearchResult[] = [];
     const seenUuids = new Set<string>();
 
+    const pmInclude = {
+      settlementAccounts: {
+        where: { isPrimary: true },
+        include: { manualAccount: true },
+      },
+      manualAccounts: {
+        where: { isPrimary: true },
+      },
+    };
+
     // 1. Search Internal Property Managers (upward_property_manager)
     const directPmMatches = await this.prisma.upward_property_manager.findMany({
       where: {
@@ -52,6 +68,7 @@ export class SearchPmUseCase {
         isBlocked: false,
         isManuallyBlocked: false,
       },
+      include: pmInclude,
       take: 10,
     });
 
@@ -60,6 +77,7 @@ export class SearchPmUseCase {
         isBlocked: false,
         isManuallyBlocked: false,
       },
+      include: pmInclude,
       take: 200,
       orderBy: { createdAt: 'desc' },
     });
@@ -95,6 +113,14 @@ export class SearchPmUseCase {
         if (matchesName || matchesBusiness || matchesEmail || matchesPhone) {
           if (!seenUuids.has(pm.uuid)) {
             seenUuids.add(pm.uuid);
+            const primarySettlement = (pm as any).settlementAccounts?.[0]?.manualAccount || (pm as any).manualAccounts?.[0];
+            const defaultSettlementAccount = primarySettlement ? {
+              bankName: primarySettlement.bankName,
+              accountNumber: primarySettlement.accountNumber,
+              accountName: primarySettlement.accountName,
+              bankCode: primarySettlement.bankCode || null,
+            } : null;
+
             results.push({
               id: pm.id,
               uuid: pm.uuid,
@@ -107,6 +133,7 @@ export class SearchPmUseCase {
               pmType: pm.pmType || 'Property Manager',
               isVerified: !!pm.isVerified,
               isExternal: false,
+              defaultSettlementAccount,
             });
           }
         }

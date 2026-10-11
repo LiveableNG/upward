@@ -122,6 +122,36 @@ function PaymentsTable({ searchQuery, dateFilter, requestsOverride, allRequests 
     {
       header: 'Settlement Account',
       render: (req) => {
+        if (req.splitProfile) {
+          const distribution = req.splitProfile.items
+            ?.map((it: any) => `${it.percentage}% ${it.manualAccount?.bankName || ''}`.trim())
+            .filter(Boolean)
+            .join(' • ')
+          return (
+            <div className="payments-view__cell" style={{ fontSize: 13, minWidth: 140, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: 4,
+                  background: 'rgba(5, 150, 105, 0.1)',
+                  color: '#059669',
+                  border: '1px solid rgba(5, 150, 105, 0.25)',
+                  letterSpacing: '0.02em',
+                  whiteSpace: 'nowrap'
+                }}>
+                  Split
+                </span>
+                <span style={{ fontWeight: 600, color: 'var(--dark)' }}>{req.splitProfile.name}</span>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }} title={distribution}>
+                {distribution || 'Multiple Accounts'}
+              </span>
+            </div>
+          )
+        }
+
         const acc = req.settlementAccount
         if (!acc) return <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Default Account</span>
         return (

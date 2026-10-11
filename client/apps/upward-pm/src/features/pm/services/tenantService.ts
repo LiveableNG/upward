@@ -7,6 +7,8 @@ export interface CreateTenantDto {
   email?: string;
   phone?: string;
   otherPhone?: string;
+  deliveryChannel?: string;
+  skipExternalInvite?: boolean;
 }
 
 export interface Tenant {
@@ -100,6 +102,7 @@ export const tenantService = {
     receiptDecision?: 'APPROVED' | 'REJECTED';
     timeliness?: 'ON_TIME' | 'LATE';
     rejectionReason?: string;
+    paymentDate?: string;
   }) => {
     return request<void>(`/pm/tenants/${tenantUuid}/assign`, {
       method: 'POST',

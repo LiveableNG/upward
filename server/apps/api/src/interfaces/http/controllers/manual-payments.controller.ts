@@ -30,6 +30,8 @@ export class ManualPaymentsController {
       bankCode: body.bankCode,
       userPropertyId: isPm ? undefined : body.propertyId,
       pmPropertyId: isPm ? body.propertyId : undefined,
+      userId: req.user.id,
+      isPm,
     })
   }
 

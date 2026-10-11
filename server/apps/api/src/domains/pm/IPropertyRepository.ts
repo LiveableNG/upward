@@ -30,6 +30,45 @@ export interface PropertyEntity {
     bankName: string;
     bankCode?: string | null;
     isPrimary?: boolean;
+    title?: string | null;
+  } | null;
+  settlementSplitRules?: Array<{
+    id: number;
+    uuid: string;
+    lineItemName: string;
+    percentage: number;
+    manualAccountId: number;
+    manualAccount?: {
+      id: number;
+      uuid: string;
+      accountNumber: string;
+      accountName: string;
+      bankName: string;
+      bankCode?: string | null;
+      isPrimary?: boolean;
+      title?: string | null;
+    } | null;
+  }>;
+  splitProfileId?: number | null;
+  splitProfile?: {
+    id: number;
+    uuid: string;
+    name: string;
+    description?: string | null;
+    mode: string;
+    items?: Array<{
+      id: number;
+      percentage: number;
+      manualAccountId: number;
+      manualAccount?: any;
+    }>;
+  } | null;
+  settlementAccountId?: number | null;
+  settlementAccount?: {
+    id: number;
+    uuid: string;
+    isPrimary?: boolean;
+    title?: string | null;
   } | null;
 }
 
@@ -188,6 +227,8 @@ export interface PmPaymentRequestEntity {
   recurrenceInterval?: string | null;
   employeeId?: number | null;
   manualAccountId?: number | null;
+  settlementAccountId?: number | null;
+  splitProfileId?: number | null;
   createdAt: Date;
   updatedAt: Date;
   isSelfPayment?: boolean;
@@ -203,6 +244,7 @@ export interface PmPaymentRequestEntity {
   tenant?: TenantEntity;
   employee?: any;
   settlementAccount?: any;
+  splitProfile?: any;
   transactions?: any[];
 }
 

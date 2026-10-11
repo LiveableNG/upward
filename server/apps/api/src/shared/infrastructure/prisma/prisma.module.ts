@@ -41,6 +41,7 @@ import { PrismaPmLetterheadRepository } from './repositories/prisma-pm-letterhea
 import { PrismaPmSignatureRepository } from './repositories/prisma-pm-signature.repository'
 import { PrismaWhatsappSequenceLogRepository } from './repositories/prisma-whatsapp-sequence.repository'
 import { PrismaPmSettlementAccountRepository } from './repositories/prisma-pm-settlement-account.repository'
+import { PrismaPmSplitProfileRepository } from './repositories/prisma-pm-split-profile.repository'
 import { PrismaTenancyPeriodRepository } from './repositories/prisma-tenancy-period.repository'
 import { PrismaAllianceProfileRepository } from './repositories/prisma-alliance-profile.repository'
 import { PrismaAllianceQualificationRepository } from './repositories/prisma-alliance-qualification.repository'
@@ -115,6 +116,7 @@ import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manage
 import { PM_LETTERHEAD_REPOSITORY } from '../../../domains/pm/pm-letterhead.repository'
 import { PM_SIGNATURE_REPOSITORY } from '../../../domains/pm/pm-signature.repository'
 import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY, PM_DOCUMENT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
+import { SPLIT_PROFILE_REPOSITORY } from '../../../domains/pm/ISplitProfileRepository'
 import { PM_APPROVAL_REQUEST_REPOSITORY } from '../../../domains/pm/IApprovalRequestRepository'
 import { PrismaPmApprovalRequestRepository } from './repositories/prisma-pm-approval-request.repository'
 import { PM_LANDLORD_REPOSITORY } from '../../../domains/pm/ILandlordRepository'
@@ -309,6 +311,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaPmSettlementAccountRepository,
     },
     {
+      provide: SPLIT_PROFILE_REPOSITORY,
+      useClass: PrismaPmSplitProfileRepository,
+    },
+    {
       provide: RENT_DEPOSIT_BALANCE_REPOSITORY,
       useClass: PrismaRentDepositBalanceRepository,
     },
@@ -400,6 +406,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     UNIVERSITY_REFERRAL_REPOSITORY,
     UNIVERSITY_HIRE_REQUEST_REPOSITORY,
     SETTLEMENT_ACCOUNT_REPOSITORY,
+    SPLIT_PROFILE_REPOSITORY,
     RENT_DEPOSIT_BALANCE_REPOSITORY,
     TENANCY_PERIOD_REPOSITORY,
     ALLIANCE_PROFILE_REPOSITORY,

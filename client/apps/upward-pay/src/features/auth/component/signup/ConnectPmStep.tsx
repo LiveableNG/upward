@@ -25,7 +25,18 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
   const [pmInviteEmail, setPmInviteEmail] = useState('')
   const [pmType, setPmType] = useState('Property Manager')
   const [companyName, setCompanyName] = useState('')
-  const [pmDetails, setPmDetails] = useState<{ id: number, name: string, businessName: string } | null>(null)
+  const [pmDetails, setPmDetails] = useState<{
+    id: number
+    name: string
+    businessName: string
+    defaultSettlementAccount?: {
+      bankName: string
+      accountNumber: string
+      accountName: string
+      bankCode?: string | null
+      title?: string
+    } | null
+  } | null>(null)
   const [discoveredProps, setDiscoveredProps] = useState<DiscoveredProperty[]>([])
 
   const { refetch: discover } = useQuery({
@@ -66,6 +77,7 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
           id: result.pm.id,
           name: `${result.pm.firstName} ${result.pm.lastName}`,
           businessName: result.pm.businessName || `${result.pm.firstName} ${result.pm.lastName}`,
+          defaultSettlementAccount: result.pm.defaultSettlementAccount,
         })
         setStep('FOUND')
       } else {
@@ -191,8 +203,35 @@ export function ConnectPmStep({ onComplete, onSkip }: ConnectPmStepProps) {
         </div>
 
         <div className="connect-pm-card">
-          <h3 className="connect-pm-card__name">{pmDetails.businessName}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <h3 className="connect-pm-card__name" style={{ margin: 0 }}>{pmDetails.businessName}</h3>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 999 }}>
+              <ShieldCheck size={12} /> Verified PM
+            </span>
+          </div>
           <p className="connect-pm-card__person">{pmDetails.name}</p>
+
+          {pmDetails.defaultSettlementAccount && (
+            <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <Landmark size={14} style={{ color: '#0284c7' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' }}>
+                  Verified Payout Bank Account
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                <strong style={{ fontSize: 13.5, color: '#0f172a' }}>
+                  {pmDetails.defaultSettlementAccount.bankName} • •••• {pmDetails.defaultSettlementAccount.accountNumber.slice(-4)}
+                </strong>
+                <span style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                  {pmDetails.defaultSettlementAccount.accountName}
+                </span>
+              </div>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: '#94a3b8' }}>
+                Rent transfers will route directly and securely to this account.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="auth-stage__ctas">

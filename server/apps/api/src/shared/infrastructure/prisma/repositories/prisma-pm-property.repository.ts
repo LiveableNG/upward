@@ -3,6 +3,26 @@ import { PrismaService } from '../prisma.service';
 import { IPropertyRepository, PropertyEntity } from '../../../../domains/pm/IPropertyRepository';
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service';
 
+const PROPERTY_DEFAULT_INCLUDE = {
+  landlord: true,
+  manualAccount: true,
+  settlementAccount: true,
+  settlementSplitRules: {
+    include: {
+      manualAccount: true,
+    },
+  },
+  splitProfile: {
+    include: {
+      items: {
+        include: {
+          manualAccount: true,
+        },
+      },
+    },
+  },
+};
+
 @Injectable()
 export class PrismaPmPropertyRepository implements IPropertyRepository {
   constructor(
@@ -36,19 +56,76 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         bankName: p.manualAccount.bankName,
         bankCode: p.manualAccount.bankCode,
         isPrimary: p.manualAccount.isPrimary,
+        title: p.manualAccount.title,
+      } : null,
+      settlementSplitRules: p.settlementSplitRules ? p.settlementSplitRules.map((r: any) => ({
+        id: r.id,
+        uuid: r.uuid,
+        lineItemName: r.lineItemName,
+        percentage: Number(r.percentage),
+        manualAccountId: r.manualAccountId,
+        manualAccount: r.manualAccount ? {
+          id: r.manualAccount.id,
+          uuid: r.manualAccount.uuid,
+          accountNumber: r.manualAccount.accountNumber,
+          accountName: r.manualAccount.accountName,
+          bankName: r.manualAccount.bankName,
+          bankCode: r.manualAccount.bankCode,
+          isPrimary: r.manualAccount.isPrimary,
+          title: r.manualAccount.title,
+        } : null,
+      })) : [],
+      splitProfileId: p.splitProfileId || null,
+      splitProfile: p.splitProfile ? {
+        id: p.splitProfile.id,
+        uuid: p.splitProfile.uuid,
+        name: p.splitProfile.name,
+        description: p.splitProfile.description,
+        mode: p.splitProfile.mode,
+        items: p.splitProfile.items ? p.splitProfile.items.map((it: any) => ({
+          id: it.id,
+          percentage: Number(it.percentage),
+          manualAccountId: it.manualAccountId,
+          manualAccount: it.manualAccount ? {
+            id: it.manualAccount.id,
+            uuid: it.manualAccount.uuid,
+            accountNumber: it.manualAccount.accountNumber,
+            accountName: it.manualAccount.accountName,
+            bankName: it.manualAccount.bankName,
+            bankCode: it.manualAccount.bankCode,
+            title: it.manualAccount.title,
+          } : null,
+        })) : [],
+      } : null,
+      settlementAccountId: p.settlementAccountId || null,
+      settlementAccount: p.settlementAccount ? {
+        id: p.settlementAccount.id,
+        uuid: p.settlementAccount.uuid,
+        isPrimary: Boolean(p.settlementAccount.isPrimary),
+        title: p.settlementAccount.title || null,
       } : null,
     };
   }
 
   async create(data: Omit<PropertyEntity, 'id' | 'uuid'>): Promise<PropertyEntity> {
     let manualAccountId = data.manualAccountId;
-    if (!manualAccountId) {
-      const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
+    let settlementAccountId = data.settlementAccountId;
+    if (!manualAccountId && !settlementAccountId) {
+      const primarySettlementAccount = await (this.prisma as any).upward_settlement_account.findFirst({
         where: { pmId: data.pmId, isPrimary: true },
-        select: { id: true },
+        select: { id: true, manualAccountId: true },
       });
-      if (primaryAccount) {
-        manualAccountId = primaryAccount.id;
+      if (primarySettlementAccount) {
+        settlementAccountId = primarySettlementAccount.id;
+        manualAccountId = primarySettlementAccount.manualAccountId;
+      } else {
+        const primaryAccount = await (this.prisma as any).upward_manual_account.findFirst({
+          where: { pmId: data.pmId, isPrimary: true },
+          select: { id: true },
+        });
+        if (primaryAccount) {
+          manualAccountId = primaryAccount.id;
+        }
       }
     }
 
@@ -65,8 +142,10 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         area: data.area,
         landlordId: data.landlordId || undefined,
         manualAccountId: manualAccountId || undefined,
+        settlementAccountId: settlementAccountId || undefined,
+        splitProfileId: data.splitProfileId || undefined,
       },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
 
     return this.mapProperty(property);
@@ -76,7 +155,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const properties = await this.prisma.upward_pm_property.findMany({
       where: { pmId },
       orderBy: { createdAt: 'desc' },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
     return properties.map(p => this.mapProperty(p));
   }
@@ -86,7 +165,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const ownedProperties = await this.prisma.upward_pm_property.findMany({
       where: { pmId },
       orderBy: { createdAt: 'desc' },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
 
     // 2. Get collaborations (legacy PM-to-PM collaboration)
@@ -103,7 +182,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
       if (collab.accessLevel === 'ALL') {
         const ownerProps = await this.prisma.upward_pm_property.findMany({
           where: { pmId: collab.ownerPmId },
-          include: { landlord: true, manualAccount: true },
+          include: PROPERTY_DEFAULT_INCLUDE,
         });
         collabProperties.push(...ownerProps);
       } else {
@@ -112,7 +191,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
             collaboratorPmId: pmId,
             ownerPmId: collab.ownerPmId 
           },
-          include: { property: { include: { landlord: true, manualAccount: true } } }
+          include: { property: { include: PROPERTY_DEFAULT_INCLUDE } }
         });
         collabProperties.push(...customProps.map((cp: any) => cp.property));
       }
@@ -154,7 +233,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
         pmId: actor.ownerPmId,
       },
       orderBy: { createdAt: 'desc' },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
 
     return properties.map(p => this.mapProperty(p));
@@ -163,7 +242,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async findById(id: number): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { id },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
     return property ? this.mapProperty(property) : null;
   }
@@ -171,7 +250,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async findByUuid(uuid: string): Promise<PropertyEntity | null> {
     const property = await this.prisma.upward_pm_property.findUnique({
       where: { uuid },
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
     return property ? this.mapProperty(property) : null;
   }
@@ -179,7 +258,10 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
   async update(uuid: string, data: Partial<Omit<PropertyEntity, 'id' | 'uuid' | 'pmId'>>): Promise<PropertyEntity> {
     const updateData: any = {};
     for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined && !['landlordName', 'landlordEmail', 'landlordPhone', 'manualAccount'].includes(key)) {
+      if (
+        value !== undefined &&
+        !['landlordName', 'landlordEmail', 'landlordPhone', 'manualAccount', 'settlementAccount', 'splitProfile', 'settlementSplitRules'].includes(key)
+      ) {
         updateData[key] = value;
       }
     }
@@ -187,7 +269,7 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
     const property = await this.prisma.upward_pm_property.update({
       where: { uuid },
       data: updateData,
-      include: { landlord: true, manualAccount: true },
+      include: PROPERTY_DEFAULT_INCLUDE,
     });
 
     return this.mapProperty(property);

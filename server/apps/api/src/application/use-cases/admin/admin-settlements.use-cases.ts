@@ -40,7 +40,7 @@ export class GetSettlementStatsUseCase {
       titanDvaCount,
       wemaDvaCount,
       totalDvaCount,
-    ] = await Promise.all([
+    ]: any = await Promise.all([
       this.prisma.upward_transaction.aggregate({
         _sum: { amount: true },
         where: { settlementStatus: 'SETTLED', status: 'SUCCESS' },
@@ -59,8 +59,12 @@ export class GetSettlementStatsUseCase {
       this.prisma.upward_transaction.findMany({
         where: { settlementStatus: 'VERIFIED', status: 'SUCCESS', isManual: false },
         include: {
+          settlementSplits: true,
           paymentRequest: {
             include: {
+              settlementAccount: {
+                include: { manualAccount: true },
+              },
               manualAccount: true,
               subaccount: true,
             },
@@ -89,10 +93,14 @@ export class GetSettlementStatsUseCase {
     // Calculate unrouted flagged count
     let flaggedCount = 0;
     for (const tx of verifiedTxs) {
+      if (tx.settlementSplits && tx.settlementSplits.length > 0) {
+        continue;
+      }
       const pr = tx.paymentRequest;
+      const hasSettlementAccount = !!(pr?.settlementAccount?.manualAccount?.accountNumber && pr?.settlementAccount?.manualAccount?.bankCode);
       const hasManual = !!(pr?.manualAccount?.accountNumber && pr?.manualAccount?.bankCode);
       const hasSubaccount = !!(pr?.subaccount?.accountNumber && pr?.subaccount?.bankCode);
-      if (!hasManual && !hasSubaccount) {
+      if (!hasSettlementAccount && !hasManual && !hasSubaccount) {
         flaggedCount++;
       }
     }
@@ -139,15 +147,19 @@ export class GetFlaggedSettlementsUseCase {
   }
 
   async execute() {
-    const verifiedTxs = await this.prisma.upward_transaction.findMany({
+    const verifiedTxs: any[] = await this.prisma.upward_transaction.findMany({
       where: {
         settlementStatus: 'VERIFIED',
         status: 'SUCCESS',
         isManual: false,
       },
       include: {
+        settlementSplits: true,
         paymentRequest: {
           include: {
+            settlementAccount: {
+              include: { manualAccount: true },
+            },
             manualAccount: true,
             subaccount: true,
             userProperty: {
@@ -155,6 +167,7 @@ export class GetFlaggedSettlementsUseCase {
                 pm: {
                   include: {
                     manualAccounts: true,
+                    settlementAccounts: { include: { manualAccount: true } },
                   },
                 },
                 manualAccount: true,
@@ -163,9 +176,11 @@ export class GetFlaggedSettlementsUseCase {
                     property: {
                       include: {
                         manualAccount: true,
+                        settlementAccount: { include: { manualAccount: true } },
                         pm: {
                           include: {
                             manualAccounts: true,
+                            settlementAccounts: { include: { manualAccount: true } },
                           },
                         },
                       },
@@ -192,11 +207,15 @@ export class GetFlaggedSettlementsUseCase {
     const flagged: any[] = [];
 
     for (const tx of verifiedTxs) {
+      if (tx.settlementSplits && tx.settlementSplits.length > 0) {
+        continue;
+      }
       const pr = tx.paymentRequest;
+      const hasSettlementAccount = !!(pr?.settlementAccount?.manualAccount?.accountNumber && pr?.settlementAccount?.manualAccount?.bankCode);
       const hasManual = !!(pr?.manualAccount?.accountNumber && pr?.manualAccount?.bankCode);
       const hasSubaccount = !!(pr?.subaccount?.accountNumber && pr?.subaccount?.bankCode);
 
-      if (!hasManual && !hasSubaccount) {
+      if (!hasSettlementAccount && !hasManual && !hasSubaccount) {
         const availableAccounts: any[] = [];
         const seen = new Set<number>();
 
@@ -215,13 +234,26 @@ export class GetFlaggedSettlementsUseCase {
 
         const prop = pr?.userProperty;
         if (prop?.manualAccount) {
-          addAcc(prop.manualAccount, 'Assigned Property Settlement Account');
+          addAcc(prop.manualAccount, 'Assigned Property Manual Account');
+        }
+        if (prop?.pm?.settlementAccounts) {
+          prop.pm.settlementAccounts.forEach((sa: any) => {
+            if (sa.manualAccount) addAcc(sa.manualAccount, 'Property Manager Settlement Account');
+          });
         }
         if (prop?.pm?.manualAccounts) {
           prop.pm.manualAccounts.forEach((acc: any) => addAcc(acc, 'Property Manager Account'));
         }
+        if (prop?.pmUnit?.property?.settlementAccount?.manualAccount) {
+          addAcc(prop.pmUnit.property.settlementAccount.manualAccount, 'PM Unit Property Settlement Account');
+        }
         if (prop?.pmUnit?.property?.manualAccount) {
           addAcc(prop.pmUnit.property.manualAccount, 'PM Unit Property Account');
+        }
+        if (prop?.pmUnit?.property?.pm?.settlementAccounts) {
+          prop.pmUnit.property.pm.settlementAccounts.forEach((sa: any) => {
+            if (sa.manualAccount) addAcc(sa.manualAccount, 'PM Unit Manager Settlement Account');
+          });
         }
         if (prop?.pmUnit?.property?.pm?.manualAccounts) {
           prop.pmUnit.property.pm.manualAccounts.forEach((acc: any) => addAcc(acc, 'PM Unit Manager Account'));
@@ -289,18 +321,27 @@ export class GetSettlementBatchesUseCase {
     const l = Math.min(100, Math.max(1, Number(limit) || 20));
     const skip = (p - 1) * l;
 
-    const [total, batches] = await Promise.all([
+    const [total, batches]: [number, any[]] = await Promise.all([
       this.prisma.upward_settlement_batch.count(),
       this.prisma.upward_settlement_batch.findMany({
         skip,
         take: l,
         orderBy: { createdAt: 'desc' },
         include: {
+          transactionSplits: {
+            include: { manualAccount: true },
+          },
           transactions: {
             include: {
               user: true,
+              settlementSplits: {
+                include: { manualAccount: true },
+              },
               paymentRequest: {
                 include: {
+                  settlementAccount: {
+                    include: { manualAccount: true },
+                  },
                   manualAccount: true,
                   subaccount: true,
                 },
@@ -308,15 +349,49 @@ export class GetSettlementBatchesUseCase {
             },
           },
         },
-      }),
+      } as any),
     ]);
 
-    const formatted = batches.map((batch) => {
+    const formatted = batches.map((batch: any) => {
+      const splits = (batch.transactionSplits || []).map((s: any) => ({
+        id: s.id,
+        uuid: s.uuid,
+        bankName: s.bankName || s.manualAccount?.bankName || 'Settlement Account',
+        bankCode: s.bankCode || s.manualAccount?.bankCode || '',
+        accountNumber: this.decryptSafe(s.accountNumber || s.manualAccount?.accountNumber),
+        accountName: this.decryptSafe(s.accountName || s.manualAccount?.accountName),
+        title: s.title || s.manualAccount?.title || null,
+        lineItemName: s.lineItemName || 'Rent',
+        percentage: Number(s.percentage),
+        amount: Number(s.amount),
+        settlementStatus: s.settlementStatus,
+        transferReference: s.transferReference || null,
+      }));
+
+      const firstSplit = splits[0];
       const firstTx = batch.transactions[0];
       const pr = firstTx?.paymentRequest;
       let destination: any = null;
 
-      if (pr?.manualAccount) {
+      if (firstSplit) {
+        destination = {
+          bankName: firstSplit.bankName,
+          bankCode: firstSplit.bankCode,
+          accountNumber: firstSplit.accountNumber,
+          accountName: firstSplit.accountName,
+          title: firstSplit.title,
+          type: 'SPLIT_SETTLEMENT',
+        };
+      } else if (pr?.settlementAccount?.manualAccount) {
+        destination = {
+          bankName: pr.settlementAccount.manualAccount.bankName,
+          bankCode: pr.settlementAccount.manualAccount.bankCode,
+          accountNumber: this.decryptSafe(pr.settlementAccount.manualAccount.accountNumber),
+          accountName: this.decryptSafe(pr.settlementAccount.manualAccount.accountName),
+          title: pr.settlementAccount.title || null,
+          type: 'SETTLEMENT_ACCOUNT',
+        };
+      } else if (pr?.manualAccount) {
         destination = {
           bankName: pr.manualAccount.bankName,
           bankCode: pr.manualAccount.bankCode,
@@ -344,7 +419,8 @@ export class GetSettlementBatchesUseCase {
         updatedAt: batch.updatedAt,
         transactionCount: batch.transactions.length,
         destination,
-        transactions: batch.transactions.map((t) => ({
+        splits,
+        transactions: batch.transactions.map((t: any) => ({
           id: t.id,
           reference: t.reference,
           amount: t.amount,
@@ -421,8 +497,14 @@ export class GetSettlementTransactionsUseCase {
         include: {
           user: true,
           settlementBatch: true,
+          settlementSplits: {
+            include: { manualAccount: true },
+          },
           paymentRequest: {
             include: {
+              settlementAccount: {
+                include: { manualAccount: true },
+              },
               manualAccount: true,
               subaccount: true,
               userProperty: {
@@ -433,16 +515,21 @@ export class GetSettlementTransactionsUseCase {
                   pm: {
                     include: {
                       manualAccounts: true,
+                      settlementAccounts: { include: { manualAccount: true } },
                     },
                   },
                   pmUnit: {
                     include: {
                       property: {
                         include: {
+                          settlementAccount: {
+                            include: { manualAccount: true },
+                          },
                           manualAccount: true,
                           pm: {
                             include: {
                               manualAccounts: true,
+                              settlementAccounts: { include: { manualAccount: true } },
                             },
                           },
                         },
@@ -461,13 +548,55 @@ export class GetSettlementTransactionsUseCase {
       const pr = tx.paymentRequest;
       let destination: any = null;
 
-      if (tx.isManual) {
+      const settlementSplits = (tx.settlementSplits || []).map((s: any) => ({
+        id: s.id,
+        uuid: s.uuid,
+        bankName: s.bankName || s.manualAccount?.bankName || 'Settlement Account',
+        bankCode: s.bankCode || s.manualAccount?.bankCode || '',
+        accountNumber: this.decryptSafe(s.accountNumber || s.manualAccount?.accountNumber),
+        accountName: this.decryptSafe(s.accountName || s.manualAccount?.accountName),
+        title: s.title || s.manualAccount?.title || null,
+        lineItemName: s.lineItemName || 'Rent',
+        percentage: Number(s.percentage),
+        amount: Number(s.amount),
+        settlementStatus: s.settlementStatus,
+        transferReference: s.transferReference || null,
+      }));
+
+      if (settlementSplits.length > 1) {
+        destination = {
+          bankName: `Split (${settlementSplits.length} Accounts)`,
+          bankCode: 'SPLIT',
+          accountNumber: settlementSplits.map((s: any) => `${s.percentage}%`).join(' / '),
+          accountName: `${settlementSplits.length} Settlement Recipient Accounts`,
+          type: 'SPLIT_PROFILE',
+        };
+      } else if (tx.isManual) {
         destination = {
           bankName: 'Manual Payment',
           bankCode: 'N/A',
           accountNumber: 'N/A',
           accountName: 'Settled Off-Platform (Direct)',
           type: 'MANUAL_PAYMENT',
+        };
+      } else if (settlementSplits.length === 1 && settlementSplits[0]) {
+        const singleSplit = settlementSplits[0];
+        destination = {
+          bankName: singleSplit.bankName,
+          bankCode: singleSplit.bankCode,
+          accountNumber: singleSplit.accountNumber,
+          accountName: singleSplit.accountName,
+          title: singleSplit.title,
+          type: 'MANUAL_ACCOUNT',
+        };
+      } else if (pr?.settlementAccount?.manualAccount) {
+        destination = {
+          bankName: pr.settlementAccount.manualAccount.bankName,
+          bankCode: pr.settlementAccount.manualAccount.bankCode,
+          accountNumber: this.decryptSafe(pr.settlementAccount.manualAccount.accountNumber),
+          accountName: this.decryptSafe(pr.settlementAccount.manualAccount.accountName),
+          title: pr.settlementAccount.title || null,
+          type: 'SETTLEMENT_ACCOUNT',
         };
       } else if (pr?.manualAccount) {
         destination = {
@@ -489,8 +618,11 @@ export class GetSettlementTransactionsUseCase {
         const prop = pr.userProperty;
         const manualAcc =
           prop.manualAccount ||
+          prop.pm?.settlementAccounts?.[0]?.manualAccount ||
           prop.pm?.manualAccounts?.[0] ||
+          prop.pmUnit?.property?.settlementAccount?.manualAccount ||
           prop.pmUnit?.property?.manualAccount ||
+          prop.pmUnit?.property?.pm?.settlementAccounts?.[0]?.manualAccount ||
           prop.pmUnit?.property?.pm?.manualAccounts?.[0];
 
         if (manualAcc) {
@@ -560,6 +692,7 @@ export class GetSettlementTransactionsUseCase {
             }
           : null,
         destination,
+        settlementSplits,
         dvaAccount,
         tenant: {
           id: tx.user?.id,
@@ -614,9 +747,16 @@ export class ResolveFlaggedSettlementUseCase {
         throw new BadRequestException('No payment request associated to bind this account to');
       }
 
+      const settlementAccount = await (this.prisma as any).upward_settlement_account?.findFirst({
+        where: { manualAccountId: dto.manualAccountId },
+      });
+
       const updatedPr = await this.prisma.upward_payment_request.update({
         where: { id: paymentRequestId },
-        data: { manualAccountId: dto.manualAccountId },
+        data: {
+          manualAccountId: dto.manualAccountId,
+          settlementAccountId: settlementAccount?.id ?? null,
+        },
       });
 
       return {

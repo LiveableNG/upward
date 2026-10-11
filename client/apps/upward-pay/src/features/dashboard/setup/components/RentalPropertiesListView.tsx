@@ -208,8 +208,10 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                   <div style={{ marginTop: 12 }}>
                     {prop.pmManualAccount || (prop.isVerified && (prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
                       <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)' }} />
-                        Bank configured by Property Manager
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)', flexShrink: 0 }} />
+                        <span>
+                          Bank: {(prop.pmManualAccount || prop.manualAccount)?.bankName || 'Bank'} · {(prop.pmManualAccount || prop.manualAccount)?.accountNumber}
+                        </span>
                       </div>
                     ) : (prop.isPlatformLinked || pAny.pmId || pAny.pm || pAny.managerId || pAny.manager || prop.managerName || prop.companyName || prop.isManaged) ? (
                       <div style={{ marginTop: 8 }}>

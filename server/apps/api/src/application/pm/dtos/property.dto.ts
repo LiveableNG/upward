@@ -194,6 +194,10 @@ export class UnitImportDto {
   @IsOptional()
   timeliness?: 'ON_TIME' | 'LATE';
 
+  @IsString()
+  @IsOptional()
+  paymentDate?: string;
+
   @IsBoolean()
   @IsOptional()
   rentReminderEnabled?: boolean;

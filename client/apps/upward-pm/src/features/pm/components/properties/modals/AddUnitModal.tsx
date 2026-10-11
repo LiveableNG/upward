@@ -9,6 +9,7 @@ import { PhoneInput } from '@/components/common/PhoneInput'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { cn } from '@/lib/utils'
+import { PaymentTimingField } from '../../common/PaymentTimingField'
 
 interface AddUnitModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ interface AddUnitModalProps {
     rentAmountPaid: string;
     isFullyPaid: boolean;
     timeliness?: 'ON_TIME' | 'LATE';
+    paymentDate?: string;
   };
   setFormData: (data: any) => void;
 }
@@ -543,40 +545,14 @@ export const AddUnitModal: React.FC<AddUnitModalProps> = ({
                   )}
 
                   {(formData.isFullyPaid || (parseFloat(formData.rentAmountPaid || '0') > 0)) && (
-                    <div className="apple-timeliness-panel animate-fade-in" style={{ marginTop: 12 }}>
-                      <label className="form-label" style={{ fontSize: 11, marginBottom: 6, display: 'block', fontWeight: 600 }}>
-                        Payment Timeliness Evaluation
-                      </label>
-                      <div className="apple-timeliness-grid">
-                        <button
-                          type="button"
-                          className={cn(
-                            "apple-timeliness-btn",
-                            (formData.timeliness || 'ON_TIME') === 'ON_TIME' && "apple-timeliness-btn--on-time"
-                          )}
-                          onClick={() => setFormData({ ...formData, timeliness: 'ON_TIME' })}
-                        >
-                          <Clock size={14} />
-                          <span>On-Time Payment</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={cn(
-                            "apple-timeliness-btn",
-                            formData.timeliness === 'LATE' && "apple-timeliness-btn--late"
-                          )}
-                          onClick={() => setFormData({ ...formData, timeliness: 'LATE' })}
-                        >
-                          <AlertTriangle size={14} />
-                          <span>Late Payment</span>
-                        </button>
-                      </div>
-                      <p className="apple-timeliness-hint">
-                        {(formData.timeliness || 'ON_TIME') === 'ON_TIME'
-                          ? 'This initial payment is evaluated On-Time. The tenant builds on-time rent credibility.'
-                          : 'This initial payment was received past due. The initial cycle will reflect Late for scoring.'}
-                      </p>
-                    </div>
+                    <PaymentTimingField
+                      paymentDate={formData.paymentDate}
+                      onPaymentDateChange={(date) => setFormData({ ...formData, paymentDate: date })}
+                      timeliness={formData.timeliness || 'ON_TIME'}
+                      onTimelinessChange={(timeliness) => setFormData({ ...formData, timeliness })}
+                      targetDueDate={formData.rentStartDate}
+                      title="Payment Timing & Evaluation"
+                    />
                   )}
                 </div>
               </div>

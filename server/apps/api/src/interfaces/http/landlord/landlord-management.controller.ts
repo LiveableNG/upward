@@ -257,6 +257,7 @@ export class LandlordManagementController {
       receiptDecision?: 'APPROVED' | 'REJECTED';
       timeliness?: 'ON_TIME' | 'LATE';
       rejectionReason?: string;
+      paymentDate?: string;
     }
   ) {
     const pmId = await this.getElevatedPmId(req);
@@ -277,6 +278,7 @@ export class LandlordManagementController {
       body.receiptDecision,
       body.timeliness,
       body.rejectionReason,
+      body.paymentDate,
     );
   }
 
