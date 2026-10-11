@@ -67,6 +67,7 @@ model upward_user {
   allianceReferrals     upward_alliance_referral[]
   allianceAuthoredRatings upward_alliance_rating[]       @relation("AllianceAuthorUser")
   allianceSubjectRatings  upward_alliance_rating[]       @relation("AllianceSubjectUser")
+  tenantNotes           upward_admin_tenant_note[]
 
   @@index([email])
   @@index([createdAt])
@@ -135,6 +136,7 @@ model upward_admin {
   bulkImportJobs                 upward_pm_bulk_import_job[]
   subscriptionLogs               upward_subscription_log[]
   assignedAllianceQualifications upward_alliance_pm_qualification[]
+  tenantNotes                    upward_admin_tenant_note[]
 
   @@index([email])
 }
@@ -177,4 +179,24 @@ model upward_email_sequence_log {
 
   @@index([userId])
   @@index([status, scheduledFor])
+}
+
+model upward_admin_tenant_note {
+  id         Int           @id @default(autoincrement())
+  uuid       String        @unique @default(uuid())
+  userId     Int
+  adminId    String?
+  adminEmail String?
+  adminName  String?
+  category   String        @default("PAID_OUTSIDE")
+  note       String        @db.Text
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user       upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admin      upward_admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
 }

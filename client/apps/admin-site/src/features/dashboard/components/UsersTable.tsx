@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, Copy, Trash2, Mail, UserPlus, Building2 } from 'lucide-react'
-import { DataTable, type ColumnDef, type ActionItem, StatusBadge } from '../../../components/common'
+import { Eye, Copy, Trash2, Mail, UserPlus, Building2, FileText, AlertCircle } from 'lucide-react'
+import { DataTable, type ColumnDef, type ActionItem, StatusBadge, TenantNotesModal } from '../../../components/common'
 
 import type { PropertySummary } from '../types'
 
@@ -31,6 +31,10 @@ export interface UnifiedUserRecord {
   rentExpiryDate?: string
   hearAboutUs?: string | null
   failureReason?: string
+  notesCount?: number
+  hasPaidOutsideNote?: boolean
+  latestNote?: string | null
+  adminNotes?: any[]
   rawRecord: any
 }
 
@@ -272,6 +276,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   const [sortKey, setSortKey] = useState<SortKey>('createdAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [openJoinedId, setOpenJoinedId] = useState<string | null>(null)
+  const [activeNotesTenant, setActiveNotesTenant] = useState<UnifiedUserRecord | null>(null)
 
   const handleSort = (key: string) => {
     const sKey = key as SortKey
@@ -373,7 +378,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       label: 'Name',
       sortable: true,
       render: (item) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, fontSize: '13px' }}>
             {item.firstName} {item.lastName}
           </span>
@@ -389,6 +394,26 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               }}
             >
               Waitlist
+            </span>
+          )}
+          {item.hasPaidOutsideNote && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '2px 6px',
+                fontSize: '9px',
+                fontWeight: 700,
+                borderRadius: '4px',
+                background: 'rgba(245, 158, 11, 0.12)',
+                color: '#d97706',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                letterSpacing: '0.02em',
+              }}
+              title="Paid outside the app — do not disturb"
+            >
+              <AlertCircle size={9} /> Paid Outside
             </span>
           )}
         </div>
@@ -706,6 +731,50 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             )
           },
         },
+    {
+      key: 'notes',
+      label: 'Notes',
+      sortable: false,
+      render: (item) => {
+        const count = item.notesCount || (item.adminNotes ? item.adminNotes.length : 0)
+        const isPaidOutside = item.hasPaidOutsideNote
+        return (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setActiveNotesTenant(item)
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '11px',
+              fontWeight: 600,
+              padding: '2px 8px',
+              borderRadius: '100px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              backgroundColor: isPaidOutside
+                ? 'rgba(245, 158, 11, 0.12)'
+                : count > 0
+                ? 'var(--surface-hover)'
+                : 'transparent',
+              color: isPaidOutside ? '#d97706' : count > 0 ? 'var(--text)' : 'var(--text-muted)',
+              border: isPaidOutside
+                ? '1px solid rgba(245, 158, 11, 0.35)'
+                : count > 0
+                ? '1px solid var(--border)'
+                : '1px dashed var(--border)',
+            }}
+            title={count > 0 ? (item.latestNote || `${count} note(s)`) : 'Add note'}
+          >
+            <FileText size={11} />
+            <span>{count > 0 ? `${count} Note${count > 1 ? 's' : ''}` : '+ Note'}</span>
+          </button>
+        )
+      },
+    },
   ]
 
   const bulkActions = isSuperadmin ? (
@@ -803,6 +872,11 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       })
     }
     actions.push({
+      label: 'Notes & Follow-up',
+      icon: <FileText size={14} />,
+      onClick: () => setActiveNotesTenant(item),
+    })
+    actions.push({
       label: 'Copy Email',
       icon: <Copy size={14} />,
       onClick: () => navigator.clipboard.writeText(item.email),
@@ -824,32 +898,41 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     return actions
   }
 
-  // Workaround for DataTable API requiring static actions, we dynamically create them via map and use a single flattened placeholder
-  // A better DataTable implementation would accept (item: T) => ActionItem<T>[] but for now we pass a flat list to map out inside
-  // Wait, the DataTable implementation we wrote earlier has `rowActions?: ActionItem<T>[]`. It evaluates them exactly statically.
-  // Actually, we can update our DataTable to support `(item: T) => ActionItem<T>[]` or `ActionItem<T>[]`.
-  // Let's quickly update DataTable.tsx if we want dynamic row actions.
-  // For now, let's just pass `buildRowActions(item)` mapped somehow? No, `rowActions` in DataTable is applied identically to every row right now.
-  // Let's just pass static actions that check the item condition in their render or `onClick` or we just update `DataTable.tsx` to handle a function.
-  // We will fix `DataTable` to accept `rowActions?: ActionItem<T>[] | ((item: T) => ActionItem<T>[])` later if needed.
-  // For now, let's just render all actions and filter inside their execution or pass them statically.
-  // I will just modify `DataTable` slightly via multi_replace in a bit. Let's pass undefined for now and I'll update it.
-
   return (
-    <DataTable
-      data={sorted}
-      columns={columns}
-      keyExtractor={(item) => item.uuid}
-      sortKey={sortKey}
-      sortDir={sortDir}
-      onSort={handleSort}
-      selectedIds={selectedUserIds}
-      onToggleSelectAll={toggleSelectAllUsers}
-      onToggleSelect={toggleSelectUser}
-      bulkActions={bulkActions}
-      emptyTitle="No records found"
-      emptyDescription="Try adjusting your search or filters."
-      rowActions={buildRowActions}
-    />
+    <>
+      <DataTable
+        data={sorted}
+        columns={columns}
+        keyExtractor={(item) => item.uuid}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        onSort={handleSort}
+        selectedIds={selectedUserIds}
+        onToggleSelectAll={toggleSelectAllUsers}
+        onToggleSelect={toggleSelectUser}
+        bulkActions={bulkActions}
+        emptyTitle="No records found"
+        emptyDescription="Try adjusting your search or filters."
+        rowActions={buildRowActions}
+      />
+      <TenantNotesModal
+        isOpen={!!activeNotesTenant}
+        onClose={() => setActiveNotesTenant(null)}
+        tenant={activeNotesTenant}
+        initialNotes={activeNotesTenant?.adminNotes}
+        onNotesUpdated={(uuid, updatedNotes) => {
+          if (activeNotesTenant && activeNotesTenant.uuid === uuid) {
+            activeNotesTenant.adminNotes = updatedNotes
+            activeNotesTenant.notesCount = updatedNotes.length
+            activeNotesTenant.hasPaidOutsideNote = updatedNotes.some(
+              (n) => n.category === 'PAID_OUTSIDE',
+            )
+            activeNotesTenant.latestNote = updatedNotes[0]?.note || null
+            setActiveNotesTenant({ ...activeNotesTenant })
+          }
+        }}
+        token={token}
+      />
+    </>
   )
 }

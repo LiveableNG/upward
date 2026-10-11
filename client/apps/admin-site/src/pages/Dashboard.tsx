@@ -399,6 +399,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
       rentEndDate: item.rentEndDate || item.rentExpiryDate || item.rawRecord?.rentEndDate || item.rawRecord?.rentExpiryDate || null,
       transactions: item.transactions || [],
       paymentRequests: item.paymentRequests || [],
+      notesCount: item.notesCount || (item.adminNotes ? item.adminNotes.length : 0),
+      hasPaidOutsideNote: item.hasPaidOutsideNote || false,
+      adminNotes: item.adminNotes || [],
     })
   }
 
@@ -479,6 +482,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         rentExpiryDate: u.rentExpiryDate || u.rentEndDate || undefined,
         hearAboutUs: u.hearAboutUs,
         pms: u.pms,
+        notesCount: u.notesCount || (u.adminNotes ? u.adminNotes.length : 0),
+        hasPaidOutsideNote: u.hasPaidOutsideNote || false,
+        latestNote: u.latestNote || null,
+        adminNotes: u.adminNotes || [],
         rawRecord: u,
       })
     })
@@ -512,6 +519,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         rentEndDate: i.rentEndDate || i.rentExpiryDate || null,
         rentExpiryDate: i.rentExpiryDate || i.rentEndDate || undefined,
         failureReason: i.failureReason,
+        notesCount: i.notesCount || (i.adminNotes ? i.adminNotes.length : 0),
+        hasPaidOutsideNote: i.hasPaidOutsideNote || false,
+        latestNote: i.latestNote || null,
+        adminNotes: i.adminNotes || [],
         rawRecord: i,
       })
     })

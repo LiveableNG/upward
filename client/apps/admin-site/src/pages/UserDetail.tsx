@@ -21,6 +21,9 @@ import {
   CheckCircle2,
   AlertCircle,
   CalendarRange,
+  Plus,
+  Trash2,
+  StickyNote,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -96,6 +99,16 @@ interface UserDetailData {
   transactions: any[]
   supportTickets: any[]
   activityLogs: any[]
+  adminNotes?: Array<{
+    id: number
+    uuid: string
+    userId: number
+    category: string
+    note: string
+    adminEmail?: string
+    adminName?: string
+    createdAt: string
+  }>
 }
 
 const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
@@ -134,12 +147,20 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
   // Savings Wallet
   const [updatingSavingsWallet, setUpdatingSavingsWallet] = useState(false)
 
+  // Admin Notes State
+  const [adminNotes, setAdminNotes] = useState<any[]>([])
+  const [newNoteText, setNewNoteText] = useState('')
+  const [newNoteCategory, setNewNoteCategory] = useState<'PAID_OUTSIDE' | 'GENERAL'>('PAID_OUTSIDE')
+  const [addingNote, setAddingNote] = useState(false)
+  const [deletingNoteUuid, setDeletingNoteUuid] = useState<string | null>(null)
+
   const fetchUserDetails = async () => {
     if (!uuid) return
     setLoading(true)
     try {
       const res = await apiService.get(`/admin/users/${uuid}`, token)
       setUser(res.data)
+      setAdminNotes(res.data.adminNotes || [])
       // Initialize edit fields
       setEditFirstName(res.data.firstName || '')
       setEditLastName(res.data.lastName || '')
@@ -227,6 +248,53 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
       setUpdatingSavingsWallet(false)
     }
   }
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!uuid || !newNoteText.trim()) return
+
+    setAddingNote(true)
+    try {
+      const res = await apiService.post(
+        `/admin/users/${uuid}/notes`,
+        {
+          note: newNoteText.trim(),
+          category: newNoteCategory,
+        },
+        token,
+      )
+
+      const created = res.data || res
+      setAdminNotes((prev) => [created, ...prev])
+      setNewNoteText('')
+      setNewNoteCategory('PAID_OUTSIDE')
+      showToast('Admin note recorded successfully')
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to record note', true)
+    } finally {
+      setAddingNote(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteUuid: string) => {
+    if (!noteUuid) return
+    setDeletingNoteUuid(noteUuid)
+    try {
+      await apiService.delete(`/admin/users/notes/${noteUuid}`, token)
+      setAdminNotes((prev) => prev.filter((n) => n.uuid !== noteUuid))
+      showToast('Note deleted')
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to delete note', true)
+    } finally {
+      setDeletingNoteUuid(null)
+    }
+  }
+
+  const hasPaidOutside = useMemo(() => {
+    return adminNotes.some((n: any) => n.category === 'PAID_OUTSIDE')
+  }, [adminNotes])
 
   const transactionColumns: ColumnDef<any>[] = [
     {
@@ -384,6 +452,34 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
         )}
       </div>
 
+      {/* Prominent Paid Outside Alert Banner */}
+      {hasPaidOutside && (
+        <div
+          style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '12px',
+            padding: '14px 18px',
+            color: '#92400e',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            marginBottom: '24px',
+            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.1)',
+          }}
+        >
+          <AlertCircle size={22} style={{ color: '#d97706', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: '13px', color: '#78350f', letterSpacing: '0.02em' }}>
+              PAID OUTSIDE APP — DO NOT DISTURB WITH RENT REMINDERS
+            </div>
+            <div style={{ fontSize: '12px', color: '#92400e', marginTop: '2px', lineHeight: 1.4 }}>
+              This tenant has already made payment directly to the property manager or platform outside the app. Avoid manual collection calls or sending redundant payment alerts.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           display: 'grid',
@@ -426,20 +522,41 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
             <h3 style={{ margin: '0 0 6px 0', fontSize: '18px' }}>
               {user.firstName ? `${user.firstName} ${user.lastName}` : 'Invite Pending'}
             </h3>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '4px 10px',
-                borderRadius: '12px',
-                backgroundColor:
-                  user.type === 'TENANT' ? 'var(--success-faint)' : 'var(--warning-faint)',
-                color: user.type === 'TENANT' ? 'var(--success)' : 'var(--warning)',
-                textTransform: 'uppercase',
-              }}
-            >
-              {user.type === 'TENANT' ? 'Onboarded Tenant' : 'Shadow / Guest'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  backgroundColor:
+                    user.type === 'TENANT' ? 'var(--success-faint)' : 'var(--warning-faint)',
+                  color: user.type === 'TENANT' ? 'var(--success)' : 'var(--warning)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {user.type === 'TENANT' ? 'Onboarded Tenant' : 'Shadow / Guest'}
+              </span>
+              {hasPaidOutside && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    color: '#d97706',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    textTransform: 'uppercase',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <AlertCircle size={11} /> Paid Outside
+                </span>
+              )}
+            </div>
 
             {/* Clean Score Card inside Identity block */}
             {user.upwardScore && (
@@ -675,6 +792,267 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
         {/* RIGHT COLUMN: Details list & Logs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Admin Notes & Follow-up History */}
+          <div className="card" style={{ padding: '24px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <StickyNote size={18} style={{ color: 'var(--accent)' }} />
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>
+                  Admin Notes & Follow-up History
+                </h4>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '100px',
+                    backgroundColor: 'var(--surface-hover)',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  {adminNotes.length}
+                </span>
+              </div>
+              {hasPaidOutside && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '100px',
+                    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                    color: '#d97706',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <AlertCircle size={12} /> Paid Outside App
+                </span>
+              )}
+            </div>
+
+            {/* Quick Add Form */}
+            <form
+              onSubmit={handleAddNote}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                marginBottom: '18px',
+                background: 'var(--surface-hover)',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  Category:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setNewNoteCategory('PAID_OUTSIDE')}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '100px',
+                    cursor: 'pointer',
+                    backgroundColor:
+                      newNoteCategory === 'PAID_OUTSIDE' ? '#f59e0b' : 'transparent',
+                    color: newNoteCategory === 'PAID_OUTSIDE' ? '#ffffff' : 'var(--text-muted)',
+                    border:
+                      newNoteCategory === 'PAID_OUTSIDE'
+                        ? '1px solid #f59e0b'
+                        : '1px solid var(--border)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Paid Outside App
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewNoteCategory('GENERAL')}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '100px',
+                    cursor: 'pointer',
+                    backgroundColor:
+                      newNoteCategory === 'GENERAL' ? 'var(--text)' : 'transparent',
+                    color:
+                      newNoteCategory === 'GENERAL' ? 'var(--surface)' : 'var(--text-muted)',
+                    border:
+                      newNoteCategory === 'GENERAL'
+                        ? '1px solid var(--text)'
+                        : '1px solid var(--border)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  General Note
+                </button>
+              </div>
+
+              <div>
+                <textarea
+                  value={newNoteText}
+                  onChange={(e) => setNewNoteText(e.target.value)}
+                  placeholder="Record payment details, external receipt info, or admin follow-up notes..."
+                  rows={3}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--surface)',
+                    color: 'var(--text)',
+                    fontSize: '13px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="submit"
+                  disabled={addingNote || !newNoteText.trim()}
+                  className="btn btn-primary"
+                  style={{
+                    height: '36px',
+                    padding: '0 16px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Plus size={14} /> {addingNote ? 'Saving...' : 'Add Note'}
+                </button>
+              </div>
+            </form>
+
+            {/* Note Thread List */}
+            {adminNotes.length === 0 ? (
+              <div
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '13px',
+                  textAlign: 'center',
+                  padding: '20px',
+                  border: '1px dashed var(--border)',
+                  borderRadius: '10px',
+                }}
+              >
+                No admin notes recorded for this tenant yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto' }}>
+                {adminNotes.map((n: any) => {
+                  const isPo = n.category === 'PAID_OUTSIDE'
+                  return (
+                    <div
+                      key={n.uuid || n.id}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: '10px',
+                        background: 'var(--surface)',
+                        border: isPo
+                          ? '1px solid rgba(245, 158, 11, 0.35)'
+                          : '1px solid var(--border)',
+                        boxShadow: isPo ? '0 1px 4px rgba(245, 158, 11, 0.05)' : 'none',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '100px',
+                              backgroundColor: isPo
+                                ? 'rgba(245, 158, 11, 0.12)'
+                                : 'var(--surface-hover)',
+                              color: isPo ? '#d97706' : 'var(--text-secondary)',
+                              border: isPo
+                                ? '1px solid rgba(245, 158, 11, 0.25)'
+                                : '1px solid var(--border)',
+                            }}
+                          >
+                            {isPo ? 'Paid Outside' : 'General'}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            by <strong>{n.adminEmail || 'Admin'}</strong>
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>•</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {new Date(n.createdAt).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteNote(n.uuid)}
+                          disabled={deletingNoteUuid === n.uuid}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--text-muted)',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                          title="Delete note"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          color: 'var(--text)',
+                          whiteSpace: 'pre-wrap',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {n.note}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Edit Profile Details */}
           {isDeveloper && (
             <div className="card" style={{ padding: '24px' }}>

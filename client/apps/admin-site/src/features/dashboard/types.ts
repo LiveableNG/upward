@@ -99,6 +99,10 @@ export interface SignedUpRecord {
   lastPaidAt?: string | null
   transactions?: any[]
   paymentRequests?: any[]
+  notesCount?: number
+  hasPaidOutsideNote?: boolean
+  latestNote?: string | null
+  adminNotes?: any[]
 }
 
 export interface InvitedRecord {
@@ -135,6 +139,10 @@ export interface InvitedRecord {
   lastPaidAt?: string | null
   transactions?: any[]
   paymentRequests?: any[]
+  notesCount?: number
+  hasPaidOutsideNote?: boolean
+  latestNote?: string | null
+  adminNotes?: any[]
 }
 
 export interface PmRecord {

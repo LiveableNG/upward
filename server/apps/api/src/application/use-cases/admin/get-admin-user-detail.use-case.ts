@@ -321,6 +321,10 @@ export class GetAdminUserDetailUseCase {
         transactions: decryptedUser.transactions,
         supportTickets: decryptedUser.supportTickets,
         activityLogs,
+        adminNotes: await (this.prisma as any).upward_admin_tenant_note.findMany({
+          where: { userId: u.id },
+          orderBy: { createdAt: 'desc' },
+        }),
       }
     }
 
@@ -395,6 +399,7 @@ export class GetAdminUserDetailUseCase {
       transactions: [],
       supportTickets: [],
       activityLogs,
+      adminNotes: [],
     }
   }
 }

@@ -13,6 +13,7 @@ export class GetInvitedMetricsUseCase {
     waitlistEmails: Set<string> = new Set(),
     inviteChannelMap: Map<string, string> = new Map(),
     scoreMap: Map<string, { score: number; band: string; color: string }> = new Map(),
+    notesByUserId: Map<number, any[]> = new Map(),
   ) {
     const invitedUserDirectory = allUsers
       .filter((u) => u.isFromInvite)
@@ -234,6 +235,12 @@ export class GetInvitedMetricsUseCase {
           lastPaidAt: lastPaidAt ? (lastPaidAt as Date).toISOString() : null,
           transactions: u.transactions || [],
           paymentRequests: u.paymentRequests || [],
+          adminNotes: notesByUserId.get(u.id) || [],
+          notesCount: (notesByUserId.get(u.id) || []).length,
+          hasPaidOutsideNote: (notesByUserId.get(u.id) || []).some(
+            (n: any) => n.category === 'PAID_OUTSIDE',
+          ),
+          latestNote: (notesByUserId.get(u.id) || [])[0]?.note || null,
         }
       })
 
@@ -342,7 +349,11 @@ export class GetInvitedMetricsUseCase {
           origin,
           hasPassword: false,
           isSynced: false,
-          failureReason: (!email && !phone) ? 'Failed: No contact details provided' : 'Invitation Pending or Failed'
+          failureReason: (!email && !phone) ? 'Failed: No contact details provided' : 'Invitation Pending or Failed',
+          adminNotes: [],
+          notesCount: 0,
+          hasPaidOutsideNote: false,
+          latestNote: null,
         }
       })
 
