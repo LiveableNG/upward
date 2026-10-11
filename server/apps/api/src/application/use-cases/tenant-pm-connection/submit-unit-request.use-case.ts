@@ -302,20 +302,6 @@ export class SubmitUnitRequestUseCase {
 
     if (pm) {
       propertyBaseData.pm = { connect: { id: pm.id } };
-      const effectiveManualAccountId =
-        (await this.prisma.upward_manual_account.findFirst({
-          where: { pmId: pm.id, isPrimary: true },
-          select: { id: true },
-        }))?.id ||
-        (await this.prisma.upward_manual_account.findFirst({
-          where: { pmId: pm.id },
-          orderBy: { createdAt: 'asc' },
-          select: { id: true },
-        }))?.id;
-
-      if (effectiveManualAccountId) {
-        propertyBaseData.manualAccount = { connect: { id: effectiveManualAccountId } };
-      }
     }
     if (matchedCompany) {
       propertyBaseData.company = { connect: { id: matchedCompany.id } };
@@ -373,23 +359,43 @@ export class SubmitUnitRequestUseCase {
       });
     }
 
-    // Upsert manual payment account for self-managed property if paymentDetails provided
-    if (savedProperty?.id && paymentDetails?.accountNumber && paymentDetails?.bankCode) {
+    // Upsert manual payment account ONLY for self-managed properties (NEVER overwrite PM organization accounts)
+    if (!pm && savedProperty?.id && paymentDetails?.accountNumber && paymentDetails?.bankCode) {
       try {
         const existingProperty = await this.prisma.upward_user_property.findUnique({
           where: { id: savedProperty.id },
           select: { id: true, manualAccountId: true }
         })
         if (existingProperty?.manualAccountId) {
-          await this.prisma.upward_manual_account.update({
+          const currentAcc = await this.prisma.upward_manual_account.findUnique({
             where: { id: existingProperty.manualAccountId },
-            data: {
-              accountNumber: paymentDetails.accountNumber,
-              accountName: paymentDetails.accountName || 'Landlord',
-              bankName: paymentDetails.bankName || '',
-              bankCode: paymentDetails.bankCode,
-            }
+            select: { id: true, pmId: true }
           })
+          if (currentAcc && currentAcc.pmId === null) {
+            await this.prisma.upward_manual_account.update({
+              where: { id: currentAcc.id },
+              data: {
+                accountNumber: paymentDetails.accountNumber,
+                accountName: paymentDetails.accountName || 'Landlord',
+                bankName: paymentDetails.bankName || '',
+                bankCode: paymentDetails.bankCode,
+              }
+            })
+          } else {
+            const account = await this.prisma.upward_manual_account.create({
+              data: {
+                accountNumber: paymentDetails.accountNumber,
+                accountName: paymentDetails.accountName || 'Landlord',
+                bankName: paymentDetails.bankName || '',
+                bankCode: paymentDetails.bankCode,
+                pmId: null,
+              }
+            })
+            await this.prisma.upward_user_property.update({
+              where: { id: savedProperty.id },
+              data: { manualAccountId: account.id }
+            })
+          }
         } else {
           const account = await this.prisma.upward_manual_account.create({
             data: {
@@ -397,6 +403,7 @@ export class SubmitUnitRequestUseCase {
               accountName: paymentDetails.accountName || 'Landlord',
               bankName: paymentDetails.bankName || '',
               bankCode: paymentDetails.bankCode,
+              pmId: null,
             }
           })
           await this.prisma.upward_user_property.update({

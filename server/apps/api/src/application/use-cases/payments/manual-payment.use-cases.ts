@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
+import { ForbiddenException, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { RecordTransactionUseCase } from './payment.use-cases'
@@ -20,78 +20,107 @@ export class AddManualAccountUseCase {
     bankCode?: string
     userPropertyId?: number
     pmPropertyId?: number
+    userId?: string | number
+    isPm?: boolean
   }) {
     if (!data.userPropertyId && !data.pmPropertyId) {
       throw new Error('Must provide either userPropertyId or pmPropertyId')
     }
 
+    const cleanAccountNumber = data.accountNumber?.trim()
+    const cleanBankCode = data.bankCode?.trim()
+
+    // Pure bank registry deduplication helper
+    const resolveRegistryAccount = async (pmIdForLegacy?: number | null) => {
+      let existing = await this.prisma.upward_manual_account.findFirst({
+        where: {
+          accountNumber: cleanAccountNumber,
+          bankCode: cleanBankCode || undefined,
+        },
+      })
+
+      if (existing) {
+        if (data.accountName && existing.accountName !== data.accountName) {
+          existing = await this.prisma.upward_manual_account.update({
+            where: { id: existing.id },
+            data: {
+              accountName: data.accountName,
+              bankName: data.bankName || existing.bankName,
+            },
+          })
+        }
+        return existing
+      }
+
+      return this.prisma.upward_manual_account.create({
+        data: {
+          accountNumber: cleanAccountNumber,
+          accountName: data.accountName,
+          bankName: data.bankName,
+          bankCode: cleanBankCode,
+          pmId: pmIdForLegacy ?? null,
+        },
+      })
+    }
+
     if (data.userPropertyId) {
       const prop = await this.prisma.upward_user_property.findUnique({
         where: { id: data.userPropertyId },
-        select: { id: true, manualAccountId: true }
+        select: { id: true, userId: true, pmId: true, pmUnitId: true, manualAccountId: true, isVerified: true },
       })
       if (!prop) throw new NotFoundException('User property not found')
 
-      if ((prop as any)?.manualAccountId) {
-        return this.prisma.upward_manual_account.update({
-          where: { id: (prop as any).manualAccountId },
-          data: {
-            accountNumber: data.accountNumber,
-            accountName: data.accountName,
-            bankName: data.bankName,
-            bankCode: data.bankCode,
-          }
-        })
-      } else {
-        const account = await this.prisma.upward_manual_account.create({
-          data: {
-            accountNumber: data.accountNumber,
-            accountName: data.accountName,
-            bankName: data.bankName,
-            bankCode: data.bankCode,
-          }
-        })
-        await (this.prisma as any).upward_user_property.update({
-          where: { id: data.userPropertyId },
-          data: { manualAccountId: account.id }
-        })
-        return account
+      // SECURITY: If property is managed by a PM or unit is synced, tenant CANNOT override payout routing
+      if (prop.pmId || prop.pmUnitId) {
+        throw new ForbiddenException('Cannot override payment account for a property managed by a Property Manager.')
       }
+
+      const account = await resolveRegistryAccount(null)
+
+      await (this.prisma as any).upward_user_property.update({
+        where: { id: data.userPropertyId },
+        data: { manualAccountId: account.id },
+      })
+
+      return account
     }
 
     if (data.pmPropertyId) {
       const pmProp = await this.prisma.upward_pm_property.findUnique({
         where: { id: data.pmPropertyId },
-        select: { id: true, manualAccountId: true, pmId: true } as any
+        select: { id: true, manualAccountId: true, pmId: true, settlementAccountId: true } as any,
       })
       if (!pmProp) throw new NotFoundException('PM property not found')
 
-      if ((pmProp as any)?.manualAccountId) {
-        return this.prisma.upward_manual_account.update({
-          where: { id: (pmProp as any).manualAccountId },
-          data: {
-            accountNumber: data.accountNumber,
-            accountName: data.accountName,
-            bankName: data.bankName,
-            bankCode: data.bankCode,
-          }
+      const account = await resolveRegistryAccount((pmProp as any)?.pmId ?? null)
+
+      let settlementAccId = (pmProp as any)?.settlementAccountId
+      if ((pmProp as any)?.pmId) {
+        let settlementAcc = await (this.prisma as any).upward_settlement_account.findFirst({
+          where: { manualAccountId: account.id, pmId: (pmProp as any).pmId },
         })
-      } else {
-        const account = await this.prisma.upward_manual_account.create({
-          data: {
-            accountNumber: data.accountNumber,
-            accountName: data.accountName,
-            bankName: data.bankName,
-            bankCode: data.bankCode,
-            pmId: (pmProp as any)?.pmId ?? null,
-          }
-        })
-        await this.prisma.upward_pm_property.update({
-          where: { id: data.pmPropertyId },
-          data: { manualAccountId: account.id }
-        })
-        return account
+        if (!settlementAcc) {
+          settlementAcc = await (this.prisma as any).upward_settlement_account.create({
+            data: {
+              manualAccountId: account.id,
+              pmId: (pmProp as any).pmId,
+              isPrimary: false,
+              title: `${data.bankName} Account`,
+            },
+          })
+        }
+        settlementAccId = settlementAcc.id
       }
+
+      await (this.prisma as any).upward_pm_property.update({
+        where: { id: data.pmPropertyId },
+        data: {
+          manualAccountId: account.id,
+          settlementAccountId: settlementAccId || undefined,
+        },
+      })
+
+      return account
     }
   }
 }

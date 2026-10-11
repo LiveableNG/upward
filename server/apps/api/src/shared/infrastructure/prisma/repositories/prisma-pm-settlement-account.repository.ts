@@ -12,15 +12,16 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   constructor(private readonly prisma: PrismaService) {}
 
   private mapAccount(record: any): SettlementAccountEntity {
+    const bankDetails = record.manualAccount || record;
     return {
       id: record.id,
       uuid: record.uuid,
-      accountNumber: record.accountNumber,
-      accountName: record.accountName,
-      bankName: record.bankName,
-      bankCode: record.bankCode,
-      title: record.title,
-      pmId: record.pmId,
+      accountNumber: bankDetails.accountNumber || '',
+      accountName: bankDetails.accountName || '',
+      bankName: bankDetails.bankName || '',
+      bankCode: bankDetails.bankCode || null,
+      title: record.title || null,
+      pmId: record.pmId ?? null,
       isPrimary: Boolean(record.isPrimary),
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
@@ -33,9 +34,10 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   }
 
   async findByPmId(pmId: number): Promise<SettlementAccountEntity[]> {
-    const records = await (this.prisma as any).upward_manual_account.findMany({
+    const records = await (this.prisma as any).upward_settlement_account.findMany({
       where: { pmId },
       include: {
+        manualAccount: true,
         pmProperties: {
           select: { id: true, uuid: true, name: true },
         },
@@ -49,9 +51,10 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   }
 
   async findByUuid(uuid: string): Promise<SettlementAccountEntity | null> {
-    const record = await (this.prisma as any).upward_manual_account.findUnique({
+    const record = await (this.prisma as any).upward_settlement_account.findUnique({
       where: { uuid },
       include: {
+        manualAccount: true,
         pmProperties: {
           select: { id: true, uuid: true, name: true },
         },
@@ -61,9 +64,10 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   }
 
   async findById(id: number): Promise<SettlementAccountEntity | null> {
-    const record = await (this.prisma as any).upward_manual_account.findUnique({
+    const record = await (this.prisma as any).upward_settlement_account.findUnique({
       where: { id },
       include: {
+        manualAccount: true,
         pmProperties: {
           select: { id: true, uuid: true, name: true },
         },
@@ -73,9 +77,10 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   }
 
   async findPrimaryByPmId(pmId: number): Promise<SettlementAccountEntity | null> {
-    const record = await (this.prisma as any).upward_manual_account.findFirst({
+    const record = await (this.prisma as any).upward_settlement_account.findFirst({
       where: { pmId, isPrimary: true },
       include: {
+        manualAccount: true,
         pmProperties: {
           select: { id: true, uuid: true, name: true },
         },
@@ -85,63 +90,150 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   }
 
   async create(data: CreateSettlementAccountData): Promise<SettlementAccountEntity> {
-    const created = await (this.prisma as any).upward_manual_account.create({
-      data: {
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        bankName: data.bankName,
-        bankCode: data.bankCode,
-        title: data.title,
-        pmId: data.pmId,
-        isPrimary: data.isPrimary || false,
-      },
-      include: {
-        pmProperties: {
-          select: { id: true, uuid: true, name: true },
+    return this.prisma.$transaction(async (tx: any) => {
+      // 1. Find or create pure bank details in upward_manual_account
+      let manualAccount = await tx.upward_manual_account.findFirst({
+        where: {
+          accountNumber: data.accountNumber,
+          bankCode: data.bankCode || undefined,
         },
-      },
+      });
+
+      if (!manualAccount) {
+        manualAccount = await tx.upward_manual_account.create({
+          data: {
+            accountNumber: data.accountNumber,
+            accountName: data.accountName,
+            bankName: data.bankName,
+            bankCode: data.bankCode,
+            title: data.title,
+            pmId: data.pmId,
+            isPrimary: data.isPrimary || false,
+          },
+        });
+      }
+
+      // Check if this is the first account for this PM
+      const count = await tx.upward_settlement_account.count({
+        where: { pmId: data.pmId },
+      });
+      const shouldBePrimary = data.isPrimary || count === 0;
+
+      if (shouldBePrimary) {
+        await tx.upward_settlement_account.updateMany({
+          where: { pmId: data.pmId },
+          data: { isPrimary: false },
+        });
+      }
+
+      // 2. Create organization settlement account
+      const settlementAccount = await tx.upward_settlement_account.create({
+        data: {
+          manualAccountId: manualAccount.id,
+          pmId: data.pmId,
+          isPrimary: shouldBePrimary,
+          title: data.title || (shouldBePrimary ? 'Primary Settlement Account' : 'Settlement Account'),
+        },
+        include: {
+          manualAccount: true,
+          pmProperties: {
+            select: { id: true, uuid: true, name: true },
+          },
+        },
+      });
+
+      // 3. Sync PM profile if primary
+      if (shouldBePrimary) {
+        await tx.upward_property_manager.update({
+          where: { id: data.pmId },
+          data: {
+            bankName: manualAccount.bankName,
+            bankCode: manualAccount.bankCode,
+            accountNumber: manualAccount.accountNumber,
+            accountName: manualAccount.accountName,
+          },
+        });
+      }
+
+      return this.mapAccount(settlementAccount);
     });
-    return this.mapAccount(created);
   }
 
   async update(id: number, data: UpdateSettlementAccountData): Promise<SettlementAccountEntity> {
-    const updated = await (this.prisma as any).upward_manual_account.update({
-      where: { id },
-      data: {
-        accountNumber: data.accountNumber,
-        accountName: data.accountName,
-        bankName: data.bankName,
-        bankCode: data.bankCode,
-        title: data.title,
-        isPrimary: data.isPrimary,
-      },
-      include: {
-        pmProperties: {
-          select: { id: true, uuid: true, name: true },
+    return this.prisma.$transaction(async (tx: any) => {
+      const existing = await tx.upward_settlement_account.findUnique({
+        where: { id },
+        include: { manualAccount: true },
+      });
+      if (!existing) {
+        throw new NotFoundException('Settlement account not found');
+      }
+
+      // Update bank details in manualAccount if provided
+      if (data.accountNumber || data.accountName || data.bankName || data.bankCode) {
+        await tx.upward_manual_account.update({
+          where: { id: existing.manualAccountId },
+          data: {
+            accountNumber: data.accountNumber ?? existing.manualAccount.accountNumber,
+            accountName: data.accountName ?? existing.manualAccount.accountName,
+            bankName: data.bankName ?? existing.manualAccount.bankName,
+            bankCode: data.bankCode ?? existing.manualAccount.bankCode,
+            title: data.title ?? existing.title,
+          },
+        });
+      }
+
+      if (data.isPrimary && existing.pmId) {
+        await tx.upward_settlement_account.updateMany({
+          where: { pmId: existing.pmId, id: { not: id } },
+          data: { isPrimary: false },
+        });
+      }
+
+      const updated = await tx.upward_settlement_account.update({
+        where: { id },
+        data: {
+          title: data.title !== undefined ? data.title : existing.title,
+          isPrimary: data.isPrimary !== undefined ? data.isPrimary : existing.isPrimary,
         },
-      },
+        include: {
+          manualAccount: true,
+          pmProperties: {
+            select: { id: true, uuid: true, name: true },
+          },
+        },
+      });
+
+      if (updated.isPrimary && updated.pmId) {
+        const ma = updated.manualAccount;
+        await tx.upward_property_manager.update({
+          where: { id: updated.pmId },
+          data: {
+            bankName: ma.bankName,
+            bankCode: ma.bankCode,
+            accountNumber: ma.accountNumber,
+            accountName: ma.accountName,
+          },
+        });
+      }
+
+      return this.mapAccount(updated);
     });
-    return this.mapAccount(updated);
   }
 
   async delete(id: number): Promise<boolean> {
+    const existing = await (this.prisma as any).upward_settlement_account.findUnique({
+      where: { id },
+    });
+    if (!existing) return true;
+
+    // Unlink any properties assigned to this settlement account
     await (this.prisma as any).upward_pm_property.updateMany({
-      where: { manualAccountId: id },
-      data: { manualAccountId: null },
+      where: { settlementAccountId: id },
+      data: { settlementAccountId: null },
     });
-    await (this.prisma as any).upward_user_property.updateMany({
-      where: { manualAccountId: id },
-      data: { manualAccountId: null },
-    });
-    await (this.prisma as any).upward_pm_payment_request.updateMany({
-      where: { manualAccountId: id },
-      data: { manualAccountId: null },
-    });
-    await (this.prisma as any).upward_payment_request.updateMany({
-      where: { manualAccountId: id },
-      data: { manualAccountId: null },
-    });
-    await (this.prisma as any).upward_manual_account.delete({
+
+    await (this.prisma as any).upward_settlement_account.delete({
       where: { id },
     });
     return true;
@@ -150,16 +242,17 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
   async setPrimary(id: number, pmId: number): Promise<SettlementAccountEntity> {
     return this.prisma.$transaction(async (tx: any) => {
       // Unset all other accounts for this pmId
-      await tx.upward_manual_account.updateMany({
+      await tx.upward_settlement_account.updateMany({
         where: { pmId, id: { not: id } },
         data: { isPrimary: false },
       });
 
       // Set target account as primary
-      const primary = await tx.upward_manual_account.update({
+      const primary = await tx.upward_settlement_account.update({
         where: { id },
         data: { isPrimary: true },
         include: {
+          manualAccount: true,
           pmProperties: {
             select: { id: true, uuid: true, name: true },
           },
@@ -167,13 +260,14 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
       });
 
       // Sync PM profile
+      const ma = primary.manualAccount;
       await tx.upward_property_manager.update({
         where: { id: pmId },
         data: {
-          bankName: primary.bankName,
-          bankCode: primary.bankCode,
-          accountNumber: primary.accountNumber,
-          accountName: primary.accountName,
+          bankName: ma.bankName,
+          bankCode: ma.bankCode,
+          accountNumber: ma.accountNumber,
+          accountName: ma.accountName,
         },
       });
 
@@ -190,29 +284,16 @@ export class PrismaPmSettlementAccountRepository implements ISettlementAccountRe
 
     // Unlink old properties for this account that are not in the new set
     await (this.prisma as any).upward_pm_property.updateMany({
-      where: { manualAccountId: accountId, id: { notIn: propertyIds } },
-      data: { manualAccountId: null },
+      where: { settlementAccountId: accountId, id: { notIn: propertyIds } },
+      data: { settlementAccountId: null },
     });
 
     // Link new ones
     if (propertyIds.length > 0) {
       await (this.prisma as any).upward_pm_property.updateMany({
         where: { id: { in: propertyIds } },
-        data: { manualAccountId: accountId },
+        data: { settlementAccountId: accountId },
       });
-
-      // Also propagate to linked user properties if any
-      const pmUnits = await (this.prisma as any).upward_pm_unit.findMany({
-        where: { propertyId: { in: propertyIds } },
-        select: { id: true },
-      });
-      const pmUnitIds = pmUnits.map((u: any) => u.id);
-      if (pmUnitIds.length > 0) {
-        await (this.prisma as any).upward_user_property.updateMany({
-          where: { pmUnitId: { in: pmUnitIds } },
-          data: { manualAccountId: accountId },
-        });
-      }
     }
 
     return true;

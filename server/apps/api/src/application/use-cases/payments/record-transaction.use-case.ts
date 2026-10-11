@@ -328,11 +328,15 @@ export class RecordTransactionUseCase {
                             items: { include: { manualAccount: true } }
                           }
                         },
-                        manualAccount: true
+                        manualAccount: true,
+                        settlementAccount: {
+                          include: { manualAccount: true }
+                        }
                       }
                     }
                   }
-                }
+                },
+                manualAccount: true
               }
             })
             if (splitRules.length === 0) {
@@ -350,14 +354,39 @@ export class RecordTransactionUseCase {
           }
 
           // Resolve default / fallback account (used for non-Rent line items or when no split exists)
-          let fallbackAccount = pr?.manualAccount || propWithPm?.pmUnit?.property?.manualAccount
+          let fallbackAccount =
+            pr?.manualAccount ||
+            propWithPm?.pmUnit?.property?.settlementAccount?.manualAccount ||
+            propWithPm?.pmUnit?.property?.manualAccount;
+
           if (!fallbackAccount) {
-            const targetPmId = propWithPm?.pmUnit?.property?.pmId || pr?.pmId
+            const targetPmId = propWithPm?.pmUnit?.property?.pmId || pr?.pmId || propWithPm?.pmId;
             if (targetPmId) {
-              fallbackAccount = await txClient.upward_manual_account.findFirst({
-                where: { pmId: targetPmId, isPrimary: true }
-              })
+              const pmSettlementAcc = await txClient.upward_settlement_account.findFirst({
+                where: { pmId: targetPmId, isPrimary: true },
+                include: { manualAccount: true }
+              });
+              if (pmSettlementAcc?.manualAccount) {
+                fallbackAccount = pmSettlementAcc.manualAccount;
+              }
             }
+          }
+
+          if (!fallbackAccount) {
+            const targetCompanyId = propWithPm?.companyId || pr?.companyId;
+            if (targetCompanyId) {
+              const compSettlementAcc = await txClient.upward_settlement_account.findFirst({
+                where: { externalCompanyId: targetCompanyId, isPrimary: true },
+                include: { manualAccount: true }
+              });
+              if (compSettlementAcc?.manualAccount) {
+                fallbackAccount = compSettlementAcc.manualAccount;
+              }
+            }
+          }
+
+          if (!fallbackAccount && propWithPm?.manualAccount) {
+            fallbackAccount = propWithPm.manualAccount;
           }
 
           const settleableAllocated = (distribution.allocatedItems || []).filter((item: any) => {

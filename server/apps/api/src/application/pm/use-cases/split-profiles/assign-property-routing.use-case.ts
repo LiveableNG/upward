@@ -31,6 +31,7 @@ export class AssignPropertyRoutingUseCase {
 
     let targetSplitProfileId: number | null = null;
     let targetManualAccountId: number | null = null;
+    let targetSettlementAccountId: number | null = null;
     let routingSummary = '';
 
     if (dto.routingType === 'PROFILE') {
@@ -45,23 +46,27 @@ export class AssignPropertyRoutingUseCase {
       }
       targetSplitProfileId = profile.id;
       targetManualAccountId = null;
+      targetSettlementAccountId = null;
       routingSummary = `Split profile "${profile.name}"`;
     } else if (dto.routingType === 'ACCOUNT') {
       if (!dto.targetUuid) {
         throw new BadRequestException('Settlement account UUID is required for ACCOUNT routing');
       }
-      const account = await (this.prisma as any).upward_manual_account.findFirst({
+      const account = await (this.prisma as any).upward_settlement_account.findFirst({
         where: { uuid: dto.targetUuid, pmId },
+        include: { manualAccount: true },
       });
       if (!account) {
         throw new NotFoundException('Settlement account not found');
       }
-      targetManualAccountId = account.id;
+      targetManualAccountId = account.manualAccountId;
+      targetSettlementAccountId = account.id;
       targetSplitProfileId = null;
-      routingSummary = `Direct account "${account.bankName}" (100% of Rent)`;
+      routingSummary = `Direct account "${account.manualAccount?.bankName || account.title}" (100% of Rent)`;
     } else if (dto.routingType === 'DEFAULT') {
       targetSplitProfileId = null;
       targetManualAccountId = null;
+      targetSettlementAccountId = null;
       routingSummary = 'Default Account Fallback';
     } else {
       throw new BadRequestException(`Invalid routing type: ${dto.routingType}`);
@@ -74,6 +79,7 @@ export class AssignPropertyRoutingUseCase {
         data: {
           splitProfileId: targetSplitProfileId,
           manualAccountId: targetManualAccountId,
+          settlementAccountId: targetSettlementAccountId,
         },
       });
 
