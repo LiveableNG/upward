@@ -282,6 +282,17 @@ export function SettlementSplitSection({
     )
   }, [properties, attachSearchQuery])
 
+  // Helper to resolve the direct single settlement account for a property
+  const resolvePropertyDirectAccount = (prop: any) => {
+    if (prop.settlementAccount?.uuid) {
+      return accounts.find((a) => a.uuid === prop.settlementAccount.uuid)
+    }
+    if (prop.settlementAccountId) {
+      return accounts.find((a) => a.id === prop.settlementAccountId)
+    }
+    return accounts.find((a) => a.id === prop.manualAccountId)
+  }
+
   // Filtered properties for assignments table
   const assignmentFilteredProperties = useMemo(() => {
     return properties.filter((p: any) => {
@@ -290,7 +301,7 @@ export function SettlementSplitSection({
         (p.address && p.address.toLowerCase().includes(assignmentSearch.toLowerCase()))
 
       const hasProfile = Boolean(p.splitProfileId)
-      const directAccount = accounts.find((a) => a.id === p.manualAccountId)
+      const directAccount = resolvePropertyDirectAccount(p)
       const hasDirectAccount = Boolean(directAccount && !directAccount.isPrimary)
 
       if (assignmentFilter === 'profile') return matchesSearch && hasProfile
@@ -452,7 +463,7 @@ export function SettlementSplitSection({
           )
         }
 
-        const directAccount = accounts.find((a) => a.id === prop.manualAccountId)
+        const directAccount = resolvePropertyDirectAccount(prop)
         if (directAccount && !directAccount.isPrimary) {
           return (
             <div>
@@ -493,7 +504,7 @@ export function SettlementSplitSection({
       header: 'Payout Type',
       render: (prop: any) => {
         const hasProfile = Boolean(prop.splitProfileId)
-        const directAccount = accounts.find((a) => a.id === prop.manualAccountId)
+        const directAccount = resolvePropertyDirectAccount(prop)
         const hasDirect = Boolean(directAccount && !directAccount.isPrimary)
 
         if (hasProfile) {
@@ -565,9 +576,11 @@ export function SettlementSplitSection({
         if (prop.splitProfileId) {
           const prof = profiles.find((p) => p.id === prop.splitProfileId)
           if (prof) currentValue = `profile:${prof.uuid}`
-        } else if (prop.manualAccountId) {
-          const acc = accounts.find((a) => a.id === prop.manualAccountId)
-          if (acc) currentValue = `account:${acc.uuid}`
+        } else {
+          const directAcc = resolvePropertyDirectAccount(prop)
+          if (directAcc && !directAcc.isPrimary) {
+            currentValue = `account:${directAcc.uuid}`
+          }
         }
 
         return (

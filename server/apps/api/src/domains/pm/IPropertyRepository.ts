@@ -63,6 +63,13 @@ export interface PropertyEntity {
       manualAccount?: any;
     }>;
   } | null;
+  settlementAccountId?: number | null;
+  settlementAccount?: {
+    id: number;
+    uuid: string;
+    isPrimary?: boolean;
+    title?: string | null;
+  } | null;
 }
 
 export interface UnitEntity {

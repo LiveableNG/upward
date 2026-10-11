@@ -6,6 +6,7 @@ import { EncryptionService } from '../../../../shared/infrastructure/common/encr
 const PROPERTY_DEFAULT_INCLUDE = {
   landlord: true,
   manualAccount: true,
+  settlementAccount: true,
   settlementSplitRules: {
     include: {
       manualAccount: true,
@@ -95,6 +96,13 @@ export class PrismaPmPropertyRepository implements IPropertyRepository {
             title: it.manualAccount.title,
           } : null,
         })) : [],
+      } : null,
+      settlementAccountId: p.settlementAccountId || null,
+      settlementAccount: p.settlementAccount ? {
+        id: p.settlementAccount.id,
+        uuid: p.settlementAccount.uuid,
+        isPrimary: Boolean(p.settlementAccount.isPrimary),
+        title: p.settlementAccount.title || null,
       } : null,
     };
   }
