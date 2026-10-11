@@ -4,6 +4,7 @@ import { Unit, Tenant } from './propertyService'
 export interface SettlementAccount {
   id: number;
   uuid: string;
+  manualAccountId?: number | null;
   accountNumber: string;
   accountName: string;
   bankName: string;

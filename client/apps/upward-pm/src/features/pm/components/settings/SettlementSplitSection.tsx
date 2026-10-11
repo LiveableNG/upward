@@ -164,7 +164,7 @@ export function SettlementSplitSection({
     setProfileIsDefault(profile.isDefault)
 
     const resolveItemAccountUuid = (it: any) =>
-      accounts.find((a) => a.manualAccountId === it?.manualAccountId || a.uuid === it?.manualAccountUuid)?.uuid ||
+      accounts.find((a) => a.id === it?.manualAccountId || a.manualAccountId === it?.manualAccountId || a.uuid === it?.manualAccountUuid)?.uuid ||
       it?.manualAccountUuid ||
       it?.manualAccount?.uuid ||
       ''
@@ -351,7 +351,7 @@ export function SettlementSplitSection({
       render: (profile) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {profile.items.map((item, idx) => {
-            const acc = accounts.find((a) => a.manualAccountId === item.manualAccountId || a.uuid === item.manualAccountUuid)
+            const acc = accounts.find((a) => a.id === item.manualAccountId || a.manualAccountId === item.manualAccountId || a.uuid === item.manualAccountUuid)
             const bankName = acc?.bankName || item.manualAccount?.bankName || 'Settlement Account'
             const displayTitle = acc?.title || item.manualAccount?.title || acc?.accountNumber || item.manualAccount?.accountNumber
             return (
