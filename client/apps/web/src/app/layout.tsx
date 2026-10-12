@@ -79,6 +79,9 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.svg',
   },
+  verification: {
+    google: 'ISH42y-ed5ACesKfszpIWdQB54X4h2iRJz_xEVSvpiM',
+  },
 }
 
 const GA_ID = process.env['NEXT_PUBLIC_GA_ID']
