@@ -8,6 +8,7 @@ export interface ParsedSessionDetails {
   sessionDay: string
   sessionVenue: string
   sessionDateTime: string
+  sessionBadgeText: string
   cleanNotes: string
   funnelStatus: string
   rawSession: string
@@ -63,6 +64,7 @@ export function parseSessionAndTrack(data: {
   let sessionDay = 'N/A'
   let sessionVenue = 'N/A'
   let sessionDateTime = 'N/A'
+  let sessionBadgeText = isDropOff ? 'Stage 1 Drop-off (No Session)' : 'Waitlist Only (No Session RSVP)'
 
   if (
     sessionString &&
@@ -83,48 +85,64 @@ export function parseSessionAndTrack(data: {
         sessionDay = 'Weekly Webinar'
       }
 
-      // Extract Clean Date Time
-      // Examples: "Online (Zoom/Meet) - 6:00 pm, Tuesday, October 20"
-      // or "Tuesday, Oct 20 · 6:00 PM"
-      const dashIdx = sessionString.indexOf('-')
-      if (dashIdx !== -1) {
-        sessionDateTime = sessionString.slice(dashIdx + 1).trim()
+      // Extract time portion (e.g. "6:00 pm, Tuesday, October 20" or "9:00 am, Saturday, October 10")
+      const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
+      if (timeMatch) {
+        sessionDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
       } else {
-        sessionDateTime = sessionString
+        const parts = sessionString.split('-')
+        const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
+        sessionDateTime = lastPart || sessionString
       }
+
+      sessionBadgeText = `Online · ${sessionDateTime !== 'N/A' ? sessionDateTime : 'Zoom/Meet'}`
     } else if (
       sLower.includes('physical') ||
       sLower.includes('in-person') ||
       sLower.includes('abuja') ||
       sLower.includes('port harcourt') ||
+      sLower.includes('ph') ||
       sLower.includes('lagos') ||
       sLower.includes('ibadan') ||
       sLower.includes('oyo')
     ) {
       attendanceMode = 'In-Person'
+      let cityLabel = 'In-Person'
 
       if (sLower.includes('abuja')) {
+        cityLabel = 'Abuja'
         sessionDay = 'Friday'
         sessionVenue = 'Abuja (Central Business District)'
       } else if (sLower.includes('port harcourt') || sLower.includes('ph')) {
+        cityLabel = 'Port Harcourt'
         sessionDay = 'Friday'
         sessionVenue = 'Port Harcourt (GRA Phase 2)'
       } else if (sLower.includes('lagos') || sLower.includes('yaba')) {
+        cityLabel = 'Lagos'
         sessionDay = 'Wednesday'
         sessionVenue = 'Lagos (Yaba Tech Hub)'
       } else if (sLower.includes('ibadan') || sLower.includes('oyo') || sLower.includes('bodija')) {
+        cityLabel = 'Oyo / Ibadan'
         sessionDay = 'TBA'
         sessionVenue = 'Oyo / Ibadan (Bodija)'
       } else {
         sessionVenue = 'Physical Venue'
       }
 
-      const dashIdx = sessionString.indexOf('-')
-      if (dashIdx !== -1) {
-        sessionDateTime = sessionString.slice(dashIdx + 1).trim()
+      if (sLower.includes('date coming soon')) {
+        sessionDateTime = 'Date Coming Soon'
       } else {
-        sessionDateTime = sessionString
+        const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
+        if (timeMatch) {
+          sessionDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
+        } else {
+          const parts = sessionString.split('-')
+          const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
+          sessionDateTime = lastPart || sessionString
+        }
       }
+
+      sessionBadgeText = `${cityLabel} · ${sessionDateTime !== 'N/A' ? sessionDateTime : sessionVenue}`
     }
   }
 
@@ -146,6 +164,7 @@ export function parseSessionAndTrack(data: {
     sessionDay,
     sessionVenue,
     sessionDateTime,
+    sessionBadgeText,
     cleanNotes,
     funnelStatus,
     rawSession: sessionString || 'None',
@@ -205,17 +224,94 @@ export function matchesTrackFilter(
   return parsed.trackCode === filter
 }
 
+
 /**
- * Helper to safely escape CSV cell content
+ * Helper to build a styled Excel spreadsheet (XML/HTML) with brand styling,
+ * generous cell padding, colored headers, and forced text format for phone numbers.
  */
-function escapeCsvCell(val: unknown): string {
-  if (val === null || val === undefined) return '""'
-  const str = String(val).replace(/"/g, '""')
-  return `"${str}"`
+function buildStyledExcelHtml(sheetTitle: string, headers: string[], rows: Array<Array<{ val: string; isPhone?: boolean }>>): string {
+  const headerHtml = headers
+    .map(
+      (h) =>
+        `<th style="background-color: #8A4A2A; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 12px 14px; text-align: left; border: 1px solid #703c21; white-space: nowrap;">${h}</th>`
+    )
+    .join('')
+
+  const rowsHtml = rows
+    .map((row, idx) => {
+      const bg = idx % 2 === 0 ? '#ffffff' : '#fcfaf8'
+      const cellsHtml = row
+        .map((cell) => {
+          const style = cell.isPhone
+            ? `padding: 9px 12px; font-size: 10pt; border: 1px solid #e2e8f0; mso-number-format: '\\@';`
+            : `padding: 9px 12px; font-size: 10pt; border: 1px solid #e2e8f0;`
+          const safeVal = String(cell.val ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+          return `<td style="${style}">${safeVal}</td>`
+        })
+        .join('')
+      return `<tr style="background-color: ${bg};">${cellsHtml}</tr>`
+    })
+    .join('')
+
+  return `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<!--[if gte mso 9]>
+<xml>
+  <x:ExcelWorkbook>
+    <x:ExcelWorksheets>
+      <x:ExcelWorksheet>
+        <x:Name>${sheetTitle}</x:Name>
+        <x:WorksheetOptions>
+          <x:DisplayGridlines/>
+        </x:WorksheetOptions>
+      </x:ExcelWorksheet>
+    </x:ExcelWorksheets>
+  </x:ExcelWorkbook>
+</xml>
+<![endif]-->
+<style>
+  body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 11pt; color: #1e293b; }
+  table { border-collapse: collapse; width: 100%; }
+</style>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr>${headerHtml}</tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+</body>
+</html>`.trim()
 }
 
 /**
- * Export Early Access (Student Cohort & Landlord) records to clean CSV
+ * Trigger download of styled spreadsheet (opens in WPS Office / Microsoft Excel / Google Sheets)
+ */
+function downloadSpreadsheet(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'application/vnd.ms-excel;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+
+  link.setAttribute('href', url)
+  link.setAttribute('download', filename)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Export Early Access Student Cohort records to a cleanly styled spreadsheet
+ * without submission IDs, landlord fields, or funnel state.
  */
 export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: string): void {
   if (!records || records.length === 0) {
@@ -224,7 +320,6 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
   }
 
   const headers = [
-    'Submission ID',
     'Date Submitted',
     'Application Type',
     'Full Name',
@@ -233,71 +328,53 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
     'City',
     'Age Bracket',
     'Experience Level',
-    'Funnel Status',
     'Track Selection',
     'Attendance Mode',
     'Session Day / City',
     'Session Venue',
     'Session Date & Time',
     'Notes / Reason for Interest',
-    'Properties Managed (Landlords)',
-    'Landlord Status',
-    'Management Style',
   ]
 
   const rows = records.map((rec) => {
-    const isStudent = rec.type === 'STUDENT'
-    const parsed = isStudent
-      ? parseSessionAndTrack({
-          interest: rec.interest,
-          experienceLevel: rec.experienceLevel,
-        })
-      : null
+    const parsed = parseSessionAndTrack({
+      interest: rec.interest,
+      experienceLevel: rec.experienceLevel,
+    })
 
-    const submittedDate = rec.createdAt ? new Date(rec.createdAt).toLocaleString('en-US') : 'N/A'
+    const d = rec.createdAt ? new Date(rec.createdAt) : null
+    const dateFormatted = d
+      ? `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+      : 'N/A'
 
     return [
-      escapeCsvCell(rec.id),
-      escapeCsvCell(submittedDate),
-      escapeCsvCell(isStudent ? 'Student Cohort' : 'Landlord Programme'),
-      escapeCsvCell(rec.name),
-      escapeCsvCell(rec.email || 'N/A'),
-      escapeCsvCell(rec.whatsapp),
-      escapeCsvCell(rec.city),
-      escapeCsvCell(isStudent ? rec.ageBracket || 'N/A' : 'N/A'),
-      escapeCsvCell(isStudent ? rec.experienceLevel || 'N/A' : 'N/A'),
-      escapeCsvCell(parsed ? parsed.funnelStatus : 'Active Submission'),
-      escapeCsvCell(parsed ? parsed.track : 'N/A'),
-      escapeCsvCell(parsed ? parsed.attendanceMode : 'N/A'),
-      escapeCsvCell(parsed ? parsed.sessionDay : 'N/A'),
-      escapeCsvCell(parsed ? parsed.sessionVenue : 'N/A'),
-      escapeCsvCell(parsed ? parsed.sessionDateTime : 'N/A'),
-      escapeCsvCell(parsed ? parsed.cleanNotes : rec.interest || 'N/A'),
-      escapeCsvCell(!isStudent ? rec.propertyCount || 'N/A' : 'N/A'),
-      escapeCsvCell(!isStudent ? rec.landlordStatus || 'N/A' : 'N/A'),
-      escapeCsvCell(!isStudent ? rec.managementStyle || 'N/A' : 'N/A'),
-    ].join(',')
+      { val: dateFormatted },
+      { val: 'Student Cohort' },
+      { val: rec.name },
+      { val: rec.email || 'N/A' },
+      { val: rec.whatsapp, isPhone: true },
+      { val: rec.city },
+      { val: rec.ageBracket || 'N/A' },
+      { val: rec.experienceLevel?.replace(/\[.*?\]/g, '').trim() || 'N/A' },
+      { val: parsed.track },
+      { val: parsed.attendanceMode },
+      { val: parsed.sessionDay },
+      { val: parsed.sessionVenue },
+      { val: parsed.sessionDateTime },
+      { val: parsed.cleanNotes },
+    ]
   })
 
-  const csvContent = [headers.join(','), ...rows].join('\r\n')
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  const defaultName = `Upward_Academy_Sessions_${new Date().toISOString().split('T')[0]}.csv`
+  const sheetTitle = 'Student Cohort Sessions'
+  const htmlContent = buildStyledExcelHtml(sheetTitle, headers, rows)
+  const defaultName = `Upward_Academy_Student_Sessions_${new Date().toISOString().split('T')[0]}.xls`
 
-  link.setAttribute('href', url)
-  link.setAttribute('download', filename || defaultName)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-
-  showToast(`Exported ${records.length} records to CSV`)
+  downloadSpreadsheet(htmlContent, filename || defaultName)
+  showToast(`Exported ${records.length} Student Cohort records to spreadsheet`)
 }
 
 /**
- * Export University Full Applications to clean CSV
+ * Export University Full Applications to a cleanly styled spreadsheet
  */
 export function exportApplicationsToCsv(
   applications: UniversityApplicationRecord[],
@@ -309,8 +386,8 @@ export function exportApplicationsToCsv(
   }
 
   const headers = [
-    'Application ID',
     'Date Submitted',
+    'Application Type',
     'Full Name',
     'Email Address',
     'WhatsApp / Contact',
@@ -339,46 +416,40 @@ export function exportApplicationsToCsv(
       experienceLevel: app.experienceLevel,
     })
 
-    const submittedDate = app.createdAt ? new Date(app.createdAt).toLocaleString('en-US') : 'N/A'
+    const d = app.createdAt ? new Date(app.createdAt) : null
+    const dateFormatted = d
+      ? `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+      : 'N/A'
 
     return [
-      escapeCsvCell(app.id),
-      escapeCsvCell(submittedDate),
-      escapeCsvCell(app.name),
-      escapeCsvCell(app.email),
-      escapeCsvCell(app.whatsapp),
-      escapeCsvCell(app.city),
-      escapeCsvCell(app.ageBracket || 'N/A'),
-      escapeCsvCell(app.occupation || 'N/A'),
-      escapeCsvCell(app.experienceLevel || 'N/A'),
-      escapeCsvCell(parsed.track),
-      escapeCsvCell(parsed.attendanceMode),
-      escapeCsvCell(parsed.sessionDay),
-      escapeCsvCell(parsed.sessionVenue),
-      escapeCsvCell(parsed.sessionDateTime),
-      escapeCsvCell(app.status),
-      escapeCsvCell(app.feeStatus),
-      escapeCsvCell(app.commitment || 'N/A'),
-      escapeCsvCell(app.why || 'N/A'),
-      escapeCsvCell(app.goals || 'N/A'),
-      escapeCsvCell(app.isScholarship ? 'Yes' : 'No'),
-      escapeCsvCell(app.notes || 'None'),
-    ].join(',')
+      { val: dateFormatted },
+      { val: 'Student Cohort' },
+      { val: app.name },
+      { val: app.email },
+      { val: app.whatsapp, isPhone: true },
+      { val: app.city },
+      { val: app.ageBracket || 'N/A' },
+      { val: app.occupation || 'N/A' },
+      { val: app.experienceLevel || 'N/A' },
+      { val: parsed.track },
+      { val: parsed.attendanceMode },
+      { val: parsed.sessionDay },
+      { val: parsed.sessionVenue },
+      { val: parsed.sessionDateTime },
+      { val: app.status },
+      { val: app.feeStatus },
+      { val: app.commitment || 'N/A' },
+      { val: app.why || 'N/A' },
+      { val: app.goals || 'N/A' },
+      { val: app.isScholarship ? 'Yes' : 'No' },
+      { val: app.notes || 'None' },
+    ]
   })
 
-  const csvContent = [headers.join(','), ...rows].join('\r\n')
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  const defaultName = `Upward_Academy_Cohort_Applications_${new Date().toISOString().split('T')[0]}.csv`
+  const sheetTitle = 'Cohort Applications'
+  const htmlContent = buildStyledExcelHtml(sheetTitle, headers, rows)
+  const defaultName = `Upward_Academy_Cohort_Applications_${new Date().toISOString().split('T')[0]}.xls`
 
-  link.setAttribute('href', url)
-  link.setAttribute('download', filename || defaultName)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-
-  showToast(`Exported ${applications.length} applications to CSV`)
+  downloadSpreadsheet(htmlContent, filename || defaultName)
+  showToast(`Exported ${applications.length} applications to spreadsheet`)
 }

@@ -152,10 +152,10 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                 color: '#fff',
                 cursor: 'pointer',
               }}
-              title="Export applications into clean separated CSV spreadsheet columns"
+              title="Export applications into a cleanly styled spreadsheet with brand headers and formatted columns"
             >
               <Download size={14} />
-              Export CSV ({filteredApplications.length})
+              Export Sheet ({filteredApplications.length})
             </button>
           </div>
         </div>

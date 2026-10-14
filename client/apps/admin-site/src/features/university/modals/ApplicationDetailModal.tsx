@@ -318,10 +318,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     }}
                   >
                     {parsed.attendanceMode === 'Online' ? <Video size={15} /> : <MapPin size={15} />}
-                    <span>
-                      {parsed.attendanceMode} · {parsed.sessionVenue} (
-                      {parsed.sessionDateTime !== 'N/A' ? parsed.sessionDateTime : application.sessionTime})
-                    </span>
+                    <span>{parsed.sessionBadgeText}</span>
                   </div>
                 </div>
               )

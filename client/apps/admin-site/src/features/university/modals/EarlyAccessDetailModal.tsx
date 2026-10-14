@@ -7,6 +7,7 @@ import {
   Compass,
   Video,
   MapPin,
+  Clock,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { EarlyAccessRecord } from '../types'
@@ -239,34 +240,35 @@ export const EarlyAccessDetailModal: React.FC<EarlyAccessDetailModalProps> = ({
                       </div>
                     )}
 
-                    {parsed.attendanceMode !== 'None' && (
-                      <div style={{ marginTop: '12px' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          Information & Q&A Session Choice:
-                        </span>
-                        <div
-                          style={{
-                            background: '#fef3c7',
-                            color: '#92400e',
-                            border: '1px solid #fde68a',
-                            padding: '10px 14px',
-                            borderRadius: '8px',
-                            marginTop: '4px',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          {parsed.attendanceMode === 'Online' ? <Video size={15} /> : <MapPin size={15} />}
-                          <span>
-                            {parsed.attendanceMode} · {parsed.sessionVenue} (
-                            {parsed.sessionDateTime !== 'N/A' ? parsed.sessionDateTime : parsed.sessionDay})
-                          </span>
-                        </div>
+                    <div style={{ marginTop: '12px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        Information & Q&A Session Choice:
+                      </span>
+                      <div
+                        style={{
+                          background: parsed.attendanceMode !== 'None' ? '#fef3c7' : '#f8fafc',
+                          color: parsed.attendanceMode !== 'None' ? '#92400e' : '#64748b',
+                          border: `1px solid ${parsed.attendanceMode !== 'None' ? '#fde68a' : '#e2e8f0'}`,
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          marginTop: '4px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                        }}
+                      >
+                        {parsed.attendanceMode === 'Online' ? (
+                          <Video size={15} />
+                        ) : parsed.attendanceMode === 'In-Person' ? (
+                          <MapPin size={15} />
+                        ) : (
+                          <Clock size={15} />
+                        )}
+                        <span>{parsed.sessionBadgeText}</span>
                       </div>
-                    )}
+                    </div>
 
                     {parsed.cleanNotes &&
                       parsed.cleanNotes !== 'Info Session Attendee' &&

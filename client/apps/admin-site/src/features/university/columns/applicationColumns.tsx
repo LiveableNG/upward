@@ -159,7 +159,7 @@ export const getApplicationColumns = ({
               title={row.sessionTime}
             >
               {parsed.attendanceMode === 'Online' ? <Video size={11} /> : <MapPin size={11} />}
-              {parsed.sessionDateTime !== 'N/A' ? parsed.sessionDateTime : row.sessionTime}
+              {parsed.sessionBadgeText}
             </div>
           )
         })()}
@@ -277,16 +277,30 @@ export const getApplicationColumns = ({
   },
   {
     key: 'createdAt',
-    label: 'Applied Date',
-    render: (row) => (
-      <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-        {new Date(row.createdAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })}
-      </span>
-    ),
+    label: 'Applied Date & Time',
+    render: (row) => {
+      const d = new Date(row.createdAt)
+      const dateStr = d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      const timeStr = d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+      return (
+        <div>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            {dateStr}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {timeStr}
+          </div>
+        </div>
+      )
+    },
   },
   {
     key: 'actions',

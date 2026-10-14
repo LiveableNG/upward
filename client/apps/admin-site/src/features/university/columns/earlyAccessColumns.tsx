@@ -8,6 +8,7 @@ import {
   Phone,
   Video,
   Compass,
+  Clock,
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { EarlyAccessRecord } from '../types'
@@ -173,7 +174,7 @@ export const getEarlyAccessColumns = ({
                 </span>
               )}
 
-              {parsed.attendanceMode !== 'None' && (
+              {parsed.attendanceMode !== 'None' ? (
                 <span
                   style={{
                     fontSize: '11px',
@@ -190,9 +191,28 @@ export const getEarlyAccessColumns = ({
                   title={parsed.rawSession}
                 >
                   {parsed.attendanceMode === 'Online' ? <Video size={11} /> : <MapPin size={11} />}
-                  {parsed.sessionDateTime !== 'N/A' ? parsed.sessionDateTime : parsed.sessionVenue}
+                  {parsed.sessionBadgeText}
                 </span>
-              )}
+              ) : !parsed.funnelStatus.includes('Drop-off') ? (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    border: '1px solid #e2e8f0',
+                  }}
+                  title="Registered for early waitlist before live info session RSVP was introduced"
+                >
+                  <Clock size={11} />
+                  Early Waitlist (No Session RSVP)
+                </span>
+              ) : null}
             </div>
 
             {parsed.cleanNotes &&
@@ -233,16 +253,30 @@ export const getEarlyAccessColumns = ({
   },
   {
     key: 'createdAt',
-    label: 'Submitted Date',
-    render: (row) => (
-      <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-        {new Date(row.createdAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })}
-      </span>
-    ),
+    label: 'Submitted Date & Time',
+    render: (row) => {
+      const d = new Date(row.createdAt)
+      const dateStr = d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      const timeStr = d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+      return (
+        <div>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            {dateStr}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {timeStr}
+          </div>
+        </div>
+      )
+    },
   },
   {
     key: 'actions',

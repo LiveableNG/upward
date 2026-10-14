@@ -108,16 +108,24 @@ export class RequestCredibilityRecordsUseCase {
         },
       });
 
-      if (property?.isVerified && property.company?.platformId) {
+      const targetPlatformId = property?.platformId || property?.company?.platformId;
+      if (targetPlatformId) {
+        let tenantEmail = '';
+        try {
+          tenantEmail = user.email ? this.encryption.decrypt(user.email) : '';
+        } catch (e) {
+          tenantEmail = user.email;
+        }
+
         this.eventBus.publish(new CredibilityRequestCreatedEvent(
-          property.company.platformId,
+          targetPlatformId,
           'past_tenancy_record.requested',
           {
             requestUuid: request.uuid,
-            propertyUuid: property.uuid,
+            propertyUuid: property?.uuid || input.propertyUuid,
             propertyAddress,
             tenantName,
-            tenantEmail: user.email,
+            tenantEmail,
           }
         ));
       }

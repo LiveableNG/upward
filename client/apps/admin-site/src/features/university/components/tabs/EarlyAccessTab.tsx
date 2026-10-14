@@ -194,10 +194,10 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
                 color: '#fff',
                 cursor: 'pointer',
               }}
-              title="Export filtered records into cleaned, separated CSV spreadsheet columns"
+              title="Export filtered records into a cleanly styled spreadsheet with brand headers and formatted columns"
             >
               <Download size={14} />
-              Export CSV ({filteredRecords.length})
+              Export Sheet ({filteredRecords.length})
             </button>
           </div>
         </div>
