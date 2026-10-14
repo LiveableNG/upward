@@ -2,13 +2,15 @@ import React from 'react'
 import {
   GraduationCap,
   Building,
-  Calendar,
   Layers,
   Trash2,
   Compass,
+  Video,
+  MapPin,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { EarlyAccessRecord } from '../types'
+import { parseSessionAndTrack } from '../sessionExportUtils'
 
 interface EarlyAccessDetailModalProps {
   isOpen: boolean
@@ -203,70 +205,94 @@ export const EarlyAccessDetailModal: React.FC<EarlyAccessDetailModalProps> = ({
                   </div>
                 </div>
               )}
-              {/* Selected Track if present */}
+              {/* Selected Track & Session parsed cleanly */}
               {(() => {
-                const trackMatch =
-                  record.interest?.match(/\[Track:\s*([^\]]+)\]/i) ||
-                  record.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)
-                if (!trackMatch) return null
-                const trackStr = trackMatch[1].trim()
-                const isTrack2 =
-                  trackStr.toLowerCase().includes('2') || trackStr.toLowerCase().includes('started')
+                const parsed = parseSessionAndTrack({
+                  interest: record.interest,
+                  experienceLevel: record.experienceLevel,
+                })
                 return (
-                  <div style={{ marginTop: '12px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      Selected Track:
-                    </span>
-                    <div
-                      style={{
-                        background: isTrack2 ? '#f0fdf4' : '#fff7ed',
-                        color: isTrack2 ? '#166534' : '#9a3412',
-                        border: `1px solid ${isTrack2 ? '#bbf7d0' : '#ffedd5'}`,
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        marginTop: '4px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <Compass size={15} color={isTrack2 ? '#166534' : '#c2410c'} />
-                      <span>{isTrack2 ? 'Track 2 — Already Started' : 'Track 1 — Starting From Zero'}</span>
-                    </div>
-                  </div>
+                  <>
+                    {parsed.trackCode !== 'NONE' && (
+                      <div style={{ marginTop: '12px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          Selected Track:
+                        </span>
+                        <div
+                          style={{
+                            background: parsed.trackCode === 'TRACK_2' ? '#f0fdf4' : '#fff7ed',
+                            color: parsed.trackCode === 'TRACK_2' ? '#166534' : '#9a3412',
+                            border: `1px solid ${parsed.trackCode === 'TRACK_2' ? '#bbf7d0' : '#ffedd5'}`,
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            marginTop: '4px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                          }}
+                        >
+                          <Compass size={15} color={parsed.trackCode === 'TRACK_2' ? '#166534' : '#c2410c'} />
+                          <span>{parsed.track}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsed.attendanceMode !== 'None' && (
+                      <div style={{ marginTop: '12px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          Information & Q&A Session Choice:
+                        </span>
+                        <div
+                          style={{
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            border: '1px solid #fde68a',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            marginTop: '4px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                          }}
+                        >
+                          {parsed.attendanceMode === 'Online' ? <Video size={15} /> : <MapPin size={15} />}
+                          <span>
+                            {parsed.attendanceMode} · {parsed.sessionVenue} (
+                            {parsed.sessionDateTime !== 'N/A' ? parsed.sessionDateTime : parsed.sessionDay})
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsed.cleanNotes &&
+                      parsed.cleanNotes !== 'Info Session Attendee' &&
+                      !parsed.cleanNotes.startsWith('Drop-off') && (
+                        <div style={{ marginTop: '12px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            Attendee Notes / Questions:
+                          </span>
+                          <div
+                            style={{
+                              background: '#f9fafb',
+                              border: '1px solid var(--border)',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              marginTop: '4px',
+                              fontSize: '13px',
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {parsed.cleanNotes}
+                          </div>
+                        </div>
+                      )}
+                  </>
                 )
               })()}
-
-              {record.interest && (
-                <div style={{ marginTop: '12px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                    Information & Q&A Session Choice:
-                  </span>
-                  <div
-                    style={{
-                      background: '#fef3c7',
-                      color: '#92400e',
-                      border: '1px solid #fde68a',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      marginTop: '4px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <Calendar size={15} />
-                    {record.interest
-                      .replace(/\[Track:\s*[^\]]+\]\s*/gi, '')
-                      .replace(/\[Session:\s*([^\]]+)\]/i, '$1')
-                      .trim()}
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
