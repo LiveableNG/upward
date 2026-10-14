@@ -115,7 +115,7 @@ export function parseSessionAndTrack(data: {
         sessionVenue = 'Abuja (Central Business District)'
       } else if (sLower.includes('port harcourt') || sLower.includes('ph')) {
         cityLabel = 'Port Harcourt'
-        sessionDay = 'Friday'
+        sessionDay = 'Thursday'
         sessionVenue = 'Port Harcourt (GRA Phase 2)'
       } else if (sLower.includes('lagos') || sLower.includes('yaba')) {
         cityLabel = 'Lagos'
