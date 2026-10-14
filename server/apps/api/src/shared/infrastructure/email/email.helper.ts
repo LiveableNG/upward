@@ -335,18 +335,30 @@ export function buildCredibilityRequestHtml(params: {
   tenantName: string;
   propertyAddress: string;
   requestLink: string;
+  loginLink?: string;
   isRegisteredPm?: boolean;
 }): string {
+  const loginPrompt = params.loginLink
+    ? `
+      <div style="margin-top: 28px; padding: 14px 18px; background: #faf9f5; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 13px; color: #44403c; line-height: 1.5;">
+        <strong>Already manage properties on Upward?</strong><br/>
+        You can <a href="${params.loginLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">log in to your PM Portal</a> to review this request and manage your properties directly from your dashboard.
+      </div>
+    `
+    : '';
+
   const content = `
     <p>Hi ${params.pmName},</p>
-    <p>Your former tenant, <strong>${params.tenantName}</strong>, has requested verification of their past tenancy records at <strong>${params.propertyAddress}</strong>.</p>
-    <p>Verifying their request helps them build their Rent Passport score and rental reputation on Upward.</p>
+    <p>Your former tenant, <strong>${params.tenantName}</strong>, has requested verification of their past tenancy and rental payment records for <strong>${params.propertyAddress}</strong>.</p>
+    <p>Verifying their request helps them build their verified Upward Rent Passport score and rental reputation.</p>
+    <p>You can quickly review and fulfill this request using the secure verification link below—no registration is required.</p>
+    ${loginPrompt}
   `;
   return buildGlobalLayoutHtml({
     role: 'PM',
     title: 'Tenancy Verification Request',
     contentHtml: content,
-    buttonText: 'Verify Tenancy',
+    buttonText: 'Verify Tenancy Records',
     buttonUrl: params.requestLink,
   });
 }

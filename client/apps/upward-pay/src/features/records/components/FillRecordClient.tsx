@@ -149,8 +149,12 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid: propUu
     try {
       await fulfillPublicRequest(uuid, validRecords.map(r => ({
         amount: r.amount,
-        dueDate: r.dueDate, // The calculated due date
-        paidDate: r.paidDate
+        paymentDate: r.paidDate,
+        paidDate: r.paidDate,
+        periodStart: r.startDate || undefined,
+        periodEnd: r.endDate || undefined,
+        dueDate: r.dueDate || r.startDate || r.paidDate,
+        notes: `Tenancy record ${r.startDate} - ${r.endDate}`
       })))
       setSuccess(true)
       toastSuccess('Records submitted successfully!')
@@ -227,6 +231,45 @@ export const FillRecordClient: React.FC<FillRecordClientProps> = ({ uuid: propUu
               <span>Property: {details?.propertyAddress}</span>
             </div>
           </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          background: 'var(--clay-faint)',
+          border: '1px solid var(--border)',
+          borderRadius: 12,
+          padding: '16px 20px',
+          marginBottom: 20,
+          flexWrap: 'wrap'
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--dark)' }}>
+              Are you a registered Property Manager on Upward?
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+              Log in to process this request directly within your management portal and link this property.
+            </div>
+          </div>
+          <a
+            href={`/pm-login?redirect=${encodeURIComponent(`/requests/${uuid}`)}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '8px 16px',
+              borderRadius: 8,
+              background: 'var(--clay)',
+              color: '#ffffff',
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Log in to PM Portal
+          </a>
         </div>
 
         <div className="records-card">
