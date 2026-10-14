@@ -324,6 +324,9 @@ async function main() {
     subject,
     html: htmlContent,
     text: `Hi ${decryptedFirstName}, your payment of ${formattedAmount} for ${propertyAddress} has been received. Receipt #${receiptNumber} is attached. View digital receipt: ${receiptUrl}`,
+    'o:tracking': 'no',
+    'o:tracking-clicks': 'no',
+    'o:tracking-opens': 'no',
     attachment: [
       {
         filename: pdfFilename,
