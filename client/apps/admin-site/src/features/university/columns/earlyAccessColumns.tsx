@@ -4,12 +4,15 @@ import {
   MapPin,
   Eye,
   Trash2,
-  Calendar,
   Layers,
   Phone,
+  Video,
+  Compass,
+  Clock,
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { EarlyAccessRecord } from '../types'
+import { parseSessionAndTrack } from '../sessionExportUtils'
 
 interface EarlyAccessColumnsOptions {
   onSelect: (row: EarlyAccessRecord) => void
@@ -118,14 +121,18 @@ export const getEarlyAccessColumns = ({
     label: 'Program Details',
     render: (row) => {
       if (row.type === 'STUDENT') {
+        const parsed = parseSessionAndTrack({
+          interest: row.interest,
+          experienceLevel: row.experienceLevel,
+        })
         return (
           <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
             <div>
               Age: <b>{row.ageBracket || 'N/A'}</b>
               <span style={{ margin: '0 6px', color: 'var(--border)' }}>•</span>
-              Exp: <b>{row.experienceLevel || 'N/A'}</b>
+              Exp: <b>{row.experienceLevel?.replace(/\[.*?\]/g, '').trim() || 'N/A'}</b>
             </div>
-            {row.experienceLevel && row.experienceLevel.includes('Stage 1') ? (
+            {parsed.funnelStatus.includes('Drop-off') ? (
               <div
                 style={{
                   marginTop: '4px',
@@ -143,28 +150,94 @@ export const getEarlyAccessColumns = ({
               >
                 <Layers size={11} /> Drop-off Stage 1: Basic Info
               </div>
-            ) : row.interest ? (
-              <div
-                style={{
-                  marginTop: '4px',
-                  fontSize: '11.5px',
-                  color: '#b45309',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: '#fef3c7',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  border: '1px solid #fde68a',
-                }}
-              >
-                <Calendar size={11} /> {row.interest}
-              </div>
             ) : null}
+
+            {/* Clean Parsed Track and Session Badges */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>
+              {parsed.trackCode !== 'NONE' && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: parsed.trackCode === 'TRACK_2' ? '#f0fdf4' : '#fff7ed',
+                    color: parsed.trackCode === 'TRACK_2' ? '#166534' : '#9a3412',
+                    border: `1px solid ${parsed.trackCode === 'TRACK_2' ? '#bbf7d0' : '#ffedd5'}`,
+                  }}
+                >
+                  <Compass size={11} />
+                  {parsed.trackCode === 'TRACK_2' ? 'Track 2' : 'Track 1'}
+                </span>
+              )}
+
+              {parsed.attendanceMode !== 'None' ? (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    border: '1px solid #fde68a',
+                  }}
+                  title={parsed.rawSession}
+                >
+                  {parsed.attendanceMode === 'Online' ? <Video size={11} /> : <MapPin size={11} />}
+                  {parsed.sessionBadgeText}
+                </span>
+              ) : !parsed.funnelStatus.includes('Drop-off') ? (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    border: '1px solid #e2e8f0',
+                  }}
+                  title="Registered for early waitlist before live info session RSVP was introduced"
+                >
+                  <Clock size={11} />
+                  Early Waitlist (No Session RSVP)
+                </span>
+              ) : null}
+            </div>
+
+            {parsed.cleanNotes &&
+              parsed.cleanNotes !== 'Info Session Attendee' &&
+              !parsed.cleanNotes.startsWith('Drop-off') && (
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    fontStyle: 'italic',
+                    maxWidth: '240px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={parsed.cleanNotes}
+                >
+                  "{parsed.cleanNotes}"
+                </div>
+              )}
           </div>
         )
       }
+
       return (
         <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
           <span>
@@ -180,16 +253,30 @@ export const getEarlyAccessColumns = ({
   },
   {
     key: 'createdAt',
-    label: 'Submitted Date',
-    render: (row) => (
-      <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-        {new Date(row.createdAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })}
-      </span>
-    ),
+    label: 'Submitted Date & Time',
+    render: (row) => {
+      const d = new Date(row.createdAt)
+      const dateStr = d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      const timeStr = d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+      return (
+        <div>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            {dateStr}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {timeStr}
+          </div>
+        </div>
+      )
+    },
   },
   {
     key: 'actions',

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Building a Tech-Driven RE Career/Business - Info Sessions | Upward Academy</title>
   <meta name="description"
-    content="Join our free information session 'Building a Tech-Driven RE Career/Business' online on Tuesday, October 13 (6:00 PM), or in-person in Abuja (October 16) and Port Harcourt (October 23). Learn about Upward Academy's course and scholarship opportunities.">
+    content="Join our free information session 'Building a Tech-Driven RE Career/Business' online on Tuesday, October 13 (6:00 PM), or in-person in Abuja (October 16) and Port Harcourt (October 22). Learn about Upward Academy's course and scholarship opportunities.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -118,68 +118,64 @@
             <span style="font-size:12px; color:var(--ink-soft); font-weight:600;">Choose city &amp; physical or
               online</span>
           </div>
-          <div class="schedule-slots">
-            <!-- Concluded Sessions -->
-            <div class="slot-item concluded" title="This session has already taken place">
+          <div class="schedule-slots" id="scheduleSlotsContainer">
+            <!-- Dynamic Slots will be populated & hydrated by sessions.js -->
+            <!-- Recurring Online: Tuesday -->
+            <div class="slot-item selected" data-class="online" data-day="tuesday" data-time="Online (Zoom/Meet) - 6:00 pm, Tuesday, October 20">
               <div style="display:flex; align-items:center; gap:12px;">
                 <i class="fa-solid fa-video slot-video-icon"></i>
                 <div>
-                  <span class="slot-date">Online Session · Zoom/Meet</span>
-                  <span class="slot-type">9:00 AM, Sat 10 Oct · Open to All</span>
-                </div>
-              </div>
-              <span class="slot-badge-concluded"><i class="fa-solid fa-check"></i> Concluded</span>
-            </div>
-
-            <div class="slot-item concluded" title="This session has already taken place">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <i class="fa-solid fa-location-dot slot-video-icon"></i>
-                <div>
-                  <span class="slot-date">Lagos · In-Person</span>
-                  <span class="slot-type">10:00 AM, 30 Sep · Yaba</span>
-                </div>
-              </div>
-              <span class="slot-badge-concluded"><i class="fa-solid fa-check"></i> Concluded</span>
-            </div>
-
-            <!-- Online for everyone: Tues 13th, October - 6 PM -->
-            <div class="slot-item selected" data-time="Online (Open to All - Lagos, Abuja, PH) - 6:00 pm, Tuesday, October 13">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <i class="fa-solid fa-video slot-video-icon"></i>
-                <div>
-                  <span class="slot-date">Online Session · Open to All</span>
-                  <span class="slot-type">6:00 PM, Tue 13 Oct · Zoom/Meet</span>
+                  <div style="display:flex; align-items:center;">
+                    <span class="slot-date">Online · Every Tuesday</span>
+                    <span class="slot-recurring-tag"><i class="fa-solid fa-repeat"></i> Weekly</span>
+                  </div>
+                  <span class="slot-type">6:00 PM · Zoom/Meet (Interactive Q&amp;A)</span>
                 </div>
               </div>
               <span class="slot-check"><i class="fa-solid fa-check"></i></span>
             </div>
 
-            <!-- Physical: 1. Abuja, 16th - 6 PM -->
-            <div class="slot-item" data-time="Abuja (Physical) - 6:00 pm, Friday, October 16">
+            <!-- Recurring Online: Saturday -->
+            <div class="slot-item" data-class="online" data-day="saturday" data-time="Online (Zoom/Meet) - 9:00 am, Saturday, October 17">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <i class="fa-solid fa-video slot-video-icon"></i>
+                <div>
+                  <div style="display:flex; align-items:center;">
+                    <span class="slot-date">Online · Every Saturday</span>
+                    <span class="slot-recurring-tag"><i class="fa-solid fa-repeat"></i> Weekly</span>
+                  </div>
+                  <span class="slot-type">9:00 AM · Zoom/Meet (Interactive Q&amp;A)</span>
+                </div>
+              </div>
+              <span class="slot-check"><i class="fa-solid fa-check"></i></span>
+            </div>
+
+            <!-- Physical: Abuja -->
+            <div class="slot-item" data-class="physical" data-city="abuja" data-time="Abuja (Physical) - 6:00 pm, Friday, October 16">
               <div style="display:flex; align-items:center; gap:12px;">
                 <i class="fa-solid fa-location-dot slot-video-icon"></i>
                 <div>
                   <span class="slot-date">Abuja · In-Person Event</span>
-                  <span class="slot-type">6:00 PM, Fri 16 Oct · Abuja</span>
+                  <span class="slot-type">6:00 PM, Fri 16 Oct · Central Business District</span>
                 </div>
               </div>
               <span class="slot-check"><i class="fa-solid fa-check"></i></span>
             </div>
 
-            <!-- Physical: 2. PH, 23rd - 6 PM -->
-            <div class="slot-item" data-time="Port Harcourt (Physical) - 6:00 pm, Friday, October 23">
+            <!-- Physical: Port Harcourt -->
+            <div class="slot-item" data-class="physical" data-city="ph" data-time="Port Harcourt (Physical) - 6:00 pm, Thursday, October 22">
               <div style="display:flex; align-items:center; gap:12px;">
                 <i class="fa-solid fa-location-dot slot-video-icon"></i>
                 <div>
                   <span class="slot-date">Port Harcourt · In-Person Event</span>
-                  <span class="slot-type">6:00 PM, Fri 23 Oct · Port Harcourt</span>
+                  <span class="slot-type">6:00 PM, Thu 22 Oct · GRA Phase 2</span>
                 </div>
               </div>
               <span class="slot-check"><i class="fa-solid fa-check"></i></span>
             </div>
 
-            <!-- Upcoming City Sessions: Oyo / Ibadan -->
-            <div class="slot-item" data-time="Oyo / Ibadan (Physical - Date Coming Soon)">
+            <!-- Upcoming City: Oyo / Ibadan -->
+            <div class="slot-item" data-class="physical" data-city="oyo" data-time="Oyo / Ibadan (Physical - Date Coming Soon)">
               <div style="display:flex; align-items:center; gap:12px;">
                 <i class="fa-solid fa-location-dot slot-video-icon"></i>
                 <div>
@@ -188,6 +184,18 @@
                 </div>
               </div>
               <span class="slot-check"><i class="fa-solid fa-check"></i></span>
+            </div>
+
+            <!-- Concluded: Lagos -->
+            <div class="slot-item concluded" data-class="physical" data-city="lagos" title="This session has already taken place">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <i class="fa-solid fa-location-dot slot-video-icon"></i>
+                <div>
+                  <span class="slot-date">Lagos · In-Person</span>
+                  <span class="slot-type">10:00 AM, 30 Sep · Yaba</span>
+                </div>
+              </div>
+              <span class="slot-badge-concluded"><i class="fa-solid fa-check"></i> Concluded</span>
             </div>
           </div>
         </div>
@@ -296,50 +304,81 @@
 
               <!-- INTERACTIVE TRACK SELECTION -->
               <div class="field" id="field_track">
-                <label style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                  <span>Which track are you interested in? <span class="req">*</span></span>
-                </label>
+                <label for="ea_track">Which track are you interested in? <span class="req">*</span></label>
                 <input type="hidden" id="ea_track" value="Track 1">
                 <div class="track-picker-grid" role="radiogroup" aria-label="Select Track">
                   <div class="track-picker-card selected" data-track="track1" role="radio" aria-checked="true" tabindex="0">
                     <div class="track-picker-top">
                       <span class="track-picker-badge">Track 1</span>
+                      <div class="track-picker-check"><i class="fa-solid fa-circle-check"></i></div>
                     </div>
                     <div class="track-picker-title">Starting From Zero</div>
-                    <p class="track-picker-desc">Classes online from anywhere. Hands-on practical training &amp; internship.</p>
-                    <div class="track-picker-check"><i class="fa-solid fa-circle-check"></i></div>
                   </div>
                   <div class="track-picker-card" data-track="track2" role="radio" aria-checked="false" tabindex="0">
                     <div class="track-picker-top">
                       <span class="track-picker-badge">Track 2</span>
+                      <div class="track-picker-check"><i class="fa-solid fa-circle-check"></i></div>
                     </div>
                     <div class="track-picker-title">Already Started</div>
-                    <p class="track-picker-desc">For agents, landlords &amp; pros scaling their firm.</p>
-                    <div class="track-picker-check"><i class="fa-solid fa-circle-check"></i></div>
                   </div>
                 </div>
                 <div class="field-error-msg">Please select your preferred track</div>
               </div>
 
+              <!-- TWO CLASSES: ATTENDANCE MODE & DYNAMIC DATE PICKER -->
               <div class="field" id="field_session_time">
-                <label for="ea_session_time">Select Session &amp; Attendance Mode <span class="req">*</span></label>
-                <select id="ea_session_time" required>
-                  <option value="">Choose session &amp; attendance mode</option>
-                  <optgroup label="Online Sessions (Open to Everyone: Lagos, Abuja, PH &amp; Nationwide)">
-                    <option value="Online (Open to All - Lagos, Abuja, PH) - 6:00 pm, Tuesday, October 13" selected>Online (Zoom/Meet) · 6:00 PM, Tue 13 Oct (Everyone / Nationwide)</option>
-                  </optgroup>
-                  <optgroup label="Offline In-Person Events (Abuja &amp; Port Harcourt)">
-                    <option value="Abuja (Physical) - 6:00 pm, Friday, October 16">Abuja (In-Person Event) · 6:00 PM, Fri 16 Oct</option>
-                    <option value="Port Harcourt (Physical) - 6:00 pm, Friday, October 23">Port Harcourt (In-Person Event) · 6:00 PM, Fri 23 Oct</option>
-                  </optgroup>
-                  <optgroup label="Upcoming City Sessions (Dates Coming Soon)">
-                    <option value="Oyo / Ibadan (Physical - Date Coming Soon)">Oyo / Ibadan (In-Person) · Date Coming Soon</option>
-                  </optgroup>
-                  <optgroup label="Past Sessions (Concluded)">
-                    <option disabled value="">Online (Zoom/Meet) · 9:00 AM, Sat 10 Oct (Concluded)</option>
-                    <option disabled value="">Lagos (In-Person / Yaba) · 10:00 AM, 30 Sep (Concluded)</option>
-                  </optgroup>
+                <label for="online_date_picker">Select Session &amp; Attendance Mode <span class="req">*</span></label>
+
+                <!-- Compact Segmented Mode Switcher -->
+                <div class="session-mode-switch" role="tablist">
+                  <button type="button" class="session-mode-btn session-class-card selected" data-class="online" role="tab" aria-selected="true">
+                    <i class="fa-solid fa-video"></i>
+                    <span>Online (Zoom / Meet)</span>
+                  </button>
+                  <button type="button" class="session-mode-btn session-class-card" data-class="physical" role="tab" aria-selected="false">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span>In-Person (Physical Venue)</span>
+                  </button>
+                </div>
+
+                <!-- SUBPANEL 1: Online Sessions (Recurring Tuesdays & Saturdays) -->
+                <div class="session-subpanel" id="onlineSubpanel">
+                  <div class="online-filter-bar">
+                    <span class="online-filter-label">Filter Day:</span>
+                    <div class="filter-chips" role="toolbar" aria-label="Filter Day">
+                      <button type="button" class="filter-chip active" data-filter="all">All Available</button>
+                      <button type="button" class="filter-chip" data-filter="tuesday"><i class="fa-solid fa-calendar-day"></i> Tuesdays (6 PM)</button>
+                      <button type="button" class="filter-chip" data-filter="saturday"><i class="fa-solid fa-calendar-day"></i> Saturdays (9 AM)</button>
+                    </div>
+                  </div>
+
+                  <div class="session-select-wrap">
+                    <select id="online_date_picker" class="styled-clean-select" aria-label="Select Online Session Date">
+                      <!-- Populated dynamically with upcoming Tuesdays & Saturdays up to Nov 14 -->
+                    </select>
+                    <span class="session-select-arrow" aria-hidden="true">
+                      <i class="fa-solid fa-chevron-down"></i>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- SUBPANEL 2: Physical In-Person Sessions -->
+                <div class="session-subpanel" id="physicalSubpanel" style="display:none;">
+                  <div class="session-select-wrap">
+                    <select id="physical_city_picker" class="styled-clean-select" aria-label="Select In-Person City">
+                      <!-- Populated dynamically with physical sessions, concluded ones marked disabled -->
+                    </select>
+                    <span class="session-select-arrow" aria-hidden="true">
+                      <i class="fa-solid fa-chevron-down"></i>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Synchronized Master Select for Form Submission and Validation -->
+                <select id="ea_session_time" name="session_time" style="display:none;" required>
+                  <!-- Populated dynamically with all options -->
                 </select>
+
                 <div class="field-error-msg">Please choose a session and attendance mode</div>
               </div>
 

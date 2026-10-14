@@ -40,8 +40,8 @@ export class RejectCredibilityRequestUseCase {
       });
 
       if (user && property) {
-        const tenantEmail = user.email;
-        const tenantFirstName = user.firstName;
+        const tenantEmail = user.email ? this.encryption.decrypt(user.email) : '';
+        const tenantFirstName = user.firstName ? this.encryption.decrypt(user.firstName) : 'Tenant';
         
         const decryptedBusinessName = property.pm?.businessName ? this.encryption.decrypt(property.pm.businessName) : '';
         const decryptedFirstName = property.pm?.firstName ? this.encryption.decrypt(property.pm.firstName) : '';

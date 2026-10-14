@@ -1643,7 +1643,7 @@
                 </optgroup>
                 <optgroup label="Offline In-Person Events (Abuja &amp; Port Harcourt)">
                   <option value="Abuja (Physical) - 6:00 pm, Friday, October 16">Abuja (In-Person Event) - 6:00 PM, Friday, October 16</option>
-                  <option value="Port Harcourt (Physical) - 6:00 pm, Friday, October 23">Port Harcourt (In-Person Event) - 6:00 PM, Friday, October 23</option>
+                  <option value="Port Harcourt (Physical) - 6:00 pm, Thursday, October 22">Port Harcourt (In-Person Event) - 6:00 PM, Thursday, October 22</option>
                 </optgroup>
                 <optgroup label="Upcoming City Sessions (Dates Coming Soon)">
                   <option value="Oyo / Ibadan (Physical - Date Coming Soon)">Oyo / Ibadan (In-Person) - Date Coming Soon</option>
@@ -1911,6 +1911,129 @@
         navToggle.setAttribute('aria-expanded', 'false');
       }));
     }
+
+    // Dynamic & Smart Session Times Population
+    function initApplySessionTimes() {
+      const sessionSelect = document.getElementById('session_time');
+      if (!sessionSelect) return;
+
+      const cohortEnd = new Date('2026-11-14T00:00:00+01:00');
+      const now = new Date();
+
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      const onlineSessions = [];
+      const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+      while (cursor <= cohortEnd) {
+        const d = cursor.getDay();
+        if (d === 2) {
+          // Tuesday 6:00 PM
+          const sessionDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 18, 0, 0);
+          if (sessionDate.getTime() > now.getTime() && sessionDate.getTime() <= cohortEnd.getTime()) {
+            const isToday = sessionDate.toDateString() === now.toDateString();
+            const diffDays = Math.round((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            let rel = isToday ? 'Today · 6:00 PM' : (diffDays <= 7 ? 'This Coming Tue' : (diffDays <= 14 ? 'Next Week' : `In ${Math.ceil(diffDays / 7)} weeks`));
+            const mName = monthNames[sessionDate.getMonth()];
+            const mShort = monthShort[sessionDate.getMonth()];
+            const dNum = sessionDate.getDate();
+            onlineSessions.push({
+              value: `Online (Zoom/Meet) - 6:00 pm, Tuesday, ${mName} ${dNum}`,
+              label: `Online (Zoom/Meet) · 6:00 PM, Tue ${dNum} ${mShort} (${rel})`
+            });
+          }
+        } else if (d === 6) {
+          // Saturday 9:00 AM
+          const sessionDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 9, 0, 0);
+          if (sessionDate.getTime() > now.getTime() && sessionDate.getTime() <= cohortEnd.getTime()) {
+            const isToday = sessionDate.toDateString() === now.toDateString();
+            const diffDays = Math.round((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            let rel = isToday ? 'Today · 9:00 AM' : (diffDays <= 7 ? 'This Coming Sat' : (diffDays <= 14 ? 'Next Week' : `In ${Math.ceil(diffDays / 7)} weeks`));
+            const mName = monthNames[sessionDate.getMonth()];
+            const mShort = monthShort[sessionDate.getMonth()];
+            const dNum = sessionDate.getDate();
+            onlineSessions.push({
+              value: `Online (Zoom/Meet) - 9:00 am, Saturday, ${mName} ${dNum}`,
+              label: `Online (Zoom/Meet) · 9:00 AM, Sat ${dNum} ${mShort} (${rel})`
+            });
+          }
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      const physicalSessions = [
+        {
+          value: 'Abuja (Physical) - 6:00 pm, Friday, October 16',
+          label: 'Abuja (In-Person Event) · 6:00 PM, Fri 16 Oct',
+          dateTime: '2026-10-16T18:00:00+01:00'
+        },
+        {
+          value: 'Port Harcourt (Physical) - 6:00 pm, Thursday, October 22',
+          label: 'Port Harcourt (In-Person Event) · 6:00 PM, Thu 22 Oct',
+          dateTime: '2026-10-22T18:00:00+01:00'
+        },
+        {
+          value: 'Oyo / Ibadan (Physical - Date Coming Soon)',
+          label: 'Oyo / Ibadan (In-Person) · Date Coming Soon',
+          isComingSoon: true
+        },
+        {
+          value: 'Lagos (In-Person / Yaba) - 10:00 AM, 30 Sep (Concluded)',
+          label: 'Lagos (In-Person / Yaba) · 10:00 AM, 30 Sep (Concluded)',
+          dateTime: '2026-09-30T10:00:00+01:00'
+        }
+      ];
+
+      sessionSelect.innerHTML = '<option value="">Select session &amp; attendance mode</option>';
+
+      // Online Group
+      const onlineGroup = document.createElement('optgroup');
+      onlineGroup.label = 'Online Sessions (Recurring Tuesdays & Saturdays - Nationwide)';
+      onlineSessions.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.value;
+        opt.textContent = s.label;
+        onlineGroup.appendChild(opt);
+      });
+      sessionSelect.appendChild(onlineGroup);
+
+      // Physical Group
+      const physicalGroup = document.createElement('optgroup');
+      physicalGroup.label = 'Offline In-Person Events (Abuja, Port Harcourt & Ibadan)';
+      const pastGroup = document.createElement('optgroup');
+      pastGroup.label = 'Past Sessions (Concluded)';
+
+      physicalSessions.forEach(item => {
+        const isConcluded = item.dateTime && now.getTime() >= new Date(item.dateTime).getTime();
+        const opt = document.createElement('option');
+        opt.value = item.value;
+        if (isConcluded) {
+          opt.textContent = `${item.label}`;
+          opt.disabled = true;
+          pastGroup.appendChild(opt);
+        } else {
+          opt.textContent = item.label;
+          physicalGroup.appendChild(opt);
+        }
+      });
+
+      sessionSelect.appendChild(physicalGroup);
+      if (pastGroup.children.length > 0) {
+        sessionSelect.appendChild(pastGroup);
+      }
+
+      // No session option
+      const noSessionOpt = document.createElement('option');
+      noSessionOpt.value = "I don't need an info session";
+      noSessionOpt.textContent = "I don't need an info session";
+      sessionSelect.appendChild(noSessionOpt);
+    }
+
+    initApplySessionTimes();
 
     const form = document.getElementById('universityApplyForm');
     if (form) {

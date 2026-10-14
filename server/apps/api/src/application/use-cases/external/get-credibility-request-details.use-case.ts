@@ -44,8 +44,14 @@ export class GetCredibilityRequestDetailsUseCase {
         profilePic: request.user.profilePic,
       },
       propertyAddress: property?.location?.address || property?.location?.area || 'Address Not Provided',
+      rentAmount: property?.rentAmount || null,
+      rentType: property?.rentType || 'Annually',
+      currency: property?.currency || 'NGN',
+      propertyUuid: request.propertyUuid,
       companyName: request.companyName ? this.encryption.decrypt(request.companyName) : null,
       managerName: request.managerName ? this.encryption.decrypt(request.managerName) : null,
+      email: request.email ? this.encryption.decrypt(request.email) : null,
+      phone: request.phone ? this.encryption.decrypt(request.phone) : null,
     };
   }
 }

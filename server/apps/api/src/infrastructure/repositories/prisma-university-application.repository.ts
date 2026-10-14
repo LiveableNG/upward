@@ -130,6 +130,8 @@ export class PrismaUniversityApplicationRepository
         { email: { contains: query, mode: 'insensitive' } },
         { whatsapp: { contains: query, mode: 'insensitive' } },
         { city: { contains: query, mode: 'insensitive' } },
+        { sessionTime: { contains: query, mode: 'insensitive' } },
+        { track: { contains: query, mode: 'insensitive' } },
       ]
     }
 

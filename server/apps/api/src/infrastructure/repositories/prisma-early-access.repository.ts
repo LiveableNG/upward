@@ -76,6 +76,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
         { email: { contains: query, mode: 'insensitive' } },
         { whatsapp: { contains: query, mode: 'insensitive' } },
         { city: { contains: query, mode: 'insensitive' } },
+        { interest: { contains: query, mode: 'insensitive' } },
       ]
     }
 

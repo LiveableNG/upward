@@ -55,11 +55,10 @@ export class RequestCredibilityRecordsUseCase {
     const requestPhone = input.requestContactDetails.phone;
 
     if (requestEmail || requestPhone) {
-      const payUrl = this.configService.get<string>('PAY_APP_URL') || 
-                     this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
-                     'https://upward.goodtenants.io';
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL')?.split(',')[0] || 
+                          this.configService.get<string>('PM_APP_URL') || 
+                          'https://upward.goodtenants.io';
       
-      const pmUrl = this.configService.get<string>('PM_APP_URL') || 'https://upward-pm.vercel.app';
       const emailHash = requestEmail ? this.encryption.hash(requestEmail.toLowerCase().trim()) : '';
       
       const pm = requestEmail ? await this.prisma.upward_property_manager.findUnique({
@@ -67,9 +66,10 @@ export class RequestCredibilityRecordsUseCase {
       }) : null;
 
       const isRegisteredPm = !!pm;
-      const requestLink = isRegisteredPm 
-        ? `${pmUrl}/requests` 
-        : `${payUrl}/fill-record/${request.uuid}`;
+      // Primary request link is the public verification page so PM can access it without logging in
+      const requestLink = `${frontendUrl}/public/requests/${request.uuid}`;
+      // Login option in case they already have an account
+      const loginLink = `${frontendUrl}/pm-login?redirect=${encodeURIComponent(`/requests/${request.uuid}`)}`;
       
       const property = await this.prisma.upward_user_property.findUnique({
         where: { uuid: input.propertyUuid },
@@ -82,7 +82,14 @@ export class RequestCredibilityRecordsUseCase {
       });
       const propertyAddress = property?.location?.address || property?.location?.area || 'a property';
 
-      const tenantName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant';
+      let tenantName = 'Tenant';
+      try {
+        const decryptedFirst = user.firstName ? this.encryption.decrypt(user.firstName) : '';
+        const decryptedLast = user.lastName ? this.encryption.decrypt(user.lastName) : '';
+        tenantName = `${decryptedFirst} ${decryptedLast}`.trim() || 'Tenant';
+      } catch (e) {
+        tenantName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant';
+      }
 
       await this.unifiedCommService.processCommunication({
         recipientEmail: requestEmail,
@@ -92,23 +99,33 @@ export class RequestCredibilityRecordsUseCase {
         type: 'CREDIBILITY_REQUEST',
         context: {
           managerName: input.requestContactDetails.companyName || 'Property Manager',
+          pmName: input.requestContactDetails.companyName || 'Property Manager',
           tenantName,
           propertyAddress,
           requestLink,
+          loginLink,
           isRegisteredPm,
         },
       });
 
-      if (property?.isVerified && property.company?.platformId) {
+      const targetPlatformId = property?.platformId || property?.company?.platformId;
+      if (targetPlatformId) {
+        let tenantEmail = '';
+        try {
+          tenantEmail = user.email ? this.encryption.decrypt(user.email) : '';
+        } catch (e) {
+          tenantEmail = user.email;
+        }
+
         this.eventBus.publish(new CredibilityRequestCreatedEvent(
-          property.company.platformId,
+          targetPlatformId,
           'past_tenancy_record.requested',
           {
             requestUuid: request.uuid,
-            propertyUuid: property.uuid,
+            propertyUuid: property?.uuid || input.propertyUuid,
             propertyAddress,
             tenantName,
-            tenantEmail: user.email,
+            tenantEmail,
           }
         ));
       }

@@ -1,15 +1,16 @@
 import React from 'react'
 import {
   GraduationCap,
-  Calendar,
   Award,
   Video,
+  MapPin,
   ExternalLink,
   Trash2,
   Compass,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { UniversityApplicationRecord } from '../types'
+import { parseSessionAndTrack } from '../sessionExportUtils'
 
 interface ApplicationDetailModalProps {
   isOpen: boolean
@@ -294,31 +295,35 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </div>
             )}
 
-            {application.sessionTime && (
-              <div style={{ marginBottom: '14px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  Information & Q&A Session Choice:
-                </span>
-                <div
-                  style={{
-                    background: '#fef3c7',
-                    color: '#92400e',
-                    border: '1px solid #fde68a',
-                    padding: '10px 14px',
-                    borderRadius: '8px',
-                    marginTop: '4px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <Calendar size={15} />
-                  {application.sessionTime}
+            {application.sessionTime && (() => {
+              const parsed = parseSessionAndTrack({ sessionTime: application.sessionTime })
+              return (
+                <div style={{ marginBottom: '14px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Information & Q&A Session Choice:
+                  </span>
+                  <div
+                    style={{
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      border: '1px solid #fde68a',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      marginTop: '4px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {parsed.attendanceMode === 'Online' ? <Video size={15} /> : <MapPin size={15} />}
+                    <span>{parsed.sessionBadgeText}</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
+
 
             {/* Program Scholarship & Video Link Card */}
             {(application.isScholarship || application.scholarshipVideoUrl) && (

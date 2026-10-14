@@ -3,13 +3,14 @@ import {
   Eye,
   Trash2,
   Award,
-  Calendar,
   AlertCircle,
   Phone,
   Compass,
+  Video,
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { UniversityApplicationRecord } from '../types'
+import { parseSessionAndTrack } from '../sessionExportUtils'
 
 interface ApplicationColumnsOptions {
   onSelect: (row: UniversityApplicationRecord) => void
@@ -138,24 +139,30 @@ export const getApplicationColumns = ({
         <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
           {row.experienceLevel || 'Beginner'}
         </div>
-        {row.sessionTime && (
-          <div
-            style={{
-              fontSize: '11px',
-              color: '#92400e',
-              background: '#fef3c7',
-              padding: '1px 6px',
-              borderRadius: '4px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              marginTop: '3px',
-              fontWeight: 600,
-            }}
-          >
-            <Calendar size={11} /> {row.sessionTime}
-          </div>
-        )}
+        {row.sessionTime && (() => {
+          const parsed = parseSessionAndTrack({ sessionTime: row.sessionTime })
+          return (
+            <div
+              style={{
+                fontSize: '11px',
+                color: '#92400e',
+                background: '#fef3c7',
+                padding: '2px 7px',
+                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginTop: '4px',
+                fontWeight: 600,
+                border: '1px solid #fde68a',
+              }}
+              title={row.sessionTime}
+            >
+              {parsed.attendanceMode === 'Online' ? <Video size={11} /> : <MapPin size={11} />}
+              {parsed.sessionBadgeText}
+            </div>
+          )
+        })()}
       </div>
     ),
   },
@@ -270,16 +277,30 @@ export const getApplicationColumns = ({
   },
   {
     key: 'createdAt',
-    label: 'Applied Date',
-    render: (row) => (
-      <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-        {new Date(row.createdAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        })}
-      </span>
-    ),
+    label: 'Applied Date & Time',
+    render: (row) => {
+      const d = new Date(row.createdAt)
+      const dateStr = d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      const timeStr = d.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      })
+      return (
+        <div>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            {dateStr}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {timeStr}
+          </div>
+        </div>
+      )
+    },
   },
   {
     key: 'actions',

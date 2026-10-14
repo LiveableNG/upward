@@ -91,7 +91,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     recipientRole: 'PM',
     subjectTemplate: 'Past Tenancy Record Request for {{propertyAddress}}',
     plainTextTemplate:
-      'Hello {{managerName}}, {{tenantName}} has requested that you verify their past tenancy and payment records for {{propertyAddress}} on Upward: {{requestLink}}',
+      'Hello {{managerName}}, {{tenantName}} has requested that you verify their past tenancy and payment records for {{propertyAddress}} on Upward: {{requestLink}}\n\nAlready manage properties on Upward? Log in here: {{loginLink}}',
     whatsappTemplateName: 'upward_credibility_request',
     whatsappParams: ['managerName', 'tenantName', 'propertyAddress'],
     buildHtml: (ctx) =>
@@ -100,6 +100,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         tenantName: ctx.tenantName || 'Tenant',
         propertyAddress: ctx.propertyAddress || 'Property',
         requestLink: ctx.requestLink || '',
+        loginLink: ctx.loginLink || '',
         isRegisteredPm: ctx.isRegisteredPm,
       }),
   },

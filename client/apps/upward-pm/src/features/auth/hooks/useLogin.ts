@@ -22,7 +22,9 @@ export function useLogin() {
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
       success("Logged in successfully!")
-      router.push('/dashboard')
+      const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+      const redirectPath = searchParams?.get('redirect')
+      router.push(redirectPath || '/dashboard')
     },
     onError: (err: any) => {
       error(err.message || "Login failed")
@@ -47,7 +49,9 @@ export function useEmployeeLogin() {
       setAuthUser(result.user)
       queryClient.setQueryData(['user'], result.user)
       success("Welcome back! Logged in as Staff.")
-      router.push('/dashboard')
+      const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+      const redirectPath = searchParams?.get('redirect')
+      router.push(redirectPath || '/dashboard')
     },
     onError: (err: any) => {
       error(err.message || "Staff login failed")
