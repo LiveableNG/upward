@@ -309,6 +309,9 @@ export class EmailService {
           'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           'h:X-Entity-Ref-ID': emailTrackingToken,
           'o:tag': [type],
+          'o:tracking': 'no',
+          'o:tracking-clicks': 'no',
+          'o:tracking-opens': 'no',
         }
 
         if (cc) {
