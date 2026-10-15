@@ -14,6 +14,7 @@ import { Capacitor } from '@capacitor/core'
 import { ToastProvider } from '@/components/common/Toast'
 import { ThemeProvider } from '@/features/dashboard/components/ThemeProvider'
 import { GlobalPaymentSuccessModal } from '@/components/common/GlobalPaymentSuccessModal'
+import { SessionRouteTracker } from '@/components/common/SessionRouteTracker'
 import { request } from '@/lib/api-client'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -155,6 +156,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
+          <SessionRouteTracker />
           {children}
           <GlobalPaymentSuccessModal />
         </ToastProvider>

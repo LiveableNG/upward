@@ -19,6 +19,9 @@ import {
 import { apiService } from '../services/api.service'
 import PreviewDrawer, { type DrawerEntity } from '../features/dashboard/components/PreviewDrawer'
 import { AppActivityLogViewerModal } from '../features/activity/components/AppActivityLogViewerModal'
+import { SessionFunnelView } from '../features/activity/components/SessionFunnelView'
+import { SessionExplorerTable } from '../features/activity/components/SessionExplorerTable'
+import { SessionJourneyModal } from '../features/activity/components/SessionJourneyModal'
 import { DataTable, type ColumnDef } from '../components/common/table/DataTable'
 
 
@@ -251,6 +254,11 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
   // Chart configuration
   const [chartView, setChartView] = useState<'cumulative' | 'daily'>('cumulative')
   const [chartMetric, setChartMetric] = useState<'all' | 'installs' | 'signups' | 'logins'>('all')
+
+  // Tabs & Session Journey Explorer
+  const [activeTab, setActiveTab] = useState<'funnels' | 'sessions' | 'raw_logs'>('funnels')
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [dropOffFilterForSessions, setDropOffFilterForSessions] = useState<string>('ALL')
 
   // Modals & Drawers
   const [selectedLog, setSelectedLog] = useState<AppActivityLog | null>(null)
@@ -625,16 +633,117 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
       </div>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* Key Metric Overview Cards */}
+      {/* View Tabs */}
       {/* ────────────────────────────────────────────────────────── */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '1px solid var(--border)',
           marginBottom: '24px',
+          paddingBottom: '8px',
+          flexWrap: 'wrap',
         }}
       >
+        <button
+          type="button"
+          onClick={() => setActiveTab('funnels')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'funnels' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'funnels' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <TrendingUp size={15} />
+          Funnels & Drop-offs
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('sessions')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'sessions' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'sessions' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Activity size={15} />
+          User Sessions & Journeys
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('raw_logs')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'raw_logs' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'raw_logs' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Smartphone size={15} />
+          Raw Event Logs & Overview
+        </button>
+      </div>
+
+      {activeTab === 'funnels' && (
+        <SessionFunnelView
+          token={token}
+          onSelectDropOffFilter={(stage) => {
+            setDropOffFilterForSessions(stage)
+            setActiveTab('sessions')
+          }}
+        />
+      )}
+
+      {activeTab === 'sessions' && (
+        <SessionExplorerTable
+          token={token}
+          initialDropOffFilter={dropOffFilterForSessions}
+          onInspectSession={(id) => setSelectedSessionId(id)}
+          onOpenUserDrawer={(u) => openDrawerForUser({ email: u.email, uuid: String(u.id || '') })}
+        />
+      )}
+
+      {activeTab === 'raw_logs' && (
+        <>
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* Key Metric Overview Cards */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px',
+            }}
+          >
         {/* Card 1: App Installs */}
         <div
           className="card"
@@ -1289,10 +1398,18 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         emptyTitle="No activity logs found"
         emptyDescription="Try adjusting your platform, action, or date filters."
       />
+        </>
+      )}
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* Modals & Profile Drawers */}
       {/* ────────────────────────────────────────────────────────── */}
+      <SessionJourneyModal
+        sessionId={selectedSessionId}
+        token={token}
+        onClose={() => setSelectedSessionId(null)}
+      />
+
       {selectedLog && (
         <AppActivityLogViewerModal
           selectedLog={selectedLog}

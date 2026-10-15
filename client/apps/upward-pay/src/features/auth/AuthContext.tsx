@@ -10,6 +10,7 @@ import { deleteCookie } from '@/lib/cookie-utils'
 import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 interface AuthContextType {
   user: UserProfile | null
@@ -126,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await getMe()
       setUser(profile)
       userRef.current = profile
+      sessionTracker.identify({ id: profile.id ? Number(profile.id) : undefined, email: profile.email, role: profile.role || 'TENANT' })
       if (typeof window !== 'undefined') {
         localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
       }
@@ -193,6 +195,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (newUser: UserProfile) => {
     setUser(newUser)
     userRef.current = newUser
+    sessionTracker.identify({ id: newUser.id ? Number(newUser.id) : undefined, email: newUser.email, role: newUser.role || 'TENANT' })
+    sessionTracker.trackEvent('LOGIN_SUCCESS', { email: newUser.email })
     setLoading(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
@@ -201,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     console.log('[Auth] Logging out...')
+    sessionTracker.trackEvent('LOGOUT')
     setUser(null)
     userRef.current = null
     setAccessToken(null)
