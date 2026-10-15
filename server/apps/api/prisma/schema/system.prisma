@@ -659,3 +659,83 @@ model upward_university_hire_request {
   @@index([createdAt])
 }
 
+model upward_session {
+  id              Int       @id @default(autoincrement())
+  sessionId       String    @unique
+  anonymousId     String
+  userId          Int?
+  userEmail       String?
+  userRole        String?
+  app             String    @default("upward-pay") // 'upward-pay', 'upward-pm'
+  platform        String    // 'ios', 'android', 'web-desktop', 'web-mobile'
+  clientType      String    @default("browser")    // 'capacitor-native', 'browser'
+
+  // Geographic & Network Location
+  ipAddress       String?
+  country         String?
+  countryCode     String?
+  region          String?
+  city            String?
+  timezone        String?
+  locale          String?
+  networkType     String?
+
+  // Acquisition & Referral
+  landingPage     String?
+  referrer        String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+
+  // Device & Screen
+  deviceModel     String?
+  osVersion       String?
+  browser         String?
+  screenWidth     Int?
+  screenHeight    Int?
+
+  // Lifecycle & Drop-off Diagnostics
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  durationSeconds Int       @default(0)
+  entryScreen     String?
+  exitScreen      String?
+  lastAction      String?
+  dropOffStage    String?   // 'PAYMENT_ABANDONED', 'AUTH_DROPOFF', 'KYC_DROPOFF', 'COMPLETED', etc.
+  hasError        Boolean   @default(false)
+  lastError       String?
+  eventsCount     Int       @default(0)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  events          upward_session_event[]
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([userEmail])
+  @@index([dropOffStage])
+  @@index([platform])
+  @@index([countryCode, city])
+  @@index([startedAt])
+}
+
+model upward_session_event {
+  id              Int       @id @default(autoincrement())
+  sessionId       String
+  userId          Int?
+  eventName       String    // e.g. "VIEW_PAGE", "CLICK_PAY", "PAYSTACK_OPENED", "PAYSTACK_CLOSED_UNPAID"
+  screenName      String?   // e.g. "DASHBOARD", "PAYMENT_MODAL", "SIGNUP"
+  stepNumber      Int       // 1, 2, 3...
+  metadata        Json?     // { amount: 150000, errorReason: "..." }
+  clientTimestamp DateTime
+  createdAt       DateTime  @default(now())
+
+  session         upward_session @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@index([sessionId, stepNumber])
+  @@index([eventName])
+  @@index([screenName])
+  @@index([createdAt])
+}
+

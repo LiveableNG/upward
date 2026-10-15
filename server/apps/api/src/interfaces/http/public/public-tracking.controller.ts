@@ -5,13 +5,19 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Headers,
+  Ip,
 } from '@nestjs/common'
 import { ActivityTrackingService } from '../../../shared/infrastructure/activity-tracking/activity-tracking.service'
+import { IngestSessionEventsUseCase, IngestSessionEventsDto } from '../../../application/use-cases/analytics/ingest-session-events.use-case'
+import { EndSessionUseCase, EndSessionDto } from '../../../application/use-cases/analytics/end-session.use-case'
 
 @Controller('public/tracking')
 export class PublicTrackingController {
   constructor(
     private readonly trackingService: ActivityTrackingService,
+    private readonly ingestSessionEventsUseCase: IngestSessionEventsUseCase,
+    private readonly endSessionUseCase: EndSessionUseCase,
   ) {}
 
   @Post('install')
@@ -24,7 +30,7 @@ export class PublicTrackingController {
     const userAgent = req.headers['user-agent'];
 
     this.trackingService.track({
-      app: 'upward-pay', // Always upward-pay for mobile app installations
+      app: 'upward-pay',
       userRole: 'GUEST',
       action: 'APP_INSTALL',
       entityType: 'DEVICE',
@@ -36,5 +42,21 @@ export class PublicTrackingController {
     });
 
     return { success: true };
+  }
+
+  @Post('session/event')
+  @HttpCode(HttpStatus.OK)
+  async ingestEvents(
+    @Body() dto: IngestSessionEventsDto,
+    @Headers() headers: Record<string, any>,
+    @Ip() clientIp: string,
+  ) {
+    return this.ingestSessionEventsUseCase.execute(dto, headers, clientIp);
+  }
+
+  @Post('session/end')
+  @HttpCode(HttpStatus.OK)
+  async endSession(@Body() dto: EndSessionDto) {
+    return this.endSessionUseCase.execute(dto);
   }
 }

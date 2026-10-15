@@ -135,6 +135,10 @@ import { GetDropOffAnalysisUseCase } from './use-cases/analytics/get-drop-off-an
 import { GetAbStatsUseCase } from './use-cases/analytics/get-ab-stats.use-case'
 import { SendDailyReportUseCase } from './use-cases/analytics/send-daily-report.use-case'
 import { TrackInteractionUseCase } from './use-cases/analytics/track-interaction.use-case'
+import { IngestSessionEventsUseCase } from './use-cases/analytics/ingest-session-events.use-case'
+import { EndSessionUseCase } from './use-cases/analytics/end-session.use-case'
+import { GetSessionFunnelsUseCase } from './use-cases/analytics/get-session-funnels.use-case'
+import { GetSessionExplorerUseCase } from './use-cases/analytics/get-session-explorer.use-case'
 
 import { SendBulkEmailUseCase } from './use-cases/email/send-bulk-email.use-case'
 import { ResendConfirmationEmailUseCase } from './use-cases/email/resend-confirmation-email.use-case'
@@ -678,6 +682,10 @@ const UseCases: any[] = [
   GetAbStatsUseCase,
   SendDailyReportUseCase,
   TrackInteractionUseCase,
+  IngestSessionEventsUseCase,
+  EndSessionUseCase,
+  GetSessionFunnelsUseCase,
+  GetSessionExplorerUseCase,
   SendBulkEmailUseCase,
   ResendConfirmationEmailUseCase,
   GetEmailLogsUseCase,
