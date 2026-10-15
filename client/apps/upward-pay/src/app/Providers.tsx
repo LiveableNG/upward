@@ -15,6 +15,7 @@ import { ToastProvider } from '@/components/common/Toast'
 import { ThemeProvider } from '@/features/dashboard/components/ThemeProvider'
 import { GlobalPaymentSuccessModal } from '@/components/common/GlobalPaymentSuccessModal'
 import { SessionRouteTracker } from '@/components/common/SessionRouteTracker'
+import { AppUpdateProvider } from '@/features/update/AppUpdateProvider'
 import { request } from '@/lib/api-client'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -123,9 +124,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
-          <SessionRouteTracker />
-          {children}
-          <GlobalPaymentSuccessModal />
+          <AppUpdateProvider>
+            <SessionRouteTracker />
+            {children}
+            <GlobalPaymentSuccessModal />
+          </AppUpdateProvider>
         </ToastProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />

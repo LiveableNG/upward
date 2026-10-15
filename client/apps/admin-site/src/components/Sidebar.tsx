@@ -20,6 +20,7 @@ import {
   MousePointer,
   Sparkles,
   Inbox,
+  Download,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -53,6 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   // 1. Overview
   const overviewItems: NavItem[] = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'App Releases', path: '/app-releases', icon: Download },
     { name: 'App Telemetry', path: '/app-activity', icon: Smartphone },
   ]
   if (showSandboxTools) {

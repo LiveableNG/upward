@@ -1,9 +1,32 @@
 import { getAccessToken, setAccessToken, getRefreshToken, setRefreshToken, initStoredTokens } from './auth-token'
 import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 
 export const API_BASE = (typeof window !== 'undefined' && !Capacitor.isNativePlatform())
   ? '/api/v1'
   : (process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000/api/v1' : ''))
+
+let cachedAppInfo: { version: string; build: string } | null = null
+
+export async function getAppVersionInfo(): Promise<{ version: string; build: string }> {
+  if (cachedAppInfo) return cachedAppInfo
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const info = await App.getInfo()
+      cachedAppInfo = { version: info.version || '1.0.0', build: info.build || '1' }
+      return cachedAppInfo
+    } catch (e) {
+      console.warn('[api-client] App.getInfo error:', e)
+    }
+  }
+  cachedAppInfo = { version: '1.0.0', build: '1' }
+  return cachedAppInfo
+}
+
+// Pre-warm version info asynchronously
+if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+  getAppVersionInfo().catch(() => {})
+}
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
@@ -81,6 +104,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
 
     if (Capacitor.isNativePlatform()) {
       headers['x-client-platform'] = Capacitor.getPlatform()
+      if (cachedAppInfo) {
+        headers['x-app-version'] = cachedAppInfo.version
+        headers['x-app-build'] = cachedAppInfo.build
+      }
       if (path.includes('/user/auth/logout')) {
         const rt = getRefreshToken()
         if (rt) {
@@ -149,6 +176,16 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       }
     } else {
       data = text ? { message: text } : {}
+    }
+
+    // Catch HTTP 426 Upgrade Required for in-flight defense
+    if (res.status === 426 && typeof window !== 'undefined') {
+      console.warn('[api-client] HTTP 426 Upgrade Required received:', data)
+      window.dispatchEvent(
+        new CustomEvent('upward:version-upgrade-required', {
+          detail: data?.data || data,
+        }),
+      )
     }
 
     if (!res.ok) {
