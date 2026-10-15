@@ -739,3 +739,26 @@ model upward_user_session_event {
   @@index([createdAt])
 }
 
+model upward_app_version_policy {
+  id                  Int      @id @default(autoincrement())
+  uuid                String   @unique @default(uuid())
+  app                 String   @default("upward-pay") // 'upward-pay', 'upward-pm'
+  platform            String   // 'ios', 'android'
+  minSupportedVersion String   @default("1.0.0")
+  latestVersion       String   @default("1.0.0")
+  minBuildNumber      Int      @default(1)
+  latestBuildNumber   Int      @default(1)
+  forceUpdate         Boolean  @default(false)
+  maintenanceMode     Boolean  @default(false)
+  gatedFeatures       String[] @default([])
+  title               String?
+  message             String?
+  releaseNotes        Json?
+  storeUrl            String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([app, platform])
+  @@index([app, platform, isActive])
+}
