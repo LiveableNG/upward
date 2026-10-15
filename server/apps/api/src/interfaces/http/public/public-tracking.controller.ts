@@ -22,25 +22,8 @@ export class PublicTrackingController {
 
   @Post('install')
   @HttpCode(HttpStatus.OK)
-  async trackInstall(
-    @Req() req: any,
-    @Body() body: { platform: string; deviceModel?: string; osVersion?: string; installationId?: string },
-  ) {
-    const ipAddress = req.ip || req.raw?.ip;
-    const userAgent = req.headers['user-agent'];
-
-    this.trackingService.track({
-      app: 'upward-pay',
-      userRole: 'GUEST',
-      action: 'APP_INSTALL',
-      entityType: 'DEVICE',
-      entityId: body.installationId || "N/A",
-      description: `Mobile app installed/launched on ${body.platform || 'unknown'} (${body.deviceModel || 'unknown'} - OS: ${body.osVersion || 'unknown'})`,
-      metadata: body,
-      ipAddress,
-      userAgent,
-    });
-
+  async trackInstall() {
+    // Deprecated: Real installs are tracked via App Store Connect / Play Console
     return { success: true };
   }
 

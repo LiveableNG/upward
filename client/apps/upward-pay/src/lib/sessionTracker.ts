@@ -97,6 +97,42 @@ class SessionTracker {
     return 'web'
   }
 
+  private getDeviceSummary(): string {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'Unknown Device'
+    const ua = navigator.userAgent
+    if (/iPhone/i.test(ua)) return 'Apple iPhone'
+    if (/iPad/i.test(ua)) return 'Apple iPad'
+    if (/Android/i.test(ua)) {
+      const match = ua.match(/Android[^;]+; ([^)]+)\)/)
+      return match ? match[1].replace(/Build\/.*/, '').trim() : 'Android Device'
+    }
+    if (/Macintosh/i.test(ua)) return 'Mac'
+    if (/Windows/i.test(ua)) return 'Windows PC'
+    if (/Linux/i.test(ua)) return 'Linux PC'
+    return 'Web Client'
+  }
+
+  private getOsVersion(): string {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return ''
+    const ua = navigator.userAgent
+    if (/iPhone|iPad/i.test(ua)) {
+      const match = ua.match(/OS (\d+[._]\d+)/)
+      return match ? `iOS ${match[1].replace('_', '.')}` : 'iOS'
+    }
+    if (/Android/i.test(ua)) {
+      const match = ua.match(/Android (\d+(\.\d+)?)/)
+      return match ? `Android ${match[1]}` : 'Android'
+    }
+    if (/Mac OS X (\d+[._]\d+)/.test(ua)) {
+      const match = ua.match(/Mac OS X (\d+[._]\d+)/)
+      return match ? `macOS ${match[1].replace('_', '.')}` : 'macOS'
+    }
+    if (/Windows NT (\d+\.\d+)/.test(ua)) {
+      return 'Windows'
+    }
+    return ''
+  }
+
   private setupLifecycleListeners() {
     // 1. Browser Page Visibility & Unload
     if (typeof window !== 'undefined') {
@@ -202,6 +238,8 @@ class SessionTracker {
         app: 'upward-pay',
         platform: this.getPlatform(),
         clientType: Capacitor.isNativePlatform() ? 'native_app' : 'browser',
+        deviceModel: this.getDeviceSummary(),
+        osVersion: this.getOsVersion(),
         screenWidth: typeof window !== 'undefined' ? window.innerWidth : undefined,
         screenHeight: typeof window !== 'undefined' ? window.innerHeight : undefined,
         locale: typeof navigator !== 'undefined' ? navigator.language : undefined,

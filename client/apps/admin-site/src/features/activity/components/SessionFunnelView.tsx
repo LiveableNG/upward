@@ -64,7 +64,8 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
   }, [platform, days, token])
 
   const funnelSteps = metrics?.paymentFunnel?.steps || []
-  const maxStepCount = funnelSteps.length > 0 ? Math.max(...funnelSteps.map((s) => s.count), 1) : 1
+  const maxStepCount = funnelSteps.length > 0 ? Math.max(...funnelSteps.map((s) => s.count), 0) : 0
+  const totalSessions = metrics?.totalSessions || 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -79,11 +80,11 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>
-            Funnel Analysis
+          <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text)' }}>
+            Checkout & Rent Conversion Pipeline
           </span>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            ({metrics?.totalSessions || 0} tracked sessions)
+            ({totalSessions} {totalSessions === 1 ? 'tracked session' : 'tracked sessions'})
           </span>
         </div>
 
@@ -93,18 +94,19 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
             style={{
-              padding: '6px 12px',
+              padding: '7px 12px',
               borderRadius: '8px',
               border: '1px solid var(--border)',
               background: 'var(--surface)',
               fontSize: '12px',
               fontWeight: 600,
+              color: 'var(--text)',
             }}
           >
             <option value="ALL">All Platforms</option>
-            <option value="ios">iOS Only</option>
-            <option value="android">Android Only</option>
-            <option value="web">Web App Only</option>
+            <option value="ios">iOS Native</option>
+            <option value="android">Android Native</option>
+            <option value="web">Web Browser</option>
           </select>
 
           {/* Timeframe */}
@@ -112,12 +114,13 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
             style={{
-              padding: '6px 12px',
+              padding: '7px 12px',
               borderRadius: '8px',
               border: '1px solid var(--border)',
               background: 'var(--surface)',
               fontSize: '12px',
               fontWeight: 600,
+              color: 'var(--text)',
             }}
           >
             <option value={7}>Last 7 Days</option>
@@ -131,7 +134,7 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
             onClick={fetchFunnels}
             className="btn btn-secondary"
             disabled={loading}
-            style={{ padding: '6px 10px', borderRadius: '8px' }}
+            style={{ padding: '7px 12px', borderRadius: '8px' }}
           >
             <RefreshCcw size={13} className={loading ? 'spin' : ''} />
           </button>
@@ -142,45 +145,48 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
       <div
         className="card"
         style={{
-          padding: '20px',
+          padding: '24px',
           borderRadius: '14px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
+          gap: '20px',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>
-              Payment & Checkout Conversion Pipeline
-            </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Tracks drop-off from app launch to completed verified payment.
-            </p>
-          </div>
+        <div>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+            Payment Funnel Progression
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+            Measures authentic user progression from viewing rent obligations to Paystack checkout completion.
+          </p>
         </div>
 
         {funnelSteps.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px' }}>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
             {loading ? 'Calculating conversion funnel...' : 'No session activity recorded for this period.'}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {funnelSteps.map((step, idx) => {
-              const widthPct = Math.max(12, Math.round((step.count / maxStepCount) * 100))
+              // Never artificially inflate width when count is 0
+              const widthPct = step.count > 0 && maxStepCount > 0
+                ? Math.max(4, Math.round((step.count / maxStepCount) * 100))
+                : 0
+
               const isLast = idx === funnelSteps.length - 1
+              const hasActivity = step.count > 0
 
               return (
-                <div key={step.step} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div key={step.step} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span
                         style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: isLast ? 'rgba(16, 185, 129, 0.15)' : 'var(--accent-faint)',
-                          color: isLast ? '#059669' : 'var(--accent)',
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '6px',
+                          background: hasActivity ? (isLast ? 'rgba(16, 185, 129, 0.12)' : 'var(--accent-faint)') : 'var(--surface-hover)',
+                          color: hasActivity ? (isLast ? '#059669' : 'var(--accent)') : 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -190,36 +196,36 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                       >
                         {step.step}
                       </span>
-                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>
+                      <span style={{ fontWeight: 700, color: hasActivity ? 'var(--text)' : 'var(--text-muted)' }}>
                         {step.name.replace(/_/g, ' ')}
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: hasActivity ? 'var(--text)' : 'var(--text-muted)' }}>
                         {step.count.toLocaleString()}
                       </span>
                       <span
                         style={{
                           fontSize: '11px',
                           fontWeight: 700,
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          background: isLast ? 'rgba(16, 185, 129, 0.12)' : 'var(--surface-highlight)',
-                          color: isLast ? '#059669' : 'var(--text-secondary)',
+                          padding: '2px 7px',
+                          borderRadius: '5px',
+                          background: hasActivity ? (isLast ? 'rgba(16, 185, 129, 0.12)' : 'var(--surface-hover)') : 'var(--surface-hover)',
+                          color: hasActivity ? (isLast ? '#059669' : 'var(--text-secondary)') : 'var(--text-muted)',
                         }}
                       >
-                        {step.conversionRate}% retained
+                        {hasActivity ? `${step.conversionRate}% retained` : '—'}
                       </span>
                       {step.dropOffRate > 0 && (
                         <span
                           style={{
                             fontSize: '11px',
                             fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            color: '#dc2626',
+                            padding: '2px 7px',
+                            borderRadius: '5px',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            color: 'var(--danger)',
                           }}
                         >
                           -{step.dropOffRate}% drop-off ({step.dropOffCount})
@@ -228,27 +234,27 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Funnel Visual Bar */}
+                  {/* Funnel Visual Track */}
                   <div
                     style={{
-                      height: '10px',
-                      borderRadius: '5px',
+                      height: '6px',
+                      borderRadius: '999px',
                       background: 'var(--border)',
                       overflow: 'hidden',
                       position: 'relative',
                     }}
                   >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${widthPct}%`,
-                        borderRadius: '5px',
-                        background: isLast
-                          ? 'linear-gradient(90deg, #10b981, #059669)'
-                          : 'linear-gradient(90deg, var(--accent), var(--accent-hover, #ca5a2f))',
-                        transition: 'width 0.4s ease',
-                      }}
-                    />
+                    {widthPct > 0 && (
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${widthPct}%`,
+                          borderRadius: '999px',
+                          background: isLast ? '#10b981' : 'var(--accent)',
+                          transition: 'width 0.4s ease',
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               )
@@ -257,7 +263,7 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
         )}
       </div>
 
-      {/* Leakage & Drop-off Breakdown Row */}
+      {/* Breakdown Cards Grid */}
       <div
         style={{
           display: 'grid',
@@ -265,43 +271,45 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
           gap: '16px',
         }}
       >
-        {/* Payment Leakage Card */}
+        {/* Payment Leakage */}
         <div
           className="card"
           style={{
-            padding: '18px 20px',
+            padding: '20px',
             borderRadius: '14px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '14px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={16} color="#d97706" />
-            <span style={{ fontSize: '13px', fontWeight: 800 }}>Payment Leakage Summary</span>
+            <AlertTriangle size={15} color="var(--accent)" />
+            <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>
+              Payment Leakage Diagnostics
+            </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                background: 'rgba(245, 158, 11, 0.08)',
-                border: '1px solid rgba(245, 158, 11, 0.2)',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'var(--surface-hover)',
+                border: '1px solid var(--border)',
               }}
             >
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#b45309', display: 'block' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', display: 'block' }}>
                   Abandoned Without Paying
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  User opened Paystack but closed or cancelled modal
+                  User opened Paystack but closed or dismissed checkout
                 </span>
               </div>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: '#b45309' }}>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: (metrics?.paymentFunnel?.leakage?.dismissedWithoutPaying || 0) > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
                 {metrics?.paymentFunnel?.leakage?.dismissedWithoutPaying || 0}
               </span>
             </div>
@@ -311,21 +319,21 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'var(--surface-hover)',
+                border: '1px solid var(--border)',
               }}
             >
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#dc2626', display: 'block' }}>
-                  Failed with Errors
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', display: 'block' }}>
+                  Gateway Errors
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Card declines, network timeouts, or CDN errors
+                  Card declines, insufficient funds, or gateway timeouts
                 </span>
               </div>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: '#dc2626' }}>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: (metrics?.paymentFunnel?.leakage?.failedWithErrors || 0) > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
                 {metrics?.paymentFunnel?.leakage?.failedWithErrors || 0}
               </span>
             </div>
@@ -336,20 +344,22 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
         <div
           className="card"
           style={{
-            padding: '18px 20px',
+            padding: '20px',
             borderRadius: '14px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '14px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingDown size={16} color="var(--accent)" />
-            <span style={{ fontSize: '13px', fontWeight: 800 }}>Top Exit / Drop-off Stages</span>
+            <TrendingDown size={15} color="var(--accent)" />
+            <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>
+              Top Drop-off Stages
+            </span>
           </div>
 
           {(!metrics?.dropOffBreakdown || metrics.dropOffBreakdown.length === 0) ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px 0' }}>
               No drop-offs recorded for this filter.
             </div>
           ) : (
@@ -362,9 +372,9 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '8px 10px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
-                    background: 'var(--surface)',
+                    background: 'var(--surface-hover)',
                     border: '1px solid var(--border)',
                     cursor: onSelectDropOffFilter ? 'pointer' : 'default',
                     fontSize: '12px',
@@ -386,20 +396,22 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
         <div
           className="card"
           style={{
-            padding: '18px 20px',
+            padding: '20px',
             borderRadius: '14px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '14px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <MapPin size={16} color="var(--accent)" />
-            <span style={{ fontSize: '13px', fontWeight: 800 }}>Top Geographies</span>
+            <MapPin size={15} color="var(--accent)" />
+            <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>
+              Top Locations
+            </span>
           </div>
 
           {(!metrics?.topLocations || metrics.topLocations.length === 0) ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '16px 0' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px 0' }}>
               No location data recorded yet.
             </div>
           ) : (
@@ -411,9 +423,9 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '8px 10px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
-                    background: 'var(--surface)',
+                    background: 'var(--surface-hover)',
                     border: '1px solid var(--border)',
                     fontSize: '12px',
                   }}

@@ -139,6 +139,7 @@ import { IngestSessionEventsUseCase } from './use-cases/analytics/ingest-session
 import { EndSessionUseCase } from './use-cases/analytics/end-session.use-case'
 import { GetSessionFunnelsUseCase } from './use-cases/analytics/get-session-funnels.use-case'
 import { GetSessionExplorerUseCase } from './use-cases/analytics/get-session-explorer.use-case'
+import { GetUniqueUserSessionsUseCase } from './use-cases/analytics/get-unique-user-sessions.use-case'
 
 import { SendBulkEmailUseCase } from './use-cases/email/send-bulk-email.use-case'
 import { ResendConfirmationEmailUseCase } from './use-cases/email/resend-confirmation-email.use-case'
@@ -686,6 +687,7 @@ const UseCases: any[] = [
   EndSessionUseCase,
   GetSessionFunnelsUseCase,
   GetSessionExplorerUseCase,
+  GetUniqueUserSessionsUseCase,
   SendBulkEmailUseCase,
   ResendConfirmationEmailUseCase,
   GetEmailLogsUseCase,

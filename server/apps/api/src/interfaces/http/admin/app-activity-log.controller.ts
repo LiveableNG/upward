@@ -8,6 +8,7 @@ import { GetAppActivityStatsUseCase } from '../../../application/use-cases/admin
 import { GoogleAnalyticsService } from '../../../shared/infrastructure/common/google-analytics.service'
 import { GetSessionFunnelsUseCase } from '../../../application/use-cases/analytics/get-session-funnels.use-case'
 import { GetSessionExplorerUseCase } from '../../../application/use-cases/analytics/get-session-explorer.use-case'
+import { GetUniqueUserSessionsUseCase } from '../../../application/use-cases/analytics/get-unique-user-sessions.use-case'
 
 @Controller('admin/app-activity')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -18,7 +19,19 @@ export class AppActivityLogController {
     private readonly googleAnalyticsService: GoogleAnalyticsService,
     private readonly getSessionFunnelsUseCase: GetSessionFunnelsUseCase,
     private readonly getSessionExplorerUseCase: GetSessionExplorerUseCase,
+    private readonly getUniqueUserSessionsUseCase: GetUniqueUserSessionsUseCase,
   ) {}
+
+  @Get('unique-users')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getUniqueUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('platform') platform?: string,
+  ) {
+    return this.getUniqueUserSessionsUseCase.execute({ page, limit, search, platform });
+  }
 
   @Get('google-analytics/stats')
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)

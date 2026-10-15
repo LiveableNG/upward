@@ -25,21 +25,23 @@ export class GetAppActivityLogsUseCase {
     const where: any = {}
     const andConditions: any[] = []
 
-    // Filter by action if specified, otherwise include standard activity events
+    // Always scope to upward-pay (tenant app)
+    andConditions.push({ app: 'upward-pay' })
+
+    // Filter by action if specified, otherwise include standard business events
     if (query.actionFilter && query.actionFilter !== 'ALL') {
       andConditions.push({ action: query.actionFilter })
     } else {
       andConditions.push({
-        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'APP_INSTALL', 'CREATE', 'PAYMENT', 'DELETE'] },
+        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST', 'UPDATE'] },
       })
     }
 
-    // Filter out anonymous system logs, keeping verified user events, APP_INSTALL, and SIGNUP
+    // Filter out anonymous system logs, keeping verified user events and signups
     andConditions.push({
       OR: [
-        { action: { in: ['SIGNUP', 'APP_INSTALL'] } },
+        { action: 'SIGNUP' },
         { userId: { not: null } },
-        { pmId: { not: null } },
         {
           AND: [
             { userEmail: { not: null } },
@@ -50,14 +52,6 @@ export class GetAppActivityLogsUseCase {
         },
       ],
     })
-
-    if (query.appFilter && query.appFilter !== 'ALL') {
-      andConditions.push({ app: query.appFilter })
-    }
-
-    if (query.actionFilter && query.actionFilter !== 'ALL') {
-      andConditions.push({ action: query.actionFilter })
-    }
 
     if (query.search) {
       andConditions.push({
@@ -93,7 +87,6 @@ export class GetAppActivityLogsUseCase {
             { userAgent: { contains: 'iPhone', mode: 'insensitive' } },
             { userAgent: { contains: 'iPad', mode: 'insensitive' } },
             { userAgent: { contains: 'Android', mode: 'insensitive' } },
-            { action: 'APP_INSTALL' },
           ],
         })
       } else if (p === 'web') {
@@ -101,7 +94,6 @@ export class GetAppActivityLogsUseCase {
           NOT: {
             OR: [
               { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
-              { action: 'APP_INSTALL' },
             ],
           },
         })
@@ -412,64 +404,40 @@ export class GetAppActivityLogsUseCase {
         }
       } else if (log.action === 'LOGIN') {
         const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
-        readableText = `${log.userRole === 'PM' ? 'Property Manager' : 'Tenant'} ${userDisplayName || pmDisplayName || 'User'} logged in via ${platformLabel} (${deviceSummary}).`
+        readableText = `${userDisplayName || 'Tenant'} logged in via ${platformLabel} (${deviceSummary}).`
       } else if (log.action === 'LOGOUT') {
         const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
-        readableText = `${log.userRole === 'PM' ? 'Property Manager' : 'Tenant'} ${userDisplayName || pmDisplayName || 'User'} logged out via ${platformLabel}.`
-      } else if (log.action === 'APP_INSTALL') {
-        readableText = `Mobile app installed or launched on ${platform.toUpperCase()} (${deviceSummary}).`
-      } else if (log.action === 'CREATE') {
-        if (log.entityType === 'UNIT') {
-          const match = log.description.match(/(?:uploaded|imported|added) (\d+) (?:units|properties|records)/i)
-          if (match) {
-            readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} bulk uploaded ${match[1]} units.`
-          } else {
-            readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} created a new unit.`
+        readableText = `${userDisplayName || 'Tenant'} logged out via ${platformLabel}.`
+      } else if (log.action === 'PAYMENT' || log.entityType === 'PAYMENT' || log.entityType === 'RENT') {
+        let amountStr = ''
+        try {
+          const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
+          if (meta.amount) {
+            amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`
           }
-        } else if (log.entityType === 'INVITE') {
-          let inviteEmail = ''
-          try {
-            const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
-            if (meta.email) {
-              inviteEmail = meta.email
-            } else if (meta.tenants && Array.isArray(meta.tenants)) {
-              inviteEmail = meta.tenants.map((t: any) => t.email).join(', ')
-            }
-          } catch (e) {}
-          if (!inviteEmail) {
-            const match = log.description.match(/invite tenant:?\s*([^\s]+)/i)
-            inviteEmail = match && match[1] ? match[1] : ''
-          }
-          if (!inviteEmail) {
-            inviteEmail = log.description.replace(/CREATE action on INVITE.*by\s+/i, '') || 'a tenant'
-          }
-          readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} invited Tenant ${inviteEmail}.`
-        } else if (log.entityType === 'TENANT') {
-          const tenantEmailLink = targetTenant?.email || '';
-          const tenantNameStr = targetTenant ? `${targetTenant.firstName} ${targetTenant.lastName}`.trim() : '';
-          const tenantDisplayName = tenantNameStr ? `${tenantNameStr} (${tenantEmailLink})` : tenantEmailLink || 'a tenant';
-
-          if (targetTenant?.isFromInvite) {
-            readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} invited Tenant ${tenantDisplayName}.`
-          } else {
-            readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} created a tenant record for ${tenantDisplayName}.`
-          }
-        } else if (log.entityType === 'PAYMENT' || log.entityType === 'RENT') {
-          let amountStr = ''
-          try {
-            const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
-            if (meta.amount) {
-              amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`
-            }
-          } catch (e) {}
-          if (!amountStr) {
-            const amtMatch = log.description.match(/₦\s*([\d,]+)/)
-            if (amtMatch) amountStr = ` of ₦${amtMatch[1]}`
-          }
-          readableText = `Tenant ${userDisplayName} made a payment${amountStr}.`
-        } else if (log.entityType === 'CREDIBILITY_REQUEST') {
-          readableText = `Tenant ${userDisplayName} requested their rental history credibility report.`
+        } catch (e) {}
+        if (!amountStr) {
+          const amtMatch = log.description.match(/₦\s*([\d,]+)/)
+          if (amtMatch) amountStr = ` of ₦${amtMatch[1]}`
         }
+        readableText = `Tenant ${userDisplayName || 'User'} initiated rent checkout${amountStr}.`
+      } else if (log.action === 'DEPOSIT' || log.entityType === 'WALLET') {
+        let amountStr = ''
+        try {
+          const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
+          if (meta.amount) {
+            amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`
+          }
+        } catch (e) {}
+        readableText = `Tenant ${userDisplayName || 'User'} deposited funds${amountStr} to savings wallet.`
+      } else if (log.action === 'CREDIBILITY_REQUEST' || log.entityType === 'CREDIBILITY_REQUEST') {
+        readableText = `Tenant ${userDisplayName || 'User'} requested their rental history credibility report.`
+      } else if (log.action === 'UPDATE' || log.entityType === 'PROFILE') {
+        readableText = `Tenant ${userDisplayName || 'User'} updated profile settings.`
+      }
+
+      if (!readableText && log.description) {
+        readableText = log.description
       }
 
       return {

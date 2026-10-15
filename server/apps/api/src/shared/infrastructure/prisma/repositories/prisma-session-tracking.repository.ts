@@ -255,7 +255,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
         step: 1,
         name: 'View Dashboard / Rent',
         count: baseDashboard,
-        conversionRate: 100,
+        conversionRate: baseDashboard > 0 ? 100 : 0,
         dropOffCount: Math.max(0, baseDashboard - clickPay),
         dropOffRate: baseDashboard > 0 ? Number(((Math.max(0, baseDashboard - clickPay) / baseDashboard) * 100).toFixed(1)) : 0,
       },

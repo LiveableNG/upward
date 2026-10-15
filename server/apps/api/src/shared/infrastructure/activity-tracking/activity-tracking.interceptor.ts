@@ -19,6 +19,12 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
     // Fastify/Express request details
     const method = req.method;
     const url = req.url || '';
+
+    // Ignore admin routes completely (admin actions are not tenant telemetry)
+    if (url.startsWith('/admin') || url.includes('/admin/')) {
+      return next.handle();
+    }
+
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     const isAuth = url.includes('/auth/');
 
@@ -166,49 +172,48 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
           const ipAddress = req.ip || req.raw?.ip;
           const platformLabel = isNativeMobile ? `${platform.toUpperCase()} App (${deviceName})` : `Web (${browserName} on ${deviceName})`;
 
-          // Construct descriptive message
-          let description = `${action} action on ${entityType}`;
-          if (entityId) {
-            description += ` (ID/UUID: ${entityId})`;
-          }
-          if (userEmail) {
-            description += ` by ${userEmail}`;
-          }
+          // Construct descriptive message & filter out noisy technical internal calls
+          let description = '';
+          let shouldRecord = true;
 
-          if (url.includes('/units/bulk')) {
-            const count = req.body?.units?.length || 0;
-            description = `Property Manager bulk uploaded ${count} units`;
-          } else if (url.includes('/import/bulk')) {
-            const count = req.body?.rows?.length || 0;
-            description = `Property Manager bulk imported ${count} properties/units`;
-          } else if (url.includes('/records/bulk')) {
-            const count = req.body?.records?.length || 0;
-            description = `Property Manager bulk uploaded ${count} tenant records`;
-          } else if (url.includes('/payments/bulk')) {
-            const count = req.body?.rows?.length || 0;
-            description = `Property Manager bulk added ${count} rent history payments`;
-          } else if (action === 'LOGIN') {
-            description = `User logged in via ${platformLabel}: ${userEmail || 'unknown'}`;
+          if (action === 'LOGIN') {
+            description = `Tenant logged in via ${platformLabel}`;
             entityType = 'AUTH';
           } else if (action === 'SIGNUP') {
-            if (app === 'upward-pm') {
-              const bizName = req.body?.businessName ? ` (${req.body.businessName})` : '';
-              description = `New Property Manager registered via ${platformLabel}: ${userEmail || req.body?.email || 'unknown'}${bizName}`;
+            let details = '';
+            if (req.body?.isFromInvite) {
+              details = ' (Invited Tenant converted)';
+            } else if (req.body?.isFromWaitlist) {
+              details = ' (Waitlist converted)';
             } else {
-              let details = '';
-              if (req.body?.isFromInvite) {
-                details = ' (Invited Tenant converted)';
-              } else if (req.body?.isFromWaitlist) {
-                details = ' (Waitlist converted)';
-              } else {
-                details = ' (Self Registered)';
-              }
-              description = `New user signed up via ${platformLabel}: ${userEmail || req.body?.email || 'unknown'}${details}`;
+              details = ' (Self-registered)';
             }
+            description = `New tenant registered via ${platformLabel}${details}`;
             entityType = 'AUTH';
           } else if (action === 'LOGOUT') {
-            description = `User logged out via ${platformLabel}: ${userEmail || 'unknown'}`;
+            description = `Tenant logged out via ${platformLabel}`;
             entityType = 'AUTH';
+          } else if (url.includes('/payments') || url.includes('/checkout') || url.includes('/paystack')) {
+            action = 'PAYMENT';
+            entityType = 'PAYMENT';
+            const amt = req.body?.amount ? ` of ₦${Number(req.body.amount).toLocaleString()}` : '';
+            description = `Initiated rent checkout${amt} via ${platformLabel}`;
+          } else if (url.includes('/deposit') || url.includes('/wallet')) {
+            action = 'DEPOSIT';
+            entityType = 'WALLET';
+            const amt = req.body?.amount ? ` of ₦${Number(req.body.amount).toLocaleString()}` : '';
+            description = `Initiated wallet deposit${amt} via ${platformLabel}`;
+          } else if (url.includes('/credibility')) {
+            action = 'CREDIBILITY_REQUEST';
+            entityType = 'REPORT';
+            description = `Requested rental credibility report via ${platformLabel}`;
+          } else {
+            // Drop generic internal technical mutations (e.g. "CREATE action on API", routine profile polls)
+            shouldRecord = false;
+          }
+
+          if (!shouldRecord) {
+            return;
           }
 
           // Emit the tracking event

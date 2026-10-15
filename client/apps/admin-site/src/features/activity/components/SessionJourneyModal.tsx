@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import {
-  X,
   AlertCircle,
   CheckCircle,
   Copy,
@@ -13,6 +12,7 @@ import {
   Activity,
 } from 'lucide-react'
 import { apiService } from '../../../services/api.service'
+import { Modal } from '../../../components/common/modal/Modal'
 
 interface SessionJourneyModalProps {
   sessionId: string | null
@@ -98,77 +98,54 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-content card"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: '820px',
-          width: '94%',
-          maxHeight: '90vh',
-          padding: '24px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  background: 'var(--accent-faint)',
-                  color: 'var(--accent)',
-                }}
-              >
-                Session Journey
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                {sessionId}
-              </span>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(sessionId)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  padding: '2px',
-                }}
-                title="Copy Session ID"
-              >
-                {copied ? <Check size={14} color="#059669" /> : <Copy size={14} />}
-              </button>
-            </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>
-              {sessionData?.userEmail || (sessionData?.userId ? `User #${sessionData.userId}` : 'Guest Visitor')}
-            </h3>
-          </div>
-
-          <button
-            onClick={onClose}
+    <Modal
+      isOpen={!!sessionId}
+      onClose={onClose}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span>{sessionData?.userEmail || (sessionData?.userId ? `User #${sessionData.userId}` : 'Guest Visitor')}</span>
+          <span
             style={{
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              border: 'none',
-              padding: '6px',
-              borderRadius: '8px',
+              fontSize: '11px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              padding: '2px 7px',
+              borderRadius: '4px',
+              background: 'var(--accent-faint)',
+              color: 'var(--accent)',
             }}
           >
-            <X size={20} />
+            Session Journey
+          </span>
+        </div>
+      }
+      description={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{sessionId}</span>
+          <button
+            type="button"
+            onClick={() => copyToClipboard(sessionId || '')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
+            title="Copy Session ID"
+          >
+            {copied ? <Check size={13} color="#059669" /> : <Copy size={13} />}
           </button>
         </div>
-
+      }
+      icon={<Activity size={20} />}
+      maxWidth="840px"
+      footerActions={
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn btn-primary"
+          style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px' }}
+        >
+          Close Journey
+        </button>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
             Loading session events timeline...
@@ -239,7 +216,7 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
             {/* Events Timeline Container */}
             <div
               style={{
-                flex: 1,
+                maxHeight: '440px',
                 overflowY: 'auto',
                 paddingRight: '6px',
                 display: 'flex',
@@ -387,6 +364,6 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
           </>
         )}
       </div>
-    </div>
+    </Modal>
   )
 }
