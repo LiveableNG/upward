@@ -19,6 +19,9 @@ import {
 import { apiService } from '../services/api.service'
 import PreviewDrawer, { type DrawerEntity } from '../features/dashboard/components/PreviewDrawer'
 import { AppActivityLogViewerModal } from '../features/activity/components/AppActivityLogViewerModal'
+import { SessionFunnelView } from '../features/activity/components/SessionFunnelView'
+import { SessionExplorerTable } from '../features/activity/components/SessionExplorerTable'
+import { SessionJourneyModal } from '../features/activity/components/SessionJourneyModal'
 import { DataTable, type ColumnDef } from '../components/common/table/DataTable'
 
 
@@ -59,13 +62,10 @@ interface AppActivityLog {
 }
 
 interface ActivityStats {
-  totalInstalls: number
   totalSignups: number
   totalLogins: number
-  platforms: { ios: number; android: number; web: number; other: number }
   signupsByPlatform: { ios: number; android: number; web: number }
   loginsByPlatform: { ios: number; android: number; web: number }
-  activeUsersByApp: Array<{ app: string; _count: number }>
   recentActivityCount: number
   todayStats: {
     uniqueUsersIosCount: number
@@ -79,7 +79,6 @@ interface ActivityStats {
     ios: number
     android: number
     web: number
-    installs: number
     signups: number
     logins: number
     total: number
@@ -90,8 +89,8 @@ interface ActivityStats {
     android: number
     web: number
     total: number
-    installs: number
     signups: number
+    logins: number
   }>
 }
 
@@ -243,14 +242,19 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
 
   // Filters
   const [search, setSearch] = useState('')
-  const [appFilter, setAppFilter] = useState('ALL')
+  const [appFilter, setAppFilter] = useState('upward-pay')
   const [actionFilter, setActionFilter] = useState('ALL')
   const [platformFilter, setPlatformFilter] = useState('ALL')
   const [dateFilter, setDateFilter] = useState('')
 
   // Chart configuration
   const [chartView, setChartView] = useState<'cumulative' | 'daily'>('cumulative')
-  const [chartMetric, setChartMetric] = useState<'all' | 'installs' | 'signups' | 'logins'>('all')
+  const [chartMetric, setChartMetric] = useState<'all' | 'signups' | 'logins'>('all')
+
+  // Tabs & Session Journey Explorer
+  const [activeTab, setActiveTab] = useState<'funnels' | 'sessions' | 'raw_logs'>('funnels')
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [dropOffFilterForSessions, setDropOffFilterForSessions] = useState<string>('ALL')
 
   // Modals & Drawers
   const [selectedLog, setSelectedLog] = useState<AppActivityLog | null>(null)
@@ -359,7 +363,6 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
     const pad = 24
 
     const values = sourceData.map((d: any) => {
-      if (chartMetric === 'installs') return d.installs
       if (chartMetric === 'signups') return d.signups
       if (chartMetric === 'logins') return d.logins || 0
       return d.total
@@ -369,8 +372,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
     const points = sourceData.map((d: any, idx: number) => {
       const x = pad + (idx / (sourceData.length - 1)) * (width - pad * 2)
       let val = d.total
-      if (chartMetric === 'installs') val = d.installs
-      else if (chartMetric === 'signups') val = d.signups
+      if (chartMetric === 'signups') val = d.signups
       else if (chartMetric === 'logins') val = d.logins || 0
       const y = height - pad - (val / maxVal) * (height - pad * 2)
       return { x, y, val, date: d.date, ios: d.ios, android: d.android, web: d.web }
@@ -444,7 +446,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 </button>
               ) : (
                 <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  Guest / New Install
+                  Guest User
                 </span>
               )}
 
@@ -599,7 +601,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               App Telemetry & Activity
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '3px 0 0 0' }}>
-              Monitor mobile app installs, signups by OS, active sessions, and live platform operations.
+              Monitor authentic user logins, signups by platform, active sessions, and live platform operations.
             </p>
           </div>
         </div>
@@ -625,17 +627,118 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
       </div>
 
       {/* ────────────────────────────────────────────────────────── */}
-      {/* Key Metric Overview Cards */}
+      {/* View Tabs */}
       {/* ────────────────────────────────────────────────────────── */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '1px solid var(--border)',
           marginBottom: '24px',
+          paddingBottom: '8px',
+          flexWrap: 'wrap',
         }}
       >
-        {/* Card 1: App Installs */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('funnels')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'funnels' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'funnels' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <TrendingUp size={15} />
+          Funnels & Drop-offs
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('sessions')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'sessions' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'sessions' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Activity size={15} />
+          User Sessions & Journeys
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('raw_logs')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            border: 'none',
+            background: activeTab === 'raw_logs' ? 'var(--accent)' : 'var(--surface)',
+            color: activeTab === 'raw_logs' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Smartphone size={15} />
+          Raw Event Logs & Overview
+        </button>
+      </div>
+
+      {activeTab === 'funnels' && (
+        <SessionFunnelView
+          token={token}
+          onSelectDropOffFilter={(stage) => {
+            setDropOffFilterForSessions(stage)
+            setActiveTab('sessions')
+          }}
+        />
+      )}
+
+      {activeTab === 'sessions' && (
+        <SessionExplorerTable
+          token={token}
+          initialDropOffFilter={dropOffFilterForSessions}
+          onInspectSession={(id) => setSelectedSessionId(id)}
+          onOpenUserDrawer={(u) => openDrawerForUser({ email: u.email, uuid: String(u.id || '') })}
+        />
+      )}
+
+      {activeTab === 'raw_logs' && (
+        <>
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* Key Metric Overview Cards */}
+          {/* ────────────────────────────────────────────────────────── */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px',
+            }}
+          >
+        {/* Card 1: User Logins */}
         <div
           className="card"
           style={{
@@ -648,64 +751,109 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              App Installs
+              User Logins
             </span>
             <div
               style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'rgba(217, 119, 87, 0.1)',
-                color: 'var(--accent)',
+                background: 'rgba(16, 185, 129, 0.1)',
+                color: '#10b981',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Smartphone size={16} />
+              <LogIn size={16} />
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text)', lineHeight: 1 }}>
-              {stats ? (stats.platforms?.ios || 0) + (stats.platforms?.android || 0) : '—'}
+              {stats?.totalLogins ?? '—'}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Total mobile installations tracked
+              Total authentic user logins tracked
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
-            <span
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter('LOGIN')
+                setPlatformFilter('ios')
+                setPage(1)
+              }}
+              title="Filter iOS logins"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
                 fontSize: '11px',
                 fontWeight: 700,
-                padding: '2px 8px',
+                padding: '3px 8px',
                 borderRadius: '6px',
-                background: 'rgba(15, 23, 42, 0.06)',
-                color: 'var(--text)',
+                border: 'none',
+                cursor: 'pointer',
+                background: actionFilter === 'LOGIN' && platformFilter === 'ios' ? 'var(--text)' : 'rgba(15, 23, 42, 0.06)',
+                color: actionFilter === 'LOGIN' && platformFilter === 'ios' ? 'var(--white)' : 'var(--text)',
+                transition: 'all 0.15s ease',
               }}
             >
-              <AppleIcon size={12} /> {stats?.platforms?.ios || 0} iOS
-            </span>
-            <span
+              <AppleIcon size={12} color={actionFilter === 'LOGIN' && platformFilter === 'ios' ? 'var(--white)' : 'var(--text)'} /> {stats?.loginsByPlatform?.ios || 0} iOS
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter('LOGIN')
+                setPlatformFilter('android')
+                setPage(1)
+              }}
+              title="Filter Android logins"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
                 fontSize: '11px',
                 fontWeight: 700,
-                padding: '2px 8px',
+                padding: '3px 8px',
                 borderRadius: '6px',
-                background: 'rgba(16, 185, 129, 0.1)',
-                color: '#059669',
+                border: 'none',
+                cursor: 'pointer',
+                background: actionFilter === 'LOGIN' && platformFilter === 'android' ? '#059669' : 'rgba(16, 185, 129, 0.1)',
+                color: actionFilter === 'LOGIN' && platformFilter === 'android' ? '#fff' : '#059669',
+                transition: 'all 0.15s ease',
               }}
             >
-              <AndroidIcon size={12} /> {stats?.platforms?.android || 0} Android
-            </span>
+              <AndroidIcon size={12} color={actionFilter === 'LOGIN' && platformFilter === 'android' ? '#fff' : '#059669'} /> {stats?.loginsByPlatform?.android || 0} Android
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter('LOGIN')
+                setPlatformFilter('web')
+                setPage(1)
+              }}
+              title="Filter Web logins"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: actionFilter === 'LOGIN' && platformFilter === 'web' ? '#2563eb' : 'rgba(59, 130, 246, 0.08)',
+                color: actionFilter === 'LOGIN' && platformFilter === 'web' ? '#fff' : '#2563eb',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Globe size={12} /> {stats?.loginsByPlatform?.web || 0} Web
+            </button>
           </div>
         </div>
 
@@ -745,20 +893,86 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               {stats?.totalSignups ?? '—'}
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Total registered tenant & PM accounts
+              Total registered tenant accounts
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: 'rgba(15, 23, 42, 0.06)' }}>
-              <AppleIcon size={11} /> {stats?.signupsByPlatform?.ios || 0} iOS
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.1)', color: '#059669' }}>
-              <AndroidIcon size={11} /> {stats?.signupsByPlatform?.android || 0} Android
-            </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.08)', color: '#2563eb' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter('SIGNUP')
+                setPlatformFilter('ios')
+                setPage(1)
+              }}
+              title="Filter iOS signups"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: actionFilter === 'SIGNUP' && platformFilter === 'ios' ? 'var(--text)' : 'rgba(15, 23, 42, 0.06)',
+                color: actionFilter === 'SIGNUP' && platformFilter === 'ios' ? 'var(--white)' : 'var(--text)',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AppleIcon size={11} color={actionFilter === 'SIGNUP' && platformFilter === 'ios' ? 'var(--white)' : 'var(--text)'} /> {stats?.signupsByPlatform?.ios || 0} iOS
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter('SIGNUP')
+                setPlatformFilter('android')
+                setPage(1)
+              }}
+              title="Filter Android signups"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: actionFilter === 'SIGNUP' && platformFilter === 'android' ? '#059669' : 'rgba(16, 185, 129, 0.1)',
+                color: actionFilter === 'SIGNUP' && platformFilter === 'android' ? '#fff' : '#059669',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <AndroidIcon size={11} color={actionFilter === 'SIGNUP' && platformFilter === 'android' ? '#fff' : '#059669'} /> {stats?.signupsByPlatform?.android || 0} Android
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActionFilter('SIGNUP')
+                setPlatformFilter('web')
+                setPage(1)
+              }}
+              title="Filter Web signups"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+                background: actionFilter === 'SIGNUP' && platformFilter === 'web' ? '#2563eb' : 'rgba(59, 130, 246, 0.08)',
+                color: actionFilter === 'SIGNUP' && platformFilter === 'web' ? '#fff' : '#2563eb',
+                transition: 'all 0.15s ease',
+              }}
+            >
               <Globe size={11} /> {stats?.signupsByPlatform?.web || 0} Web
-            </span>
+            </button>
           </div>
         </div>
 
@@ -775,7 +989,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Active Sessions Today
+              Active Today
             </span>
             <div
               style={{
@@ -854,11 +1068,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
 
           <div style={{ display: 'flex', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-secondary)' }}>
             <span>
-              <strong>{stats?.activeUsersByApp?.find((a) => a.app === 'upward-pay')?._count || 0}</strong> pay events
-            </span>
-            <span>•</span>
-            <span>
-              <strong>{stats?.activeUsersByApp?.find((a) => a.app === 'upward-pm')?._count || 0}</strong> pm events
+              Focused on <strong>Upward Pay</strong> platform events
             </span>
           </div>
         </div>
@@ -907,7 +1117,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 gap: '2px',
               }}
             >
-              {(['all', 'installs', 'signups', 'logins'] as const).map((m) => (
+              {(['all', 'logins', 'signups'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -925,7 +1135,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                     boxShadow: chartMetric === m ? 'var(--shadow-sm)' : 'none',
                   }}
                 >
-                  {m}
+                  {m === 'all' ? 'All Activity' : m}
                 </button>
               ))}
             </div>
@@ -1212,11 +1422,11 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {[
                 { key: 'ALL', label: 'All Events' },
-                { key: 'SIGNUP', label: 'Signups' },
                 { key: 'LOGIN', label: 'Logins' },
-                { key: 'APP_INSTALL', label: 'Installs' },
+                { key: 'SIGNUP', label: 'Signups' },
                 { key: 'PAYMENT', label: 'Payments' },
-                { key: 'CREATE', label: 'Creations' },
+                { key: 'DEPOSIT', label: 'Deposits' },
+                { key: 'CREDIBILITY_REQUEST', label: 'Credibility' },
               ].map((act) => (
                 <button
                   key={act.key}
@@ -1241,40 +1451,6 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
               ))}
             </div>
           </div>
-
-          {/* App Pills */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              App:
-            </span>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {(['ALL', 'upward-pay', 'upward-pm'] as const).map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => {
-                    setAppFilter(a)
-                    setPage(1)
-                  }}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: appFilter === a ? 'var(--surface-hover)' : 'transparent',
-                    borderStyle: 'solid',
-                    borderWidth: '1px',
-                    borderColor: appFilter === a ? 'var(--text)' : 'transparent',
-                    color: 'var(--text)',
-                  }}
-                >
-                  {a === 'ALL' ? 'All' : a === 'upward-pay' ? 'Upward Pay' : 'Upward PM'}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1289,10 +1465,18 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
         emptyTitle="No activity logs found"
         emptyDescription="Try adjusting your platform, action, or date filters."
       />
+        </>
+      )}
 
       {/* ────────────────────────────────────────────────────────── */}
       {/* Modals & Profile Drawers */}
       {/* ────────────────────────────────────────────────────────── */}
+      <SessionJourneyModal
+        sessionId={selectedSessionId}
+        token={token}
+        onClose={() => setSelectedSessionId(null)}
+      />
+
       {selectedLog && (
         <AppActivityLogViewerModal
           selectedLog={selectedLog}

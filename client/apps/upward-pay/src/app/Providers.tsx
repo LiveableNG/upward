@@ -14,6 +14,7 @@ import { Capacitor } from '@capacitor/core'
 import { ToastProvider } from '@/components/common/Toast'
 import { ThemeProvider } from '@/features/dashboard/components/ThemeProvider'
 import { GlobalPaymentSuccessModal } from '@/components/common/GlobalPaymentSuccessModal'
+import { SessionRouteTracker } from '@/components/common/SessionRouteTracker'
 import { request } from '@/lib/api-client'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -118,43 +119,11 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [router])
 
-  useEffect(() => {
-    const trackAppInstall = async () => {
-      try {
-        const isTrackingDone = localStorage.getItem('upward_pay_install_tracked')
-        if (!isTrackingDone) {
-          const platform = Capacitor.getPlatform()
-          
-          let installationId = localStorage.getItem('upward_pay_installation_id')
-          if (!installationId) {
-            installationId = crypto.randomUUID()
-            localStorage.setItem('upward_pay_installation_id', installationId)
-          }
-
-          await request('/public/tracking/install', {
-            method: 'POST',
-            body: JSON.stringify({
-              platform,
-              installationId,
-              deviceModel: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
-              osVersion: typeof window !== 'undefined' ? window.navigator.platform : 'unknown',
-            }),
-          })
-          
-          localStorage.setItem('upward_pay_install_tracked', 'true')
-        }
-      } catch (err) {
-        console.error('Failed to track app install:', err)
-      }
-    }
-
-    trackAppInstall()
-  }, [])
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
+          <SessionRouteTracker />
           {children}
           <GlobalPaymentSuccessModal />
         </ToastProvider>

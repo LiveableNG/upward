@@ -11,34 +11,36 @@ export class GetAppActivityStatsUseCase {
     startOfToday.setHours(0, 0, 0, 0);
 
     const [
-      totalInstalls,
       totalSignups,
       totalLogins,
-      activeUsersByApp,
       recentActivityCount,
       recentLogs,
     ] = await Promise.all([
       this.prisma.upward_app_activity_log.count({
-        where: { action: 'APP_INSTALL' },
+        where: { app: 'upward-pay', action: 'SIGNUP' },
       }),
       this.prisma.upward_app_activity_log.count({
-        where: { action: 'SIGNUP' },
+        where: { app: 'upward-pay', action: 'LOGIN' },
       }),
       this.prisma.upward_app_activity_log.count({
-        where: { action: 'LOGIN' },
+        where: { app: 'upward-pay', createdAt: { gte: thirtyDaysAgo } },
       }),
-      this.prisma.upward_app_activity_log.groupBy({
-        by: ['app'],
-        _count: true,
-      }),
-      this.prisma.upward_app_activity_log.count({
-        where: { createdAt: { gte: thirtyDaysAgo } },
-      }),
-      // Fetch the last 30 days logs for aggregation and trend graph
+      // Fetch the last 30 days upward-pay logs for aggregation and trend graph
       this.prisma.upward_app_activity_log.findMany({
         where: {
+          app: 'upward-pay',
           createdAt: { gte: thirtyDaysAgo },
-          action: { in: ['APP_INSTALL', 'SIGNUP', 'LOGIN', 'CREATE', 'PAYMENT'] },
+          action: { in: ['SIGNUP', 'LOGIN', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST'] },
+          OR: [
+            { userId: { not: null } },
+            {
+              AND: [
+                { userEmail: { not: null } },
+                { userEmail: { not: '' } },
+                { userEmail: { not: 'system' } },
+              ],
+            },
+          ],
         },
         select: {
           id: true,
@@ -48,7 +50,6 @@ export class GetAppActivityStatsUseCase {
           userAgent: true,
           userEmail: true,
           userId: true,
-          pmId: true,
           ipAddress: true,
         },
         orderBy: { createdAt: 'asc' },
@@ -69,7 +70,6 @@ export class GetAppActivityStatsUseCase {
       return 'web';
     };
 
-    const installsByPlatform = { ios: 0, android: 0, web: 0, other: 0 };
     const signupsByPlatform = { ios: 0, android: 0, web: 0 };
     const loginsByPlatform = { ios: 0, android: 0, web: 0 };
 
@@ -79,7 +79,6 @@ export class GetAppActivityStatsUseCase {
       ios: number;
       android: number;
       web: number;
-      installs: number;
       signups: number;
       logins: number;
       total: number;
@@ -93,7 +92,6 @@ export class GetAppActivityStatsUseCase {
         ios: 0,
         android: 0,
         web: 0,
-        installs: 0,
         signups: 0,
         logins: 0,
         total: 0,
@@ -107,7 +105,6 @@ export class GetAppActivityStatsUseCase {
     const getUserIdentifier = (log: any) => {
       if (log.userEmail) return log.userEmail;
       if (log.userId) return `user_${log.userId}`;
-      if (log.pmId) return `pm_${log.pmId}`;
       return `ip_${log.ipAddress || 'unknown'}`;
     };
 
@@ -117,11 +114,7 @@ export class GetAppActivityStatsUseCase {
       const dateKey = new Date(log.createdAt).toISOString().split('T')[0]!;
 
       // Update aggregate counts
-      if (log.action === 'APP_INSTALL') {
-        if (platform === 'ios') installsByPlatform.ios++;
-        else if (platform === 'android') installsByPlatform.android++;
-        else installsByPlatform.web++;
-      } else if (log.action === 'SIGNUP') {
+      if (log.action === 'SIGNUP') {
         signupsByPlatform[platform]++;
       } else if (log.action === 'LOGIN') {
         loginsByPlatform[platform]++;
@@ -135,7 +128,6 @@ export class GetAppActivityStatsUseCase {
           ios: 0,
           android: 0,
           web: 0,
-          installs: 0,
           signups: 0,
           logins: 0,
           total: 0,
@@ -145,12 +137,11 @@ export class GetAppActivityStatsUseCase {
 
       dayEntry[platform]++;
       dayEntry.total++;
-      if (log.action === 'APP_INSTALL') dayEntry.installs++;
       if (log.action === 'SIGNUP') dayEntry.signups++;
       if (log.action === 'LOGIN') dayEntry.logins++;
 
-      // Today's unique users tracking
-      if (isToday) {
+      // Today's unique users tracking - only actual tenant logins, signups, or payments
+      if (isToday && (log.action === 'LOGIN' || log.action === 'SIGNUP' || log.action === 'PAYMENT')) {
         const userKey = getUserIdentifier(log);
         if (platform === 'ios') uniqueUsersIosToday.add(userKey);
         else if (platform === 'android') uniqueUsersAndroidToday.add(userKey);
@@ -164,24 +155,24 @@ export class GetAppActivityStatsUseCase {
     let cumAndroid = 0;
     let cumWeb = 0;
     let cumTotal = 0;
-    let cumInstalls = 0;
     let cumSignups = 0;
+    let cumLogins = 0;
 
     const cumulativeTrends = dailyTrends.map((d) => {
       cumIos += d.ios;
       cumAndroid += d.android;
       cumWeb += d.web;
       cumTotal += d.total;
-      cumInstalls += d.installs;
       cumSignups += d.signups;
+      cumLogins += d.logins;
       return {
         date: d.date,
         ios: cumIos,
         android: cumAndroid,
         web: cumWeb,
         total: cumTotal,
-        installs: cumInstalls,
         signups: cumSignups,
+        logins: cumLogins,
       };
     });
 
@@ -191,14 +182,14 @@ export class GetAppActivityStatsUseCase {
       ...Array.from(uniqueUsersWebToday),
     ]).size;
 
+    const totalLoginsCalculated = loginsByPlatform.ios + loginsByPlatform.android + loginsByPlatform.web;
+    const totalSignupsCalculated = signupsByPlatform.ios + signupsByPlatform.android + signupsByPlatform.web;
+
     return {
-      totalInstalls,
-      totalSignups,
-      totalLogins,
-      platforms: installsByPlatform,
+      totalSignups: totalSignupsCalculated,
+      totalLogins: totalLoginsCalculated,
       signupsByPlatform,
       loginsByPlatform,
-      activeUsersByApp,
       recentActivityCount,
       todayStats: {
         uniqueUsersIosCount: uniqueUsersIosToday.size,
