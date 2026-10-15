@@ -77,7 +77,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
   }
 
   async upsertSession(data: UpsertSessionData): Promise<AppSession> {
-    const record = await (this.prisma as any).upward_session.upsert({
+    const record = await (this.prisma as any).upward_user_session.upsert({
       where: { sessionId: data.sessionId },
       create: {
         sessionId: data.sessionId,
@@ -143,14 +143,14 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
       clientTimestamp: e.clientTimestamp,
     }))
 
-    await (this.prisma as any).upward_session_event.createMany({
+    await (this.prisma as any).upward_user_session_event.createMany({
       data,
     })
   }
 
   async endSession(sessionId: string, data: EndSessionData): Promise<boolean> {
     try {
-      await (this.prisma as any).upward_session.update({
+      await (this.prisma as any).upward_user_session.update({
         where: { sessionId },
         data: {
           endedAt: data.endedAt,
@@ -169,7 +169,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
   }
 
   async findSessionBySessionId(sessionId: string): Promise<AppSession | null> {
-    const record = await (this.prisma as any).upward_session.findUnique({
+    const record = await (this.prisma as any).upward_user_session.findUnique({
       where: { sessionId },
     })
     if (!record) return null
@@ -193,18 +193,18 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
     }
 
     const [totalSessions, dropOffGrouped, platformGrouped, geoGrouped] = await Promise.all([
-      (this.prisma as any).upward_session.count({ where }),
-      (this.prisma as any).upward_session.groupBy({
+      (this.prisma as any).upward_user_session.count({ where }),
+      (this.prisma as any).upward_user_session.groupBy({
         by: ['dropOffStage'],
         where,
         _count: true,
       }),
-      (this.prisma as any).upward_session.groupBy({
+      (this.prisma as any).upward_user_session.groupBy({
         by: ['platform'],
         where,
         _count: true,
       }),
-      (this.prisma as any).upward_session.groupBy({
+      (this.prisma as any).upward_user_session.groupBy({
         by: ['city', 'countryCode'],
         where: {
           ...where,
@@ -228,7 +228,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
       'PAYMENT_SUCCESS',
     ]
 
-    const eventCounts = await (this.prisma as any).upward_session_event.groupBy({
+    const eventCounts = await (this.prisma as any).upward_user_session_event.groupBy({
       by: ['eventName'],
       where: {
         createdAt: { gte: sinceDate },
@@ -357,7 +357,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
     }
 
     const [records, total] = await Promise.all([
-      (this.prisma as any).upward_session.findMany({
+      (this.prisma as any).upward_user_session.findMany({
         where,
         skip,
         take: limitNum,
@@ -369,7 +369,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
           },
         },
       }),
-      (this.prisma as any).upward_session.count({ where }),
+      (this.prisma as any).upward_user_session.count({ where }),
     ])
 
     return {
@@ -379,7 +379,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
   }
 
   async findSessionWithEvents(sessionId: string): Promise<{ session: AppSession; events: SessionEvent[] } | null> {
-    const record = await (this.prisma as any).upward_session.findUnique({
+    const record = await (this.prisma as any).upward_user_session.findUnique({
       where: { sessionId },
       include: {
         events: {

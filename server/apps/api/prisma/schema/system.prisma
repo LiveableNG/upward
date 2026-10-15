@@ -659,7 +659,7 @@ model upward_university_hire_request {
   @@index([createdAt])
 }
 
-model upward_session {
+model upward_user_session {
   id              Int       @id @default(autoincrement())
   sessionId       String    @unique
   anonymousId     String
@@ -709,7 +709,7 @@ model upward_session {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  events          upward_session_event[]
+  events          upward_user_session_event[]
 
   @@index([sessionId])
   @@index([userId])
@@ -720,7 +720,7 @@ model upward_session {
   @@index([startedAt])
 }
 
-model upward_session_event {
+model upward_user_session_event {
   id              Int       @id @default(autoincrement())
   sessionId       String
   userId          Int?
@@ -731,7 +731,7 @@ model upward_session_event {
   clientTimestamp DateTime
   createdAt       DateTime  @default(now())
 
-  session         upward_session @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  session         upward_user_session @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
 
   @@index([sessionId, stepNumber])
   @@index([eventName])
