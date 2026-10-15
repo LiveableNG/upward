@@ -96,24 +96,75 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
             entityId = responseBody.uuid || responseBody.id?.toString();
           }
 
-          const headerPlatform = req.headers['x-client-platform'];
+          const rawHeaderPlatform = (req.headers['x-client-platform'] || '').toLowerCase();
           const rawUserAgent = req.headers['user-agent'] || '';
-          const isCapacitor = headerPlatform === 'capacitor' || /capacitor/i.test(rawUserAgent);
-          
+          const isNativeMobile = ['capacitor', 'ios', 'android'].includes(rawHeaderPlatform) || /capacitor/i.test(rawUserAgent);
+
+          let platform: 'ios' | 'android' | 'web' = 'web';
+          if (rawHeaderPlatform === 'ios' || (/iphone|ipad|ipod/i.test(rawUserAgent) && isNativeMobile)) {
+            platform = 'ios';
+          } else if (rawHeaderPlatform === 'android' || (/android/i.test(rawUserAgent) && isNativeMobile)) {
+            platform = 'android';
+          } else if (rawHeaderPlatform === 'capacitor') {
+            platform = /iphone|ipad|ipod/i.test(rawUserAgent) ? 'ios' : 'android';
+          } else if (/iphone|ipad|ipod/i.test(rawUserAgent)) {
+            platform = 'ios';
+          } else if (/android/i.test(rawUserAgent)) {
+            platform = 'android';
+          } else {
+            platform = 'web';
+          }
+
+          let deviceName = 'Unknown Device';
+          if (/iphone/i.test(rawUserAgent)) {
+            deviceName = 'iPhone';
+          } else if (/ipad/i.test(rawUserAgent)) {
+            deviceName = 'iPad';
+          } else if (/android/i.test(rawUserAgent)) {
+            const modelMatch = rawUserAgent.match(/;\s*([^;)]+)\s+Build/i);
+            deviceName = modelMatch && modelMatch[1] ? modelMatch[1].trim() : 'Android Device';
+          } else if (/macintosh|mac os x/i.test(rawUserAgent)) {
+            deviceName = 'Mac';
+          } else if (/windows/i.test(rawUserAgent)) {
+            deviceName = 'Windows PC';
+          } else if (/linux/i.test(rawUserAgent)) {
+            deviceName = 'Linux PC';
+          }
+
+          let browserName = 'Browser';
+          if (isNativeMobile) {
+            browserName = platform === 'ios' ? 'Upward iOS App' : 'Upward Android App';
+          } else if (/edg/i.test(rawUserAgent)) {
+            browserName = 'Edge';
+          } else if (/chrome|crios/i.test(rawUserAgent)) {
+            browserName = 'Chrome';
+          } else if (/firefox|fxios/i.test(rawUserAgent)) {
+            browserName = 'Firefox';
+          } else if (/safari/i.test(rawUserAgent)) {
+            browserName = 'Safari';
+          }
+
           let userAgent = rawUserAgent;
-          if (isCapacitor && !userAgent.toLowerCase().includes('capacitor')) {
+          if (isNativeMobile && !userAgent.toLowerCase().includes('capacitor')) {
             userAgent = userAgent ? `${userAgent} Capacitor` : 'Capacitor';
           }
+
+          const clientPlatform = isNativeMobile ? platform : 'web';
 
           // Scrub sensitive metadata from request payload
           const metadata = this.scrubMetadata({
             body: req.body,
             query: req.query,
             params: req.params,
-            clientPlatform: isCapacitor ? 'capacitor' : 'web',
+            clientPlatform,
+            platform,
+            isNativeMobile,
+            device: deviceName,
+            browser: browserName,
           });
 
           const ipAddress = req.ip || req.raw?.ip;
+          const platformLabel = isNativeMobile ? `${platform.toUpperCase()} App (${deviceName})` : `Web (${browserName} on ${deviceName})`;
 
           // Construct descriptive message
           let description = `${action} action on ${entityType}`;
@@ -137,12 +188,12 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
             const count = req.body?.rows?.length || 0;
             description = `Property Manager bulk added ${count} rent history payments`;
           } else if (action === 'LOGIN') {
-            description = `User logged in: ${userEmail || 'unknown'}`;
+            description = `User logged in via ${platformLabel}: ${userEmail || 'unknown'}`;
             entityType = 'AUTH';
           } else if (action === 'SIGNUP') {
             if (app === 'upward-pm') {
               const bizName = req.body?.businessName ? ` (${req.body.businessName})` : '';
-              description = `New Property Manager registered: ${userEmail || req.body?.email || 'unknown'}${bizName}`;
+              description = `New Property Manager registered via ${platformLabel}: ${userEmail || req.body?.email || 'unknown'}${bizName}`;
             } else {
               let details = '';
               if (req.body?.isFromInvite) {
@@ -152,11 +203,11 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
               } else {
                 details = ' (Self Registered)';
               }
-              description = `New user signed up: ${userEmail || req.body?.email || 'unknown'}${details}`;
+              description = `New user signed up via ${platformLabel}: ${userEmail || req.body?.email || 'unknown'}${details}`;
             }
             entityType = 'AUTH';
           } else if (action === 'LOGOUT') {
-            description = `User logged out: ${userEmail || 'unknown'}`;
+            description = `User logged out via ${platformLabel}: ${userEmail || 'unknown'}`;
             entityType = 'AUTH';
           }
 

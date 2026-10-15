@@ -23,7 +23,7 @@ export async function runRefresh(): Promise<string | null> {
       const storedRefreshToken = getRefreshToken()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (Capacitor.isNativePlatform()) {
-        headers['x-client-platform'] = 'capacitor'
+        headers['x-client-platform'] = Capacitor.getPlatform()
         if (storedRefreshToken) {
           headers['x-refresh-token'] = storedRefreshToken
         }
@@ -80,7 +80,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     if (Capacitor.isNativePlatform()) {
-      headers['x-client-platform'] = 'capacitor'
+      headers['x-client-platform'] = Capacitor.getPlatform()
       if (path.includes('/user/auth/logout')) {
         const rt = getRefreshToken()
         if (rt) {
@@ -183,7 +183,7 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
     }
 
     if (Capacitor.isNativePlatform()) {
-      headers['x-client-platform'] = 'capacitor'
+      headers['x-client-platform'] = Capacitor.getPlatform()
     }
 
     const controller = new AbortController()

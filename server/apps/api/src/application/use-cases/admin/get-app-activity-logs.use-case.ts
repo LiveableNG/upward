@@ -25,24 +25,19 @@ export class GetAppActivityLogsUseCase {
     const where: any = {}
     const andConditions: any[] = []
 
-    // Filter out logins, logouts, and updates. Only query signups and creation events.
-    andConditions.push({
-      OR: [
-        { action: 'SIGNUP' },
-        {
-          AND: [
-            { action: 'CREATE' },
-            { entityType: { in: ['UNIT', 'INVITE', 'PAYMENT', 'RENT', 'CREDIBILITY_REQUEST'] } },
-          ],
-        },
-      ],
-    })
+    // Filter by action if specified, otherwise include standard activity events
+    if (query.actionFilter && query.actionFilter !== 'ALL') {
+      andConditions.push({ action: query.actionFilter })
+    } else {
+      andConditions.push({
+        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'APP_INSTALL', 'CREATE', 'PAYMENT', 'DELETE'] },
+      })
+    }
 
-    // Filter out anonymous guest / system logs where no real user identity can be tracked
-    // EXCEPT for SIGNUP actions which are verified registration events containing email in metadata
+    // Filter out anonymous system logs, keeping verified user events, APP_INSTALL, and SIGNUP
     andConditions.push({
       OR: [
-        { action: 'SIGNUP' },
+        { action: { in: ['SIGNUP', 'APP_INSTALL'] } },
         { userId: { not: null } },
         { pmId: { not: null } },
         {
@@ -50,10 +45,10 @@ export class GetAppActivityLogsUseCase {
             { userEmail: { not: null } },
             { userEmail: { not: '' } },
             { userEmail: { not: 'system' } },
-            { userEmail: { not: 'System' } }
-          ]
-        }
-      ]
+            { userEmail: { not: 'System' } },
+          ],
+        },
+      ],
     })
 
     if (query.appFilter && query.appFilter !== 'ALL') {
@@ -75,14 +70,33 @@ export class GetAppActivityLogsUseCase {
     }
 
     if (query.platformFilter && query.platformFilter !== 'ALL') {
-      if (query.platformFilter === 'mobile') {
+      const p = query.platformFilter.toLowerCase()
+      if (p === 'ios') {
+        andConditions.push({
+          OR: [
+            { userAgent: { contains: 'iPhone', mode: 'insensitive' } },
+            { userAgent: { contains: 'iPad', mode: 'insensitive' } },
+            { description: { contains: 'iOS', mode: 'insensitive' } },
+          ],
+        })
+      } else if (p === 'android') {
+        andConditions.push({
+          OR: [
+            { userAgent: { contains: 'Android', mode: 'insensitive' } },
+            { description: { contains: 'Android', mode: 'insensitive' } },
+          ],
+        })
+      } else if (p === 'mobile') {
         andConditions.push({
           OR: [
             { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
+            { userAgent: { contains: 'iPhone', mode: 'insensitive' } },
+            { userAgent: { contains: 'iPad', mode: 'insensitive' } },
+            { userAgent: { contains: 'Android', mode: 'insensitive' } },
             { action: 'APP_INSTALL' },
           ],
         })
-      } else if (query.platformFilter === 'web') {
+      } else if (p === 'web') {
         andConditions.push({
           NOT: {
             OR: [
@@ -344,18 +358,66 @@ export class GetAppActivityLogsUseCase {
       const pmEmailLink = pm?.email || '';
       const pmDisplayName = pmNameStr ? `${pmNameStr} (${pmEmailLink})` : pmEmailLink;
 
+      const resolvePlatformAndDevice = (item: any) => {
+        const meta = item.metadata ? (typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata) : {}
+        let platform: 'ios' | 'android' | 'web' = 'web'
+        if (meta.platform) {
+          const p = String(meta.platform).toLowerCase()
+          if (p.includes('ios')) platform = 'ios'
+          else if (p.includes('android')) platform = 'android'
+          else if (p.includes('web')) platform = 'web'
+        } else if (meta.clientPlatform) {
+          const cp = String(meta.clientPlatform).toLowerCase()
+          if (cp.includes('ios')) platform = 'ios'
+          else if (cp.includes('android')) platform = 'android'
+          else if (cp.includes('web')) platform = 'web'
+        } else {
+          const ua = (item.userAgent || '').toLowerCase()
+          if (/iphone|ipad|ipod/i.test(ua)) platform = 'ios'
+          else if (/android/i.test(ua)) platform = 'android'
+          else platform = 'web'
+        }
+
+        let deviceSummary = meta.device || ''
+        if (!deviceSummary) {
+          const ua = item.userAgent || ''
+          if (/iphone/i.test(ua)) deviceSummary = 'iPhone'
+          else if (/ipad/i.test(ua)) deviceSummary = 'iPad'
+          else if (/android/i.test(ua)) {
+            const m = ua.match(/;\s*([^;)]+)\s+Build/i)
+            deviceSummary = m && m[1] ? m[1].trim() : 'Android Device'
+          } else if (/macintosh|mac os x/i.test(ua)) deviceSummary = 'Mac'
+          else if (/windows/i.test(ua)) deviceSummary = 'Windows PC'
+          else if (/linux/i.test(ua)) deviceSummary = 'Linux PC'
+          else deviceSummary = 'Web Browser'
+        }
+
+        return { platform, deviceSummary }
+      }
+
+      const { platform, deviceSummary } = resolvePlatformAndDevice(log)
+
       if (log.action === 'SIGNUP') {
+        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         if (log.userRole === 'PM' || log.app === 'upward-pm') {
-          readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} registered a new account.`
+          readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} registered a new account via ${platformLabel}.`
         } else {
           if (user?.isFromInvite) {
-            readableText = `Invited Tenant ${userDisplayName} completed registration and set their password.`
+            readableText = `Invited Tenant ${userDisplayName} completed registration via ${platformLabel}.`
           } else if (user?.isFromWaitlist) {
-            readableText = `Waitlist Tenant ${userDisplayName} converted and completed registration.`
+            readableText = `Waitlist Tenant ${userDisplayName} converted and completed registration via ${platformLabel}.`
           } else {
-            readableText = `Tenant ${userDisplayName} self-registered a new account.`
+            readableText = `Tenant ${userDisplayName} self-registered a new account via ${platformLabel}.`
           }
         }
+      } else if (log.action === 'LOGIN') {
+        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        readableText = `${log.userRole === 'PM' ? 'Property Manager' : 'Tenant'} ${userDisplayName || pmDisplayName || 'User'} logged in via ${platformLabel} (${deviceSummary}).`
+      } else if (log.action === 'LOGOUT') {
+        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        readableText = `${log.userRole === 'PM' ? 'Property Manager' : 'Tenant'} ${userDisplayName || pmDisplayName || 'User'} logged out via ${platformLabel}.`
+      } else if (log.action === 'APP_INSTALL') {
+        readableText = `Mobile app installed or launched on ${platform.toUpperCase()} (${deviceSummary}).`
       } else if (log.action === 'CREATE') {
         if (log.entityType === 'UNIT') {
           const match = log.description.match(/(?:uploaded|imported|added) (\d+) (?:units|properties|records)/i)
@@ -412,6 +474,8 @@ export class GetAppActivityLogsUseCase {
 
       return {
         ...log,
+        platform,
+        deviceSummary,
         user: targetTenant || user,
         pm,
         userPathway: pathway,
