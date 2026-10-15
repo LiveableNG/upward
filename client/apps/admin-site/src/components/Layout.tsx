@@ -27,7 +27,7 @@ const pathMetadata: Record<string, { name: string; category?: string }> = {
   '/demo-requests': { name: 'Demo Requests', category: 'Operations & Support' },
   '/stories': { name: 'Fairness Stories', category: 'Operations & Support' },
   '/demo-bank': { name: 'Demo Bank Simulator', category: 'Developer & Security' },
-  '/app-activity': { name: 'App Activity Logs', category: 'Developer & Security' },
+  '/app-activity': { name: 'App Telemetry', category: 'Overview' },
   '/feedback': { name: 'User Feedback', category: 'Developer & Security' },
   '/dev-emails': { name: 'Dev Email Sandbox', category: 'Developer & Security' },
   '/dev-document-ai': { name: 'Dev Document AI Sandbox', category: 'Developer & Security' },
