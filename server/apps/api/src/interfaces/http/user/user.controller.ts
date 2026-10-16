@@ -164,6 +164,8 @@ export class UserController {
       body.provider,
       body.idToken,
       { firstName: body.firstName, lastName: body.lastName },
+      ipAddress,
+      userAgent,
     )
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)

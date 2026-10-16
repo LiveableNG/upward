@@ -79,7 +79,9 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
 
           // Determine Action
           let action = method;
-          if (url.includes('login')) {
+          if (url.includes('social') || url.includes('/auth/social')) {
+            action = responseBody?.isNewUser ? 'SIGNUP' : 'LOGIN';
+          } else if (url.includes('login')) {
             action = 'LOGIN';
           } else if (url.includes('signup') || url.includes('complete-profile') || url.includes('/accept')) {
             action = 'SIGNUP';
@@ -172,6 +174,9 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
 
           const clientPlatform = isNativeMobile ? platform : 'web';
 
+          const rawProvider = req.body?.provider || responseBody?.user?.authProvider || responseBody?.authProvider;
+          const authProvider = typeof rawProvider === 'string' ? rawProvider.toLowerCase() : undefined;
+
           // Scrub sensitive metadata from request payload
           const metadata = this.scrubMetadata({
             body: req.body,
@@ -182,6 +187,8 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
             isNativeMobile,
             device: deviceName,
             browser: browserName,
+            provider: authProvider,
+            authProvider,
           });
 
           const ipAddress = req.ip || req.raw?.ip;
@@ -192,18 +199,23 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
           let shouldRecord = true;
 
           if (action === 'LOGIN') {
-            description = `Tenant logged in via ${platformLabel}`;
+            const providerLabel = authProvider
+              ? ` (${authProvider === 'apple' ? 'Apple' : 'Google'} OAuth)`
+              : '';
+            description = `Tenant logged in${providerLabel} via ${platformLabel}`;
             entityType = 'AUTH';
           } else if (action === 'SIGNUP') {
             let details = '';
-            if (req.body?.isFromInvite) {
+            if (authProvider) {
+              details = ` (${authProvider === 'apple' ? 'Apple' : 'Google'} OAuth)`;
+            } else if (req.body?.isFromInvite) {
               details = ' (Invited Tenant converted)';
             } else if (req.body?.isFromWaitlist) {
               details = ' (Waitlist converted)';
             } else {
               details = ' (Self-registered)';
             }
-            description = `New tenant registered via ${platformLabel}${details}`;
+            description = `New tenant registered${details} via ${platformLabel}`;
             entityType = 'AUTH';
           } else if (action === 'LOGOUT') {
             description = `Tenant logged out via ${platformLabel}`;
