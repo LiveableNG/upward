@@ -25,7 +25,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
       isFromInvite?: boolean;
       hearAboutUs?: string;
     }) => authSignup(data),
-    onSuccess: (result, variables) => {
+    onSuccess: async (result, variables) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
         setCookie('pay_access_token', result.accessToken)
@@ -38,7 +38,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
         BiometricsService.saveCredentials(variables.email, variables.password).catch(() => {})
       }
 
-      setAuthUser(result.user, { isNewUser: true, provider: 'email' })
+      await setAuthUser(result.user, { isNewUser: true, provider: 'email' })
       queryClient.setQueryData(['user'], result.user)
       if (onSuccess) {
         onSuccess()

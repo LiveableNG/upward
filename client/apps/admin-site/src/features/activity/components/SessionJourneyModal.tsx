@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   AlertCircle,
   CheckCircle,
-  Copy,
-  Check,
   ChevronDown,
   ChevronRight,
   CreditCard,
   LogIn,
   Eye,
   Activity,
+  Search,
+  ArrowUpDown,
+  X,
+  Layers,
 } from 'lucide-react'
 import { apiService } from '../../../services/api.service'
 import { Modal } from '../../../components/common/modal/Modal'
@@ -29,6 +31,9 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
   const [sessionData, setSessionData] = useState<any | null>(null)
   const [copied, setCopied] = useState(false)
   const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'SCREENS' | 'AUTH' | 'PAYMENTS' | 'ERRORS'>('ALL')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     if (!sessionId) {
@@ -68,6 +73,15 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
     }))
   }
 
+  const toggleExpandAll = (expand: boolean) => {
+    if (!sessionData?.events) return
+    const next: Record<number, boolean> = {}
+    sessionData.events.forEach((e: any, idx: number) => {
+      next[e.stepNumber || idx] = expand
+    })
+    setExpandedSteps(next)
+  }
+
   const getEventBadge = (name: string) => {
     if (name.includes('PAYMENT_SUCCESS') || name.includes('COMPLETE')) {
       return { bg: 'rgba(16, 185, 129, 0.12)', color: '#059669', icon: CheckCircle }
@@ -97,6 +111,70 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
   }
 
+  // Raw chronologically sorted events
+  const chronologicalEvents = useMemo(() => {
+    if (!sessionData?.events || !Array.isArray(sessionData.events)) return []
+    return [...sessionData.events].sort((a, b) => {
+      const timeA = new Date(a.clientTimestamp || a.createdAt).getTime()
+      const timeB = new Date(b.clientTimestamp || b.createdAt).getTime()
+      return timeA - timeB
+    })
+  }, [sessionData?.events])
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts = { ALL: chronologicalEvents.length, SCREENS: 0, AUTH: 0, PAYMENTS: 0, ERRORS: 0 }
+    chronologicalEvents.forEach((e) => {
+      const n = (e.eventName || '').toUpperCase()
+      if (n.includes('SCREEN') || n.includes('VIEW')) counts.SCREENS++
+      if (n.includes('LOGIN') || n.includes('SIGNUP') || n.includes('IDENTIF') || n.includes('LOGOUT')) counts.AUTH++
+      if (n.includes('PAY') || n.includes('DEPOSIT') || n.includes('CHECKOUT')) counts.PAYMENTS++
+      if (n.includes('ERROR') || n.includes('FAILED') || e.metadata?.error) counts.ERRORS++
+    })
+    return counts
+  }, [chronologicalEvents])
+
+  // Filtered and Sorted Events
+  const displayedEvents = useMemo(() => {
+    let list = chronologicalEvents
+
+    // Category filter
+    if (categoryFilter === 'SCREENS') {
+      list = list.filter((e) => (e.eventName || '').includes('SCREEN') || (e.eventName || '').includes('VIEW'))
+    } else if (categoryFilter === 'AUTH') {
+      list = list.filter((e) => {
+        const n = (e.eventName || '').toUpperCase()
+        return n.includes('LOGIN') || n.includes('SIGNUP') || n.includes('IDENTIF') || n.includes('LOGOUT')
+      })
+    } else if (categoryFilter === 'PAYMENTS') {
+      list = list.filter((e) => {
+        const n = (e.eventName || '').toUpperCase()
+        return n.includes('PAY') || n.includes('DEPOSIT') || n.includes('CHECKOUT')
+      })
+    } else if (categoryFilter === 'ERRORS') {
+      list = list.filter((e) => {
+        const n = (e.eventName || '').toUpperCase()
+        return n.includes('ERROR') || n.includes('FAILED') || e.metadata?.error
+      })
+    }
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      list = list.filter((e) => {
+        const nameMatch = (e.eventName || '').toLowerCase().includes(q)
+        const screenMatch = (e.screenName || '').toLowerCase().includes(q)
+        const metaMatch = e.metadata ? JSON.stringify(e.metadata).toLowerCase().includes(q) : false
+        return nameMatch || screenMatch || metaMatch
+      })
+    }
+
+    if (sortOrder === 'desc') {
+      return [...list].reverse()
+    }
+    return list
+  }, [chronologicalEvents, categoryFilter, searchQuery, sortOrder])
+
   return (
     <Modal
       isOpen={!!sessionId}
@@ -119,81 +197,63 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
           </span>
         </div>
       }
-      description={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>{sessionId}</span>
-          <button
-            type="button"
-            onClick={() => copyToClipboard(sessionId || '')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-muted)' }}
-            title="Copy Session ID"
-          >
-            {copied ? <Check size={13} color="#059669" /> : <Copy size={13} />}
-          </button>
-        </div>
-      }
-      icon={<Activity size={20} />}
-      maxWidth="840px"
-      footerActions={
-        <button
-          type="button"
-          onClick={onClose}
-          className="btn btn-primary"
-          style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px' }}
-        >
-          Close Journey
-        </button>
-      }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
-            Loading session events timeline...
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '580px', maxWidth: '780px' }}>
+        {loading && !sessionData ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+            Loading timeline breadcrumbs...
           </div>
         ) : !sessionData ? (
-          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
-            Session details not found.
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+            Session not found or has been removed.
           </div>
         ) : (
           <>
-            {/* Session Metadata Banner */}
+            {/* Session Metadata Card */}
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-                gap: '12px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
+                background: 'var(--surface-highlight)',
                 borderRadius: '12px',
-                padding: '14px 16px',
+                padding: '16px',
+                border: '1px solid var(--border)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                gap: '12px',
                 fontSize: '12px',
               }}
             >
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Platform</span>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                  Platform
+                </span>
                 <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>
-                  {sessionData.platform || 'web'} ({sessionData.clientType || 'browser'})
+                  {sessionData.platform} ({sessionData.clientType || 'App'})
                 </span>
               </div>
 
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Location & IP</span>
-                <span style={{ fontWeight: 600 }}>
-                  {sessionData.city ? `${sessionData.city}, ` : ''}{sessionData.countryCode || 'Unknown'}
-                  {sessionData.ipAddress && ` (${sessionData.ipAddress})`}
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                  Location & IP
+                </span>
+                <span style={{ fontWeight: 700 }}>
+                  {sessionData.countryCode || 'NG'} ({sessionData.ipAddress || 'Unknown IP'})
                 </span>
               </div>
 
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Duration & Events</span>
-                <span style={{ fontWeight: 600 }}>
-                  {formatDuration(sessionData.durationSeconds)} • {sessionData.events?.length || sessionData.eventCount || 0} events
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                  Duration & Events
+                </span>
+                <span style={{ fontWeight: 700 }}>
+                  {formatDuration(sessionData.durationSeconds)} • {sessionData.eventsCount || sessionData.events?.length || 0} events
                 </span>
               </div>
 
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Drop-off Status</span>
-                {sessionData.dropOffStage ? (
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                  Drop-off Status
+                </span>
+                {sessionData.dropOffStage && sessionData.dropOffStage !== 'COMPLETED' ? (
                   <span
                     style={{
                       display: 'inline-block',
@@ -213,6 +273,151 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
               </div>
             </div>
 
+            {/* Controls Bar: Search, Category Filters, Sort, Expand All */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                padding: '12px',
+                background: 'var(--surface)',
+                borderRadius: '10px',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Search Bar */}
+                <div style={{ position: 'relative', flex: '1 1 220px' }}>
+                  <Search
+                    size={14}
+                    style={{
+                      position: 'absolute',
+                      left: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted)',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search events, screens, metadata..."
+                    style={{
+                      width: '100%',
+                      padding: '6px 28px 6px 30px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg)',
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--text-muted)',
+                        padding: 0,
+                        display: 'flex',
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Sort & Expand Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface-highlight)',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      color: 'var(--text)',
+                    }}
+                    title="Toggle chronological vs newest first"
+                  >
+                    <ArrowUpDown size={12} />
+                    {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleExpandAll(Object.keys(expandedSteps).length < displayedEvents.length)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface-highlight)',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <Layers size={12} />
+                    {Object.keys(expandedSteps).length > 0 ? 'Collapse All' : 'Expand All'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Category Filter Pills */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Filter:
+                </span>
+                {(
+                  [
+                    { key: 'ALL', label: `All (${categoryCounts.ALL})` },
+                    { key: 'SCREENS', label: `Screens (${categoryCounts.SCREENS})` },
+                    { key: 'AUTH', label: `Auth (${categoryCounts.AUTH})` },
+                    { key: 'PAYMENTS', label: `Payments (${categoryCounts.PAYMENTS})` },
+                    { key: 'ERRORS', label: `Errors (${categoryCounts.ERRORS})` },
+                  ] as const
+                ).map((cat) => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setCategoryFilter(cat.key)}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: categoryFilter === cat.key ? 'var(--text)' : 'var(--surface-hover)',
+                      color: categoryFilter === cat.key ? 'var(--white)' : 'var(--text-secondary)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Events Timeline Container */}
             <div
               style={{
@@ -224,23 +429,38 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                 gap: '10px',
               }}
             >
-              <h4 style={{ fontSize: '13px', fontWeight: 800, margin: '8px 0 4px 0', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
-                Activity Playback Timeline ({sessionData.events?.length || 0})
-              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 2px 0' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+                  Playback Timeline ({displayedEvents.length})
+                </h4>
+                {displayedEvents.length > 0 && (
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {sortOrder === 'asc' ? 'Chronological Order' : 'Reverse Chronological Order'}
+                  </span>
+                )}
+              </div>
 
-              {(!sessionData.events || sessionData.events.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  No breadcrumb events recorded for this session yet.
+              {displayedEvents.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px', background: 'var(--surface)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                  {searchQuery || categoryFilter !== 'ALL'
+                    ? 'No matching events found for this filter or search query.'
+                    : 'No breadcrumb events recorded for this session yet.'}
                 </div>
               ) : (
-                sessionData.events.map((evt: any, idx: number) => {
+                displayedEvents.map((evt: any, idx: number) => {
                   const badge = getEventBadge(evt.eventName)
                   const Icon = badge.icon
-                  const isExpanded = !!expandedSteps[evt.stepNumber]
-                  const prevEvt = idx > 0 ? sessionData.events[idx - 1] : null
+                  const stepKey = evt.stepNumber || evt.id || idx
+                  const isExpanded = !!expandedSteps[stepKey]
+
+                  // Relative delta time calculation
                   let deltaSecs: number | null = null
+                  const prevEvt = idx > 0 ? displayedEvents[idx - 1] : null
                   if (prevEvt && evt.clientTimestamp && prevEvt.clientTimestamp) {
-                    deltaSecs = Math.max(0, Math.round((new Date(evt.clientTimestamp).getTime() - new Date(prevEvt.clientTimestamp).getTime()) / 1000))
+                    const diff = Math.round(
+                      (new Date(evt.clientTimestamp).getTime() - new Date(prevEvt.clientTimestamp).getTime()) / 1000
+                    )
+                    deltaSecs = Math.abs(diff)
                   }
 
                   return (
@@ -306,7 +526,7 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                                 +{deltaSecs}s
                               </span>
                             )}
-                            <span>{new Date(evt.clientTimestamp).toLocaleTimeString()}</span>
+                            <span>{new Date(evt.clientTimestamp || evt.createdAt).toLocaleTimeString()}</span>
                           </div>
                         </div>
 
@@ -315,7 +535,7 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                           <div style={{ marginTop: '6px' }}>
                             <button
                               type="button"
-                              onClick={() => toggleExpand(evt.stepNumber)}
+                              onClick={() => toggleExpand(stepKey)}
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -363,6 +583,17 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
             </div>
           </>
         )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary"
+            style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600 }}
+          >
+            Close Journey
+          </button>
+        </div>
       </div>
     </Modal>
   )

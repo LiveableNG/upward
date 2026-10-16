@@ -39,7 +39,8 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
           this.processTracking(req, method, url, responseBody, false);
         },
         error: (err) => {
-          if (isAuth) {
+          // Omit failed logins due to token refreshes (routine expired/missing cookie background checks)
+          if (isAuth && !url.includes('/refresh') && !url.includes('refresh-token')) {
             this.processTracking(req, method, url, err, true);
           }
         },
@@ -54,14 +55,20 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
     payload: any,
     isError: boolean,
   ) {
+    // Never track failed token refreshes as LOGIN_FAILED
+    if (isError && (url.includes('/refresh') || url.includes('refresh-token'))) {
+      return;
+    }
     try {
       // Extract user/session details
-      const user = req.user;
-      let userUuid = user?.sub;
-      let userEmail = user?.email;
-      let userRole = user?.role || 'TENANT';
+      const user = req.user || req.raw?.user;
+      const authResult = (req as any).authResult || req.raw?.authResult;
 
-      if (!user) {
+      let userUuid = user?.sub || authResult?.user?.uuid || payload?.user?.uuid;
+      let userEmail = user?.email || authResult?.user?.email || payload?.user?.email;
+      let userRole = user?.role || authResult?.user?.role || payload?.user?.role || 'TENANT';
+
+      if (!user && !authResult?.user) {
         userRole = 'GUEST';
       }
 
@@ -74,6 +81,8 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
       // Handle guest login/signup or unauthenticated requests where req.user is not yet populated
       if (!userEmail) {
         userEmail =
+          authResult?.user?.email ||
+          authResult?.email ||
           payload?.user?.email ||
           payload?.data?.user?.email ||
           payload?.profile?.email ||
@@ -84,6 +93,8 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
 
       if (!userUuid) {
         userUuid =
+          authResult?.user?.uuid ||
+          authResult?.user?.id?.toString() ||
           payload?.user?.uuid ||
           payload?.user?.id?.toString() ||
           payload?.data?.user?.uuid ||
@@ -96,13 +107,17 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
         userRole = app === 'upward-pm' ? 'PM' : 'TENANT';
       }
 
-      const rawProvider = req.body?.provider || payload?.user?.authProvider || payload?.authProvider;
+      const rawProvider = req.body?.provider || authResult?.user?.authProvider || payload?.user?.authProvider || payload?.authProvider;
       const authProvider = typeof rawProvider === 'string' ? rawProvider.toLowerCase() : undefined;
 
       // Determine Action
       let action = method;
       if (isError) {
         action = url.includes('signup') ? 'SIGNUP_FAILED' : 'LOGIN_FAILED';
+      } else if (authResult?.isNewUser !== undefined) {
+        action = authResult.isNewUser ? 'SIGNUP' : 'LOGIN';
+      } else if (payload?.isNewUser !== undefined) {
+        action = payload.isNewUser ? 'SIGNUP' : 'LOGIN';
       } else if (url.includes('social') || url.includes('/auth/social')) {
         action = payload?.isNewUser ? 'SIGNUP' : 'LOGIN';
       } else if (url.includes('login')) {

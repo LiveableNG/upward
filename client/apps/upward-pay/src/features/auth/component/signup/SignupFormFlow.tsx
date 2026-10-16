@@ -227,7 +227,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           setRefreshToken(result.refreshToken)
         }
         queryClient.clear()
-        setAuthUser(result.user, { isNewUser: true, provider: 'email' })
+        await setAuthUser(result.user, { isNewUser: true, provider: 'email' })
         queryClient.setQueryData(['user'], result.user)
         haptics.success()
         onSignupSuccess(identifier, password)

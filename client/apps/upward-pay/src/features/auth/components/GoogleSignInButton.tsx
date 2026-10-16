@@ -88,7 +88,7 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
       if (result.refreshToken) {
         setRefreshToken(result.refreshToken)
       }
-      setAuthUser(result.user, { isNewUser: result.isNewUser, provider: 'google' })
+      await setAuthUser(result.user, { isNewUser: result.isNewUser, provider: 'google' })
       queryClient.setQueryData(['user'], result.user)
 
       if (onSuccess) {

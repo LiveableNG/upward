@@ -69,7 +69,7 @@ export function AppleSignInButton({ onSuccess, disabled }: AppleSignInButtonProp
         setRefreshToken(res.refreshToken)
       }
 
-      setAuthUser(res.user, { isNewUser: res.isNewUser, provider: 'apple' })
+      await setAuthUser(res.user, { isNewUser: res.isNewUser, provider: 'apple' })
       queryClient.setQueryData(['user'], res.user)
 
       if (onSuccess) {

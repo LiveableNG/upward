@@ -1437,6 +1437,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 { key: 'DEPOSIT', label: 'Deposits' },
                 { key: 'CREDIBILITY_REQUEST', label: 'Credibility' },
                 { key: 'LOGIN_FAILED', label: 'Failed Logins' },
+                { key: 'LOGOUT', label: 'Logouts' },
               ].map((act) => (
                 <button
                   key={act.key}

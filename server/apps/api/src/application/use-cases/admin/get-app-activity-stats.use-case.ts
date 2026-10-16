@@ -23,7 +23,21 @@ export class GetAppActivityStatsUseCase {
         where: { app: 'upward-pay', action: 'LOGIN' },
       }),
       this.prisma.upward_app_activity_log.count({
-        where: { app: 'upward-pay', createdAt: { gte: thirtyDaysAgo } },
+        where: {
+          app: 'upward-pay',
+          createdAt: { gte: thirtyDaysAgo },
+          NOT: {
+            AND: [
+              { action: 'LOGIN_FAILED' },
+              {
+                OR: [
+                  { entityId: 'refresh' },
+                  { description: { contains: 'refresh', mode: 'insensitive' } },
+                ],
+              },
+            ],
+          },
+        },
       }),
       // Fetch the last 30 days upward-pay logs for aggregation and trend graph
       this.prisma.upward_app_activity_log.findMany({

@@ -383,7 +383,7 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
       where: { sessionId },
       include: {
         events: {
-          orderBy: { stepNumber: 'asc' },
+          orderBy: [{ clientTimestamp: 'asc' }, { id: 'asc' }],
         },
       },
     })

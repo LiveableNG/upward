@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 
 export class UniqueUserSessionsQueryDto {
   @IsOptional()
@@ -45,7 +46,10 @@ export interface UniqueUserSummary {
 
 @Injectable()
 export class GetUniqueUserSessionsUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async execute(query: UniqueUserSessionsQueryDto) {
     const pageNum = query.page ? parseInt(query.page, 10) : 1;
@@ -92,7 +96,7 @@ export class GetUniqueUserSessionsUseCase {
     const total = groupedUsers.length;
     const pagedGroups = groupedUsers.slice(skip, skip + limitNum);
 
-    const emails = pagedGroups.map((g: any) => g.userEmail).filter(Boolean);
+    const emails: string[] = pagedGroups.map((g: any) => g.userEmail).filter(Boolean);
 
     if (emails.length === 0) {
       return {
@@ -107,24 +111,52 @@ export class GetUniqueUserSessionsUseCase {
     }
 
     // 2. Fetch User profiles from upward_user for these emails
-    const userRecords = await this.prisma.upward_user.findMany({
-      where: {
-        email: { in: emails, mode: 'insensitive' },
-      },
-      select: {
-        id: true,
-        uuid: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        isFromInvite: true,
-        isFromWaitlist: true,
-      },
-    });
+    const uniqueEmails = Array.from(new Set<string>(emails));
+    const emailHashes = uniqueEmails.map((email) => this.encryption.hash(email));
+
+    const userRecords = emailHashes.length > 0
+      ? await this.prisma.upward_user.findMany({
+          where: {
+            emailHash: { in: emailHashes },
+          },
+          select: {
+            id: true,
+            uuid: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            isFromInvite: true,
+            isFromWaitlist: true,
+          },
+        })
+      : [];
 
     const userProfileMap = new Map<string, any>();
     for (const u of userRecords) {
-      userProfileMap.set(u.email.toLowerCase(), u);
+      let email = '';
+      let firstName = '';
+      let lastName = '';
+      try {
+        email = u.email ? this.encryption.decrypt(u.email) : '';
+        firstName = u.firstName ? this.encryption.decrypt(u.firstName) : '';
+        lastName = u.lastName ? this.encryption.decrypt(u.lastName) : '';
+      } catch (err) {
+        email = u.email || '';
+        firstName = u.firstName || '';
+        lastName = u.lastName || '';
+      }
+      const decryptedUser = {
+        id: u.id,
+        uuid: u.uuid,
+        email,
+        firstName,
+        lastName,
+        isFromInvite: u.isFromInvite,
+        isFromWaitlist: u.isFromWaitlist,
+      };
+      if (email) {
+        userProfileMap.set(email.toLowerCase(), decryptedUser);
+      }
     }
 
     // 3. Fetch all sessions for these users to aggregate distinct devices and platforms

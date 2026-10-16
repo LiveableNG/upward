@@ -164,8 +164,45 @@ class SessionTracker {
     }
   }
 
+  public startNewSession(user?: SessionUserInfo): string {
+    const now = Date.now()
+    this.sessionId = 'sess_' + Math.random().toString(36).substring(2, 11) + '_' + now
+    this.stepCounter = 0
+    this.eventQueue = []
+    if (user) {
+      this.userInfo = { ...user }
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('upward_session_id', this.sessionId)
+        localStorage.setItem('upward_session_last_active', String(now))
+      } catch {}
+    }
+    return this.sessionId
+  }
+
+  public resetSession() {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('upward_session_id')
+        localStorage.removeItem('upward_session_last_active')
+      } catch {}
+    }
+    this.userInfo = { role: 'GUEST' }
+    this.startNewSession()
+  }
+
   public identify(user: SessionUserInfo) {
-    this.userInfo = { ...this.userInfo, ...user }
+    const previousEmail = this.userInfo.email?.toLowerCase()
+    const newEmail = user.email?.toLowerCase()
+
+    // If identifying a different user or authenticating from guest, rotate session
+    if (newEmail && previousEmail && newEmail !== previousEmail) {
+      this.startNewSession(user)
+    } else {
+      this.userInfo = { ...this.userInfo, ...user }
+    }
+
     if (typeof window !== 'undefined') {
       this.trackEvent('USER_IDENTIFIED', { userId: user.id, email: user.email })
     }

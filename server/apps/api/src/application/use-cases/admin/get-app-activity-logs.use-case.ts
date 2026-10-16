@@ -33,15 +33,14 @@ export class GetAppActivityLogsUseCase {
       andConditions.push({ action: query.actionFilter })
     } else {
       andConditions.push({
-        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST', 'UPDATE'] },
+        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'SIGNUP_FAILED', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST', 'UPDATE', 'CREATE', 'DELETE'] },
       })
     }
 
-    // Filter out anonymous system logs, keeping verified user events, signups, and logins
+    // Filter out anonymous system logs, keeping verified user events, signups, logins, and auth events
     andConditions.push({
       OR: [
-        { action: 'SIGNUP' },
-        { action: 'LOGIN' },
+        { action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'SIGNUP_FAILED'] } },
         { userId: { not: null } },
         {
           AND: [
@@ -52,6 +51,21 @@ export class GetAppActivityLogsUseCase {
           ],
         },
       ],
+    })
+
+    // Omit routine failed token refreshes (expired/missing cookie background checks)
+    andConditions.push({
+      NOT: {
+        AND: [
+          { action: 'LOGIN_FAILED' },
+          {
+            OR: [
+              { entityId: 'refresh' },
+              { description: { contains: 'refresh', mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
     })
 
     if (query.search) {
