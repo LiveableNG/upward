@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { haptics } from '@/lib/haptics'
 
 interface SetupPageShellProps {
   title?: string
@@ -29,6 +30,7 @@ export function SetupPageShell({
   const router = useRouter()
 
   const handleBack = () => {
+    haptics.light()
     if (onBack) {
       onBack()
       return
@@ -115,8 +117,13 @@ export function SetupPrimaryButton({
   type?: 'button' | 'submit'
   form?: string
 }) {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    haptics.medium()
+    if (onClick) onClick()
+  }
+
   return (
-    <button type={type} form={form} className="setup-page__cta" onClick={onClick} disabled={disabled}>
+    <button type={type} form={form} className="setup-page__cta" onClick={handleClick} disabled={disabled}>
       {children}
     </button>
   )

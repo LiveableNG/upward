@@ -22,6 +22,7 @@ import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useSignup } from '@/features/auth/hooks/useSignup'
 import { OTPInput } from '@/components/common/OTPInput'
 import { useAuth } from '@/features/auth/AuthContext'
+import { haptics } from '@/lib/haptics'
 import { useQueryClient } from '@tanstack/react-query'
 import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
 import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
@@ -228,14 +229,17 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         queryClient.clear()
         setAuthUser(result.user, { isNewUser: true, provider: 'email' })
         queryClient.setQueryData(['user'], result.user)
+        haptics.success()
         onSignupSuccess(identifier, password)
       } else {
         const verification = await verifyOTP(identifier, otp, effectiveContext, identifierType)
         if (!verification.success) {
+          haptics.error()
           setOtpError(verification.message || 'Invalid verification code')
           return
         }
 
+        haptics.success()
         if (effectiveContext === 'WAITLIST' && verification.inviteToken) {
           const path = `/waitlist/${verification.inviteToken}`
           if (Capacitor.isNativePlatform()) {
@@ -251,6 +255,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             router.push(path)
           }
         } else if (isInvited) {
+          haptics.error()
           setOtpError('Invite verification failed. Please try again.')
         } else {
           const hearAboutUsValue = hearAboutUs === 'other'
@@ -266,11 +271,13 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         }
       }
     } catch (err: any) {
+      haptics.error()
       setOtpError(err.message || 'Verification failed')
     }
   }
 
   const handleResendOTP = async (channel?: 'SMS' | 'WHATSAPP') => {
+    haptics.light()
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     await requestOTP(identifier, effectiveContext, identifierType, channel || phoneChannel)
   }

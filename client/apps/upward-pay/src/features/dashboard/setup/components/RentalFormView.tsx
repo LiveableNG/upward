@@ -23,6 +23,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { haptics } from '@/lib/haptics'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 import { useToast } from '@/components/common/Toast'
 import { useSetupDraft } from '../SetupDraftContext'
@@ -584,7 +585,8 @@ export function RentalFormView() {
                   className={`setup-page__status-card ${
                     draft.formData.tenancyStatus === 'NEW_CYCLE' ? 'setup-page__status-card--selected' : ''
                   }`}
-                  onClick={() =>
+                  onClick={() => {
+                    haptics.selection()
                     updateDraft({
                       formData: {
                         ...draft.formData,
@@ -595,7 +597,7 @@ export function RentalFormView() {
                         onboardingProof: null,
                       },
                     })
-                  }
+                  }}
                 >
                   <div className="setup-page__status-card-top">
                     <CreditCard size={18} color="var(--skin-primary, #c2501f)" />
@@ -614,11 +616,12 @@ export function RentalFormView() {
                   className={`setup-page__status-card ${
                     draft.formData.tenancyStatus === 'PAYING_BALANCE' ? 'setup-page__status-card--selected' : ''
                   }`}
-                  onClick={() =>
+                  onClick={() => {
+                    haptics.selection()
                     updateDraft({
                       formData: { ...draft.formData, tenancyStatus: 'PAYING_BALANCE' },
                     })
-                  }
+                  }}
                 >
                   <div className="setup-page__status-card-top">
                     <Scale size={18} color="var(--skin-primary, #c2501f)" />
@@ -634,7 +637,8 @@ export function RentalFormView() {
                   className={`setup-page__status-card ${
                     draft.formData.tenancyStatus === 'ALREADY_PAID' ? 'setup-page__status-card--selected' : ''
                   }`}
-                  onClick={() =>
+                  onClick={() => {
+                    haptics.selection()
                     updateDraft({
                       formData: {
                         ...draft.formData,
@@ -642,7 +646,7 @@ export function RentalFormView() {
                         amountAlreadyPaid: '',
                       },
                     })
-                  }
+                  }}
                 >
                   <div className="setup-page__status-card-top">
                     <FileText size={18} color="var(--skin-primary, #c2501f)" />

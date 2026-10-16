@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
+import { haptics } from '@/lib/haptics'
 import './OTPInput.css'
 
 interface OTPInputProps {
@@ -43,10 +44,17 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     return () => clearInterval(interval)
   }, [timer])
 
+  useEffect(() => {
+    if (error) {
+      haptics.error()
+    }
+  }, [error])
+
   const handleChange = (index: number, value: string) => {
     // Only allow numbers
     if (value && !/^\d+$/.test(value)) return
 
+    haptics.selection()
     const newOtp = [...otp]
     newOtp[index] = value.slice(-1) // Take only the last character
     setOtp(newOtp)
@@ -58,13 +66,17 @@ export const OTPInput: React.FC<OTPInputProps> = ({
 
     // Trigger verification if all 6 digits are entered
     if (newOtp.every(digit => digit !== '') && newOtp.join('').length === 6) {
+      haptics.medium()
       onVerify(newOtp.join(''))
     }
   }
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus()
+    if (e.key === 'Backspace') {
+      haptics.selection()
+      if (!otp[index] && index > 0) {
+        inputRefs.current[index - 1]?.focus()
+      }
     }
   }
 
@@ -73,6 +85,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     const pastedData = e.clipboardData.getData('text').slice(0, 6)
     if (!/^\d+$/.test(pastedData)) return
 
+    haptics.selection()
     const newOtp = [...otp]
     pastedData.split('').forEach((char, i) => {
       if (i < 6) newOtp[i] = char
@@ -84,6 +97,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({
     inputRefs.current[nextIndex]?.focus()
 
     if (newOtp.every(digit => digit !== '') && newOtp.join('').length === 6) {
+      haptics.medium()
       onVerify(newOtp.join(''))
     }
   }
