@@ -37,10 +37,11 @@ export class GetAppActivityLogsUseCase {
       })
     }
 
-    // Filter out anonymous system logs, keeping verified user events and signups
+    // Filter out anonymous system logs, keeping verified user events, signups, and logins
     andConditions.push({
       OR: [
         { action: 'SIGNUP' },
+        { action: 'LOGIN' },
         { userId: { not: null } },
         {
           AND: [
@@ -342,7 +343,9 @@ export class GetAppActivityLogsUseCase {
       // Format human-readable event description
       let readableText = log.description || ''
       
-      const userEmailLink = user?.email || log.userEmail || '';
+      const metaObj = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : null;
+      const metaEmail = metaObj?.body?.email || metaObj?.body?.identifier;
+      const userEmailLink = user?.email || log.userEmail || metaEmail || '';
       const userNameStr = user ? `${user.firstName} ${user.lastName}` : '';
       const userDisplayName = userNameStr.trim() ? `${userNameStr} (${userEmailLink})` : userEmailLink;
 

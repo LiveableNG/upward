@@ -35,6 +35,17 @@ export class ActivityTrackingListener {
         }
       }
 
+      // Fallback: If userId not resolved yet, but we have userEmail
+      if (!userId && event.userEmail && (event.userRole === 'TENANT' || !event.userRole || event.userRole === 'GUEST')) {
+        const user = await this.prisma.upward_user.findFirst({
+          where: { email: { equals: event.userEmail, mode: 'insensitive' } },
+          select: { id: true },
+        });
+        if (user) {
+          userId = user.id;
+        }
+      }
+
       await this.prisma.upward_app_activity_log.create({
         data: {
           app: event.app,

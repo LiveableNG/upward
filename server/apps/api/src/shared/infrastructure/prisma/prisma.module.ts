@@ -80,6 +80,8 @@ import { UNIVERSITY_REFERRAL_REPOSITORY } from '../../../domains/university-refe
 import { UNIVERSITY_HIRE_REQUEST_REPOSITORY } from '../../../domains/university-hire-request/university-hire-request.repository'
 import { SESSION_TRACKING_REPOSITORY } from '../../../domains/session-tracking/session-tracking.repository'
 import { PrismaSessionTrackingRepository } from './repositories/prisma-session-tracking.repository'
+import { APP_VERSION_REPOSITORY } from '../../../domains/app-version/app-version.repository'
+import { PrismaAppVersionPolicyRepository } from '../../../infrastructure/repositories/prisma-app-version-policy.repository'
 import { WAITLIST_REPOSITORY } from '../../../domains/waitlist/waitlist.repository'
 import { USER_REPOSITORY } from '../../../domains/users/user.repository'
 import {
@@ -364,10 +366,15 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: SESSION_TRACKING_REPOSITORY,
       useClass: PrismaSessionTrackingRepository,
     },
+    {
+      provide: APP_VERSION_REPOSITORY,
+      useClass: PrismaAppVersionPolicyRepository,
+    },
   ],
   exports: [
     PrismaService,
     EncryptionService,
+    APP_VERSION_REPOSITORY,
     SESSION_TRACKING_REPOSITORY,
     WAITLIST_REPOSITORY,
     USER_REPOSITORY,

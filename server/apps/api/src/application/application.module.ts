@@ -157,6 +157,10 @@ import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
 import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
+import { CheckAppVersionUseCase } from './use-cases/system/check-app-version.use-case'
+import { GetAppVersionPoliciesUseCase } from './use-cases/system/get-app-version-policies.use-case'
+import { UpdateAppVersionPolicyUseCase } from './use-cases/system/update-app-version-policy.use-case'
+import { ToggleAppForceUpdateUseCase } from './use-cases/system/toggle-app-force-update.use-case'
 import { GetDemoRequestsUseCase } from './use-cases/admin/get-demo-requests.use-case'
 import { UpdateDemoRequestStatusUseCase } from './use-cases/admin/update-demo-request-status.use-case'
 import { GetAdminHomeRequestsUseCase } from './use-cases/admin/get-admin-home-requests.use-case'
@@ -1075,7 +1079,13 @@ import { UnstructuredPipelineService } from '../shared/infrastructure/ai/unstruc
 import { AiParseDocumentUseCase } from './pm/use-cases/ai/ai-parse-document.use-case'
 import { ConfigService } from '@nestjs/config'
 
-UseCases.push(AiParseDocumentUseCase)
+UseCases.push(
+  AiParseDocumentUseCase,
+  CheckAppVersionUseCase,
+  GetAppVersionPoliciesUseCase,
+  UpdateAppVersionPolicyUseCase,
+  ToggleAppForceUpdateUseCase,
+)
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
