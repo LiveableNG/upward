@@ -240,6 +240,8 @@ class SessionTracker {
       'PAYSTACK_CLOSED_UNPAID',
       'PAYMENT_ERROR',
       'AUTH_FAILED',
+      'LOGIN_FAILED',
+      'LOGIN_CANCELLED',
       'LOGIN_SUCCESS',
       'SIGNUP_SUCCESS',
     ]
