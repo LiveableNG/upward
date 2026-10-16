@@ -493,7 +493,7 @@ export function RentalFormView() {
               {draft.formData.rentType === 'Lease' && (
                 <div className="setup-page__field">
                   <label>Lease duration</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.3fr)', gap: 8, minWidth: 0 }}>
                     <input
                       type="number"
                       min="1"
@@ -728,10 +728,19 @@ export function RentalFormView() {
                       border: '1px solid #e5dbcd',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <FileText size={22} color="var(--skin-primary, #c2501f)" />
-                      <div>
-                        <strong style={{ display: 'block', fontSize: 13.5, color: '#1a1714' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                      <FileText size={22} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <strong
+                          style={{
+                            display: 'block',
+                            fontSize: 13.5,
+                            color: '#1a1714',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
                           {draft.formData.proofFileMeta?.name || draft.formData.proofFile?.name || 'Attached Proof'}
                         </strong>
                         <span style={{ fontSize: 11.5, color: '#7a7268' }}>
@@ -828,7 +837,7 @@ export function RentalFormView() {
                       ? 'Current cycle due date'
                       : 'Next rent due date'}
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
                   <input
                     className="setup-page__input"
                     type="date"
@@ -840,13 +849,17 @@ export function RentalFormView() {
                       borderColor: '#e8e0d5',
                       cursor: 'not-allowed',
                       color: '#49423b',
-                      paddingRight: 80,
+                      paddingRight: 60,
+                      width: '100%',
+                      minWidth: 0,
+                      maxWidth: '100%',
+                      boxSizing: 'border-box',
                     }}
                   />
                   <div
                     style={{
                       position: 'absolute',
-                      right: 12,
+                      right: 10,
                       top: '50%',
                       transform: 'translateY(-50%)',
                       display: 'inline-flex',

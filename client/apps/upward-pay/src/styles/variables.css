@@ -75,6 +75,10 @@ body::-webkit-scrollbar {
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --shell-max-w: 480px;
+  --shell-px: clamp(16px, 5vw, 24px);
 
   /* Layout & Grid (Desktop) */
   --sidebar-width: 250px;
@@ -163,6 +167,8 @@ body::-webkit-scrollbar {
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 body {
@@ -175,6 +181,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  overscroll-behavior-x: none;
   min-height: 100vh;
   min-height: 100dvh;
   padding-top: var(--safe-top);

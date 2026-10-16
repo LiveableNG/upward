@@ -45,43 +45,45 @@ export function SetupPageShell({
   return (
     <div className={['setup-page', className].filter(Boolean).join(' ')}>
       <header className="setup-page__header">
-        <div className="setup-page__header-row">
-          <button type="button" className="setup-page__back" onClick={handleBack} aria-label="Go back">
-            <ArrowLeft size={15} />
-          </button>
-          {title && <h1 className="setup-page__header-title">{title}</h1>}
+        <div className="setup-page__header-inner">
+          <div className="setup-page__header-row">
+            <button type="button" className="setup-page__back" onClick={handleBack} aria-label="Go back">
+              <ArrowLeft size={15} />
+            </button>
+            {title && <h1 className="setup-page__header-title">{title}</h1>}
+          </div>
+          {stepNames && stepNames.length > 0 && (
+            <div className="setup-page__substeps" style={{ marginTop: 12, marginBottom: 4 }}>
+              {stepNames.map((name, idx) => {
+                const stepNum = idx + 1
+                const isComplete = progress ? progress.step > stepNum : false
+                const isActive = progress ? progress.step === stepNum : false
+                return (
+                  <div
+                    key={name}
+                    className={`setup-page__substep ${isActive ? 'setup-page__substep--active' : ''} ${isComplete ? 'setup-page__substep--complete' : ''}`}
+                  >
+                    {isComplete ? <Check size={12} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 2 }} /> : null}
+                    {name}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {progress && (
+            <div className="setup-page__progress-wrap" style={{ marginTop: stepNames ? 8 : 14 }}>
+              <div className="setup-page__progress-meta">
+                <span>
+                  Step {progress.step} of {progress.total}
+                </span>
+                <span>{pct}%</span>
+              </div>
+              <div className="setup-page__progress-track">
+                <div className="setup-page__progress-fill" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          )}
         </div>
-        {stepNames && stepNames.length > 0 && (
-          <div className="setup-page__substeps" style={{ marginTop: 12, marginBottom: 4 }}>
-            {stepNames.map((name, idx) => {
-              const stepNum = idx + 1
-              const isComplete = progress ? progress.step > stepNum : false
-              const isActive = progress ? progress.step === stepNum : false
-              return (
-                <div
-                  key={name}
-                  className={`setup-page__substep ${isActive ? 'setup-page__substep--active' : ''} ${isComplete ? 'setup-page__substep--complete' : ''}`}
-                >
-                  {isComplete ? <Check size={12} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 2 }} /> : null}
-                  {name}
-                </div>
-              )
-            })}
-          </div>
-        )}
-        {progress && (
-          <div className="setup-page__progress-wrap" style={{ marginTop: stepNames ? 8 : 14 }}>
-            <div className="setup-page__progress-meta">
-              <span>
-                Step {progress.step} of {progress.total}
-              </span>
-              <span>{pct}%</span>
-            </div>
-            <div className="setup-page__progress-track">
-              <div className="setup-page__progress-fill" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-        )}
       </header>
 
       <div className="setup-page__scroll">
@@ -91,7 +93,11 @@ export function SetupPageShell({
         </div>
       </div>
 
-      {footer && <footer className="setup-page__footer">{footer}</footer>}
+      {footer && (
+        <footer className="setup-page__footer">
+          <div className="setup-page__footer-inner">{footer}</div>
+        </footer>
+      )}
     </div>
   )
 }
