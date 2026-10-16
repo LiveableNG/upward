@@ -52,14 +52,29 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
             app = 'upward-pm';
           }
 
-          // Handle guest login/signup where req.user is not yet populated
-          // but response contains user info
-          if (responseBody && !user) {
-            if (responseBody.user) {
-              userUuid = responseBody.user.uuid;
-              userEmail = responseBody.user.email;
-              userRole = app === 'upward-pm' ? 'PM' : 'TENANT';
-            }
+          // Handle guest login/signup or unauthenticated requests where req.user is not yet populated
+          if (!userEmail) {
+            userEmail =
+              responseBody?.user?.email ||
+              responseBody?.data?.user?.email ||
+              responseBody?.profile?.email ||
+              responseBody?.data?.profile?.email ||
+              (typeof req.body?.email === 'string' && req.body.email.includes('@') ? req.body.email.trim() : undefined) ||
+              (typeof req.body?.identifier === 'string' && req.body.identifier.includes('@') ? req.body.identifier.trim() : undefined);
+          }
+
+          if (!userUuid) {
+            userUuid =
+              responseBody?.user?.uuid ||
+              responseBody?.user?.id?.toString() ||
+              responseBody?.data?.user?.uuid ||
+              responseBody?.profile?.uuid ||
+              responseBody?.data?.profile?.uuid ||
+              undefined;
+          }
+
+          if (userEmail && (!userRole || userRole === 'GUEST')) {
+            userRole = app === 'upward-pm' ? 'PM' : 'TENANT';
           }
 
           // Determine Action
@@ -193,11 +208,24 @@ export class ActivityTrackingInterceptor implements NestInterceptor {
           } else if (action === 'LOGOUT') {
             description = `Tenant logged out via ${platformLabel}`;
             entityType = 'AUTH';
-          } else if (url.includes('/payments') || url.includes('/checkout') || url.includes('/paystack')) {
+          } else if (
+            url.includes('/payments/initialize') ||
+            url.includes('/checkout') ||
+            url.includes('/paystack/initialize')
+          ) {
             action = 'PAYMENT';
             entityType = 'PAYMENT';
             const amt = req.body?.amount ? ` of ₦${Number(req.body.amount).toLocaleString()}` : '';
             description = `Initiated rent checkout${amt} via ${platformLabel}`;
+          } else if (url.includes('/payments/benefits/initialize')) {
+            action = 'PAYMENT';
+            entityType = 'BENEFITS';
+            description = `Initiated benefits subscription checkout via ${platformLabel}`;
+          } else if (url.includes('/payments/rent-deposit/apply')) {
+            action = 'PAYMENT';
+            entityType = 'RENT_DEPOSIT';
+            const amt = req.body?.amountToApply ? ` of ₦${Number(req.body.amountToApply).toLocaleString()}` : '';
+            description = `Applied rent deposit${amt} toward rent via ${platformLabel}`;
           } else if (url.includes('/deposit') || url.includes('/wallet')) {
             action = 'DEPOSIT';
             entityType = 'WALLET';
