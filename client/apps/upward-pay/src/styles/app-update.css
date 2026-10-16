@@ -19,6 +19,10 @@
   animation: appUpdateFadeOut 0.22s ease-in forwards !important;
 }
 
+.app-update-sheet-overlay--locked {
+  cursor: default;
+}
+
 :root.theme--dark .app-update-sheet-overlay {
   background: rgba(0, 0, 0, 0.65);
 }
