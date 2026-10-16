@@ -17,7 +17,7 @@ interface AuthContextType {
   loading: boolean
   isLoggedIn: boolean
   isPinLocked: boolean
-  login: (user: UserProfile) => void
+  login: (user: UserProfile, options?: { isNewUser?: boolean; provider?: string }) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -192,11 +192,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = async (newUser: UserProfile) => {
+  const login = async (
+    newUser: UserProfile,
+    options?: { isNewUser?: boolean; provider?: string },
+  ) => {
     setUser(newUser)
     userRef.current = newUser
-    sessionTracker.identify({ id: newUser.id ? Number(newUser.id) : undefined, email: newUser.email, role: newUser.role || 'TENANT' })
-    sessionTracker.trackEvent('LOGIN_SUCCESS', { email: newUser.email })
+    sessionTracker.identify({
+      id: newUser.id ? Number(newUser.id) : undefined,
+      email: newUser.email,
+      role: newUser.role || 'TENANT',
+    })
+
+    if (options?.isNewUser) {
+      sessionTracker.trackEvent('SIGNUP_SUCCESS', {
+        email: newUser.email,
+        provider: options.provider || 'email',
+        isOAuth: !!options.provider && options.provider !== 'email',
+      })
+    } else {
+      sessionTracker.trackEvent('LOGIN_SUCCESS', {
+        email: newUser.email,
+        provider: options?.provider || 'email',
+        isOAuth: !!options?.provider && options.provider !== 'email',
+      })
+    }
     setLoading(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))

@@ -15,6 +15,7 @@ import {
   X,
   Globe,
   TrendingUp,
+  AlertTriangle,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import PreviewDrawer, { type DrawerEntity } from '../features/dashboard/components/PreviewDrawer'
@@ -107,6 +108,14 @@ function getActivityBadge(action: string, entityType?: string | null) {
     bg = 'rgba(16, 185, 129, 0.12)'
     color = '#10b981'
     icon = <LogIn size={12} />
+  } else if (action === 'LOGIN_FAILED' || action === 'AUTH_FAILED') {
+    bg = 'rgba(239, 68, 68, 0.12)'
+    color = 'var(--danger)'
+    icon = <AlertTriangle size={12} />
+  } else if (action === 'SIGNUP_FAILED') {
+    bg = 'rgba(239, 68, 68, 0.12)'
+    color = 'var(--danger)'
+    icon = <AlertTriangle size={12} />
   } else if (action === 'LOGOUT') {
     bg = 'rgba(100, 116, 139, 0.12)'
     color = 'var(--text-muted)'
@@ -1427,6 +1436,7 @@ export const AppActivity: React.FC<AppActivityProps> = ({ token }) => {
                 { key: 'PAYMENT', label: 'Payments' },
                 { key: 'DEPOSIT', label: 'Deposits' },
                 { key: 'CREDIBILITY_REQUEST', label: 'Credibility' },
+                { key: 'LOGIN_FAILED', label: 'Failed Logins' },
               ].map((act) => (
                 <button
                   key={act.key}

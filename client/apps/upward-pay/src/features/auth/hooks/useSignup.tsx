@@ -38,7 +38,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
         BiometricsService.saveCredentials(variables.email, variables.password).catch(() => {})
       }
 
-      setAuthUser(result.user)
+      setAuthUser(result.user, { isNewUser: true, provider: 'email' })
       queryClient.setQueryData(['user'], result.user)
       if (onSuccess) {
         onSuccess()

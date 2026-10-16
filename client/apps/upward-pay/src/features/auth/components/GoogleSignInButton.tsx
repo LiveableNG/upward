@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { useToast } from '@/components/common/Toast'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 interface GoogleSignInButtonProps {
   onSuccess?: () => void
@@ -87,7 +88,7 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
       if (result.refreshToken) {
         setRefreshToken(result.refreshToken)
       }
-      setAuthUser(result.user)
+      setAuthUser(result.user, { isNewUser: result.isNewUser, provider: 'google' })
       queryClient.setQueryData(['user'], result.user)
 
       if (onSuccess) {
@@ -97,6 +98,11 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed'
+      sessionTracker.trackEvent('LOGIN_FAILED', {
+        provider: 'google',
+        error: message,
+        stage: 'server_exchange',
+      })
       toast.error(message, 'Sign in failed')
     } finally {
       setLoading(false)
@@ -114,14 +120,25 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
       if (result.idToken) {
         await handleSuccess(result.idToken)
       } else {
+        sessionTracker.trackEvent('LOGIN_FAILED', {
+          provider: 'google',
+          error: 'No ID Token returned by Google SDK',
+          stage: 'native_sdk',
+        })
         toast.error('Google sign-in failed. No ID Token returned.', 'Sign in failed')
       }
     } catch (err: any) {
       // Handle user cancellation gracefully
       if (err.message && (err.message.includes('cancel') || err.message.includes('12501'))) {
+        sessionTracker.trackEvent('LOGIN_CANCELLED', { provider: 'google', stage: 'native_sdk' })
         toast.error('Google sign-in was cancelled.', 'Sign in cancelled')
       } else {
         const message = err instanceof Error ? err.message : 'Google sign-in failed'
+        sessionTracker.trackEvent('LOGIN_FAILED', {
+          provider: 'google',
+          error: message,
+          stage: 'native_sdk',
+        })
         toast.error(message, 'Sign in failed')
       }
     } finally {
@@ -160,10 +177,22 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
               if (response.credential) {
                 handleSuccess(response.credential)
               } else {
+                sessionTracker.trackEvent('LOGIN_FAILED', {
+                  provider: 'google',
+                  error: 'Empty credential from Google web login',
+                  stage: 'web_sdk',
+                })
                 toast.error('Google sign-in failed. Please try again.', 'Sign in failed')
               }
             }}
-            onError={() => toast.error('Google sign-in was cancelled or failed.', 'Sign in failed')}
+            onError={() => {
+              sessionTracker.trackEvent('LOGIN_FAILED', {
+                provider: 'google',
+                error: 'Google sign-in was cancelled or failed in web prompt',
+                stage: 'web_sdk',
+              })
+              toast.error('Google sign-in was cancelled or failed.', 'Sign in failed')
+            }}
             theme="outline"
             size="large"
             shape="rectangular"

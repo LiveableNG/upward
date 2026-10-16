@@ -226,7 +226,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           setRefreshToken(result.refreshToken)
         }
         queryClient.clear()
-        setAuthUser(result.user)
+        setAuthUser(result.user, { isNewUser: true, provider: 'email' })
         queryClient.setQueryData(['user'], result.user)
         onSignupSuccess(identifier, password)
       } else {
