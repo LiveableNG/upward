@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import {
   AlertCircle,
   CheckCircle,
+  Copy,
+  Check,
   ChevronDown,
   ChevronRight,
   CreditCard,
@@ -57,8 +59,6 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
 
     fetchJourney()
   }, [sessionId, token])
-
-  if (!sessionId) return null
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
@@ -175,26 +175,49 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
     return list
   }, [chronologicalEvents, categoryFilter, searchQuery, sortOrder])
 
+  if (!sessionId) return null
+
   return (
     <Modal
       isOpen={!!sessionId}
       onClose={onClose}
       title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>{sessionData?.userEmail || (sessionData?.userId ? `User #${sessionData.userId}` : 'Guest Visitor')}</span>
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              padding: '2px 7px',
-              borderRadius: '4px',
-              background: 'var(--accent-faint)',
-              color: 'var(--accent)',
-            }}
-          >
-            Session Journey
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{sessionData?.userEmail || (sessionData?.userId ? `User #${sessionData.userId}` : 'Guest Visitor')}</span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                padding: '2px 7px',
+                borderRadius: '4px',
+                background: 'var(--accent-faint)',
+                color: 'var(--accent)',
+              }}
+            >
+              Session Journey
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+            <span>{sessionId}</span>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(sessionId)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                color: copied ? '#10b981' : 'var(--text-muted)',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+              title="Copy Session ID"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+            </button>
+          </div>
         </div>
       }
     >
