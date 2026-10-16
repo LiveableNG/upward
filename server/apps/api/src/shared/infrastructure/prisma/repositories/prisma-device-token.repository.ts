@@ -19,6 +19,12 @@ export class PrismaDeviceTokenRepository {
     })
   }
 
+  async removeTokenByValue(token: string): Promise<void> {
+    await this.prisma.upward_device_token.deleteMany({
+      where: { token },
+    })
+  }
+
   async findTokensByUserId(userId: number): Promise<string[]> {
     const records = await this.prisma.upward_device_token.findMany({
       where: { userId },
