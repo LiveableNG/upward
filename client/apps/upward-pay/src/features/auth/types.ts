@@ -88,4 +88,5 @@ export interface AuthResponse {
   accessToken: string
   user: UserProfile
   refreshToken?: string
+  isNewUser?: boolean
 }

@@ -33,15 +33,14 @@ export class GetAppActivityLogsUseCase {
       andConditions.push({ action: query.actionFilter })
     } else {
       andConditions.push({
-        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST', 'UPDATE'] },
+        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'SIGNUP_FAILED', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST', 'UPDATE', 'CREATE', 'DELETE'] },
       })
     }
 
-    // Filter out anonymous system logs, keeping verified user events, signups, and logins
+    // Filter out anonymous system logs, keeping verified user events, signups, logins, and auth events
     andConditions.push({
       OR: [
-        { action: 'SIGNUP' },
-        { action: 'LOGIN' },
+        { action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'SIGNUP_FAILED'] } },
         { userId: { not: null } },
         {
           AND: [
@@ -52,6 +51,21 @@ export class GetAppActivityLogsUseCase {
           ],
         },
       ],
+    })
+
+    // Omit routine failed token refreshes (expired/missing cookie background checks)
+    andConditions.push({
+      NOT: {
+        AND: [
+          { action: 'LOGIN_FAILED' },
+          {
+            OR: [
+              { entityId: 'refresh' },
+              { description: { contains: 'refresh', mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
     })
 
     if (query.search) {
@@ -392,12 +406,18 @@ export class GetAppActivityLogsUseCase {
 
       const { platform, deviceSummary } = resolvePlatformAndDevice(log)
 
+      const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
+      const providerName = (meta.provider || meta.authProvider || user?.authProvider || '').toLowerCase()
+      const oauthLabel = providerName === 'google' ? ' via Google' : providerName === 'apple' ? ' via Apple' : ''
+
       if (log.action === 'SIGNUP') {
         const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         if (log.userRole === 'PM' || log.app === 'upward-pm') {
           readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} registered a new account via ${platformLabel}.`
         } else {
-          if (user?.isFromInvite) {
+          if (oauthLabel) {
+            readableText = `Tenant ${userDisplayName} registered${oauthLabel} via ${platformLabel}.`
+          } else if (user?.isFromInvite) {
             readableText = `Invited Tenant ${userDisplayName} completed registration via ${platformLabel}.`
           } else if (user?.isFromWaitlist) {
             readableText = `Waitlist Tenant ${userDisplayName} converted and completed registration via ${platformLabel}.`
@@ -407,7 +427,15 @@ export class GetAppActivityLogsUseCase {
         }
       } else if (log.action === 'LOGIN') {
         const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
-        readableText = `${userDisplayName || 'Tenant'} logged in via ${platformLabel} (${deviceSummary}).`
+        readableText = `${userDisplayName || 'Tenant'} logged in${oauthLabel} via ${platformLabel} (${deviceSummary}).`
+      } else if (log.action === 'LOGIN_FAILED' || log.action === 'AUTH_FAILED') {
+        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const reason = meta.error || log.description.split(': ')[1] || 'Authentication error'
+        readableText = `${userDisplayName || 'User'} sign-in attempt failed${oauthLabel} via ${platformLabel}: ${reason}`
+      } else if (log.action === 'SIGNUP_FAILED') {
+        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const reason = meta.error || log.description.split(': ')[1] || 'Registration error'
+        readableText = `${userDisplayName || 'User'} registration attempt failed${oauthLabel} via ${platformLabel}: ${reason}`
       } else if (log.action === 'LOGOUT') {
         const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         readableText = `${userDisplayName || 'Tenant'} logged out via ${platformLabel}.`

@@ -4,13 +4,15 @@ import {
   Apple,
   ShieldAlert,
   Save,
-  CheckCircle2,
   AlertTriangle,
   RefreshCw,
   Plus,
   Trash2,
   ExternalLink,
   Sparkles,
+  ArrowDownToLine,
+  ArrowRight,
+  Check,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -675,139 +677,239 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                 width: '100%',
                 maxWidth: '360px',
                 margin: '0 auto',
-                borderRadius: '32px',
+                borderRadius: '36px',
                 border: '10px solid #18181b',
                 background: '#09090b',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
                 overflow: 'hidden',
                 position: 'relative',
-                minHeight: '520px',
-                padding: '24px 18px',
+                minHeight: '560px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
+                justifyContent: 'flex-end',
                 color: '#fff',
-                textAlign: 'center',
+                textAlign: 'left',
               }}
             >
-              {/* Camera Notch */}
+              {/* Dynamic Island / Notch */}
               <div
                 style={{
                   position: 'absolute',
-                  top: '8px',
-                  width: '90px',
-                  height: '18px',
+                  top: '10px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '84px',
+                  height: '20px',
                   backgroundColor: '#18181b',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
+                  zIndex: 10,
                 }}
               />
 
-              {/* Modal Card inside Mobile */}
+              {/* Background Mock Content (simulating underlying app screen) */}
               <div
                 style={{
-                  width: '100%',
-                  background: '#1c1917',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '20px',
-                  padding: '24px 16px',
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(180deg, #141413 0%, #1c1c1b 100%)',
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
+                  padding: '48px 18px 18px',
+                  opacity: 0.25,
+                  pointerEvents: 'none',
                 }}
               >
+                <div style={{ width: '45%', height: '12px', background: '#3f3f46', borderRadius: '4px', marginBottom: '18px' }} />
+                <div style={{ width: '100%', height: '80px', background: '#27272a', borderRadius: '14px', marginBottom: '14px' }} />
+                <div style={{ width: '100%', height: '60px', background: '#27272a', borderRadius: '14px' }} />
+              </div>
+
+              {/* Dimmed Backdrop */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  backdropFilter: 'blur(3px)',
+                  pointerEvents: 'none',
+                }}
+              />
+
+              {/* Redesigned Bottom Sheet Preview */}
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 2,
+                  width: '100%',
+                  background: '#1c1c1b',
+                  borderTopLeftRadius: '24px',
+                  borderTopRightRadius: '24px',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '12px 18px 22px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 -8px 28px rgba(0, 0, 0, 0.45)',
+                }}
+              >
+                {/* Drag handle */}
                 <div
                   style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #d97736, #ea580c)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '12px',
+                    width: '36px',
+                    height: '4px',
+                    background: '#3a3836',
+                    borderRadius: '9999px',
+                    margin: '0 auto 14px',
                   }}
-                >
-                  <Smartphone size={24} color="#fff" />
-                </div>
+                />
 
-                <div
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: '#d97736',
-                    letterSpacing: '0.05em',
-                    marginBottom: '6px',
-                  }}
-                >
-                  {formData.forceUpdate ? 'UPDATE REQUIRED' : 'UPDATE AVAILABLE'} · v{formData.latestVersion}
-                </div>
-
-                <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 6px 0', color: '#fff' }}>
-                  {formData.title || (formData.forceUpdate ? 'Update Required' : 'A New Upward Pay is Ready')}
-                </h3>
-
-                <p style={{ fontSize: '11px', color: '#a8a29e', margin: '0 0 14px 0', lineHeight: 1.4 }}>
-                  {formData.message ||
-                    'Please update your app to access the latest features, security fixes, and rent checkout improvements.'}
-                </p>
-
-                {/* Bullets Preview */}
-                <div
-                  style={{
-                    width: '100%',
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: '12px',
-                    padding: '10px',
-                    textAlign: 'left',
-                    marginBottom: '16px',
-                  }}
-                >
-                  <div style={{ fontSize: '9px', fontWeight: 700, color: '#78716c', marginBottom: '6px' }}>
-                    WHAT'S NEW
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '14px' }}>
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '12px',
+                      background: 'rgba(217, 119, 87, 0.12)',
+                      border: '1px solid rgba(217, 119, 87, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#d97757',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ArrowDownToLine size={18} strokeWidth={2.2} />
                   </div>
-                  {(formData.releaseNotes && formData.releaseNotes.length > 0
-                    ? formData.releaseNotes
-                    : ['Faster rent checkout', 'Instant receipt downloads']
-                  ).map((bullet, i) => (
-                    <div
-                      key={i}
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '3px' }}>
+                      <h4 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: '#faf9f5', lineHeight: 1.25 }}>
+                        {formData.title || (formData.forceUpdate ? 'Update Required' : 'A new version is available')}
+                      </h4>
+                      {formData.latestVersion && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            padding: '1px 6px',
+                            borderRadius: '9999px',
+                            background: '#242423',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            color: '#b0aba8',
+                          }}
+                        >
+                          Version {formData.latestVersion}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#b0aba8', margin: 0, lineHeight: 1.4 }}>
+                      {formData.message || 'Update Upward Pay to get the latest improvements and a smoother experience.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* What's New List (Clean surface, no grey card box) */}
+                <div
+                  style={{
+                    padding: '10px 0',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'block',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#8a8a8a',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    What’s new
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {(formData.releaseNotes && formData.releaseNotes.length > 0
+                      ? formData.releaseNotes
+                      : [
+                          'Faster one-tap card checkout.',
+                          'Instant rent receipt generation and sharing.',
+                          'Enhanced security and reliability updates.',
+                        ]
+                    ).map((note, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <span
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '9999px',
+                            background: 'rgba(217, 119, 87, 0.12)',
+                            border: '1px solid rgba(217, 119, 87, 0.2)',
+                            color: '#d97757',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            marginTop: '1px',
+                          }}
+                        >
+                          <Check size={9} strokeWidth={3} />
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#b0aba8', lineHeight: 1.35, flex: 1 }}>
+                          {note}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <button
+                    type="button"
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg, #d97757 0%, #c86848 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(217, 119, 87, 0.35)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>Update now</span>
+                    <ArrowRight size={13} strokeWidth={2.2} />
+                  </button>
+
+                  {!formData.forceUpdate && (
+                    <button
+                      type="button"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
+                        width: '100%',
+                        background: 'transparent',
+                        color: '#8a8a8a',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
                         fontSize: '11px',
-                        color: '#e7e5e4',
-                        marginBottom: '4px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        textAlign: 'center',
                       }}
                     >
-                      <CheckCircle2 size={12} color="#d97736" />
-                      <span>{bullet}</span>
-                    </div>
-                  ))}
+                      Later
+                    </button>
+                  )}
                 </div>
-
-                {/* Button Preview */}
-                <button
-                  type="button"
-                  style={{
-                    width: '100%',
-                    background: 'linear-gradient(135deg, #d97736, #ea580c)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '10px',
-                    padding: '10px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                  }}
-                >
-                  Update Upward Pay
-                </button>
-
-                {!formData.forceUpdate && (
-                  <div style={{ fontSize: '11px', color: '#78716c', marginTop: '8px' }}>Later (Snooze 24h)</div>
-                )}
               </div>
             </div>
           </div>

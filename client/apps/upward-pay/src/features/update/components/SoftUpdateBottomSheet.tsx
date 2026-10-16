@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { ArrowDownToLine, ArrowRight, Check } from 'lucide-react'
 
 export interface SoftUpdateBottomSheetProps {
   currentVersion: string
@@ -23,6 +23,16 @@ export const SoftUpdateBottomSheet: React.FC<SoftUpdateBottomSheetProps> = ({
   fallbackStoreUrl,
   onDismiss,
 }) => {
+  const [isClosing, setIsClosing] = useState(false)
+
+  const handleDismiss = () => {
+    if (isClosing) return
+    setIsClosing(true)
+    setTimeout(() => {
+      onDismiss()
+    }, 220)
+  }
+
   const handleUpdate = () => {
     try {
       window.location.href = storeUrl
@@ -39,57 +49,82 @@ export const SoftUpdateBottomSheet: React.FC<SoftUpdateBottomSheetProps> = ({
   }
 
   const defaultNotes = [
-    'Faster transaction confirmations',
-    'Enhanced UI transitions and smoothness',
-    'General bug fixes and optimizations',
+    'Faster one-tap card checkout.',
+    'Instant rent receipt generation and sharing.',
+    'Enhanced security and reliability updates.',
   ]
 
   const notes = releaseNotes && releaseNotes.length > 0 ? releaseNotes : defaultNotes
 
   return (
-    <div className="app-update-sheet-overlay" onClick={onDismiss} role="dialog" aria-modal="true">
-      <div className="app-update-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="app-update-sheet__drag-handle" />
+    <div
+      className={`app-update-sheet-overlay ${isClosing ? 'app-update-sheet-overlay--closing' : ''}`}
+      onClick={handleDismiss}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="app-update-sheet-title"
+      aria-describedby="app-update-sheet-desc"
+    >
+      <div
+        className={`app-update-sheet ${isClosing ? 'app-update-sheet--closing' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Subtle drag handle for mobile affordance */}
+        <div className="app-update-sheet__drag-handle" aria-hidden="true" />
 
+        {/* Header with refined icon and title */}
         <div className="app-update-sheet__header">
-          <div className="app-update-sheet__icon-box">
-            <Sparkles size={24} />
+          <div className="app-update-sheet__icon-wrap" aria-hidden="true">
+            <ArrowDownToLine size={20} strokeWidth={2.2} />
           </div>
-          <div>
-            <h3 className="app-update-sheet__title">
-              {title || `Upward Pay v${latestVersion} is Ready`}
-            </h3>
-            <p className="app-update-sheet__subtitle">
-              {message || 'A fresh update is available on the store with exciting new improvements.'}
+          <div className="app-update-sheet__header-copy">
+            <div className="app-update-sheet__title-row">
+              <h2 id="app-update-sheet-title" className="app-update-sheet__title">
+                {title || 'A new version is available'}
+              </h2>
+              {latestVersion && (
+                <span className="app-update-sheet__version-badge">
+                  Version {latestVersion}
+                </span>
+              )}
+            </div>
+            <p id="app-update-sheet-desc" className="app-update-sheet__subtitle">
+              {message || 'Update Upward Pay to get the latest improvements and a smoother experience.'}
             </p>
           </div>
         </div>
 
-        <div className="app-update-modal__notes-box" style={{ marginBottom: '14px' }}>
-          <div className="app-update-modal__notes-header">Highlights in v{latestVersion}</div>
-          {notes.map((note, idx) => (
-            <div key={idx} className="app-update-modal__note-item">
-              <CheckCircle2 size={14} className="app-update-modal__note-bullet" />
-              <span>{note}</span>
-            </div>
-          ))}
+        {/* What's new section: clean, vertical list on the main surface without grey container box */}
+        <div className="app-update-sheet__body">
+          <span className="app-update-sheet__section-title">What’s new</span>
+          <ul className="app-update-sheet__highlights" role="list">
+            {notes.map((note, idx) => (
+              <li key={idx} className="app-update-sheet__highlight-item">
+                <span className="app-update-sheet__highlight-icon" aria-hidden="true">
+                  <Check size={11} strokeWidth={3} />
+                </span>
+                <span className="app-update-sheet__highlight-text">{note}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
+        {/* Dedicated action area with distinct visual hierarchy */}
         <div className="app-update-sheet__actions">
           <button
             type="button"
-            onClick={onDismiss}
-            className="app-update-btn-secondary"
+            onClick={handleUpdate}
+            className="app-update-sheet__btn-primary"
           >
-            Later
+            <span>Update now</span>
+            <ArrowRight size={16} strokeWidth={2.2} />
           </button>
           <button
             type="button"
-            onClick={handleUpdate}
-            className="app-update-btn-primary"
+            onClick={handleDismiss}
+            className="app-update-sheet__btn-secondary"
           >
-            <span>Update Now</span>
-            <ArrowRight size={16} />
+            Later
           </button>
         </div>
       </div>

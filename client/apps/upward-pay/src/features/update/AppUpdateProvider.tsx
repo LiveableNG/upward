@@ -53,7 +53,17 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeGatedFeature, setActiveGatedFeature] = useState<string | null>(null)
 
   const checkPolicy = useCallback(async () => {
-    // Only check if running on native mobile or when testing in browser
+    const isDev = process.env.NODE_ENV === 'development'
+    const isDebugWeb =
+      isDev &&
+      typeof window !== 'undefined' &&
+      (new URLSearchParams(window.location.search).has('debug_update') ||
+        localStorage.getItem('debug_update') === 'true')
+
+    if (!Capacitor.isNativePlatform() && !isDebugWeb) {
+      return
+    }
+
     const platform = Capacitor.isNativePlatform() ? Capacitor.getPlatform() : 'android'
     const appInfo = await getAppVersionInfo()
 
@@ -111,6 +121,17 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // 3. Listen for in-flight HTTP 426 Upgrade Required responses
     const handleUpgradeRequired = (event: any) => {
+      const isDev = process.env.NODE_ENV === 'development'
+      const isDebugWeb =
+        isDev &&
+        typeof window !== 'undefined' &&
+        (new URLSearchParams(window.location.search).has('debug_update') ||
+          localStorage.getItem('debug_update') === 'true')
+
+      if (!Capacitor.isNativePlatform() && !isDebugWeb) {
+        return
+      }
+
       console.warn('[AppUpdateProvider] Received upward:version-upgrade-required event:', event.detail)
       const detail = event.detail
       if (detail?.type === 'FEATURE_GATED') {

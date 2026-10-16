@@ -138,6 +138,8 @@ export class UserController {
     const userAgent = req.headers['user-agent']
     const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.signup(body, ipAddress, userAgent)
+    req.user = { sub: rest.user.uuid, email: rest.user.email, role: (rest.user as any).role || 'TENANT' }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.CREATED).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -164,7 +166,11 @@ export class UserController {
       body.provider,
       body.idToken,
       { firstName: body.firstName, lastName: body.lastName },
+      ipAddress,
+      userAgent,
     )
+    req.user = { sub: rest.user.uuid, email: rest.user.email, role: (rest.user as any).role || 'TENANT' }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -213,6 +219,8 @@ export class UserController {
     const userAgent = req.headers['user-agent']
     const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password, ipAddress, userAgent, type)
+    req.user = { sub: rest.user.uuid, email: rest.user.email, role: (rest.user as any).role || 'TENANT' }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -385,6 +393,8 @@ export class UserController {
     const userAgent = req.headers['user-agent']
     const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user, ipAddress, userAgent)
+    req.user = { sub: rest.user.uuid, email: rest.user.email, role: (rest.user as any).role || 'TENANT' }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }

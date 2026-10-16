@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Lock, ArrowRight, ShieldCheck } from 'lucide-react'
+import { Lock, ArrowRight } from 'lucide-react'
 
 export interface FeatureGatedModalProps {
   featureName: string
@@ -45,51 +45,54 @@ export const FeatureGatedModal: React.FC<FeatureGatedModalProps> = ({
         : 'This Feature'
 
   return (
-    <div className="app-update-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="app-update-modal" onClick={(e) => e.stopPropagation()}>
-        <div
-          className="app-update-modal__brand-badge"
-          style={{ background: 'linear-gradient(135deg, #0284c7, #2563eb)' }}
-        >
-          <Lock size={32} />
+    <div
+      className="app-update-sheet-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="app-feature-gate-title"
+      aria-describedby="app-feature-gate-desc"
+    >
+      <div className="app-update-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="app-update-sheet__drag-handle" aria-hidden="true" />
+
+        {/* Header */}
+        <div className="app-update-sheet__header">
+          <div className="app-update-sheet__icon-wrap" aria-hidden="true">
+            <Lock size={20} strokeWidth={2.2} />
+          </div>
+          <div className="app-update-sheet__header-copy">
+            <div className="app-update-sheet__title-row">
+              <h2 id="app-feature-gate-title" className="app-update-sheet__title">
+                {title || `Update Required for ${featureLabel}`}
+              </h2>
+              <span className="app-update-sheet__version-badge">
+                Security v{latestVersion}
+              </span>
+            </div>
+            <p id="app-feature-gate-desc" className="app-update-sheet__subtitle">
+              {message ||
+                `To access ${featureLabel.toLowerCase()} with the newest security standards, please update to Upward Pay v${latestVersion}. You can continue browsing other parts of your app in the meantime.`}
+            </p>
+          </div>
         </div>
 
-        <div
-          className="app-update-modal__pill"
-          style={{
-            background: 'rgba(37, 99, 235, 0.15)',
-            borderColor: 'rgba(37, 99, 235, 0.3)',
-            color: '#60a5fa',
-          }}
-        >
-          <ShieldCheck size={13} />
-          {featureLabel} Security
-        </div>
-
-        <h2 className="app-update-modal__title">
-          {title || `Update Required for ${featureLabel}`}
-        </h2>
-
-        <p className="app-update-modal__subtitle">
-          {message ||
-            `To access ${featureLabel.toLowerCase()} with the newest security standards, please update to Upward Pay v${latestVersion}. You can continue browsing other parts of your app in the meantime.`}
-        </p>
-
-        <div className="app-update-modal__actions">
+        {/* Actions */}
+        <div className="app-update-sheet__actions">
           <button
             type="button"
             onClick={handleUpdate}
-            className="app-update-btn-primary"
+            className="app-update-sheet__btn-primary"
           >
-            <span>Update Upward Pay</span>
-            <ArrowRight size={18} />
+            <span>Update now</span>
+            <ArrowRight size={16} strokeWidth={2.2} />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="app-update-btn-secondary"
+            className="app-update-sheet__btn-secondary"
           >
-            Cancel & Return
+            Cancel & return
           </button>
         </div>
       </div>

@@ -17,7 +17,7 @@ interface AuthContextType {
   loading: boolean
   isLoggedIn: boolean
   isPinLocked: boolean
-  login: (user: UserProfile) => void
+  login: (user: UserProfile, options?: { isNewUser?: boolean; provider?: string }) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -192,11 +192,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = async (newUser: UserProfile) => {
+  const login = async (
+    newUser: UserProfile,
+    options?: { isNewUser?: boolean; provider?: string },
+  ) => {
     setUser(newUser)
     userRef.current = newUser
-    sessionTracker.identify({ id: newUser.id ? Number(newUser.id) : undefined, email: newUser.email, role: newUser.role || 'TENANT' })
-    sessionTracker.trackEvent('LOGIN_SUCCESS', { email: newUser.email })
+    // Start a fresh, unique session for this authentic login
+    sessionTracker.startNewSession({
+      id: newUser.id ? Number(newUser.id) : undefined,
+      email: newUser.email,
+      role: newUser.role || 'TENANT',
+    })
+
+    if (options?.isNewUser) {
+      sessionTracker.trackEvent('SIGNUP_SUCCESS', {
+        email: newUser.email,
+        provider: options.provider || 'email',
+        isOAuth: !!options.provider && options.provider !== 'email',
+      })
+    } else {
+      sessionTracker.trackEvent('LOGIN_SUCCESS', {
+        email: newUser.email,
+        provider: options?.provider || 'email',
+        isOAuth: !!options?.provider && options.provider !== 'email',
+      })
+    }
+    await sessionTracker.flush(false)
     setLoading(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
@@ -206,6 +228,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     console.log('[Auth] Logging out...')
     sessionTracker.trackEvent('LOGOUT')
+    await sessionTracker.endSession('LOGOUT').catch(() => {})
+    sessionTracker.resetSession()
     setUser(null)
     userRef.current = null
     setAccessToken(null)
@@ -239,6 +263,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'upward_cached_user_profile',
           'exclusive_home_applications',
           'exclusive_home_requests',
+          'upward_session_id',
+          'upward_session_last_active',
         ]
         keysToRemove.forEach((k) => localStorage.removeItem(k))
 

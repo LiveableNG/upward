@@ -24,7 +24,7 @@ export class ActivityTrackingListener {
           if (pm) {
             pmId = pm.id;
           }
-        } else if (event.userRole === 'TENANT') {
+        } else if (event.userRole === 'TENANT' || !event.userRole || event.userRole === 'GUEST') {
           const user = await this.prisma.upward_user.findUnique({
             where: { uuid: event.userUuid },
             select: { id: true },
