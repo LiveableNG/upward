@@ -222,6 +222,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
+      if (newUser.uuid) {
+        localStorage.removeItem(`upward_profile_setup_skipped_${newUser.uuid}`)
+      }
     }
   }
 
@@ -270,7 +273,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const allKeys = Object.keys(localStorage)
         allKeys.forEach((k) => {
-          if (k.startsWith('profile_popup_dismissed_') || k.startsWith('rent_support_policy_')) {
+          if (
+            k.startsWith('profile_popup_dismissed_') ||
+            k.startsWith('rent_support_policy_') ||
+            k.startsWith('upward_profile_setup_skipped_')
+          ) {
             localStorage.removeItem(k)
           }
         })
