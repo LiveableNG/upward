@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthContext'
 import { LaunchDarklyProvider } from '@/features/premium/components/LaunchDarklyProvider'
 import Providers from './Providers'
 import { SmartAppBanner } from '@/components/common/SmartAppBanner'
+import { OfflineBanner } from '@/components/common/OfflineBanner'
 import './globals.css'
 
 const inter = Inter({
@@ -55,6 +56,7 @@ export default function RootLayout({
           <AuthProvider>
             <LaunchDarklyProvider>
               <SmartAppBanner />
+              <OfflineBanner />
               {children}
             </LaunchDarklyProvider>
           </AuthProvider>

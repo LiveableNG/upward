@@ -337,6 +337,7 @@ export function buildCredibilityRequestHtml(params: {
   requestLink: string;
   loginLink?: string;
   isRegisteredPm?: boolean;
+  isPastTenancy?: boolean;
 }): string {
   const loginPrompt = params.loginLink
     ? `
@@ -347,9 +348,14 @@ export function buildCredibilityRequestHtml(params: {
     `
     : '';
 
+  const tenantRelationship = params.isPastTenancy ? 'Your former tenant' : 'Your tenant';
+  const recordsDescription = params.isPastTenancy
+    ? 'their past tenancy and rental payment records'
+    : 'their tenancy and rental payment records';
+
   const content = `
     <p>Hi ${params.pmName},</p>
-    <p>Your former tenant, <strong>${params.tenantName}</strong>, has requested verification of their past tenancy and rental payment records for <strong>${params.propertyAddress}</strong>.</p>
+    <p>${tenantRelationship}, <strong>${params.tenantName}</strong>, has requested verification of ${recordsDescription} for <strong>${params.propertyAddress}</strong>.</p>
     <p>Verifying their request helps them build their verified Upward Rent Passport score and rental reputation.</p>
     <p>You can quickly review and fulfill this request using the secure verification link below—no registration is required.</p>
     ${loginPrompt}

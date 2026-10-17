@@ -1,0 +1,537 @@
+/* ── Mobile App Update & Version Gating Design ── */
+
+/* ── 1. Soft Update Bottom Sheet ── */
+.app-update-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: appUpdateFadeIn 0.22s ease-out forwards;
+}
+
+.app-update-sheet-overlay--closing {
+  animation: appUpdateFadeOut 0.22s ease-in forwards !important;
+}
+
+.app-update-sheet-overlay--locked {
+  cursor: default;
+}
+
+:root.theme--dark .app-update-sheet-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.app-update-sheet {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: none;
+  padding: var(--space-3, 12px) var(--space-5, 20px) calc(var(--space-5, 20px) + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08), 0 -2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  max-height: 90dvh;
+  overflow-y: auto;
+  position: relative;
+  animation: appUpdateSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.app-update-sheet--closing {
+  animation: appUpdateSlideDown 0.22s cubic-bezier(0.32, 0, 0.67, 0) forwards !important;
+}
+
+:root.theme--dark .app-update-sheet {
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.app-update-sheet__drag-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-solid);
+  border-radius: var(--radius-full, 9999px);
+  margin: 0 auto var(--space-4, 16px) auto;
+  flex-shrink: 0;
+}
+
+.app-update-sheet__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.app-update-sheet__icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--clay-faint);
+  border: 1px solid rgba(var(--clay-rgb, 217, 119, 87), 0.2);
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-update-sheet__header-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-update-sheet__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-bottom: 4px;
+}
+
+.app-update-sheet__title {
+  font-family: var(--font);
+  font-size: 1.1875rem; /* ~19px */
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.app-update-sheet__version-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.app-update-sheet__subtitle {
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* What's new clean list on main surface */
+.app-update-sheet__body {
+  margin-top: var(--space-1, 4px);
+  padding: var(--space-3, 12px) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-update-sheet__section-title {
+  display: block;
+  font-family: var(--font);
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3, 12px);
+}
+
+.app-update-sheet__highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.app-update-sheet__highlight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+}
+
+.app-update-sheet__highlight-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--clay-faint);
+  border: 1px solid rgba(var(--clay-rgb, 217, 119, 87), 0.18);
+  color: var(--clay);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.app-update-sheet__highlight-text {
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  flex: 1;
+}
+
+/* Action buttons */
+.app-update-sheet__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-4, 16px);
+}
+
+.app-update-sheet__btn-primary {
+  width: 100%;
+  min-height: 48px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text, #ffffff);
+  border: none;
+  border-radius: var(--radius-md, 12px);
+  padding: 14px 20px;
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: var(--btn-primary-shadow);
+  transition: transform 100ms ease-out, box-shadow 150ms ease-out, opacity 150ms ease-out;
+}
+
+.app-update-sheet__btn-primary:hover {
+  background: var(--btn-primary-hover);
+  box-shadow: var(--btn-primary-shadow-hover);
+}
+
+.app-update-sheet__btn-primary:active {
+  transform: scale(0.98);
+}
+
+.app-update-sheet__btn-primary:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+.app-update-sheet__btn-secondary {
+  width: 100%;
+  min-height: 42px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius-md, 12px);
+  padding: 10px 16px;
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease-out, background 150ms ease-out, transform 100ms ease-out;
+}
+
+.app-update-sheet__btn-secondary:hover {
+  color: var(--text);
+  background: var(--clay-faint);
+}
+
+.app-update-sheet__btn-secondary:active {
+  transform: scale(0.98);
+}
+
+.app-update-sheet__btn-secondary:focus-visible {
+  outline: 2px solid var(--border-solid);
+  outline-offset: 2px;
+}
+
+/* ── 2. Modal Variant (Hard Updates & Feature Gating) ── */
+.app-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4, 16px);
+  animation: appUpdateFadeIn 0.25s ease-out forwards;
+}
+
+:root.theme--dark .app-update-overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.app-update-modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl, 20px);
+  padding: var(--space-6, 24px) var(--space-5, 20px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  animation: appUpdateScaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+:root.theme--dark .app-update-modal {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.app-update-modal__brand-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg, 16px);
+  background: var(--btn-primary-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  margin-bottom: var(--space-4, 16px);
+  box-shadow: var(--btn-primary-shadow);
+}
+
+.app-update-modal__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--clay-faint);
+  border: 1px solid rgba(var(--clay-rgb, 217, 119, 87), 0.25);
+  color: var(--clay);
+  font-size: var(--text-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-3, 12px);
+}
+
+.app-update-modal__title {
+  font-family: var(--font);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin: 0 0 8px 0;
+}
+
+.app-update-modal__subtitle {
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--space-4, 16px) 0;
+}
+
+.app-update-modal__notes-box {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 14px;
+  text-align: left;
+  margin-bottom: var(--space-4, 16px);
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.app-update-modal__notes-header {
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.app-update-modal__note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--text-xs, 12px);
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.app-update-modal__note-item:last-child {
+  margin-bottom: 0;
+}
+
+.app-update-modal__note-bullet {
+  color: var(--clay);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.app-update-modal__actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-update-btn-primary {
+  width: 100%;
+  min-height: 48px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text, #ffffff);
+  border: none;
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 20px;
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--btn-primary-shadow);
+  transition: transform 100ms ease-out, box-shadow 150ms ease-out;
+  text-decoration: none;
+}
+
+.app-update-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.app-update-btn-secondary {
+  width: 100%;
+  min-height: 40px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  padding: 10px 18px;
+  font-family: var(--font);
+  font-size: var(--text-sm, 14px);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 100ms ease-out, background 150ms ease-out, color 150ms ease-out;
+}
+
+.app-update-btn-secondary:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.app-update-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* ── 3. Responsive Breakpoints ── */
+@media (max-width: 360px) {
+  .app-update-sheet {
+    padding: var(--space-2, 8px) var(--space-4, 16px) calc(var(--space-4, 16px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-update-sheet__icon-wrap {
+    width: 38px;
+    height: 38px;
+  }
+
+  .app-update-sheet__title {
+    font-size: 1.0625rem; /* 17px */
+  }
+
+  .app-update-sheet__highlight-text {
+    font-size: 13px;
+  }
+
+  .app-update-sheet__btn-primary {
+    min-height: 46px;
+    padding: 12px 16px;
+  }
+}
+
+/* ── 4. Animations & Accessibility ── */
+@keyframes appUpdateFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes appUpdateScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes appUpdateSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes appUpdateFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes appUpdateSlideDown {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-update-sheet-overlay,
+  .app-update-sheet,
+  .app-update-sheet-overlay--closing,
+  .app-update-sheet--closing,
+  .app-update-overlay,
+  .app-update-modal {
+    animation: none !important;
+  }
+
+  .app-update-sheet__btn-primary,
+  .app-update-sheet__btn-secondary,
+  .app-update-btn-primary,
+  .app-update-btn-secondary {
+    transition: none !important;
+  }
+}

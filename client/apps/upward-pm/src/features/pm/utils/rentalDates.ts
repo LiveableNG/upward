@@ -22,8 +22,19 @@ export function calculateRentEndDate(
   const end = new Date(start.getTime())
   const normType = (rentType || '').trim().toLowerCase()
 
-  if (normType === 'monthly') {
+  if (normType === 'weekly') {
+    end.setUTCDate(end.getUTCDate() + 7)
+  } else if (normType === 'monthly') {
     end.setUTCMonth(end.getUTCMonth() + 1)
+  } else if (normType === 'quarterly') {
+    end.setUTCMonth(end.getUTCMonth() + 3)
+  } else if (
+    normType === 'bi-annually' ||
+    normType === 'biannually' ||
+    normType === 'semi-annually' ||
+    normType === 'semiannually'
+  ) {
+    end.setUTCMonth(end.getUTCMonth() + 6)
   } else if (normType === 'lease') {
     const duration = Math.max(1, parseInt(String(leaseDuration || '1'), 10) || 1)
     const unit = (leaseUnit || 'years').toLowerCase() as LeaseDurationUnit

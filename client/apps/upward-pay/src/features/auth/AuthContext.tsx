@@ -10,13 +10,14 @@ import { deleteCookie } from '@/lib/cookie-utils'
 import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 interface AuthContextType {
   user: UserProfile | null
   loading: boolean
   isLoggedIn: boolean
   isPinLocked: boolean
-  login: (user: UserProfile) => void
+  login: (user: UserProfile, options?: { isNewUser?: boolean; provider?: string }) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -126,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await getMe()
       setUser(profile)
       userRef.current = profile
+      sessionTracker.identify({ id: profile.id ? Number(profile.id) : undefined, email: profile.email, role: profile.role || 'TENANT' })
       if (typeof window !== 'undefined') {
         localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
       }
@@ -190,17 +192,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = async (newUser: UserProfile) => {
+  const login = async (
+    newUser: UserProfile,
+    options?: { isNewUser?: boolean; provider?: string },
+  ) => {
     setUser(newUser)
     userRef.current = newUser
+    // Start a fresh, unique session for this authentic login
+    sessionTracker.startNewSession({
+      id: newUser.id ? Number(newUser.id) : undefined,
+      email: newUser.email,
+      role: newUser.role || 'TENANT',
+    })
+
+    if (options?.isNewUser) {
+      sessionTracker.trackEvent('SIGNUP_SUCCESS', {
+        email: newUser.email,
+        provider: options.provider || 'email',
+        isOAuth: !!options.provider && options.provider !== 'email',
+      })
+    } else {
+      sessionTracker.trackEvent('LOGIN_SUCCESS', {
+        email: newUser.email,
+        provider: options?.provider || 'email',
+        isOAuth: !!options?.provider && options.provider !== 'email',
+      })
+    }
+    await sessionTracker.flush(false)
     setLoading(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
+      if (newUser.uuid) {
+        localStorage.removeItem(`upward_profile_setup_skipped_${newUser.uuid}`)
+      }
     }
   }
 
   const logout = async () => {
     console.log('[Auth] Logging out...')
+    sessionTracker.trackEvent('LOGOUT')
+    await sessionTracker.endSession('LOGOUT').catch(() => {})
+    sessionTracker.resetSession()
     setUser(null)
     userRef.current = null
     setAccessToken(null)
@@ -234,12 +266,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'upward_cached_user_profile',
           'exclusive_home_applications',
           'exclusive_home_requests',
+          'upward_session_id',
+          'upward_session_last_active',
         ]
         keysToRemove.forEach((k) => localStorage.removeItem(k))
 
         const allKeys = Object.keys(localStorage)
         allKeys.forEach((k) => {
-          if (k.startsWith('profile_popup_dismissed_') || k.startsWith('rent_support_policy_')) {
+          if (
+            k.startsWith('profile_popup_dismissed_') ||
+            k.startsWith('rent_support_policy_') ||
+            k.startsWith('upward_profile_setup_skipped_')
+          ) {
             localStorage.removeItem(k)
           }
         })

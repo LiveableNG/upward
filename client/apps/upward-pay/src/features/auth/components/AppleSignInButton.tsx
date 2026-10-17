@@ -11,6 +11,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { useToast } from '@/components/common/Toast'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 interface AppleSignInButtonProps {
   onSuccess?: () => void
@@ -44,6 +45,11 @@ export function AppleSignInButton({ onSuccess, disabled }: AppleSignInButtonProp
       })
 
       if (!result.idToken) {
+        sessionTracker.trackEvent('LOGIN_FAILED', {
+          provider: 'apple',
+          error: 'No identity token received from Apple',
+          stage: 'native_sdk',
+        })
         toast.error('Apple sign-in failed. No identity token was received.', 'Sign in failed')
         return
       }
@@ -63,7 +69,7 @@ export function AppleSignInButton({ onSuccess, disabled }: AppleSignInButtonProp
         setRefreshToken(res.refreshToken)
       }
 
-      setAuthUser(res.user)
+      await setAuthUser(res.user, { isNewUser: res.isNewUser, provider: 'apple' })
       queryClient.setQueryData(['user'], res.user)
 
       if (onSuccess) {
@@ -72,7 +78,7 @@ export function AppleSignInButton({ onSuccess, disabled }: AppleSignInButtonProp
         router.replace('/dashboard')
       }
     } catch (err: any) {
-      // Gracefully ignore user cancellation
+      // Gracefully handle user cancellation
       const errStr = String(err?.message || err || '')
       if (
         errStr.includes('canceled') ||
@@ -80,9 +86,15 @@ export function AppleSignInButton({ onSuccess, disabled }: AppleSignInButtonProp
         err?.code === 'SIGN_IN_CANCELED' ||
         err?.code === '1001'
       ) {
+        sessionTracker.trackEvent('LOGIN_CANCELLED', { provider: 'apple', stage: 'native_sdk' })
         return
       }
       const message = err instanceof Error ? err.message : 'Apple sign-in failed'
+      sessionTracker.trackEvent('LOGIN_FAILED', {
+        provider: 'apple',
+        error: message,
+        stage: 'native_sdk',
+      })
       toast.error(message, 'Sign in failed')
     } finally {
       setLoading(false)

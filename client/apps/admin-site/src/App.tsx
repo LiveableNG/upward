@@ -10,6 +10,7 @@ import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
 import Logs from './pages/Logs'
 import AppActivity from './pages/AppActivity'
+import AppReleases from './pages/AppReleases'
 import Feedback from './pages/Feedback'
 import DevEmails from './pages/DevEmails'
 import DevDocumentAi from './pages/DevDocumentAi'
@@ -104,6 +105,8 @@ function AppRoutes() {
           <Route path="/email-sequences" element={<EmailSequences token={auth.token} />} />
           <Route path="/bulk-imports" element={<BulkImportQueue token={auth.token} />} />
           <Route path="/bulk-imports/:uuid" element={<BulkImportDetail token={auth.token} />} />
+          <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
+          <Route path="/app-releases" element={<AppReleases token={auth.token} />} />
 
           <Route path="/area-price-guide" element={<AreaPriceGuide token={auth.token} />} />
           <Route path="/settlements" element={<Settlements token={auth.token} adminRole={auth.user?.role} />} />
@@ -126,7 +129,6 @@ function AppRoutes() {
                 element={<Settings token={auth.token} currentAdminId={auth.user.id} />}
               />
               <Route path="/logs" element={<Logs token={auth.token} />} />
-              <Route path="/app-activity" element={<AppActivity token={auth.token} />} />
               <Route path="/feedback" element={<Feedback token={auth.token} />} />
               {showSandboxTools && (
                 <>

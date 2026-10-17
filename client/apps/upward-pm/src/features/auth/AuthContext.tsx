@@ -15,7 +15,7 @@ interface AuthContextType {
   loading: boolean
   isLoggedIn: boolean
   login: (user: PropertyManagerProfile) => void
-  logout: () => Promise<void>
+  logout: (options?: { redirectTo?: string | null } | unknown) => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                            window.location.pathname === '/pm-forgot-password' ||
                            window.location.pathname.startsWith('/invite') ||
                            window.location.pathname.startsWith('/pm-invite') ||
+                           window.location.pathname.startsWith('/public') ||
                            window.location.pathname.startsWith('/reset-password') ||
                            isPortalPublic
       
@@ -143,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = async () => {
+  const logout = async (options?: { redirectTo?: string | null } | unknown) => {
     try {
       await authLogout()
     } finally {
@@ -154,8 +155,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear()
       setAccessToken(null)
       setUser(null)
+
+      const opts = (options && typeof options === 'object' && 'redirectTo' in options)
+        ? (options as { redirectTo?: string | null })
+        : undefined
+
+      if (opts?.redirectTo === null) {
+        return
+      }
+
+      if (opts?.redirectTo) {
+        window.location.href = opts.redirectTo
+        return
+      }
       
-      const isPortal = window.location.pathname.startsWith('/portal')
+      const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
       if (isPortal) {
         window.location.href = '/portal/login'
       } else if (Capacitor.isNativePlatform()) {

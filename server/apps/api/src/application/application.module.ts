@@ -135,6 +135,11 @@ import { GetDropOffAnalysisUseCase } from './use-cases/analytics/get-drop-off-an
 import { GetAbStatsUseCase } from './use-cases/analytics/get-ab-stats.use-case'
 import { SendDailyReportUseCase } from './use-cases/analytics/send-daily-report.use-case'
 import { TrackInteractionUseCase } from './use-cases/analytics/track-interaction.use-case'
+import { IngestSessionEventsUseCase } from './use-cases/analytics/ingest-session-events.use-case'
+import { EndSessionUseCase } from './use-cases/analytics/end-session.use-case'
+import { GetSessionFunnelsUseCase } from './use-cases/analytics/get-session-funnels.use-case'
+import { GetSessionExplorerUseCase } from './use-cases/analytics/get-session-explorer.use-case'
+import { GetUniqueUserSessionsUseCase } from './use-cases/analytics/get-unique-user-sessions.use-case'
 
 import { SendBulkEmailUseCase } from './use-cases/email/send-bulk-email.use-case'
 import { ResendConfirmationEmailUseCase } from './use-cases/email/resend-confirmation-email.use-case'
@@ -152,6 +157,10 @@ import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
 import { ClearErrorLogsUseCase } from './use-cases/system/clear-error-logs.use-case'
 import { SubmitDemoRequestUseCase } from './use-cases/system/submit-demo-request.use-case'
+import { CheckAppVersionUseCase } from './use-cases/system/check-app-version.use-case'
+import { GetAppVersionPoliciesUseCase } from './use-cases/system/get-app-version-policies.use-case'
+import { UpdateAppVersionPolicyUseCase } from './use-cases/system/update-app-version-policy.use-case'
+import { ToggleAppForceUpdateUseCase } from './use-cases/system/toggle-app-force-update.use-case'
 import { GetDemoRequestsUseCase } from './use-cases/admin/get-demo-requests.use-case'
 import { UpdateDemoRequestStatusUseCase } from './use-cases/admin/update-demo-request-status.use-case'
 import { GetAdminHomeRequestsUseCase } from './use-cases/admin/get-admin-home-requests.use-case'
@@ -678,6 +687,11 @@ const UseCases: any[] = [
   GetAbStatsUseCase,
   SendDailyReportUseCase,
   TrackInteractionUseCase,
+  IngestSessionEventsUseCase,
+  EndSessionUseCase,
+  GetSessionFunnelsUseCase,
+  GetSessionExplorerUseCase,
+  GetUniqueUserSessionsUseCase,
   SendBulkEmailUseCase,
   ResendConfirmationEmailUseCase,
   GetEmailLogsUseCase,
@@ -1063,9 +1077,15 @@ import { LocalModelAiProvider } from '../shared/infrastructure/ai/local-model-ai
 import { DocumentPreProcessorEngine } from '../shared/infrastructure/ai/document-pre-processor.engine'
 import { UnstructuredPipelineService } from '../shared/infrastructure/ai/unstructured-pipeline.service'
 import { AiParseDocumentUseCase } from './pm/use-cases/ai/ai-parse-document.use-case'
-import { ConfigService } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 
-UseCases.push(AiParseDocumentUseCase)
+UseCases.push(
+  AiParseDocumentUseCase,
+  CheckAppVersionUseCase,
+  GetAppVersionPoliciesUseCase,
+  UpdateAppVersionPolicyUseCase,
+  ToggleAppForceUpdateUseCase,
+)
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'
 import { WhatsappModule } from '../shared/infrastructure/whatsapp/whatsapp.module'
@@ -1075,6 +1095,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
 
 @Module({
   imports: [
+    ConfigModule,
     PrismaModule,
     S3Module,
     ReceiptModule,

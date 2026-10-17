@@ -9,20 +9,29 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { SetupPageShell, SetupPrimaryButton } from '@/features/dashboard/setup/components/SetupPageShell'
 import { useQueryClient } from '@tanstack/react-query'
+import { sessionTracker } from '@/lib/sessionTracker'
 
-function openPaystack(accessCode: string) {
+function openPaystack(accessCode: string, amount: number) {
   return new Promise<string>((resolve, reject) => {
     const scriptId = 'paystack-inline-js'
     let script = document.getElementById(scriptId) as HTMLScriptElement | null
 
     const launch = () => {
       try {
+        sessionTracker.trackEvent('INITIATE_PAYSTACK', { accessCode, amount, flow: 'DEPOSIT' }, 'DEPOSIT_POPUP')
         const popup = new (window as any).PaystackPop()
         popup.resumeTransaction(accessCode, {
-          onSuccess: (transaction: any) => resolve(transaction.reference),
-          onCancel: () => reject(new Error('Payment cancelled')),
+          onSuccess: (transaction: any) => {
+            sessionTracker.trackEvent('PAYMENT_SUCCESS', { reference: transaction.reference, amount, flow: 'DEPOSIT' }, 'DEPOSIT_COMPLETE')
+            resolve(transaction.reference)
+          },
+          onCancel: () => {
+            sessionTracker.trackEvent('PAYSTACK_CLOSED_UNPAID', { accessCode, amount, flow: 'DEPOSIT' }, 'DEPOSIT_CANCELLED')
+            reject(new Error('Payment cancelled'))
+          },
         })
-      } catch (err) {
+      } catch (err: any) {
+        sessionTracker.trackEvent('PAYMENT_ERROR', { error: err?.message, flow: 'DEPOSIT' }, 'DEPOSIT_ERROR')
         reject(err)
       }
     }
@@ -33,7 +42,10 @@ function openPaystack(accessCode: string) {
       script.src = 'https://js.paystack.co/v2/inline.js'
       script.async = true
       script.onload = launch
-      script.onerror = () => reject(new Error('Failed to load Paystack'))
+      script.onerror = () => {
+        sessionTracker.trackEvent('PAYMENT_ERROR', { error: 'Failed to load Paystack script', flow: 'DEPOSIT' }, 'DEPOSIT_ERROR')
+        reject(new Error('Failed to load Paystack'))
+      }
       document.body.appendChild(script)
       return
     }
@@ -61,7 +73,7 @@ export function DepositFlow() {
         throw new Error('Could not start Paystack checkout')
       }
 
-      await openPaystack(init.accessCode)
+      await openPaystack(init.accessCode, amount)
       success('Payment received! Processing your deposit...')
       await queryClient.invalidateQueries({ queryKey: ['wallet'] })
       router.push('/dashboard/savings')

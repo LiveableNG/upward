@@ -89,9 +89,9 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
 
   CREDIBILITY_REQUEST: {
     recipientRole: 'PM',
-    subjectTemplate: 'Past Tenancy Record Request for {{propertyAddress}}',
+    subjectTemplate: 'Tenancy Record Request for {{propertyAddress}}',
     plainTextTemplate:
-      'Hello {{managerName}}, {{tenantName}} has requested that you verify their past tenancy and payment records for {{propertyAddress}} on Upward: {{requestLink}}\n\nAlready manage properties on Upward? Log in here: {{loginLink}}',
+      'Hello {{managerName}}, {{tenantLabel}}, {{tenantName}}, has requested that you verify their {{recordsDescription}} for {{propertyAddress}} on Upward: {{requestLink}}\n\nAlready manage properties on Upward? Log in here: {{loginLink}}',
     whatsappTemplateName: 'upward_credibility_request',
     whatsappParams: ['managerName', 'tenantName', 'propertyAddress'],
     buildHtml: (ctx) =>
@@ -102,6 +102,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         requestLink: ctx.requestLink || '',
         loginLink: ctx.loginLink || '',
         isRegisteredPm: ctx.isRegisteredPm,
+        isPastTenancy: !!ctx.isPastTenancy,
       }),
   },
 
@@ -319,6 +320,98 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
           <p>You can view the updated wallet and transaction history in your dashboard.</p>
         `,
         buttonText: 'Open Wallet',
+        buttonUrl: `${ctx.baseUrl || 'https://upward.goodtenants.io'}/subscription/wallet`,
+      }),
+  },
+
+  PM_SUBSCRIPTION_DEDUCTED: {
+    recipientRole: 'PM',
+    subjectTemplate: 'Subscription Receipt: NGN {{formattedAmount}} deducted',
+    plainTextTemplate:
+      'Dear {{pmName}}, your monthly Upward subscription payment of NGN {{formattedAmount}} has been deducted from your wallet for {{unitCount}} managed units. Remaining wallet balance: NGN {{formattedWalletBalance}}. Next billing date: {{nextBillingDate}}.',
+    buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
+      buildGlobalLayoutHtml({
+        role: 'PM',
+        title: 'Subscription payment successful',
+        contentHtml: `
+          <p>Dear ${ctx.pmName || 'Property Manager'},</p>
+          <p>Your monthly subscription fee for <strong>${ctx.tierName || 'Upward PM'}</strong> has been successfully deducted from your wallet.</p>
+          <div style="margin: 24px 0; padding: 18px 20px; border: 1px solid rgba(22, 101, 52, 0.14); border-radius: 16px; background: ${theme === 'FOREST' ? 'rgba(22, 101, 52, 0.04)' : 'rgba(234, 88, 12, 0.04)'};">
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Amount Deducted:</strong> NGN ${Number(ctx.amount || 0).toLocaleString()}</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Managed Units Billed:</strong> ${ctx.unitCount || 0} units</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Remaining Wallet Balance:</strong> NGN ${Number(ctx.walletBalance || 0).toLocaleString()}</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Next Scheduled Renewal:</strong> ${ctx.nextBillingDate || 'Next monthly cycle'}</p>
+          </div>
+          <p>You can download the invoice or review past payments anytime from your wallet ledger.</p>
+        `,
+        buttonText: 'View Wallet & Invoices',
+        buttonUrl: `${ctx.baseUrl || 'https://upward.goodtenants.io'}/subscription/wallet`,
+      }),
+  },
+
+  PM_SUBSCRIPTION_FAILED_LOW_BALANCE: {
+    recipientRole: 'PM',
+    subjectTemplate: 'Action Required: Upward subscription deduction failed',
+    plainTextTemplate:
+      'Dear {{pmName}}, your monthly Upward subscription fee of NGN {{formattedAmountDue}} could not be deducted due to insufficient wallet balance (Current: NGN {{formattedCurrentBalance}}). Your account has entered a {{gracePeriodDays}}-day grace period ending on {{graceEndDate}}. Please fund your wallet to keep your account active.',
+    buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
+      buildGlobalLayoutHtml({
+        role: 'PM',
+        title: 'Payment failed - Action required',
+        contentHtml: `
+          <p>Dear ${ctx.pmName || 'Property Manager'},</p>
+          <p>We attempted to deduct your monthly subscription fee of <strong>NGN ${Number(ctx.amountDue || 0).toLocaleString()}</strong>, but your wallet balance was insufficient.</p>
+          <div style="margin: 24px 0; padding: 18px 20px; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; background: rgba(239, 68, 68, 0.04);">
+            <p style="margin: 0 0 8px; font-size: 14px; color: #dc2626;"><strong>Status:</strong> Grace Period Active (${ctx.gracePeriodDays || 7} days)</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Amount Due:</strong> NGN ${Number(ctx.amountDue || 0).toLocaleString()}</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Current Wallet Balance:</strong> NGN ${Number(ctx.currentBalance || 0).toLocaleString()}</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Grace Expiration Date:</strong> ${ctx.graceEndDate || 'in 7 days'}</p>
+          </div>
+          ${
+            ctx.dvaAccountNumber
+              ? `
+          <div style="margin: 16px 0; padding: 16px 20px; border: 1px solid rgba(22, 101, 52, 0.14); border-radius: 12px; background: rgba(22, 101, 52, 0.04);">
+            <p style="margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: #166534; font-weight: 600;">Fund Immediately via Bank Transfer</p>
+            <p style="margin: 0 0 4px; font-size: 16px; font-weight: 700;">Account Number: ${ctx.dvaAccountNumber}</p>
+            <p style="margin: 0; font-size: 13px;">Bank: ${ctx.dvaBankName || 'Wema Bank'} • Account Name: ${ctx.dvaAccountName || 'Upward PM'}</p>
+          </div>
+          `
+              : ''
+          }
+          <p style="font-size: 13px; color: #64748b;">Please fund your wallet before the grace period ends to prevent your account from being locked.</p>
+        `,
+        buttonText: 'Fund Wallet Now',
+        buttonUrl: `${ctx.baseUrl || 'https://upward.goodtenants.io'}/subscription/wallet`,
+      }),
+  },
+
+  PM_SUBSCRIPTION_PRE_INVOICE: {
+    recipientRole: 'PM',
+    subjectTemplate: 'Upcoming Subscription Renewal: NGN {{formattedAmountDue}} due on {{deductionDate}}',
+    plainTextTemplate:
+      'Dear {{pmName}}, this is a friendly reminder that your monthly Upward subscription fee of NGN {{formattedAmountDue}} for {{unitCount}} units will be deducted from your wallet on {{deductionDate}}. Current balance: NGN {{formattedCurrentBalance}}.',
+    buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
+      buildGlobalLayoutHtml({
+        role: 'PM',
+        title: 'Upcoming subscription renewal',
+        contentHtml: `
+          <p>Dear ${ctx.pmName || 'Property Manager'},</p>
+          <p>This is a reminder that your monthly subscription invoice has been generated and is scheduled for automatic deduction in <strong>5 days</strong>.</p>
+          <div style="margin: 24px 0; padding: 18px 20px; border: 1px solid rgba(22, 101, 52, 0.14); border-radius: 16px; background: ${theme === 'FOREST' ? 'rgba(22, 101, 52, 0.04)' : 'rgba(234, 88, 12, 0.04)'};">
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Scheduled Amount:</strong> NGN ${Number(ctx.amountDue || 0).toLocaleString()}</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Deduction Date:</strong> ${ctx.deductionDate || 'in 5 days'}</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Active Units Billed:</strong> ${ctx.unitCount || 0} units</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Current Wallet Balance:</strong> NGN ${Number(ctx.currentBalance || 0).toLocaleString()}</p>
+          </div>
+          ${
+            ctx.isDeficit
+              ? `
+          <p style="color: #ea580c; font-weight: 600;">Your wallet has insufficient balance for this renewal. Please top up at least <strong>NGN ${Number(ctx.deficitAmount || 0).toLocaleString()}</strong> before ${ctx.deductionDate}.</p>
+          `
+              : `<p style="color: #166534;">Your wallet has sufficient balance to cover this renewal automatically.</p>`
+          }
+        `,
+        buttonText: 'Check Wallet Balance',
         buttonUrl: `${ctx.baseUrl || 'https://upward.goodtenants.io'}/subscription/wallet`,
       }),
   },

@@ -310,7 +310,7 @@ export class PrismaUserRepository implements UserRepository {
 
   async findBySlug(profileSlug: string, tx?: any): Promise<User | null> {
     const prisma = tx || this.prisma
-    const record = await prisma.upward_user.findUnique({
+    let record = await prisma.upward_user.findUnique({
       where: { profileSlug },
       include: {
         properties: {
@@ -323,6 +323,45 @@ export class PrismaUserRepository implements UserRepository {
         }
       }
     })
+
+    if (!record) {
+      // Fallback: check if slug ends with an 8-char hex UUID prefix (e.g. "sarah-doe-7870b539")
+      const parts = profileSlug.split('-')
+      const possibleUuidPrefix = parts[parts.length - 1]
+      if (possibleUuidPrefix && possibleUuidPrefix.length >= 6 && /^[0-9a-fA-F]+$/.test(possibleUuidPrefix)) {
+        record = await prisma.upward_user.findFirst({
+          where: {
+            uuid: {
+              startsWith: possibleUuidPrefix,
+            },
+          },
+          include: {
+            properties: {
+              include: this.defaultPropertyInclude,
+            },
+            companyUsers: {
+              include: {
+                company: true,
+              },
+            },
+          },
+        })
+
+        // If found and user has no profileSlug yet, backfill it so future lookups hit the unique index directly
+        if (record && !record.profileSlug) {
+          try {
+            await prisma.upward_user.update({
+              where: { id: record.id },
+              data: { profileSlug },
+            })
+            record.profileSlug = profileSlug
+          } catch {
+            // Ignore unique constraint collision
+          }
+        }
+      }
+    }
+
     return record ? this.toDomain(record) : null
   }
 

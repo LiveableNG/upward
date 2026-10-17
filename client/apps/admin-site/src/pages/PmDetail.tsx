@@ -15,6 +15,14 @@ import {
   XCircle,
   ShieldAlert,
   Award,
+  Wallet,
+  CreditCard,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Receipt,
+  Copy,
+  Check,
+  Clock,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -55,8 +63,55 @@ interface PmDetailData {
   subscription?: {
     tier: 'FREE' | 'TIER_2' | 'TIER_3'
     status: string
+    unitBillingMode?: 'ACTIVE' | 'ALL'
+    anniversaryDate?: number | null
+    priceMonthly?: number
+    priceYearly?: number
   }
   subscriptionLogs?: any[]
+  wallet?: {
+    balance: number
+    currency: string
+    isActive: boolean
+  }
+  dedicatedVirtualAccount?: {
+    accountNumber: string
+    accountName: string
+    bankName: string
+    bankCode: string
+  } | null
+  walletTransactions?: Array<{
+    id: number
+    uuid: string
+    type: string
+    status: string
+    amount: number
+    reference?: string | null
+    narration?: string | null
+    createdAt: string
+  }>
+  subscriptionInvoices?: Array<{
+    id: number
+    uuid: string
+    unitCount: number
+    amount: number
+    invoiceDate: string
+    deductionDate: string
+    paymentStatus: string
+    createdAt: string
+  }>
+  billingSummary?: {
+    totalUnitsCount: number
+    occupiedUnitsCount: number
+    billableUnits: number
+    yearlyRate: number
+    monthlySpend: number
+    yearlySpend: number
+    coverageMonths: number | null
+    walletStatus: string
+    nextBillingDate: string | null
+    daysUntilNextBilling: number | null
+  } | null
 }
 
 const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
@@ -88,11 +143,26 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
   const [editBusinessName, setEditBusinessName] = useState('')
   const [updatingProfile, setUpdatingProfile] = useState(false)
 
-  // Subscription management state
+  // Subscription & Financial State
   const [subTier, setSubTier] = useState<'FREE' | 'TIER_2' | 'TIER_3'>('FREE')
   const [subStatus, setSubStatus] = useState<string>('ACTIVE')
   const [subReason, setSubReason] = useState<string>('')
   const [updatingSubscription, setUpdatingSubscription] = useState(false)
+  const [billingTab, setBillingTab] = useState<'transactions' | 'invoices' | 'logs'>('transactions')
+  const [copiedDva, setCopiedDva] = useState(false)
+  const [copiedRef, setCopiedRef] = useState<string | null>(null)
+
+  const handleCopyText = (text: string, isDva = false) => {
+    if (!text) return
+    navigator.clipboard.writeText(text)
+    if (isDva) {
+      setCopiedDva(true)
+      setTimeout(() => setCopiedDva(false), 2000)
+    } else {
+      setCopiedRef(text)
+      setTimeout(() => setCopiedRef(null), 2000)
+    }
+  }
 
   // Alliance Management State
   const [allianceProfile, setAllianceProfile] = useState<{
@@ -877,20 +947,192 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             </div>
           </div>
 
-          {/* Subscription Management Card */}
+          {/* Subscription & PM Wallet Management Card */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={16} /> Subscription Status
-            </h4>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Wallet size={16} color="var(--accent)" /> Wallet & Subscription
+              </h4>
+              <span
+                className="badge"
+                style={{
+                  backgroundColor:
+                    pm.billingSummary?.walletStatus === 'ACTION_REQUIRED'
+                      ? 'var(--danger-faint)'
+                      : pm.billingSummary?.walletStatus === 'LOW_BALANCE'
+                        ? 'var(--warning-faint)'
+                        : 'var(--success-faint)',
+                  color:
+                    pm.billingSummary?.walletStatus === 'ACTION_REQUIRED'
+                      ? 'var(--danger)'
+                      : pm.billingSummary?.walletStatus === 'LOW_BALANCE'
+                        ? 'var(--warning)'
+                        : 'var(--success)',
+                  fontWeight: 600,
+                  fontSize: '11px',
+                }}
+              >
+                {pm.billingSummary?.walletStatus === 'ACTION_REQUIRED'
+                  ? 'Top-Up Required'
+                  : pm.billingSummary?.walletStatus === 'LOW_BALANCE'
+                    ? 'Low Balance'
+                    : 'Wallet Healthy'}
+              </span>
+            </div>
+
+            {/* Wallet Balance Hero Box */}
+            <div
+              style={{
+                backgroundColor: 'var(--surface-hover)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '16px',
+              }}
+            >
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Current Wallet Balance
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                <span style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+                  ₦{(pm.wallet?.balance ?? 0).toLocaleString()}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {pm.wallet?.currency || 'NGN'}
+                </span>
+              </div>
+
+              {/* Monthly burn / runway indicator */}
+              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border)', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+                <span>Runway:</span>
+                <strong style={{ color: pm.billingSummary?.coverageMonths && pm.billingSummary.coverageMonths < 2 ? 'var(--danger)' : 'var(--text)' }}>
+                  {pm.subscription?.tier === 'FREE'
+                    ? 'Paused (Free Plan)'
+                    : pm.billingSummary?.coverageMonths !== null && pm.billingSummary?.coverageMonths !== undefined
+                      ? `~${pm.billingSummary.coverageMonths} months`
+                      : 'N/A'}
+                </strong>
+              </div>
+              {pm.subscription?.tier !== 'FREE' && (
+                <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Est. Monthly Burn:</span>
+                  <span>₦{pm.billingSummary?.monthlySpend?.toLocaleString() || '0'}/mo ({pm.billingSummary?.billableUnits || 0} units)</span>
+                </div>
+              )}
+            </div>
+
+            {/* Next Billing Date Banner */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                backgroundColor: pm.subscription?.tier === 'FREE' ? 'var(--surface-hover)' : 'rgba(99, 102, 241, 0.06)',
+                border: pm.subscription?.tier === 'FREE' ? '1px solid var(--border)' : '1px solid rgba(99, 102, 241, 0.15)',
+                marginBottom: '16px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  backgroundColor: pm.subscription?.tier === 'FREE' ? 'var(--surface)' : 'rgba(99, 102, 241, 0.15)',
+                  color: pm.subscription?.tier === 'FREE' ? 'var(--text-muted)' : '#6366f1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Clock size={16} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Next Billing Date
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginTop: '1px' }}>
+                  {pm.subscription?.tier === 'FREE'
+                    ? 'No scheduled renewals'
+                    : pm.billingSummary?.nextBillingDate
+                      ? new Date(pm.billingSummary.nextBillingDate).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      : 'Pending Anniversary Setup'}
+                </div>
+              </div>
+              {pm.subscription?.tier !== 'FREE' && pm.billingSummary?.daysUntilNextBilling !== null && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                    color: '#6366f1',
+                  }}
+                >
+                  in {pm.billingSummary?.daysUntilNextBilling}d
+                </span>
+              )}
+            </div>
+
+            {/* Dedicated Top-Up Virtual Account */}
+            {pm.dedicatedVirtualAccount && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--surface-hover)',
+                  border: '1px solid var(--border)',
+                  marginBottom: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Dedicated Top-Up Account
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyText(pm.dedicatedVirtualAccount!.accountNumber, true)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'none',
+                      color: copiedDva ? 'var(--success)' : 'var(--accent)',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      padding: 0,
+                    }}
+                  >
+                    {copiedDva ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedDva ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.05em' }}>
+                  {pm.dedicatedVirtualAccount.accountNumber}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                  {pm.dedicatedVirtualAccount.bankName} • {pm.dedicatedVirtualAccount.accountName}
+                </div>
+              </div>
+            )}
+
+            {/* Plan Tier & Status Summary */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingTop: '4px' }}>
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Plan Tier</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Current Plan</div>
                 <div style={{ fontWeight: 700, fontSize: '15px', color: pm.subscription?.tier === 'TIER_3' ? '#c084fc' : pm.subscription?.tier === 'TIER_2' ? '#38bdf8' : 'var(--text)' }}>
                   {pm.subscription?.tier || 'FREE'}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Status</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Account State</div>
                 <span className="badge" style={{
                   backgroundColor: pm.subscription?.status === 'ACTIVE' ? 'var(--success-faint)' : 'var(--danger-faint)',
                   color: pm.subscription?.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'
@@ -1665,82 +1907,407 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             )}
           </div>
 
-          {/* Subscription Modification Logs */}
+          {/* Subscription Ledger & Financial Invoices Card */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4
+            <div
               style={{
-                margin: '0 0 16px 0',
-                fontSize: '15px',
                 display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                gap: '8px',
+                flexWrap: 'wrap',
+                gap: '12px',
+                marginBottom: '16px',
               }}
             >
-              <Calendar size={16} /> Subscription Audit Log
-            </h4>
-            {pm.subscriptionLogs && pm.subscriptionLogs.length > 0 ? (
-              <div
-                className="table-container"
-                style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
               >
-                <table
+                <CreditCard size={16} /> Subscription Ledger & Operations
+              </h4>
+
+              {/* Segmented Tab Controls */}
+              <div
+                style={{
+                  display: 'flex',
+                  backgroundColor: 'var(--surface-hover)',
+                  padding: '3px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  gap: '2px',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setBillingTab('transactions')}
                   style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    textAlign: 'left',
+                    padding: '6px 12px',
                     fontSize: '12px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    background: billingTab === 'transactions' ? 'var(--white)' : 'transparent',
+                    color: billingTab === 'transactions' ? 'var(--text)' : 'var(--text-muted)',
+                    boxShadow: billingTab === 'transactions' ? 'var(--shadow-sm)' : 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  <thead>
-                    <tr
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <th style={{ padding: '8px 12px' }}>Action</th>
-                      <th style={{ padding: '8px 12px' }}>Tier Change</th>
-                      <th style={{ padding: '8px 12px' }}>Status Change</th>
-                      <th style={{ padding: '8px 12px' }}>Reason</th>
-                      <th style={{ padding: '8px 12px' }}>Admin</th>
-                      <th style={{ padding: '8px 12px' }}>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pm.subscriptionLogs.map((log: any) => (
-                      <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '12px', fontWeight: 600 }}>
-                          <span className="badge" style={{
-                            backgroundColor: log.action === 'REVOKE' ? 'var(--danger-faint)' : log.action === 'UPGRADE' ? 'var(--success-faint)' : 'var(--warning-faint)',
-                            color: log.action === 'REVOKE' ? 'var(--danger)' : log.action === 'UPGRADE' ? 'var(--success)' : 'var(--warning)',
-                          }}>
-                            {log.action}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          {log.previousTier} &rarr; {log.newTier}
-                        </td>
-                        <td style={{ padding: '12px' }}>
-                          {log.previousStatus} &rarr; {log.newStatus}
-                        </td>
-                        <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
-                          {log.reason || '—'}
-                        </td>
-                        <td style={{ padding: '12px', fontStyle: 'italic' }}>
-                          {log.admin?.email || 'System'}
-                        </td>
-                        <td style={{ padding: '12px', color: 'var(--text-muted)' }}>
-                          {new Date(log.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  Transactions ({pm.walletTransactions?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingTab('invoices')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    background: billingTab === 'invoices' ? 'var(--white)' : 'transparent',
+                    color: billingTab === 'invoices' ? 'var(--text)' : 'var(--text-muted)',
+                    boxShadow: billingTab === 'invoices' ? 'var(--shadow-sm)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Invoices ({pm.subscriptionInvoices?.length || 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingTab('logs')}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    background: billingTab === 'logs' ? 'var(--white)' : 'transparent',
+                    color: billingTab === 'logs' ? 'var(--text)' : 'var(--text-muted)',
+                    boxShadow: billingTab === 'logs' ? 'var(--shadow-sm)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Audit Log ({pm.subscriptionLogs?.length || 0})
+                </button>
               </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-                No subscription plan modification records found.
-              </p>
+            </div>
+
+            {/* TAB 1: Wallet Transactions */}
+            {billingTab === 'transactions' && (
+              pm.walletTransactions && pm.walletTransactions.length > 0 ? (
+                <div
+                  className="table-container"
+                  style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}
+                >
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <thead>
+                      <tr
+                        style={{
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <th style={{ padding: '8px 12px' }}>Type</th>
+                        <th style={{ padding: '8px 12px' }}>Amount</th>
+                        <th style={{ padding: '8px 12px' }}>Narration & Ref</th>
+                        <th style={{ padding: '8px 12px' }}>Status</th>
+                        <th style={{ padding: '8px 12px' }}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pm.walletTransactions.map((tx: any) => {
+                        const isCredit = tx.type?.toUpperCase() === 'CREDIT' || tx.type?.toUpperCase() === 'TOPUP' || tx.type?.toUpperCase() === 'DEPOSIT'
+                        return (
+                          <tr key={tx.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '12px' }}>
+                              <span
+                                className="badge"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  backgroundColor: isCredit ? 'var(--success-faint)' : 'rgba(234, 88, 12, 0.08)',
+                                  color: isCredit ? 'var(--success)' : '#ea580c',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {isCredit ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
+                                {isCredit ? 'Credit (Deposit)' : 'Debit (Deduction)'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px', fontWeight: 700, fontSize: '13px', color: isCredit ? 'var(--success)' : 'var(--text)' }}>
+                              {isCredit ? '+' : '-'}₦{Number(tx.amount || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ color: 'var(--text)', fontWeight: 500 }}>
+                                {tx.narration || (isCredit ? 'Wallet Top-up' : 'Monthly subscription fee deduction')}
+                              </div>
+                              {tx.reference && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText(tx.reference)}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    background: 'var(--surface-hover)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '4px',
+                                    padding: '2px 6px',
+                                    fontSize: '10px',
+                                    fontFamily: 'monospace',
+                                    color: copiedRef === tx.reference ? 'var(--success)' : 'var(--text-muted)',
+                                    marginTop: '4px',
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Click to copy reference"
+                                >
+                                  {copiedRef === tx.reference ? <Check size={10} /> : <Copy size={10} />}
+                                  {tx.reference.length > 20 ? `${tx.reference.slice(0, 16)}...` : tx.reference}
+                                </button>
+                              )}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <span
+                                className="badge"
+                                style={{
+                                  backgroundColor:
+                                    tx.status?.toUpperCase() === 'SUCCESS'
+                                      ? 'var(--success-faint)'
+                                      : tx.status?.toUpperCase() === 'PENDING'
+                                        ? 'var(--warning-faint)'
+                                        : 'var(--danger-faint)',
+                                  color:
+                                    tx.status?.toUpperCase() === 'SUCCESS'
+                                      ? 'var(--success)'
+                                      : tx.status?.toUpperCase() === 'PENDING'
+                                        ? 'var(--warning)'
+                                        : 'var(--danger)',
+                                }}
+                              >
+                                {tx.status || 'SUCCESS'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                              {new Date(tx.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <Wallet size={28} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
+                  No wallet ledger transactions recorded for this property manager yet.
+                </div>
+              )
+            )}
+
+            {/* TAB 2: Subscription Invoices */}
+            {billingTab === 'invoices' && (
+              pm.subscriptionInvoices && pm.subscriptionInvoices.length > 0 ? (
+                <div
+                  className="table-container"
+                  style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}
+                >
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <thead>
+                      <tr
+                        style={{
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <th style={{ padding: '8px 12px' }}>Invoice Ref</th>
+                        <th style={{ padding: '8px 12px' }}>Units Billed</th>
+                        <th style={{ padding: '8px 12px' }}>Amount</th>
+                        <th style={{ padding: '8px 12px' }}>Invoice Date</th>
+                        <th style={{ padding: '8px 12px' }}>Deduction Date</th>
+                        <th style={{ padding: '8px 12px' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pm.subscriptionInvoices.map((inv: any) => (
+                        <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '12px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyText(inv.uuid)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: 'var(--surface-hover)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '4px',
+                                padding: '2px 6px',
+                                fontSize: '11px',
+                                fontFamily: 'monospace',
+                                color: copiedRef === inv.uuid ? 'var(--success)' : 'var(--text)',
+                                cursor: 'pointer',
+                              }}
+                              title="Click to copy invoice UUID"
+                            >
+                              {copiedRef === inv.uuid ? <Check size={10} /> : <Copy size={10} />}
+                              INV-{inv.uuid.slice(0, 8)}
+                            </button>
+                          </td>
+                          <td style={{ padding: '12px', fontWeight: 600 }}>
+                            {inv.unitCount} {inv.unitCount === 1 ? 'unit' : 'units'}
+                          </td>
+                          <td style={{ padding: '12px', fontWeight: 700, fontSize: '13px' }}>
+                            ₦{Number(inv.amount || 0).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
+                            {new Date(inv.invoiceDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </td>
+                          <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
+                            {new Date(inv.deductionDate).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                backgroundColor:
+                                  inv.paymentStatus === 'PAID'
+                                    ? 'var(--success-faint)'
+                                    : inv.paymentStatus === 'PENDING'
+                                      ? 'rgba(59, 130, 246, 0.08)'
+                                      : 'var(--danger-faint)',
+                                color:
+                                  inv.paymentStatus === 'PAID'
+                                    ? 'var(--success)'
+                                    : inv.paymentStatus === 'PENDING'
+                                      ? '#3b82f6'
+                                      : 'var(--danger)',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {inv.paymentStatus || 'PENDING'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <Receipt size={28} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
+                  No subscription invoices generated yet for this manager.
+                </div>
+              )
+            )}
+
+            {/* TAB 3: Plan Audit Log */}
+            {billingTab === 'logs' && (
+              pm.subscriptionLogs && pm.subscriptionLogs.length > 0 ? (
+                <div
+                  className="table-container"
+                  style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}
+                >
+                  <table
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <thead>
+                      <tr
+                        style={{
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        <th style={{ padding: '8px 12px' }}>Action</th>
+                        <th style={{ padding: '8px 12px' }}>Tier Change</th>
+                        <th style={{ padding: '8px 12px' }}>Status Change</th>
+                        <th style={{ padding: '8px 12px' }}>Reason</th>
+                        <th style={{ padding: '8px 12px' }}>Admin</th>
+                        <th style={{ padding: '8px 12px' }}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pm.subscriptionLogs.map((log: any) => (
+                        <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '12px', fontWeight: 600 }}>
+                            <span
+                              className="badge"
+                              style={{
+                                backgroundColor:
+                                  log.action === 'REVOKE'
+                                    ? 'var(--danger-faint)'
+                                    : log.action === 'UPGRADE'
+                                      ? 'var(--success-faint)'
+                                      : 'var(--warning-faint)',
+                                color:
+                                  log.action === 'REVOKE'
+                                    ? 'var(--danger)'
+                                    : log.action === 'UPGRADE'
+                                      ? 'var(--success)'
+                                      : 'var(--warning)',
+                              }}
+                            >
+                              {log.action}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            {log.previousTier} &rarr; {log.newTier}
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            {log.previousStatus} &rarr; {log.newStatus}
+                          </td>
+                          <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>
+                            {log.reason || '—'}
+                          </td>
+                          <td style={{ padding: '12px', fontStyle: 'italic' }}>
+                            {log.admin?.email || 'System'}
+                          </td>
+                          <td style={{ padding: '12px', color: 'var(--text-muted)' }}>
+                            {new Date(log.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <Calendar size={28} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
+                  No subscription plan modification records found.
+                </div>
+              )
             )}
           </div>
 

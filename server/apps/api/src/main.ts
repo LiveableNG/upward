@@ -116,6 +116,9 @@ async function bootstrap() {
       'x-api-key',
       'x-client-platform',
       'x-refresh-token',
+      'x-app-version',
+      'x-app-build',
+      'x-requested-with',
     ],
     exposedHeaders: ['Set-Cookie'],
   })

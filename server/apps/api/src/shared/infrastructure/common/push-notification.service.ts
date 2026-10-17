@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common'
-
+import { Injectable, Logger, Optional } from '@nestjs/common'
+import { PrismaDeviceTokenRepository } from '../prisma/repositories/prisma-device-token.repository'
 
 @Injectable()
 export class PushNotificationService {
@@ -10,6 +10,11 @@ export class PushNotificationService {
 
   private accessToken: string | null = null
   private tokenExpiresAt = 0
+
+  constructor(
+    @Optional()
+    private readonly deviceTokenRepo?: PrismaDeviceTokenRepository,
+  ) {}
 
   /** Obtain a short-lived OAuth2 token for FCM HTTP v1 */
   private async getAccessToken(): Promise<string | null> {
@@ -114,6 +119,10 @@ export class PushNotificationService {
         if (!res.ok) {
           const err = await res.text()
           this.logger.error(`FCM send failed for token ${token.slice(0, 16)}…: ${err}`)
+          if (res.status === 404 || err.includes('UNREGISTERED') || err.includes('NotRegistered')) {
+            this.logger.warn(`Pruning dead/unregistered FCM token: ${token.slice(0, 16)}…`)
+            await this.deviceTokenRepo?.removeTokenByValue(token).catch(() => {})
+          }
         }
       }),
     )

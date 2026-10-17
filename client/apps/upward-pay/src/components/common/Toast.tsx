@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import { CheckCircle2, XCircle, Info, X } from 'lucide-react'
 import { generateId } from '@/lib/utils'
+import { haptics } from '@/lib/haptics'
 import '@/styles/toast.css'
 
 type ToastType = 'success' | 'error' | 'info'
@@ -40,6 +41,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         message,
         title:
           title || (type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Notification'),
+      }
+
+      if (type === 'success') {
+        haptics.success()
+      } else if (type === 'error') {
+        haptics.error()
+      } else {
+        haptics.light()
       }
 
       setToasts((prev) => [...prev, newToast])
