@@ -328,17 +328,22 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     recipientRole: 'PM',
     subjectTemplate: 'Subscription Receipt: NGN {{formattedAmount}} deducted',
     plainTextTemplate:
-      'Dear {{pmName}}, your monthly Upward subscription payment of NGN {{formattedAmount}} has been deducted from your wallet for {{unitCount}} managed units. Remaining wallet balance: NGN {{formattedWalletBalance}}. Next billing date: {{nextBillingDate}}.',
+      'Dear {{pmName}}, your monthly Upward subscription payment of NGN {{formattedAmount}} has been deducted from your wallet for {{unitCount}} managed units.{{billingNote}} Remaining wallet balance: NGN {{formattedWalletBalance}}. Next billing date: {{nextBillingDate}}.',
     buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
       buildGlobalLayoutHtml({
         role: 'PM',
         title: 'Subscription payment successful',
         contentHtml: `
           <p>Dear ${ctx.pmName || 'Property Manager'},</p>
-          <p>Your monthly subscription fee for <strong>${ctx.tierName || 'Upward PM'}</strong> has been successfully deducted from your wallet.</p>
+          <p>Your subscription fee for <strong>${ctx.tierName || 'Upward PM'}</strong> has been successfully deducted from your wallet.</p>
           <div style="margin: 24px 0; padding: 18px 20px; border: 1px solid rgba(22, 101, 52, 0.14); border-radius: 16px; background: ${theme === 'FOREST' ? 'rgba(22, 101, 52, 0.04)' : 'rgba(234, 88, 12, 0.04)'};">
             <p style="margin: 0 0 8px; font-size: 14px;"><strong>Amount Deducted:</strong> NGN ${Number(ctx.amount || 0).toLocaleString()}</p>
-            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Managed Units Billed:</strong> ${ctx.unitCount || 0} units</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Managed Units:</strong> ${ctx.unitCount || 0} units</p>
+            ${
+              ctx.billingExplanation
+                ? `<p style="margin: 0 0 8px; font-size: 13px; color: #166534; background: rgba(22, 101, 52, 0.08); padding: 8px 12px; border-radius: 8px;"><strong>Billing Note:</strong> ${ctx.billingExplanation}</p>`
+                : ''
+            }
             <p style="margin: 0 0 8px; font-size: 14px;"><strong>Remaining Wallet Balance:</strong> NGN ${Number(ctx.walletBalance || 0).toLocaleString()}</p>
             <p style="margin: 0; font-size: 14px;"><strong>Next Scheduled Renewal:</strong> ${ctx.nextBillingDate || 'Next monthly cycle'}</p>
           </div>
@@ -389,18 +394,23 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     recipientRole: 'PM',
     subjectTemplate: 'Upcoming Subscription Renewal: NGN {{formattedAmountDue}} due on {{deductionDate}}',
     plainTextTemplate:
-      'Dear {{pmName}}, this is a friendly reminder that your monthly Upward subscription fee of NGN {{formattedAmountDue}} for {{unitCount}} units will be deducted from your wallet on {{deductionDate}}. Current balance: NGN {{formattedCurrentBalance}}.',
+      'Dear {{pmName}}, this is a friendly reminder that your monthly Upward subscription fee of NGN {{formattedAmountDue}} for {{unitCount}} units will be deducted from your wallet on {{deductionDate}}.{{billingNote}} Current balance: NGN {{formattedCurrentBalance}}.',
     buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
       buildGlobalLayoutHtml({
         role: 'PM',
         title: 'Upcoming subscription renewal',
         contentHtml: `
           <p>Dear ${ctx.pmName || 'Property Manager'},</p>
-          <p>This is a reminder that your monthly subscription invoice has been generated and is scheduled for automatic deduction in <strong>5 days</strong>.</p>
+          <p>This is a reminder that your subscription invoice has been generated and is scheduled for automatic deduction in <strong>5 days</strong>.</p>
           <div style="margin: 24px 0; padding: 18px 20px; border: 1px solid rgba(22, 101, 52, 0.14); border-radius: 16px; background: ${theme === 'FOREST' ? 'rgba(22, 101, 52, 0.04)' : 'rgba(234, 88, 12, 0.04)'};">
             <p style="margin: 0 0 8px; font-size: 14px;"><strong>Scheduled Amount:</strong> NGN ${Number(ctx.amountDue || 0).toLocaleString()}</p>
             <p style="margin: 0 0 8px; font-size: 14px;"><strong>Deduction Date:</strong> ${ctx.deductionDate || 'in 5 days'}</p>
-            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Active Units Billed:</strong> ${ctx.unitCount || 0} units</p>
+            <p style="margin: 0 0 8px; font-size: 14px;"><strong>Active Units:</strong> ${ctx.unitCount || 0} units</p>
+            ${
+              ctx.billingExplanation
+                ? `<p style="margin: 0 0 8px; font-size: 13px; color: #166534; background: rgba(22, 101, 52, 0.08); padding: 8px 12px; border-radius: 8px;"><strong>Billing Note:</strong> ${ctx.billingExplanation}</p>`
+                : ''
+            }
             <p style="margin: 0; font-size: 14px;"><strong>Current Wallet Balance:</strong> NGN ${Number(ctx.currentBalance || 0).toLocaleString()}</p>
           </div>
           ${
