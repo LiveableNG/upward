@@ -33,6 +33,26 @@ function formatMonthYear(value?: string | null) {
   return new Date(value).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
 }
 
+function KYCReportSkeleton() {
+  return (
+    <div className="credibility-page animate-pulse" aria-hidden="true">
+      <div className="kyc-report">
+        <div style={{ padding: '36px 24px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: 68, height: 68, borderRadius: '50%', backgroundColor: 'var(--shell-border, #ede8e1)', marginBottom: 14 }} />
+          <div style={{ width: 140, height: 18, borderRadius: 6, backgroundColor: 'var(--shell-border, #ede8e1)', marginBottom: 8 }} />
+          <div style={{ width: 90, height: 12, borderRadius: 4, backgroundColor: 'var(--shell-border, #ede8e1)', marginBottom: 24 }} />
+          <div style={{ width: '100%', height: 96, borderRadius: 14, backgroundColor: 'var(--shell-border, #ede8e1)' }} />
+        </div>
+        <div style={{ padding: '0 24px 24px' }}>
+          <div style={{ width: 120, height: 14, borderRadius: 4, backgroundColor: 'var(--shell-border, #ede8e1)', marginBottom: 12 }} />
+          <div style={{ width: '100%', height: 72, borderRadius: 12, backgroundColor: 'var(--shell-border, #ede8e1)', marginBottom: 12 }} />
+          <div style={{ width: '100%', height: 72, borderRadius: 12, backgroundColor: 'var(--shell-border, #ede8e1)' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportContentProps) {
   const router = useRouter()
   const { isLoggedIn } = useAuth()
@@ -85,13 +105,11 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     }
   }
 
-
-
   if (isLoading || !scoreProfile) {
     if (isPublic) {
       return (
         <PublicProfileShell showSignup={!isLoggedIn} onJoin={() => router.push('/signup')}>
-          <FallbackSuspense />
+          <KYCReportSkeleton />
         </PublicProfileShell>
       )
     }
@@ -101,7 +119,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         showBack
         onBack={() => router.push('/dashboard')}
       >
-        <FallbackSuspense />
+        <KYCReportSkeleton />
       </PayPageShell>
     )
   }

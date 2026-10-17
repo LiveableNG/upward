@@ -271,20 +271,21 @@
    Native Mobile App Transitions & Polish (Flutter/iOS Style)
    ========================================================================== */
 
-/* Page Enter Transition */
+/* Page Enter Transition — Native iOS Fluid Navigation Curve */
 .app-page-transition {
-  animation: appPageEnter 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: appPageEnter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   width: 100%;
+  will-change: transform, opacity;
 }
 
 @keyframes appPageEnter {
   0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translate3d(20px, 0, 0);
   }
   100% {
     opacity: 1;
-    transform: none;
+    transform: translate3d(0, 0, 0);
   }
 }
 
