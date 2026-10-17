@@ -1077,7 +1077,7 @@ import { LocalModelAiProvider } from '../shared/infrastructure/ai/local-model-ai
 import { DocumentPreProcessorEngine } from '../shared/infrastructure/ai/document-pre-processor.engine'
 import { UnstructuredPipelineService } from '../shared/infrastructure/ai/unstructured-pipeline.service'
 import { AiParseDocumentUseCase } from './pm/use-cases/ai/ai-parse-document.use-case'
-import { ConfigService } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 
 UseCases.push(
   AiParseDocumentUseCase,
@@ -1095,6 +1095,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
 
 @Module({
   imports: [
+    ConfigModule,
     PrismaModule,
     S3Module,
     ReceiptModule,

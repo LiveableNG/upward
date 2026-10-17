@@ -11,13 +11,16 @@ export class GoodTenantTenantAppClient {
   private readonly baseUrl: string
   private readonly token: string
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService?: ConfigService) {
     this.baseUrl = (
-      this.configService.get<string>('GOODTENANT_API_BASE_URL') ||
+      this.configService?.get<string>('GOODTENANT_API_BASE_URL') ||
+      process.env.GOODTENANT_API_BASE_URL ||
       'http://liveable-landlord-api.test/api-upward/v1'
     ).replace(/\/$/, '')
     this.token =
-      this.configService.get<string>('GOODTENANT_API_TOKEN') || 'upward-api-token'
+      this.configService?.get<string>('GOODTENANT_API_TOKEN') ||
+      process.env.GOODTENANT_API_TOKEN ||
+      'upward-api-token'
   }
 
   async get(
