@@ -429,7 +429,7 @@ const templates = [
     components: [
       {
         type: 'BODY',
-        text: "Hello {{1}},\n\n*{{2}}* has requested their past tenancy and payment records for *{{3}}*.\n\nFulfilling this request helps your former tenant build their credibility profile on Upward. Log in to your PM dashboard to fulfill the request.\n\n*The Upward Team*",
+        text: "Hello {{1}},\n\n*{{2}}* has requested their tenancy and payment records for *{{3}}*.\n\nFulfilling this request helps your tenant build their credibility profile on Upward. Log in to your PM dashboard to fulfill the request.\n\n*The Upward Team*",
         example: {
           body_text: [['John', 'Jane Doe', '123 Main St']]
         }
