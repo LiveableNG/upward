@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import {
   ShieldCheck,
-  Share2,
   CheckCircle2,
   Home,
   TrendingUp,
@@ -11,12 +10,8 @@ import {
   Clock,
   Zap,
   BadgeCheck,
-  Mail,
-  MessageCircle,
-  MessageSquare,
   Copy,
-  X,
-  ImageIcon,
+  Check,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -26,8 +21,6 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
-import { ShareScorePreviewModal } from '../share/ShareScorePreviewModal'
-import { getScoreRankColor } from '../share/shareScoreImage'
 import { PublicProfileShell } from './PublicProfileShell'
 
 interface KYCReportContentProps {
@@ -57,70 +50,38 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   
   const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
   
-  const [showShareMenu, setShowShareMenu] = useState(false)
-  const [showImagePreview, setShowImagePreview] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  const handleShare = () => {
-    setShowShareMenu(true)
-  }
-
-  const handleShareImage = () => {
-    setShowShareMenu(false)
-    setShowImagePreview(true)
-  }
-
-  const handleShareSocial = async (platform: 'whatsapp' | 'email' | 'sms' | 'copy') => {
+  const handleCopyLink = async () => {
     const p = scoreProfile?.data?.profile
-    const identifier = p?.uuid
+    const identifier = p?.profileSlug || p?.uuid
+    if (!identifier) {
+      toastError('Profile link not available')
+      return
+    }
     const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform() 
-      ? defaultWebUrl 
+    const baseUrl = Capacitor.isNativePlatform()
+      ? defaultWebUrl
       : (typeof window !== 'undefined' ? window.location.origin : defaultWebUrl)
 
     const url = `${baseUrl}/profile/${identifier}`
-    const shareText = `Check out my Rent Credibility Portfolio on Upward: ${url}`
 
-    setShowShareMenu(false)
-
-    if (platform === 'copy') {
-      navigator.clipboard.writeText(url)
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
+      } else {
+        const textArea = document.createElement('textarea')
+        textArea.value = url
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+      }
+      setCopied(true)
       success('Link copied to clipboard!')
-      return
-    }
-
-    let shareUrl = ''
-    if (platform === 'whatsapp') {
-      if (Capacitor.isNativePlatform()) {
-        shareUrl = `whatsapp://send?text=${encodeURIComponent(shareText)}`
-      } else {
-        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
-      }
-    } else if (platform === 'email') {
-      shareUrl = `mailto:?subject=${encodeURIComponent('Rent Credibility Portfolio')}&body=${encodeURIComponent(shareText)}`
-    } else if (platform === 'sms') {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
-      if (isIOS) {
-        shareUrl = `sms:&body=${encodeURIComponent(shareText)}`
-      } else {
-        shareUrl = `sms:?body=${encodeURIComponent(shareText)}`
-      }
-    }
-
-    if (shareUrl) {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const { Share } = await import('@capacitor/share')
-          await Share.share({
-            title: 'Rent Credibility Portfolio',
-            text: shareText,
-            url: url
-          })
-        } catch (e) {
-          window.open(shareUrl, '_system')
-        }
-      } else {
-        window.open(shareUrl, '_blank')
-      }
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      toastError('Failed to copy link')
     }
   }
 
@@ -172,89 +133,13 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     <button
       type="button"
       className="pay-flow__icon-btn"
-      onClick={handleShare}
-      title="Share portfolio"
-      aria-label="Share portfolio"
+      onClick={handleCopyLink}
+      title={copied ? 'Link copied' : 'Copy profile link'}
+      aria-label={copied ? 'Link copied' : 'Copy profile link'}
     >
-      <Share2 size={18} />
+      {copied ? <Check size={18} color="var(--clay)" /> : <Copy size={18} />}
     </button>
   )
-
-  const shareImageModal = !isPublic ? (
-    <ShareScorePreviewModal
-      open={showImagePreview}
-      onClose={() => setShowImagePreview(false)}
-      cardProps={{
-        profileUuid: profile.uuid,
-        name: profile.name,
-        profilePic: profile.profilePic,
-        initials,
-        score,
-        maxScore,
-        rank,
-        band,
-        isScorable,
-        onTimePct: metrics.ptPercentage,
-        longestStreak: metrics.longestStreak,
-        profileRef: `UPW-${profile.profileSlug || 'CORE'}`,
-        rankColor: getScoreRankColor(rank, isScorable, isVerified),
-      }}
-      onShared={(mode) => {
-        if (mode === 'shared') success('Image ready — pick WhatsApp, Instagram, or another app.')
-        else success('Image saved to your device.')
-      }}
-      onError={(message) => toastError(message)}
-    />
-  ) : null
-
-  const shareModal = showShareMenu ? (
-    <div className="share-overlay" onClick={() => setShowShareMenu(false)}>
-      <div className="share-menu" onClick={(e) => e.stopPropagation()}>
-        <div className="share-menu__header">
-          <h4>Share Portfolio</h4>
-          <button type="button" className="share-menu__close" onClick={() => setShowShareMenu(false)}>
-            <X size={16} />
-          </button>
-        </div>
-        <div className="share-menu__options">
-          <button
-            type="button"
-            className="share-menu__option share-menu__option--featured"
-            onClick={handleShareImage}
-          >
-            <div className="share-menu__icon image-color">
-              <ImageIcon size={20} />
-            </div>
-            <span className="share-menu__text">Share as image (Story / WhatsApp)</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('whatsapp')}>
-            <div className="share-menu__icon whatsapp-color">
-              <MessageCircle size={20} />
-            </div>
-            <span className="share-menu__text">WhatsApp</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('email')}>
-            <div className="share-menu__icon email-color">
-              <Mail size={20} />
-            </div>
-            <span className="share-menu__text">Email</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('sms')}>
-            <div className="share-menu__icon sms-color">
-              <MessageSquare size={20} />
-            </div>
-            <span className="share-menu__text">SMS</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('copy')}>
-            <div className="share-menu__icon copy-color">
-              <Copy size={20} />
-            </div>
-            <span className="share-menu__text">Copy Link</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null
 
   const reportCard = (
     <div className="kyc-report">
@@ -488,7 +373,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
           </section>
         ) : null}
 
-        {shareModal}
+        {/* public view ends */}
       </PublicProfileShell>
     )
   }
@@ -502,9 +387,9 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       rightElement={shareHeaderButton}
       footer={
         !isApp ? (
-          <PayFlowPrimaryButton onClick={handleShare}>
-            <Share2 size={18} />
-            Share portfolio
+          <PayFlowPrimaryButton onClick={handleCopyLink}>
+            {copied ? <Check size={18} /> : <Copy size={18} />}
+            {copied ? 'Link copied!' : 'Copy profile link'}
           </PayFlowPrimaryButton>
         ) : undefined
       }
@@ -513,8 +398,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         {unverifiedNotice}
         {reportCard}
       </div>
-      {shareModal}
-      {shareImageModal}
     </PayPageShell>
   )
 }
