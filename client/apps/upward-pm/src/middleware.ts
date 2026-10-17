@@ -33,14 +33,16 @@ export function middleware(request: NextRequest) {
   const refreshToken = request.cookies.get('pm_refresh')?.value
 
   const isAccessExpired = accessToken ? isTokenExpired(accessToken) : true
-  const isLoggedIn = (!!accessToken && !isAccessExpired) || !!refreshToken
+  const isRefreshExpired = refreshToken ? isTokenExpired(refreshToken) : true
+  const isLoggedIn = (!!accessToken && !isAccessExpired) || (!!refreshToken && !isRefreshExpired)
 
   // Landlord Auth
   const landlordAccessToken = request.cookies.get('landlord_access_token')?.value
   const landlordRefreshToken = request.cookies.get('landlord_refresh_token')?.value
   const isLandlordAccessExpired = landlordAccessToken ? isTokenExpired(landlordAccessToken) : true
+  const isLandlordRefreshExpired = landlordRefreshToken ? isTokenExpired(landlordRefreshToken) : true
   const isLandlordLoggedIn =
-    (!!landlordAccessToken && !isLandlordAccessExpired) || !!landlordRefreshToken
+    (!!landlordAccessToken && !isLandlordAccessExpired) || (!!landlordRefreshToken && !isLandlordRefreshExpired)
 
   const isPortalPath = pathname.startsWith('/portal')
 
@@ -54,6 +56,7 @@ export function middleware(request: NextRequest) {
     pathname === '/pm-forgot-password' ||
     pathname.startsWith('/invite') ||
     pathname.startsWith('/pm-invite') ||
+    pathname.startsWith('/public') ||
     pathname.startsWith('/reset-password')
 
   const isPublicRequestPath = pathname.startsWith('/public/requests/')
