@@ -68,7 +68,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const isDashboardHome = pathname === '/dashboard'
-  const isSetupRoute = pathname?.startsWith('/dashboard/setup')
   const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
   const showTermsGate = user && !user.termsAcceptedAt
   const showProfileBlocker =
@@ -79,7 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !isDismissed
   const hideBottomNav =
     !!showProfileBlocker ||
-    !!isSetupRoute ||
+    !!pathname?.startsWith('/dashboard/setup') ||
     !!isHomeRequestRoute ||
     !!pathname?.startsWith('/dashboard/savings/deposit') ||
     !!pathname?.startsWith('/dashboard/notifications') ||
@@ -102,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       )}
       {/* Desktop Global Header */}
-      {!showProfileBlocker && !isSetupRoute && (
+      {!showProfileBlocker && (
         <div className="desktop-only">
           <DashboardHeader />
         </div>
