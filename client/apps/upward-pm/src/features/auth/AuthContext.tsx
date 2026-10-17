@@ -15,7 +15,7 @@ interface AuthContextType {
   loading: boolean
   isLoggedIn: boolean
   login: (user: PropertyManagerProfile) => void
-  logout: () => Promise<void>
+  logout: (options?: { redirectTo?: string | null }) => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = async () => {
+  const logout = async (options?: { redirectTo?: string | null }) => {
     try {
       await authLogout()
     } finally {
@@ -155,8 +155,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear()
       setAccessToken(null)
       setUser(null)
+
+      if (options?.redirectTo === null) {
+        return
+      }
+
+      if (options?.redirectTo) {
+        window.location.href = options.redirectTo
+        return
+      }
       
-      const isPortal = window.location.pathname.startsWith('/portal')
+      const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
       if (isPortal) {
         window.location.href = '/portal/login'
       } else if (Capacitor.isNativePlatform()) {

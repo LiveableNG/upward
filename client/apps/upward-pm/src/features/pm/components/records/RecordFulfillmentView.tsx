@@ -8,6 +8,7 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle2,
+  Check,
   XCircle,
   Building,
   MapPin,
@@ -19,9 +20,11 @@ import {
   ArrowLeft,
   FileText,
   Loader2,
+  LogOut,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { api } from '@/lib/api'
+import { useAuth } from '@/features/auth/AuthContext'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { UpwardLogo } from '@/components/common/UpwardLogo'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput, generateId } from '@/lib/utils'
@@ -30,6 +33,8 @@ import { calculateRentEndDate } from '@/features/pm/utils/rentalDates'
 export interface RentRecordEntry {
   id: string
   amount: number | ''
+  expectedAmount?: number | ''
+  isPartial?: boolean
   paymentDate: string
   periodStart: string
   periodEnd: string
@@ -45,6 +50,7 @@ interface RecordFulfillmentViewProps {
 export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillmentViewProps) {
   const router = useRouter()
   const { success, error } = useToast()
+  const { user, isLoggedIn, logout } = useAuth()
 
   const [requestDetails, setRequestDetails] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -55,6 +61,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
   const [showSuccess, setShowSuccess] = useState(false)
   const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false)
   const [declining, setDeclining] = useState(false)
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -72,6 +79,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             {
               id: generateId('rec'),
               amount: res?.rentAmount ? Number(res.rentAmount) : '',
+              expectedAmount: res?.rentAmount ? Number(res.rentAmount) : '',
+              isPartial: false,
               paymentDate: '',
               periodStart: '',
               periodEnd: '',
@@ -101,18 +110,21 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
     }
   }, [uuid])
 
-  // Field update handler - automatically calculates period end from period start
+  // Field update handler - automatically calculates period end and autofills due date from period start
   const updateRecordField = (id: string, field: keyof RentRecordEntry, value: any) => {
     setPreviewRecords((prev) =>
       prev.map((rec) => {
         if (rec.id !== id) return rec
         const updated = { ...rec, [field]: value }
 
-        // Automatically calculate period end when period start is entered or changed
+        // Automatically calculate period end and autofill due date when period start is entered or changed
         if (field === 'periodStart' && value) {
           const computedEnd = calculateRentEndDate(value, requestDetails?.rentType || 'Annually')
           if (computedEnd) {
             updated.periodEnd = computedEnd
+          }
+          if (!rec.dueDate || rec.dueDate === rec.periodStart) {
+            updated.dueDate = value
           }
         }
 
@@ -129,6 +141,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
         if (field === 'periodStart') {
           delete next[`${id}-periodEnd`]
         }
+        if (field === 'amount' || field === 'expectedAmount') {
+          delete next[`${id}-amount`]
+          delete next[`${id}-expectedAmount`]
+        }
         return next
       })
     }
@@ -139,6 +155,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
     const newRecord: RentRecordEntry = {
       id: generateId('rec'),
       amount: requestDetails?.rentAmount ? Number(requestDetails.rentAmount) : '',
+      expectedAmount: requestDetails?.rentAmount ? Number(requestDetails.rentAmount) : '',
+      isPartial: false,
       paymentDate: '',
       periodStart: '',
       periodEnd: '',
@@ -175,6 +193,14 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
         errors[`${record.id}-amount`] = 'Amount is required'
       }
 
+      if (record.isPartial) {
+        if (!record.expectedAmount || Number(record.expectedAmount) <= 0) {
+          errors[`${record.id}-expectedAmount`] = 'Agreed rent is required for partial payment'
+        } else if (Number(record.amount) > Number(record.expectedAmount)) {
+          errors[`${record.id}-amount`] = 'Amount paid exceeds agreed rent'
+        }
+      }
+
       if (!record.paymentDate) {
         errors[`${record.id}-paymentDate`] = 'Payment date is required'
       }
@@ -205,9 +231,11 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
       const payload = {
         records: previewRecords.map((r) => ({
           amount: Number(r.amount),
+          expectedAmount: r.isPartial && r.expectedAmount !== '' ? Number(r.expectedAmount) : Number(r.amount),
+          isPartial: Boolean(r.isPartial),
           paymentDate: r.paymentDate,
           paidDate: r.paymentDate,
-          dueDate: r.dueDate || r.paymentDate,
+          dueDate: r.dueDate || r.periodStart || r.paymentDate,
           periodStart: r.periodStart || undefined,
           periodEnd: r.periodEnd || undefined,
           notes: r.notes?.trim() || undefined,
@@ -255,15 +283,60 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
     }
   }
 
+  // Account matching detection
+  const requestEmail = requestDetails?.email?.trim().toLowerCase()
+  const userEmail = user?.email?.trim().toLowerCase()
+  const userDisplayName = user?.firstName
+    ? `${user.firstName} ${user.lastName || ''}`.trim()
+    : user?.businessName || user?.email || ''
+  const isEmailMismatch = Boolean(isLoggedIn && userEmail && requestEmail && userEmail !== requestEmail)
+  const isEmailMatch = Boolean(isLoggedIn && userEmail && (!requestEmail || userEmail === requestEmail))
+
+  // Seamless redirect to authenticated dashboard when the logged in PM matches the recipient
+  useEffect(() => {
+    if (isPublic && isEmailMatch && !loading && requestDetails) {
+      router.replace(`/requests/${uuid}`)
+    }
+  }, [isPublic, isEmailMatch, loading, requestDetails, uuid, router])
+
   // Navigation URLs
+  const loginRedirectPath = isPublic ? `/public/requests/${uuid}` : `/requests/${uuid}`
   const pmLoginUrl = Capacitor.isNativePlatform()
     ? '/login'
-    : `/pm-login?redirect=${encodeURIComponent(`/requests/${uuid}`)}`
+    : `/pm-login?redirect=${encodeURIComponent(loginRedirectPath)}${
+        requestDetails?.email ? `&email=${encodeURIComponent(requestDetails.email)}` : ''
+      }`
   const exploreUrl = Capacitor.isNativePlatform() ? '/signup' : '/pm-signup'
 
-  // =========================================================================
-  // State: Loading Skeleton
-  // =========================================================================
+  // Account Switching Handlers
+  const handleSwitchToTargetAccount = async () => {
+    setIsSwitchingAccount(true)
+    try {
+      const targetUrl = Capacitor.isNativePlatform()
+        ? `/login?redirect=${encodeURIComponent(`/requests/${uuid}`)}`
+        : `/pm-login?redirect=${encodeURIComponent(`/requests/${uuid}`)}${
+            requestDetails?.email ? `&email=${encodeURIComponent(requestDetails.email)}` : ''
+          }`
+      await logout({ redirectTo: targetUrl })
+    } catch (err: any) {
+      error(err?.message || 'Failed to switch account.')
+      setIsSwitchingAccount(false)
+    }
+  }
+
+  const handleSignOutAndContinueGuest = async () => {
+    setIsSwitchingAccount(true)
+    try {
+      await logout({ redirectTo: null })
+      success('Signed out. You can now complete this request as a guest.')
+    } catch (err: any) {
+      error(err?.message || 'Failed to sign out.')
+    } finally {
+      setIsSwitchingAccount(false)
+    }
+  }
+
+
   if (loading) {
     return (
       <div className="public-fulfillment">
@@ -332,10 +405,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             <p className="public-fulfillment__status-desc">
               This verification link is invalid, has expired, or may have been removed. If you believe this is an error, please ask your tenant to generate a new request from Upward.
             </p>
-            <div>
+            <div className="public-fulfillment__status-actions">
               <button
                 type="button"
-                className="btn btn--primary"
+                className="btn btn--primary public-fulfillment__status-btn public-fulfillment__status-btn--primary"
                 onClick={() => router.push(Capacitor.isNativePlatform() ? '/login' : '/pm-login')}
               >
                 Go to Upward PM
@@ -389,39 +462,88 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               </div>
               <div className="public-fulfillment__recap-row">
                 <span className="public-fulfillment__recap-label">Status</span>
-                <span className="public-fulfillment__recap-val" style={{ color: 'var(--forest)' }}>
+                <span className="public-fulfillment__recap-badge public-fulfillment__recap-badge--verified">
+                  <Check size={12} strokeWidth={2.5} />
                   Verified
                 </span>
               </div>
             </div>
 
-            {isPublic ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+            {isEmailMismatch ? (
+              <div
+                className="public-fulfillment__account-banner public-fulfillment__account-banner--mismatch"
+                style={{ textAlign: 'left', marginTop: 24, width: '100%' }}
+              >
+                <div className="public-fulfillment__account-banner-header">
+                  <div className="public-fulfillment__account-banner-icon public-fulfillment__account-banner-icon--warning">
+                    <AlertCircle size={20} />
+                  </div>
+                  <div className="public-fulfillment__account-banner-text">
+                    <span className="public-fulfillment__account-banner-badge">
+                      Different Account Logged In
+                    </span>
+                    <h3 className="public-fulfillment__account-banner-title">
+                      You fulfilled this as {user?.email}
+                    </h3>
+                    <p className="public-fulfillment__account-banner-desc">
+                      This request was originally sent to <strong>{requestDetails.email}</strong>. Would you like to switch to that account on Upward?
+                    </p>
+                  </div>
+                </div>
+                <div className="public-fulfillment__account-banner-actions">
+                  <button
+                    type="button"
+                    className="btn btn--primary btn--sm"
+                    disabled={isSwitchingAccount}
+                    onClick={handleSwitchToTargetAccount}
+                  >
+                    {isSwitchingAccount ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Switching account...
+                      </>
+                    ) : (
+                      <>
+                        <LogIn size={14} /> Switch to {requestDetails.email}
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    disabled={isSwitchingAccount}
+                    onClick={handleSignOutAndContinueGuest}
+                  >
+                    <LogOut size={14} /> Sign out
+                  </button>
+                </div>
+              </div>
+            ) : isPublic ? (
+              <div className="public-fulfillment__status-actions">
                 <button
                   type="button"
-                  className="btn btn--primary"
+                  className="btn btn--primary public-fulfillment__status-btn public-fulfillment__status-btn--primary"
                   onClick={() => router.push(exploreUrl)}
-                  style={{ width: '100%', maxWidth: 280 }}
                 >
-                  Explore Upward PM <ArrowRight size={16} />
+                  Explore Upward PM <ArrowRight size={15} />
                 </button>
                 <button
                   type="button"
-                  className="btn btn--secondary"
+                  className="btn btn--secondary public-fulfillment__status-btn public-fulfillment__status-btn--secondary"
                   onClick={() => router.push(pmLoginUrl)}
-                  style={{ width: '100%', maxWidth: 280 }}
                 >
                   <LogIn size={15} /> Log in to PM Portal
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={() => router.push('/requests')}
-              >
-                Back to Requests Hub
-              </button>
+              <div className="public-fulfillment__status-actions">
+                <button
+                  type="button"
+                  className="btn btn--primary public-fulfillment__status-btn public-fulfillment__status-btn--primary"
+                  onClick={() => router.push('/requests')}
+                >
+                  Back to Requests Hub
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -466,17 +588,18 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               </div>
               <div className="public-fulfillment__recap-row">
                 <span className="public-fulfillment__recap-label">Current Status</span>
-                <span className="public-fulfillment__recap-val" style={{ color: 'var(--forest)' }}>
+                <span className="public-fulfillment__recap-badge public-fulfillment__recap-badge--verified">
+                  <Check size={12} strokeWidth={2.5} />
                   Fulfilled
                 </span>
               </div>
             </div>
 
-            <div>
+            <div className="public-fulfillment__status-actions">
               {isPublic ? (
                 <button
                   type="button"
-                  className="btn btn--primary"
+                  className="btn btn--primary public-fulfillment__status-btn public-fulfillment__status-btn--primary"
                   onClick={() => router.push(pmLoginUrl)}
                 >
                   <LogIn size={15} /> Log in to PM Portal
@@ -484,7 +607,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               ) : (
                 <button
                   type="button"
-                  className="btn btn--primary"
+                  className="btn btn--primary public-fulfillment__status-btn public-fulfillment__status-btn--primary"
                   onClick={() => router.push('/requests')}
                 >
                   Back to Requests
@@ -520,10 +643,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             <p className="public-fulfillment__status-desc">
               This verification request was declined. The tenant has been notified that rent records could not be verified.
             </p>
-            <div>
+            <div className="public-fulfillment__status-actions">
               <button
                 type="button"
-                className="btn btn--primary"
+                className="btn btn--primary public-fulfillment__status-btn public-fulfillment__status-btn--primary"
                 onClick={() => router.push(isPublic ? pmLoginUrl : '/requests')}
               >
                 {isPublic ? 'Log in to PM Portal' : 'Back to Requests'}
@@ -578,9 +701,24 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                 <UpwardLogo size={32} color="var(--forest)" />
                 <span className="public-fulfillment__brand-name">Upward</span>
               </div>
-              <div className="public-fulfillment__tag">
-                <ShieldCheck size={13} />
-                Records Verification
+              <div className="public-fulfillment__header-right">
+                {isEmailMismatch ? (
+                  <span className="public-fulfillment__header-user-tag" title={`Logged in as ${user?.email}`}>
+                    Signed in as <strong>{user?.email}</strong>
+                  </span>
+                ) : !isLoggedIn ? (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm public-fulfillment__login-btn"
+                    onClick={() => router.push(pmLoginUrl)}
+                  >
+                    <LogIn size={13} /> Log in
+                  </button>
+                ) : null}
+                <div className="public-fulfillment__tag">
+                  <ShieldCheck size={13} />
+                  Records Verification
+                </div>
               </div>
             </>
           ) : (
@@ -649,33 +787,6 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
           </div>
         </section>
 
-        {/* Optional Contextual Login Banner for Existing PMs */}
-        {isPublic && (
-          <aside className="public-fulfillment__pm-banner" aria-label="Account Access">
-            <div className="public-fulfillment__pm-banner-content">
-              <div className="public-fulfillment__pm-banner-icon">
-                <Building size={18} />
-              </div>
-              <div>
-                <h3 className="public-fulfillment__pm-banner-title">
-                  Already managing properties with Upward?
-                </h3>
-                <p className="public-fulfillment__pm-banner-sub">
-                  Sign in to your account to manage your properties and tenants and monitor your related activity.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="btn btn--secondary btn--sm"
-              onClick={() => router.push(pmLoginUrl)}
-              style={{ whiteSpace: 'nowrap' }}
-            >
-              <LogIn size={14} /> Log in to Upward
-            </button>
-          </aside>
-        )}
-
         {/* Rent History Form Section */}
         <section className="public-fulfillment__section" aria-label="Payment Records Entry">
           <div className="public-fulfillment__section-head">
@@ -714,6 +825,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             <div className="public-fulfillment__records-list">
               {previewRecords.map((record, index) => {
                 const amountError = validationErrors[`${record.id}-amount`]
+                const expectedAmountError = validationErrors[`${record.id}-expectedAmount`]
                 const paymentDateError = validationErrors[`${record.id}-paymentDate`]
                 const periodEndError = validationErrors[`${record.id}-periodEnd`]
 
@@ -723,75 +835,208 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                       <span className="record-entry-card__badge">
                         <Receipt size={14} /> Record #{index + 1}
                       </span>
-                      {previewRecords.length > 1 && (
-                        <button
-                          type="button"
-                          className="record-entry-card__delete-btn"
-                          onClick={() => handleRemoveRecord(record.id)}
-                          aria-label={`Remove record #${index + 1}`}
-                        >
-                          <Trash2 size={14} /> Remove
-                        </button>
-                      )}
+                      <div className="record-entry-card__top-right">
+                        <div className="record-entry-card__type-toggle" role="radiogroup" aria-label="Payment Type">
+                          <button
+                            type="button"
+                            className={`record-entry-card__type-btn ${!record.isPartial ? 'record-entry-card__type-btn--active' : ''}`}
+                            onClick={() => {
+                              updateRecordField(record.id, 'isPartial', false)
+                              if (record.expectedAmount) {
+                                updateRecordField(record.id, 'amount', record.expectedAmount)
+                              }
+                            }}
+                          >
+                            Full Payment
+                          </button>
+                          <button
+                            type="button"
+                            className={`record-entry-card__type-btn ${record.isPartial ? 'record-entry-card__type-btn--active-partial' : ''}`}
+                            onClick={() => {
+                              updateRecordField(record.id, 'isPartial', true)
+                              if (!record.expectedAmount && requestDetails?.rentAmount) {
+                                updateRecordField(record.id, 'expectedAmount', Number(requestDetails.rentAmount))
+                              }
+                            }}
+                          >
+                            Partial Payment
+                          </button>
+                        </div>
+                        {previewRecords.length > 1 && (
+                          <button
+                            type="button"
+                            className="record-entry-card__delete-btn"
+                            onClick={() => handleRemoveRecord(record.id)}
+                            aria-label={`Remove record #${index + 1}`}
+                          >
+                            <Trash2 size={14} /> Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="record-entry-card__grid">
                       {/* Row 1: Payment Details */}
-                      <div className="record-entry-card__row record-entry-card__row--two">
-                        <div className="record-field">
-                          <label className="record-field__label" htmlFor={`amount-${record.id}`}>
-                            <span>
-                              Rent Amount <span className="record-field__required">*</span>
-                            </span>
-                            <span className="record-field__hint">NGN</span>
-                          </label>
-                          <div className="record-field__input-wrap">
-                            <span className="record-field__currency-prefix">₦</span>
-                            <input
-                              id={`amount-${record.id}`}
-                              type="text"
-                              inputMode="numeric"
-                              className={`record-field__input record-field__input--currency ${amountError ? 'record-field__input--error' : ''}`}
-                              placeholder="e.g. 2,100,000"
-                              value={record.amount !== '' ? formatCurrencyInput(record.amount) : ''}
-                              onChange={(e) => {
-                                const parsed = parseCurrencyInput(e.target.value)
-                                updateRecordField(record.id, 'amount', parsed !== null ? parsed : '')
-                              }}
-                            />
+                      {record.isPartial ? (
+                        <>
+                          <div className="record-entry-card__row record-entry-card__row--two">
+                            <div className="record-field">
+                              <label className="record-field__label" htmlFor={`amount-${record.id}`}>
+                                <span>
+                                  Amount Paid <span className="record-field__required">*</span>
+                                </span>
+                                <span className="record-field__hint">What tenant paid</span>
+                              </label>
+                              <div className="record-field__input-wrap">
+                                <span className="record-field__currency-prefix">₦</span>
+                                <input
+                                  id={`amount-${record.id}`}
+                                  type="text"
+                                  inputMode="numeric"
+                                  className={`record-field__input record-field__input--currency ${amountError ? 'record-field__input--error' : ''}`}
+                                  placeholder="e.g. 1,500,000"
+                                  value={record.amount !== '' ? formatCurrencyInput(record.amount) : ''}
+                                  onChange={(e) => {
+                                    const parsed = parseCurrencyInput(e.target.value)
+                                    updateRecordField(record.id, 'amount', parsed !== null ? parsed : '')
+                                  }}
+                                />
+                              </div>
+                              {amountError && (
+                                <span className="record-field__error-msg">{amountError}</span>
+                              )}
+                            </div>
+
+                            <div className="record-field">
+                              <label className="record-field__label" htmlFor={`expected-${record.id}`}>
+                                <span>
+                                  Agreed Rent for Cycle <span className="record-field__required">*</span>
+                                </span>
+                                <span className="record-field__hint">Full agreed amount</span>
+                              </label>
+                              <div className="record-field__input-wrap">
+                                <span className="record-field__currency-prefix">₦</span>
+                                <input
+                                  id={`expected-${record.id}`}
+                                  type="text"
+                                  inputMode="numeric"
+                                  className={`record-field__input record-field__input--currency ${expectedAmountError ? 'record-field__input--error' : ''}`}
+                                  placeholder="e.g. 2,100,000"
+                                  value={record.expectedAmount !== '' && record.expectedAmount !== undefined ? formatCurrencyInput(record.expectedAmount) : ''}
+                                  onChange={(e) => {
+                                    const parsed = parseCurrencyInput(e.target.value)
+                                    updateRecordField(record.id, 'expectedAmount', parsed !== null ? parsed : '')
+                                  }}
+                                />
+                              </div>
+                              {expectedAmountError && (
+                                <span className="record-field__error-msg">{expectedAmountError}</span>
+                              )}
+                            </div>
                           </div>
-                          {amountError && (
-                            <span className="record-field__error-msg">{amountError}</span>
-                          )}
-                        </div>
 
-                        <div className="record-field">
-                          <label className="record-field__label" htmlFor={`paydate-${record.id}`}>
-                            <span>
-                              Payment Date <span className="record-field__required">*</span>
+                          {/* Outstanding Balance Breakdown */}
+                          <div className="record-entry-card__partial-summary">
+                            <span className="record-entry-card__partial-tag">
+                              ◐ Partial Payment
                             </span>
-                            <span className="record-field__hint">Date received</span>
-                          </label>
-                          <input
-                            id={`paydate-${record.id}`}
-                            type="date"
-                            className={`record-field__input ${paymentDateError ? 'record-field__input--error' : ''}`}
-                            value={record.paymentDate}
-                            onChange={(e) =>
-                              updateRecordField(record.id, 'paymentDate', e.target.value)
-                            }
-                          />
-                          {paymentDateError && (
-                            <span className="record-field__error-msg">{paymentDateError}</span>
-                          )}
-                        </div>
-                      </div>
+                            {record.expectedAmount !== '' && record.expectedAmount !== undefined && record.amount !== '' && (
+                              <>
+                                <span className="record-entry-card__partial-percent">
+                                  Outstanding balance: {formatCurrency(Math.max(0, Number(record.expectedAmount) - Number(record.amount)), requestDetails?.currency || 'NGN')}
+                                </span>
+                                {Number(record.expectedAmount) > 0 && (
+                                  <span className="record-entry-card__partial-percent">
+                                    ({Math.min(100, Math.round((Number(record.amount) / Number(record.expectedAmount)) * 100))}% paid)
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="record-entry-card__row record-entry-card__row--two">
+                          <div className="record-field">
+                            <label className="record-field__label" htmlFor={`amount-${record.id}`}>
+                              <span>
+                                Rent Amount <span className="record-field__required">*</span>
+                              </span>
+                              <span className="record-field__hint">NGN</span>
+                            </label>
+                            <div className="record-field__input-wrap">
+                              <span className="record-field__currency-prefix">₦</span>
+                              <input
+                                id={`amount-${record.id}`}
+                                type="text"
+                                inputMode="numeric"
+                                className={`record-field__input record-field__input--currency ${amountError ? 'record-field__input--error' : ''}`}
+                                placeholder="e.g. 2,100,000"
+                                value={record.amount !== '' ? formatCurrencyInput(record.amount) : ''}
+                                onChange={(e) => {
+                                  const parsed = parseCurrencyInput(e.target.value)
+                                  updateRecordField(record.id, 'amount', parsed !== null ? parsed : '')
+                                }}
+                              />
+                            </div>
+                            {amountError && (
+                              <span className="record-field__error-msg">{amountError}</span>
+                            )}
+                          </div>
 
-                      {/* Row 2: Rental Period */}
+                          <div className="record-field">
+                            <label className="record-field__label" htmlFor={`paydate-${record.id}`}>
+                              <span>
+                                Payment Date <span className="record-field__required">*</span>
+                              </span>
+                              <span className="record-field__hint">Date received</span>
+                            </label>
+                            <input
+                              id={`paydate-${record.id}`}
+                              type="date"
+                              className={`record-field__input ${paymentDateError ? 'record-field__input--error' : ''}`}
+                              value={record.paymentDate}
+                              onChange={(e) =>
+                                updateRecordField(record.id, 'paymentDate', e.target.value)
+                              }
+                            />
+                            {paymentDateError && (
+                              <span className="record-field__error-msg">{paymentDateError}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Payment Date Row when Partial */}
+                      {record.isPartial && (
+                        <div className="record-entry-card__row record-entry-card__row--two">
+                          <div className="record-field">
+                            <label className="record-field__label" htmlFor={`paydate-${record.id}`}>
+                              <span>
+                                Payment Date <span className="record-field__required">*</span>
+                              </span>
+                              <span className="record-field__hint">Date received</span>
+                            </label>
+                            <input
+                              id={`paydate-${record.id}`}
+                              type="date"
+                              className={`record-field__input ${paymentDateError ? 'record-field__input--error' : ''}`}
+                              value={record.paymentDate}
+                              onChange={(e) =>
+                                updateRecordField(record.id, 'paymentDate', e.target.value)
+                              }
+                            />
+                            {paymentDateError && (
+                              <span className="record-field__error-msg">{paymentDateError}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tenancy Period and Due Date */}
                       <div className="record-entry-card__row record-entry-card__row--three">
                         <div className="record-field">
                           <label className="record-field__label" htmlFor={`pstart-${record.id}`}>
-                            Period Start
+                            <span>Period Start</span>
                           </label>
                           <input
                             id={`pstart-${record.id}`}
@@ -825,7 +1070,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
 
                         <div className="record-field">
                           <label className="record-field__label" htmlFor={`due-${record.id}`}>
-                            Due Date
+                            <span>Due Date</span>
+                            <span className="record-field__hint">
+                              {record.dueDate && record.dueDate === record.periodStart ? 'Auto-filled' : 'Payment deadline'}
+                            </span>
                           </label>
                           <input
                             id={`due-${record.id}`}
