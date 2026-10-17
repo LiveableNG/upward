@@ -26,6 +26,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: scoreProfile } = useScoreProfile()
   const [blockerDismissed, setBlockerDismissed] = useState(false)
 
+  // Check persistent dismissal state for current user session
+  const isSkippedInStorage =
+    typeof window !== 'undefined' && user?.uuid
+      ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
+      : false
+
+  const isDismissed = blockerDismissed || isSkippedInStorage
+
+  const handleSkipBlocker = () => {
+    if (typeof window !== 'undefined' && user?.uuid) {
+      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+    }
+    setBlockerDismissed(true)
+  }
+
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 
 
@@ -61,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     isDashboardHome &&
     user &&
     !isProfileSetupComplete(user) &&
-    !blockerDismissed
+    !isDismissed
   const hideBottomNav =
     !!showProfileBlocker ||
     !!isSetupRoute ||
@@ -83,7 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           score={scoreProfile?.data?.score}
           maxScore={scoreProfile?.data?.maxScore}
           profileCompletion={scoreProfile?.data?.profile?.profileCompletion}
-          onSkip={() => setBlockerDismissed(true)}
+          onSkip={handleSkipBlocker}
         />
       )}
       {/* Desktop Global Header */}
