@@ -15,7 +15,7 @@ interface AuthContextType {
   loading: boolean
   isLoggedIn: boolean
   login: (user: PropertyManagerProfile) => void
-  logout: (options?: { redirectTo?: string | null }) => Promise<void>
+  logout: (options?: { redirectTo?: string | null } | unknown) => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = async (options?: { redirectTo?: string | null }) => {
+  const logout = async (options?: { redirectTo?: string | null } | unknown) => {
     try {
       await authLogout()
     } finally {
@@ -156,12 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null)
       setUser(null)
 
-      if (options?.redirectTo === null) {
+      const opts = (options && typeof options === 'object' && 'redirectTo' in options)
+        ? (options as { redirectTo?: string | null })
+        : undefined
+
+      if (opts?.redirectTo === null) {
         return
       }
 
-      if (options?.redirectTo) {
-        window.location.href = options.redirectTo
+      if (opts?.redirectTo) {
+        window.location.href = opts.redirectTo
         return
       }
       
