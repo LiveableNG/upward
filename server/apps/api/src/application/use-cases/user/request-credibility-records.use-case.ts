@@ -91,6 +91,13 @@ export class RequestCredibilityRecordsUseCase {
         tenantName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant';
       }
 
+      const isPastTenancy = !!property?.isPastTenancy;
+      const tenantRelation = isPastTenancy ? 'former tenant' : 'tenant';
+      const tenantLabel = isPastTenancy ? 'Your former tenant' : 'Your tenant';
+      const recordsDescription = isPastTenancy
+        ? 'past tenancy and rental payment records'
+        : 'tenancy and rental payment records';
+
       await this.unifiedCommService.processCommunication({
         recipientEmail: requestEmail,
         recipientPhone: requestPhone,
@@ -105,6 +112,10 @@ export class RequestCredibilityRecordsUseCase {
           requestLink,
           loginLink,
           isRegisteredPm,
+          isPastTenancy,
+          tenantRelation,
+          tenantLabel,
+          recordsDescription,
         },
       });
 

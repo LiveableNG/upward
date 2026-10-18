@@ -33,18 +33,20 @@ export function middleware(request: NextRequest) {
   const refreshToken = request.cookies.get('pm_refresh')?.value
 
   const isAccessExpired = accessToken ? isTokenExpired(accessToken) : true
-  const isLoggedIn = (!!accessToken && !isAccessExpired) || !!refreshToken
+  const isRefreshExpired = refreshToken ? isTokenExpired(refreshToken) : true
+  const isLoggedIn = (!!accessToken && !isAccessExpired) || (!!refreshToken && !isRefreshExpired)
 
   // Landlord Auth
   const landlordAccessToken = request.cookies.get('landlord_access_token')?.value
   const landlordRefreshToken = request.cookies.get('landlord_refresh_token')?.value
   const isLandlordAccessExpired = landlordAccessToken ? isTokenExpired(landlordAccessToken) : true
+  const isLandlordRefreshExpired = landlordRefreshToken ? isTokenExpired(landlordRefreshToken) : true
   const isLandlordLoggedIn =
-    (!!landlordAccessToken && !isLandlordAccessExpired) || !!landlordRefreshToken
+    (!!landlordAccessToken && !isLandlordAccessExpired) || (!!landlordRefreshToken && !isLandlordRefreshExpired)
 
   const isPortalPath = pathname.startsWith('/portal')
 
-  const isPublicPath =
+  const isAuthOnlyPath =
     pathname === '/welcome' ||
     pathname === '/login' ||
     pathname === '/signup' ||
@@ -52,11 +54,7 @@ export function middleware(request: NextRequest) {
     pathname === '/pm-signup' ||
     pathname === '/forgot-password' ||
     pathname === '/pm-forgot-password' ||
-    pathname.startsWith('/invite') ||
-    pathname.startsWith('/pm-invite') ||
     pathname.startsWith('/reset-password')
-
-  const isPublicRequestPath = pathname.startsWith('/public/requests/')
 
   // Gateway-style aliases (/pm-login) map to internal auth routes (/login)
   if (pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/pm-forgot-password') {
@@ -95,17 +93,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // PM Auth Logic
-  if (isPublicPath && isLoggedIn) {
-    return NextResponse.redirect(new URL('/dashboard', baseUrl))
+  // Always allow public request fulfillment paths without redirecting to dashboard
+  if (pathname.startsWith('/public/requests')) {
+    return NextResponse.next()
   }
 
-  if (isPublicRequestPath) {
-    if (isLoggedIn) {
-      const newPath = pathname.replace('/public/requests/', '/requests/')
-      return NextResponse.redirect(new URL(newPath + search, baseUrl))
-    }
-    return NextResponse.next()
+  const isPublicPage =
+    isAuthOnlyPath ||
+    pathname === '/' ||
+    pathname.startsWith('/invite') ||
+    pathname.startsWith('/pm-invite') ||
+    pathname.startsWith('/public') ||
+    pathname.startsWith('/reset-password')
+
+  // PM Auth Logic: Auth-only entry pages redirect to dashboard if already logged in
+  if (isAuthOnlyPath && isLoggedIn) {
+    return NextResponse.redirect(new URL('/dashboard', baseUrl))
   }
 
   // Root path handling
@@ -115,7 +118,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Protected paths
-  if (!isPublicPath && !isLoggedIn && !pathname.startsWith('/api')) {
+  if (!isPublicPage && !isLoggedIn && !pathname.startsWith('/api')) {
     const loginUrl = new URL('/pm-login', baseUrl)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)

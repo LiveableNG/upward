@@ -40,6 +40,8 @@ export class CronController {
         paymentreminders: 'reminders',
         processscheduledrequests: 'reminders',
         refunds: 'settlements',
+        billing: 'subscriptionBilling',
+        subscriptions: 'subscriptionBilling',
       }
 
       for (const raw of tasks.split(',').map((t) => t.trim()).filter(Boolean)) {

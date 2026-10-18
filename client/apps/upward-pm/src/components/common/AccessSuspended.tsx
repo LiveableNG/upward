@@ -333,7 +333,7 @@ export function AccessSuspended() {
               </button>
 
               <button
-                onClick={logout}
+                onClick={() => logout()}
                 style={{
                   width: '100%',
                   background: 'none',
@@ -630,7 +630,7 @@ export function AccessSuspended() {
                   </button>
 
                   <button
-                    onClick={logout}
+                    onClick={() => logout()}
                     style={{
                       width: '100%',
                       background: 'none',

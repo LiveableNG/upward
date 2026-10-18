@@ -6,8 +6,14 @@ import { SendNotificationUseCase } from '../notifications/notification.use-cases
 interface FulfillRequestInput {
   records: {
     amount: number;
-    dueDate: string;
-    paidDate: string;
+    expectedAmount?: number;
+    isPartial?: boolean;
+    dueDate?: string;
+    paidDate?: string;
+    paymentDate?: string;
+    periodStart?: string;
+    periodEnd?: string;
+    notes?: string;
   }[];
 }
 

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Building2, CreditCard, History, Home, User } from 'lucide-react'
 import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
+import { haptics } from '@/lib/haptics'
 
 const SIDE_NAV_ITEMS = [
   { label: 'Home', icon: Home, href: '/dashboard', requiresMyHome: false, hideOnDashboard: true },
@@ -59,6 +60,11 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               className={`bottom-nav__item ${active ? 'bottom-nav__item--active' : ''}`}
+              onClick={() => {
+                if (!active) {
+                  haptics.selection()
+                }
+              }}
             >
               <span className="bottom-nav__icon-pill">
                 <span className="bottom-nav__icon">

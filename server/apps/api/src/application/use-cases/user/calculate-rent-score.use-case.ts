@@ -34,7 +34,13 @@ function getTranchesForCycle(cycle: any, successfulTransactions: any[]): { amoun
       tranches.push({ amount: amountOwed, paidAt: null })
     }
   } else {
-    if (cycle.status === 'PAID_ON_TIME' || cycle.status === 'PAID' || cycle.status === 'PAID_LATE') {
+    if (
+      cycle.status === 'PAID_ON_TIME' ||
+      cycle.status === 'PAID' ||
+      cycle.status === 'PAID_LATE' ||
+      cycle.status === 'PARTIAL_ON_TIME' ||
+      cycle.status === 'PARTIAL_LATE'
+    ) {
       if (cycle.amountPaid > 0) {
         tranches.push({ amount: cycle.amountPaid, paidAt: cycle.paidAt ? new Date(cycle.paidAt) : new Date(cycle.updatedAt) })
       }

@@ -10,6 +10,7 @@ export interface User {
   phone?: string | null
   phoneHash?: string | null
   passwordHash: string
+  role?: string
   authProvider?: string
   providerId?: string | null
   gender?: string | null

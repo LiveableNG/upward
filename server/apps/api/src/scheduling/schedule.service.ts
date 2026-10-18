@@ -14,7 +14,7 @@ import { SendUniversityApplicationDailyDigestUseCase } from '../application/use-
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import { S3Service } from '../shared/infrastructure/common/s3/s3.service'
-
+import { SubscriptionBillingScheduler } from './subscription-billing.scheduler'
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
@@ -37,10 +37,13 @@ export class ScheduleService implements OnModuleInit {
     private readonly sendUniversityApplicationDailyDigestUseCase: SendUniversityApplicationDailyDigestUseCase,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
+    private readonly subscriptionBillingScheduler: SubscriptionBillingScheduler,
   ) {
     this.timeZone =
-      this.config.get<string>('SCHEDULE_TIMEZONE') ||
-      this.config.get<string>('TZ') ||
+      this.config?.get<string>('SCHEDULE_TIMEZONE') ||
+      this.config?.get<string>('TZ') ||
+      process.env.SCHEDULE_TIMEZONE ||
+      process.env.TZ ||
       'Africa/Lagos'
   }
 
@@ -127,7 +130,12 @@ export class ScheduleService implements OnModuleInit {
     })
       .dailyAt('03:00')
       .withoutOverlapping()
-      .description('Daily cleanup of mock dev emails from S3 and database')
+    s.call('subscriptionBilling', async () => {
+      await this.subscriptionBillingScheduler.processBillingCycles()
+    })
+      .dailyAt('00:00')
+      .withoutOverlapping()
+      .description('Daily subscription billing deductions and invoice generation')
 
     return s
   }

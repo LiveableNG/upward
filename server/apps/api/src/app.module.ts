@@ -18,6 +18,7 @@ import { AllExceptionsFilter } from './shared/infrastructure/common/filters/all-
 import { EventsModule } from './application/events/events.module'
 import { HttpModule } from './interfaces/http/http.module'
 import { ActivityTrackingModule } from './shared/infrastructure/activity-tracking/activity-tracking.module'
+import { AppVersionModule } from './shared/infrastructure/app-version/app-version.module'
 import { SchedulingModule } from './scheduling/scheduling.module'
 import { SubscriptionModule } from './domains/subscription/subscription.module'
 
@@ -42,6 +43,7 @@ import { CommunicationModule } from './shared/infrastructure/communication/commu
     LocationModule,
     BugsnagModule,
     ActivityTrackingModule,
+    AppVersionModule,
     SchedulingModule,
     SubscriptionModule,
 

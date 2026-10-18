@@ -24,7 +24,7 @@ export class ActivityTrackingListener {
           if (pm) {
             pmId = pm.id;
           }
-        } else if (event.userRole === 'TENANT') {
+        } else if (event.userRole === 'TENANT' || !event.userRole || event.userRole === 'GUEST') {
           const user = await this.prisma.upward_user.findUnique({
             where: { uuid: event.userUuid },
             select: { id: true },
@@ -32,6 +32,17 @@ export class ActivityTrackingListener {
           if (user) {
             userId = user.id;
           }
+        }
+      }
+
+      // Fallback: If userId not resolved yet, but we have userEmail
+      if (!userId && event.userEmail && (event.userRole === 'TENANT' || !event.userRole || event.userRole === 'GUEST')) {
+        const user = await this.prisma.upward_user.findFirst({
+          where: { email: { equals: event.userEmail, mode: 'insensitive' } },
+          select: { id: true },
+        });
+        if (user) {
+          userId = user.id;
         }
       }
 

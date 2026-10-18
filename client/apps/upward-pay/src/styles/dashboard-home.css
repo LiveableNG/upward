@@ -1042,6 +1042,18 @@
   font-weight: 700;
   color: var(--text, #1a1714);
   cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.dash-home__app-store-btn:hover {
+  background: #fdfcfb;
+  border-color: #d8cdbf;
+  transform: translateY(-1px);
+}
+
+.dash-home__app-store-btn:active {
+  transform: scale(0.98);
 }
 
 .dash-home__app-banner-dismiss {

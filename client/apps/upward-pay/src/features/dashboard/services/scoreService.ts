@@ -53,6 +53,7 @@ export function useScoreProfile() {
   return useQuery<ScoreProfile>({
     queryKey: ['scoreProfile'],
     queryFn: fetchScoreProfile,
+    staleTime: 60 * 1000,
   })
 }
 
@@ -61,5 +62,6 @@ export function usePublicScoreProfile(slug: string) {
     queryKey: ['publicScoreProfile', slug],
     queryFn: () => request<ScoreProfile>(`/public/profile/${slug}`, { method: 'GET' }),
     enabled: !!slug,
+    staleTime: 60 * 1000,
   })
 }

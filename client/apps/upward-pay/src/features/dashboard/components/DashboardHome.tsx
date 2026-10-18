@@ -464,14 +464,24 @@ export function DashboardHome({
             <h4 className="dash-home__app-banner-title">Get the Upward App</h4>
             <p className="dash-home__app-banner-desc">Manage your lease and build credit on the go.</p>
             <div className="dash-home__app-banner-btns">
-              <button type="button" className="dash-home__app-store-btn">
+              <a
+                href="https://apps.apple.com/us/app/upwardpay/id6807898152"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dash-home__app-store-btn"
+              >
                 <AppleIcon size={16} />
                 <span>App Store</span>
-              </button>
-              <button type="button" className="dash-home__app-store-btn">
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.goodtenants.upward"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dash-home__app-store-btn"
+              >
                 <PlayStoreIcon size={16} colored />
                 <span>Play Store</span>
-              </button>
+              </a>
             </div>
           </div>
         )}
