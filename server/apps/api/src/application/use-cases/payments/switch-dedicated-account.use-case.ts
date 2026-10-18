@@ -111,7 +111,7 @@ export class SwitchDedicatedAccountUseCase {
     })
     const isTargetTitan = targetBank === 'titan-paystack'
 
-    if (matchingExisting && matchingExisting.accountNumber !== currentActive?.accountNumber) {
+    if (matchingExisting) {
       this.logger.log(`Activating existing cached DVA for ${targetBank}: ${matchingExisting.accountNumber}`)
       // Only set as permanent default if target bank is Titan or if user has no Titan account
       if (!hasTitan || isTargetTitan) {
